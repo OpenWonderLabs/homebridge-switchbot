@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: SwitchBot (Official website)
+     url: https://www.switch-bot.com/
+     about: The Offical SwitchBot Website.
+  - name: Facebook @SwitchBotRobot
+     url: https://www.facebook.com/SwitchBotRobot/
+     about: The Offical SwitchBot Facebook Page.
+  - name: Twitter @SwitchBot
+     url: https://twitter.com/switchbot
+     about: The Offical SwitchBot Twitter.
+  - name: Homebridge Discord Channel for SwitchBot
+    url: https://discord.gg/5wYTbwP4ha
+    about: Feel free to ask questions here.
