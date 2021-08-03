@@ -38,12 +38,12 @@ export class Meter {
     this.CurrentRelativeHumidity = 0;
     this.CurrentTemperature = 0;
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      let colon = device.deviceId!.match(/.{1,2}/g);
-      let bleMac = colon!.join(":"); //returns 1A:23:B4:56:78:9A;
-      this.device.bleMac = bleMac
+      const colon = device.deviceId!.match(/.{1,2}/g);
+      const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
+      this.device.bleMac = bleMac;
       if (this.platform.debugMode) {
-        this.platform.log.warn(this.device.bleMac)
-      };
+        this.platform.log.warn(this.device.bleMac);
+      }
     }
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API

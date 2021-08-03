@@ -5,7 +5,6 @@ import { debounceTime, skipWhile, tap } from 'rxjs/operators';
 import { DeviceURL, device, deviceStatusResponse } from '../settings';
 import { AxiosResponse } from 'axios';
 
-
 /**
  * Platform Accessory
  * An instance of this class is created for each accessory your platform registers
@@ -37,14 +36,15 @@ export class Bot {
     }
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
       this.switchOn = false;
-      const SwitchBot = require("node-switchbot");
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const SwitchBot = require('node-switchbot');
       this.switchbot = new SwitchBot();
-      let colon = device.deviceId!.match(/.{1,2}/g);
-      let bleMac = colon!.join(":"); //returns 1A:23:B4:56:78:9A;
-      this.device.bleMac = bleMac
+      const colon = device.deviceId!.match(/.{1,2}/g);
+      const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
+      this.device.bleMac = bleMac;
       if (this.platform.debugMode) {
-        this.platform.log.warn(this.device.bleMac)
-      };
+        this.platform.log.warn(this.device.bleMac);
+      }
     }
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
@@ -140,7 +140,7 @@ export class Bot {
    */
   async refreshStatus() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      this.platform.log.warn("BLE DEVICE!")
+      this.platform.log.warn('BLE DEVICE!');
     } else {
       try {
         // this.platform.log.error('Bot - Reading', `${DeviceURL}/${this.device.deviceID}/devices`);
@@ -177,7 +177,7 @@ export class Bot {
    */
   async pushChanges() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-this.platform.log.warn("BLE DEVICE!")
+      this.platform.log.warn('BLE DEVICE!');
     } else {
       const payload = {
         commandType: 'command',
@@ -275,30 +275,30 @@ this.platform.log.warn("BLE DEVICE!")
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
       const targetState = value as boolean;
       if (targetState === this.switchOn) {
-        this.platform.log.info("Target state of Bot has not changed: " + (this.switchOn ? "ON" : "OFF"));
+        this.platform.log.info('Target state of Bot has not changed: ' + (this.switchOn ? 'ON' : 'OFF'));
         this.service?.getCharacteristic(this.platform.Characteristic.On).updateValue(this.switchOn);
       }
       // Target state has been changed.
-      this.platform.log.info("Target state of Bot setting: " + (targetState ? "ON" : "OFF"));
+      this.platform.log.info('Target state of Bot setting: ' + (targetState ? 'ON' : 'OFF'));
       this.switchbot
-        .discover({ duration: this.scanDuration, model: "H", quick: true, id: this.device.bleMac })
+        .discover({ duration: this.scanDuration, model: 'H', quick: true, id: this.device.bleMac })
         .then((device_list: any) => {
-          this.platform.log.info("Scan done.");
+          this.platform.log.info('Scan done.');
           let targetDevice: any = null;
-          for (let device of device_list) {
+          for (const device of device_list) {
             // log.info(device.modelName, device.address);
-            if (device.address == this.device.bleMac) {
+            if (device.address === this.device.bleMac) {
               targetDevice = device;
               break;
             }
           }
           if (!targetDevice) {
-            this.platform.log.info("No device was found during scan.");
+            this.platform.log.info('No device was found during scan.');
             return new Promise((resolve, reject) => {
-              reject(new Error("No device was found during scan."));
+              reject(new Error('No device was found during scan.'));
             });
           } else {
-            this.platform.log.info(targetDevice.modelName + " (" + targetDevice.address + ") was found.");
+            this.platform.log.info(targetDevice.modelName + ' (' + targetDevice.address + ') was found.');
             // Set event handers
             targetDevice.onconnect = () => {
               // log.info('Connected.');
@@ -306,30 +306,30 @@ this.platform.log.warn("BLE DEVICE!")
             targetDevice.ondisconnect = () => {
               // log.info('Disconnected.');
             };
-            this.platform.log.info("Bot is running...");
+            this.platform.log.info('Bot is running...');
             return this.setTargetDeviceState(targetDevice, targetState);
           }
         })
         .then(() => {
-          this.platform.log.info("Done.");
+          this.platform.log.info('Done.');
           this.switchOn = targetState;
           this.runTimer = setTimeout(() => {
             this.service?.getCharacteristic( this.platform.Characteristic.On).updateValue(this.switchOn);
           }, 500);
-          this.platform.log.info("Bot state has been set to: " + (this.switchOn ? "ON" : "OFF"));
+          this.platform.log.info('Bot state has been set to: ' + (this.switchOn ? 'ON' : 'OFF'));
         })
         .catch((error: any) => {
           this.platform.log.error(error);
           this.runTimer = setTimeout(() => {
             this.service?.getCharacteristic( this.platform.Characteristic.On).updateValue(this.switchOn);
           }, 500);
-          this.platform.log.info("Bot state failed to be set to: " + (targetState ? "ON" : "OFF"));
+          this.platform.log.info('Bot state failed to be set to: ' + (targetState ? 'ON' : 'OFF'));
         });
     } else {
-    this.platform.log.debug('Bot %s -', this.accessory.displayName, `Set On: ${value}`);
-    this.On = value;
-    this.doBotUpdate.next();
-  }
+      this.platform.log.debug('Bot %s -', this.accessory.displayName, `Set On: ${value}`);
+      this.On = value;
+      this.doBotUpdate.next();
+    }
   }
 
   async setTargetDeviceState(targetDevice: any, targetState: boolean): Promise<null> {
@@ -344,11 +344,11 @@ this.platform.log.warn("BLE DEVICE!")
 
   async retry(max: number, fn: { (): any; (): Promise<any>; }): Promise<null> {
     return fn().catch( async (err: any) => {
-      if (max == 0) {
+      if (max === 0) {
         throw err;
       }
       this.platform.log.info(err);
-      this.platform.log.info("Retrying");
+      this.platform.log.info('Retrying');
       await this.switchbot.wait(1000);
       return this.retry(max - 1, fn);
     });
