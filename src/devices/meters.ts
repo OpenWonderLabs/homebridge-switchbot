@@ -22,9 +22,10 @@ export class Meter {
   Active!: CharacteristicValue;
   WaterLevel!: CharacteristicValue;
   deviceStatus!: deviceStatusResponse;
+  switchbot;
 
   meterUpdateInProgress!: boolean;
-  doMeterUpdate!: Subject<unknown>;
+  doMeterUpdate;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -38,6 +39,9 @@ export class Meter {
     this.CurrentRelativeHumidity = 0;
     this.CurrentTemperature = 0;
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const Switchbot = require('node-switchbot');
+      this.switchbot = new Switchbot();
       const colon = device.deviceId!.match(/.{1,2}/g);
       const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
       this.device.bleMac = bleMac;
@@ -106,7 +110,8 @@ export class Meter {
         })
         .onGet(() => {
           return this.CurrentTemperature;
-        });
+        } );
+      this.platform.log.info(this.device.deviceName + ' current temperature: ' + this.CurrentTemperature + '\u2103');
     } else {
       if (this.platform.debugMode) {
         this.platform.log.warn('TemperatureSensor not added.');
@@ -133,6 +138,7 @@ export class Meter {
         .onGet(() => {
           return this.CurrentRelativeHumidity;
         });
+      this.platform.log.info(this.device.deviceName + ' current humidity: ' + this.CurrentRelativeHumidity + '%');
     } else {
       if (this.platform.debugMode) {
         this.platform.log.warn('HumiditySensor not added.');
@@ -188,29 +194,39 @@ export class Meter {
    * Asks the SwitchBot API for the latest device information
    */
   async refreshStatus() {
-    try {
-      const deviceStatus: deviceStatusResponse = (
-        await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)
-      ).data;
-      if (deviceStatus.message === 'success') {
-        this.deviceStatus = deviceStatus;
-        this.platform.log.debug(
-          'Meter %s refreshStatus -',
-          this.accessory.displayName,
-          JSON.stringify(this.deviceStatus),
-        );
+    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+      this.switchbot.onadvertisement = (ad: any) => {
+        // log.info(JSON.stringify(ad, null, '  '));
+        // log.info("Temperature:", ad.serviceData.temperature.c);
+        // log.info("Humidity:", ad.serviceData.humidity);
+        this.CurrentTemperature = ad.serviceData.temperature.c;
+        this.CurrentRelativeHumidity = ad.serviceData.humidity;
+      };
+    } else {
+      try {
+        const deviceStatus: deviceStatusResponse = (
+          await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)
+        ).data;
+        if (deviceStatus.message === 'success') {
+          this.deviceStatus = deviceStatus;
+          this.platform.log.debug(
+            'Meter %s refreshStatus -',
+            this.accessory.displayName,
+            JSON.stringify(this.deviceStatus),
+          );
 
-        this.parseStatus();
-        this.updateHomeKitCharacteristics();
+          this.parseStatus();
+          this.updateHomeKitCharacteristics();
+        }
+      } catch (e) {
+        this.platform.log.error(
+          'Meter - Failed to update status of',
+          this.device.deviceName,
+          JSON.stringify(e.message),
+          this.platform.log.debug('Meter %s -', this.accessory.displayName, JSON.stringify(e)),
+        );
+        this.apiError(e);
       }
-    } catch (e) {
-      this.platform.log.error(
-        'Meter - Failed to update status of',
-        this.device.deviceName,
-        JSON.stringify(e.message),
-        this.platform.log.debug('Meter %s -', this.accessory.displayName, JSON.stringify(e)),
-      );
-      this.apiError(e);
     }
   }
 
