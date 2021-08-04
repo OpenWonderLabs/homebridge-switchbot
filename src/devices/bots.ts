@@ -1,4 +1,4 @@
-import { Service, PlatformAccessory, CharacteristicValue, HAPStatus } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue, HAPStatus, MacAddress } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
@@ -13,17 +13,28 @@ import { AxiosResponse } from 'axios';
 export class Bot {
   private service: Service;
 
-  On!: CharacteristicValue;
+  SwitchOn!: CharacteristicValue;
   OutletInUse!: CharacteristicValue;
   deviceStatus!: deviceStatusResponse;
-  switchOn!: boolean;
-  switchbot;
+  RunTimer!: NodeJS.Timeout;
+  ScanDuration: number;
+  TargetState;
+  switchbot!:{
+    discover: (
+      arg0:
+      { duration: any;
+        model: string;
+        quick: boolean;
+        id: MacAddress;
+      }
+      ) => Promise<any>;
+    wait: (
+      arg0: number
+      ) => any;
+  };
 
   botUpdateInProgress!: boolean;
   doBotUpdate;
-  runTimer!: NodeJS.Timeout;
-  scanDuration: any;
-  ScanDuration: number;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -31,13 +42,13 @@ export class Bot {
     public device: device,
   ) {
     // default placeholders
-    this.On = false;
+    this.SwitchOn = false;
     this.ScanDuration = this.platform.config.options!.refreshRate!;
     if (!this.platform.config.options?.bot?.switch) {
       this.OutletInUse = true;
     }
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      this.switchOn = false;
+      this.SwitchOn = false;
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const SwitchBot = require('node-switchbot');
       this.switchbot = new SwitchBot();
@@ -123,17 +134,21 @@ export class Bot {
    * Parse the device status from the SwitchBot api
    */
   parseStatus() {
-    if (!this.platform.config.options?.bot?.switch) {
-      this.OutletInUse = true;
-      if (this.platform.config.options?.bot?.device_press?.includes(this.device.deviceId!)) {
-        this.On = false;
-      }
-      this.platform.log.debug('Bot %s OutletInUse: %s On: %s', this.accessory.displayName, this.OutletInUse, this.On);
+    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+      this.platform.log.warn('BLE DEVICE-PARSE');
     } else {
-      if (this.platform.config.options?.bot?.device_press?.includes(this.device.deviceId!)) {
-        this.On = false;
+      if (!this.platform.config.options?.bot?.switch) {
+        this.OutletInUse = true;
+        if (this.platform.config.options?.bot?.device_press?.includes(this.device.deviceId!)) {
+          this.SwitchOn = false;
+        }
+        this.platform.log.debug('Bot %s OutletInUse: %s On: %s', this.accessory.displayName, this.OutletInUse, this.SwitchOn);
+      } else {
+        if (this.platform.config.options?.bot?.device_press?.includes(this.device.deviceId!)) {
+          this.SwitchOn = false;
+        }
+        this.platform.log.debug('Bot %s On: %s', this.accessory.displayName, this.SwitchOn);
       }
-      this.platform.log.debug('Bot %s On: %s', this.accessory.displayName, this.On);
     }
   }
 
@@ -142,7 +157,7 @@ export class Bot {
    */
   async refreshStatus() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      this.platform.log.warn('BLE DEVICE!');
+      this.platform.log.warn('BLE DEVICE-REFRESH');
     } else {
       try {
         // this.platform.log.error('Bot - Reading', `${DeviceURL}/${this.device.deviceID}/devices`);
@@ -179,25 +194,72 @@ export class Bot {
    */
   async pushChanges() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      this.platform.log.warn('BLE DEVICE!');
+      this.platform.log.warn('BLE DEVICE-PUSH');
+      // Target state has been changed.
+      this.platform.log.info('Target state of Bot setting: ' + (this.TargetState ? 'ON' : 'OFF'));
+      this.switchbot
+        .discover({ duration: this.ScanDuration, model: 'H', quick: true, id: (this.device.bleMac!) })
+        .then((device_list: any) => {
+          this.platform.log.info('Scan done.');
+          let targetDevice: any = null;
+          for (const device of device_list) {
+            // log.info(device.modelName, device.address);
+            if (device.address === this.device.bleMac) {
+              targetDevice = device;
+              break;
+            }
+          }
+          if (!targetDevice) {
+            this.platform.log.info('No device was found during scan.');
+            return new Promise((resolve, reject) => {
+              reject(new Error('No device was found during scan.'));
+            });
+          } else {
+            this.platform.log.info(targetDevice.modelName + ' (' + targetDevice.address + ') was found.');
+            // Set event handers
+            targetDevice.onconnect = () => {
+              // log.info('Connected.');
+            };
+            targetDevice.ondisconnect = () => {
+              // log.info('Disconnected.');
+            };
+            this.platform.log.info('Bot is running...');
+            return this.setTargetDeviceState(targetDevice, this.TargetState);
+          }
+        })
+        .then(() => {
+          this.platform.log.info('Done.');
+          this.SwitchOn = this.TargetState;
+          this.RunTimer = setTimeout(() => {
+            this.service?.getCharacteristic( this.platform.Characteristic.On).updateValue(this.SwitchOn);
+          }, 500);
+          this.platform.log.info('Bot state has been set to: ' + (this.SwitchOn ? 'ON' : 'OFF'));
+        })
+        .catch((error: any) => {
+          this.platform.log.error(error);
+          this.RunTimer = setTimeout(() => {
+            this.service?.getCharacteristic( this.platform.Characteristic.On).updateValue(this.SwitchOn);
+          }, 500);
+          this.platform.log.info('Bot state failed to be set to: ' + (this.TargetState ? 'ON' : 'OFF'));
+        });
     } else {
       const payload = {
         commandType: 'command',
         parameter: 'default',
       } as any;
 
-      if (this.platform.config.options?.bot?.device_switch?.includes(this.device.deviceId!) && this.On) {
+      if (this.platform.config.options?.bot?.device_switch?.includes(this.device.deviceId!) && this.SwitchOn) {
         payload.command = 'turnOn';
-        this.On = true;
-        this.platform.log.debug('Switch Mode, Turning %s', this.On);
-      } else if (this.platform.config.options?.bot?.device_switch?.includes(this.device.deviceId!) && !this.On) {
+        this.SwitchOn = true;
+        this.platform.log.debug('Switch Mode, Turning %s', this.SwitchOn);
+      } else if (this.platform.config.options?.bot?.device_switch?.includes(this.device.deviceId!) && !this.SwitchOn) {
         payload.command = 'turnOff';
-        this.On = false;
-        this.platform.log.debug('Switch Mode, Turning %s', this.On);
+        this.SwitchOn = false;
+        this.platform.log.debug('Switch Mode, Turning %s', this.SwitchOn);
       } else if (this.platform.config.options?.bot?.device_press?.includes(this.device.deviceId!)) {
         payload.command = 'press';
         this.platform.log.debug('Press Mode');
-        this.On = false;
+        this.SwitchOn = false;
       } else {
         throw new Error('Bot Device Paramters not set for this Bot.');
       }
@@ -226,8 +288,8 @@ export class Bot {
    * Updates the status for each of the HomeKit Characteristics
    */
   updateHomeKitCharacteristics() {
-    if (this.On !== undefined) {
-      this.service.updateCharacteristic(this.platform.Characteristic.On, this.On);
+    if (this.SwitchOn !== undefined) {
+      this.service.updateCharacteristic(this.platform.Characteristic.On, this.SwitchOn);
     }
     if (!this.platform.config.options?.bot?.switch && this.OutletInUse !== undefined) {
       this.service.updateCharacteristic(this.platform.Characteristic.OutletInUse, this.OutletInUse);
@@ -275,62 +337,15 @@ export class Bot {
    */
   private handleOnSet(value: CharacteristicValue) {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      const targetState = value as boolean;
-      this.platform.log.warn('BLE DEVICE!');
-      if (targetState === this.switchOn) {
-        this.platform.log.info('Target state of Bot has not changed: ' + (this.switchOn ? 'ON' : 'OFF'));
-        this.service?.getCharacteristic(this.platform.Characteristic.On).updateValue(this.switchOn);
+      this.TargetState = value as boolean;
+      this.platform.log.warn('BLE DEVICE-SET');
+      if (this.TargetState === this.SwitchOn) {
+        this.platform.log.info('Target state of Bot has not changed: ' + (this.SwitchOn ? 'ON' : 'OFF'));
+        this.service?.getCharacteristic(this.platform.Characteristic.On).updateValue(this.SwitchOn);
       }
-      // Target state has been changed.
-      this.platform.log.info('Target state of Bot setting: ' + (targetState ? 'ON' : 'OFF'));
-      this.switchbot
-        .discover({ duration: this.scanDuration, model: 'H', quick: true, id: this.device.bleMac })
-        .then((device_list: any) => {
-          this.platform.log.info('Scan done.');
-          let targetDevice: any = null;
-          for (const device of device_list) {
-            // log.info(device.modelName, device.address);
-            if (device.address === this.device.bleMac) {
-              targetDevice = device;
-              break;
-            }
-          }
-          if (!targetDevice) {
-            this.platform.log.info('No device was found during scan.');
-            return new Promise((resolve, reject) => {
-              reject(new Error('No device was found during scan.'));
-            });
-          } else {
-            this.platform.log.info(targetDevice.modelName + ' (' + targetDevice.address + ') was found.');
-            // Set event handers
-            targetDevice.onconnect = () => {
-              // log.info('Connected.');
-            };
-            targetDevice.ondisconnect = () => {
-              // log.info('Disconnected.');
-            };
-            this.platform.log.info('Bot is running...');
-            return this.setTargetDeviceState(targetDevice, targetState);
-          }
-        })
-        .then(() => {
-          this.platform.log.info('Done.');
-          this.switchOn = targetState;
-          this.runTimer = setTimeout(() => {
-            this.service?.getCharacteristic( this.platform.Characteristic.On).updateValue(this.switchOn);
-          }, 500);
-          this.platform.log.info('Bot state has been set to: ' + (this.switchOn ? 'ON' : 'OFF'));
-        })
-        .catch((error: any) => {
-          this.platform.log.error(error);
-          this.runTimer = setTimeout(() => {
-            this.service?.getCharacteristic( this.platform.Characteristic.On).updateValue(this.switchOn);
-          }, 500);
-          this.platform.log.info('Bot state failed to be set to: ' + (targetState ? 'ON' : 'OFF'));
-        });
     } else {
       this.platform.log.debug('Bot %s -', this.accessory.displayName, `Set On: ${value}`);
-      this.On = value;
+      this.SwitchOn = value;
       this.doBotUpdate.next();
     }
   }

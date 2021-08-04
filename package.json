@@ -49,12 +49,12 @@
   "dependencies": {
     "axios": "^0.21.1",
     "rxjs": "^7.3.0",
-    "node-switchbot": "0.2.0",
+    "node-switchbot": "1.0.4",
     "@abandonware/noble": "^1.9.2-14",
     "@homebridge/plugin-ui-utils": "0.0.19"
   },
   "devDependencies": {
-    "@types/node": "^16.4.10",
+    "@types/node": "^16.4.11",
     "@typescript-eslint/eslint-plugin": "^4.29.0",
     "@typescript-eslint/parser": "^4.29.0",
     "eslint": "^7.32.0",
