@@ -274,6 +274,7 @@ export class Bot {
   private handleOnSet(value: CharacteristicValue) {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
       const targetState = value as boolean;
+      this.platform.log.warn('BLE DEVICE!');
       if (targetState === this.switchOn) {
         this.platform.log.info('Target state of Bot has not changed: ' + (this.switchOn ? 'ON' : 'OFF'));
         this.service?.getCharacteristic(this.platform.Characteristic.On).updateValue(this.switchOn);

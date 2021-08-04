@@ -26,6 +26,8 @@ export class Meter {
 
   meterUpdateInProgress!: boolean;
   doMeterUpdate;
+  BLEtemperature: any;
+  BLEHumidity: any;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -110,7 +112,7 @@ export class Meter {
         })
         .onGet(() => {
           return this.CurrentTemperature;
-        } );
+        });
       this.platform.log.info(this.device.deviceName + ' current temperature: ' + this.CurrentTemperature + '\u2103');
     } else {
       if (this.platform.debugMode) {
@@ -161,7 +163,7 @@ export class Meter {
    */
   parseStatus() {
     // Set Room Sensor State
-    if (this.deviceStatus.body) {
+    if (this.deviceStatus.body || this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
       this.BatteryLevel = 100;
     } else {
       this.BatteryLevel = 10;
@@ -173,18 +175,26 @@ export class Meter {
     }
     // Current Relative Humidity
     if (!this.platform.config.options?.meter?.hide_humidity) {
-      this.CurrentRelativeHumidity = this.deviceStatus.body.humidity!;
+      if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+        this.CurrentRelativeHumidity = this.BLEHumidity;
+      } else {
+        this.CurrentRelativeHumidity = this.deviceStatus.body.humidity!;
+      }
       this.platform.log.debug('Meter %s - Humidity: %s%', this.accessory.displayName, this.CurrentRelativeHumidity);
     }
 
     // Current Temperature
     if (!this.platform.config.options?.meter?.hide_temperature) {
-      if (this.platform.config.options?.meter?.unit === 1) {
-        this.CurrentTemperature = this.toFahrenheit(this.deviceStatus.body.temperature!);
-      } else if (this.platform.config.options?.meter?.unit === 0) {
-        this.CurrentTemperature = this.toCelsius(this.deviceStatus.body.temperature!);
+      if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+        this.CurrentTemperature = this.BLEtemperature;
       } else {
-        this.CurrentTemperature = this.deviceStatus.body.temperature!;
+        if (this.platform.config.options?.meter?.unit === 1) {
+          this.CurrentTemperature = this.toFahrenheit(this.deviceStatus.body.temperature!);
+        } else if (this.platform.config.options?.meter?.unit === 0) {
+          this.CurrentTemperature = this.toCelsius(this.deviceStatus.body.temperature!);
+        } else {
+          this.CurrentTemperature = this.deviceStatus.body.temperature!;
+        }
       }
       this.platform.log.debug('Meter %s - Temperature: %s°c', this.accessory.displayName, this.CurrentTemperature);
     }
@@ -196,11 +206,12 @@ export class Meter {
   async refreshStatus() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
       this.switchbot.onadvertisement = (ad: any) => {
-        // log.info(JSON.stringify(ad, null, '  '));
-        // log.info("Temperature:", ad.serviceData.temperature.c);
-        // log.info("Humidity:", ad.serviceData.humidity);
-        this.CurrentTemperature = ad.serviceData.temperature.c;
-        this.CurrentRelativeHumidity = ad.serviceData.humidity;
+        this.platform.log.info(JSON.stringify(ad, null, '  '));
+        this.platform.log.warn('ad:', JSON.stringify(ad));
+        this.platform.log.info('Temperature:', ad.serviceData.temperature.c);
+        this.platform.log.info('Humidity:', ad.serviceData.humidity);
+        this.BLEtemperature = ad.serviceData.temperature.c;
+        this.BLEHumidity = ad.serviceData.humidity;
       };
     } else {
       try {
