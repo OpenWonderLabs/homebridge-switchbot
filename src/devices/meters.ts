@@ -164,16 +164,20 @@ export class Meter {
    * Parse the device status from the SwitchBot api
    */
   parseStatus() {
-    // Set Room Sensor State
-    if (this.deviceStatus.body || this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
       this.BatteryLevel = 100;
     } else {
-      this.BatteryLevel = 10;
-    }
-    if (this.BatteryLevel < 15) {
-      this.StatusLowBattery = 1;
-    } else {
-      this.StatusLowBattery = 0;
+      // Set Room Sensor State
+      if (this.deviceStatus.body) {
+        this.BatteryLevel = 100;
+      } else {
+        this.BatteryLevel = 10;
+      }
+      if (this.BatteryLevel < 15) {
+        this.StatusLowBattery = 1;
+      } else {
+        this.StatusLowBattery = 0;
+      }
     }
     // Current Relative Humidity
     if (!this.platform.config.options?.meter?.hide_humidity) {
