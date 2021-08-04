@@ -51,7 +51,7 @@ export class Curtain {
       const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
       this.device.bleMac = bleMac.toLowerCase();
       if (this.platform.debugMode) {
-        this.platform.log.warn(this.device.bleMac);
+        this.platform.log.warn(this.device.bleMac.toLowerCase());
       }
     }
 
@@ -460,7 +460,7 @@ export class Curtain {
 
         for (const device of device_list) {
           this.platform.log.info(device.modelName, device.address);
-          if (device.address === this.device.bleMac) {
+          if (device.address === this.device.bleMac!.toLowerCase()) {
             targetDevice = device;
             break;
           }
@@ -468,13 +468,13 @@ export class Curtain {
 
         if (!targetDevice) {
           return new Promise((resolve, reject) => {
-            reject(new Error('Curtain \'' + this.device.deviceName + '\' (' + this.device.bleMac + '): device not found.'));
+            reject(new Error('Curtain \'' + this.device.deviceName + '\' (' + this.device.bleMac!.toLowerCase() + '): device not found.'));
           });
         }
 
         this.startFastScan();
 
-        this.platform.log.info('Curtain \'%s\' (%s) is moving to %d%%...', this.device.deviceName, this.device.bleMac, pos);
+        this.platform.log.info('Curtain \'%s\' (%s) is moving to %d%%...', this.device.deviceName, this.device.bleMac!.toLowerCase(), pos);
         return targetDevice.runToPos(pos);
       });
   }
@@ -525,7 +525,7 @@ export class Curtain {
       switchbot.onadvertisement = (ad: any) => {
         this.applyPosition(ad);
       };
-      switchbot.startScan({id: this.device.bleMac})
+      switchbot.startScan({id: this.device.bleMac!.toLowerCase()})
         .then(() => {
           return switchbot.wait(this.ScanDuration);
         })
