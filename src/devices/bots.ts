@@ -41,7 +41,7 @@ export class Bot {
       this.switchbot = new SwitchBot();
       const colon = device.deviceId!.match(/.{1,2}/g);
       const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
-      this.device.bleMac = bleMac;
+      this.device.bleMac = bleMac.toLowerCase();
       if (this.platform.debugMode) {
         this.platform.log.warn(this.device.bleMac);
       }
