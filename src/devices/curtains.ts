@@ -155,7 +155,7 @@ export class Curtain {
 
   parseStatus() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      this.platform.log.warn('BLE DEVICE!');
+      this.platform.log.warn('BLE DEVICE-3');
     } else {
     // CurrentPosition
       this.setMinMax();
@@ -223,7 +223,7 @@ export class Curtain {
 
   async refreshStatus() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      this.platform.log.warn('BLE DEVICE!');
+      this.platform.log.warn('BLE DEVICE-1');
     } else {
       try {
         this.platform.log.debug('Curtain - Reading', `${DeviceURL}/${this.device.deviceId}/status`);
@@ -254,7 +254,7 @@ export class Curtain {
 
   async pushChanges() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      this.platform.log.warn('BLE DEVICE!');
+      this.platform.log.warn('BLE DEVICE-2');
     } else {
       if (this.TargetPosition !== this.CurrentPosition) {
         this.platform.log.debug(`Pushing ${this.TargetPosition}`);
