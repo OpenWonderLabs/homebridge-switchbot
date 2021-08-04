@@ -23,6 +23,7 @@ export class Bot {
   doBotUpdate;
   runTimer!: NodeJS.Timeout;
   scanDuration: any;
+  ScanDuration: number;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -31,6 +32,7 @@ export class Bot {
   ) {
     // default placeholders
     this.On = false;
+    this.ScanDuration = this.platform.config.options!.refreshRate!;
     if (!this.platform.config.options?.bot?.switch) {
       this.OutletInUse = true;
     }

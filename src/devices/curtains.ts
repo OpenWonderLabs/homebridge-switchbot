@@ -43,6 +43,7 @@ export class Curtain {
     this.CurrentPosition = 0;
     this.TargetPosition = 0;
     this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
+    this.ScanDuration = this.platform.config.options!.refreshRate!;
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const SwitchBot = require('node-switchbot');

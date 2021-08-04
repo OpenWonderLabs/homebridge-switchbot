@@ -28,6 +28,7 @@ export class Meter {
   doMeterUpdate;
   BLEtemperature: any;
   BLEHumidity: any;
+  ScanDuration: number;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -40,6 +41,7 @@ export class Meter {
     this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     this.CurrentRelativeHumidity = 0;
     this.CurrentTemperature = 0;
+    this.ScanDuration = this.platform.config.options!.refreshRate!;
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const Switchbot = require('node-switchbot');
