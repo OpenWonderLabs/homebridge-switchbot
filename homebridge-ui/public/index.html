@@ -64,6 +64,11 @@
                     <th scope="row">Firmware Version</th>
                     <td id="firmwareRevision"></td>
                 </tr>
+
+                <tr>
+                    <th scope="row">Connection Type</th>
+                    <td id="connectionType"></td>
+                </tr>
             </tbody>
         </table>
     </div>
@@ -168,6 +173,7 @@
                     document.getElementById('deviceID').innerHTML = context.deviceID
                     document.getElementById('model').innerHTML = context.model
                     document.getElementById('firmwareRevision').innerHTML = context.firmwareRevision || 'N/A'
+                    document.getElementById('connnectionType').innerHTML = context.connectionType
                     document.getElementById('deviceTable').style.display = 'inline-table'
                     homebridge.hideSpinner()
                 }
