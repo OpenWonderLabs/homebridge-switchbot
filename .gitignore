@@ -2,3 +2,5 @@ node_modules
 .DS_Store
 dist/
 src/.DS_Store
+.github/.DS_Store
+src/.DS_Store

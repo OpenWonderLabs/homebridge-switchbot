@@ -219,6 +219,38 @@ export class Meter {
         this.BLEtemperature = ad.serviceData.temperature.c;
         this.BLEHumidity = ad.serviceData.humidity;
       };
+      this.switchbot
+        .startScan({
+          id: this.device.bleMac,
+        })
+        .then(() => {
+          return this.switchbot.wait(this.ScanDuration);
+        })
+        .then(() => {
+          this.switchbot.stopScan();
+        })
+        .catch((error: any) => {
+          this.platform.log.error(error);
+        });
+
+      setInterval(() => {
+      // log.info("Start scan " + name + "(" + bleMac + ")");
+        this.switchbot
+          .startScan({
+          // mode: 'T',
+            id: this.device.bleMac,
+          })
+          .then(() => {
+            return this.switchbot.wait(this.ScanDuration);
+          })
+          .then(() => {
+            this.switchbot.stopScan();
+            this.platform.log.info('Stop scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
+          })
+          .catch((error: any) => {
+            this.platform.log.error(error);
+          });
+      }, this.platform.config.options!.refreshRate!);
     } else {
       try {
         const deviceStatus: deviceStatusResponse = (
