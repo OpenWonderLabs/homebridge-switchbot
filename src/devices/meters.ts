@@ -41,7 +41,7 @@ export class Meter {
     this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     this.CurrentRelativeHumidity = 0;
     this.CurrentTemperature = 0;
-    this.ScanDuration = this.platform.config.options!.refreshRate!;
+    this.ScanDuration = this.platform.config.options!.refreshRate! * 1000;
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const Switchbot = require('node-switchbot');
@@ -233,29 +233,6 @@ export class Meter {
           .catch((error: any) => {
             this.platform.log.error(error);
           });
-
-        setInterval(() => {
-          if (this.platform.debugMode) {
-            this.platform.log.info('Start scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
-          }
-          this.switchbot
-            .startScan({
-            // mode: 'T',
-              id: this.device.bleMac,
-            })
-            .then(() => {
-              return this.switchbot.wait(this.ScanDuration);
-            })
-            .then(() => {
-              this.switchbot.stopScan();
-              if (this.platform.debugMode) {
-                this.platform.log.info('Stop scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
-              }
-            })
-            .catch((error: any) => {
-              this.platform.log.error(error);
-            });
-        }, this.platform.config.options!.refreshRate!);
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       } catch (e) {
@@ -305,13 +282,13 @@ export class Meter {
     if (this.BatteryLevel !== undefined) {
       this.service.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
     }
-    if (!this.platform.config.options?.meter?.hide_humidity && this.CurrentRelativeHumidity !== undefined) {
+    if (!this.platform.config.options?.meter?.hide_humidity && (this.CurrentRelativeHumidity !== undefined)) {
       this.humidityservice?.updateCharacteristic(
         this.platform.Characteristic.CurrentRelativeHumidity,
         this.CurrentRelativeHumidity,
       );
     }
-    if (!this.platform.config.options?.meter?.hide_temperature && this.CurrentTemperature !== undefined) {
+    if (!this.platform.config.options?.meter?.hide_temperature && (this.CurrentTemperature !== undefined)) {
       this.temperatureservice?.updateCharacteristic(
         this.platform.Characteristic.CurrentTemperature,
         this.CurrentTemperature,
