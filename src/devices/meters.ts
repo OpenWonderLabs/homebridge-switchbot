@@ -211,33 +211,17 @@ export class Meter {
    */
   async refreshStatus() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      this.switchbot.onadvertisement = (ad: any) => {
-        this.platform.log.info(JSON.stringify(ad, null, '  '));
-        this.platform.log.warn('ad:', JSON.stringify(ad));
-        this.platform.log.info('Temperature:', ad.serviceData.temperature.c);
-        this.platform.log.info('Humidity:', ad.serviceData.humidity);
-        this.BLEtemperature = ad.serviceData.temperature.c;
-        this.BLEHumidity = ad.serviceData.humidity;
-      };
-      this.switchbot
-        .startScan({
-          id: this.device.bleMac,
-        })
-        .then(() => {
-          return this.switchbot.wait(this.ScanDuration);
-        })
-        .then(() => {
-          this.switchbot.stopScan();
-        })
-        .catch((error: any) => {
-          this.platform.log.error(error);
-        });
-
-      setInterval(() => {
-      // log.info("Start scan " + name + "(" + bleMac + ")");
+      try {
+        this.switchbot.onadvertisement = (ad: any) => {
+          this.platform.log.info(JSON.stringify(ad, null, '  '));
+          this.platform.log.warn('ad:', JSON.stringify(ad));
+          this.platform.log.info('Temperature:', ad.serviceData.temperature.c);
+          this.platform.log.info('Humidity:', ad.serviceData.humidity);
+          this.BLEtemperature = ad.serviceData.temperature.c;
+          this.BLEHumidity = ad.serviceData.humidity;
+        };
         this.switchbot
           .startScan({
-          // mode: 'T',
             id: this.device.bleMac,
           })
           .then(() => {
@@ -245,12 +229,44 @@ export class Meter {
           })
           .then(() => {
             this.switchbot.stopScan();
-            this.platform.log.info('Stop scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
           })
           .catch((error: any) => {
             this.platform.log.error(error);
           });
-      }, this.platform.config.options!.refreshRate!);
+
+        setInterval(() => {
+          if (this.platform.debugMode) {
+            this.platform.log.info('Start scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
+          }
+          this.switchbot
+            .startScan({
+            // mode: 'T',
+              id: this.device.bleMac,
+            })
+            .then(() => {
+              return this.switchbot.wait(this.ScanDuration);
+            })
+            .then(() => {
+              this.switchbot.stopScan();
+              if (this.platform.debugMode) {
+                this.platform.log.info('Stop scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
+              }
+            })
+            .catch((error: any) => {
+              this.platform.log.error(error);
+            });
+        }, this.platform.config.options!.refreshRate!);
+        this.parseStatus();
+        this.updateHomeKitCharacteristics();
+      } catch (e) {
+        this.platform.log.error(
+          'Meter - Failed to update status of',
+          this.device.deviceName,
+          JSON.stringify(e.message),
+          this.platform.log.debug('Meter %s -', this.accessory.displayName, JSON.stringify(e)),
+        );
+        this.apiError(e);
+      }
     } else {
       try {
         const deviceStatus: deviceStatusResponse = (
