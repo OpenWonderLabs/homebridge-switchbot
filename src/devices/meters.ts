@@ -28,7 +28,6 @@ export class Meter {
   doMeterUpdate;
   BLEtemperature: any;
   BLEHumidity: any;
-  ScanDuration: number;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -41,18 +40,6 @@ export class Meter {
     this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     this.CurrentRelativeHumidity = 0;
     this.CurrentTemperature = 0;
-    this.ScanDuration = this.platform.config.options!.refreshRate! * 1000;
-    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const Switchbot = require('node-switchbot');
-      this.switchbot = new Switchbot();
-      const colon = device.deviceId!.match(/.{1,2}/g);
-      const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
-      this.device.bleMac = bleMac.toLowerCase();
-      if (this.platform.debugMode) {
-        this.platform.log.warn(this.device.bleMac);
-      }
-    }
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doMeterUpdate = new Subject();
@@ -208,7 +195,16 @@ export class Meter {
   async refreshStatus() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
       try {
-        this.switchbot.onadvertisement = (ad: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const Switchbot = require('node-switchbot');
+        const switchbot = new Switchbot();
+        const colon = this.device.deviceId!.match(/.{1,2}/g);
+        const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
+        this.device.bleMac = bleMac.toLowerCase();
+        if (this.platform.debugMode) {
+          this.platform.log.warn(this.device.bleMac!);
+        }
+        switchbot.onadvertisement = (ad: any) => {
           this.platform.log.info(JSON.stringify(ad, null, '  '));
           this.platform.log.warn('ad:', JSON.stringify(ad));
           this.platform.log.info('Temperature:', ad.serviceData.temperature.c);
@@ -216,15 +212,15 @@ export class Meter {
           this.BLEtemperature = ad.serviceData.temperature.c;
           this.BLEHumidity = ad.serviceData.humidity;
         };
-        this.switchbot
+        switchbot
           .startScan({
             id: this.device.bleMac,
           })
           .then(() => {
-            return this.switchbot.wait(this.ScanDuration);
+            return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
           })
           .then(() => {
-            this.switchbot.stopScan();
+            switchbot.stopScan();
           })
           .catch((error: any) => {
             this.platform.log.error(error);
