@@ -164,20 +164,16 @@ export class Meter {
    * Parse the device status from the SwitchBot api
    */
   parseStatus() {
-    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+    // Set Room Sensor State
+    if (this.deviceStatus.body) {
       this.BatteryLevel = 100;
     } else {
-      // Set Room Sensor State
-      if (this.deviceStatus.body) {
-        this.BatteryLevel = 100;
-      } else {
-        this.BatteryLevel = 10;
-      }
-      if (this.BatteryLevel < 15) {
-        this.StatusLowBattery = 1;
-      } else {
-        this.StatusLowBattery = 0;
-      }
+      this.BatteryLevel = 10;
+    }
+    if (this.BatteryLevel < 15) {
+      this.StatusLowBattery = 1;
+    } else {
+      this.StatusLowBattery = 0;
     }
     // Current Relative Humidity
     if (!this.platform.config.options?.meter?.hide_humidity) {
@@ -244,32 +240,32 @@ export class Meter {
         );
         this.apiError(e);
       }
-    } else {
-      try {
-        const deviceStatus: deviceStatusResponse = (
-          await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)
-        ).data;
-        if (deviceStatus.message === 'success') {
-          this.deviceStatus = deviceStatus;
-          this.platform.log.debug(
-            'Meter %s refreshStatus -',
-            this.accessory.displayName,
-            JSON.stringify(this.deviceStatus),
-          );
-
-          this.parseStatus();
-          this.updateHomeKitCharacteristics();
-        }
-      } catch (e) {
-        this.platform.log.error(
-          'Meter - Failed to update status of',
-          this.device.deviceName,
-          JSON.stringify(e.message),
-          this.platform.log.debug('Meter %s -', this.accessory.displayName, JSON.stringify(e)),
-        );
-        this.apiError(e);
-      }
     }
+    try {
+      const deviceStatus: deviceStatusResponse = (
+        await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)
+      ).data;
+      if (deviceStatus.message === 'success') {
+        this.deviceStatus = deviceStatus;
+        this.platform.log.debug(
+          'Meter %s refreshStatus -',
+          this.accessory.displayName,
+          JSON.stringify(this.deviceStatus),
+        );
+
+        this.parseStatus();
+        this.updateHomeKitCharacteristics();
+      }
+    } catch (e) {
+      this.platform.log.error(
+        'Meter - Failed to update status of',
+        this.device.deviceName,
+        JSON.stringify(e.message),
+        this.platform.log.debug('Meter %s -', this.accessory.displayName, JSON.stringify(e)),
+      );
+      this.apiError(e);
+    }
+
   }
 
   /**
