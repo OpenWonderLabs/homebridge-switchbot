@@ -241,7 +241,7 @@ export class Meter {
           .catch((error: any) => {
             this.platform.log.error(error);
           });
-      }, this.platform.config.options!.refreshRate! * 1000);
+      }, this.platform.config.options!.refreshRate! * 60000);
     }
     try {
       const deviceStatus: deviceStatusResponse = (
