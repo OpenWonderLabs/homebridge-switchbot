@@ -194,48 +194,36 @@ export class Meter {
    */
   async refreshStatus() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const Switchbot = require('node-switchbot');
-        const switchbot = new Switchbot();
-        const colon = this.device.deviceId!.match(/.{1,2}/g);
-        const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
-        this.device.bleMac = bleMac.toLowerCase();
-        if (this.platform.debugMode) {
-          this.platform.log.warn(this.device.bleMac!);
-        }
-        switchbot.onadvertisement = (ad: any) => {
-          this.platform.log.info(JSON.stringify(ad, null, '  '));
-          this.platform.log.warn('ad:', JSON.stringify(ad));
-          this.platform.log.info('Temperature:', ad.serviceData.temperature.c);
-          this.platform.log.info('Humidity:', ad.serviceData.humidity);
-          this.BLEtemperature = ad.serviceData.temperature.c;
-          this.BLEHumidity = ad.serviceData.humidity;
-        };
-        switchbot
-          .startScan({
-            id: this.device.bleMac,
-          })
-          .then(() => {
-            return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
-          })
-          .then(() => {
-            switchbot.stopScan();
-          })
-          .catch((error: any) => {
-            this.platform.log.error(error);
-          });
-        this.parseStatus();
-        this.updateHomeKitCharacteristics();
-      } catch (e) {
-        this.platform.log.error(
-          'Meter - Failed to update status of',
-          this.device.deviceName,
-          JSON.stringify(e.message),
-          this.platform.log.debug('Meter %s -', this.accessory.displayName, JSON.stringify(e)),
-        );
-        this.apiError(e);
+      const Switchbot = require('node-switchbot');
+      const switchbot = new Switchbot();
+      const colon = this.device.deviceId!.match(/.{1,2}/g);
+      const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
+      this.device.bleMac = bleMac.toLowerCase();
+      if (this.platform.debugMode) {
+        this.platform.log.warn(this.device.bleMac!);
       }
+      switchbot.onadvertisement = (ad: any) => {
+        this.platform.log.info(JSON.stringify(ad, null, '  '));
+        this.platform.log.warn('ad:', JSON.stringify(ad));
+        this.platform.log.info('Temperature:', ad.serviceData.temperature.c);
+        this.platform.log.info('Humidity:', ad.serviceData.humidity);
+        this.BLEtemperature = ad.serviceData.temperature.c;
+        this.BLEHumidity = ad.serviceData.humidity;
+      };
+      switchbot
+        .startScan({
+          id: this.device.bleMac,
+        })
+        .then(() => {
+          return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
+        })
+        .then(() => {
+          switchbot.stopScan();
+        })
+        .catch((error: any) => {
+          this.platform.log.error(error);
+        });
     }
     try {
       const deviceStatus: deviceStatusResponse = (
