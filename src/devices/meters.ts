@@ -224,6 +224,24 @@ export class Meter {
         .catch((error: any) => {
           this.platform.log.error(error);
         });
+      setInterval(() => {
+        // log.info("Start scan " + name + "(" + bleMac + ")");
+        switchbot
+          .startScan({
+            // mode: 'T',
+            id: bleMac,
+          })
+          .then(() => {
+            return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
+          })
+          .then(() => {
+            switchbot.stopScan();
+            this.platform.log.info('Stop scan ' + this.device.deviceName + '(' + bleMac + ')');
+          })
+          .catch((error: any) => {
+            this.platform.log.error(error);
+          });
+      }, this.platform.config.options!.refreshRate! * 1000);
     }
     try {
       const deviceStatus: deviceStatusResponse = (
