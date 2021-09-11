@@ -13,6 +13,6 @@ All notable changes to this project will be documented in this file. This projec
 
 ### Changes
 
-- Initial release of homebridge-Switchbot.
+- Initial release of homebridge-switchbot.
 - Adds Motion & Contact Sensors
-- Adds Water Level to Humidifer
+- Adds Water Level to Humidifier
