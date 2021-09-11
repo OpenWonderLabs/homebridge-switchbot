@@ -51,7 +51,7 @@ export class Curtain {
       const colon = device.deviceId!.match(/.{1,2}/g);
       const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
       this.device.bleMac = bleMac.toLowerCase();
-      if (this.platform.debugMode) {
+      if (this.platform.config.options.debug) {
         this.platform.log.warn(this.device.bleMac.toLowerCase());
       }
     }
@@ -128,7 +128,7 @@ export class Curtain {
         if (this.PositionState === this.platform.Characteristic.PositionState.STOPPED) {
           return;
         }
-        this.platform.log.debug('Refresh status when moving', this.PositionState);
+        this.platform.debug('Refresh status when moving', this.PositionState);
         this.refreshStatus();
       });
 
@@ -145,9 +145,9 @@ export class Curtain {
       .subscribe(async () => {
         try {
           await this.pushChanges();
-        } catch (e) {
+        } catch (e: any) {
           this.platform.log.error(JSON.stringify(e.message));
-          this.platform.log.debug('Curtain %s -', accessory.displayName, JSON.stringify(e));
+          this.platform.debug('Curtain %s -', accessory.displayName, JSON.stringify(e));
           this.apiError(e);
         }
         this.curtainUpdateInProgress = false;
@@ -162,7 +162,7 @@ export class Curtain {
       this.setMinMax();
       this.CurrentPosition = 100 - this.deviceStatus.body.slidePosition!;
       this.setMinMax();
-      this.platform.log.debug(
+      this.platform.debug(
         'Curtain %s CurrentPosition -',
         this.accessory.displayName,
         'Device is Currently: ',
@@ -177,7 +177,7 @@ export class Curtain {
 
       if (this.deviceStatus.body.moving) {
         if (this.TargetPosition > this.CurrentPosition) {
-          this.platform.log.debug(
+          this.platform.debug(
             'Curtain %s -',
             this.accessory.displayName,
             'Current position:',
@@ -186,7 +186,7 @@ export class Curtain {
           );
           this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
         } else if (this.TargetPosition < this.CurrentPosition) {
-          this.platform.log.debug(
+          this.platform.debug(
             'Curtain %s -',
             this.accessory.displayName,
             'Current position:',
@@ -195,11 +195,11 @@ export class Curtain {
           );
           this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
         } else {
-          this.platform.log.debug('Curtain %s -', this.CurrentPosition, 'standby');
+          this.platform.debug('Curtain %s -', this.CurrentPosition, 'standby');
           this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
         }
       } else {
-        this.platform.log.debug(
+        this.platform.debug(
           'Curtain %s -',
           this.accessory.displayName,
           'Current position:',
@@ -213,7 +213,7 @@ export class Curtain {
         }
       }
     }
-    this.platform.log.debug(
+    this.platform.debug(
       'Curtain %s CurrentPosition: %s, TargetPosition: %s, PositionState: %s',
       this.accessory.displayName,
       this.CurrentPosition,
@@ -227,13 +227,13 @@ export class Curtain {
       this.platform.log.warn('BLE DEVICE-1');
     } else {
       try {
-        this.platform.log.debug('Curtain - Reading', `${DeviceURL}/${this.device.deviceId}/status`);
+        this.platform.debug('Curtain - Reading', `${DeviceURL}/${this.device.deviceId}/status`);
         const deviceStatus: deviceStatusResponse = (
           await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)
         ).data;
         if (deviceStatus.message === 'success') {
           this.deviceStatus = deviceStatus;
-          this.platform.log.debug(
+          this.platform.debug(
             'Curtain %s refreshStatus -',
             this.accessory.displayName,
             JSON.stringify(this.deviceStatus),
@@ -242,11 +242,11 @@ export class Curtain {
           this.parseStatus();
           this.updateHomeKitCharacteristics();
         }
-      } catch (e) {
+      } catch (e: any) {
         this.platform.log.error(
           `Curtain - Failed to refresh status of ${this.device.deviceName}`,
           JSON.stringify(e.message),
-          this.platform.log.debug('Curtain %s -', this.accessory.displayName, JSON.stringify(e)),
+          this.platform.debug('Curtain %s -', this.accessory.displayName, JSON.stringify(e)),
         );
         this.apiError(e);
       }
@@ -258,7 +258,7 @@ export class Curtain {
       this.platform.log.warn('BLE DEVICE-2');
     } else {
       if (this.TargetPosition !== this.CurrentPosition) {
-        this.platform.log.debug(`Pushing ${this.TargetPosition}`);
+        this.platform.debug(`Pushing ${this.TargetPosition}`);
         const adjustedTargetPosition = 100 - Number(this.TargetPosition);
         const payload = {
           commandType: 'command',
@@ -276,18 +276,18 @@ export class Curtain {
           'commandType:',
           payload.commandType,
         );
-        this.platform.log.debug('Curtain %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
+        this.platform.debug('Curtain %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
 
         // Make the API request
         const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-        this.platform.log.debug('Curtain %s Changes pushed -', this.accessory.displayName, push.data);
+        this.platform.debug('Curtain %s Changes pushed -', this.accessory.displayName, push.data);
         this.statusCode(push);
       }
     }
   }
 
   updateHomeKitCharacteristics() {
-    this.platform.log.debug(
+    this.platform.debug(
       'Curtain %s updateHomeKitCharacteristics -',
       this.accessory.displayName,
       JSON.stringify({
@@ -337,10 +337,10 @@ export class Curtain {
         this.platform.log.error('Device internal error due to device states not synchronized with server. Or command fomrat is invalid.');
         break;
       case 100:
-        this.platform.log.debug('Command successfully sent.');
+        this.platform.debug('Command successfully sent.');
         break;
       default:
-        this.platform.log.debug('Unknown statusCode.');
+        this.platform.debug('Unknown statusCode.');
     }
   }
 
@@ -390,7 +390,7 @@ export class Curtain {
           });
       }
     }else {
-      this.platform.log.debug('Curtain %s - Set TargetPosition: %s', this.accessory.displayName, value);
+      this.platform.debug('Curtain %s - Set TargetPosition: %s', this.accessory.displayName, value);
 
       this.TargetPosition = value;
 
@@ -416,7 +416,7 @@ export class Curtain {
       clearTimeout(this.setNewTargetTimer);
       if (this.setNewTarget) {
         this.setNewTargetTimer = setTimeout(() => {
-          this.platform.log.debug(
+          this.platform.debug(
             'Curtain %s -',
             this.accessory.displayName,
             'setNewTarget',

@@ -83,7 +83,7 @@ export class Fan {
       this.service.removeCharacteristic(characteristic);
       this.platform.log.warn('Rotation Speed Characteristic was removed.');
     } else {
-      this.platform.log.debug(
+      this.platform.debug(
         'Rotation Speed Characteristic was not removed or not added. To Remove Chracteristic, Clear Cache on this Accessory.',
       );
     }
@@ -99,14 +99,14 @@ export class Fan {
       this.service.removeCharacteristic(characteristic);
       this.platform.log.warn('Swing Mode Characteristic was removed.');
     } else {
-      this.platform.log.debug(
+      this.platform.debug(
         'Swing Mode Characteristic was not removed or not added. To Remove Chracteristic, Clear Cache on this Accessory.',
       );
     }
   }
 
   private SwingModeSet(value: CharacteristicValue) {
-    this.platform.log.debug('Fan %s Set SwingMode: %s', this.accessory.displayName, value);
+    this.platform.debug('Fan %s Set SwingMode: %s', this.accessory.displayName, value);
     if (value > this.SwingMode) {
       this.SwingMode = 1;
       this.pushFanOnChanges();
@@ -123,7 +123,7 @@ export class Fan {
   }
 
   private RotationSpeedSet(value: CharacteristicValue) {
-    this.platform.log.debug('Fan %s Set Active: %s', this.accessory.displayName, value);
+    this.platform.debug('Fan %s Set Active: %s', this.accessory.displayName, value);
     if (value > this.RotationSpeed) {
       this.RotationSpeed = 1;
       this.pushFanSpeedUpChanges();
@@ -139,7 +139,7 @@ export class Fan {
   }
 
   private ActiveSet(value: CharacteristicValue) {
-    this.platform.log.debug('Fan %s Set Active: %s', this.accessory.displayName, value);
+    this.platform.debug('Fan %s Set Active: %s', this.accessory.displayName, value);
     if (value === this.platform.Characteristic.Active.INACTIVE) {
       this.pushFanOffChanges();
     } else {
@@ -219,11 +219,11 @@ export class Fan {
         'commandType:',
         payload.commandType,
       );
-      this.platform.log.debug('TV %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
+      this.platform.debug('TV %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.log.debug('TV %s Changes pushed -', this.accessory.displayName, push.data);
+      this.platform.debug('TV %s Changes pushed -', this.accessory.displayName, push.data);
       this.statusCode(push);
     } catch (e) {
       this.apiError(e);
@@ -251,10 +251,10 @@ export class Fan {
         this.platform.log.error('Device internal error due to device states not synchronized with server. Or command fomrat is invalid.');
         break;
       case 100:
-        this.platform.log.debug('Command successfully sent.');
+        this.platform.debug('Command successfully sent.');
         break;
       default:
-        this.platform.log.debug('Unknown statusCode.');
+        this.platform.debug('Unknown statusCode.');
     }
   }
 

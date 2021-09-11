@@ -1,0 +1,12 @@
+{
+    "statusCode": 100,
+    "body": {
+        "deviceId": "A11111AAA11A",
+        "deviceType": "Contact Sensor",
+        "hubDeviceId": "A11111AAA11A",
+        "moveDetected": false,
+        "brightness": "bright",
+        "openState": "close"
+    },
+    "message": "success"
+}

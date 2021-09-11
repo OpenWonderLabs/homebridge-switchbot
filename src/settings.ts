@@ -34,6 +34,7 @@ export type options = {
   refreshRate?: number;
   pushRate?: number;
   hide_device: string[];
+  debug?: boolean;
   bot?: bot;
   meter?: meter;
   humidifier?: humidifier;
@@ -173,7 +174,7 @@ export type deviceStatus = {
   hubDeviceId?: string;
   //only available for Bot/Plug/Humidifier devices. ON/OFF state.
   power?: string;
-  //only available for Meter/Humidifier devices. humidity percentage.
+  //only available for Meter/Humidifier/Color Bulb devices. humidity percentage.
   humidity?: number;
   //only available for Meter/Humidifier devices. temperature in celsius.
   temperature?: number;
@@ -204,4 +205,17 @@ export type deviceStatus = {
   shakeCenter?: string;
   //only available for Smart Fan devices. the fan's swing range, 0~120°.
   shakeRange?: string;
+  //only available for Motion Sensor, Contact Sensor devices. determines if motion is detected
+  moveDetected?: boolean;
+  //only available for Motion Sensor, Contact Sensor devices. tell the ambient environment is bright or dim |
+  //only available for Color Bulb devices. the brightness value, range from 1 to 100 |
+  brightness?: string | number;
+  //only available for Contact Sensor devices. open/close/timeOutNotClose |
+  openState?: string;
+  //only available for Color Bulb devices. the color value, RGB "255:255:255" |
+  color?: string;
+  //only available for Color Bulb devices. the color temperature value, range from 2700 to 6500 |
+  colorTemperature?: number;
+  //only available for Humidifier devices. determines if the water tank empty or not
+  lackWater?: boolean;
 };

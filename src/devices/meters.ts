@@ -77,13 +77,13 @@ export class Meter {
 
     // Temperature Sensor Service
     if (this.platform.config.options?.meter?.hide_temperature) {
-      if (this.platform.debugMode) {
+      if (this.platform.config.options.debug) {
         this.platform.log.error('Removing service');
       }
       this.temperatureservice = this.accessory.getService(this.platform.Service.TemperatureSensor);
       accessory.removeService(this.temperatureservice!);
     } else if (!this.temperatureservice) {
-      if (this.platform.debugMode) {
+      if (this.platform.config.options?.debug) {
         this.platform.log.warn('Adding service');
       }
       (this.temperatureservice =
@@ -104,14 +104,14 @@ export class Meter {
         });
       this.platform.log.info(this.device.deviceName + ' current temperature: ' + this.CurrentTemperature + '\u2103');
     } else {
-      if (this.platform.debugMode) {
+      if (this.platform.config.options?.debug) {
         this.platform.log.warn('TemperatureSensor not added.');
       }
     }
 
     // Humidity Sensor Service
     if (this.platform.config.options?.meter?.hide_humidity) {
-      if (this.platform.debugMode) {
+      if (this.platform.config.options.debug) {
         this.platform.log.error('Removing service');
       }
       this.humidityservice = this.accessory.getService(this.platform.Service.HumiditySensor);
@@ -131,7 +131,7 @@ export class Meter {
         });
       this.platform.log.info(this.device.deviceName + ' current humidity: ' + this.CurrentRelativeHumidity + '%');
     } else {
-      if (this.platform.debugMode) {
+      if (this.platform.config.options?.debug) {
         this.platform.log.warn('HumiditySensor not added.');
       }
     }
@@ -169,7 +169,7 @@ export class Meter {
       } else {
         this.CurrentRelativeHumidity = this.deviceStatus.body.humidity!;
       }
-      this.platform.log.debug('Meter %s - Humidity: %s%', this.accessory.displayName, this.CurrentRelativeHumidity);
+      this.platform.debug('Meter %s - Humidity: %s%', this.accessory.displayName, this.CurrentRelativeHumidity);
     }
 
     // Current Temperature
@@ -185,7 +185,7 @@ export class Meter {
           this.CurrentTemperature = this.deviceStatus.body.temperature!;
         }
       }
-      this.platform.log.debug('Meter %s - Temperature: %s°c', this.accessory.displayName, this.CurrentTemperature);
+      this.platform.debug('Meter %s - Temperature: %s°c', this.accessory.displayName, this.CurrentTemperature);
     }
   }
 
@@ -200,7 +200,7 @@ export class Meter {
       const colon = this.device.deviceId!.match(/.{1,2}/g);
       const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
       this.device.bleMac = bleMac.toLowerCase();
-      if (this.platform.debugMode) {
+      if (this.platform.config.options.debug) {
         this.platform.log.warn(this.device.bleMac!);
       }
       switchbot.onadvertisement = (ad: any) => {
@@ -249,7 +249,7 @@ export class Meter {
       ).data;
       if (deviceStatus.message === 'success') {
         this.deviceStatus = deviceStatus;
-        this.platform.log.debug(
+        this.platform.debug(
           'Meter %s refreshStatus -',
           this.accessory.displayName,
           JSON.stringify(this.deviceStatus),
@@ -258,12 +258,12 @@ export class Meter {
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       }
-    } catch (e) {
+    } catch (e: any) {
       this.platform.log.error(
         'Meter - Failed to update status of',
         this.device.deviceName,
         JSON.stringify(e.message),
-        this.platform.log.debug('Meter %s -', this.accessory.displayName, JSON.stringify(e)),
+        this.platform.debug('Meter %s -', this.accessory.displayName, JSON.stringify(e)),
       );
       this.apiError(e);
     }

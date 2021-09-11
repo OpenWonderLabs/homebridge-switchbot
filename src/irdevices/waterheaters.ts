@@ -58,7 +58,7 @@ export class WaterHeater {
   }
 
   private ActiveSet(value: CharacteristicValue) {
-    this.platform.log.debug('WaterHeater %s Set Active: %s', this.accessory.displayName, value);
+    this.platform.debug('WaterHeater %s Set Active: %s', this.accessory.displayName, value);
     if (value === this.platform.Characteristic.Active.INACTIVE) {
       this.pushWaterHeaterOffChanges();
       this.service.setCharacteristic(
@@ -119,11 +119,11 @@ export class WaterHeater {
         'commandType:',
         payload.commandType,
       );
-      this.platform.log.debug('WaterHeater %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
+      this.platform.debug('WaterHeater %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.log.debug('WaterHeater %s Changes pushed -', this.accessory.displayName, push.data);
+      this.platform.debug('WaterHeater %s Changes pushed -', this.accessory.displayName, push.data);
       this.statusCode(push);
     } catch (e) {
       this.apiError(e);
@@ -152,10 +152,10 @@ export class WaterHeater {
         this.platform.log.error('Device internal error due to device states not synchronized with server. Or command fomrat is invalid.');
         break;
       case 100:
-        this.platform.log.debug('Command successfully sent.');
+        this.platform.debug('Command successfully sent.');
         break;
       default:
-        this.platform.log.debug('Unknown statusCode.');
+        this.platform.debug('Unknown statusCode.');
     }
   }
 

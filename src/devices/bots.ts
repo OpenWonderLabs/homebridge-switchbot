@@ -55,7 +55,7 @@ export class Bot {
       const colon = device.deviceId!.match(/.{1,2}/g);
       const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
       this.device.bleMac = bleMac.toLowerCase();
-      if (this.platform.debugMode) {
+      if (this.platform.config.options.debug) {
         this.platform.log.warn(this.device.bleMac);
       }
     }
@@ -121,9 +121,9 @@ export class Bot {
       .subscribe(async () => {
         try {
           await this.pushChanges();
-        } catch (e) {
+        } catch (e: any) {
           this.platform.log.error(JSON.stringify(e.message));
-          this.platform.log.debug('Bot %s -', accessory.displayName, JSON.stringify(e));
+          this.platform.debug('Bot %s -', accessory.displayName, JSON.stringify(e));
           this.apiError(e);
         }
         this.botUpdateInProgress = false;
@@ -142,12 +142,12 @@ export class Bot {
         if (this.platform.config.options?.bot?.device_press?.includes(this.device.deviceId!)) {
           this.SwitchOn = false;
         }
-        this.platform.log.debug('Bot %s OutletInUse: %s On: %s', this.accessory.displayName, this.OutletInUse, this.SwitchOn);
+        this.platform.debug('Bot %s OutletInUse: %s On: %s', this.accessory.displayName, this.OutletInUse, this.SwitchOn);
       } else {
         if (this.platform.config.options?.bot?.device_press?.includes(this.device.deviceId!)) {
           this.SwitchOn = false;
         }
-        this.platform.log.debug('Bot %s On: %s', this.accessory.displayName, this.SwitchOn);
+        this.platform.debug('Bot %s On: %s', this.accessory.displayName, this.SwitchOn);
       }
     }
   }
@@ -174,11 +174,11 @@ export class Bot {
         this.deviceStatus = deviceStatus;
         this.parseStatus();
         this.updateHomeKitCharacteristics();
-      } catch (e) {
+      } catch (e: any) {
         this.platform.log.error(
           `Bot - Failed to update status of ${this.device.deviceName}`,
           JSON.stringify(e.message),
-          this.platform.log.debug('Bot %s -', this.accessory.displayName, JSON.stringify(e)),
+          this.platform.debug('Bot %s -', this.accessory.displayName, JSON.stringify(e)),
         );
         this.apiError(e);
       }
@@ -251,14 +251,14 @@ export class Bot {
       if (this.platform.config.options?.bot?.device_switch?.includes(this.device.deviceId!) && this.SwitchOn) {
         payload.command = 'turnOn';
         this.SwitchOn = true;
-        this.platform.log.debug('Switch Mode, Turning %s', this.SwitchOn);
+        this.platform.debug('Switch Mode, Turning %s', this.SwitchOn);
       } else if (this.platform.config.options?.bot?.device_switch?.includes(this.device.deviceId!) && !this.SwitchOn) {
         payload.command = 'turnOff';
         this.SwitchOn = false;
-        this.platform.log.debug('Switch Mode, Turning %s', this.SwitchOn);
+        this.platform.debug('Switch Mode, Turning %s', this.SwitchOn);
       } else if (this.platform.config.options?.bot?.device_press?.includes(this.device.deviceId!)) {
         payload.command = 'press';
-        this.platform.log.debug('Press Mode');
+        this.platform.debug('Press Mode');
         this.SwitchOn = false;
       } else {
         throw new Error('Bot Device Paramters not set for this Bot.');
@@ -274,11 +274,11 @@ export class Bot {
         'commandType:',
         payload.commandType,
       );
-      this.platform.log.debug('Bot %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
+      this.platform.debug('Bot %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.log.debug('Bot %s Changes pushed -', this.accessory.displayName, push.data);
+      this.platform.debug('Bot %s Changes pushed -', this.accessory.displayName, push.data);
       this.statusCode(push);
     }
     this.refreshStatus();
@@ -325,10 +325,10 @@ export class Bot {
         this.platform.log.error('Device internal error due to device states not synchronized with server. Or command fomrat is invalid.');
         break;
       case 100:
-        this.platform.log.debug('Command successfully sent.');
+        this.platform.debug('Command successfully sent.');
         break;
       default:
-        this.platform.log.debug('Unknown statusCode.');
+        this.platform.debug('Unknown statusCode.');
     }
   }
 
@@ -344,7 +344,7 @@ export class Bot {
         this.service?.getCharacteristic(this.platform.Characteristic.On).updateValue(this.SwitchOn);
       }
     } else {
-      this.platform.log.debug('Bot %s -', this.accessory.displayName, `Set On: ${value}`);
+      this.platform.debug('Bot %s -', this.accessory.displayName, `Set On: ${value}`);
       this.SwitchOn = value;
       this.doBotUpdate.next();
     }

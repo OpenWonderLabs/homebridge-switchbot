@@ -48,7 +48,7 @@ export class Others {
   }
 
   private ActiveSet(value: CharacteristicValue) {
-    this.platform.log.debug('%s %s Set On: %s', this.device.remoteType, this.accessory.displayName, value);
+    this.platform.debug('%s %s Set On: %s', this.device.remoteType, this.accessory.displayName, value);
     this.Active = value;
     if (this.Active) {
       this.pushOnChanges();
@@ -125,11 +125,11 @@ export class Others {
         'commandType:',
         payload.commandType,
       );
-      this.platform.log.debug('Light %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
+      this.platform.debug('Light %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.log.debug('Light %s Changes pushed -', this.accessory.displayName, push.data);
+      this.platform.debug('Light %s Changes pushed -', this.accessory.displayName, push.data);
       this.statusCode(push);
     } catch (e) {
       this.apiError(e);
@@ -157,10 +157,10 @@ export class Others {
         this.platform.log.error('Device internal error due to device states not synchronized with server. Or command fomrat is invalid.');
         break;
       case 100:
-        this.platform.log.debug('Command successfully sent.');
+        this.platform.debug('Command successfully sent.');
         break;
       default:
-        this.platform.log.debug('Unknown statusCode.');
+        this.platform.debug('Unknown statusCode.');
     }
   }
 

@@ -1,14 +1,16 @@
-import { AxiosResponse } from 'axios';
-import { CharacteristicValue, HAPStatus, PlatformAccessory, Service } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue, HAPStatus, MacAddress } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
-import { DeviceURL, irdevice } from '../settings';
+import { interval, Subject } from 'rxjs';
+import { debounceTime, skipWhile, tap } from 'rxjs/operators';
+import { DeviceURL, device, deviceStatusResponse } from '../settings';
+import { AxiosResponse } from 'axios';
 
 /**
  * Platform Accessory
  * An instance of this class is created for each accessory your platform registers
  * Each accessory may expose multiple services of different service types.
  */
-export class Light {
+export class Bulb {
   service!: Service;
 
   On!: CharacteristicValue;
@@ -16,20 +18,20 @@ export class Light {
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
-    public device: irdevice,
+    public device: device,
   ) {
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
+      .setCharacteristic(this.platform.Characteristic.Model, device.deviceType)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId);
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.Lightbulb) ||
-      accessory.addService(this.platform.Service.Lightbulb)), '%s %s', device.deviceName, device.remoteType;
+      accessory.addService(this.platform.Service.Lightbulb)), '%s %s', device.deviceName, device.deviceType;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -59,7 +61,7 @@ export class Light {
   }
 
   private OnSet(value: CharacteristicValue) {
-    this.platform.debug('%s %s Set On: %s', this.device.remoteType, this.accessory.displayName, value);
+    this.platform.debug('%s %s Set On: %s', this.device.deviceType, this.accessory.displayName, value);
     this.On = value;
     if (this.On) {
       this.pushLightOnChanges();

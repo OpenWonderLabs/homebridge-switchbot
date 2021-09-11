@@ -83,9 +83,9 @@ export class Plug {
       .subscribe(async () => {
         try {
           await this.pushChanges();
-        } catch (e) {
+        } catch (e: any) {
           this.platform.log.error(JSON.stringify(e.message));
-          this.platform.log.debug('Plug %s -', accessory.displayName, JSON.stringify(e));
+          this.platform.debug('Plug %s -', accessory.displayName, JSON.stringify(e));
           this.apiError(e);
         }
         this.plugUpdateInProgress = false;
@@ -100,7 +100,7 @@ export class Plug {
       default:
         this.On = false;
     }
-    this.platform.log.debug(
+    this.platform.debug(
       'Plug %s On: %s',
       this.accessory.displayName,
       this.On,
@@ -109,7 +109,7 @@ export class Plug {
 
   async refreshStatus() {
     try {
-      this.platform.log.debug('Plug - Reading', `${DeviceURL}/${this.device.deviceId}/status`);
+      this.platform.debug('Plug - Reading', `${DeviceURL}/${this.device.deviceId}/status`);
       const deviceStatus: deviceStatusResponse = (
         await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)
       ).data;
@@ -123,11 +123,11 @@ export class Plug {
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       }
-    } catch (e) {
+    } catch (e: any) {
       this.platform.log.error(
         `Plug - Failed to refresh status of ${this.device.deviceName}`,
         JSON.stringify(e.message),
-        this.platform.log.debug('Plug %s -', this.accessory.displayName, JSON.stringify(e)),
+        this.platform.debug('Plug %s -', this.accessory.displayName, JSON.stringify(e)),
       );
       this.apiError(e);
     }
@@ -161,11 +161,11 @@ export class Plug {
       'commandType:',
       payload.commandType,
     );
-    this.platform.log.debug('Plug %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
+    this.platform.debug('Plug %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
 
     // Make the API request
     const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-    this.platform.log.debug('Plug %s Changes pushed -', this.accessory.displayName, push.data);
+    this.platform.debug('Plug %s Changes pushed -', this.accessory.displayName, push.data);
     this.statusCode(push);
   }
 
@@ -206,12 +206,12 @@ export class Plug {
         this.platform.log.error('Device internal error due to device states not synchronized with server. Or command fomrat is invalid.');
         break;
       case 100:
-        if (this.platform.debugMode) {
+        if (this.platform.config.options?.debug) {
           this.platform.log.info('Command successfully sent.');
         }
         break;
       default:
-        this.platform.log.debug('Unknown statusCode.');
+        this.platform.debug('Unknown statusCode.');
     }
   }
 
@@ -219,7 +219,7 @@ export class Plug {
    * Handle requests to set the value of the "Target Position" characteristic
    */
   OnSet(value: CharacteristicValue) {
-    this.platform.log.debug('Plug %s - Set On: %s', this.accessory.displayName, value);
+    this.platform.debug('Plug %s - Set On: %s', this.accessory.displayName, value);
 
     this.On = value;
     this.doPlugUpdate.next();

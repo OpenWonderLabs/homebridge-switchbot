@@ -102,13 +102,13 @@ export class Humidifier {
     // create a new Temperature Sensor service
     // Temperature Sensor Service
     if (this.platform.config.options?.humidifier?.hide_temperature) {
-      if (this.platform.debugMode) {
+      if (this.platform.config.options.debug) {
         this.platform.log.error('Removing service');
       }
       this.temperatureservice = this.accessory.getService(this.platform.Service.TemperatureSensor);
       accessory.removeService(this.temperatureservice!);
     } else if (!this.temperatureservice) {
-      if (this.platform.debugMode) {
+      if (this.platform.config.options?.debug) {
         this.platform.log.warn('Adding service');
       }
       (this.temperatureservice =
@@ -127,7 +127,7 @@ export class Humidifier {
           return this.CurrentTemperature;
         });
     } else {
-      if (this.platform.debugMode) {
+      if (this.platform.config.options?.debug) {
         this.platform.log.warn('TemperatureSensor not added.');
       }
     }
@@ -154,9 +154,9 @@ export class Humidifier {
       .subscribe(async () => {
         try {
           await this.pushChanges();
-        } catch (e) {
+        } catch (e: any) {
           this.platform.log.error(JSON.stringify(e.message));
-          this.platform.log.debug('Humidifier %s -', accessory.displayName, JSON.stringify(e));
+          this.platform.debug('Humidifier %s -', accessory.displayName, JSON.stringify(e));
           this.apiError(e);
         }
         this.humidifierUpdateInProgress = false;
@@ -169,19 +169,22 @@ export class Humidifier {
   parseStatus() {
     // Current Relative Humidity
     this.CurrentRelativeHumidity = this.deviceStatus.body.humidity!;
-    this.platform.log.debug(
+    this.platform.debug(
       'Humidifier %s CurrentRelativeHumidity -',
       this.accessory.displayName,
       'Device is Currently: ',
       this.CurrentRelativeHumidity,
     );
-    // Water Level
-    if (this.deviceStatus.body) {
-      this.WaterLevel = 100; //Will be implimented once available in API.
-    } else {
-      this.WaterLevel = 0;
+    if (this.platform.config.options?.debug) {
+      this.platform.log.warn(JSON.stringify(this.deviceStatus.body));
     }
-    this.platform.log.debug(
+    // Water Level
+    if (this.deviceStatus.body.lackWater) {
+      this.WaterLevel = 0;
+    } else {
+      this.WaterLevel = 100;
+    }
+    this.platform.debug(
       'Humidifier %s WaterLevel -',
       this.accessory.displayName,
       'Device is Currently: ',
@@ -195,7 +198,7 @@ export class Humidifier {
       default:
         this.Active = this.platform.Characteristic.Active.INACTIVE;
     }
-    this.platform.log.debug('Humidifier %s Active -', this.accessory.displayName, 'Device is Currently: ', this.Active);
+    this.platform.debug('Humidifier %s Active -', this.accessory.displayName, 'Device is Currently: ', this.Active);
     // Target Humidifier Dehumidifier State
     switch (this.deviceStatus.body.auto) {
       case true:
@@ -218,19 +221,19 @@ export class Humidifier {
           this.CurrentHumidifierDehumidifierState = this.platform.Characteristic.CurrentHumidifierDehumidifierState.HUMIDIFYING;
         }
     }
-    this.platform.log.debug(
+    this.platform.debug(
       'Humidifier %s TargetHumidifierDehumidifierState -',
       this.accessory.displayName,
       'Device is Currently: ',
       this.TargetHumidifierDehumidifierState,
     );
-    this.platform.log.debug(
+    this.platform.debug(
       'Humidifier %s RelativeHumidityHumidifierThreshold -',
       this.accessory.displayName,
       'Device is Currently: ',
       this.RelativeHumidityHumidifierThreshold,
     );
-    this.platform.log.debug(
+    this.platform.debug(
       'Humidifier %s CurrentHumidifierDehumidifierState -',
       this.accessory.displayName,
       'Device is Currently: ',
@@ -239,7 +242,7 @@ export class Humidifier {
     // Current Temperature
     if (!this.platform.config.options?.humidifier?.hide_temperature) {
       this.CurrentTemperature = this.deviceStatus.body.temperature!;
-      this.platform.log.debug(
+      this.platform.debug(
         'Humidifier %s CurrentTemperature -',
         this.accessory.displayName,
         'Device is Currently: ',
@@ -258,7 +261,7 @@ export class Humidifier {
       ).data;
       if (deviceStatus.message === 'success') {
         this.deviceStatus = deviceStatus;
-        this.platform.log.debug(
+        this.platform.debug(
           'Humidifier %s refreshStatus -',
           this.accessory.displayName,
           JSON.stringify(this.deviceStatus),
@@ -267,11 +270,11 @@ export class Humidifier {
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       }
-    } catch (e) {
+    } catch (e: any) {
       this.platform.log.error(
         `Humidifier - Failed to update status of ${this.device.deviceName}`,
         JSON.stringify(e.message),
-        this.platform.log.debug('Humidifier %s -', this.accessory.displayName, JSON.stringify(e)),
+        this.platform.debug('Humidifier %s -', this.accessory.displayName, JSON.stringify(e)),
       );
       this.apiError(e);
     }
@@ -286,7 +289,7 @@ export class Humidifier {
       this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER &&
       this.Active === this.platform.Characteristic.Active.ACTIVE
     ) {
-      this.platform.log.debug(`Pushing Manual: ${this.RelativeHumidityHumidifierThreshold}!`);
+      this.platform.debug(`Pushing Manual: ${this.RelativeHumidityHumidifierThreshold}!`);
       const payload = {
         commandType: 'command',
         command: 'setMode',
@@ -303,11 +306,11 @@ export class Humidifier {
         'commandType:',
         payload.commandType,
       );
-      this.platform.log.debug('Humidifier %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
+      this.platform.debug('Humidifier %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.log.debug('Humidifier %s Changes pushed -', this.accessory.displayName, push.data);
+      this.platform.debug('Humidifier %s Changes pushed -', this.accessory.displayName, push.data);
       this.statusCode(push);
     } else if (
       this.TargetHumidifierDehumidifierState ===
@@ -330,7 +333,7 @@ export class Humidifier {
         this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER_OR_DEHUMIDIFIER &&
         this.Active === this.platform.Characteristic.Active.ACTIVE
       ) {
-        this.platform.log.debug('Pushing Auto!');
+        this.platform.debug('Pushing Auto!');
         const payload = {
           commandType: 'command',
           command: 'setMode',
@@ -347,16 +350,16 @@ export class Humidifier {
           'commandType:',
           payload.commandType,
         );
-        this.platform.log.debug('Humidifier %s pushAutoChanges -', this.accessory.displayName, JSON.stringify(payload));
+        this.platform.debug('Humidifier %s pushAutoChanges -', this.accessory.displayName, JSON.stringify(payload));
 
         // Make the API request
         const pushAuto = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-        this.platform.log.debug('Humidifier %s Changes pushed -', this.accessory.displayName, pushAuto.data);
+        this.platform.debug('Humidifier %s Changes pushed -', this.accessory.displayName, pushAuto.data);
         this.statusCodeAuto(pushAuto);
       }
-    } catch (e) {
+    } catch (e: any) {
       this.platform.log.error(JSON.stringify(e.message));
-      this.platform.log.debug('Humidifier %s -', this.accessory.displayName, JSON.stringify(e));
+      this.platform.debug('Humidifier %s -', this.accessory.displayName, JSON.stringify(e));
       this.apiError(e);
     }
   }
@@ -367,7 +370,7 @@ export class Humidifier {
   async pushActiveChanges() {
     try {
       if (this.Active === this.platform.Characteristic.Active.INACTIVE) {
-        this.platform.log.debug('Pushing Off!');
+        this.platform.debug('Pushing Off!');
         const payload = {
           commandType: 'command',
           command: 'turnOff',
@@ -384,7 +387,7 @@ export class Humidifier {
           'commandType:',
           payload.commandType,
         );
-        this.platform.log.debug(
+        this.platform.debug(
           'Humidifier %s pushActiveChanges -',
           this.accessory.displayName,
           JSON.stringify(payload),
@@ -392,12 +395,12 @@ export class Humidifier {
 
         // Make the API request
         const pushActive = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-        this.platform.log.debug('Humidifier %s Changes pushed -', this.accessory.displayName, pushActive.data);
+        this.platform.debug('Humidifier %s Changes pushed -', this.accessory.displayName, pushActive.data);
         this.statusCodeActive(pushActive);
       }
-    } catch (e) {
+    } catch (e: any) {
       this.platform.log.error(JSON.stringify(e.message));
-      this.platform.log.debug('Humidifier %s -', this.accessory.displayName, JSON.stringify(e));
+      this.platform.debug('Humidifier %s -', this.accessory.displayName, JSON.stringify(e));
       this.apiError(e);
     }
   }
@@ -478,10 +481,10 @@ export class Humidifier {
         this.platform.log.error('Device internal error due to device states not synchronized with server. Or command fomrat is invalid.');
         break;
       case 100:
-        this.platform.log.debug('Command successfully sent.');
+        this.platform.debug('Command successfully sent.');
         break;
       default:
-        this.platform.log.debug('Unknown statusCode.');
+        this.platform.debug('Unknown statusCode.');
     }
   }
 
@@ -506,10 +509,10 @@ export class Humidifier {
         this.platform.log.error('Device internal error due to device states not synchronized with server. Or command fomrat is invalid.');
         break;
       case 100:
-        this.platform.log.debug('Command successfully sent.');
+        this.platform.debug('Command successfully sent.');
         break;
       default:
-        this.platform.log.debug('Unknown statusCode.');
+        this.platform.debug('Unknown statusCode.');
     }
   }
 
@@ -534,10 +537,10 @@ export class Humidifier {
         this.platform.log.error('Device internal error due to device states not synchronized with server. Or command fomrat is invalid.');
         break;
       case 100:
-        this.platform.log.debug('Command successfully sent.');
+        this.platform.debug('Command successfully sent.');
         break;
       default:
-        this.platform.log.debug('Unknown statusCode.');
+        this.platform.debug('Unknown statusCode.');
     }
   }
 
@@ -545,7 +548,7 @@ export class Humidifier {
    * Handle requests to set the "Target Humidifier Dehumidifier State" characteristic
    */
   private handleTargetHumidifierDehumidifierStateSet(value: CharacteristicValue) {
-    this.platform.log.debug(
+    this.platform.debug(
       'Humidifier %s -',
       this.accessory.displayName,
       `Set TargetHumidifierDehumidifierState: ${value}`,
@@ -559,7 +562,7 @@ export class Humidifier {
    * Handle requests to set the "Active" characteristic
    */
   private handleActiveSet(value: CharacteristicValue) {
-    this.platform.log.debug('Humidifier %s -', this.accessory.displayName, `Set Active: ${value}`);
+    this.platform.debug('Humidifier %s -', this.accessory.displayName, `Set Active: ${value}`);
     this.Active = value;
     this.doHumidifierUpdate.next();
   }
@@ -568,7 +571,7 @@ export class Humidifier {
    * Handle requests to set the "Relative Humidity Humidifier Threshold" characteristic
    */
   private handleRelativeHumidityHumidifierThresholdSet(value: CharacteristicValue) {
-    this.platform.log.debug(
+    this.platform.debug(
       'Humidifier %s -',
       this.accessory.displayName,
       `Set RelativeHumidityHumidifierThreshold: ${value}`,

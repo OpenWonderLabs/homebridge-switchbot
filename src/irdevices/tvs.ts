@@ -104,7 +104,7 @@ export class TV {
   }
 
   private VolumeSelectorSet(value: CharacteristicValue) {
-    this.platform.log.debug('TV %s Set VolumeSelector: %s', this.accessory.displayName, value);
+    this.platform.debug('TV %s Set VolumeSelector: %s', this.accessory.displayName, value);
     if (value === this.platform.Characteristic.VolumeSelector.INCREMENT) {
       this.pushVolumeUpChanges();
     } else {
@@ -115,61 +115,61 @@ export class TV {
   private RemoteKeySet(value: CharacteristicValue) {
     switch (value) {
       case this.platform.Characteristic.RemoteKey.REWIND: {
-        this.platform.log.debug('TV %s Set Remote Key Pressed: REWIND', this.accessory.displayName);
+        this.platform.debug('TV %s Set Remote Key Pressed: REWIND', this.accessory.displayName);
         break;
       }
       case this.platform.Characteristic.RemoteKey.FAST_FORWARD: {
-        this.platform.log.debug('TV %s Set Remote Key Pressed: FAST_FORWARD', this.accessory.displayName);
+        this.platform.debug('TV %s Set Remote Key Pressed: FAST_FORWARD', this.accessory.displayName);
         break;
       }
       case this.platform.Characteristic.RemoteKey.NEXT_TRACK: {
-        this.platform.log.debug('TV %s Set Remote Key Pressed: NEXT_TRACK', this.accessory.displayName);
+        this.platform.debug('TV %s Set Remote Key Pressed: NEXT_TRACK', this.accessory.displayName);
         break;
       }
       case this.platform.Characteristic.RemoteKey.PREVIOUS_TRACK: {
-        this.platform.log.debug('TV %s Set Remote Key Pressed: PREVIOUS_TRACK', this.accessory.displayName);
+        this.platform.debug('TV %s Set Remote Key Pressed: PREVIOUS_TRACK', this.accessory.displayName);
         break;
       }
       case this.platform.Characteristic.RemoteKey.ARROW_UP: {
-        this.platform.log.debug('TV %s Set Remote Key Pressed: ARROW_UP', this.accessory.displayName);
+        this.platform.debug('TV %s Set Remote Key Pressed: ARROW_UP', this.accessory.displayName);
         //this.pushUpChanges();
         break;
       }
       case this.platform.Characteristic.RemoteKey.ARROW_DOWN: {
-        this.platform.log.debug('TV %s Set Remote Key Pressed: ARROW_DOWN', this.accessory.displayName);
+        this.platform.debug('TV %s Set Remote Key Pressed: ARROW_DOWN', this.accessory.displayName);
         //this.pushDownChanges();
         break;
       }
       case this.platform.Characteristic.RemoteKey.ARROW_LEFT: {
-        this.platform.log.debug('TV %s Set Remote Key Pressed: ARROW_LEFT', this.accessory.displayName);
+        this.platform.debug('TV %s Set Remote Key Pressed: ARROW_LEFT', this.accessory.displayName);
         //this.pushLeftChanges();
         break;
       }
       case this.platform.Characteristic.RemoteKey.ARROW_RIGHT: {
-        this.platform.log.debug('TV %s Set Remote Key Pressed: ARROW_RIGHT', this.accessory.displayName);
+        this.platform.debug('TV %s Set Remote Key Pressed: ARROW_RIGHT', this.accessory.displayName);
         //this.pushRightChanges();
         break;
       }
       case this.platform.Characteristic.RemoteKey.SELECT: {
-        this.platform.log.debug('TV %s Set Remote Key Pressed: SELECT', this.accessory.displayName);
+        this.platform.debug('TV %s Set Remote Key Pressed: SELECT', this.accessory.displayName);
         //this.pushOkChanges();
         break;
       }
       case this.platform.Characteristic.RemoteKey.BACK: {
-        this.platform.log.debug('TV %s Set Remote Key Pressed: BACK', this.accessory.displayName);
+        this.platform.debug('TV %s Set Remote Key Pressed: BACK', this.accessory.displayName);
         //this.pushBackChanges();
         break;
       }
       case this.platform.Characteristic.RemoteKey.EXIT: {
-        this.platform.log.debug('TV %s Set Remote Key Pressed: EXIT', this.accessory.displayName);
+        this.platform.debug('TV %s Set Remote Key Pressed: EXIT', this.accessory.displayName);
         break;
       }
       case this.platform.Characteristic.RemoteKey.PLAY_PAUSE: {
-        this.platform.log.debug('TV %s Set Remote Key Pressed: PLAY_PAUSE', this.accessory.displayName);
+        this.platform.debug('TV %s Set Remote Key Pressed: PLAY_PAUSE', this.accessory.displayName);
         break;
       }
       case this.platform.Characteristic.RemoteKey.INFORMATION: {
-        this.platform.log.debug('TV %s Set Remote Key Pressed: INFORMATION', this.accessory.displayName);
+        this.platform.debug('TV %s Set Remote Key Pressed: INFORMATION', this.accessory.displayName);
         //this.pushMenuChanges();
         break;
       }
@@ -177,11 +177,11 @@ export class TV {
   }
 
   private ActiveIdentifierSet(value: CharacteristicValue) {
-    this.platform.log.debug('TV %s Set Active Identifier: %s', this.accessory.displayName, value);
+    this.platform.debug('TV %s Set Active Identifier: %s', this.accessory.displayName, value);
   }
 
   private ActiveSet(value: CharacteristicValue) {
-    this.platform.log.debug('TV %s Set Active: %s', this.accessory.displayName, value);
+    this.platform.debug('TV %s Set Active: %s', this.accessory.displayName, value);
     if (value === this.platform.Characteristic.Active.INACTIVE) {
       this.pushTvOffChanges();
     } else {
@@ -316,11 +316,11 @@ export class TV {
         'commandType:',
         payload.commandType,
       );
-      this.platform.log.debug('TV %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
+      this.platform.debug('TV %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.log.debug('TV %s Changes pushed -', this.accessory.displayName, push.data);
+      this.platform.debug('TV %s Changes pushed -', this.accessory.displayName, push.data);
       this.statusCode(push);
     } catch (e) {
       this.apiError(e);
@@ -349,10 +349,10 @@ export class TV {
         this.platform.log.error('Device internal error due to device states not synchronized with server. Or command fomrat is invalid.');
         break;
       case 100:
-        this.platform.log.debug('Command successfully sent.');
+        this.platform.debug('Command successfully sent.');
         break;
       default:
-        this.platform.log.debug('Unknown statusCode.');
+        this.platform.debug('Unknown statusCode.');
     }
   }
 

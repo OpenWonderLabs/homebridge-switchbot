@@ -65,7 +65,7 @@ export class AirPurifier {
   }
 
   private ActiveSet(value: CharacteristicValue) {
-    this.platform.log.debug('%s %s Set Active: %s', this.device.remoteType, this.accessory.displayName, value);
+    this.platform.debug('%s %s Set Active: %s', this.device.remoteType, this.accessory.displayName, value);
     if (value === this.platform.Characteristic.Active.INACTIVE) {
       this.pushAirConditionerOffChanges();
     } else {
@@ -195,7 +195,7 @@ export class AirPurifier {
         'commandType:',
         payload.commandType,
       );
-      this.platform.log.debug(
+      this.platform.debug(
         '%s %s pushChanges -',
         this.device.remoteType,
         this.accessory.displayName,
@@ -204,7 +204,7 @@ export class AirPurifier {
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.log.debug('%s %s Changes pushed -', this.device.remoteType, this.accessory.displayName, push.data);
+      this.platform.debug('%s %s Changes pushed -', this.device.remoteType, this.accessory.displayName, push.data);
       this.statusCode(push);
     } catch (e) {
       this.apiError(e);
@@ -232,10 +232,10 @@ export class AirPurifier {
         this.platform.log.error('Device internal error due to device states not synchronized with server. Or command fomrat is invalid.');
         break;
       case 100:
-        this.platform.log.debug('Command successfully sent.');
+        this.platform.debug('Command successfully sent.');
         break;
       default:
-        this.platform.log.debug('Unknown statusCode.');
+        this.platform.debug('Unknown statusCode.');
     }
   }
 
