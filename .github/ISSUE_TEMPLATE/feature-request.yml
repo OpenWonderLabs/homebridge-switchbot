@@ -1,0 +1,38 @@
+name: Feature Request
+description: Suggest an idea for this project
+title: "Feature Request: "
+labels: [enhancement]
+assignees: 'donavanbecker'
+body:
+  - type: markdown
+    attributes:
+      value: |
+        You must use the issue template below when submitting a feature request.
+  - type: markdown
+    attributes:
+      value: |
+        Is your feature request related to a problem? Please describe.
+  - type: input
+    attributes:
+      label: Problem
+      placeholder: A clear and concise description of what the problem is. Ex. I am always frustrated when [...] 
+    validations:
+      required: false
+  - type: input
+    attributes:
+      label: Solution
+      placeholder: A clear and concise description of what you want to happen.
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Alternatives
+      placeholder: A clear and concise description of any alternative solutions or features you have considered.
+    validations:
+      required: false
+  - type: input
+    attributes:
+      label: Additional context
+      placeholder: Add any other context or screenshots about the feature request here. Post devicediscovery logs here.
+    validations:
+      required: false
