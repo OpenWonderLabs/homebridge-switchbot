@@ -1,4 +1,4 @@
-import { Service, PlatformAccessory, CharacteristicValue, HAPStatus } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
@@ -70,7 +70,6 @@ export class Plug {
         this.refreshStatus();
       });
 
-
     // Watch for Plug change events
     // We put in a debounce of 100ms so we don't make duplicate calls
     this.doPlugUpdate
@@ -85,7 +84,7 @@ export class Plug {
           await this.pushChanges();
         } catch (e: any) {
           this.platform.log.error(JSON.stringify(e.message));
-          this.platform.debug('Plug %s -', accessory.displayName, JSON.stringify(e));
+          this.platform.debug(`Plug ${accessory.displayName} - ${JSON.stringify(e)}`);
           this.apiError(e);
         }
         this.plugUpdateInProgress = false;
@@ -100,11 +99,7 @@ export class Plug {
       default:
         this.On = false;
     }
-    this.platform.debug(
-      'Plug %s On: %s',
-      this.accessory.displayName,
-      this.On,
-    );
+    this.platform.debug(`Plug ${this.accessory.displayName} On: ${this.On}`);
   }
 
   async refreshStatus() {
@@ -115,11 +110,7 @@ export class Plug {
       ).data;
       if (deviceStatus.message === 'success') {
         this.deviceStatus = deviceStatus;
-        this.platform.log.warn(
-          'Plug %s refreshStatus -',
-          this.accessory.displayName,
-          JSON.stringify(this.deviceStatus),
-        );
+        this.platform.log.warn(`Plug ${this.accessory.displayName} refreshStatus - ${JSON.stringify(this.deviceStatus)})`;
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       }
@@ -127,7 +118,7 @@ export class Plug {
       this.platform.log.error(
         `Plug - Failed to refresh status of ${this.device.deviceName}`,
         JSON.stringify(e.message),
-        this.platform.debug('Plug %s -', this.accessory.displayName, JSON.stringify(e)),
+        this.platform.debug(`Plug ${this.accessory.displayName} - ${JSON.stringify(e)}`),
       );
       this.apiError(e);
     }
@@ -161,11 +152,11 @@ export class Plug {
       'commandType:',
       payload.commandType,
     );
-    this.platform.debug('Plug %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
+    this.platform.debug(`Plug ${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
 
     // Make the API request
     const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-    this.platform.debug('Plug %s Changes pushed -', this.accessory.displayName, push.data);
+    this.platform.debug(`Plug ${this.accessory.displayName} Changes pushed - ${push.data}`);
     this.statusCode(push);
   }
 
@@ -181,7 +172,6 @@ export class Plug {
   public apiError(e: any) {
     this.service.updateCharacteristic(this.platform.Characteristic.On, e);
     this.service.updateCharacteristic(this.platform.Characteristic.OutletInUse, e);
-    new this.platform.api.hap.HapStatusError(HAPStatus.OPERATION_TIMED_OUT);
   }
 
 
@@ -216,10 +206,10 @@ export class Plug {
   }
 
   /**
-   * Handle requests to set the value of the "Target Position" characteristic
+   * Handle requests to set the value of the "On" characteristic
    */
   OnSet(value: CharacteristicValue) {
-    this.platform.debug('Plug %s - Set On: %s', this.accessory.displayName, value);
+    this.platform.debug(`Plug ${this.accessory.displayName} - Set On: ${value}`);
 
     this.On = value;
     this.doPlugUpdate.next();

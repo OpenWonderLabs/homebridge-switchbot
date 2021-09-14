@@ -1,4 +1,4 @@
-import { Service, PlatformAccessory, Units, CharacteristicValue, HAPStatus } from 'homebridge';
+import { Service, PlatformAccessory, Units, CharacteristicValue } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
@@ -169,7 +169,7 @@ export class Meter {
       } else {
         this.CurrentRelativeHumidity = this.deviceStatus.body.humidity!;
       }
-      this.platform.debug('Meter %s - Humidity: %s%', this.accessory.displayName, this.CurrentRelativeHumidity);
+      this.platform.debug(`Meter ${this.accessory.displayName} - Humidity: ${this.CurrentRelativeHumidity}%`);
     }
 
     // Current Temperature
@@ -185,7 +185,7 @@ export class Meter {
           this.CurrentTemperature = this.deviceStatus.body.temperature!;
         }
       }
-      this.platform.debug('Meter %s - Temperature: %s°c', this.accessory.displayName, this.CurrentTemperature);
+      this.platform.debug(`Meter ${this.accessory.displayName} - Temperature: ${this.CurrentTemperature}°c`);
     }
   }
 
@@ -249,12 +249,7 @@ export class Meter {
       ).data;
       if (deviceStatus.message === 'success') {
         this.deviceStatus = deviceStatus;
-        this.platform.debug(
-          'Meter %s refreshStatus -',
-          this.accessory.displayName,
-          JSON.stringify(this.deviceStatus),
-        );
-
+        this.platform.debug(`Meter ${this.accessory.displayName} refreshStatus - ${JSON.stringify(this.deviceStatus)}`);
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       }
@@ -263,7 +258,7 @@ export class Meter {
         'Meter - Failed to update status of',
         this.device.deviceName,
         JSON.stringify(e.message),
-        this.platform.debug('Meter %s -', this.accessory.displayName, JSON.stringify(e)),
+        this.platform.debug(`Meter ${this.accessory.displayName} - ${JSON.stringify(e)}`),
       );
       this.apiError(e);
     }
@@ -303,7 +298,6 @@ export class Meter {
     if (!this.platform.config.options?.meter?.hide_temperature) {
       this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
     }
-    new this.platform.api.hap.HapStatusError(HAPStatus.OPERATION_TIMED_OUT);
   }
 
   /**

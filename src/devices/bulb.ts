@@ -1,4 +1,4 @@
-import { Service, PlatformAccessory, CharacteristicValue, HAPStatus, MacAddress } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
@@ -14,12 +14,30 @@ export class Bulb {
   service!: Service;
 
   On!: CharacteristicValue;
+  Brightness!: CharacteristicValue;
+  ColorTemperature!: CharacteristicValue;
+  deviceStatus!: deviceStatusResponse;
+
+  bulbUpdateInProgress!: boolean;
+  doBulbUpdate;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
     public device: device,
   ) {
+    // default placeholders
+    this.On = false;
+    this.Brightness = 0;
+
+    // this is subject we use to track when we need to POST changes to the SwitchBot API
+    this.doBulbUpdate = new Subject();
+    this.bulbUpdateInProgress = false;
+
+
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
+
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
@@ -42,106 +60,153 @@ export class Bulb {
     this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
 
     // handle on / off events using the On characteristic
-    this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
+    this.service.getCharacteristic(this.platform.Characteristic.On)
+      .onSet(this.OnSet.bind(this));
 
     // handle Brightness events using the Brightness characteristic
-    /* this.service
-      .getCharacteristic(this.platform.Characteristic.Brightness)
-      .on(CharacteristicEventTypes.SET, (value: any, callback: CharacteristicGetCallback) => {
-        this.platform.debug('%s %s Set Brightness: %s', device.remoteType, accessory.displayName, value);
-        this.Brightness = value;
-        if (value > this.Brightness) {
-          this.pushLightBrightnessUpChanges();
-        } else {
-          this.pushLightBrightnessDownChanges();
+    this.service.getCharacteristic(this.platform.Characteristic.Brightness)
+      .setProps({
+        minStep: this.platform.config.options?.bulb?.set_minStep || 1,
+        minValue: 0,
+        maxValue: 100,
+        validValueRanges: [0, 100],
+      })
+      .onGet(() => {
+        return this.Brightness;
+      })
+      .onSet(this.BrightnessSet.bind(this));
+
+    // handle ColorTemperature events using the ColorTemperature characteristic
+    this.service.getCharacteristic(this.platform.Characteristic.ColorTemperature)
+      .setProps({
+        minStep: this.platform.config.options?.bulb?.set_minStep || 1,
+        minValue: 0,
+        maxValue: 100,
+        validValueRanges: [0, 100],
+      })
+      .onGet(() => {
+        return this.ColorTemperature;
+      })
+      .onSet(this.ColorTemperatureSet.bind(this));
+
+    // Update Homekit
+    this.updateHomeKitCharacteristics();
+
+    // Start an update interval
+    interval(this.platform.config.options!.refreshRate! * 1000)
+      .pipe(skipWhile(() => this.bulbUpdateInProgress))
+      .subscribe(() => {
+        this.refreshStatus();
+      });
+
+    // Watch for Plug change events
+    // We put in a debounce of 100ms so we don't make duplicate calls
+    this.doBulbUpdate
+      .pipe(
+        tap(() => {
+          this.bulbUpdateInProgress = true;
+        }),
+        debounceTime(this.platform.config.options!.pushRate! * 1000),
+      )
+      .subscribe(async () => {
+        try {
+          await this.pushChanges();
+        } catch (e: any) {
+          this.platform.log.error(JSON.stringify(e.message));
+          this.platform.debug(`Plug ${accessory.displayName} - ${JSON.stringify(e)}`);
+          this.apiError(e);
         }
-        this.service.updateCharacteristic(this.platform.Characteristic.Active, this.Brightness);
-        callback(null);
-      });*/
+        this.bulbUpdateInProgress = false;
+      });
   }
 
-  private OnSet(value: CharacteristicValue) {
-    this.platform.debug('%s %s Set On: %s', this.device.deviceType, this.accessory.displayName, value);
-    this.On = value;
-    if (this.On) {
-      this.pushLightOnChanges();
-    } else {
-      this.pushLightOffChanges();
+  parseStatus() {
+    switch (this.deviceStatus.body.power) {
+      case 'on':
+        this.On = true;
+        break;
+      default:
+        this.On = false;
     }
-    this.service.updateCharacteristic(this.platform.Characteristic.Active, this.On);
+    this.platform.debug(`Plug ${this.accessory.displayName} On: ${this.On}`);
+    this.deviceStatus.body.brightness = Number(this.Brightness);
+    this.deviceStatus.body.colorTemperature = Number(this.ColorTemperature);
+  }
+
+  async refreshStatus() {
+    try {
+      this.platform.debug('Plug - Reading', `${DeviceURL}/${this.device.deviceId}/status`);
+      const deviceStatus: deviceStatusResponse = (
+        await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)
+      ).data;
+      if (deviceStatus.message === 'success') {
+        this.deviceStatus = deviceStatus;
+        this.platform.log.warn(`Plug ${this.accessory.displayName} refreshStatus - ${JSON.stringify(this.deviceStatus)}`);
+        this.parseStatus();
+        this.updateHomeKitCharacteristics();
+      }
+    } catch (e: any) {
+      this.platform.log.error(
+        `Plug - Failed to refresh status of ${this.device.deviceName}`,
+        JSON.stringify(e.message),
+        this.platform.debug(`Plug ${this.accessory.displayName} - ${JSON.stringify(e)}`),
+      );
+      this.apiError(e);
+    }
   }
 
   /**
-   * Pushes the requested changes to the SwitchBot API
-   * deviceType	commandType     Command	          command parameter	         Description
-   * Light:        "command"       "turnOff"         "default"	        =        set to OFF state
-   * Light:        "command"       "turnOn"          "default"	        =        set to ON state
-   * Light:        "command"       "volumeAdd"       "default"	        =        volume up
-   * Light:        "command"       "volumeSub"       "default"	        =        volume down
-   * Light:        "command"       "channelAdd"      "default"	        =        next channel
-   * Light:        "command"       "channelSub"      "default"	        =        previous channel
-   */
-  async pushLightOnChanges() {
+ * Pushes the requested changes to the SwitchBot API
+ * deviceType	commandType	  Command	    command parameter	  Description
+ * Plug   -    "command"     "turnOff"   "default"	  =        set to OFF state
+ * Plug   -    "command"     "turnOn"    "default"	  =        set to ON state
+ */
+  async pushChanges() {
+    const payload = {
+      commandType: 'command',
+      parameter: 'default',
+    } as any;
+
     if (this.On) {
-      const payload = {
-        commandType: 'command',
-        parameter: 'default',
-        command: 'turnOn',
-      } as any;
-      await this.pushChanges(payload);
+      payload.command = 'turnOn';
+    } else {
+      payload.command = 'turnOff';
+    }
+
+    this.platform.log.info(
+      'Sending request for',
+      this.accessory.displayName,
+      'to SwitchBot API. command:',
+      payload.command,
+      'parameter:',
+      payload.parameter,
+      'commandType:',
+      payload.commandType,
+    );
+    this.platform.debug(`Plug ${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
+
+    // Make the API request
+    const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
+    this.platform.debug(`Plug ${this.accessory.displayName} Changes pushed - ${push.data}`);
+    this.statusCode(push);
+  }
+
+  updateHomeKitCharacteristics() {
+    if (this.On !== undefined) {
+      this.service.updateCharacteristic(this.platform.Characteristic.On, this.On);
+    }
+    if (this.Brightness !== undefined) {
+      this.service.updateCharacteristic(this.platform.Characteristic.Brightness, this.Brightness);
+    }
+    if (this.ColorTemperature !== undefined) {
+      this.service.updateCharacteristic(this.platform.Characteristic.Brightness, this.ColorTemperature);
     }
   }
 
-  async pushLightOffChanges() {
-    if (!this.On) {
-      const payload = {
-        commandType: 'command',
-        parameter: 'default',
-        command: 'turnOff',
-      } as any;
-      await this.pushChanges(payload);
-    }
-  }
-
-  async pushLightBrightnessUpChanges() {
-    const payload = {
-      commandType: 'command',
-      parameter: 'default',
-      command: 'brightnessUp',
-    } as any;
-    await this.pushChanges(payload);
-  }
-
-  async pushLightBrightnessDownChanges() {
-    const payload = {
-      commandType: 'command',
-      parameter: 'default',
-      command: 'brightnessDown',
-    } as any;
-    await this.pushChanges(payload);
-  }
-
-  public async pushChanges(payload: any) {
-    try {
-      this.platform.log.info(
-        'Sending request for',
-        this.accessory.displayName,
-        'to SwitchBot API. command:',
-        payload.command,
-        'parameter:',
-        payload.parameter,
-        'commandType:',
-        payload.commandType,
-      );
-      this.platform.debug('Light %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
-
-      // Make the API request
-      const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.debug('Light %s Changes pushed -', this.accessory.displayName, push.data);
-      this.statusCode(push);
-    } catch (e) {
-      this.apiError(e);
-    }
+  public apiError(e: any) {
+    this.service.updateCharacteristic(this.platform.Characteristic.On, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.Brightness, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.ColorTemperature, e);
   }
 
 
@@ -166,15 +231,42 @@ export class Bulb {
         this.platform.log.error('Device internal error due to device states not synchronized with server. Or command fomrat is invalid.');
         break;
       case 100:
-        this.platform.debug('Command successfully sent.');
+        if (this.platform.config.options?.debug) {
+          this.platform.log.info('Command successfully sent.');
+        }
         break;
       default:
         this.platform.debug('Unknown statusCode.');
     }
   }
 
-  public apiError(e: any) {
-    this.service.updateCharacteristic(this.platform.Characteristic.On, e);
-    new this.platform.api.hap.HapStatusError(HAPStatus.OPERATION_TIMED_OUT);
+  /**
+   * Handle requests to set the value of the "On" characteristic
+   */
+  OnSet(value: CharacteristicValue) {
+    this.platform.debug(`${this.accessory.displayName} - Set On: ${value}`);
+
+    this.On = value;
+    this.doBulbUpdate.next();
+  }
+
+  /**
+   * Handle requests to set the value of the "Brightness" characteristic
+   */
+  BrightnessSet(value: CharacteristicValue) {
+    this.platform.debug(`${this.accessory.displayName} - Set On: ${value}`);
+
+    this.Brightness = value;
+    this.doBulbUpdate.next();
+  }
+
+  /**
+   * Handle requests to set the value of the "ColorTemperature" characteristic
+   */
+  ColorTemperatureSet(value: CharacteristicValue) {
+    this.platform.debug(`${this.accessory.displayName} - Set On: ${value}`);
+
+    this.ColorTemperature = value;
+    this.doBulbUpdate.next();
   }
 }

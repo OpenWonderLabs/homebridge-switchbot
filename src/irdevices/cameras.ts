@@ -1,10 +1,5 @@
 import { AxiosResponse } from 'axios';
-import {
-  CharacteristicValue,
-  HAPStatus,
-  PlatformAccessory,
-  Service,
-} from 'homebridge';
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { DeviceURL, irdevice } from '../settings';
 
@@ -49,7 +44,7 @@ export class Camera {
   }
 
   private OnSet(value: CharacteristicValue) {
-    this.platform.debug('%s %s Set On: %s', this.device.remoteType, this.accessory.displayName, value);
+    this.platform.debug(`${this.accessory.displayName} Set On: ${value}`);
     this.On = value;
     if (this.On) {
       this.pushOnChanges();
@@ -102,11 +97,11 @@ export class Camera {
         'commandType:',
         payload.commandType,
       );
-      this.platform.debug('Light %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
+      this.platform.debug(`${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.debug('Light %s Changes pushed -', this.accessory.displayName, push.data);
+      this.platform.debug(`${this.accessory.displayName} Changes pushed - ${push.data}`);
       this.statusCode(push);
     } catch (e) {
       this.apiError(e);
@@ -143,6 +138,5 @@ export class Camera {
 
   public apiError(e: any) {
     this.service.updateCharacteristic(this.platform.Characteristic.On, e);
-    new this.platform.api.hap.HapStatusError(HAPStatus.OPERATION_TIMED_OUT);
   }
 }

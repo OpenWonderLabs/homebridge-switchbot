@@ -1,4 +1,4 @@
-import { Service, PlatformAccessory, CharacteristicValue, HAPStatus, MacAddress } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue, MacAddress } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
@@ -123,7 +123,7 @@ export class Bot {
           await this.pushChanges();
         } catch (e: any) {
           this.platform.log.error(JSON.stringify(e.message));
-          this.platform.debug('Bot %s -', accessory.displayName, JSON.stringify(e));
+          this.platform.debug(`Bot ${accessory.displayName} - ${JSON.stringify(e)}`);
           this.apiError(e);
         }
         this.botUpdateInProgress = false;
@@ -142,12 +142,12 @@ export class Bot {
         if (this.platform.config.options?.bot?.device_press?.includes(this.device.deviceId!)) {
           this.SwitchOn = false;
         }
-        this.platform.debug('Bot %s OutletInUse: %s On: %s', this.accessory.displayName, this.OutletInUse, this.SwitchOn);
+        this.platform.debug(`Bot ${this.accessory.displayName} OutletInUse: ${this.OutletInUse} On: ${this.SwitchOn}`);
       } else {
         if (this.platform.config.options?.bot?.device_press?.includes(this.device.deviceId!)) {
           this.SwitchOn = false;
         }
-        this.platform.debug('Bot %s On: %s', this.accessory.displayName, this.SwitchOn);
+        this.platform.debug(`Bot ${this.accessory.displayName} On: ${this.SwitchOn}`);
       }
     }
   }
@@ -178,8 +178,7 @@ export class Bot {
         this.platform.log.error(
           `Bot - Failed to update status of ${this.device.deviceName}`,
           JSON.stringify(e.message),
-          this.platform.debug('Bot %s -', this.accessory.displayName, JSON.stringify(e)),
-        );
+          this.platform.debug(`Bot ${this.accessory.displayName} - ${JSON.stringify(e)}`));
         this.apiError(e);
       }
     }
@@ -251,11 +250,11 @@ export class Bot {
       if (this.platform.config.options?.bot?.device_switch?.includes(this.device.deviceId!) && this.SwitchOn) {
         payload.command = 'turnOn';
         this.SwitchOn = true;
-        this.platform.debug('Switch Mode, Turning %s', this.SwitchOn);
+        this.platform.debug(`Switch Mode, Turning ${this.SwitchOn}`);
       } else if (this.platform.config.options?.bot?.device_switch?.includes(this.device.deviceId!) && !this.SwitchOn) {
         payload.command = 'turnOff';
         this.SwitchOn = false;
-        this.platform.debug('Switch Mode, Turning %s', this.SwitchOn);
+        this.platform.debug(`Switch Mode, Turning ${this.SwitchOn}`);
       } else if (this.platform.config.options?.bot?.device_press?.includes(this.device.deviceId!)) {
         payload.command = 'press';
         this.platform.debug('Press Mode');
@@ -274,11 +273,11 @@ export class Bot {
         'commandType:',
         payload.commandType,
       );
-      this.platform.debug('Bot %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
+      this.platform.debug(`Bot ${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.debug('Bot %s Changes pushed -', this.accessory.displayName, push.data);
+      this.platform.debug(`Bot ${this.accessory.displayName} Changes pushed - ${push.data}`);
       this.statusCode(push);
     }
     this.refreshStatus();
@@ -301,7 +300,6 @@ export class Bot {
     if (!this.platform.config.options?.bot?.switch) {
       this.service.updateCharacteristic(this.platform.Characteristic.OutletInUse, e);
     }
-    new this.platform.api.hap.HapStatusError(HAPStatus.OPERATION_TIMED_OUT);
   }
 
   private statusCode(push: AxiosResponse<any>) {
@@ -344,7 +342,7 @@ export class Bot {
         this.service?.getCharacteristic(this.platform.Characteristic.On).updateValue(this.SwitchOn);
       }
     } else {
-      this.platform.debug('Bot %s -', this.accessory.displayName, `Set On: ${value}`);
+      this.platform.debug(`Bot ${this.accessory.displayName} - Set On: ${value}`);
       this.SwitchOn = value;
       this.doBotUpdate.next();
     }

@@ -1,4 +1,4 @@
-import { Service, PlatformAccessory, CharacteristicValue, HAPStatus } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
@@ -95,11 +95,7 @@ export class Contact {
       ).data;
       if (deviceStatus.message === 'success') {
         this.deviceStatus = deviceStatus;
-        this.platform.log.warn(
-          'Contact %s refreshStatus -',
-          this.accessory.displayName,
-          JSON.stringify(this.deviceStatus),
-        );
+        this.platform.debug(`Contact ${this.accessory.displayName} refreshStatus - ${JSON.stringify(this.deviceStatus)}`);
 
         this.parseStatus();
         this.updateHomeKitCharacteristics();
@@ -109,7 +105,7 @@ export class Contact {
         'Contact - Failed to update status of',
         this.device.deviceName,
         JSON.stringify(e.message),
-        this.platform.debug('Contact %s -', this.accessory.displayName, JSON.stringify(e)),
+        this.platform.debug(`Contact ${this.accessory.displayName} - ${JSON.stringify(e)}`),
       );
       this.apiError(e);
     }
@@ -126,6 +122,5 @@ export class Contact {
 
   public apiError(e: any) {
     this.service.updateCharacteristic(this.platform.Characteristic.ContactSensorState, e);
-    new this.platform.api.hap.HapStatusError(HAPStatus.OPERATION_TIMED_OUT);
   }
 }

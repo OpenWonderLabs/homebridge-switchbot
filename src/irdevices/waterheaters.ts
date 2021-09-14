@@ -1,10 +1,5 @@
 import { AxiosResponse } from 'axios';
-import {
-  CharacteristicValue,
-  HAPStatus,
-  PlatformAccessory,
-  Service,
-} from 'homebridge';
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { DeviceURL, irdevice } from '../settings';
 
@@ -58,7 +53,7 @@ export class WaterHeater {
   }
 
   private ActiveSet(value: CharacteristicValue) {
-    this.platform.debug('WaterHeater %s Set Active: %s', this.accessory.displayName, value);
+    this.platform.debug(`${this.accessory.displayName} Set Active: ${value}`);
     if (value === this.platform.Characteristic.Active.INACTIVE) {
       this.pushWaterHeaterOffChanges();
       this.service.setCharacteristic(
@@ -119,11 +114,11 @@ export class WaterHeater {
         'commandType:',
         payload.commandType,
       );
-      this.platform.debug('WaterHeater %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
+      this.platform.debug(`${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.debug('WaterHeater %s Changes pushed -', this.accessory.displayName, push.data);
+      this.platform.debug(`${this.accessory.displayName} Changes pushed - ${push.data}`);
       this.statusCode(push);
     } catch (e) {
       this.apiError(e);
@@ -163,6 +158,5 @@ export class WaterHeater {
     this.service.updateCharacteristic(this.platform.Characteristic.ValveType, e);
     this.service.updateCharacteristic(this.platform.Characteristic.Active, e);
     this.service.updateCharacteristic(this.platform.Characteristic.InUse, e);
-    new this.platform.api.hap.HapStatusError(HAPStatus.OPERATION_TIMED_OUT);
   }
 }

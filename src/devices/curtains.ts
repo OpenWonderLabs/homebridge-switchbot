@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import { Service, PlatformAccessory, CharacteristicValue, HAPStatus } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
@@ -147,7 +147,7 @@ export class Curtain {
           await this.pushChanges();
         } catch (e: any) {
           this.platform.log.error(JSON.stringify(e.message));
-          this.platform.debug('Curtain %s -', accessory.displayName, JSON.stringify(e));
+          this.platform.debug(`Curtain ${accessory.displayName} - ${JSON.stringify(e)}`);
           this.apiError(e);
         }
         this.curtainUpdateInProgress = false;
@@ -158,68 +158,38 @@ export class Curtain {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
       this.platform.log.warn('BLE DEVICE-3');
     } else {
-    // CurrentPosition
+      // CurrentPosition
       this.setMinMax();
       this.CurrentPosition = 100 - this.deviceStatus.body.slidePosition!;
       this.setMinMax();
-      this.platform.debug(
-        'Curtain %s CurrentPosition -',
-        this.accessory.displayName,
-        'Device is Currently: ',
-        this.CurrentPosition,
-      );
+      this.platform.debug(`Curtain ${this.accessory.displayName} CurrentPosition - Device is Currently: ${this.CurrentPosition}`);
       if (this.setNewTarget) {
-        this.platform.log.info(
-          'Checking %s Status ...',
-          this.accessory.displayName,
-        );
+        this.platform.log.info(`Checking ${this.accessory.displayName} Status ...`);
       }
 
       if (this.deviceStatus.body.moving) {
         if (this.TargetPosition > this.CurrentPosition) {
-          this.platform.debug(
-            'Curtain %s -',
-            this.accessory.displayName,
-            'Current position:',
-            this.CurrentPosition,
-            'closing',
-          );
+          this.platform.debug(`Curtain ${this.accessory.displayName} - Current position: ${this.CurrentPosition} closing`);
           this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
         } else if (this.TargetPosition < this.CurrentPosition) {
-          this.platform.debug(
-            'Curtain %s -',
-            this.accessory.displayName,
-            'Current position:',
-            this.CurrentPosition,
-            'opening',
-          );
+          this.platform.debug(`Curtain ${this.accessory.displayName} - Current position: ${this.CurrentPosition} opening`);
           this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
         } else {
-          this.platform.debug('Curtain %s -', this.CurrentPosition, 'standby');
+          this.platform.debug(`Curtain ${this.CurrentPosition} - standby`);
           this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
         }
       } else {
-        this.platform.debug(
-          'Curtain %s -',
-          this.accessory.displayName,
-          'Current position:',
-          this.CurrentPosition,
-          'standby',
-        );
+        this.platform.debug(`Curtain ${this.accessory.displayName} - Current position: ${this.CurrentPosition} standby`);
         if (!this.setNewTarget) {
-        /*If Curtain calibration distance is short, there will be an error between the current percentage and the target percentage.*/
+          /*If Curtain calibration distance is short, there will be an error between the current percentage and the target percentage.*/
           this.TargetPosition = this.CurrentPosition;
           this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
         }
       }
     }
     this.platform.debug(
-      'Curtain %s CurrentPosition: %s, TargetPosition: %s, PositionState: %s',
-      this.accessory.displayName,
-      this.CurrentPosition,
-      this.TargetPosition,
-      this.PositionState,
-    );
+      `Curtain ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition}, 
+      TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState}`);
   }
 
   async refreshStatus() {
@@ -233,11 +203,7 @@ export class Curtain {
         ).data;
         if (deviceStatus.message === 'success') {
           this.deviceStatus = deviceStatus;
-          this.platform.debug(
-            'Curtain %s refreshStatus -',
-            this.accessory.displayName,
-            JSON.stringify(this.deviceStatus),
-          );
+          this.platform.debug(`Curtain ${this.accessory.displayName} refreshStatus - ${JSON.stringify(this.deviceStatus)}`);
           this.setMinMax();
           this.parseStatus();
           this.updateHomeKitCharacteristics();
@@ -246,7 +212,7 @@ export class Curtain {
         this.platform.log.error(
           `Curtain - Failed to refresh status of ${this.device.deviceName}`,
           JSON.stringify(e.message),
-          this.platform.debug('Curtain %s -', this.accessory.displayName, JSON.stringify(e)),
+          this.platform.debug(`Curtain ${this.accessory.displayName} - ${JSON.stringify(e)}`),
         );
         this.apiError(e);
       }
@@ -276,11 +242,11 @@ export class Curtain {
           'commandType:',
           payload.commandType,
         );
-        this.platform.debug('Curtain %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
+        this.platform.debug(`Curtain ${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
 
         // Make the API request
         const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-        this.platform.debug('Curtain %s Changes pushed -', this.accessory.displayName, push.data);
+        this.platform.debug(`Curtain ${this.accessory.displayName} Changes pushed - ${push.data}`);
         this.statusCode(push);
       }
     }
@@ -288,14 +254,11 @@ export class Curtain {
 
   updateHomeKitCharacteristics() {
     this.platform.debug(
-      'Curtain %s updateHomeKitCharacteristics -',
-      this.accessory.displayName,
-      JSON.stringify({
+      `Curtain ${this.accessory.displayName} updateHomeKitCharacteristics - ${JSON.stringify({
         CurrentPosition: this.CurrentPosition,
         PositionState: this.PositionState,
         TargetPosition: this.TargetPosition,
-      }),
-    );
+      })}`);
     this.setMinMax();
     if (this.CurrentPosition !== undefined) {
       this.service.updateCharacteristic(this.platform.Characteristic.CurrentPosition, this.CurrentPosition);
@@ -312,7 +275,6 @@ export class Curtain {
     this.service.updateCharacteristic(this.platform.Characteristic.CurrentPosition, e);
     this.service.updateCharacteristic(this.platform.Characteristic.PositionState, e);
     this.service.updateCharacteristic(this.platform.Characteristic.TargetPosition, e);
-    new this.platform.api.hap.HapStatusError(HAPStatus.OPERATION_TIMED_OUT);
   }
 
 
@@ -389,8 +351,8 @@ export class Curtain {
             this.platform.log.info('Target position of Curtain failed to be set to: ' + this.TargetPosition + '%');
           });
       }
-    }else {
-      this.platform.debug('Curtain %s - Set TargetPosition: %s', this.accessory.displayName, value);
+    } else {
+      this.platform.debug(`Curtain ${this.accessory.displayName} - Set TargetPosition: ${value}`);
 
       this.TargetPosition = value;
 
@@ -416,13 +378,7 @@ export class Curtain {
       clearTimeout(this.setNewTargetTimer);
       if (this.setNewTarget) {
         this.setNewTargetTimer = setTimeout(() => {
-          this.platform.debug(
-            'Curtain %s -',
-            this.accessory.displayName,
-            'setNewTarget',
-            this.setNewTarget,
-            'timeout',
-          );
+          this.platform.debug(`Curtain ${this.accessory.displayName} - setNewTarget ${this.setNewTarget} timeout`);
           this.setNewTarget = false;
         }, 10000);
       }
@@ -455,7 +411,7 @@ export class Curtain {
     const switchbot = new SwitchBot();
 
     return switchbot
-      .discover({duration: this.ScanDuration, model: 'c', quick: false})
+      .discover({ duration: this.ScanDuration, model: 'c', quick: false })
       .then((device_list: any) => {
         let targetDevice: any = null;
 
@@ -475,7 +431,7 @@ export class Curtain {
 
         this.startFastScan();
 
-        this.platform.log.info('Curtain \'%s\' (%s) is moving to %d%%...', this.device.deviceName, this.device.bleMac!.toLowerCase(), pos);
+        this.platform.log.info(`Curtain ${this.device.deviceName} (${this.device.bleMac!.toLowerCase()}) is moving to ${pos}...`);
         return targetDevice.runToPos(pos);
       });
   }
@@ -510,11 +466,11 @@ export class Curtain {
       clearInterval(this.ScanIntervalId);
     }
 
-    this.platform.log.info('Curtain \'%s\': starting scan loop with interval %d', this.device.deviceName, this.scanInterval);
+    this.platform.log.info(`Curtain ${this.device.deviceName}: starting scan loop with interval ${this.scanInterval}`);
 
     this.ScanIntervalId = setInterval(() => {
       this.scan().catch((err) => {
-        this.platform.log.error('error while scanning for Curtain \'%s\': %s', this.device.deviceName, err);
+        this.platform.log.error(`error while scanning for Curtain ${this.device.deviceName}: ${err}`);
       });
     }, this.scanInterval);
   }
@@ -526,7 +482,7 @@ export class Curtain {
       switchbot.onadvertisement = (ad: any) => {
         this.applyPosition(ad);
       };
-      switchbot.startScan({id: this.device.bleMac!.toLowerCase()})
+      switchbot.startScan({ id: this.device.bleMac!.toLowerCase() })
         .then(() => {
           return switchbot.wait(this.ScanDuration);
         })
