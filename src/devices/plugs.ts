@@ -110,7 +110,7 @@ export class Plug {
       ).data;
       if (deviceStatus.message === 'success') {
         this.deviceStatus = deviceStatus;
-        this.platform.log.warn(`Plug ${this.accessory.displayName} refreshStatus - ${JSON.stringify(this.deviceStatus)})`;
+        this.platform.log.warn(`Plug ${this.accessory.displayName} refreshStatus - ${JSON.stringify(this.deviceStatus)}`);
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       }
