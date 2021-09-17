@@ -32,6 +32,7 @@ export class Curtain {
   Position: any;
   AutoDisableFastScanTimeoutId;
   FastScanDuration: number | undefined;
+  Brightness: any;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -110,7 +111,23 @@ export class Curtain {
         validValueRanges: [0, 100],
       })
       .onSet(this.TargetPositionSet.bind(this));
-
+    
+    //set up brightness level from the builtin sensor as light bulb accessory
+    (this.service =
+      accessory.getService(this.platform.Service.Lightbulb) ||
+      accessory.addService(this.platform.Service.Lightbulb)), 'Builtin Lightsensor of %s %s', device.deviceName, device.deviceType;
+      this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      // handle on / off events using the On characteristic
+      this.service.getCharacteristic(this.platform.Characteristic.Brightness).onGet(() => {
+        if (this.Brightness == "bright") {
+          return 1;
+        }
+        else {
+          return 0;
+        }
+      });
+  
+    
     // Update Homekit
     this.updateHomeKitCharacteristics();
 
@@ -213,6 +230,14 @@ export class Curtain {
         }
       }
     }
+    // Brightness
+    switch (this.deviceStatus.body.brightness) {
+      case 'dim':
+        this.Brightness = this.platform.Characteristic.Brightness.DIM;
+        break;
+      default:
+        this.Brightness = this.platform.Characteristic.Brightness.BRIGHT;
+    }
     this.platform.debug(
       'Curtain %s CurrentPosition: %s, TargetPosition: %s, PositionState: %s',
       this.accessory.displayName,
@@ -294,6 +319,7 @@ export class Curtain {
         CurrentPosition: this.CurrentPosition,
         PositionState: this.PositionState,
         TargetPosition: this.TargetPosition,
+        Brightness: this.Brightness,
       }),
     );
     this.setMinMax();
@@ -312,6 +338,7 @@ export class Curtain {
     this.service.updateCharacteristic(this.platform.Characteristic.CurrentPosition, e);
     this.service.updateCharacteristic(this.platform.Characteristic.PositionState, e);
     this.service.updateCharacteristic(this.platform.Characteristic.TargetPosition, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.Brightness, e);
     new this.platform.api.hap.HapStatusError(HAPStatus.OPERATION_TIMED_OUT);
   }
 
