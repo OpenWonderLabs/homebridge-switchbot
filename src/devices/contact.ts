@@ -16,6 +16,7 @@ export class Contact {
 
   // Characteristic Values
   ContactSensorState!: CharacteristicValue;
+  MotionDetected!: CharacteristicValue;
 
   // Others
   deviceStatus!: deviceStatusResponse;
@@ -85,7 +86,7 @@ export class Contact {
     this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
 
     // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/ContactSensor
+    // see https://developers.homebridge.io/#/service/MotionSensor
     (this.motionService =
       accessory.getService(this.platform.Service.MotionSensor) ||
       accessory.addService(this.platform.Service.MotionSensor)), `${device.deviceName} ${device.deviceType}`;
@@ -114,11 +115,9 @@ export class Contact {
     } else {
       this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
     }
-    if (this.deviceStatus.body.moveDetected) {
-      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
-    } else {
-      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
-    }
+    this.MotionDetected = Boolean(this.deviceStatus.body.moveDetected);
+    this.platform.debug(`${this.accessory.displayName}
+    , ContactSensorState: ${this.ContactSensorState}, MotionDetected: ${this.MotionDetected}`);
   }
 
   /**
@@ -207,9 +206,13 @@ export class Contact {
     if (this.ContactSensorState !== undefined) {
       this.service.updateCharacteristic(this.platform.Characteristic.ContactSensorState, this.ContactSensorState);
     }
+    if (this.MotionDetected !== undefined) {
+      this.motionService.updateCharacteristic(this.platform.Characteristic.MotionDetected, this.MotionDetected);
+    }
   }
 
   public apiError(e: any) {
     this.service.updateCharacteristic(this.platform.Characteristic.ContactSensorState, e);
+    this.motionService.updateCharacteristic(this.platform.Characteristic.MotionDetected, e);
   }
 }
