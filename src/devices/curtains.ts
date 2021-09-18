@@ -9,29 +9,30 @@ import { AxiosResponse } from 'axios';
 export class Curtain {
   // Services
   private service: Service;
+  private lightSensorService: Service;
 
   // Characteristic Values
   CurrentPosition!: CharacteristicValue;
   PositionState!: CharacteristicValue;
   TargetPosition!: CharacteristicValue;
   CurrentAmbientLightLevel!: CharacteristicValue;
-  
+
   // Others
   deviceStatus!: deviceStatusResponse;
-  setNewTarget!: boolean;
-  setNewTargetTimer!: NodeJS.Timeout;
   moveTimer!: NodeJS.Timeout;
+  ScanIntervalId!: NodeJS.Timeout;
+  setNewTargetTimer!: NodeJS.Timeout;
+  AutoDisableFastScanTimeoutId!: NodeJS.Timeout;
+  setNewTarget!: boolean;
   moveTime!: number;
   ScanDuration: any;
   ReverseDir: any;
   FastScanEnabled!: boolean;
-  ScanIntervalId!: NodeJS.Timeout;
   FastScanInterval!: number;
   SlowScanInterval!: number;
   OpenCloseThreshold: any;
   PreviousPosition: any;
   Position: any;
-  AutoDisableFastScanTimeoutId!: NodeJS.Timeout;
   FastScanDuration: number | undefined;
   switchbot!: {
     discover: (
@@ -129,23 +130,22 @@ export class Curtain {
         validValueRanges: [0, 100],
       })
       .onSet(this.TargetPositionSet.bind(this));
-    
-    //set up brightness level from the builtin sensor as light bulb accessory
-    (this.service =
+
+    //set up brightness level from the builtin sensor as light sensor accessory
+    (this.lightSensorService =
       accessory.getService(this.platform.Service.LightSensor) ||
       accessory.addService(this.platform.Service.LightSensor)), 'Builtin Lightsensor of %s %s', device.deviceName, device.deviceType;
-      this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
-      // handle on / off events using the On characteristic
-      this.service.getCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel).onGet(() => {
-        if (this.Brightness == "bright") {
-          return 1;
-        }
-        else {
-          return 0;
-        }
-      });
-  
-    
+    this.lightSensorService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+    // handle on / off events using the On characteristic
+    this.lightSensorService.getCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel).onGet(() => {
+      if (this.CurrentAmbientLightLevel === 'bright') {
+        return 100000;
+      } else {
+        return 0.0001;
+      }
+    });
+
+
     // Update Homekit
     this.updateHomeKitCharacteristics();
 
@@ -225,14 +225,15 @@ export class Curtain {
     // Brightness
     switch (this.deviceStatus.body.brightness) {
       case 'dim':
-        this.Brightness = this.platform.Characteristic.Brightness.DIM;
+        this.CurrentAmbientLightLevel = 0.0001;
         break;
       default:
-        this.Brightness = this.platform.Characteristic.Brightness.BRIGHT;
+        this.CurrentAmbientLightLevel = 100000;
     }
     this.platform.debug(
-      `Curtain ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition}, 
-      TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState}`);
+      `Curtain ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition}
+      , TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState}
+      , CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
   }
 
   async refreshStatus() {
@@ -352,7 +353,7 @@ export class Curtain {
         PositionState: this.PositionState,
         TargetPosition: this.TargetPosition,
         CurrentAmbientLightLevel: this.CurrentAmbientLightLevel,
-      }),
+      })}`,
     );
     this.setMinMax();
     if (this.CurrentPosition !== undefined) {
@@ -505,7 +506,7 @@ export class Curtain {
    * Ask the device to start moving to the given position (which must be a device value and not an HomeKit value).
    * Returns a Promise that's resolved as soon as the command was sent to the device.
    */
-  public runToPosition(pos: number): Promise<void> {
+  public async runToPosition(pos: number): Promise<void> {
     const SwitchBot = require('node-switchbot');
     const switchbot = new SwitchBot();
 
