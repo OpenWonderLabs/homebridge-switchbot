@@ -166,6 +166,16 @@
               }
             }
           },
+          "bulb": {
+            "type": "object",
+            "properties": {
+              "set_minStep": {
+                "title": "Set Min Step",
+                "type": "number",
+                "placeholder": "1"
+              }
+            }
+          },
           "fan": {
             "type": "object",
             "properties": {
@@ -426,6 +436,15 @@
                 "options.curtain.set_minStep",
                 "options.curtain.set_min",
                 "options.curtain.set_max"
+              ]
+            },
+            {
+              "type": "fieldset",
+              "title": "Bulb Settings",
+              "expandable": true,
+              "expanded": false,
+              "items": [
+                "options.bulb.set_minStep"
               ]
             }
           ]

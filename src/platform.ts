@@ -280,7 +280,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
             break;
           case 'Remote':
             if (this.config.devicediscovery) {
-              this.debug('Discovered %s, %s is Not Supported.', device.deviceName, device.deviceType);
+              this.debug(`Discovered ${device.deviceName}, ${device.deviceType} is Not Supported.`);
             }
             break;
           default:

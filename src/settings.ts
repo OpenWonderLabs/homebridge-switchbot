@@ -39,6 +39,7 @@ export type options = {
   meter?: meter;
   humidifier?: humidifier;
   curtain?: curtain;
+  bulb?: bulb;
   fan?: irfan;
   irair?: irair;
   other?: other;
@@ -67,6 +68,10 @@ export type curtain = {
   refreshRate?: number;
   set_max?: number;
   set_min?: number;
+  set_minStep?: number;
+};
+
+export type bulb = {
   set_minStep?: number;
 };
 

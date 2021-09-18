@@ -1,4 +1,4 @@
-import { Service, PlatformAccessory, CharacteristicValue, HAPStatus } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
@@ -11,9 +11,11 @@ import { AxiosResponse } from 'axios';
  * Each accessory may expose multiple services of different service types.
  */
 export class Humidifier {
+  // Services
   private service: Service;
   temperatureservice?: Service;
 
+  // Characteristic Values
   CurrentRelativeHumidity!: CharacteristicValue;
   CurrentTemperature!: CharacteristicValue;
   TargetHumidifierDehumidifierState!: CharacteristicValue;
@@ -21,8 +23,11 @@ export class Humidifier {
   RelativeHumidityHumidifierThreshold!: CharacteristicValue;
   Active!: CharacteristicValue;
   WaterLevel!: CharacteristicValue;
+
+  // Others
   deviceStatus!: deviceStatusResponse;
 
+  // Updates
   humidifierUpdateInProgress!: boolean;
   doHumidifierUpdate;
 
@@ -58,7 +63,7 @@ export class Humidifier {
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.HumidifierDehumidifier) ||
-      accessory.addService(this.platform.Service.HumidifierDehumidifier)), '%s %s', device.deviceName, device.deviceType;
+      accessory.addService(this.platform.Service.HumidifierDehumidifier)), `${device.deviceName} ${device.deviceType}`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -113,7 +118,7 @@ export class Humidifier {
       }
       (this.temperatureservice =
         this.accessory.getService(this.platform.Service.TemperatureSensor) ||
-        this.accessory.addService(this.platform.Service.TemperatureSensor)), '%s %s TemperatureSensor', device.deviceName, device.deviceType;
+        this.accessory.addService(this.platform.Service.TemperatureSensor)), `${device.deviceName} ${device.deviceType} TemperatureSensor`;
 
       this.temperatureservice
         .getCharacteristic(this.platform.Characteristic.CurrentTemperature)
@@ -156,7 +161,7 @@ export class Humidifier {
           await this.pushChanges();
         } catch (e: any) {
           this.platform.log.error(JSON.stringify(e.message));
-          this.platform.debug('Humidifier %s -', accessory.displayName, JSON.stringify(e));
+          this.platform.debug(`Humidifier ${accessory.displayName} - ${JSON.stringify(e)}`);
           this.apiError(e);
         }
         this.humidifierUpdateInProgress = false;
@@ -169,12 +174,7 @@ export class Humidifier {
   parseStatus() {
     // Current Relative Humidity
     this.CurrentRelativeHumidity = this.deviceStatus.body.humidity!;
-    this.platform.debug(
-      'Humidifier %s CurrentRelativeHumidity -',
-      this.accessory.displayName,
-      'Device is Currently: ',
-      this.CurrentRelativeHumidity,
-    );
+    this.platform.debug(`Humidifier ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
     if (this.platform.config.options?.debug) {
       this.platform.log.warn(JSON.stringify(this.deviceStatus.body));
     }
@@ -184,12 +184,7 @@ export class Humidifier {
     } else {
       this.WaterLevel = 100;
     }
-    this.platform.debug(
-      'Humidifier %s WaterLevel -',
-      this.accessory.displayName,
-      'Device is Currently: ',
-      this.WaterLevel,
-    );
+    this.platform.debug(`Humidifier ${this.accessory.displayName} WaterLevel: ${this.WaterLevel}`);
     // Active
     switch (this.deviceStatus.body.power) {
       case 'on':
@@ -198,7 +193,7 @@ export class Humidifier {
       default:
         this.Active = this.platform.Characteristic.Active.INACTIVE;
     }
-    this.platform.debug('Humidifier %s Active -', this.accessory.displayName, 'Device is Currently: ', this.Active);
+    this.platform.debug(`Humidifier ${this.accessory.displayName} Active: ${this.Active}`);
     // Target Humidifier Dehumidifier State
     switch (this.deviceStatus.body.auto) {
       case true:
@@ -221,33 +216,13 @@ export class Humidifier {
           this.CurrentHumidifierDehumidifierState = this.platform.Characteristic.CurrentHumidifierDehumidifierState.HUMIDIFYING;
         }
     }
-    this.platform.debug(
-      'Humidifier %s TargetHumidifierDehumidifierState -',
-      this.accessory.displayName,
-      'Device is Currently: ',
-      this.TargetHumidifierDehumidifierState,
-    );
-    this.platform.debug(
-      'Humidifier %s RelativeHumidityHumidifierThreshold -',
-      this.accessory.displayName,
-      'Device is Currently: ',
-      this.RelativeHumidityHumidifierThreshold,
-    );
-    this.platform.debug(
-      'Humidifier %s CurrentHumidifierDehumidifierState -',
-      this.accessory.displayName,
-      'Device is Currently: ',
-      this.CurrentHumidifierDehumidifierState,
-    );
+    this.platform.debug(`Humidifier ${this.accessory.displayName} TargetHumidifierDehumidifierState: ${this.TargetHumidifierDehumidifierState}`);
+    this.platform.debug(`Humidifier ${this.accessory.displayName} RelativeHumidityHumidifierThreshold: ${this.RelativeHumidityHumidifierThreshold}`);
+    this.platform.debug(`Humidifier ${this.accessory.displayName} CurrentHumidifierDehumidifierState: ${this.CurrentHumidifierDehumidifierState}`);
     // Current Temperature
     if (!this.platform.config.options?.humidifier?.hide_temperature) {
       this.CurrentTemperature = this.deviceStatus.body.temperature!;
-      this.platform.debug(
-        'Humidifier %s CurrentTemperature -',
-        this.accessory.displayName,
-        'Device is Currently: ',
-        this.CurrentTemperature,
-      );
+      this.platform.debug(`Humidifier ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
     }
   }
 
@@ -261,21 +236,13 @@ export class Humidifier {
       ).data;
       if (deviceStatus.message === 'success') {
         this.deviceStatus = deviceStatus;
-        this.platform.debug(
-          'Humidifier %s refreshStatus -',
-          this.accessory.displayName,
-          JSON.stringify(this.deviceStatus),
-        );
-
+        this.platform.debug(`Humidifier ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       }
     } catch (e: any) {
-      this.platform.log.error(
-        `Humidifier - Failed to update status of ${this.device.deviceName}`,
-        JSON.stringify(e.message),
-        this.platform.debug('Humidifier %s -', this.accessory.displayName, JSON.stringify(e)),
-      );
+      this.platform.log.error(`Humidifier - Failed to update status of ${this.device.deviceName}: ${JSON.stringify(e.message)}`);
+      this.platform.debug(`Humidifier ${this.accessory.displayName} ${JSON.stringify(e)}`);
       this.apiError(e);
     }
   }
@@ -306,11 +273,11 @@ export class Humidifier {
         'commandType:',
         payload.commandType,
       );
-      this.platform.debug('Humidifier %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
+      this.platform.debug(`Humidifier ${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.debug('Humidifier %s Changes pushed -', this.accessory.displayName, push.data);
+      this.platform.debug(`Humidifier ${this.accessory.displayName} Changes pushed - ${push.data}`);
       this.statusCode(push);
     } else if (
       this.TargetHumidifierDehumidifierState ===
@@ -350,16 +317,16 @@ export class Humidifier {
           'commandType:',
           payload.commandType,
         );
-        this.platform.debug('Humidifier %s pushAutoChanges -', this.accessory.displayName, JSON.stringify(payload));
+        this.platform.debug(`Humidifier ${this.accessory.displayName} pushAutoChanges - ${JSON.stringify(payload)}`);
 
         // Make the API request
         const pushAuto = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-        this.platform.debug('Humidifier %s Changes pushed -', this.accessory.displayName, pushAuto.data);
+        this.platform.debug(`Humidifier ${this.accessory.displayName} Changes pushed - ${pushAuto.data}`);
         this.statusCodeAuto(pushAuto);
       }
     } catch (e: any) {
       this.platform.log.error(JSON.stringify(e.message));
-      this.platform.debug('Humidifier %s -', this.accessory.displayName, JSON.stringify(e));
+      this.platform.debug(`Humidifier ${this.accessory.displayName} - ${JSON.stringify(e)}`);
       this.apiError(e);
     }
   }
@@ -387,20 +354,16 @@ export class Humidifier {
           'commandType:',
           payload.commandType,
         );
-        this.platform.debug(
-          'Humidifier %s pushActiveChanges -',
-          this.accessory.displayName,
-          JSON.stringify(payload),
-        );
+        this.platform.debug(`Humidifier ${this.accessory.displayName} pushActiveChanges - ${JSON.stringify(payload)}`);
 
         // Make the API request
         const pushActive = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-        this.platform.debug('Humidifier %s Changes pushed -', this.accessory.displayName, pushActive.data);
+        this.platform.debug(`Humidifier ${this.accessory.displayName} Changes pushed - ${pushActive.data}`);
         this.statusCodeActive(pushActive);
       }
     } catch (e: any) {
       this.platform.log.error(JSON.stringify(e.message));
-      this.platform.debug('Humidifier %s -', this.accessory.displayName, JSON.stringify(e));
+      this.platform.debug(`Humidifier ${this.accessory.displayName} - ${JSON.stringify(e)}`);
       this.apiError(e);
     }
   }
@@ -457,7 +420,6 @@ export class Humidifier {
     if (!this.platform.config.options?.humidifier?.hide_temperature) {
       this.temperatureservice!.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
     }
-    new this.platform.api.hap.HapStatusError(HAPStatus.OPERATION_TIMED_OUT);
   }
 
   private statusCode(push: AxiosResponse<any>) {
@@ -548,11 +510,7 @@ export class Humidifier {
    * Handle requests to set the "Target Humidifier Dehumidifier State" characteristic
    */
   private handleTargetHumidifierDehumidifierStateSet(value: CharacteristicValue) {
-    this.platform.debug(
-      'Humidifier %s -',
-      this.accessory.displayName,
-      `Set TargetHumidifierDehumidifierState: ${value}`,
-    );
+    this.platform.debug(`Humidifier ${this.accessory.displayName} - Set TargetHumidifierDehumidifierState: ${value}`);
 
     this.TargetHumidifierDehumidifierState = value;
     this.doHumidifierUpdate.next();
@@ -562,7 +520,7 @@ export class Humidifier {
    * Handle requests to set the "Active" characteristic
    */
   private handleActiveSet(value: CharacteristicValue) {
-    this.platform.debug('Humidifier %s -', this.accessory.displayName, `Set Active: ${value}`);
+    this.platform.debug(`Humidifier ${this.accessory.displayName} - Set Active: ${value}`);
     this.Active = value;
     this.doHumidifierUpdate.next();
   }
@@ -571,11 +529,7 @@ export class Humidifier {
    * Handle requests to set the "Relative Humidity Humidifier Threshold" characteristic
    */
   private handleRelativeHumidityHumidifierThresholdSet(value: CharacteristicValue) {
-    this.platform.debug(
-      'Humidifier %s -',
-      this.accessory.displayName,
-      `Set RelativeHumidityHumidifierThreshold: ${value}`,
-    );
+    this.platform.debug(`Humidifier ${this.accessory.displayName} - Set RelativeHumidityHumidifierThreshold: ${value}`);
 
     this.RelativeHumidityHumidifierThreshold = value;
     if (this.Active === this.platform.Characteristic.Active.INACTIVE) {

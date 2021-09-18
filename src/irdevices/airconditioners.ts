@@ -1,5 +1,5 @@
 import { AxiosResponse } from 'axios';
-import { CharacteristicValue, HAPStatus, PlatformAccessory, Service } from 'homebridge';
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { DeviceURL, irdevice } from '../settings';
 
@@ -45,7 +45,7 @@ export class AirConditioner {
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.HeaterCooler) ||
-      accessory.addService(this.platform.Service.HeaterCooler)), '%s %s', device.deviceName, device.remoteType;
+      accessory.addService(this.platform.Service.HeaterCooler)), `${device.deviceName} ${device.remoteType}`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -143,7 +143,7 @@ export class AirConditioner {
   }
 
   private ActiveSet(value: CharacteristicValue) {
-    this.platform.debug('%s %s Set Active: %s', this.device.remoteType, this.accessory.displayName, value);
+    this.platform.debug(`${this.accessory.displayName} Set Active: ${value}`);
 
     if (value === this.platform.Characteristic.Active.INACTIVE) {
       this.pushAirConditionerOffChanges();
@@ -261,7 +261,7 @@ export class AirConditioner {
     this.CurrentARMode = this.CurrentMode || 1;
     this.CurrentARFanSpeed = this.CurrentFanSpeed || 1;
     this.ARActive = this.Active === 1 ? 'on' : 'off';
-    payload.parameter = '%s,%s,%s,%s', this.CurrentARTemp, this.CurrentARMode, this.CurrentARFanSpeed, this.ARActive;
+    payload.parameter = `${this.CurrentARTemp},${this.CurrentARMode},${this.CurrentARFanSpeed},${this.ARActive}`;
 
 
     if (this.Active === 1) {
@@ -298,16 +298,11 @@ export class AirConditioner {
         'commandType:',
         payload.commandType,
       );
-      this.platform.debug(
-        '%s %s pushChanges -',
-        this.device.remoteType,
-        this.accessory.displayName,
-        JSON.stringify(payload),
-      );
+      this.platform.debug(`${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.debug('%s %s Changes pushed -', this.device.remoteType, this.accessory.displayName, push.data);
+      this.platform.debug(`${this.accessory.displayName} Changes pushed - ${push.data}`);
       this.statusCode(push);
     } catch (e) {
       this.apiError(e);
@@ -349,6 +344,5 @@ export class AirConditioner {
     this.service.updateCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState, e);
     this.service.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, e);
     this.service.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, e);
-    new this.platform.api.hap.HapStatusError(HAPStatus.OPERATION_TIMED_OUT);
   }
 }

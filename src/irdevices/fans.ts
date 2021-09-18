@@ -1,5 +1,5 @@
 import { AxiosResponse } from 'axios';
-import { CharacteristicValue, HAPStatus, PlatformAccessory, Service } from 'homebridge';
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { DeviceURL, irdevice, deviceStatusResponse } from '../settings';
 
@@ -37,7 +37,7 @@ export class Fan {
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.Fanv2) ||
-      accessory.addService(this.platform.Service.Fanv2)), '%s %s', device.deviceName, device.remoteType;
+      accessory.addService(this.platform.Service.Fanv2)), `${device.deviceName} ${device.remoteType}`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -106,7 +106,7 @@ export class Fan {
   }
 
   private SwingModeSet(value: CharacteristicValue) {
-    this.platform.debug('Fan %s Set SwingMode: %s', this.accessory.displayName, value);
+    this.platform.debug(`${this.accessory.displayName} Set SwingMode: ${value}`);
     if (value > this.SwingMode) {
       this.SwingMode = 1;
       this.pushFanOnChanges();
@@ -123,7 +123,7 @@ export class Fan {
   }
 
   private RotationSpeedSet(value: CharacteristicValue) {
-    this.platform.debug('Fan %s Set Active: %s', this.accessory.displayName, value);
+    this.platform.debug(`${this.accessory.displayName} Set Active: ${value}`);
     if (value > this.RotationSpeed) {
       this.RotationSpeed = 1;
       this.pushFanSpeedUpChanges();
@@ -139,7 +139,7 @@ export class Fan {
   }
 
   private ActiveSet(value: CharacteristicValue) {
-    this.platform.debug('Fan %s Set Active: %s', this.accessory.displayName, value);
+    this.platform.debug(`${this.accessory.displayName} Set Active: ${value}`);
     if (value === this.platform.Characteristic.Active.INACTIVE) {
       this.pushFanOffChanges();
     } else {
@@ -219,11 +219,11 @@ export class Fan {
         'commandType:',
         payload.commandType,
       );
-      this.platform.debug('TV %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
+      this.platform.debug(`TV ${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.debug('TV %s Changes pushed -', this.accessory.displayName, push.data);
+      this.platform.debug(`TV ${this.accessory.displayName} Changes pushed - ${push.data}`);
       this.statusCode(push);
     } catch (e) {
       this.apiError(e);
@@ -262,6 +262,5 @@ export class Fan {
     this.service.updateCharacteristic(this.platform.Characteristic.Active, e);
     this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, e);
     this.service.updateCharacteristic(this.platform.Characteristic.SwingMode, e);
-    new this.platform.api.hap.HapStatusError(HAPStatus.OPERATION_TIMED_OUT);
   }
 }
