@@ -14,7 +14,8 @@ export class Curtain {
   CurrentPosition!: CharacteristicValue;
   PositionState!: CharacteristicValue;
   TargetPosition!: CharacteristicValue;
-
+  CurrentAmbientLightLevel!: CharacteristicValue;
+  
   // Others
   deviceStatus!: deviceStatusResponse;
   setNewTarget!: boolean;
@@ -128,7 +129,23 @@ export class Curtain {
         validValueRanges: [0, 100],
       })
       .onSet(this.TargetPositionSet.bind(this));
-
+    
+    //set up brightness level from the builtin sensor as light bulb accessory
+    (this.service =
+      accessory.getService(this.platform.Service.LightSensor) ||
+      accessory.addService(this.platform.Service.LightSensor)), 'Builtin Lightsensor of %s %s', device.deviceName, device.deviceType;
+      this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      // handle on / off events using the On characteristic
+      this.service.getCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel).onGet(() => {
+        if (this.Brightness == "bright") {
+          return 1;
+        }
+        else {
+          return 0;
+        }
+      });
+  
+    
     // Update Homekit
     this.updateHomeKitCharacteristics();
 
@@ -204,6 +221,14 @@ export class Curtain {
           this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
         }
       }
+    }
+    // Brightness
+    switch (this.deviceStatus.body.brightness) {
+      case 'dim':
+        this.Brightness = this.platform.Characteristic.Brightness.DIM;
+        break;
+      default:
+        this.Brightness = this.platform.Characteristic.Brightness.BRIGHT;
     }
     this.platform.debug(
       `Curtain ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition}, 
@@ -326,7 +351,9 @@ export class Curtain {
         CurrentPosition: this.CurrentPosition,
         PositionState: this.PositionState,
         TargetPosition: this.TargetPosition,
-      })}`);
+        CurrentAmbientLightLevel: this.CurrentAmbientLightLevel,
+      }),
+    );
     this.setMinMax();
     if (this.CurrentPosition !== undefined) {
       this.service.updateCharacteristic(this.platform.Characteristic.CurrentPosition, this.CurrentPosition);
@@ -337,12 +364,16 @@ export class Curtain {
     if (this.TargetPosition !== undefined) {
       this.service.updateCharacteristic(this.platform.Characteristic.TargetPosition, this.TargetPosition);
     }
+    if (this.CurrentAmbientLightLevel !== undefined) {
+      this.service.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
+    }
   }
 
   public apiError(e: any) {
     this.service.updateCharacteristic(this.platform.Characteristic.CurrentPosition, e);
     this.service.updateCharacteristic(this.platform.Characteristic.PositionState, e);
     this.service.updateCharacteristic(this.platform.Characteristic.TargetPosition, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, e);
   }
 
 
