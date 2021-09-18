@@ -44,7 +44,7 @@ export class AirPurifier {
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.AirPurifier) ||
-      accessory.addService(this.platform.Service.AirPurifier)), '%s %s', device.deviceName, device.remoteType;
+      accessory.addService(this.platform.Service.AirPurifier)), `${device.deviceName} ${device.remoteType}`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -159,7 +159,7 @@ export class AirPurifier {
     this.CurrentAPMode = this.CurrentMode || 1;
     this.CurrentAPFanSpeed = this.CurrentFanSpeed || 1;
     this.APActive = this.Active === 1 ? 'on' : 'off';
-    payload.parameter = '%s,%s,%s,%s', this.CurrentAPTemp, this.CurrentAPMode, this.CurrentAPFanSpeed, this.APActive;
+    payload.parameter = `${this.CurrentAPTemp},${this.CurrentAPMode},${this.CurrentAPFanSpeed},${this.APActive}`;
 
     if (this.Active === 1) {
       if ((this.CurrentTemperature || 24) < (this.LastTemperature || 30)) {

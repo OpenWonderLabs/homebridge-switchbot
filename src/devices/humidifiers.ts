@@ -11,9 +11,11 @@ import { AxiosResponse } from 'axios';
  * Each accessory may expose multiple services of different service types.
  */
 export class Humidifier {
+  // Services
   private service: Service;
   temperatureservice?: Service;
 
+  // Characteristic Values
   CurrentRelativeHumidity!: CharacteristicValue;
   CurrentTemperature!: CharacteristicValue;
   TargetHumidifierDehumidifierState!: CharacteristicValue;
@@ -21,8 +23,11 @@ export class Humidifier {
   RelativeHumidityHumidifierThreshold!: CharacteristicValue;
   Active!: CharacteristicValue;
   WaterLevel!: CharacteristicValue;
+
+  // Others
   deviceStatus!: deviceStatusResponse;
 
+  // Updates
   humidifierUpdateInProgress!: boolean;
   doHumidifierUpdate;
 
@@ -58,7 +63,7 @@ export class Humidifier {
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.HumidifierDehumidifier) ||
-      accessory.addService(this.platform.Service.HumidifierDehumidifier)), '%s %s', device.deviceName, device.deviceType;
+      accessory.addService(this.platform.Service.HumidifierDehumidifier)), `${device.deviceName} ${device.deviceType}`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -113,7 +118,7 @@ export class Humidifier {
       }
       (this.temperatureservice =
         this.accessory.getService(this.platform.Service.TemperatureSensor) ||
-        this.accessory.addService(this.platform.Service.TemperatureSensor)), '%s %s TemperatureSensor', device.deviceName, device.deviceType;
+        this.accessory.addService(this.platform.Service.TemperatureSensor)), `${device.deviceName} ${device.deviceType} TemperatureSensor`;
 
       this.temperatureservice
         .getCharacteristic(this.platform.Characteristic.CurrentTemperature)

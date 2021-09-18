@@ -31,7 +31,7 @@ export class Others {
     if (!this.service && this.platform.config.options?.other?.deviceType === 'Fan') {
       this.service = accessory.addService(
         this.platform.Service.Fanv2,
-        `${device.deviceName} ${device.remoteType} Temperature Sensor`,
+        `${device.deviceName} ${device.remoteType} Fan`,
       );
       this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
 

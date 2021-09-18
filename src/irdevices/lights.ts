@@ -29,7 +29,7 @@ export class Light {
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.Lightbulb) ||
-      accessory.addService(this.platform.Service.Lightbulb)), '${} ${}', device.deviceName, device.remoteType;
+      accessory.addService(this.platform.Service.Lightbulb)), `${device.deviceName} ${device.remoteType}`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -46,7 +46,7 @@ export class Light {
     /* this.service
       .getCharacteristic(this.platform.Characteristic.Brightness)
       .on(CharacteristicEventTypes.SET, (value: any, callback: CharacteristicGetCallback) => {
-        this.platform.debug('${} ${} Set Brightness: ${}', device.remoteType, accessory.displayName, value);
+        this.platform.debug(`${this.device.remoteType} ${this.accessory.displayName} Set Brightness: ${value}`);
         this.Brightness = value;
         if (value > this.Brightness) {
           this.pushLightBrightnessUpChanges();
@@ -59,7 +59,7 @@ export class Light {
   }
 
   private OnSet(value: CharacteristicValue) {
-    this.platform.debug('${} ${} Set On: ${}', this.device.remoteType, this.accessory.displayName, value);
+    this.platform.debug(`${this.device.remoteType} ${this.accessory.displayName} Set On: ${value}`);
     this.On = value;
     if (this.On) {
       this.pushLightOnChanges();

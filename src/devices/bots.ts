@@ -19,18 +19,19 @@ export class Bot {
   RunTimer!: NodeJS.Timeout;
   ScanDuration: number;
   TargetState;
-  switchbot!:{
+  switchbot!: {
     discover: (
       arg0:
-      { duration: any;
-        model: string;
-        quick: boolean;
-        id: MacAddress;
-      }
-      ) => Promise<any>;
+        {
+          duration: any;
+          model: string;
+          quick: boolean;
+          id: MacAddress;
+        }
+    ) => Promise<any>;
     wait: (
       arg0: number
-      ) => any;
+    ) => any;
   };
 
   botUpdateInProgress!: boolean;
@@ -79,11 +80,11 @@ export class Bot {
     if (this.platform.config.options?.bot?.switch) {
       (this.service =
         accessory.getService(this.platform.Service.Switch) ||
-        accessory.addService(this.platform.Service.Switch)), '%s %s', device.deviceName, device.deviceType;
+        accessory.addService(this.platform.Service.Switch)), `${device.deviceName} ${device.deviceType}`;
     } else {
       (this.service =
         accessory.getService(this.platform.Service.Outlet) ||
-        accessory.addService(this.platform.Service.Outlet)), '%s %s', device.deviceName, device.deviceType;
+        accessory.addService(this.platform.Service.Outlet)), `${device.deviceName} ${device.deviceType}`;
     }
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
@@ -158,29 +159,78 @@ export class Bot {
   async refreshStatus() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
       this.platform.log.warn('BLE DEVICE-REFRESH');
-    } else {
-      try {
-        // this.platform.log.error('Bot - Reading', `${DeviceURL}/${this.device.deviceID}/devices`);
-        const deviceStatus: deviceStatusResponse = {
-          statusCode: 100,
-          body: {
-            deviceId: this.device.deviceId!,
-            deviceType: this.device.deviceType!,
-            hubDeviceId: this.device.hubDeviceId,
-            power: 'on',
-          },
-          message: 'success',
-        };
-        this.deviceStatus = deviceStatus;
-        this.parseStatus();
-        this.updateHomeKitCharacteristics();
-      } catch (e: any) {
-        this.platform.log.error(
-          `Bot - Failed to update status of ${this.device.deviceName}`,
-          JSON.stringify(e.message),
-          this.platform.debug(`Bot ${this.accessory.displayName} - ${JSON.stringify(e)}`));
-        this.apiError(e);
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const Switchbot = require('node-switchbot');
+      const switchbot = new Switchbot();
+      const colon = this.device.deviceId!.match(/.{1,2}/g);
+      const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
+      this.device.bleMac = bleMac.toLowerCase();
+      if (this.platform.config.options.debug) {
+        this.platform.log.warn(this.device.bleMac!);
       }
+      switchbot.onadvertisement = (ad: any) => {
+        this.platform.log.info(JSON.stringify(ad, null, '  '));
+        this.platform.log.warn('ad:', JSON.stringify(ad));
+      };
+      switchbot
+        .startScan({
+          id: this.device.bleMac,
+        })
+        .then(() => {
+          return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
+        })
+        .then(() => {
+          switchbot.stopScan();
+        })
+        .catch(async (error: any) => {
+          this.platform.log.error(error);
+          await this.openAPIRefreshStatus();
+        });
+      setInterval(() => {
+        this.platform.log.info('Start scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
+        switchbot
+          .startScan({
+            mode: 'T',
+            id: bleMac,
+          })
+          .then(() => {
+            return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
+          })
+          .then(() => {
+            switchbot.stopScan();
+            this.platform.log.info('Stop scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
+          })
+          .catch(async (error: any) => {
+            this.platform.log.error(error);
+            await this.openAPIRefreshStatus();
+          });
+      }, this.platform.config.options!.refreshRate! * 60000);
+    } else {
+      this.openAPIRefreshStatus();
+    }
+  }
+
+  private openAPIRefreshStatus() {
+    try {
+      const deviceStatus: deviceStatusResponse = {
+        statusCode: 100,
+        body: {
+          deviceId: this.device.deviceId!,
+          deviceType: this.device.deviceType!,
+          hubDeviceId: this.device.hubDeviceId,
+          power: 'on',
+        },
+        message: 'success',
+      };
+      this.deviceStatus = deviceStatus;
+      this.parseStatus();
+      this.updateHomeKitCharacteristics();
+    } catch (e: any) {
+      this.platform.log.error(
+        `Bot - Failed to update status of ${this.device.deviceName}`,
+        JSON.stringify(e.message),
+        this.platform.debug(`Bot ${this.accessory.displayName} - ${JSON.stringify(e)}`));
+      this.apiError(e);
     }
   }
 
@@ -230,14 +280,14 @@ export class Bot {
           this.platform.log.info('Done.');
           this.SwitchOn = this.TargetState;
           this.RunTimer = setTimeout(() => {
-            this.service?.getCharacteristic( this.platform.Characteristic.On).updateValue(this.SwitchOn);
+            this.service?.getCharacteristic(this.platform.Characteristic.On).updateValue(this.SwitchOn);
           }, 500);
           this.platform.log.info('Bot state has been set to: ' + (this.SwitchOn ? 'ON' : 'OFF'));
         })
         .catch((error: any) => {
           this.platform.log.error(error);
           this.RunTimer = setTimeout(() => {
-            this.service?.getCharacteristic( this.platform.Characteristic.On).updateValue(this.SwitchOn);
+            this.service?.getCharacteristic(this.platform.Characteristic.On).updateValue(this.SwitchOn);
           }, 500);
           this.platform.log.info('Bot state failed to be set to: ' + (this.TargetState ? 'ON' : 'OFF'));
         });
@@ -359,7 +409,7 @@ export class Bot {
   }
 
   async retry(max: number, fn: { (): any; (): Promise<any>; }): Promise<null> {
-    return fn().catch( async (err: any) => {
+    return fn().catch(async (err: any) => {
       if (max === 0) {
         throw err;
       }

@@ -1,4 +1,4 @@
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue, MacAddress } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
@@ -6,12 +6,31 @@ import { DeviceURL, device, deviceStatusResponse } from '../settings';
 import { AxiosResponse } from 'axios';
 
 export class Plug {
+  // Services
   private service: Service;
 
+  // Characteristic Values
   On!: CharacteristicValue;
   OutletInUse!: CharacteristicValue;
-  deviceStatus!: deviceStatusResponse;
 
+  // Others
+  deviceStatus!: deviceStatusResponse;
+  switchbot!: {
+    discover: (
+      arg0:
+        {
+          duration: any;
+          model: string;
+          quick: boolean;
+          id: MacAddress;
+        }
+    ) => Promise<any>;
+    wait: (
+      arg0: number
+    ) => any;
+  };
+
+  // Updates
   plugUpdateInProgress!: boolean;
   doPlugUpdate;
 
@@ -23,6 +42,19 @@ export class Plug {
     // default placeholders
     this.On = false;
     this.OutletInUse = true;
+
+    // BLE Connections
+    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const SwitchBot = require('node-switchbot');
+      this.switchbot = new SwitchBot();
+      const colon = device.deviceId!.match(/.{1,2}/g);
+      const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
+      this.device.bleMac = bleMac.toLowerCase();
+      if (this.platform.config.options.debug) {
+        this.platform.log.warn(this.device.bleMac.toLowerCase());
+      }
+    }
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doPlugUpdate = new Subject();
@@ -42,7 +74,7 @@ export class Plug {
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.Outlet) ||
-      accessory.addService(this.platform.Service.Outlet)), '%s %s', device.deviceName, device.deviceType;
+      accessory.addService(this.platform.Service.Outlet)), `${device.deviceName} ${device.deviceType}`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -103,6 +135,60 @@ export class Plug {
   }
 
   async refreshStatus() {
+    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+      this.platform.log.warn('BLE DEVICE-REFRESH');
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const Switchbot = require('node-switchbot');
+      const switchbot = new Switchbot();
+      const colon = this.device.deviceId!.match(/.{1,2}/g);
+      const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
+      this.device.bleMac = bleMac.toLowerCase();
+      if (this.platform.config.options.debug) {
+        this.platform.log.warn(this.device.bleMac!);
+      }
+      switchbot.onadvertisement = (ad: any) => {
+        this.platform.log.info(JSON.stringify(ad, null, '  '));
+        this.platform.log.warn('ad:', JSON.stringify(ad));
+      };
+      switchbot
+        .startScan({
+          id: this.device.bleMac,
+        })
+        .then(() => {
+          return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
+        })
+        .then(() => {
+          switchbot.stopScan();
+        })
+        .catch(async (error: any) => {
+          this.platform.log.error(error);
+          await this.openAPIRefreshStatus();
+        });
+      setInterval(() => {
+        this.platform.log.info('Start scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
+        switchbot
+          .startScan({
+            mode: 'T',
+            id: bleMac,
+          })
+          .then(() => {
+            return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
+          })
+          .then(() => {
+            switchbot.stopScan();
+            this.platform.log.info('Stop scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
+          })
+          .catch(async (error: any) => {
+            this.platform.log.error(error);
+            await this.openAPIRefreshStatus();
+          });
+      }, this.platform.config.options!.refreshRate! * 60000);
+    } else {
+      await this.openAPIRefreshStatus();
+    }
+  }
+
+  private async openAPIRefreshStatus() {
     try {
       this.platform.debug('Plug - Reading', `${DeviceURL}/${this.device.deviceId}/status`);
       const deviceStatus: deviceStatusResponse = (
@@ -118,8 +204,7 @@ export class Plug {
       this.platform.log.error(
         `Plug - Failed to refresh status of ${this.device.deviceName}`,
         JSON.stringify(e.message),
-        this.platform.debug(`Plug ${this.accessory.displayName} - ${JSON.stringify(e)}`),
-      );
+        this.platform.debug(`Plug ${this.accessory.displayName} - ${JSON.stringify(e)}`));
       this.apiError(e);
     }
   }

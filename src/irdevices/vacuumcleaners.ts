@@ -48,7 +48,7 @@ export class VacuumCleaner {
   }
 
   private OnSet(value: CharacteristicValue) {
-    this.platform.debug('${} ${} Set On: ${}', this.device.remoteType, this.accessory.displayName, value);
+    this.platform.debug(`${this.device.remoteType} ${this.accessory.displayName} Set On: ${value}`);
     this.On = value;
     if (this.On) {
       this.pushOnChanges();

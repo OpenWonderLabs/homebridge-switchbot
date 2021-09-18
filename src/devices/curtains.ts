@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue, MacAddress } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
@@ -7,18 +7,18 @@ import { DeviceURL, device, deviceStatusResponse } from '../settings';
 import { AxiosResponse } from 'axios';
 
 export class Curtain {
+  // Services
   private service: Service;
 
+  // Characteristic Values
   CurrentPosition!: CharacteristicValue;
   PositionState!: CharacteristicValue;
   TargetPosition!: CharacteristicValue;
+
+  // Others
   deviceStatus!: deviceStatusResponse;
   setNewTarget!: boolean;
   setNewTargetTimer!: NodeJS.Timeout;
-
-  curtainUpdateInProgress!: boolean;
-  doCurtainUpdate;
-  switchbot;
   moveTimer!: NodeJS.Timeout;
   moveTime!: number;
   ScanDuration: any;
@@ -30,8 +30,26 @@ export class Curtain {
   OpenCloseThreshold: any;
   PreviousPosition: any;
   Position: any;
-  AutoDisableFastScanTimeoutId;
+  AutoDisableFastScanTimeoutId!: NodeJS.Timeout;
   FastScanDuration: number | undefined;
+  switchbot!: {
+    discover: (
+      arg0:
+        {
+          duration: any;
+          model: string;
+          quick: boolean;
+          id: MacAddress;
+        }
+    ) => Promise<any>;
+    wait: (
+      arg0: number
+    ) => any;
+  };
+
+  // Updates
+  curtainUpdateInProgress!: boolean;
+  doCurtainUpdate;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -75,7 +93,7 @@ export class Curtain {
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.WindowCovering) ||
-      accessory.addService(this.platform.Service.WindowCovering)), '%s %s', device.deviceName, device.deviceType;
+      accessory.addService(this.platform.Service.WindowCovering)), `${device.deviceName} ${device.deviceType}`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -194,28 +212,78 @@ export class Curtain {
 
   async refreshStatus() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      this.platform.log.warn('BLE DEVICE-1');
-    } else {
-      try {
-        this.platform.debug('Curtain - Reading', `${DeviceURL}/${this.device.deviceId}/status`);
-        const deviceStatus: deviceStatusResponse = (
-          await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)
-        ).data;
-        if (deviceStatus.message === 'success') {
-          this.deviceStatus = deviceStatus;
-          this.platform.debug(`Curtain ${this.accessory.displayName} refreshStatus - ${JSON.stringify(this.deviceStatus)}`);
-          this.setMinMax();
-          this.parseStatus();
-          this.updateHomeKitCharacteristics();
-        }
-      } catch (e: any) {
-        this.platform.log.error(
-          `Curtain - Failed to refresh status of ${this.device.deviceName}`,
-          JSON.stringify(e.message),
-          this.platform.debug(`Curtain ${this.accessory.displayName} - ${JSON.stringify(e)}`),
-        );
-        this.apiError(e);
+      this.platform.log.warn('BLE DEVICE-REFRESH-1');
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const Switchbot = require('node-switchbot');
+      const switchbot = new Switchbot();
+      const colon = this.device.deviceId!.match(/.{1,2}/g);
+      const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
+      this.device.bleMac = bleMac.toLowerCase();
+      if (this.platform.config.options.debug) {
+        this.platform.log.warn(this.device.bleMac!);
       }
+      switchbot.onadvertisement = (ad: any) => {
+        this.platform.log.info(JSON.stringify(ad, null, '  '));
+        this.platform.log.warn('ad:', JSON.stringify(ad));
+      };
+      switchbot
+        .startScan({
+          id: this.device.bleMac,
+        })
+        .then(() => {
+          return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
+        })
+        .then(() => {
+          switchbot.stopScan();
+        })
+        .catch(async (error: any) => {
+          this.platform.log.error(error);
+          await this.openAPIRefreshStatus();
+        });
+      setInterval(() => {
+        this.platform.log.info('Start scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
+        switchbot
+          .startScan({
+            mode: 'T',
+            id: bleMac,
+          })
+          .then(() => {
+            return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
+          })
+          .then(() => {
+            switchbot.stopScan();
+            this.platform.log.info('Stop scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
+          })
+          .catch(async (error: any) => {
+            this.platform.log.error(error);
+            await this.openAPIRefreshStatus();
+          });
+      }, this.platform.config.options!.refreshRate! * 60000);
+    } else {
+      await this.openAPIRefreshStatus();
+    }
+  }
+
+  private async openAPIRefreshStatus() {
+    try {
+      this.platform.debug('Curtain - Reading', `${DeviceURL}/${this.device.deviceId}/status`);
+      const deviceStatus: deviceStatusResponse = (
+        await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)
+      ).data;
+      if (deviceStatus.message === 'success') {
+        this.deviceStatus = deviceStatus;
+        this.platform.debug(`Curtain ${this.accessory.displayName} refreshStatus - ${JSON.stringify(this.deviceStatus)}`);
+        this.setMinMax();
+        this.parseStatus();
+        this.updateHomeKitCharacteristics();
+      }
+    } catch (e: any) {
+      this.platform.log.error(
+        `Curtain - Failed to refresh status of ${this.device.deviceName}`,
+        JSON.stringify(e.message),
+        this.platform.debug(`Curtain ${this.accessory.displayName} - ${JSON.stringify(e)}`),
+      );
+      this.apiError(e);
     }
   }
 

@@ -1,4 +1,4 @@
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue, MacAddress } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
@@ -11,13 +11,32 @@ import { AxiosResponse } from 'axios';
  * Each accessory may expose multiple services of different service types.
  */
 export class Bulb {
+  // Services
   service!: Service;
 
+  // Characteristic Values
   On!: CharacteristicValue;
   Brightness!: CharacteristicValue;
   ColorTemperature!: CharacteristicValue;
-  deviceStatus!: deviceStatusResponse;
 
+  // Others
+  deviceStatus!: deviceStatusResponse;
+  switchbot!: {
+    discover: (
+      arg0:
+        {
+          duration: any;
+          model: string;
+          quick: boolean;
+          id: MacAddress;
+        }
+    ) => Promise<any>;
+    wait: (
+      arg0: number
+    ) => any;
+  };
+
+  // Updates
   bulbUpdateInProgress!: boolean;
   doBulbUpdate;
 
@@ -29,6 +48,17 @@ export class Bulb {
     // default placeholders
     this.On = false;
     this.Brightness = 0;
+    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const SwitchBot = require('node-switchbot');
+      this.switchbot = new SwitchBot();
+      const colon = device.deviceId!.match(/.{1,2}/g);
+      const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
+      this.device.bleMac = bleMac.toLowerCase();
+      if (this.platform.config.options.debug) {
+        this.platform.log.warn(this.device.bleMac.toLowerCase());
+      }
+    }
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doBulbUpdate = new Subject();
@@ -49,7 +79,7 @@ export class Bulb {
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.Lightbulb) ||
-      accessory.addService(this.platform.Service.Lightbulb)), '%s %s', device.deviceName, device.deviceType;
+      accessory.addService(this.platform.Service.Lightbulb)), `${device.deviceName} ${device.deviceType}`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
