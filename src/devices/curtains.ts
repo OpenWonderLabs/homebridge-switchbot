@@ -366,7 +366,7 @@ export class Curtain {
       this.service.updateCharacteristic(this.platform.Characteristic.TargetPosition, this.TargetPosition);
     }
     if (this.CurrentAmbientLightLevel !== undefined) {
-      this.service.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
+      this.lightSensorService.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
     }
   }
 
