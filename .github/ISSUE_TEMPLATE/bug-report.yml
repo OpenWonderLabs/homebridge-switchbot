@@ -1,6 +1,6 @@
 name: Bug-Report
 description: Report a Bug to help us improve
-title: "Bug:"
+title: "Bug: "
 labels: [bug]
 assignees: 'donavanbecker'
 body:

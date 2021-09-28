@@ -1,6 +1,6 @@
 name: Support Request
 description: Need help?
-title: "Support Request:"
+title: "Support Request: "
 labels: [question]
 assignees: 'donavanbecker'
 body:
