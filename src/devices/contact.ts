@@ -53,9 +53,7 @@ export class Contact {
       const colon = device.deviceId!.match(/.{1,2}/g);
       const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
       this.device.bleMac = bleMac.toLowerCase();
-      if (this.platform.config.options.debug === 'device') {
-        this.platform.debug(this.device.bleMac.toLowerCase());
-      }
+      this.platform.device(this.device.bleMac.toLowerCase());
     }
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doContactUpdate = new Subject();
@@ -109,7 +107,7 @@ export class Contact {
    * Parse the device status from the SwitchBot api
    */
   parseStatus() {
-    // Set Room Sensor State
+    // Conact Sensor
     this.ContactSensorState = Boolean(this.deviceStatus.body.openState);
     this.MotionDetected = Boolean(this.deviceStatus.body.moveDetected);
     this.platform.debug(`${this.accessory.displayName}
@@ -128,12 +126,10 @@ export class Contact {
       const colon = this.device.deviceId!.match(/.{1,2}/g);
       const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
       this.device.bleMac = bleMac.toLowerCase();
-      if (this.platform.config.options.debug === 'device') {
-        this.platform.debug(this.device.bleMac!);
-      }
+      this.platform.device(this.device.bleMac!);
       switchbot.onadvertisement = (ad: any) => {
         this.platform.log.info(JSON.stringify(ad, null, '  '));
-        this.platform.log.warn('ad:', JSON.stringify(ad));
+        this.platform.device('ad:', JSON.stringify(ad));
       };
       switchbot
         .startScan({
@@ -186,11 +182,8 @@ export class Contact {
         this.updateHomeKitCharacteristics();
       }
     } catch (e: any) {
-      this.platform.log.error(
-        'Contact - Failed to update status of',
-        this.device.deviceName,
-        JSON.stringify(e.message),
-        this.platform.debug(`Contact ${this.accessory.displayName} - ${JSON.stringify(e)}`));
+      this.platform.log.error(`Contact - Failed to refresh status of ${this.device.deviceName} - ${JSON.stringify(e.message)}`);
+      this.platform.debug(`Contact ${this.accessory.displayName} - ${JSON.stringify(e)}`);
       this.apiError(e);
     }
   }
@@ -199,11 +192,15 @@ export class Contact {
    * Updates the status for each of the HomeKit Characteristics
    */
   updateHomeKitCharacteristics() {
-    if (this.ContactSensorState !== undefined) {
+    if (this.ContactSensorState === undefined) {
+      this.platform.debug(`ContactSensorState: ${this.ContactSensorState}`);
+    } else {
       this.service.updateCharacteristic(this.platform.Characteristic.ContactSensorState, this.ContactSensorState);
     }
-    if (this.MotionDetected !== undefined) {
-      this.motionService.updateCharacteristic(this.platform.Characteristic.MotionDetected, this.MotionDetected);
+    if (this.MotionDetected === undefined) {
+      this.platform.debug(`ContactSensorState: ${this.ContactSensorState}`);
+    } else {
+      this.service.updateCharacteristic(this.platform.Characteristic.MotionDetected, this.MotionDetected);
     }
   }
 

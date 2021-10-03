@@ -53,9 +53,7 @@ export class Motion {
       const colon = device.deviceId!.match(/.{1,2}/g);
       const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
       this.device.bleMac = bleMac.toLowerCase();
-      if (this.platform.config.options.debug === 'device') {
-        this.platform.debug(this.device.bleMac.toLowerCase());
-      }
+      this.platform.device(this.device.bleMac.toLowerCase());
     }
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
@@ -124,12 +122,10 @@ export class Motion {
       const colon = this.device.deviceId!.match(/.{1,2}/g);
       const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
       this.device.bleMac = bleMac.toLowerCase();
-      if (this.platform.config.options.debug === 'device') {
-        this.platform.debug(this.device.bleMac!);
-      }
+      this.platform.device(this.device.bleMac!);
       switchbot.onadvertisement = (ad: any) => {
-        this.platform.log.info(JSON.stringify(ad, null, '  '));
-        this.platform.log.warn('ad:', JSON.stringify(ad));
+        this.platform.debug(JSON.stringify(ad, null, '  '));
+        this.platform.device('ad:', JSON.stringify(ad));
       };
       switchbot
         .startScan({
@@ -182,11 +178,8 @@ export class Motion {
         this.updateHomeKitCharacteristics();
       }
     } catch (e: any) {
-      this.platform.log.error(
-        'Motion - Failed to update status of',
-        this.device.deviceName,
-        JSON.stringify(e.message),
-        this.platform.debug(`Motion ${this.accessory.displayName} - ${JSON.stringify(e)}`));
+      this.platform.log.error(`Motion - Failed to refresh status of ${this.device.deviceName} - ${JSON.stringify(e.message)}`);
+      this.platform.debug(`Motion ${this.accessory.displayName} - ${JSON.stringify(e)}`);
       this.apiError(e);
     }
   }

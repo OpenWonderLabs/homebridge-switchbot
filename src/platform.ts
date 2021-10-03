@@ -215,9 +215,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.log.info('Total SwitchBot Devices Found:', devices.body.deviceList.length);
       this.log.info('Total IR Devices Found:', devices.body.infraredRemoteList.length);
       for (const device of devices.body.deviceList) {
-        if (this.config.options?.debug === 'device') {
-          this.deviceInfo(device);
-        }
+        this.deviceInfo(device);
         this.debug(JSON.stringify(device));
         // For Future Devices
         switch (device.deviceType) {
@@ -272,9 +270,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         }
       }
       for (const device of devices.body.infraredRemoteList) {
-        if (this.config.options?.debug === 'device') {
-          this.deviceInfo(device);
-        }
+        this.deviceInfo(device);
         this.debug(JSON.stringify(device));
         // For Future Devices
         switch (device.remoteType) {
@@ -400,14 +396,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.options?.debug === 'device') {
-        this.log.error(
-          'Unable to Register new device: %s %s - %s',
-          device.deviceName,
-          device.deviceType,
-          device.deviceId,
-        );
-      }
+      this.device(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
     }
   }
 
@@ -467,14 +456,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.options?.debug === 'device') {
-        this.log.error(
-          'Unable to Register new device: %s %s - %s',
-          device.deviceName,
-          device.deviceType,
-          device.deviceId,
-        );
-      }
+      this.device(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
     }
   }
 
@@ -530,14 +512,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.options?.debug === 'device') {
-        this.log.error(
-          'Unable to Register new device: %s %s - %s',
-          device.deviceName,
-          device.deviceType,
-          device.deviceId,
-        );
-      }
+      this.device(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
     }
   }
 
@@ -591,14 +566,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.options?.debug === 'device') {
-        this.log.error(
-          'Unable to Register new device: %s %s - %s',
-          device.deviceName,
-          device.deviceType,
-          device.deviceId,
-        );
-      }
+      this.device(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
     }
   }
 
@@ -652,14 +620,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.options?.debug === 'device') {
-        this.log.error(
-          'Unable to Register new device: %s %s - %s',
-          device.deviceName,
-          device.deviceType,
-          device.deviceId,
-        );
-      }
+      this.device(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
     }
   }
 
@@ -696,16 +657,13 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       // the accessory does not yet exist, so we need to create it
       this.log.info('Adding new accessory: %s %s DeviceID: %s', device.deviceName, device.deviceType, device.deviceId);
       if (device.group && !this.config.options?.curtain?.disable_group) {
-        this.log.warn(
-          'Your Curtains are grouped, Secondary curtain automatically hidden. Main Curtain: %s, DeviceID: %s',
-          device.deviceName,
-          device.deviceId,
-        );
+        this.device(`Your Curtains are grouped
+        , Secondary curtain automatically hidden. Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
       } else {
         if (device.master) {
-          this.log.warn('Main Curtain: %s, DeviceID: %s', device.deviceName, device.deviceId);
+          this.device(`Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
         } else {
-          this.log.warn('Secondary Curtain: %s, DeviceID: %s', device.deviceName, device.deviceId);
+          this.device(`Secondary Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
         }
       }
 
@@ -728,14 +686,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.options?.debug === 'device') {
-        this.log.error(
-          'Unable to Register new device: %s %s - %s',
-          device.deviceName,
-          device.deviceType,
-          device.deviceId,
-        );
-      }
+      this.device(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
     }
   }
 
@@ -799,14 +750,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.options?.debug === 'device') {
-        this.log.error(
-          'Unable to Register new device: %s %s - %s',
-          device.deviceName,
-          device.deviceType,
-          device.deviceId,
-        );
-      }
+      this.device(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
     }
   }
 
@@ -862,14 +806,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.options?.debug === 'device') {
-        this.log.error(
-          'Unable to Register new device: %s %s - %s',
-          device.deviceName,
-          device.deviceType,
-          device.deviceId,
-        );
-      }
+      this.device(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
     }
   }
 
@@ -930,14 +867,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.publishExternalAccessories(PLUGIN_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.options?.debug === 'device') {
-        this.log.error(
-          'Unable to Register new device: %s %s - %s',
-          device.deviceName,
-          device.remoteType,
-          device.deviceId,
-        );
-      }
+      this.device(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
     }
   }
 
@@ -994,14 +924,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.options?.debug === 'device') {
-        this.log.error(
-          'Unable to Register new device: %s %s - %s',
-          device.deviceName,
-          device.remoteType,
-          device.deviceId,
-        );
-      }
+      this.device(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
     }
   }
 
@@ -1057,14 +980,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.options?.debug === 'device') {
-        this.log.error(
-          'Unable to Register new device: %s %s - %s',
-          device.deviceName,
-          device.remoteType,
-          device.deviceId,
-        );
-      }
+      this.device(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
     }
   }
 
@@ -1120,14 +1036,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.options?.debug === 'device') {
-        this.log.error(
-          'Unable to Register new device: %s %s - %s',
-          device.deviceName,
-          device.remoteType,
-          device.deviceId,
-        );
-      }
+      this.device(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
     }
   }
 
@@ -1183,14 +1092,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.options?.debug === 'device') {
-        this.log.error(
-          'Unable to Register new device: %s %s - %s',
-          device.deviceName,
-          device.remoteType,
-          device.deviceId,
-        );
-      }
+      this.device(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
     }
   }
 
@@ -1246,14 +1148,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.options?.debug === 'device') {
-        this.log.error(
-          'Unable to Register new device: %s %s - %s',
-          device.deviceName,
-          device.remoteType,
-          device.deviceId,
-        );
-      }
+      this.device(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
     }
   }
 
@@ -1309,14 +1204,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.options?.debug === 'device') {
-        this.log.error(
-          'Unable to Register new device: %s %s - %s',
-          device.deviceName,
-          device.remoteType,
-          device.deviceId,
-        );
-      }
+      this.device(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
     }
   }
 
@@ -1372,14 +1260,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.options?.debug === 'device') {
-        this.log.error(
-          'Unable to Register new device: %s %s - %s',
-          device.deviceName,
-          device.remoteType,
-          device.deviceId,
-        );
-      }
+      this.device(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
     }
   }
 
@@ -1435,14 +1316,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.options?.debug === 'device') {
-        this.log.error(
-          'Unable to Register new device: %s %s - %s',
-          device.deviceName,
-          device.remoteType,
-          device.deviceId,
-        );
-      }
+      this.device(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
     }
   }
 
@@ -1474,17 +1348,19 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   public deviceListInfo(devices: deviceResponses) {
-    this.debug(JSON.stringify(devices));
+    this.device(JSON.stringify(devices));
   }
 
   public async deviceInfo(device: irdevice | device) {
-    this.log.warn(JSON.stringify(device));
-    const deviceStatus: deviceStatusResponse = (await this.axios.get(`${DeviceURL}/${device.deviceId}/status`)).data;
-    if (deviceStatus.message === 'success') {
-      this.debug('deviceStatus -', device.deviceName, JSON.stringify(deviceStatus));
-    } else {
-      this.debug('deviceStatus -', device.deviceName, JSON.stringify(deviceStatus.message));
-      this.debug('Unable to retreive device status.');
+    if (this.config.options?.debug === 'device') {
+      this.device(JSON.stringify(device));
+      const deviceStatus: deviceStatusResponse = (await this.axios.get(`${DeviceURL}/${device.deviceId}/status`)).data;
+      if (deviceStatus.message === 'success') {
+        this.device(`${device.deviceName} deviceStatus - ${JSON.stringify(deviceStatus)}`);
+      } else {
+        this.device(`${device.deviceName} deviceStatus - ${JSON.stringify(deviceStatus.message)}`);
+        this.device('Unable to retreive device status.');
+      }
     }
   }
 
@@ -1495,7 +1371,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   debug(...log: any[]) {
     if (this.config.options!.debug === 'debug') {
       this.log.info('[DEBUG]', String(...log));
-    } else if (this.config.options!.debug === 'device') {
+    } else {
+      this.log.debug(String(...log));
+    }
+  }
+
+  /**
+   * If debug level logging is turned on, log to log.info
+   * Otherwise send debug logs to log.debug
+   */
+  device(...log: any[]) {
+    if (this.config.options!.debug === 'device') {
       this.log.warn('[DEVICE]', String(...log));
     } else {
       this.log.debug(String(...log));

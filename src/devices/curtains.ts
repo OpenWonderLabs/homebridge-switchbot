@@ -71,9 +71,7 @@ export class Curtain {
       const colon = device.deviceId!.match(/.{1,2}/g);
       const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
       this.device.bleMac = bleMac.toLowerCase();
-      if (this.platform.config.options.debug === 'device') {
-        this.platform.debug(this.device.bleMac.toLowerCase());
-      }
+      this.platform.device(this.device.bleMac.toLowerCase());
     }
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
@@ -191,7 +189,7 @@ export class Curtain {
 
   parseStatus() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      this.platform.log.warn('BLE DEVICE-3');
+      this.platform.device('Curtains BLE Device parseStatus');
     } else {
       // CurrentPosition
       this.setMinMax();
@@ -238,19 +236,17 @@ export class Curtain {
 
   async refreshStatus() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      this.platform.log.warn('BLE DEVICE-REFRESH-1');
+      this.platform.debug('Curtains BLE Device RefreshStatus');
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const Switchbot = require('node-switchbot');
       const switchbot = new Switchbot();
       const colon = this.device.deviceId!.match(/.{1,2}/g);
       const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
       this.device.bleMac = bleMac.toLowerCase();
-      if (this.platform.config.options.debug === 'device') {
-        this.platform.debug(this.device.bleMac!);
-      }
+      this.platform.debug(this.device.bleMac!);
       switchbot.onadvertisement = (ad: any) => {
-        this.platform.log.info(JSON.stringify(ad, null, '  '));
-        this.platform.log.warn('ad:', JSON.stringify(ad));
+        this.platform.debug(JSON.stringify(ad, null, '  '));
+        this.platform.device(`ad: ${JSON.stringify(ad)}`);
       };
       switchbot
         .startScan({
@@ -304,18 +300,15 @@ export class Curtain {
         this.updateHomeKitCharacteristics();
       }
     } catch (e: any) {
-      this.platform.log.error(
-        `Curtain - Failed to refresh status of ${this.device.deviceName}`,
-        JSON.stringify(e.message),
-        this.platform.debug(`Curtain ${this.accessory.displayName} - ${JSON.stringify(e)}`),
-      );
+      this.platform.log.error(`Curtain - Failed to refresh status of ${this.device.deviceName} - ${JSON.stringify(e.message)}`);
+      this.platform.debug(`Curtain ${this.accessory.displayName} - ${JSON.stringify(e)}`);
       this.apiError(e);
     }
   }
 
   async pushChanges() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      this.platform.log.warn('BLE DEVICE-2');
+      this.platform.device('Curtains BLE Device pushChanges');
     } else {
       if (this.TargetPosition !== this.CurrentPosition) {
         this.platform.debug(`Pushing ${this.TargetPosition}`);

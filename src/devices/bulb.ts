@@ -55,9 +55,7 @@ export class Bulb {
       const colon = device.deviceId!.match(/.{1,2}/g);
       const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
       this.device.bleMac = bleMac.toLowerCase();
-      if (this.platform.config.options.debug === 'device') {
-        this.platform.debug(this.device.bleMac.toLowerCase());
-      }
+      this.platform.device(this.device.bleMac.toLowerCase());
     }
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
@@ -171,16 +169,13 @@ export class Bulb {
       ).data;
       if (deviceStatus.message === 'success') {
         this.deviceStatus = deviceStatus;
-        this.platform.log.warn(`Plug ${this.accessory.displayName} refreshStatus - ${JSON.stringify(this.deviceStatus)}`);
+        this.platform.device(`Plug ${this.accessory.displayName} refreshStatus - ${JSON.stringify(this.deviceStatus)}`);
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       }
     } catch (e: any) {
-      this.platform.log.error(
-        `Plug - Failed to refresh status of ${this.device.deviceName}`,
-        JSON.stringify(e.message),
-        this.platform.debug(`Plug ${this.accessory.displayName} - ${JSON.stringify(e)}`),
-      );
+      this.platform.log.error(`Plug - Failed to refresh status of ${this.device.deviceName} - ${JSON.stringify(e.message)}`);
+      this.platform.debug(`Plug ${this.accessory.displayName} - ${JSON.stringify(e)}`);
       this.apiError(e);
     }
   }

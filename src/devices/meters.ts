@@ -65,9 +65,7 @@ export class Meter {
       const colon = device.deviceId!.match(/.{1,2}/g);
       const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
       this.device.bleMac = bleMac.toLowerCase();
-      if (this.platform.config.options.debug === 'device') {
-        this.platform.debug(this.device.bleMac.toLowerCase());
-      }
+      this.platform.device(this.device.bleMac.toLowerCase());
     }
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
@@ -106,15 +104,11 @@ export class Meter {
 
     // Temperature Sensor Service
     if (this.platform.config.options?.meter?.hide_temperature) {
-      if (this.platform.config.options.debug === 'device') {
-        this.platform.log.error('Removing service');
-      }
+      this.platform.device('Removing Temperature Sensor Service');
       this.temperatureservice = this.accessory.getService(this.platform.Service.TemperatureSensor);
       accessory.removeService(this.temperatureservice!);
     } else if (!this.temperatureservice) {
-      if (this.platform.config.options?.debug === 'device') {
-        this.platform.log.warn('Adding service');
-      }
+      this.platform.device('Adding Temperature Sensor Service');
       (this.temperatureservice =
         this.accessory.getService(this.platform.Service.TemperatureSensor) ||
         this.accessory.addService(this.platform.Service.TemperatureSensor)), `${device.deviceName} ${device.deviceType} TemperatureSensor`;
@@ -131,21 +125,17 @@ export class Meter {
         .onGet(() => {
           return this.CurrentTemperature;
         });
-      //this.platform.log.info(this.device.deviceName + ' current temperature: ' + this.CurrentTemperature + '\u2103');
     } else {
-      if (this.platform.config.options?.debug === 'device') {
-        this.platform.log.warn('TemperatureSensor not added.');
-      }
+      this.platform.device('Temperature Sensor Not Added');
     }
 
     // Humidity Sensor Service
     if (this.platform.config.options?.meter?.hide_humidity) {
-      if (this.platform.config.options.debug === 'device') {
-        this.platform.log.error('Removing service');
-      }
+      this.platform.device('Removing Humidity Sensor Service');
       this.humidityservice = this.accessory.getService(this.platform.Service.HumiditySensor);
       accessory.removeService(this.humidityservice!);
     } else if (!this.humidityservice) {
+      this.platform.device('Adding Humidity Sensor Service');
       (this.humidityservice =
         this.accessory.getService(this.platform.Service.HumiditySensor) ||
         this.accessory.addService(this.platform.Service.HumiditySensor)), `${device.deviceName} ${device.deviceType} HumiditySensor`;
@@ -158,11 +148,8 @@ export class Meter {
         .onGet(() => {
           return this.CurrentRelativeHumidity;
         });
-      //this.platform.log.info(this.device.deviceName + ' current humidity: ' + this.CurrentRelativeHumidity + '%');
     } else {
-      if (this.platform.config.options?.debug) {
-        this.platform.log.warn('HumiditySensor not added.');
-      }
+      this.platform.device('Adding Humidity Sensor Not Added');
     }
 
     // Retrieve initial values and updateHomekit
@@ -230,14 +217,12 @@ export class Meter {
       const colon = this.device.deviceId!.match(/.{1,2}/g);
       const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
       this.device.bleMac = bleMac.toLowerCase();
-      if (this.platform.config.options.debug === 'device') {
-        this.platform.debug(this.device.bleMac!);
-      }
+      this.platform.device(this.device.bleMac!);
       switchbot.onadvertisement = (ad: any) => {
-        this.platform.log.info(JSON.stringify(ad, null, '  '));
-        this.platform.log.warn('ad:', JSON.stringify(ad));
-        this.platform.log.info('Temperature:', ad.serviceData.temperature.c);
-        this.platform.log.info('Humidity:', ad.serviceData.humidity);
+        this.platform.debug(JSON.stringify(ad, null, '  '));
+        this.platform.device('ad:', JSON.stringify(ad));
+        this.platform.device(`Temperature: ${ad.serviceData.temperature.c}`);
+        this.platform.device(`Humidity: ${ad.serviceData.humidity}`);
         this.BLEtemperature = ad.serviceData.temperature.c;
         this.BLEHumidity = ad.serviceData.humidity;
       };
@@ -291,12 +276,8 @@ export class Meter {
         this.updateHomeKitCharacteristics();
       }
     } catch (e: any) {
-      this.platform.log.error(
-        'Meter - Failed to update status of',
-        this.device.deviceName,
-        JSON.stringify(e.message),
-        this.platform.debug(`Meter ${this.accessory.displayName} - ${JSON.stringify(e)}`),
-      );
+      this.platform.log.error(`Meter - Failed to refresh status of ${this.device.deviceName} - ${JSON.stringify(e.message)}`);
+      this.platform.debug(`Meter ${this.accessory.displayName} - ${JSON.stringify(e)}`);
       this.apiError(e);
     }
   }

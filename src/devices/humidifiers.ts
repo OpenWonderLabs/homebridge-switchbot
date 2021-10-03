@@ -107,15 +107,11 @@ export class Humidifier {
     // create a new Temperature Sensor service
     // Temperature Sensor Service
     if (this.platform.config.options?.humidifier?.hide_temperature) {
-      if (this.platform.config.options.debug === 'device') {
-        this.platform.log.error('Removing service');
-      }
+      this.platform.device('Removing Temerature Sensor Service');
       this.temperatureservice = this.accessory.getService(this.platform.Service.TemperatureSensor);
       accessory.removeService(this.temperatureservice!);
     } else if (!this.temperatureservice) {
-      if (this.platform.config.options?.debug === 'device') {
-        this.platform.log.warn('Adding service');
-      }
+      this.platform.device('Adding Temerature Sensor Service');
       (this.temperatureservice =
         this.accessory.getService(this.platform.Service.TemperatureSensor) ||
         this.accessory.addService(this.platform.Service.TemperatureSensor)), `${device.deviceName} ${device.deviceType} TemperatureSensor`;
@@ -133,7 +129,7 @@ export class Humidifier {
         });
     } else {
       if (this.platform.config.options?.debug) {
-        this.platform.log.warn('TemperatureSensor not added.');
+        this.platform.device('Temperature Sensor Not Added');
       }
     }
 
@@ -175,9 +171,7 @@ export class Humidifier {
     // Current Relative Humidity
     this.CurrentRelativeHumidity = this.deviceStatus.body.humidity!;
     this.platform.debug(`Humidifier ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
-    if (this.platform.config.options?.debug) {
-      this.platform.log.warn(JSON.stringify(this.deviceStatus.body));
-    }
+    this.platform.device(JSON.stringify(this.deviceStatus.body));
     // Water Level
     if (this.deviceStatus.body.lackWater) {
       this.WaterLevel = 0;
