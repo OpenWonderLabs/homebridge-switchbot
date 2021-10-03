@@ -110,11 +110,7 @@ export class Contact {
    */
   parseStatus() {
     // Set Room Sensor State
-    if (this.deviceStatus.body.openState) {
-      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
-    } else {
-      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
-    }
+    this.ContactSensorState = Boolean(this.deviceStatus.body.openState);
     this.MotionDetected = Boolean(this.deviceStatus.body.moveDetected);
     this.platform.debug(`${this.accessory.displayName}
     , ContactSensorState: ${this.ContactSensorState}, MotionDetected: ${this.MotionDetected}`);
