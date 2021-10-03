@@ -7,6 +7,10 @@ All notable changes to this project will be documented in this file. This projec
 ### Changes
 
 - Offical release of homebridge-Switchbot, which combines both BLE and OpenAPI into 1 plugin.
+- Adds Light Sensors to Curtains
+    - with iOS 15.1 you can set automations on light sensors.
+- Adds Motion Sensor to Contact Sensors
+- Adds Support Color Bulbs
 
 ## [Version 0.1.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v0.1.1) (2020-09-11)
 
@@ -19,5 +23,5 @@ All notable changes to this project will be documented in this file. This projec
 ### Changes
 
 - Initial release of homebridge-switchbot.
-- Adds Motion & Contact Sensors
+- Adds Support for Motion & Contact Sensors
 - Adds Water Level to Humidifier

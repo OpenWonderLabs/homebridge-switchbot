@@ -74,8 +74,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     // setup axios interceptor to add headers / api key to each request
     this.axios.interceptors.request.use((request: AxiosRequestConfig) => {
-      request.headers.Authorization = this.config.credentials?.openToken;
-      request.headers['Content-Type'] = 'application/json; charset=utf8';
+      request.headers!.Authorization = this.config.credentials?.openToken;
+      request.headers!['Content-Type'] = 'application/json; charset=utf8';
       return request;
     });
 
@@ -208,7 +208,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
  */
   async discoverDevices() {
     try {
-      const devices = (await this.axios.get(DeviceURL)).data;
+      const devices: any = (await this.axios.get(DeviceURL)).data;
 
       this.deviceListInfo(devices);
       this.debug(JSON.stringify(devices));
