@@ -16,6 +16,7 @@ import { Meter } from './devices/meters';
 import { Motion } from './devices/motion';
 import { Contact } from './devices/contact';
 import { Curtain } from './devices/curtains';
+import { IndoorCam } from './devices/indoorcam';
 import { Humidifier } from './devices/humidifiers';
 import { TV } from './irdevices/tvs';
 import { Fan } from './irdevices/fans';
@@ -119,8 +120,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
      * Hidden Device Discovery Option
      * This will disable adding any device and will just output info.
      */
-    this.config.devicediscovery;
-
     this.config.options = this.config.options || {};
 
     //Enable BLE for Device
@@ -211,77 +210,57 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     try {
       const devices = (await this.axios.get(DeviceURL)).data;
 
-      if (this.config.devicediscovery) {
-        this.deviceListInfo(devices);
-      } else {
-        this.log.debug(JSON.stringify(devices));
-      }
+      this.deviceListInfo(devices);
+      this.debug(JSON.stringify(devices));
       this.log.info('Total SwitchBot Devices Found:', devices.body.deviceList.length);
       this.log.info('Total IR Devices Found:', devices.body.infraredRemoteList.length);
       for (const device of devices.body.deviceList) {
-        if (this.config.devicediscovery) {
+        if (this.config.options?.debug === 'device') {
           this.deviceInfo(device);
-        } else {
-          this.debug(JSON.stringify(device));
         }
+        this.debug(JSON.stringify(device));
         // For Future Devices
         switch (device.deviceType) {
           case 'Humidifier':
-            if (this.config.devicediscovery) {
-              this.log.info('Discovered %s %s', device.deviceName, device.deviceType);
-            }
+            this.debug(`Discovered ${device.deviceType}: ${device.deviceId}`);
             this.createHumidifier(device);
             break;
           case 'Hub Mini':
-            if (this.config.devicediscovery) {
-              this.log.info('Discovered a %s', device.deviceType);
-            }
+            this.debug(`Discovered ${device.deviceType}: ${device.deviceId}`);
             break;
           case 'Hub Plus':
-            if (this.config.devicediscovery) {
-              this.log.info('Discovered a %s', device.deviceType);
-            }
+            this.debug(`Discovered ${device.deviceType}: ${device.deviceId}`);
             break;
           case 'Bot':
-            if (this.config.devicediscovery) {
-              this.log.info('Discovered %s %s', device.deviceName, device.deviceType);
-            }
+            this.debug(`Discovered ${device.deviceType}: ${device.deviceId}`);
             this.createBot(device);
             break;
           case 'Meter':
-            if (this.config.devicediscovery) {
-              this.log.info('Discovered %s %s', device.deviceName, device.deviceType);
-            }
+            this.debug(`Discovered ${device.deviceType}: ${device.deviceId}`);
             this.createMeter(device);
             break;
           case 'Motion Sensor':
-            if (this.config.devicediscovery) {
-              this.log.info('Discovered %s %s', device.deviceName, device.deviceType);
-            }
+            this.debug(`Discovered ${device.deviceType}: ${device.deviceId}`);
             this.createMotion(device);
             break;
           case 'Contact Sensor':
-            if (this.config.devicediscovery) {
-              this.log.info('Discovered %s %s', device.deviceName, device.deviceType);
-            }
+            this.debug(`Discovered ${device.deviceType}: ${device.deviceId}`);
             this.createContact(device);
             break;
           case 'Curtain':
-            if (this.config.devicediscovery) {
-              this.log.info('Discovered %s %s', device.deviceName, device.deviceType);
-            }
+            this.debug(`Discovered ${device.deviceType}: ${device.deviceId}`);
             this.createCurtain(device);
             break;
           case 'Plug':
-            if (this.config.devicediscovery) {
-              this.log.info('Discovered %s %s', device.deviceName, device.deviceType);
-            }
+            this.debug(`Discovered ${device.deviceType}: ${device.deviceId}`);
             this.createPlug(device);
             break;
+          case 'IndoorCam':
+            this.debug(`Discovered ${device.deviceType}: ${device.deviceId}`);
+            this.createIndoorCam(device);
+            break;
           case 'Remote':
-            if (this.config.devicediscovery) {
-              this.debug(`Discovered ${device.deviceName}, ${device.deviceType} is Not Supported.`);
-            }
+            this.debug(`Discovered ${device.deviceType}: ${device.deviceId} is Not Supported.`);
             break;
           default:
             this.log.info(
@@ -293,11 +272,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         }
       }
       for (const device of devices.body.infraredRemoteList) {
-        if (this.config.devicediscovery) {
+        if (this.config.options?.debug === 'device') {
           this.deviceInfo(device);
-        } else {
-          this.debug(JSON.stringify(device));
         }
+        this.debug(JSON.stringify(device));
         // For Future Devices
         switch (device.remoteType) {
           case 'TV':
@@ -312,64 +290,46 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           case 'DIY DVD':
           case 'Speaker':
           case 'DIY Speaker':
-            if (this.config.devicediscovery) {
-              this.log.info('Discovered %s %s', device.deviceName, device.remoteType);
-            }
+            this.debug(`Discovered ${device.remoteType}: ${device.deviceId}`);
             this.createTV(device);
             break;
           case 'Fan':
           case 'DIY Fan':
-            if (this.config.devicediscovery) {
-              this.log.info('Discovered %s %s', device.deviceName, device.remoteType);
-            }
+            this.debug(`Discovered ${device.remoteType}: ${device.deviceId}`);
             this.createFan(device);
             break;
           case 'Air Conditioner':
           case 'DIY Air Conditioner':
-            if (this.config.devicediscovery) {
-              this.log.info('Discovered %s %s', device.deviceName, device.remoteType);
-            }
+            this.debug(`Discovered ${device.remoteType}: ${device.deviceId}`);
             this.createAirConditioner(device);
             break;
           case 'Light':
           case 'DIY Light':
-            if (this.config.devicediscovery) {
-              this.log.info('Discovered %s %s', device.deviceName, device.remoteType);
-            }
+            this.debug(`Discovered ${device.remoteType}: ${device.deviceId}`);
             this.createLight(device);
             break;
           case 'Air Purifier':
           case 'DIY Air Purifier':
-            if (this.config.devicediscovery) {
-              this.log.info('Discovered %s %s', device.deviceName, device.remoteType);
-            }
+            this.debug(`Discovered ${device.remoteType}: ${device.deviceId}`);
             this.createAirPurifier(device);
             break;
           case 'Water Heater':
           case 'DIY Water Heater':
-            if (this.config.devicediscovery) {
-              this.log.info('Discovered %s %s', device.deviceName, device.remoteType);
-            }
+            this.debug(`Discovered ${device.remoteType}: ${device.deviceId}`);
             this.createWaterHeater(device);
             break;
           case 'Vacuum Cleaner':
           case 'DIY Vacuum Cleaner':
-            if (this.config.devicediscovery) {
-              this.log.info('Discovered %s %s', device.deviceName, device.remoteType);
-            }
+            this.debug(`Discovered ${device.remoteType}: ${device.deviceId}`);
             this.createVacuumCleaner(device);
             break;
           case 'Camera':
           case 'DIY Camera':
-            if (this.config.devicediscovery) {
-              this.log.info('Discovered %s %s', device.deviceName, device.remoteType);
-            }
+            this.debug(`Discovered ${device.remoteType}: ${device.deviceId}`);
             this.createCamera(device);
             break;
           case 'Others':
-            if (this.config.devicediscovery) {
-              this.log.info('Discovered %s %s', device.deviceName, device.remoteType);
-            }
+            this.debug(`Discovered ${device.remoteType}: ${device.deviceId}`);
             this.createOthers(device);
             break;
           default:
@@ -440,7 +400,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.devicediscovery) {
+      if (this.config.options?.debug === 'device') {
         this.log.error(
           'Unable to Register new device: %s %s - %s',
           device.deviceName,
@@ -507,7 +467,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.devicediscovery) {
+      if (this.config.options?.debug === 'device') {
         this.log.error(
           'Unable to Register new device: %s %s - %s',
           device.deviceName,
@@ -570,7 +530,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.devicediscovery) {
+      if (this.config.options?.debug === 'device') {
         this.log.error(
           'Unable to Register new device: %s %s - %s',
           device.deviceName,
@@ -631,7 +591,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.devicediscovery) {
+      if (this.config.options?.debug === 'device') {
         this.log.error(
           'Unable to Register new device: %s %s - %s',
           device.deviceName,
@@ -692,7 +652,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.devicediscovery) {
+      if (this.config.options?.debug === 'device') {
         this.log.error(
           'Unable to Register new device: %s %s - %s',
           device.deviceName,
@@ -768,7 +728,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.devicediscovery) {
+      if (this.config.options?.debug === 'device') {
         this.log.error(
           'Unable to Register new device: %s %s - %s',
           device.deviceName,
@@ -839,7 +799,70 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.devicediscovery) {
+      if (this.config.options?.debug === 'device') {
+        this.log.error(
+          'Unable to Register new device: %s %s - %s',
+          device.deviceName,
+          device.deviceType,
+          device.deviceId,
+        );
+      }
+    }
+  }
+
+  private async createIndoorCam(device: device) {
+    const uuid = this.api.hap.uuid.generate(`${device.deviceName}-${device.deviceId}-${device.deviceType}`);
+
+    // see if an accessory with the same uuid has already been registered and restored from
+    // the cached devices we stored in the `configureAccessory` method above
+    const existingAccessory = this.accessories.find((accessory) => accessory.UUID === uuid);
+
+    if (existingAccessory) {
+      // the accessory already exists
+      if (!this.config.options?.hide_device.includes(device.deviceId!) && device.enableCloudService) {
+        this.log.info(
+          'Restoring existing accessory from cache: %s DeviceID: %s',
+          existingAccessory.displayName,
+          device.deviceId,
+        );
+
+        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
+        existingAccessory.context.model = device.deviceType;
+        existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.context.firmwareRevision = this.version;
+        await this.connectionTypeExistingAccessory(device, existingAccessory);
+        this.api.updatePlatformAccessories([existingAccessory]);
+        // create the accessory handler for the restored accessory
+        // this is imported from `platformAccessory.ts`
+        new IndoorCam(this, existingAccessory, device);
+        this.debug(`${device.deviceType} UDID: ${device.deviceName}-${device.deviceId}-${device.deviceType}`);
+      } else {
+        this.unregisterPlatformAccessories(existingAccessory);
+      }
+    } else if (!this.config.options?.hide_device.includes(device.deviceId!) && device.enableCloudService) {
+      // the accessory does not yet exist, so we need to create it
+      this.log.info('Adding new accessory: %s %s DeviceID: %s', device.deviceName, device.deviceType, device.deviceId);
+
+      // create a new accessory
+      const accessory = new this.api.platformAccessory(`${device.deviceName} ${device.deviceType}`, uuid);
+
+      // store a copy of the device object in the `accessory.context`
+      // the `context` property can be used to store any data about the accessory you may need
+      accessory.context.device = device;
+      accessory.context.model = device.deviceType;
+      accessory.context.deviceID = device.deviceId;
+      accessory.context.firmwareRevision = this.version;
+      await this.connectionTypeNewAccessory(device, accessory);
+      // create the accessory handler for the newly create accessory
+      // this is imported from `platformAccessory.ts`
+      new IndoorCam(this, accessory, device);
+      this.debug(`${device.deviceType} UDID: ${device.deviceName}-${device.deviceId}-${device.deviceType}`);
+
+      // link the accessory to your platform
+      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      this.accessories.push(accessory);
+    } else {
+      if (this.config.options?.debug === 'device') {
         this.log.error(
           'Unable to Register new device: %s %s - %s',
           device.deviceName,
@@ -907,7 +930,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.publishExternalAccessories(PLUGIN_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.devicediscovery) {
+      if (this.config.options?.debug === 'device') {
         this.log.error(
           'Unable to Register new device: %s %s - %s',
           device.deviceName,
@@ -971,7 +994,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.devicediscovery) {
+      if (this.config.options?.debug === 'device') {
         this.log.error(
           'Unable to Register new device: %s %s - %s',
           device.deviceName,
@@ -1034,7 +1057,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.devicediscovery) {
+      if (this.config.options?.debug === 'device') {
         this.log.error(
           'Unable to Register new device: %s %s - %s',
           device.deviceName,
@@ -1097,7 +1120,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.devicediscovery) {
+      if (this.config.options?.debug === 'device') {
         this.log.error(
           'Unable to Register new device: %s %s - %s',
           device.deviceName,
@@ -1160,7 +1183,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.devicediscovery) {
+      if (this.config.options?.debug === 'device') {
         this.log.error(
           'Unable to Register new device: %s %s - %s',
           device.deviceName,
@@ -1223,7 +1246,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.devicediscovery) {
+      if (this.config.options?.debug === 'device') {
         this.log.error(
           'Unable to Register new device: %s %s - %s',
           device.deviceName,
@@ -1286,7 +1309,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.devicediscovery) {
+      if (this.config.options?.debug === 'device') {
         this.log.error(
           'Unable to Register new device: %s %s - %s',
           device.deviceName,
@@ -1349,7 +1372,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.devicediscovery) {
+      if (this.config.options?.debug === 'device') {
         this.log.error(
           'Unable to Register new device: %s %s - %s',
           device.deviceName,
@@ -1412,7 +1435,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
-      if (this.config.devicediscovery) {
+      if (this.config.options?.debug === 'device') {
         this.log.error(
           'Unable to Register new device: %s %s - %s',
           device.deviceName,
@@ -1451,17 +1474,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   public deviceListInfo(devices: deviceResponses) {
-    this.log.warn(JSON.stringify(devices));
+    this.debug(JSON.stringify(devices));
   }
 
   public async deviceInfo(device: irdevice | device) {
     this.log.warn(JSON.stringify(device));
     const deviceStatus: deviceStatusResponse = (await this.axios.get(`${DeviceURL}/${device.deviceId}/status`)).data;
     if (deviceStatus.message === 'success') {
-      this.log.warn('deviceStatus -', device.deviceName, JSON.stringify(deviceStatus));
+      this.debug('deviceStatus -', device.deviceName, JSON.stringify(deviceStatus));
     } else {
-      this.log.warn('deviceStatus -', device.deviceName, JSON.stringify(deviceStatus.message));
-      this.log.error('Unable to retreive device status.');
+      this.debug('deviceStatus -', device.deviceName, JSON.stringify(deviceStatus.message));
+      this.debug('Unable to retreive device status.');
     }
   }
 
@@ -1470,9 +1493,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
    * Otherwise send debug logs to log.debug
    */
   debug(...log: any[]) {
-    if (this.config.options?.debug) {
+    if (this.config.options!.debug === 'debug') {
       this.log.info('[DEBUG]', String(...log));
-    } else{
+    } else if (this.config.options!.debug === 'device') {
+      this.log.warn('[DEVICE]', String(...log));
+    } else {
       this.log.debug(String(...log));
     }
   }

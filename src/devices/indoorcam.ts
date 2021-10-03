@@ -5,19 +5,13 @@ import { debounceTime, skipWhile, tap } from 'rxjs/operators';
 import { DeviceURL, device, deviceStatusResponse } from '../settings';
 import { AxiosResponse } from 'axios';
 
-/**
- * Platform Accessory
- * An instance of this class is created for each accessory your platform registers
- * Each accessory may expose multiple services of different service types.
- */
-export class Bulb {
+export class IndoorCam {
   // Services
-  service!: Service;
+  private service: Service;
 
   // Characteristic Values
   On!: CharacteristicValue;
-  Brightness!: CharacteristicValue;
-  ColorTemperature!: CharacteristicValue;
+  OutletInUse!: CharacteristicValue;
 
   // Others
   deviceStatus!: deviceStatusResponse;
@@ -37,8 +31,8 @@ export class Bulb {
   };
 
   // Updates
-  bulbUpdateInProgress!: boolean;
-  doBulbUpdate;
+  cameraUpdateInProgress!: boolean;
+  doCameraUpdate;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -47,7 +41,9 @@ export class Bulb {
   ) {
     // default placeholders
     this.On = false;
-    this.Brightness = 0;
+    this.OutletInUse = true;
+
+    // BLE Connections
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const SwitchBot = require('node-switchbot');
@@ -61,9 +57,8 @@ export class Bulb {
     }
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
-    this.doBulbUpdate = new Subject();
-    this.bulbUpdateInProgress = false;
-
+    this.doCameraUpdate = new Subject();
+    this.cameraUpdateInProgress = false;
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();
@@ -72,69 +67,47 @@ export class Bulb {
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-BULB-W1401400')
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId);
+      .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-CAMERA-')
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
-    // get the Television service if it exists, otherwise create a new Television service
+    // get the WindowCovering service if it exists, otherwise create a new WindowCovering service
     // you can create multiple services for each accessory
     (this.service =
-      accessory.getService(this.platform.Service.Lightbulb) ||
-      accessory.addService(this.platform.Service.Lightbulb)), `${device.deviceName} ${device.deviceType}`;
+      accessory.getService(this.platform.Service.Outlet) ||
+      accessory.addService(this.platform.Service.Outlet)), `${device.deviceName} ${device.deviceType}`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
-    // accessory.getService('NAME') ?? accessory.addService(this.platform.Service.Outlet, 'NAME', 'USER_DEFINED_SUBTYPE');
+    // accessory.getService('NAME') ?? accessory.addService(this.platform.Service.Lightbulb, 'NAME', 'USER_DEFINED_SUBTYPE');
 
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
 
-    // handle on / off events using the On characteristic
-    this.service.getCharacteristic(this.platform.Characteristic.On)
-      .onSet(this.OnSet.bind(this));
+    // each service must implement at-minimum the "required characteristics" for the given service type
+    // see https://developers.homebridge.io/#/service/WindowCovering
 
-    // handle Brightness events using the Brightness characteristic
-    this.service.getCharacteristic(this.platform.Characteristic.Brightness)
-      .setProps({
-        minStep: this.platform.config.options?.bulb?.set_minStep || 1,
-        minValue: 0,
-        maxValue: 100,
-        validValueRanges: [0, 100],
-      })
-      .onGet(() => {
-        return this.Brightness;
-      })
-      .onSet(this.BrightnessSet.bind(this));
+    // create handlers for required characteristics
+    this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
 
-    // handle ColorTemperature events using the ColorTemperature characteristic
-    this.service.getCharacteristic(this.platform.Characteristic.ColorTemperature)
-      .setProps({
-        minStep: this.platform.config.options?.bulb?.set_minStep || 1,
-        minValue: 0,
-        maxValue: 100,
-        validValueRanges: [0, 100],
-      })
-      .onGet(() => {
-        return this.ColorTemperature;
-      })
-      .onSet(this.ColorTemperatureSet.bind(this));
+    this.service.setCharacteristic(this.platform.Characteristic.OutletInUse, this.OutletInUse || true);
 
     // Update Homekit
     this.updateHomeKitCharacteristics();
 
     // Start an update interval
     interval(this.platform.config.options!.refreshRate! * 1000)
-      .pipe(skipWhile(() => this.bulbUpdateInProgress))
+      .pipe(skipWhile(() => this.cameraUpdateInProgress))
       .subscribe(() => {
         this.refreshStatus();
       });
 
-    // Watch for Plug change events
+    // Watch for Camera change events
     // We put in a debounce of 100ms so we don't make duplicate calls
-    this.doBulbUpdate
+    this.doCameraUpdate
       .pipe(
         tap(() => {
-          this.bulbUpdateInProgress = true;
+          this.cameraUpdateInProgress = true;
         }),
         debounceTime(this.platform.config.options!.pushRate! * 1000),
       )
@@ -143,10 +116,10 @@ export class Bulb {
           await this.pushChanges();
         } catch (e: any) {
           this.platform.log.error(JSON.stringify(e.message));
-          this.platform.debug(`Plug ${accessory.displayName} - ${JSON.stringify(e)}`);
+          this.platform.debug(`Camera ${accessory.displayName} - ${JSON.stringify(e)}`);
           this.apiError(e);
         }
-        this.bulbUpdateInProgress = false;
+        this.cameraUpdateInProgress = false;
       });
   }
 
@@ -158,29 +131,80 @@ export class Bulb {
       default:
         this.On = false;
     }
-    this.platform.debug(`Plug ${this.accessory.displayName} On: ${this.On}`);
-    this.deviceStatus.body.brightness = Number(this.Brightness);
-    this.deviceStatus.body.colorTemperature = Number(this.ColorTemperature);
+    this.platform.debug(`Camera ${this.accessory.displayName} On: ${this.On}`);
   }
 
   async refreshStatus() {
+    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+      this.platform.log.warn('BLE DEVICE-REFRESH');
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const Switchbot = require('node-switchbot');
+      const switchbot = new Switchbot();
+      const colon = this.device.deviceId!.match(/.{1,2}/g);
+      const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
+      this.device.bleMac = bleMac.toLowerCase();
+      if (this.platform.config.options.debug) {
+        this.platform.log.warn(this.device.bleMac!);
+      }
+      switchbot.onadvertisement = (ad: any) => {
+        this.platform.log.info(JSON.stringify(ad, null, '  '));
+        this.platform.log.warn('ad:', JSON.stringify(ad));
+      };
+      switchbot
+        .startScan({
+          id: this.device.bleMac,
+        })
+        .then(() => {
+          return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
+        })
+        .then(() => {
+          switchbot.stopScan();
+        })
+        .catch(async (error: any) => {
+          this.platform.log.error(error);
+          await this.openAPIRefreshStatus();
+        });
+      setInterval(() => {
+        this.platform.log.info('Start scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
+        switchbot
+          .startScan({
+            mode: 'T',
+            id: bleMac,
+          })
+          .then(() => {
+            return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
+          })
+          .then(() => {
+            switchbot.stopScan();
+            this.platform.log.info('Stop scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
+          })
+          .catch(async (error: any) => {
+            this.platform.log.error(error);
+            await this.openAPIRefreshStatus();
+          });
+      }, this.platform.config.options!.refreshRate! * 60000);
+    } else {
+      await this.openAPIRefreshStatus();
+    }
+  }
+
+  private async openAPIRefreshStatus() {
     try {
-      this.platform.debug('Plug - Reading', `${DeviceURL}/${this.device.deviceId}/status`);
+      this.platform.debug('Camera - Reading', `${DeviceURL}/${this.device.deviceId}/status`);
       const deviceStatus: deviceStatusResponse = (
         await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)
       ).data;
       if (deviceStatus.message === 'success') {
         this.deviceStatus = deviceStatus;
-        this.platform.log.warn(`Plug ${this.accessory.displayName} refreshStatus - ${JSON.stringify(this.deviceStatus)}`);
+        this.platform.log.warn(`Camera ${this.accessory.displayName} refreshStatus - ${JSON.stringify(this.deviceStatus)}`);
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       }
     } catch (e: any) {
       this.platform.log.error(
-        `Plug - Failed to refresh status of ${this.device.deviceName}`,
+        `Camera - Failed to refresh status of ${this.device.deviceName}`,
         JSON.stringify(e.message),
-        this.platform.debug(`Plug ${this.accessory.displayName} - ${JSON.stringify(e)}`),
-      );
+        this.platform.debug(`Camera ${this.accessory.displayName} - ${JSON.stringify(e)}`));
       this.apiError(e);
     }
   }
@@ -188,8 +212,8 @@ export class Bulb {
   /**
  * Pushes the requested changes to the SwitchBot API
  * deviceType	commandType	  Command	    command parameter	  Description
- * Plug   -    "command"     "turnOff"   "default"	  =        set to OFF state
- * Plug   -    "command"     "turnOn"    "default"	  =        set to ON state
+ * Camera   -    "command"     "turnOff"   "default"	  =        set to OFF state
+ * Camera   -    "command"     "turnOn"    "default"	  =        set to ON state
  */
   async pushChanges() {
     const payload = {
@@ -213,11 +237,11 @@ export class Bulb {
       'commandType:',
       payload.commandType,
     );
-    this.platform.debug(`Plug ${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
+    this.platform.debug(`Camera ${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
 
     // Make the API request
     const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-    this.platform.debug(`Plug ${this.accessory.displayName} Changes pushed - ${push.data}`);
+    this.platform.debug(`Camera ${this.accessory.displayName} Changes pushed - ${push.data}`);
     this.statusCode(push);
   }
 
@@ -225,18 +249,14 @@ export class Bulb {
     if (this.On !== undefined) {
       this.service.updateCharacteristic(this.platform.Characteristic.On, this.On);
     }
-    if (this.Brightness !== undefined) {
-      this.service.updateCharacteristic(this.platform.Characteristic.Brightness, this.Brightness);
-    }
-    if (this.ColorTemperature !== undefined) {
-      this.service.updateCharacteristic(this.platform.Characteristic.Brightness, this.ColorTemperature);
+    if (this.OutletInUse !== undefined) {
+      this.service.updateCharacteristic(this.platform.Characteristic.OutletInUse, this.OutletInUse);
     }
   }
 
   public apiError(e: any) {
     this.service.updateCharacteristic(this.platform.Characteristic.On, e);
-    this.service.updateCharacteristic(this.platform.Characteristic.Brightness, e);
-    this.service.updateCharacteristic(this.platform.Characteristic.ColorTemperature, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.OutletInUse, e);
   }
 
 
@@ -274,29 +294,11 @@ export class Bulb {
    * Handle requests to set the value of the "On" characteristic
    */
   OnSet(value: CharacteristicValue) {
-    this.platform.debug(`${this.accessory.displayName} - Set On: ${value}`);
+    this.platform.debug(`Camera ${this.accessory.displayName} - Set On: ${value}`);
 
     this.On = value;
-    this.doBulbUpdate.next();
+    this.doCameraUpdate.next();
   }
 
-  /**
-   * Handle requests to set the value of the "Brightness" characteristic
-   */
-  BrightnessSet(value: CharacteristicValue) {
-    this.platform.debug(`${this.accessory.displayName} - Set On: ${value}`);
 
-    this.Brightness = value;
-    this.doBulbUpdate.next();
-  }
-
-  /**
-   * Handle requests to set the value of the "ColorTemperature" characteristic
-   */
-  ColorTemperatureSet(value: CharacteristicValue) {
-    this.platform.debug(`${this.accessory.displayName} - Set On: ${value}`);
-
-    this.ColorTemperature = value;
-    this.doBulbUpdate.next();
-  }
 }

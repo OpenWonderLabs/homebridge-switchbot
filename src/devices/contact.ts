@@ -68,7 +68,7 @@ export class Contact {
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-CONTACT-')
+      .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-CONTACT-W1201500')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId);
 
     // get the Battery service if it exists, otherwise create a new Contact service
@@ -125,7 +125,7 @@ export class Contact {
    */
   async refreshStatus() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      this.platform.log.warn('BLE DEVICE-REFRESH');
+      this.platform.debug('Contact BLE Device RefreshStatus');
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const Switchbot = require('node-switchbot');
       const switchbot = new Switchbot();
@@ -157,7 +157,7 @@ export class Contact {
         this.platform.log.info('Start scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
         switchbot
           .startScan({
-            mode: 'C',
+            mode: 'D',
             id: bleMac,
           })
           .then(() => {

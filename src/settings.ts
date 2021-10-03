@@ -22,7 +22,6 @@ export const DeviceURL = 'https://api.switch-bot.com/v1.0/devices';
 //Config
 export interface SwitchBotPlatformConfig extends PlatformConfig {
   credentials?: credentials;
-  devicediscovery?: boolean;
   options?: options | Record<string, never>;
 }
 
@@ -34,7 +33,7 @@ export type options = {
   refreshRate?: number;
   pushRate?: number;
   hide_device: string[];
-  debug?: boolean;
+  debug?: string;
   bot?: bot;
   meter?: meter;
   humidifier?: humidifier;

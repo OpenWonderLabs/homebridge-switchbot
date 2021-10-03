@@ -131,7 +131,7 @@ export class Meter {
         .onGet(() => {
           return this.CurrentTemperature;
         });
-      this.platform.log.info(this.device.deviceName + ' current temperature: ' + this.CurrentTemperature + '\u2103');
+      //this.platform.log.info(this.device.deviceName + ' current temperature: ' + this.CurrentTemperature + '\u2103');
     } else {
       if (this.platform.config.options?.debug) {
         this.platform.log.warn('TemperatureSensor not added.');
@@ -158,7 +158,7 @@ export class Meter {
         .onGet(() => {
           return this.CurrentRelativeHumidity;
         });
-      this.platform.log.info(this.device.deviceName + ' current humidity: ' + this.CurrentRelativeHumidity + '%');
+      //this.platform.log.info(this.device.deviceName + ' current humidity: ' + this.CurrentRelativeHumidity + '%');
     } else {
       if (this.platform.config.options?.debug) {
         this.platform.log.warn('HumiditySensor not added.');
@@ -223,7 +223,7 @@ export class Meter {
    */
   async refreshStatus() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      this.platform.log.warn('BLE DEVICE-REFRESH');
+      this.platform.debug('Meter BLE Device RefreshStatus');
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const Switchbot = require('node-switchbot');
       const switchbot = new Switchbot();

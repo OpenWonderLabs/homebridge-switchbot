@@ -69,7 +69,7 @@ export class Motion {
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-MOTION-')
+      .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-MOTION-W1101500')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId);
 
     // get the Battery service if it exists, otherwise create a new Motion service
@@ -108,11 +108,8 @@ export class Motion {
    */
   parseStatus() {
     // Set Room Sensor State
-    if (this.deviceStatus.body.moveDetected) {
-      this.MotionDetected = true;
-    } else {
-      this.MotionDetected = false;
-    }
+    this.MotionDetected = Boolean(this.deviceStatus.body.moveDetected);
+    this.platform.debug(`${this.accessory.displayName}, MotionDetected: ${this.MotionDetected}`);
   }
 
   /**
@@ -120,7 +117,7 @@ export class Motion {
    */
   async refreshStatus() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      this.platform.log.warn('BLE DEVICE-REFRESH');
+      this.platform.debug('Motion BLE Device RefreshStatus');
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const Switchbot = require('node-switchbot');
       const switchbot = new Switchbot();
@@ -152,7 +149,7 @@ export class Motion {
         this.platform.log.info('Start scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
         switchbot
           .startScan({
-            mode: 'M',
+            mode: 'S',
             id: bleMac,
           })
           .then(() => {

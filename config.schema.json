@@ -47,9 +47,24 @@
             "description": "Indicates the number of seconds between pushes to SwitchBot API."
           },
           "debug": {
-            "title": "Debug",
-            "type": "boolean",
-            "description": "Turn plugin's debug mode on."
+            "title": "Logging Setting",
+            "type": "string",
+            "description": "Enble 'Device' or 'Debug' logging.",
+            "oneOf": [
+              {
+                "title": "Enable Debug Logging",
+                "enum": [
+                  "debug"
+                ]
+              },
+              {
+                "title": "Enable Device Logging",
+                "enum": [
+                  "device"
+                ]
+              }
+            ],
+            "required": false
           },
           "ble": {
             "title": "Enable BLE Device",
@@ -248,10 +263,6 @@
             }
           }
         }
-      },
-      "devicediscovery": {
-        "name": "Device Discovery",
-        "type": "boolean"
       }
     }
   },
@@ -541,14 +552,6 @@
               ]
             }
           ]
-        },
-        {
-          "type": "help",
-          "helpvalue": "<h5>Device Discovery</h5><em class='primary-text'>Enables Device Info Logging.</em>"
-        },
-        {
-          "key": "devicediscovery",
-          "title": "Device Discovery"
         }
       ]
     }
