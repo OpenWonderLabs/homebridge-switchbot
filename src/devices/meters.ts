@@ -65,8 +65,8 @@ export class Meter {
       const colon = device.deviceId!.match(/.{1,2}/g);
       const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
       this.device.bleMac = bleMac.toLowerCase();
-      if (this.platform.config.options.debug) {
-        this.platform.log.warn(this.device.bleMac.toLowerCase());
+      if (this.platform.config.options.debug === 'device') {
+        this.platform.debug(this.device.bleMac.toLowerCase());
       }
     }
 
@@ -106,13 +106,13 @@ export class Meter {
 
     // Temperature Sensor Service
     if (this.platform.config.options?.meter?.hide_temperature) {
-      if (this.platform.config.options.debug) {
+      if (this.platform.config.options.debug === 'device') {
         this.platform.log.error('Removing service');
       }
       this.temperatureservice = this.accessory.getService(this.platform.Service.TemperatureSensor);
       accessory.removeService(this.temperatureservice!);
     } else if (!this.temperatureservice) {
-      if (this.platform.config.options?.debug) {
+      if (this.platform.config.options?.debug === 'device') {
         this.platform.log.warn('Adding service');
       }
       (this.temperatureservice =
@@ -133,14 +133,14 @@ export class Meter {
         });
       //this.platform.log.info(this.device.deviceName + ' current temperature: ' + this.CurrentTemperature + '\u2103');
     } else {
-      if (this.platform.config.options?.debug) {
+      if (this.platform.config.options?.debug === 'device') {
         this.platform.log.warn('TemperatureSensor not added.');
       }
     }
 
     // Humidity Sensor Service
     if (this.platform.config.options?.meter?.hide_humidity) {
-      if (this.platform.config.options.debug) {
+      if (this.platform.config.options.debug === 'device') {
         this.platform.log.error('Removing service');
       }
       this.humidityservice = this.accessory.getService(this.platform.Service.HumiditySensor);
@@ -230,8 +230,8 @@ export class Meter {
       const colon = this.device.deviceId!.match(/.{1,2}/g);
       const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
       this.device.bleMac = bleMac.toLowerCase();
-      if (this.platform.config.options.debug) {
-        this.platform.log.warn(this.device.bleMac!);
+      if (this.platform.config.options.debug === 'device') {
+        this.platform.debug(this.device.bleMac!);
       }
       switchbot.onadvertisement = (ad: any) => {
         this.platform.log.info(JSON.stringify(ad, null, '  '));

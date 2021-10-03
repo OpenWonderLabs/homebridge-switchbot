@@ -55,8 +55,8 @@ export class Bulb {
       const colon = device.deviceId!.match(/.{1,2}/g);
       const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
       this.device.bleMac = bleMac.toLowerCase();
-      if (this.platform.config.options.debug) {
-        this.platform.log.warn(this.device.bleMac.toLowerCase());
+      if (this.platform.config.options.debug === 'device') {
+        this.platform.debug(this.device.bleMac.toLowerCase());
       }
     }
 

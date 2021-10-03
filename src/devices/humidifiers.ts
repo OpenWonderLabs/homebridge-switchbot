@@ -107,13 +107,13 @@ export class Humidifier {
     // create a new Temperature Sensor service
     // Temperature Sensor Service
     if (this.platform.config.options?.humidifier?.hide_temperature) {
-      if (this.platform.config.options.debug) {
+      if (this.platform.config.options.debug === 'device') {
         this.platform.log.error('Removing service');
       }
       this.temperatureservice = this.accessory.getService(this.platform.Service.TemperatureSensor);
       accessory.removeService(this.temperatureservice!);
     } else if (!this.temperatureservice) {
-      if (this.platform.config.options?.debug) {
+      if (this.platform.config.options?.debug === 'device') {
         this.platform.log.warn('Adding service');
       }
       (this.temperatureservice =
