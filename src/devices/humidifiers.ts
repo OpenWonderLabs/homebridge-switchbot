@@ -233,6 +233,8 @@ export class Humidifier {
         this.platform.debug(`Humidifier ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
         this.parseStatus();
         this.updateHomeKitCharacteristics();
+      } else {
+        this.platform.debug(this.deviceStatus);
       }
     } catch (e: any) {
       this.platform.log.error(`Humidifier - Failed to update status of ${this.device.deviceName}: ${JSON.stringify(e.message)}`);

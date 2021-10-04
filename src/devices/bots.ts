@@ -156,57 +156,61 @@ export class Bot {
    */
   async refreshStatus() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      this.platform.device('Bot BLE Device refreshStatus');
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const Switchbot = require('node-switchbot');
-      const switchbot = new Switchbot();
-      const colon = this.device.deviceId!.match(/.{1,2}/g);
-      const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
-      this.device.bleMac = bleMac.toLowerCase();
-      this.platform.device(this.device.bleMac!);
-      switchbot.onadvertisement = (ad: any) => {
-        this.platform.debug(JSON.stringify(ad, null, '  '));
-        this.platform.device(`ad: ${JSON.stringify(ad)}`);
-      };
+      await this.BLErefreshStatus();
+    } else {
+      await this.openAPIRefreshStatus();
+    }
+  }
+
+  private async BLErefreshStatus() {
+    this.platform.device('Bot BLE Device refreshStatus');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const Switchbot = require('node-switchbot');
+    const switchbot = new Switchbot();
+    const colon = this.device.deviceId!.match(/.{1,2}/g);
+    const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
+    this.device.bleMac = bleMac.toLowerCase();
+    this.platform.device(this.device.bleMac!);
+    switchbot.onadvertisement = (ad: any) => {
+      this.platform.debug(JSON.stringify(ad, null, '  '));
+      this.platform.device(`ad: ${JSON.stringify(ad)}`);
+    };
+    switchbot
+      .startScan({
+        id: this.device.bleMac,
+      })
+      .then(() => {
+        return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
+      })
+      .then(() => {
+        switchbot.stopScan();
+      })
+      .catch(async (error: any) => {
+        this.platform.log.error(error);
+        this.openAPIRefreshStatus();
+      });
+    setInterval(() => {
+      this.platform.log.info('Start scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
       switchbot
         .startScan({
-          id: this.device.bleMac,
+          mode: 'T',
+          id: bleMac,
         })
         .then(() => {
           return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
         })
         .then(() => {
           switchbot.stopScan();
+          this.platform.log.info('Stop scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
         })
         .catch(async (error: any) => {
           this.platform.log.error(error);
-          await this.openAPIRefreshStatus();
+          this.openAPIRefreshStatus();
         });
-      setInterval(() => {
-        this.platform.log.info('Start scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
-        switchbot
-          .startScan({
-            mode: 'T',
-            id: bleMac,
-          })
-          .then(() => {
-            return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
-          })
-          .then(() => {
-            switchbot.stopScan();
-            this.platform.log.info('Stop scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
-          })
-          .catch(async (error: any) => {
-            this.platform.log.error(error);
-            await this.openAPIRefreshStatus();
-          });
-      }, this.platform.config.options!.refreshRate! * 60000);
-    } else {
-      this.openAPIRefreshStatus();
-    }
+    }, this.platform.config.options!.refreshRate! * 60000);
   }
 
-  private openAPIRefreshStatus() {
+  private async openAPIRefreshStatus() {
     try {
       const deviceStatus: deviceStatusResponse = {
         statusCode: 100,

@@ -210,58 +210,64 @@ export class Meter {
    */
   async refreshStatus() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      this.platform.debug('Meter BLE Device RefreshStatus');
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const Switchbot = require('node-switchbot');
-      const switchbot = new Switchbot();
-      const colon = this.device.deviceId!.match(/.{1,2}/g);
-      const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
-      this.device.bleMac = bleMac.toLowerCase();
-      this.platform.device(this.device.bleMac!);
-      switchbot.onadvertisement = (ad: any) => {
-        this.platform.debug(JSON.stringify(ad, null, '  '));
-        this.platform.device('ad:', JSON.stringify(ad));
-        this.platform.device(`Temperature: ${ad.serviceData.temperature.c}`);
-        this.platform.device(`Humidity: ${ad.serviceData.humidity}`);
-        this.BLEtemperature = ad.serviceData.temperature.c;
-        this.BLEHumidity = ad.serviceData.humidity;
-      };
+      await this.BLErefreshStatus();
+    } else {
+      await this.openAPIRefreshStatus();
+    }
+  }
+
+  private async BLErefreshStatus() {
+    this.platform.debug('Meter BLE Device RefreshStatus');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const Switchbot = require('node-switchbot');
+    const switchbot = new Switchbot();
+    const colon = this.device.deviceId!.match(/.{1,2}/g);
+    const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
+    this.device.bleMac = bleMac.toLowerCase();
+    this.platform.device(this.device.bleMac!);
+    switchbot.onadvertisement = (ad: any) => {
+      this.platform.debug(JSON.stringify(ad, null, '  '));
+      this.platform.device('ad:', JSON.stringify(ad));
+      this.platform.device(`Temperature: ${ad.serviceData.temperature.c}`);
+      this.platform.device(`Humidity: ${ad.serviceData.humidity}`);
+      this.BLEtemperature = ad.serviceData.temperature.c;
+      this.BLEHumidity = ad.serviceData.humidity;
+    };
+    this.parseStatus();
+    this.updateHomeKitCharacteristics();
+    switchbot
+      .startScan({
+        id: this.device.bleMac,
+      })
+      .then(() => {
+        return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
+      })
+      .then(() => {
+        switchbot.stopScan();
+      })
+      .catch(async (error: any) => {
+        this.platform.log.error(error);
+        await this.openAPIRefreshStatus();
+      });
+    setInterval(() => {
+      this.platform.log.info('Start scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
       switchbot
         .startScan({
-          id: this.device.bleMac,
+          mode: 'T',
+          id: bleMac,
         })
         .then(() => {
           return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
         })
         .then(() => {
           switchbot.stopScan();
+          this.platform.log.info('Stop scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
         })
         .catch(async (error: any) => {
           this.platform.log.error(error);
           await this.openAPIRefreshStatus();
         });
-      setInterval(() => {
-        this.platform.log.info('Start scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
-        switchbot
-          .startScan({
-            mode: 'T',
-            id: bleMac,
-          })
-          .then(() => {
-            return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
-          })
-          .then(() => {
-            switchbot.stopScan();
-            this.platform.log.info('Stop scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
-          })
-          .catch(async (error: any) => {
-            this.platform.log.error(error);
-            await this.openAPIRefreshStatus();
-          });
-      }, this.platform.config.options!.refreshRate! * 60000);
-    } else {
-      await this.openAPIRefreshStatus();
-    }
+    }, this.platform.config.options!.refreshRate! * 60000);
   }
 
   private async openAPIRefreshStatus() {
@@ -274,6 +280,8 @@ export class Meter {
         this.platform.debug(`Meter ${this.accessory.displayName} openAPIRefreshStatus - ${JSON.stringify(this.deviceStatus)}`);
         this.parseStatus();
         this.updateHomeKitCharacteristics();
+      } else {
+        this.platform.debug(this.deviceStatus);
       }
     } catch (e: any) {
       this.platform.log.error(`Meter - Failed to refresh status of ${this.device.deviceName} - ${JSON.stringify(e.message)}`);
