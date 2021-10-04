@@ -108,7 +108,15 @@ export class Contact {
    */
   parseStatus() {
     // Conact Sensor
-    this.ContactSensorState = Boolean(this.deviceStatus.body.openState);
+    if (this.deviceStatus.body.openState === 'open') {
+      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+      this.platform.log.info(`${this.accessory.displayName} ${this.deviceStatus.body.openState}`);
+    } else if (this.deviceStatus.body.openState === 'close') {
+      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
+      this.platform.device(`${this.accessory.displayName} ${this.deviceStatus.body.openState}`);
+    } else {
+      this.platform.device(`${this.accessory.displayName} ${this.deviceStatus.body.openState}`);
+    }
     this.MotionDetected = Boolean(this.deviceStatus.body.moveDetected);
     this.platform.debug(`${this.accessory.displayName}
     , ContactSensorState: ${this.ContactSensorState}, MotionDetected: ${this.MotionDetected}`);
