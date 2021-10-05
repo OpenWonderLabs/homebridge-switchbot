@@ -89,9 +89,6 @@ export class Contact {
       accessory.getService(this.platform.Service.MotionSensor) ||
       accessory.addService(this.platform.Service.MotionSensor)), `${device.deviceName} ${device.deviceType}`;
 
-    // create handlers for required characteristics
-    //this.service.setCharacteristic(this.platform.Characteristic.ChargingState, 2);
-
     // Retrieve initial values and updateHomekit
     this.updateHomeKitCharacteristics();
 
@@ -107,19 +104,25 @@ export class Contact {
    * Parse the device status from the SwitchBot api
    */
   parseStatus() {
-    // Conact Sensor
-    if (this.deviceStatus.body.openState === 'open') {
-      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
-      this.platform.log.info(`${this.accessory.displayName} ${this.deviceStatus.body.openState}`);
-    } else if (this.deviceStatus.body.openState === 'close') {
-      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
-      this.platform.device(`${this.accessory.displayName} ${this.deviceStatus.body.openState}`);
-    } else {
-      this.platform.device(`${this.accessory.displayName} ${this.deviceStatus.body.openState}`);
-    }
-    this.MotionDetected = Boolean(this.deviceStatus.body.moveDetected);
-    this.platform.debug(`${this.accessory.displayName}
+    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+      this.MotionDetected = true;
+      this.platform.debug(`${this.accessory.displayName}
     , ContactSensorState: ${this.ContactSensorState}, MotionDetected: ${this.MotionDetected}`);
+    } else {
+    // Conact Sensor
+      if (this.deviceStatus.body.openState === 'open') {
+        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+        this.platform.log.info(`${this.accessory.displayName} ${this.deviceStatus.body.openState}`);
+      } else if (this.deviceStatus.body.openState === 'close') {
+        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
+        this.platform.device(`${this.accessory.displayName} ${this.deviceStatus.body.openState}`);
+      } else {
+        this.platform.device(`${this.accessory.displayName} ${this.deviceStatus.body.openState}`);
+      }
+      this.MotionDetected = Boolean(this.deviceStatus.body.moveDetected);
+      this.platform.debug(`${this.accessory.displayName}
+    , ContactSensorState: ${this.ContactSensorState}, MotionDetected: ${this.MotionDetected}`);
+    }
   }
 
   /**
@@ -216,7 +219,7 @@ export class Contact {
     if (this.MotionDetected === undefined) {
       this.platform.debug(`ContactSensorState: ${this.ContactSensorState}`);
     } else {
-      this.service.updateCharacteristic(this.platform.Characteristic.MotionDetected, this.MotionDetected);
+      this.motionService.updateCharacteristic(this.platform.Characteristic.MotionDetected, this.MotionDetected);
     }
   }
 

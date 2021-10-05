@@ -105,9 +105,14 @@ export class Motion {
    * Parse the device status from the SwitchBot api
    */
   parseStatus() {
+    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+      this.MotionDetected = true;
+      this.platform.debug(`${this.accessory.displayName}, MotionDetected: ${this.MotionDetected}`);
+    } else {
     // Set Room Sensor State
-    this.MotionDetected = Boolean(this.deviceStatus.body.moveDetected);
-    this.platform.debug(`${this.accessory.displayName}, MotionDetected: ${this.MotionDetected}`);
+      this.MotionDetected = Boolean(this.deviceStatus.body.moveDetected);
+      this.platform.debug(`${this.accessory.displayName}, MotionDetected: ${this.MotionDetected}`);
+    }
   }
 
   /**
@@ -134,8 +139,6 @@ export class Motion {
       this.platform.debug(JSON.stringify(ad, null, '  '));
       this.platform.device('ad:', JSON.stringify(ad));
     };
-    this.parseStatus();
-    this.updateHomeKitCharacteristics();
     switchbot
       .startScan({
         id: this.device.bleMac,
@@ -168,6 +171,8 @@ export class Motion {
           this.platform.log.error(error);
           await this.openAPIRefreshStatus();
         });
+      this.parseStatus();
+      this.updateHomeKitCharacteristics();
     }, this.platform.config.options!.refreshRate! * 60000);
   }
 
