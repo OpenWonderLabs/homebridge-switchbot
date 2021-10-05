@@ -66,7 +66,7 @@ export class Contact {
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-CONTACT-W1201500')
+      .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-WOCONTACT-W1201500')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId);
 
     // get the Battery service if it exists, otherwise create a new Contact service

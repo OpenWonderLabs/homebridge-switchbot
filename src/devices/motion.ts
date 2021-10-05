@@ -67,7 +67,7 @@ export class Motion {
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-MOTION-W1101500')
+      .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-WOMOTION-W1101500')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId);
 
     // get the Battery service if it exists, otherwise create a new Motion service
