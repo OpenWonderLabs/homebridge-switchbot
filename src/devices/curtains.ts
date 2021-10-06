@@ -64,6 +64,8 @@ export class Curtain {
     this.TargetPosition = 0;
     this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
     this.ScanDuration = this.platform.config.options!.refreshRate!;
+
+    // BLE Connection
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const SwitchBot = require('node-switchbot');
@@ -187,39 +189,47 @@ export class Curtain {
       });
   }
 
-  parseStatus() {
+  async parseStatus() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      this.platform.device('Curtains BLE Device parseStatus');
+      await this.BLEparseStatus();
     } else {
-      // CurrentPosition
-      this.setMinMax();
-      this.CurrentPosition = 100 - this.deviceStatus.body.slidePosition!;
-      this.setMinMax();
-      this.platform.debug(`Curtain ${this.accessory.displayName} CurrentPosition - Device is Currently: ${this.CurrentPosition}`);
-      if (this.setNewTarget) {
-        this.platform.log.info(`Checking ${this.accessory.displayName} Status ...`);
-      }
+      await this.openAPIparseStatus();
+    }
+  }
 
-      if (this.deviceStatus.body.moving) {
-        if (this.TargetPosition > this.CurrentPosition) {
-          this.platform.debug(`Curtain ${this.accessory.displayName} - Current position: ${this.CurrentPosition} closing`);
-          this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
-        } else if (this.TargetPosition < this.CurrentPosition) {
-          this.platform.debug(`Curtain ${this.accessory.displayName} - Current position: ${this.CurrentPosition} opening`);
-          this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
-        } else {
-          this.platform.debug(`Curtain ${this.CurrentPosition} - standby`);
-          this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
-        }
+  private async BLEparseStatus() {
+    this.platform.device('Curtains BLE Device parseStatus');
+  }
+
+  private async openAPIparseStatus() {
+    this.setMinMax();
+    this.CurrentPosition = 100 - this.deviceStatus.body.slidePosition!;
+    this.setMinMax();
+    this.platform.debug(`Curtain ${this.accessory.displayName} CurrentPosition - Device is Currently: ${this.CurrentPosition}`);
+    if (this.setNewTarget) {
+      this.platform.log.info(`Checking ${this.accessory.displayName} Status ...`);
+    }
+
+    if (this.deviceStatus.body.moving) {
+      if (this.TargetPosition > this.CurrentPosition) {
+        this.platform.debug(`Curtain ${this.accessory.displayName} - Current position: ${this.CurrentPosition} closing`);
+        this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
+      } else if (this.TargetPosition < this.CurrentPosition) {
+        this.platform.debug(`Curtain ${this.accessory.displayName} - Current position: ${this.CurrentPosition} opening`);
+        this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
       } else {
-        this.platform.debug(`Curtain ${this.accessory.displayName} - Current position: ${this.CurrentPosition} standby`);
-        if (!this.setNewTarget) {
-          /*If Curtain calibration distance is short, there will be an error between the current percentage and the target percentage.*/
-          this.TargetPosition = this.CurrentPosition;
-          this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
-        }
+        this.platform.debug(`Curtain ${this.CurrentPosition} - standby`);
+        this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
+      }
+    } else {
+      this.platform.debug(`Curtain ${this.accessory.displayName} - Current position: ${this.CurrentPosition} standby`);
+      if (!this.setNewTarget) {
+        /*If Curtain calibration distance is short, there will be an error between the current percentage and the target percentage.*/
+        this.TargetPosition = this.CurrentPosition;
+        this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
       }
     }
+
     // Brightness
     switch (this.deviceStatus.body.brightness) {
       case 'dim':
@@ -316,34 +326,42 @@ export class Curtain {
 
   async pushChanges() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      this.platform.device('Curtains BLE Device pushChanges');
+      await this.BLEpushChanges();
     } else {
-      if (this.TargetPosition !== this.CurrentPosition) {
-        this.platform.debug(`Pushing ${this.TargetPosition}`);
-        const adjustedTargetPosition = 100 - Number(this.TargetPosition);
-        const payload = {
-          commandType: 'command',
-          command: 'setPosition',
-          parameter: `0,ff,${adjustedTargetPosition}`,
-        } as any;
+      await this.OpenAPIpushChanges();
+    }
+  }
 
-        this.platform.log.info(
-          'Sending request for',
-          this.accessory.displayName,
-          'to SwitchBot API. command:',
-          payload.command,
-          'parameter:',
-          payload.parameter,
-          'commandType:',
-          payload.commandType,
-        );
-        this.platform.debug(`Curtain ${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
+  private BLEpushChanges() {
+    this.platform.device('Curtains BLE Device pushChanges');
+  }
 
-        // Make the API request
-        const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-        this.platform.debug(`Curtain ${this.accessory.displayName} Changes pushed - ${push.data}`);
-        this.statusCode(push);
-      }
+  private async OpenAPIpushChanges() {
+    if (this.TargetPosition !== this.CurrentPosition) {
+      this.platform.debug(`Pushing ${this.TargetPosition}`);
+      const adjustedTargetPosition = 100 - Number(this.TargetPosition);
+      const payload = {
+        commandType: 'command',
+        command: 'setPosition',
+        parameter: `0,ff,${adjustedTargetPosition}`,
+      } as any;
+
+      this.platform.log.info(
+        'Sending request for',
+        this.accessory.displayName,
+        'to SwitchBot API. command:',
+        payload.command,
+        'parameter:',
+        payload.parameter,
+        'commandType:',
+        payload.commandType,
+      );
+      this.platform.debug(`Curtain ${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
+
+      // Make the API request
+      const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
+      this.platform.debug(`Curtain ${this.accessory.displayName} Changes pushed - ${push.data}`);
+      this.statusCode(push);
     }
   }
 
@@ -357,16 +375,24 @@ export class Curtain {
       })}`,
     );
     this.setMinMax();
-    if (this.CurrentPosition !== undefined) {
+    if (this.CurrentPosition === undefined) {
+      this.platform.debug(`CurrentPosition: ${this.CurrentPosition}`);
+    } else {
       this.service.updateCharacteristic(this.platform.Characteristic.CurrentPosition, this.CurrentPosition);
     }
-    if (this.PositionState !== undefined) {
+    if (this.PositionState === undefined) {
+      this.platform.debug(`PositionState: ${this.PositionState}`);
+    } else {
       this.service.updateCharacteristic(this.platform.Characteristic.PositionState, this.PositionState);
     }
-    if (this.TargetPosition !== undefined) {
+    if (this.TargetPosition === undefined) {
+      this.platform.debug(`TargetPosition: ${this.TargetPosition}`);
+    } else {
       this.service.updateCharacteristic(this.platform.Characteristic.TargetPosition, this.TargetPosition);
     }
-    if (this.CurrentAmbientLightLevel !== undefined) {
+    if (this.CurrentAmbientLightLevel === undefined) {
+      this.platform.debug(`CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+    } else {
       this.lightSensorService.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
     }
   }
@@ -375,7 +401,7 @@ export class Curtain {
     this.service.updateCharacteristic(this.platform.Characteristic.CurrentPosition, e);
     this.service.updateCharacteristic(this.platform.Characteristic.PositionState, e);
     this.service.updateCharacteristic(this.platform.Characteristic.TargetPosition, e);
-    this.service.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, e);
+    this.lightSensorService.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, e);
   }
 
 

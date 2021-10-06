@@ -46,6 +46,8 @@ export class Contact {
   ) {
     // default placeholders
     this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
+
+    // BLE Connection
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const SwitchBot = require('node-switchbot');
@@ -55,6 +57,7 @@ export class Contact {
       this.device.bleMac = bleMac.toLowerCase();
       this.platform.device(this.device.bleMac.toLowerCase());
     }
+
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doContactUpdate = new Subject();
     this.contactUbpdateInProgress = false;
@@ -103,26 +106,33 @@ export class Contact {
   /**
    * Parse the device status from the SwitchBot api
    */
-  parseStatus() {
+  async parseStatus() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      this.MotionDetected = true;
-      this.platform.debug(`${this.accessory.displayName}
-    , ContactSensorState: ${this.ContactSensorState}, MotionDetected: ${this.MotionDetected}`);
+      await this.BLEparseStatus();
     } else {
-    // Conact Sensor
-      if (this.deviceStatus.body.openState === 'open') {
-        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
-        this.platform.log.info(`${this.accessory.displayName} ${this.deviceStatus.body.openState}`);
-      } else if (this.deviceStatus.body.openState === 'close') {
-        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
-        this.platform.device(`${this.accessory.displayName} ${this.deviceStatus.body.openState}`);
-      } else {
-        this.platform.device(`${this.accessory.displayName} ${this.deviceStatus.body.openState}`);
-      }
-      this.MotionDetected = Boolean(this.deviceStatus.body.moveDetected);
-      this.platform.debug(`${this.accessory.displayName}
-    , ContactSensorState: ${this.ContactSensorState}, MotionDetected: ${this.MotionDetected}`);
+      await this.openAPIparseStatus();
     }
+  }
+
+  private async BLEparseStatus() {
+    this.MotionDetected = true;
+    this.platform.debug(`${this.accessory.displayName}
+    , ContactSensorState: ${this.ContactSensorState}, MotionDetected: ${this.MotionDetected}`);
+  }
+
+  private async openAPIparseStatus() {
+    if (this.deviceStatus.body.openState === 'open') {
+      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+      this.platform.log.info(`${this.accessory.displayName} ${this.deviceStatus.body.openState}`);
+    } else if (this.deviceStatus.body.openState === 'close') {
+      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
+      this.platform.device(`${this.accessory.displayName} ${this.deviceStatus.body.openState}`);
+    } else {
+      this.platform.device(`${this.accessory.displayName} ${this.deviceStatus.body.openState}`);
+    }
+    this.MotionDetected = Boolean(this.deviceStatus.body.moveDetected);
+    this.platform.debug(`${this.accessory.displayName}
+    , ContactSensorState: ${this.ContactSensorState}, MotionDetected: ${this.MotionDetected}`);
   }
 
   /**
@@ -217,7 +227,7 @@ export class Contact {
       this.service.updateCharacteristic(this.platform.Characteristic.ContactSensorState, this.ContactSensorState);
     }
     if (this.MotionDetected === undefined) {
-      this.platform.debug(`ContactSensorState: ${this.ContactSensorState}`);
+      this.platform.debug(`MotionDetected: ${this.MotionDetected}`);
     } else {
       this.motionService.updateCharacteristic(this.platform.Characteristic.MotionDetected, this.MotionDetected);
     }

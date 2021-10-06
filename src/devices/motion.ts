@@ -104,15 +104,22 @@ export class Motion {
   /**
    * Parse the device status from the SwitchBot api
    */
-  parseStatus() {
+  async parseStatus() {
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      this.MotionDetected = true;
-      this.platform.debug(`${this.accessory.displayName}, MotionDetected: ${this.MotionDetected}`);
+      await this.BLEparseStatus();
     } else {
-    // Set Room Sensor State
-      this.MotionDetected = Boolean(this.deviceStatus.body.moveDetected);
-      this.platform.debug(`${this.accessory.displayName}, MotionDetected: ${this.MotionDetected}`);
+      await this.openAPIparseStatus();
     }
+  }
+
+  private async BLEparseStatus() {
+    this.MotionDetected = true;
+    this.platform.debug(`${this.accessory.displayName}, MotionDetected: ${this.MotionDetected}`);
+  }
+
+  private async openAPIparseStatus() {
+    this.MotionDetected = Boolean(this.deviceStatus.body.moveDetected);
+    this.platform.debug(`${this.accessory.displayName}, MotionDetected: ${this.MotionDetected}`);
   }
 
   /**
@@ -201,7 +208,9 @@ export class Motion {
    * Updates the status for each of the HomeKit Characteristics
    */
   updateHomeKitCharacteristics() {
-    if (this.MotionDetected !== undefined) {
+    if (this.MotionDetected === undefined) {
+      this.platform.debug(`MotionDetected: ${this.MotionDetected}`);
+    } else {
       this.service.updateCharacteristic(this.platform.Characteristic.MotionDetected, this.MotionDetected);
     }
   }

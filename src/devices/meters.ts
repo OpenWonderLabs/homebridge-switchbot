@@ -58,6 +58,8 @@ export class Meter {
     this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     this.CurrentRelativeHumidity = 0;
     this.CurrentTemperature = 0;
+
+    // BLE Connection
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const SwitchBot = require('node-switchbot');
@@ -166,8 +168,30 @@ export class Meter {
   /**
    * Parse the device status from the SwitchBot api
    */
-  parseStatus() {
-    // Set Room Sensor State
+  async parseStatus() {
+    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+      await this.BLEparseStatus();
+    } else {
+      await this.openAPIparseStatus();
+    }
+  }
+
+  private async BLEparseStatus() {
+    if (this.deviceStatus.body) {
+      this.BatteryLevel = 100;
+    } else {
+      this.BatteryLevel = 10;
+    }
+    if (this.BatteryLevel < 15) {
+      this.StatusLowBattery = 1;
+    } else {
+      this.StatusLowBattery = 0;
+    }
+    this.platform.debug(`${this.accessory.displayName}
+    , BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
+  }
+
+  private async openAPIparseStatus() {
     if (this.deviceStatus.body) {
       this.BatteryLevel = 100;
     } else {
@@ -294,10 +318,14 @@ export class Meter {
    * Updates the status for each of the HomeKit Characteristics
    */
   updateHomeKitCharacteristics() {
-    if (this.StatusLowBattery !== undefined) {
+    if (this.StatusLowBattery === undefined) {
+      this.platform.debug(`ContactSensorState: ${this.StatusLowBattery}`);
+    } else {
       this.service.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
     }
-    if (this.BatteryLevel !== undefined) {
+    if (this.BatteryLevel === undefined) {
+      this.platform.debug(`ContactSensorState: ${this.BatteryLevel}`);
+    } else {
       this.service.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
     }
     if (!this.platform.config.options?.meter?.hide_humidity && (this.CurrentRelativeHumidity !== undefined)) {

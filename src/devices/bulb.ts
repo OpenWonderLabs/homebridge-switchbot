@@ -217,13 +217,19 @@ export class Bulb {
   }
 
   updateHomeKitCharacteristics() {
-    if (this.On !== undefined) {
+    if (this.On === undefined) {
+      this.platform.debug(`On: ${this.On}`);
+    } else {
       this.service.updateCharacteristic(this.platform.Characteristic.On, this.On);
     }
-    if (this.Brightness !== undefined) {
+    if (this.Brightness === undefined) {
+      this.platform.debug(`Brightness: ${this.Brightness}`);
+    } else {
       this.service.updateCharacteristic(this.platform.Characteristic.Brightness, this.Brightness);
     }
-    if (this.ColorTemperature !== undefined) {
+    if (this.ColorTemperature === undefined) {
+      this.platform.debug(`ColorTemperature: ${this.ColorTemperature}`);
+    } else {
       this.service.updateCharacteristic(this.platform.Characteristic.Brightness, this.ColorTemperature);
     }
   }
