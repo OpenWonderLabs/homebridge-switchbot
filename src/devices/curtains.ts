@@ -134,7 +134,7 @@ export class Curtain {
     //set up brightness level from the builtin sensor as light sensor accessory
     (this.lightSensorService =
       accessory.getService(this.platform.Service.LightSensor) ||
-      accessory.addService(this.platform.Service.LightSensor)), 'Builtin Lightsensor of %s %s', device.deviceName, device.deviceType;
+      accessory.addService(this.platform.Service.LightSensor)), `${device.deviceName} Light Sensor`;
     this.lightSensorService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
     // handle on / off events using the On characteristic
     this.lightSensorService.getCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel).onGet(() => {

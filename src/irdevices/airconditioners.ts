@@ -66,7 +66,7 @@ export class AirConditioner {
         minStep: 0.01,
       })
       .onGet((value: CharacteristicValue) => {
-        return this.CurrentTemperatureGet(value);
+        return this.CurrentTemperatureGet(Number(value));
       });
 
     if (this.platform.config.options?.irair?.hide_automode) {
@@ -159,9 +159,13 @@ export class AirConditioner {
   private CurrentTemperatureGet(value: CharacteristicValue) {
     this.platform.debug('Trigger Get CurrentTemperture');
 
+    if (this.CurrentTemperature === NaN) {
+      this.CurrentTemperature = 24;
+    } else {
     this.service
       .getCharacteristic(this.platform.Characteristic.CurrentTemperature)
-      .updateValue(this.CurrentTemperature || 24);
+      .updateValue(Number(this.CurrentTemperature) || 24);
+    }
     return (this.CurrentTemperature = Number(value));
   }
 
