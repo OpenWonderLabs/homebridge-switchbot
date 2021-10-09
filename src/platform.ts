@@ -262,7 +262,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
             break;
           default:
             // eslint-disable-next-line max-len
-            this.log.info(`Device: ${device.deviceName} with Device Type: ${device.deviceType}, is currently not supported. Submit Feature Requests Here: https://git.io/JL14Z`);
+            this.log.info(`Device: ${device.deviceName} with Device Type: ${device.deviceType}, is currently not supported.`);
+            this.log.info('Submit Feature Requests Here: https://git.io/JL14Z');
         }
       }
       for (const device of devices.body.infraredRemoteList) {
@@ -326,7 +327,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
             break;
           default:
             // eslint-disable-next-line max-len
-            this.log.info(`Device: ${device.deviceName} with Device Type: ${device.remoteType}, is currently not supported. Submit Feature Requests Here: https://git.io/JL14Z`);
+            this.log.info(`Device: ${device.deviceName} with Device Type: ${device.remoteType}, is currently not supported.`);
+            this.log.info('Submit Feature Requests Here: https://git.io/JL14Z');
         }
       }
     } catch (e: any) {
