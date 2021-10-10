@@ -20,6 +20,8 @@ export class Contact {
 
   // Others
   deviceStatus!: deviceStatusResponse;
+  BLEmotion!: boolean;
+  BLEstate!: boolean;
   switchbot!: {
     discover: (
       arg0:
@@ -115,7 +117,8 @@ export class Contact {
   }
 
   private async BLEparseStatus() {
-    this.MotionDetected = true;
+    this.MotionDetected = Boolean(this.BLEmotion);
+    this.ContactSensorState = Boolean(this.BLEstate);
     this.platform.debug(`${this.accessory.displayName}
     , ContactSensorState: ${this.ContactSensorState}, MotionDetected: ${this.MotionDetected}`);
   }
@@ -158,6 +161,8 @@ export class Contact {
     switchbot.onadvertisement = (ad: any) => {
       this.platform.log.info(JSON.stringify(ad, null, '  '));
       this.platform.device('ad:', JSON.stringify(ad));
+      this.BLEmotion = ad.serviceData.motion;
+      this.BLEstate = ad.serviceData.state;
     };
     switchbot
       .startScan({

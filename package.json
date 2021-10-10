@@ -49,7 +49,7 @@
   "dependencies": {
     "axios": "^0.22.0",
     "rxjs": "^7.4.0",
-    "node-switchbot": "^1.0.9-beta.1",
+    "node-switchbot": "^1.0.9-beta.3",
     "@homebridge/plugin-ui-utils": "^0.0.19"
   },
   "devDependencies": {

@@ -18,6 +18,7 @@ export class Motion {
 
   // Others
   deviceStatus!: deviceStatusResponse;
+  BLEmotion!: boolean;
   switchbot!: {
     discover: (
       arg0:
@@ -113,7 +114,7 @@ export class Motion {
   }
 
   private async BLEparseStatus() {
-    this.MotionDetected = true;
+    this.MotionDetected = Boolean(this.BLEmotion);
     this.platform.debug(`${this.accessory.displayName}, MotionDetected: ${this.MotionDetected}`);
   }
 
@@ -145,6 +146,7 @@ export class Motion {
     switchbot.onadvertisement = (ad: any) => {
       this.platform.debug(JSON.stringify(ad, null, '  '));
       this.platform.device('ad:', JSON.stringify(ad));
+      this.BLEmotion = ad.serviceData.motion;
     };
     switchbot
       .startScan({
