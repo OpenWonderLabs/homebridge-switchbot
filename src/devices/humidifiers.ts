@@ -225,11 +225,8 @@ export class Humidifier {
    */
   async refreshStatus() {
     try {
-      const deviceStatus: deviceStatusResponse = (
-        await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)
-      ).data;
-      if (deviceStatus.message === 'success') {
-        this.deviceStatus = deviceStatus;
+      this.deviceStatus = await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`);
+      if (this.deviceStatus.message === 'success') {
         this.platform.debug(`Humidifier ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
         this.parseStatus();
         this.updateHomeKitCharacteristics();
@@ -316,9 +313,9 @@ export class Humidifier {
         this.platform.debug(`Humidifier ${this.accessory.displayName} pushAutoChanges - ${JSON.stringify(payload)}`);
 
         // Make the API request
-        const pushAuto = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-        this.platform.debug(`Humidifier ${this.accessory.displayName} Changes pushed - ${pushAuto.data}`);
-        this.statusCodeAuto(pushAuto);
+        const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
+        this.platform.debug(`Humidifier ${this.accessory.displayName} Changes pushed - ${push.data}`);
+        this.statusCode(push);
       }
     } catch (e: any) {
       this.platform.log.error(JSON.stringify(e.message));
@@ -353,9 +350,9 @@ export class Humidifier {
         this.platform.debug(`Humidifier ${this.accessory.displayName} pushActiveChanges - ${JSON.stringify(payload)}`);
 
         // Make the API request
-        const pushActive = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-        this.platform.debug(`Humidifier ${this.accessory.displayName} Changes pushed - ${pushActive.data}`);
-        this.statusCodeActive(pushActive);
+        const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
+        this.platform.debug(`Humidifier ${this.accessory.displayName} Changes pushed - ${push.data}`);
+        this.statusCode(push);
       }
     } catch (e: any) {
       this.platform.log.error(JSON.stringify(e.message));
@@ -420,62 +417,6 @@ export class Humidifier {
 
   private statusCode(push: AxiosResponse<any>) {
     switch (push.data.statusCode) {
-      case 151:
-        this.platform.log.error('Command not supported by this device type.');
-        break;
-      case 152:
-        this.platform.log.error('Device not found.');
-        break;
-      case 160:
-        this.platform.log.error('Command is not supported.');
-        break;
-      case 161:
-        this.platform.log.error('Device is offline.');
-        break;
-      case 171:
-        this.platform.log.error('Hub Device is offline.');
-        break;
-      case 190:
-        this.platform.log.error('Device internal error due to device states not synchronized with server. Or command fomrat is invalid.');
-        break;
-      case 100:
-        this.platform.debug('Command successfully sent.');
-        break;
-      default:
-        this.platform.debug('Unknown statusCode.');
-    }
-  }
-
-  private statusCodeAuto(pushAuto: AxiosResponse<any>) {
-    switch (pushAuto.data.statusCode) {
-      case 151:
-        this.platform.log.error('Command not supported by this device type.');
-        break;
-      case 152:
-        this.platform.log.error('Device not found.');
-        break;
-      case 160:
-        this.platform.log.error('Command is not supported.');
-        break;
-      case 161:
-        this.platform.log.error('Device is offline.');
-        break;
-      case 171:
-        this.platform.log.error('Hub Device is offline.');
-        break;
-      case 190:
-        this.platform.log.error('Device internal error due to device states not synchronized with server. Or command fomrat is invalid.');
-        break;
-      case 100:
-        this.platform.debug('Command successfully sent.');
-        break;
-      default:
-        this.platform.debug('Unknown statusCode.');
-    }
-  }
-
-  private statusCodeActive(pushActive: AxiosResponse<any>) {
-    switch (pushActive.data.statusCode) {
       case 151:
         this.platform.log.error('Command not supported by this device type.');
         break;

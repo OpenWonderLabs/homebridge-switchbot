@@ -296,11 +296,8 @@ export class Meter {
 
   private async openAPIRefreshStatus() {
     try {
-      const deviceStatus: deviceStatusResponse = (
-        await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)
-      ).data;
-      if (deviceStatus.message === 'success') {
-        this.deviceStatus = deviceStatus;
+      this.deviceStatus = await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`);
+      if (this.deviceStatus.message === 'success') {
         this.platform.debug(`Meter ${this.accessory.displayName} openAPIRefreshStatus - ${JSON.stringify(this.deviceStatus)}`);
         this.parseStatus();
         this.updateHomeKitCharacteristics();

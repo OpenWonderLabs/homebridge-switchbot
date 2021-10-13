@@ -193,11 +193,8 @@ export class Plug {
   private async openAPIRefreshStatus() {
     try {
       this.platform.debug('Plug - Reading', `${DeviceURL}/${this.device.deviceId}/status`);
-      const deviceStatus: deviceStatusResponse = (
-        await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)
-      ).data;
-      if (deviceStatus.message === 'success') {
-        this.deviceStatus = deviceStatus;
+      this.deviceStatus = await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`);
+      if (this.deviceStatus.message === 'success') {
         this.platform.device(`Plug ${this.accessory.displayName} refreshStatus - ${JSON.stringify(this.deviceStatus)}`);
         this.parseStatus();
         this.updateHomeKitCharacteristics();
