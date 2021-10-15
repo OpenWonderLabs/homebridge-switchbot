@@ -2,8 +2,7 @@ import { Service, PlatformAccessory, CharacteristicValue, MacAddress } from 'hom
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device, deviceStatusResponse } from '../settings';
-import { AxiosResponse } from 'axios';
+import { DeviceURL, device } from '../settings';
 
 /**
  * Platform Accessory
@@ -15,7 +14,7 @@ export class Bot {
 
   SwitchOn!: CharacteristicValue;
   OutletInUse!: CharacteristicValue;
-  deviceStatus!: deviceStatusResponse;
+  deviceStatus!: { statusCode: number; body: { deviceId: string; deviceType: string; hubDeviceId: string; power: string; }; message: string; };
   RunTimer!: NodeJS.Timeout;
   ScanDuration: number;
   TargetState;
@@ -222,7 +221,7 @@ export class Bot {
 
   private async openAPIRefreshStatus() {
     try {
-      const deviceStatus: deviceStatusResponse = {
+      this.deviceStatus = {
         statusCode: 100,
         body: {
           deviceId: this.device.deviceId!,
@@ -232,7 +231,6 @@ export class Bot {
         },
         message: 'success',
       };
-      this.deviceStatus = deviceStatus;
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
@@ -341,11 +339,11 @@ export class Bot {
       'commandType:',
       payload.commandType,
     );
-    this.platform.debug(`Bot ${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
+    this.platform.debug(`Bot ${this.accessory.displayName} pushchanges: ${JSON.stringify(payload)}`);
 
     // Make the API request
-    const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-    this.platform.debug(`Bot ${this.accessory.displayName} Changes pushed - ${push.data}`);
+    const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload));
+    this.platform.debug(`Bot ${this.accessory.displayName} Changes pushed: ${JSON.stringify(push.data)}`);
     this.statusCode(push);
   }
 
@@ -372,7 +370,7 @@ export class Bot {
     }
   }
 
-  private statusCode(push: AxiosResponse<any>) {
+  private statusCode(push: { data: { statusCode: any; }; }) {
     switch (push.data.statusCode) {
       case 151:
         this.platform.log.error('Command not supported by this device type.');

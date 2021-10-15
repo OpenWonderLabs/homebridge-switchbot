@@ -2,7 +2,7 @@ import { Service, PlatformAccessory, CharacteristicValue, MacAddress } from 'hom
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
-import { DeviceURL, device, deviceStatusResponse } from '../settings';
+import { DeviceURL, device } from '../settings';
 
 /**
  * Platform Accessory
@@ -19,7 +19,7 @@ export class Contact {
   MotionDetected!: CharacteristicValue;
 
   // Others
-  deviceStatus!: deviceStatusResponse;
+  deviceStatus!: any;
   BLEmotion!: boolean;
   BLEstate!: boolean;
   switchbot!: {
@@ -203,14 +203,10 @@ export class Contact {
 
   private async openAPIRefreshStatus() {
     try {
-      this.deviceStatus = await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`);
-      if (this.deviceStatus.message === 'success') {
-        this.platform.debug(`Contact ${this.accessory.displayName} refreshStatus - ${JSON.stringify(this.deviceStatus)}`);
-        this.parseStatus();
-        this.updateHomeKitCharacteristics();
-      } else {
-        this.platform.debug(this.deviceStatus);
-      }
+      this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
+      this.platform.debug(`Contact ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+      this.parseStatus();
+      this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.platform.log.error(`Contact - Failed to refresh status of ${this.device.deviceName} - ${JSON.stringify(e.message)}`);
       this.platform.debug(`Contact ${this.accessory.displayName} - ${JSON.stringify(e)}`);

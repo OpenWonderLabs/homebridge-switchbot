@@ -2,7 +2,7 @@ import { Service, PlatformAccessory, Units, CharacteristicValue, MacAddress } fr
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
-import { DeviceURL, device, deviceStatusResponse } from '../settings';
+import { DeviceURL, device } from '../settings';
 
 /**
  * Platform Accessory
@@ -25,7 +25,7 @@ export class Meter {
   WaterLevel!: CharacteristicValue;
 
   // Others
-  deviceStatus!: deviceStatusResponse;
+  deviceStatus!: any;
   BLEtemperature!: number;
   BLEHumidity!: number;
   switchbot!: {
@@ -296,14 +296,10 @@ export class Meter {
 
   private async openAPIRefreshStatus() {
     try {
-      this.deviceStatus = await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`);
-      if (this.deviceStatus.message === 'success') {
-        this.platform.debug(`Meter ${this.accessory.displayName} openAPIRefreshStatus - ${JSON.stringify(this.deviceStatus)}`);
-        this.parseStatus();
-        this.updateHomeKitCharacteristics();
-      } else {
-        this.platform.debug(this.deviceStatus);
-      }
+      this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
+      this.platform.debug(`Meter ${this.accessory.displayName} openAPIRefreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+      this.parseStatus();
+      this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.platform.log.error(`Meter - Failed to refresh status of ${this.device.deviceName} - ${JSON.stringify(e.message)}`);
       this.platform.debug(`Meter ${this.accessory.displayName} - ${JSON.stringify(e)}`);

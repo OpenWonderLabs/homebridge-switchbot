@@ -2,8 +2,7 @@ import { Service, PlatformAccessory, CharacteristicValue, MacAddress } from 'hom
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device, deviceStatusResponse } from '../settings';
-import { AxiosResponse } from 'axios';
+import { DeviceURL, device } from '../settings';
 
 /**
  * Platform Accessory
@@ -20,7 +19,7 @@ export class Bulb {
   ColorTemperature!: CharacteristicValue;
 
   // Others
-  deviceStatus!: deviceStatusResponse;
+  deviceStatus: any;
   switchbot!: {
     discover: (
       arg0:
@@ -127,7 +126,7 @@ export class Bulb {
         this.refreshStatus();
       });
 
-    // Watch for Plug change events
+    // Watch for Bulb change events
     // We put in a debounce of 100ms so we don't make duplicate calls
     this.doBulbUpdate
       .pipe(
@@ -141,7 +140,7 @@ export class Bulb {
           await this.pushChanges();
         } catch (e: any) {
           this.platform.log.error(JSON.stringify(e.message));
-          this.platform.debug(`Plug ${accessory.displayName} - ${JSON.stringify(e)}`);
+          this.platform.debug(`Bulb ${accessory.displayName} - ${JSON.stringify(e)}`);
           this.apiError(e);
         }
         this.bulbUpdateInProgress = false;
@@ -156,23 +155,21 @@ export class Bulb {
       default:
         this.On = false;
     }
-    this.platform.debug(`Plug ${this.accessory.displayName} On: ${this.On}`);
+    this.platform.debug(`Bulb ${this.accessory.displayName} On: ${this.On}`);
     this.deviceStatus.body.brightness = Number(this.Brightness);
     this.deviceStatus.body.colorTemperature = Number(this.ColorTemperature);
   }
 
   async refreshStatus() {
     try {
-      this.platform.debug('Plug - Reading', `${DeviceURL}/${this.device.deviceId}/status`);
-      this.deviceStatus = await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`);
-      if (this.deviceStatus.message === 'success') {
-        this.platform.device(`Plug ${this.accessory.displayName} refreshStatus - ${JSON.stringify(this.deviceStatus)}`);
-        this.parseStatus();
-        this.updateHomeKitCharacteristics();
-      }
+      this.platform.debug('Bulb - Reading', `${DeviceURL}/${this.device.deviceId}/status`);
+      this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
+      this.platform.device(`Bulb ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+      this.parseStatus();
+      this.updateHomeKitCharacteristics();
     } catch (e: any) {
-      this.platform.log.error(`Plug - Failed to refresh status of ${this.device.deviceName} - ${JSON.stringify(e.message)}`);
-      this.platform.debug(`Plug ${this.accessory.displayName} - ${JSON.stringify(e)}`);
+      this.platform.log.error(`Bulb - Failed to refresh status of ${this.device.deviceName} - ${JSON.stringify(e.message)}`);
+      this.platform.debug(`Bulb ${this.accessory.displayName} - ${JSON.stringify(e)}`);
       this.apiError(e);
     }
   }
@@ -180,8 +177,8 @@ export class Bulb {
   /**
  * Pushes the requested changes to the SwitchBot API
  * deviceType	commandType	  Command	    command parameter	  Description
- * Plug   -    "command"     "turnOff"   "default"	  =        set to OFF state
- * Plug   -    "command"     "turnOn"    "default"	  =        set to ON state
+ * Bulb   -    "command"     "turnOff"   "default"	  =        set to OFF state
+ * Bulb   -    "command"     "turnOn"    "default"	  =        set to ON state
  */
   async pushChanges() {
     const payload = {
@@ -205,11 +202,11 @@ export class Bulb {
       'commandType:',
       payload.commandType,
     );
-    this.platform.debug(`Plug ${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
+    this.platform.debug(`Bulb ${this.accessory.displayName} pushchanges: ${JSON.stringify(payload)}`);
 
     // Make the API request
-    const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-    this.platform.debug(`Plug ${this.accessory.displayName} Changes pushed - ${push.data}`);
+    const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload));
+    this.platform.debug(`Bulb ${this.accessory.displayName} Changes pushed: ${JSON.stringify(push.data)}`);
     this.statusCode(push);
   }
 
@@ -238,7 +235,7 @@ export class Bulb {
   }
 
 
-  private statusCode(push: AxiosResponse<any>) {
+  private statusCode(push: { data: { statusCode: any; }; }) {
     switch (push.data.statusCode) {
       case 151:
         this.platform.log.error('Command not supported by this device type.');

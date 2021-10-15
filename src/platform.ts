@@ -8,7 +8,6 @@ import {
   device,
   SwitchBotPlatformConfig,
   deviceResponses,
-  deviceStatusResponse,
 } from './settings';
 import { Bot } from './devices/bots';
 import { Plug } from './devices/plugs';
@@ -46,7 +45,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
   // debugMode!: boolean;
   version = require('../package.json').version; // eslint-disable-line @typescript-eslint/no-var-requires
-  deviceStatus!: deviceStatusResponse;
+  deviceStatus!: any;
 
   constructor(public readonly log: Logger, public readonly config: SwitchBotPlatformConfig, public readonly api: API) {
     this.log.debug('Finished initializing platform:', this.config.name);
@@ -1269,18 +1268,18 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   public deviceListInfo(devices: deviceResponses) {
-    this.device(JSON.stringify(devices));
+    this.device(`deviceListInfoStatus: ${JSON.stringify(devices)}`);
   }
 
   public async deviceInfo(device: irdevice | device) {
     if (this.config.options?.debug === 'device') {
       this.device(JSON.stringify(device));
-      this.deviceStatus = await this.axios.get(`${DeviceURL}/${device.deviceId}/status`);
+      this.deviceStatus = (await this.axios.get(`${DeviceURL}/${device.deviceId}/status`)).data;
       if (this.deviceStatus.message === 'success') {
-        this.device(`${device.deviceName} deviceStatus - ${JSON.stringify(this.deviceStatus)}`);
+        this.device(`${device.deviceName} deviceInfoStatus: ${JSON.stringify(this.deviceStatus)}`);
       } else {
-        this.device(`${device.deviceName} deviceStatus - ${JSON.stringify(this.deviceStatus.message)}`);
-        this.device('Unable to retreive device status.');
+        this.device(`${device.deviceName} deviceInfoStatus: ${JSON.stringify(this.deviceStatus.message)}`);
+        this.device('Unable to retreive deviceInfoStatus.');
       }
     }
   }

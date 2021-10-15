@@ -2,8 +2,7 @@ import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device, deviceStatusResponse } from '../settings';
-import { AxiosResponse } from 'axios';
+import { DeviceURL, device } from '../settings';
 
 /**
  * Platform Accessory
@@ -25,7 +24,7 @@ export class Humidifier {
   WaterLevel!: CharacteristicValue;
 
   // Others
-  deviceStatus!: deviceStatusResponse;
+  deviceStatus!: any;
 
   // Updates
   humidifierUpdateInProgress!: boolean;
@@ -225,7 +224,7 @@ export class Humidifier {
    */
   async refreshStatus() {
     try {
-      this.deviceStatus = await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`);
+      this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
       if (this.deviceStatus.message === 'success') {
         this.platform.debug(`Humidifier ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
         this.parseStatus();
@@ -266,11 +265,11 @@ export class Humidifier {
         'commandType:',
         payload.commandType,
       );
-      this.platform.debug(`Humidifier ${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
+      this.platform.debug(`Humidifier ${this.accessory.displayName} pushChanges: ${JSON.stringify(payload)}`);
 
       // Make the API request
-      const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.debug(`Humidifier ${this.accessory.displayName} Changes pushed - ${push.data}`);
+      const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload));
+      this.platform.debug(`Humidifier ${this.accessory.displayName} Changes pushed: ${JSON.stringify(push.data)}`);
       this.statusCode(push);
     } else if (
       this.TargetHumidifierDehumidifierState ===
@@ -310,11 +309,11 @@ export class Humidifier {
           'commandType:',
           payload.commandType,
         );
-        this.platform.debug(`Humidifier ${this.accessory.displayName} pushAutoChanges - ${JSON.stringify(payload)}`);
+        this.platform.debug(`Humidifier ${this.accessory.displayName} pushAutoChanges: ${JSON.stringify(payload)}`);
 
         // Make the API request
-        const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-        this.platform.debug(`Humidifier ${this.accessory.displayName} Changes pushed - ${push.data}`);
+        const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload));
+        this.platform.debug(`Humidifier ${this.accessory.displayName} Changes pushed: ${JSON.stringify(push.data)}`);
         this.statusCode(push);
       }
     } catch (e: any) {
@@ -347,11 +346,11 @@ export class Humidifier {
           'commandType:',
           payload.commandType,
         );
-        this.platform.debug(`Humidifier ${this.accessory.displayName} pushActiveChanges - ${JSON.stringify(payload)}`);
+        this.platform.debug(`Humidifier ${this.accessory.displayName} pushActiveChanges: ${JSON.stringify(payload)}`);
 
         // Make the API request
-        const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-        this.platform.debug(`Humidifier ${this.accessory.displayName} Changes pushed - ${push.data}`);
+        const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload));
+        this.platform.debug(`Humidifier ${this.accessory.displayName} Changes pushed: ${JSON.stringify(push.data)}`);
         this.statusCode(push);
       }
     } catch (e: any) {
@@ -415,7 +414,7 @@ export class Humidifier {
     }
   }
 
-  private statusCode(push: AxiosResponse<any>) {
+  private statusCode(push: { data: { statusCode: any; }; }) {
     switch (push.data.statusCode) {
       case 151:
         this.platform.log.error('Command not supported by this device type.');
