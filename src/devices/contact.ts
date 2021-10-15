@@ -47,7 +47,7 @@ export class Contact {
     public device: device,
   ) {
     // default placeholders
-    this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
+    this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
 
     // BLE Connection
     if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
@@ -125,10 +125,10 @@ export class Contact {
 
   private async openAPIparseStatus() {
     if (this.deviceStatus.body.openState === 'open') {
-      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
       this.platform.log.info(`${this.accessory.displayName} ${this.deviceStatus.body.openState}`);
     } else if (this.deviceStatus.body.openState === 'close') {
-      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
+      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
       this.platform.device(`${this.accessory.displayName} ${this.deviceStatus.body.openState}`);
     } else {
       this.platform.device(`${this.accessory.displayName} ${this.deviceStatus.body.openState}`);
