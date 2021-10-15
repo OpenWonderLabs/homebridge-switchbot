@@ -347,6 +347,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         //existingAccessory.context.firmwareRevision = firmware;
         existingAccessory.context.model = device.deviceType;
         existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
         await this.connectionTypeExistingAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
@@ -399,6 +400,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.deviceType;
         existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
         await this.connectionTypeExistingAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
@@ -455,6 +457,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.deviceType;
         existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
         await this.connectionTypeExistingAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
@@ -507,6 +510,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.deviceType;
         existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
@@ -557,6 +561,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.deviceType;
         existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
@@ -607,6 +612,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.deviceType;
         existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
         await this.connectionTypeExistingAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
@@ -677,6 +683,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.deviceType;
         existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
         await this.connectionTypeExistingAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
@@ -729,6 +736,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.deviceType;
         existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
         await this.connectionTypeExistingAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
@@ -779,6 +787,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
       existingAccessory.context.model = device.remoteType;
       existingAccessory.context.deviceID = device.deviceId;
+      existingAccessory.displayName = device.deviceName;
       existingAccessory.context.firmwareRevision = this.version;
       await this.connectionTypeExistingAccessory(device, existingAccessory);
       this.api.updatePlatformAccessories([existingAccessory]);
@@ -833,6 +842,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
         existingAccessory.context.model = device.remoteType;
         existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
         await this.connectionTypeExistingAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
@@ -885,6 +895,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.remoteType;
         existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
         await this.connectionTypeExistingAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
@@ -937,6 +948,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.remoteType;
         existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
         await this.connectionTypeExistingAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
@@ -989,6 +1001,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.remoteType;
         existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
         await this.connectionTypeExistingAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
@@ -1041,6 +1054,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.remoteType;
         existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
         await this.connectionTypeExistingAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
@@ -1093,6 +1107,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.remoteType;
         existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
         await this.connectionTypeExistingAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
@@ -1145,6 +1160,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.remoteType;
         existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
         await this.connectionTypeExistingAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
@@ -1197,6 +1213,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.remoteType;
         existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
         await this.connectionTypeExistingAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
@@ -1262,7 +1279,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   public deviceListInfo(devices: deviceResponses) {
-    this.device(`deviceListInfoStatus: ${JSON.stringify(devices)}`);
+    if (this.config.options?.debug === 'device') {
+      this.device(`deviceListInfoStatus: ${JSON.stringify(devices)}`);
+    }
   }
 
   public async deviceInfo(device: irdevice | device) {
