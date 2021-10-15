@@ -368,28 +368,28 @@ export class Curtain {
     );
     this.setMinMax();
     if (this.CurrentPosition === undefined) {
-      this.platform.debug(`CurrentPosition: ${this.CurrentPosition}`);
+      this.platform.debug(`Curtain ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.CurrentPosition, this.CurrentPosition);
-      this.platform.device(`updateCharacteristic CurrentPosition: ${this.CurrentPosition}`);
+      this.platform.device(`Curtain ${this.accessory.displayName} updateCharacteristic CurrentPosition: ${this.CurrentPosition}`);
     }
     if (this.PositionState === undefined) {
-      this.platform.debug(`PositionState: ${this.PositionState}`);
+      this.platform.debug(`Curtain ${this.accessory.displayName} PositionState: ${this.PositionState}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.PositionState, this.PositionState);
-      this.platform.device(`updateCharacteristic PositionState: ${this.PositionState}`);
+      this.platform.device(`Curtain ${this.accessory.displayName} updateCharacteristic PositionState: ${this.PositionState}`);
     }
     if (this.TargetPosition === undefined) {
-      this.platform.debug(`TargetPosition: ${this.TargetPosition}`);
+      this.platform.debug(`Curtain ${this.accessory.displayName} TargetPosition: ${this.TargetPosition}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.TargetPosition, this.TargetPosition);
-      this.platform.device(`updateCharacteristic TargetPosition: ${this.TargetPosition}`);
+      this.platform.device(`Curtain ${this.accessory.displayName} updateCharacteristic TargetPosition: ${this.TargetPosition}`);
     }
     if (this.CurrentAmbientLightLevel === undefined) {
-      this.platform.debug(`CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+      this.platform.debug(`Curtain ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
     } else {
       this.lightSensorService.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
-      this.platform.device(`updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+      this.platform.device(`Curtain ${this.accessory.displayName} updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
     }
   }
 

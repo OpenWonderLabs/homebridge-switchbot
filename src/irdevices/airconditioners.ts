@@ -159,14 +159,14 @@ export class AirConditioner {
   private CurrentTemperatureGet(value: CharacteristicValue) {
     this.platform.debug('Trigger Get CurrentTemperture');
 
-    if (this.CurrentTemperature === NaN) {
+    if (Number.isNaN(this.CurrentTemperature)) {
       this.CurrentTemperature = 24;
     } else {
-    this.service
-      .getCharacteristic(this.platform.Characteristic.CurrentTemperature)
-      .updateValue(Number(this.CurrentTemperature) || 24);
+      this.service
+        .getCharacteristic(this.platform.Characteristic.CurrentTemperature)
+        .updateValue(Number(this.CurrentTemperature) || 24);
     }
-    return (this.CurrentTemperature = Number(value));
+    return (this.CurrentTemperature === Number(value));
   }
 
   private TargetHeaterCoolerStateSet(value: CharacteristicValue) {

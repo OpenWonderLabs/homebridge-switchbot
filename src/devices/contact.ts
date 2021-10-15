@@ -219,16 +219,16 @@ export class Contact {
    */
   updateHomeKitCharacteristics() {
     if (this.ContactSensorState === undefined) {
-      this.platform.debug(`ContactSensorState: ${this.ContactSensorState}`);
+      this.platform.debug(`Contact ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.ContactSensorState, this.ContactSensorState);
-      this.platform.device(`updateCharacteristic ContactSensorState: ${this.ContactSensorState}`);
+      this.platform.device(`Contact ${this.accessory.displayName} updateCharacteristic ContactSensorState: ${this.ContactSensorState}`);
     }
     if (this.MotionDetected === undefined) {
-      this.platform.debug(`MotionDetected: ${this.MotionDetected}`);
+      this.platform.debug(`Contact ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
     } else {
       this.motionService.updateCharacteristic(this.platform.Characteristic.MotionDetected, this.MotionDetected);
-      this.platform.device(`updateCharacteristic MotionDetected: ${this.MotionDetected}`);
+      this.platform.device(`Contact ${this.accessory.displayName} updateCharacteristic MotionDetected: ${this.MotionDetected}`);
     }
   }
 

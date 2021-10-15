@@ -212,22 +212,22 @@ export class Bulb {
 
   updateHomeKitCharacteristics() {
     if (this.On === undefined) {
-      this.platform.debug(`On: ${this.On}`);
+      this.platform.debug(`Bulb ${this.accessory.displayName} On: ${this.On}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.On, this.On);
-      this.platform.device(`updateCharacteristic On: ${this.On}`);
+      this.platform.device(`Bulb ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
     if (this.Brightness === undefined) {
-      this.platform.debug(`Brightness: ${this.Brightness}`);
+      this.platform.debug(`Bulb ${this.accessory.displayName} Brightness: ${this.Brightness}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.Brightness, this.Brightness);
-      this.platform.device(`updateCharacteristic Brightness: ${this.Brightness}`);
+      this.platform.device(`Bulb ${this.accessory.displayName} updateCharacteristic Brightness: ${this.Brightness}`);
     }
     if (this.ColorTemperature === undefined) {
-      this.platform.debug(`ColorTemperature: ${this.ColorTemperature}`);
+      this.platform.debug(`Bulb ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.Brightness, this.ColorTemperature);
-      this.platform.debug(`updateCharacteristic ColorTemperature: ${this.ColorTemperature}`);
+      this.platform.debug(`Bulb ${this.accessory.displayName} updateCharacteristic ColorTemperature: ${this.ColorTemperature}`);
     }
   }
 

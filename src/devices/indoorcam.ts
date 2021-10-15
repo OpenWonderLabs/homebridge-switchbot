@@ -239,16 +239,16 @@ export class IndoorCam {
 
   updateHomeKitCharacteristics() {
     if (this.On === undefined) {
-      this.platform.debug(`On: ${this.On}`);
+      this.platform.debug(`Camera ${this.accessory.displayName} On: ${this.On}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.On, this.On);
-      this.platform.device(`updateCharacteristic On: ${this.On}`);
+      this.platform.device(`Camera ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
     if (this.OutletInUse === undefined) {
-      this.platform.debug(`OutletInUse: ${this.OutletInUse}`);
+      this.platform.debug(`Camera ${this.accessory.displayName} OutletInUse: ${this.OutletInUse}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.OutletInUse, this.OutletInUse);
-      this.platform.device(`updateCharacteristic OutletInUse: ${this.OutletInUse}`);
+      this.platform.device(`Camera ${this.accessory.displayName} updateCharacteristic OutletInUse: ${this.OutletInUse}`);
     }
   }
 

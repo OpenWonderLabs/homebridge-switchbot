@@ -352,16 +352,17 @@ export class Bot {
    */
   updateHomeKitCharacteristics() {
     if (this.SwitchOn === undefined) {
-      this.platform.debug(`On: ${this.SwitchOn}`);
+      this.platform.debug(`Bot ${this.accessory.displayName} On: ${this.SwitchOn}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.On, this.SwitchOn);
-      this.platform.device(`updateCharacteristic On: ${this.SwitchOn}`);
+      this.platform.device(`Bot ${this.accessory.displayName} updateCharacteristic On: ${this.SwitchOn}`);
     }
     if (this.OutletInUse === undefined || this.platform.config.options?.bot?.switch) {
-      this.platform.debug(`On: ${this.OutletInUse}, Switch: ${this.platform.config.options?.bot?.switch}`);
+      this.platform.debug(`Bot ${this.accessory.displayName} On: ${this.OutletInUse}, Switch: ${this.platform.config.options?.bot?.switch}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.OutletInUse, this.OutletInUse);
-      this.platform.device(`updateCharacteristic On: ${this.OutletInUse}, Switch: ${this.platform.config.options?.bot?.switch}`);
+      this.platform.device(`Bot ${this.accessory.displayName} updateCharacteristic On: ${this.OutletInUse},`
+        + ` Switch: ${this.platform.config.options?.bot?.switch}`);
     }
   }
 
