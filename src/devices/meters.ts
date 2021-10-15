@@ -88,7 +88,7 @@ export class Meter {
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.Battery) ||
-      accessory.addService(this.platform.Service.Battery)), `${device.deviceName} ${device.deviceType}`;
+      accessory.addService(this.platform.Service.Battery)), `${accessory.displayName} Battery`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -113,7 +113,9 @@ export class Meter {
       this.platform.device('Adding Temperature Sensor Service');
       (this.temperatureservice =
         this.accessory.getService(this.platform.Service.TemperatureSensor) ||
-        this.accessory.addService(this.platform.Service.TemperatureSensor)), `${device.deviceName} ${device.deviceType} TemperatureSensor`;
+        this.accessory.addService(this.platform.Service.TemperatureSensor)), `${accessory.displayName} Temperature Sensor`;
+
+      this.service.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
 
       this.temperatureservice
         .getCharacteristic(this.platform.Characteristic.CurrentTemperature)
@@ -140,7 +142,9 @@ export class Meter {
       this.platform.device('Adding Humidity Sensor Service');
       (this.humidityservice =
         this.accessory.getService(this.platform.Service.HumiditySensor) ||
-        this.accessory.addService(this.platform.Service.HumiditySensor)), `${device.deviceName} ${device.deviceType} HumiditySensor`;
+        this.accessory.addService(this.platform.Service.HumiditySensor)), `${accessory.displayName} Humidity Sensor`;
+
+      this.service.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
 
       this.humidityservice
         .getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)

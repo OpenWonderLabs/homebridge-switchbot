@@ -78,7 +78,7 @@ export class Contact {
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.ContactSensor) ||
-      accessory.addService(this.platform.Service.ContactSensor)), `${device.deviceName} ${device.deviceType}`;
+      accessory.addService(this.platform.Service.ContactSensor)), `${accessory.displayName} Contact Sensor`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -92,7 +92,9 @@ export class Contact {
     // see https://developers.homebridge.io/#/service/MotionSensor
     (this.motionService =
       accessory.getService(this.platform.Service.MotionSensor) ||
-      accessory.addService(this.platform.Service.MotionSensor)), `${device.deviceName} ${device.deviceType}`;
+      accessory.addService(this.platform.Service.MotionSensor)), `${accessory.displayName} Motion Sensor`;
+
+    this.motionService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Motion Sensor`);
 
     // Retrieve initial values and updateHomekit
     this.updateHomeKitCharacteristics();

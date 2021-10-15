@@ -28,8 +28,8 @@ export class WaterHeater {
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
     (this.service =
-      accessory.getService(this.platform.Service.Valve) || accessory.addService(this.platform.Service.Valve)),
-    `${device.deviceName} ${device.remoteType}`;
+      accessory.getService(this.platform.Service.Valve) ||
+      accessory.addService(this.platform.Service.Valve)), `${accessory.displayName} Water Heater`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:

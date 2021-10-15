@@ -62,7 +62,7 @@ export class Humidifier {
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.HumidifierDehumidifier) ||
-      accessory.addService(this.platform.Service.HumidifierDehumidifier)), `${device.deviceName} ${device.deviceType}`;
+      accessory.addService(this.platform.Service.HumidifierDehumidifier)), `${accessory.displayName} Humidifier`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -113,7 +113,9 @@ export class Humidifier {
       this.platform.device('Adding Temerature Sensor Service');
       (this.temperatureservice =
         this.accessory.getService(this.platform.Service.TemperatureSensor) ||
-        this.accessory.addService(this.platform.Service.TemperatureSensor)), `${device.deviceName} ${device.deviceType} TemperatureSensor`;
+        this.accessory.addService(this.platform.Service.TemperatureSensor)), `${accessory.displayName} Temperature Sensor`;
+
+      this.temperatureservice.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
 
       this.temperatureservice
         .getCharacteristic(this.platform.Characteristic.CurrentTemperature)
@@ -381,14 +383,14 @@ export class Humidifier {
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.CurrentHumidifierDehumidifierState, this.CurrentHumidifierDehumidifierState);
       this.platform.device(`Humidifier ${this.accessory.displayName}`
-       + ` updateCharacteristic CurrentHumidifierDehumidifierState: ${this.CurrentHumidifierDehumidifierState}`);
+        + ` updateCharacteristic CurrentHumidifierDehumidifierState: ${this.CurrentHumidifierDehumidifierState}`);
     }
     if (this.TargetHumidifierDehumidifierState === undefined) {
       this.platform.debug(`Humidifier ${this.accessory.displayName} TargetHumidifierDehumidifierState: ${this.TargetHumidifierDehumidifierState}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.TargetHumidifierDehumidifierState, this.TargetHumidifierDehumidifierState);
       this.platform.device(`Humidifier ${this.accessory.displayName}`
-       + ` updateCharacteristic TargetHumidifierDehumidifierState: ${this.TargetHumidifierDehumidifierState}`);
+        + ` updateCharacteristic TargetHumidifierDehumidifierState: ${this.TargetHumidifierDehumidifierState}`);
     }
     if (this.Active === undefined) {
       this.platform.debug(`Humidifier ${this.accessory.displayName} Active: ${this.Active}`);
@@ -398,11 +400,11 @@ export class Humidifier {
     }
     if (this.RelativeHumidityHumidifierThreshold === undefined) {
       this.platform.debug(`Humidifier ${this.accessory.displayName}`
-       + ` RelativeHumidityHumidifierThreshold: ${this.RelativeHumidityHumidifierThreshold}`);
+        + ` RelativeHumidityHumidifierThreshold: ${this.RelativeHumidityHumidifierThreshold}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.RelativeHumidityHumidifierThreshold, this.RelativeHumidityHumidifierThreshold);
       this.platform.device(`Humidifier ${this.accessory.displayName}`
-       + ` updateCharacteristic RelativeHumidityHumidifierThreshold: ${this.RelativeHumidityHumidifierThreshold}`);
+        + ` updateCharacteristic RelativeHumidityHumidifierThreshold: ${this.RelativeHumidityHumidifierThreshold}`);
     }
     if (this.platform.config.options?.humidifier?.hide_temperature && this.CurrentTemperature === undefined) {
       this.platform.debug(`Humidifier ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);

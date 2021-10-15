@@ -134,7 +134,7 @@ export class Curtain {
     (this.lightSensorService =
       accessory.getService(this.platform.Service.LightSensor) ||
       accessory.addService(this.platform.Service.LightSensor)), `${device.deviceName} Light Sensor`;
-    this.lightSensorService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+    this.lightSensorService.setCharacteristic(this.platform.Characteristic.Name, `${device.deviceName} Light Sensor`);
     // handle on / off events using the On characteristic
     this.lightSensorService.getCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel).onGet(() => {
       if (this.CurrentAmbientLightLevel === 'bright') {

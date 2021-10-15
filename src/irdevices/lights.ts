@@ -29,7 +29,7 @@ export class Light {
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.Lightbulb) ||
-      accessory.addService(this.platform.Service.Lightbulb)), `${device.deviceName} ${device.remoteType}`;
+      accessory.addService(this.platform.Service.Lightbulb)), `${accessory.displayName} Light Bulb`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:

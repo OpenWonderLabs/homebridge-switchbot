@@ -77,11 +77,11 @@ export class Bot {
     if (this.platform.config.options?.bot?.switch) {
       (this.service =
         accessory.getService(this.platform.Service.Switch) ||
-        accessory.addService(this.platform.Service.Switch)), `${device.deviceName} ${device.deviceType}`;
+        accessory.addService(this.platform.Service.Switch)), `${accessory.displayName} Switch`;
     } else {
       (this.service =
         accessory.getService(this.platform.Service.Outlet) ||
-        accessory.addService(this.platform.Service.Outlet)), `${device.deviceName} ${device.deviceType}`;
+        accessory.addService(this.platform.Service.Outlet)), `${accessory.displayName} Outlet`;
     }
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,

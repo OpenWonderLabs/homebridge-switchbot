@@ -29,8 +29,7 @@ export class VacuumCleaner {
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.Switch) ||
-      accessory.addService(this.platform.Service.Switch)),
-    `${device.deviceName} ${device.remoteType}`;
+      accessory.addService(this.platform.Service.Switch)), `${accessory.displayName} Vacuum`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -38,10 +37,7 @@ export class VacuumCleaner {
 
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    this.service.setCharacteristic(
-      this.platform.Characteristic.Name,
-      `${device.deviceName} ${device.remoteType}`,
-    );
+    this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
 
     // handle on / off events using the On characteristic
     this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));

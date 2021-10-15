@@ -29,10 +29,8 @@ export class Others {
     // you can create multiple services for each accessory
     this.service = accessory.getService(this.platform.Service.Fanv2);
     if (!this.service && this.platform.config.options?.other?.deviceType === 'Fan') {
-      this.service = accessory.addService(
-        this.platform.Service.Fanv2,
-        `${device.deviceName} ${device.remoteType} Fan`,
-      );
+      this.service = accessory.addService(this.platform.Service.Fanv2, `${accessory.displayName} Fan`);
+
       this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
 
       this.service.getCharacteristic(this.platform.Characteristic.Active).onSet(this.ActiveSet.bind(this));

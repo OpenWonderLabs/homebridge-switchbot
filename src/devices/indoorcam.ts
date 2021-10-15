@@ -71,7 +71,7 @@ export class IndoorCam {
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.Outlet) ||
-      accessory.addService(this.platform.Service.Outlet)), `${device.deviceName} ${device.deviceType}`;
+      accessory.addService(this.platform.Service.Outlet)), `${accessory.displayName} Indoor Camera`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:

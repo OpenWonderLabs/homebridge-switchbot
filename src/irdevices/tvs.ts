@@ -53,7 +53,7 @@ export class TV {
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.Television) ||
-      accessory.addService(this.platform.Service.Television)), `${device.deviceName} ${device.remoteType}`;
+      accessory.addService(this.platform.Service.Television)), `${accessory.displayName} TV`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -86,7 +86,9 @@ export class TV {
     // create a new Television Speaker service
     (this.speakerService =
       accessory.getService(this.platform.Service.TelevisionSpeaker) ||
-      accessory.addService(this.platform.Service.TelevisionSpeaker)), `${device.deviceName} ${device.remoteType} Speaker`;
+      accessory.addService(this.platform.Service.TelevisionSpeaker)), `${accessory.displayName} Speaker`;
+
+    this.speakerService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Speaker`);
 
     this.speakerService
       .setCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.ACTIVE)

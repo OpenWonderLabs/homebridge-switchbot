@@ -363,7 +363,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.log.info(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
 
       // create a new accessory
-      const accessory = new this.api.platformAccessory(`${device.deviceName} ${device.deviceType}`, uuid);
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -419,7 +419,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.log.error('You must set your Bot to Press or Switch Mode');
       }
       // create a new accessory
-      const accessory = new this.api.platformAccessory(`${device.deviceName} ${device.deviceType}`, uuid);
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -473,7 +473,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.log.info(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
 
       // create a new accessory
-      const accessory = new this.api.platformAccessory(`${device.deviceName} ${device.deviceType}`, uuid);
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -525,7 +525,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.log.info(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
 
       // create a new accessory
-      const accessory = new this.api.platformAccessory(`${device.deviceName} ${device.deviceType}`, uuid);
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -576,7 +576,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.log.info(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
 
       // create a new accessory
-      const accessory = new this.api.platformAccessory(`${device.deviceName} ${device.deviceType}`, uuid);
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -638,7 +638,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
 
       // create a new accessory
-      const accessory = new this.api.platformAccessory(`${device.deviceName} ${device.deviceType}`, uuid);
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -699,7 +699,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.log.info(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
 
       // create a new accessory
-      const accessory = new this.api.platformAccessory(`${device.deviceName} ${device.deviceType}`, uuid);
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -752,7 +752,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.log.info(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
 
       // create a new accessory
-      const accessory = new this.api.platformAccessory(`${device.deviceName} ${device.deviceType}`, uuid);
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -800,7 +800,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.log.info(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
 
       // create a new accessory
-      const accessory = new this.api.platformAccessory(`${device.deviceName} ${device.remoteType}`, uuid);
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -858,7 +858,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.log.info(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
 
       // create a new accessory
-      const accessory = new this.api.platformAccessory(`${device.deviceName} ${device.remoteType}`, uuid);
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -911,7 +911,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.log.info(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
 
       // create a new accessory
-      const accessory = new this.api.platformAccessory(`${device.deviceName} ${device.remoteType}`, uuid);
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -964,7 +964,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.log.info(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
 
       // create a new accessory
-      const accessory = new this.api.platformAccessory(`${device.deviceName} ${device.remoteType}`, uuid);
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -1017,7 +1017,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.log.info(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
 
       // create a new accessory
-      const accessory = new this.api.platformAccessory(`${device.deviceName} ${device.remoteType}`, uuid);
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -1070,7 +1070,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.log.info(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
 
       // create a new accessory
-      const accessory = new this.api.platformAccessory(`${device.deviceName} ${device.remoteType}`, uuid);
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -1123,7 +1123,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.log.info(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
 
       // create a new accessory
-      const accessory = new this.api.platformAccessory(`${device.deviceName} ${device.remoteType}`, uuid);
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -1176,7 +1176,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.log.info(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
 
       // create a new accessory
-      const accessory = new this.api.platformAccessory(`${device.deviceName} ${device.remoteType}`, uuid);
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -1229,7 +1229,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.log.info(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
 
       // create a new accessory
-      const accessory = new this.api.platformAccessory(`${device.deviceName} ${device.remoteType}`, uuid);
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
