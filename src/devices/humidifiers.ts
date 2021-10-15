@@ -364,41 +364,47 @@ export class Humidifier {
    * Updates the status for each of the HomeKit Characteristics
    */
   updateHomeKitCharacteristics() {
-    if (this.CurrentRelativeHumidity !== undefined) {
-      this.service.updateCharacteristic(
-        this.platform.Characteristic.CurrentRelativeHumidity,
-        this.CurrentRelativeHumidity,
-      );
+    if (this.CurrentRelativeHumidity === undefined) {
+      this.platform.debug(`CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+    } else {
+      this.service.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
+      this.platform.device(`updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
     }
-    if (this.WaterLevel !== undefined) {
+    if (this.WaterLevel === undefined) {
+      this.platform.debug(`WaterLevel: ${this.WaterLevel}`);
+    } else {
       this.service.updateCharacteristic(this.platform.Characteristic.WaterLevel, this.WaterLevel);
+      this.platform.device(`updateCharacteristic WaterLevel: ${this.WaterLevel}`);
     }
-    if (this.CurrentHumidifierDehumidifierState !== undefined) {
-      this.service.updateCharacteristic(
-        this.platform.Characteristic.CurrentHumidifierDehumidifierState,
-        this.CurrentHumidifierDehumidifierState,
-      );
+    if (this.CurrentHumidifierDehumidifierState === undefined) {
+      this.platform.debug(`CurrentHumidifierDehumidifierState: ${this.CurrentHumidifierDehumidifierState}`);
+    } else {
+      this.service.updateCharacteristic(this.platform.Characteristic.CurrentHumidifierDehumidifierState, this.CurrentHumidifierDehumidifierState);
+      this.platform.device(`updateCharacteristic CurrentHumidifierDehumidifierState: ${this.CurrentHumidifierDehumidifierState}`);
     }
-    if (this.TargetHumidifierDehumidifierState !== undefined) {
-      this.service.updateCharacteristic(
-        this.platform.Characteristic.TargetHumidifierDehumidifierState,
-        this.TargetHumidifierDehumidifierState,
-      );
+    if (this.TargetHumidifierDehumidifierState === undefined) {
+      this.platform.debug(`TargetHumidifierDehumidifierState: ${this.TargetHumidifierDehumidifierState}`);
+    } else {
+      this.service.updateCharacteristic( this.platform.Characteristic.TargetHumidifierDehumidifierState, this.TargetHumidifierDehumidifierState);
+      this.platform.device(`updateCharacteristic TargetHumidifierDehumidifierState: ${this.TargetHumidifierDehumidifierState}`);
     }
-    if (this.Active !== undefined) {
+    if (this.Active === undefined) {
+      this.platform.debug(`Active: ${this.Active}`);
+    } else {
       this.service.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
+      this.platform.device(`updateCharacteristic Active: ${this.Active}`);
     }
-    if (this.RelativeHumidityHumidifierThreshold !== undefined) {
-      this.service.updateCharacteristic(
-        this.platform.Characteristic.RelativeHumidityHumidifierThreshold,
-        this.RelativeHumidityHumidifierThreshold,
-      );
+    if (this.RelativeHumidityHumidifierThreshold === undefined) {
+      this.platform.debug(`RelativeHumidityHumidifierThreshold: ${this.RelativeHumidityHumidifierThreshold}`);
+    } else {
+      this.service.updateCharacteristic(this.platform.Characteristic.RelativeHumidityHumidifierThreshold, this.RelativeHumidityHumidifierThreshold);
+      this.platform.device(`updateCharacteristic RelativeHumidityHumidifierThreshold: ${this.RelativeHumidityHumidifierThreshold}`);
     }
-    if (!this.platform.config.options?.humidifier?.hide_temperature && this.CurrentTemperature !== undefined) {
-      this.temperatureservice!.updateCharacteristic(
-        this.platform.Characteristic.CurrentTemperature,
-        this.CurrentTemperature,
-      );
+    if (this.platform.config.options?.humidifier?.hide_temperature && this.CurrentTemperature === undefined) {
+      this.platform.debug(`CurrentTemperature: ${this.CurrentTemperature}`);
+    } else {
+      this.temperatureservice!.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
+      this.platform.device(`updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
     }
   }
 

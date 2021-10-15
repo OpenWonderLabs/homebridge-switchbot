@@ -312,26 +312,28 @@ export class Meter {
    */
   updateHomeKitCharacteristics() {
     if (this.StatusLowBattery === undefined) {
-      this.platform.debug(`ContactSensorState: ${this.StatusLowBattery}`);
+      this.platform.debug(`StatusLowBattery: ${this.StatusLowBattery}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
+      this.platform.device(`updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
     }
     if (this.BatteryLevel === undefined) {
-      this.platform.debug(`ContactSensorState: ${this.BatteryLevel}`);
+      this.platform.debug(`BatteryLevel: ${this.BatteryLevel}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
+      this.platform.device(`updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
     }
-    if (!this.platform.config.options?.meter?.hide_humidity && (this.CurrentRelativeHumidity !== undefined)) {
-      this.humidityservice?.updateCharacteristic(
-        this.platform.Characteristic.CurrentRelativeHumidity,
-        this.CurrentRelativeHumidity,
-      );
+    if (this.platform.config.options?.meter?.hide_humidity && this.CurrentRelativeHumidity === undefined) {
+      this.platform.debug(`CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+    } else {
+      this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
+      this.platform.device(`updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
     }
-    if (!this.platform.config.options?.meter?.hide_temperature && (this.CurrentTemperature !== undefined)) {
-      this.temperatureservice?.updateCharacteristic(
-        this.platform.Characteristic.CurrentTemperature,
-        this.CurrentTemperature,
-      );
+    if (this.platform.config.options?.meter?.hide_temperature && this.CurrentTemperature === undefined) {
+      this.platform.debug(`CurrentTemperature: ${this.CurrentTemperature}`);
+    } else {
+      this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
+      this.platform.device(`updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
     }
   }
 

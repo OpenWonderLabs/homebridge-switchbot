@@ -206,6 +206,7 @@ export class Motion {
       this.platform.debug(`MotionDetected: ${this.MotionDetected}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.MotionDetected, this.MotionDetected);
+      this.platform.device(`updateCharacteristic MotionDetected: ${this.MotionDetected}`);
     }
   }
 

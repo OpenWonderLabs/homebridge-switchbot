@@ -355,11 +355,13 @@ export class Bot {
       this.platform.debug(`On: ${this.SwitchOn}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.On, this.SwitchOn);
+      this.platform.device(`updateCharacteristic On: ${this.SwitchOn}`);
     }
     if (this.OutletInUse === undefined || this.platform.config.options?.bot?.switch) {
       this.platform.debug(`On: ${this.OutletInUse}, Switch: ${this.platform.config.options?.bot?.switch}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.OutletInUse, this.OutletInUse);
+      this.platform.device(`updateCharacteristic On: ${this.OutletInUse}, Switch: ${this.platform.config.options?.bot?.switch}`);
     }
   }
 

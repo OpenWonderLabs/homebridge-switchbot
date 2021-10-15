@@ -215,16 +215,19 @@ export class Bulb {
       this.platform.debug(`On: ${this.On}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.On, this.On);
+      this.platform.device(`updateCharacteristic On: ${this.On}`);
     }
     if (this.Brightness === undefined) {
       this.platform.debug(`Brightness: ${this.Brightness}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.Brightness, this.Brightness);
+      this.platform.device(`updateCharacteristic Brightness: ${this.Brightness}`);
     }
     if (this.ColorTemperature === undefined) {
       this.platform.debug(`ColorTemperature: ${this.ColorTemperature}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.Brightness, this.ColorTemperature);
+      this.platform.debug(`updateCharacteristic ColorTemperature: ${this.ColorTemperature}`);
     }
   }
 
