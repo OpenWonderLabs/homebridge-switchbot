@@ -34,26 +34,35 @@ export class TV {
       case 'Speaker':
       case 'DIY Speaker':
         accessory.category = this.platform.api.hap.Categories.SPEAKER;
+        (this.service =
+          accessory.getService(this.platform.Service.Television) ||
+          accessory.addService(this.platform.Service.Television)), `${accessory.displayName} Speaker`;
         break;
       case 'IPTV':
       case 'DIY IPTV':
         accessory.category = this.platform.api.hap.Categories.TV_STREAMING_STICK;
+        (this.service =
+          accessory.getService(this.platform.Service.Television) ||
+          accessory.addService(this.platform.Service.Television)), `${accessory.displayName} Streaming Stick`;
         break;
       case 'DVD':
       case 'DIY DVD':
       case 'Set Top Box':
       case 'DIY Set Top Box':
         accessory.category = this.platform.api.hap.Categories.TV_SET_TOP_BOX;
+        (this.service =
+          accessory.getService(this.platform.Service.Television) ||
+          accessory.addService(this.platform.Service.Television)), `${accessory.displayName} Set Top Box`;
         break;
       default:
         accessory.category = this.platform.api.hap.Categories.TELEVISION;
-    }
 
-    // get the Television service if it exists, otherwise create a new Television service
-    // you can create multiple services for each accessory
-    (this.service =
-      accessory.getService(this.platform.Service.Television) ||
-      accessory.addService(this.platform.Service.Television)), `${accessory.displayName} TV`;
+        // get the Television service if it exists, otherwise create a new Television service
+        // you can create multiple services for each accessory
+        (this.service =
+          accessory.getService(this.platform.Service.Television) ||
+          accessory.addService(this.platform.Service.Television)), `${accessory.displayName} TV`;
+    }
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
