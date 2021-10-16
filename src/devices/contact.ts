@@ -210,8 +210,8 @@ export class Contact {
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
-      this.platform.log.error(`Contact - Failed to refresh status of ${this.device.deviceName} - ${JSON.stringify(e.message)}`);
-      this.platform.debug(`Contact ${this.accessory.displayName} - ${JSON.stringify(e)}`);
+      this.platform.log.error(`Contact ${this.accessory.displayName} failed to refresh status. Error Message: ${JSON.stringify(e.message)}`);
+      this.platform.debug(`Contact ${this.accessory.displayName}, Error: ${JSON.stringify(e)}`);
       this.apiError(e);
     }
   }

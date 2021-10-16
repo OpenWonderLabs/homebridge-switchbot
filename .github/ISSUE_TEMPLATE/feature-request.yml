@@ -33,6 +33,6 @@ body:
   - type: input
     attributes:
       label: Additional context
-      placeholder: Add any other context or screenshots about the feature request here. Post devicediscovery logs here.
+      placeholder: Add any other context or screenshots about the feature request here. Post device logs here.
     validations:
       required: false

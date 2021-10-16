@@ -305,8 +305,8 @@ export class Meter {
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
-      this.platform.log.error(`Meter - Failed to refresh status of ${this.device.deviceName} - ${JSON.stringify(e.message)}`);
-      this.platform.debug(`Meter ${this.accessory.displayName} - ${JSON.stringify(e)}`);
+      this.platform.log.error(`Meter ${this.accessory.displayName} failed to refresh status, Error Message: ${JSON.stringify(e.message)}`);
+      this.platform.debug(`Meter ${this.accessory.displayName}, Error: ${JSON.stringify(e)}`);
       this.apiError(e);
     }
   }

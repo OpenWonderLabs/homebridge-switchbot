@@ -303,15 +303,14 @@ export class Curtain {
 
   private async openAPIRefreshStatus() {
     try {
-      this.platform.debug('Curtain - Reading', `${DeviceURL}/${this.device.deviceId}/status`);
       this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
       this.platform.debug(`Curtain ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
       this.setMinMax();
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
-      this.platform.log.error(`Curtain - Failed to refresh status of ${this.device.deviceName} - ${JSON.stringify(e.message)}`);
-      this.platform.debug(`Curtain ${this.accessory.displayName} - ${JSON.stringify(e)}`);
+      this.platform.log.error(`Curtain ${this.accessory.displayName} failed to refresh status, Eror Message ${JSON.stringify(e.message)}`);
+      this.platform.debug(`Curtain ${this.accessory.displayName}, Error: ${JSON.stringify(e)}`);
       this.apiError(e);
     }
   }

@@ -192,8 +192,8 @@ export class Motion {
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
-      this.platform.log.error(`Motion - Failed to refresh status of ${this.device.deviceName} - ${JSON.stringify(e.message)}`);
-      this.platform.debug(`Motion ${this.accessory.displayName} - ${JSON.stringify(e)}`);
+      this.platform.log.error(`Motion ${this.accessory.displayName} failed to refresh status, Error Message: ${JSON.stringify(e.message)}`);
+      this.platform.debug(`Motion ${this.accessory.displayName}, Error: ${JSON.stringify(e)}`);
       this.apiError(e);
     }
   }

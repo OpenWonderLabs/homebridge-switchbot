@@ -189,14 +189,13 @@ export class IndoorCam {
 
   private async openAPIRefreshStatus() {
     try {
-      this.platform.debug('Camera - Reading', `${DeviceURL}/${this.device.deviceId}/status`);
       this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
       this.platform.device(`Camera ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
-      this.platform.log.error(`IndoorCam - Failed to refresh status of ${this.device.deviceName} - ${JSON.stringify(e.message)}`);
-      this.platform.debug(`IndoorCam ${this.accessory.displayName} - ${JSON.stringify(e)}`);
+      this.platform.log.error(`IndoorCam ${this.accessory.displayName} failed to refresh status, Error Message: ${JSON.stringify(e.message)}`);
+      this.platform.debug(`IndoorCam ${this.accessory.displayName}, Error: ${JSON.stringify(e)}`);
       this.apiError(e);
     }
   }

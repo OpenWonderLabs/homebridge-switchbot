@@ -168,8 +168,8 @@ export class Bulb {
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
-      this.platform.log.error(`Bulb - Failed to refresh status of ${this.device.deviceName} - ${JSON.stringify(e.message)}`);
-      this.platform.debug(`Bulb ${this.accessory.displayName} - ${JSON.stringify(e)}`);
+      this.platform.log.error(`Bulb ${this.accessory.displayName} failed to refresh status, Error Message ${JSON.stringify(e.message)}`);
+      this.platform.debug(`Bulb ${this.accessory.displayName}, Error: ${JSON.stringify(e)}`);
       this.apiError(e);
     }
   }

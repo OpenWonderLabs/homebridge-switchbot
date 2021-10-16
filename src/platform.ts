@@ -115,6 +115,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
      * This will disable adding any device and will just output info.
      */
     this.config.options = this.config.options || {};
+    this.config.options.debug;
 
     //Enable BLE for Device
     this.config.options.ble;
@@ -255,7 +256,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
             this.debug(`Discovered ${device.deviceType}: ${device.deviceId} is Not Supported.`);
             break;
           default:
-            // eslint-disable-next-line max-len
             this.log.info(`Device: ${device.deviceName} with Device Type: ${device.deviceType}, is currently not supported.`);
             this.log.info('Submit Feature Requests Here: https://git.io/JL14Z');
         }
@@ -320,7 +320,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
             this.createOthers(device);
             break;
           default:
-            // eslint-disable-next-line max-len
             this.log.info(`Device: ${device.deviceName} with Device Type: ${device.remoteType}, is currently not supported.`);
             this.log.info('Submit Feature Requests Here: https://git.io/JL14Z');
         }
@@ -1300,6 +1299,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   /**
    * If debug level logging is turned on, log to log.info
    * Otherwise send debug logs to log.debug
+   * this.debugMode = process.argv.includes('-D') || process.argv.includes('--debug');
    */
   debug(...log: any[]) {
     if (this.config.options!.debug === 'debug') {
@@ -1310,7 +1310,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   /**
-   * If debug level logging is turned on, log to log.info
+   * If device level logging is turned on, log to log.warn
    * Otherwise send debug logs to log.debug
    */
   device(...log: any[]) {
