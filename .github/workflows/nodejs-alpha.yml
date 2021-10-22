@@ -38,8 +38,8 @@ jobs:
           node-version: 14
           registry-url: https://registry.npmjs.org/
       - run: npm ci
-      - run: node .github/workflows/prerelease.js
-      - run: npm --no-git-tag-version version prerelease-alpha --preid=alpha
+      - run: node .github/workflows/prerelease-alpha.js
+      - run: npm --no-git-tag-version version prerelease --preid=alpha
       - run: npm publish --tag=alpha 
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
