@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
-import { DeviceURL, irdevice, deviceStatusResponse, DevicesConfig } from '../settings';
+import { DeviceURL, irdevice, deviceStatusResponse, devicesConfig } from '../settings';
 
 /**
  * Platform Accessory
@@ -19,8 +19,7 @@ export class TV {
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
-    public device: irdevice,
-    public devicesetting: DevicesConfig,
+    public device: irdevice & devicesConfig,
   ) {
     // set accessory information
     accessory
@@ -28,7 +27,7 @@ export class TV {
       .setCharacteristic(this.platform.Characteristic.Name, `${device.deviceName} ${device.remoteType}`)
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId);
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
     // set the accessory category
     switch (device.remoteType) {

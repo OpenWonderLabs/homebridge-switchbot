@@ -3,7 +3,7 @@ import { Service, PlatformAccessory, CharacteristicValue, MacAddress } from 'hom
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device, DevicesConfig } from '../settings';
+import { DeviceURL, device, devicesConfig } from '../settings';
 
 export class Curtain {
   // Services
@@ -57,8 +57,7 @@ export class Curtain {
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
-    public device: device,
-    public devicesetting: DevicesConfig,
+    public device: device & devicesConfig,
   ) {
     // default placeholders
     this.setMinMax();
@@ -68,7 +67,7 @@ export class Curtain {
     this.ScanDuration = this.platform.config.options!.refreshRate!;
 
     // BLE Connection
-    if ((devicesetting.deviceId === device.deviceId) && devicesetting.ble) {
+    if (device.ble) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const SwitchBot = require('node-switchbot');
       this.switchbot = new SwitchBot();
@@ -122,7 +121,7 @@ export class Curtain {
         validValueRanges: [0, 100],
       })
       .onGet(() => {
-        return this.CurrentPosition;
+        return Number.isNaN(this.CurrentPosition);
       });
 
     this.service
@@ -192,8 +191,8 @@ export class Curtain {
   }
 
   private curtainRefreshRate() {
-    if (this.devicesetting?.curtain?.refreshRate && (this.device.deviceId === this.devicesetting.deviceId)) {
-      this.refreshRate = this.devicesetting?.curtain?.refreshRate;
+    if (this.device?.curtain?.refreshRate) {
+      this.refreshRate = this.device?.curtain?.refreshRate;
     } else {
       this.refreshRate = 5;
       if (this.platform.config.options?.debug === 'device') {
@@ -205,8 +204,8 @@ export class Curtain {
   }
 
   private minStep(): number | undefined {
-    if (this.devicesetting.curtain?.set_minStep && (this.device.deviceId === this.devicesetting.deviceId)) {
-      this.set_minStep = this.devicesetting.curtain?.set_minStep;
+    if (this.device.curtain?.set_minStep) {
+      this.set_minStep = this.device.curtain?.set_minStep;
     } else {
       this.set_minStep = 1;
     }
@@ -214,7 +213,7 @@ export class Curtain {
   }
 
   async parseStatus() {
-    if ((this.devicesetting.deviceId === this.device.deviceId) && this.devicesetting.ble) {
+    if (this.device.ble) {
       this.platform.device('BLE');
       await this.BLEparseStatus();
     } else {
@@ -271,7 +270,7 @@ export class Curtain {
   }
 
   async refreshStatus() {
-    if ((this.devicesetting.deviceId === this.device.deviceId) && this.devicesetting.ble) {
+    if (this.device.ble) {
       this.platform.device('BLE');
       await this.BLErefreshStatus();
     } else {
@@ -345,7 +344,7 @@ export class Curtain {
   }
 
   async pushChanges() {
-    if ((this.devicesetting.deviceId === this.device.deviceId) && this.devicesetting.ble) {
+    if (this.device.ble) {
       this.platform.device('BLE');
       await this.BLEpushChanges();
     } else {
@@ -381,7 +380,8 @@ export class Curtain {
       this.platform.debug(`Curtain ${this.accessory.displayName} pushchanges: ${JSON.stringify(payload)}`);
 
       // Make the API request
-      const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload));
+      this.platform.log.error(this.device.deviceId!);
+      const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId!}/commands`, payload));
       this.platform.debug(`Curtain ${this.accessory.displayName} Changes pushed: ${JSON.stringify(push.data)}`);
       this.statusCode(push);
     }
@@ -390,9 +390,9 @@ export class Curtain {
   updateHomeKitCharacteristics() {
     this.platform.debug(
       `Curtain ${this.accessory.displayName} updateHomeKitCharacteristics - ${JSON.stringify({
-        CurrentPosition: this.CurrentPosition,
+        CurrentPosition: Number.isNaN(this.CurrentPosition),
         PositionState: this.PositionState,
-        TargetPosition: this.TargetPosition,
+        TargetPosition: Number.isNaN(this.TargetPosition),
         CurrentAmbientLightLevel: this.CurrentAmbientLightLevel,
       })}`,
     );
@@ -400,7 +400,7 @@ export class Curtain {
     if (this.CurrentPosition === undefined) {
       this.platform.debug(`Curtain ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition}`);
     } else {
-      this.service.updateCharacteristic(this.platform.Characteristic.CurrentPosition, this.CurrentPosition);
+      this.service.updateCharacteristic(this.platform.Characteristic.CurrentPosition, Number.isNaN(this.CurrentPosition));
       this.platform.device(`Curtain ${this.accessory.displayName} updateCharacteristic CurrentPosition: ${this.CurrentPosition}`);
     }
     if (this.PositionState === undefined) {
@@ -412,7 +412,7 @@ export class Curtain {
     if (this.TargetPosition === undefined) {
       this.platform.debug(`Curtain ${this.accessory.displayName} TargetPosition: ${this.TargetPosition}`);
     } else {
-      this.service.updateCharacteristic(this.platform.Characteristic.TargetPosition, this.TargetPosition);
+      this.service.updateCharacteristic(this.platform.Characteristic.TargetPosition, Number.isNaN(this.TargetPosition));
       this.platform.device(`Curtain ${this.accessory.displayName} updateCharacteristic TargetPosition: ${this.TargetPosition}`);
     }
     if (this.CurrentAmbientLightLevel === undefined) {
@@ -462,7 +462,7 @@ export class Curtain {
    * Handle requests to set the value of the "Target Position" characteristic
    */
   TargetPositionSet(value: CharacteristicValue) {
-    if ((this.devicesetting.deviceId === this.device.deviceId) && this.devicesetting.ble) {
+    if (this.device.ble) {
       this.TargetPosition = value as number;
       this.platform.log.info('Target position of Curtain setting: ' + this.TargetPosition + '%');
       clearTimeout(this.moveTimer);
@@ -674,13 +674,13 @@ export class Curtain {
   }
 
   public setMinMax() {
-    if (this.devicesetting.curtain?.set_min && (this.devicesetting.deviceId === this.device.deviceId)) {
-      if (this.CurrentPosition <= this.devicesetting.curtain?.set_min) {
+    if (this.device.curtain?.set_min) {
+      if (this.CurrentPosition <= this.device.curtain?.set_min) {
         this.CurrentPosition = 0;
       }
     }
-    if (this.devicesetting.curtain?.set_max && (this.devicesetting.deviceId === this.device.deviceId)) {
-      if (this.CurrentPosition >= this.devicesetting.curtain?.set_max) {
+    if (this.device.curtain?.set_max) {
+      if (this.CurrentPosition >= this.device.curtain?.set_max) {
         this.CurrentPosition = 100;
       }
     }

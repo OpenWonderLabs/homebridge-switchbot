@@ -2,7 +2,7 @@ import { Service, PlatformAccessory, CharacteristicValue, MacAddress } from 'hom
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
-import { DeviceURL, device, DevicesConfig } from '../settings';
+import { DeviceURL, device, devicesConfig } from '../settings';
 
 /**
  * Platform Accessory
@@ -41,14 +41,13 @@ export class Motion {
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
-    public device: device,
-    public devicesetting: DevicesConfig,
+    public device: device & devicesConfig,
   ) {
     // default placeholders
     this.MotionDetected = false;
 
     // BLE Connection
-    if (devicesetting.ble && (devicesetting.deviceId === device.deviceId)) {
+    if (device.ble) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const SwitchBot = require('node-switchbot');
       this.switchbot = new SwitchBot();
@@ -70,7 +69,7 @@ export class Motion {
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-WOMOTION-W1101500')
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId);
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
     // get the Battery service if it exists, otherwise create a new Motion service
     // you can create multiple services for each accessory
@@ -107,7 +106,7 @@ export class Motion {
    * Parse the device status from the SwitchBot api
    */
   async parseStatus() {
-    if (this.devicesetting.ble && (this.devicesetting.deviceId === this.device.deviceId)) {
+    if (this.device.ble) {
       this.platform.device('BLE');
       await this.BLEparseStatus();
     } else {
@@ -130,7 +129,7 @@ export class Motion {
    * Asks the SwitchBot API for the latest device information
    */
   async refreshStatus() {
-    if (this.devicesetting.ble && (this.devicesetting.deviceId === this.device.deviceId)) {
+    if (this.device.ble) {
       this.platform.device('BLE');
       await this.BLErefreshStatus();
     } else {

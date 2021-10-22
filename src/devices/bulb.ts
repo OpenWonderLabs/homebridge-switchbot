@@ -2,7 +2,7 @@ import { Service, PlatformAccessory, CharacteristicValue, MacAddress } from 'hom
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device, DevicesConfig } from '../settings';
+import { DeviceURL, device, devicesConfig } from '../settings';
 
 /**
  * Platform Accessory
@@ -43,13 +43,12 @@ export class Bulb {
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
-    public device: device,
-    public devicesetting: DevicesConfig,
+    public device: device & devicesConfig,
   ) {
     // default placeholders
     this.On = false;
     this.Brightness = 0;
-    if ((devicesetting.deviceId === device.deviceId) && devicesetting.ble) {
+    if (device.ble) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const SwitchBot = require('node-switchbot');
       this.switchbot = new SwitchBot();
@@ -72,7 +71,7 @@ export class Bulb {
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-BULB-W1401400')
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId);
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
@@ -150,8 +149,8 @@ export class Bulb {
   }
 
   private minStep(): number | undefined {
-    if (this.devicesetting.bulb?.set_minStep) {
-      this.set_minStep = this.devicesetting.bulb?.set_minStep;
+    if (this.device.bulb?.set_minStep) {
+      this.set_minStep = this.device.bulb?.set_minStep;
     } else {
       this.set_minStep = 1;
     }

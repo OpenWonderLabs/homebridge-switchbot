@@ -2,7 +2,7 @@ import { Service, PlatformAccessory, CharacteristicValue, MacAddress } from 'hom
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device, DevicesConfig } from '../settings';
+import { DeviceURL, device, devicesConfig } from '../settings';
 
 /**
  * Platform Accessory
@@ -39,16 +39,15 @@ export class Bot {
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
-    public device: device,
-    public devicesetting: DevicesConfig,
+    public device: device & devicesConfig,
   ) {
     // default placeholders
     this.SwitchOn = false;
     this.ScanDuration = this.platform.config.options!.refreshRate!;
-    if (devicesetting.bot?.mode !== 'switch' && (devicesetting.deviceId === device.deviceId)) {
+    if (device.bot?.mode !== 'switch') {
       this.OutletInUse = true;
     }
-    if ((devicesetting.deviceId === device.deviceId) && devicesetting.ble) {
+    if (device.ble) {
       this.SwitchOn = false;
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const SwitchBot = require('node-switchbot');
@@ -75,7 +74,7 @@ export class Bot {
 
     // get the LightBulb service if it exists, otherwise create a new LightBulb service
     // you can create multiple services for each accessory
-    if (devicesetting.bot?.mode === 'switch' && (devicesetting.deviceId === device.deviceId)) {
+    if (device.bot?.mode === 'switch') {
       (this.service =
         accessory.getService(this.platform.Service.Switch) ||
         accessory.addService(this.platform.Service.Switch)), `${accessory.displayName} Switch`;
@@ -133,7 +132,7 @@ export class Bot {
    * Parse the device status from the SwitchBot api
    */
   async parseStatus() {
-    if (this.devicesetting.ble) {
+    if (this.device.ble) {
       this.platform.device('BLE');
       await this.BLEparseStatus();
     } else {
@@ -147,7 +146,7 @@ export class Bot {
   }
 
   private async openAPIparseStatus() {
-    if (this.devicesetting.bot?.mode !== 'switch') {
+    if (this.device.bot?.mode !== 'switch') {
       this.OutletInUse = true;
       this.SwitchOn = false;
       this.platform.debug(`Bot ${this.accessory.displayName} OutletInUse: ${this.OutletInUse} On: ${this.SwitchOn}`);
@@ -161,7 +160,7 @@ export class Bot {
    * Asks the SwitchBot API for the latest device information
    */
   async refreshStatus() {
-    if (this.devicesetting.ble) {
+    if (this.device.ble) {
       this.platform.device('BLE');
       await this.BLErefreshStatus();
     } else {
@@ -249,7 +248,7 @@ export class Bot {
    * Bot   -    "command"     "press"     "default"	  =        trigger press
    */
   async pushChanges() {
-    if (this.devicesetting.ble) {
+    if (this.device.ble) {
       this.platform.device('BLE');
       await this.BLEpushChanges();
     } else {
@@ -316,15 +315,15 @@ export class Bot {
       parameter: 'default',
     } as any;
 
-    if (this.devicesetting.bot?.mode === 'switch' && (this.SwitchOn)) {
+    if (this.device.bot?.mode === 'switch' && (this.SwitchOn)) {
       payload.command = 'turnOn';
       this.SwitchOn = true;
       this.platform.debug(`Switch Mode, Turning ${this.SwitchOn}`);
-    } else if (this.devicesetting.bot?.mode === 'switch' && (!this.SwitchOn)) {
+    } else if (this.device.bot?.mode === 'switch' && (!this.SwitchOn)) {
       payload.command = 'turnOff';
       this.SwitchOn = false;
       this.platform.debug(`Switch Mode, Turning ${this.SwitchOn}`);
-    } else if (this.devicesetting.bot?.mode === 'press') {
+    } else if (this.device.bot?.mode === 'press') {
       payload.command = 'press';
       this.platform.debug('Press Mode');
       this.SwitchOn = false;
@@ -360,18 +359,18 @@ export class Bot {
       this.service.updateCharacteristic(this.platform.Characteristic.On, this.SwitchOn);
       this.platform.device(`Bot ${this.accessory.displayName} updateCharacteristic On: ${this.SwitchOn}`);
     }
-    if (this.OutletInUse === undefined || this.devicesetting.bot?.mode === 'switch') {
-      this.platform.debug(`Bot ${this.accessory.displayName} On: ${this.OutletInUse}, Switch: ${this.devicesetting.bot?.mode}`);
+    if (this.OutletInUse === undefined || this.device.bot?.mode === 'switch') {
+      this.platform.debug(`Bot ${this.accessory.displayName} On: ${this.OutletInUse}, Switch: ${this.device.bot?.mode}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.OutletInUse, this.OutletInUse);
       this.platform.device(`Bot ${this.accessory.displayName} updateCharacteristic On: ${this.OutletInUse},`
-        + ` Switch: ${this.devicesetting.bot?.mode}`);
+        + ` Switch: ${this.device.bot?.mode}`);
     }
   }
 
   public apiError(e: any) {
     this.service.updateCharacteristic(this.platform.Characteristic.On, e);
-    if (this.devicesetting.bot?.mode !== 'switch') {
+    if (this.device.bot?.mode !== 'switch') {
       this.service.updateCharacteristic(this.platform.Characteristic.OutletInUse, e);
     }
   }
@@ -408,7 +407,7 @@ export class Bot {
    * Handle requests to set the "On" characteristic
    */
   private handleOnSet(value: CharacteristicValue) {
-    if (this.devicesetting.ble) {
+    if (this.device.ble) {
       this.TargetState = value as boolean;
       this.platform.device(`Bot BLE Device - ${this.TargetState}`);
       if (this.TargetState === this.SwitchOn) {

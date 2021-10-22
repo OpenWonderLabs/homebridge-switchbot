@@ -33,12 +33,12 @@ export type options = {
   refreshRate?: number;
   pushRate?: number;
   debug?: string;
-  devices?: Array<DevicesConfig>;
+  devices?: Array<devicesConfig>;
 };
 
-export type DevicesConfig = {
+export interface devicesConfig extends device, irdevice {
   type?: string;
-  deviceId?: string;
+  deviceId: string;
   bot?: bot;
   meter?: meter;
   humidifier?: humidifier;
@@ -48,8 +48,8 @@ export type DevicesConfig = {
   irair?: irair;
   other?: other;
   ble?: string;
-  hide_device: boolean;
-};
+  hide_device?: boolean;
+}
 
 export type meter = {
   unit?: number;
@@ -132,7 +132,7 @@ export type deviceList = {
 
 export type device = {
   //device ID.
-  deviceId: string;
+  deviceId?: string;
   //device name.
   deviceName: string;
   //device type.
@@ -161,7 +161,7 @@ export type infraredRemoteList = {
 };
 
 export type irdevice = {
-  deviceId: string; //device ID
+  deviceId?: string; //device ID
   deviceName: string; //device name
   remoteType: string; //device type
   hubDeviceId: string; //remote device's parent Hub ID

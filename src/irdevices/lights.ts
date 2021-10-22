@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
-import { DevicesConfig, DeviceURL, irdevice } from '../settings';
+import { devicesConfig, DeviceURL, irdevice } from '../settings';
 
 /**
  * Platform Accessory
@@ -16,15 +16,14 @@ export class Light {
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
-    public device: irdevice,
-    public devicesetting: DevicesConfig,
+    public device: irdevice & devicesConfig,
   ) {
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId);
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory

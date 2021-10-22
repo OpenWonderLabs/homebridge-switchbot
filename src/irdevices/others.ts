@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
-import { DevicesConfig, DeviceURL, irdevice } from '../settings';
+import { devicesConfig, DeviceURL, irdevice } from '../settings';
 
 /**
  * Platform Accessory
@@ -16,20 +16,19 @@ export class Others {
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
-    public device: irdevice,
-    public devicesetting: DevicesConfig,
+    public device: irdevice & devicesConfig,
   ) {
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId);
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
     this.service = accessory.getService(this.platform.Service.Fanv2);
-    if (!this.service && devicesetting?.other?.deviceType === 'Fan') {
+    if (!this.service && device?.other?.deviceType === 'Fan') {
       this.service = accessory.addService(this.platform.Service.Fanv2, `${accessory.displayName} Fan`);
 
       this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -63,13 +62,13 @@ export class Others {
    */
   async pushOnChanges() {
     if (this.platform.config.options) {
-      if (this.devicesetting.other) {
-        if (this.devicesetting.other.commandOn) {
+      if (this.device.other) {
+        if (this.device.other.commandOn) {
           if (this.Active) {
             const payload = {
               commandType: 'customize',
               parameter: 'default',
-              command: `${this.devicesetting.other.commandOn}`,
+              command: `${this.device.other.commandOn}`,
             } as any;
             await this.pushChanges(payload);
           }
@@ -86,13 +85,13 @@ export class Others {
 
   async pushOffChanges() {
     if (this.platform.config.options) {
-      if (this.devicesetting.other) {
-        if (this.devicesetting.other.commandOff) {
+      if (this.device.other) {
+        if (this.device.other.commandOff) {
           if (!this.Active) {
             const payload = {
               commandType: 'customize',
               parameter: 'default',
-              command: `${this.devicesetting.other.commandOff}`,
+              command: `${this.device.other.commandOff}`,
             } as any;
             await this.pushChanges(payload);
           }

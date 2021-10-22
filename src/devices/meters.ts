@@ -2,7 +2,7 @@ import { Service, PlatformAccessory, Units, CharacteristicValue, MacAddress } fr
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
-import { DeviceURL, device, DevicesConfig } from '../settings';
+import { DeviceURL, device, devicesConfig } from '../settings';
 
 /**
  * Platform Accessory
@@ -50,8 +50,7 @@ export class Meter {
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
-    public device: device,
-    public devicesetting: DevicesConfig,
+    public device: device & devicesConfig,
   ) {
     // default placeholders
     this.BatteryLevel = 0;
@@ -61,7 +60,7 @@ export class Meter {
     this.CurrentTemperature = 0;
 
     // BLE Connection
-    if (devicesetting.ble && (devicesetting.deviceId === device.deviceId)) {
+    if (device.ble) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const SwitchBot = require('node-switchbot');
       this.switchbot = new SwitchBot();
@@ -106,7 +105,7 @@ export class Meter {
     this.service.setCharacteristic(this.platform.Characteristic.ChargingState, 2);
 
     // Temperature Sensor Service
-    if (devicesetting.meter?.hide_temperature && (devicesetting.deviceId === device.deviceId)) {
+    if (device.meter?.hide_temperature) {
       this.platform.device('Removing Temperature Sensor Service');
       this.temperatureservice = this.accessory.getService(this.platform.Service.TemperatureSensor);
       accessory.removeService(this.temperatureservice!);
@@ -128,14 +127,14 @@ export class Meter {
           minStep: 0.1,
         })
         .onGet(() => {
-          return this.CurrentTemperature;
+          return Number.isNaN(this.CurrentTemperature);
         });
     } else {
       this.platform.device('Temperature Sensor Not Added');
     }
 
     // Humidity Sensor Service
-    if (devicesetting.meter?.hide_humidity && (devicesetting.deviceId === device.deviceId)) {
+    if (device.meter?.hide_humidity) {
       this.platform.device('Removing Humidity Sensor Service');
       this.humidityservice = this.accessory.getService(this.platform.Service.HumiditySensor);
       accessory.removeService(this.humidityservice!);
@@ -174,7 +173,7 @@ export class Meter {
    * Parse the device status from the SwitchBot api
    */
   async parseStatus() {
-    if (this.devicesetting.ble && (this.devicesetting.deviceId === this.device.deviceId)) {
+    if (this.device.ble) {
       this.platform.device('BLE');
       await this.BLEparseStatus();
     } else {
@@ -210,8 +209,8 @@ export class Meter {
       this.StatusLowBattery = 0;
     }
     // Current Relative Humidity
-    if (!this.devicesetting.meter?.hide_humidity && (this.devicesetting.deviceId === this.device.deviceId)) {
-      if (this.devicesetting.ble && (this.devicesetting.deviceId === this.device.deviceId)) {
+    if (!this.device.meter?.hide_humidity) {
+      if (this.device.ble) {
         this.CurrentRelativeHumidity = this.BLEHumidity;
       } else {
         this.CurrentRelativeHumidity = this.deviceStatus.body.humidity!;
@@ -220,16 +219,16 @@ export class Meter {
     }
 
     // Current Temperature
-    if (!this.devicesetting.meter?.hide_temperature && (this.devicesetting.deviceId === this.device.deviceId)) {
-      if (this.devicesetting.ble && (this.devicesetting.deviceId === this.device.deviceId)) {
+    if (!this.device.meter?.hide_temperature) {
+      if (this.device.ble) {
         this.CurrentTemperature = this.BLEtemperature;
       } else {
-        if (this.devicesetting.meter?.unit === 1 && (this.devicesetting.deviceId === this.device.deviceId)) {
+        if (this.device.meter?.unit === 1) {
           this.CurrentTemperature = this.toFahrenheit(this.deviceStatus.body.temperature!);
-        } else if (this.devicesetting.meter?.unit === 0 && (this.devicesetting.deviceId === this.device.deviceId)) {
+        } else if (this.device.meter?.unit === 0) {
           this.CurrentTemperature = this.toCelsius(this.deviceStatus.body.temperature!);
         } else {
-          this.CurrentTemperature = this.deviceStatus.body.temperature!;
+          this.CurrentTemperature = this.deviceStatus.body.temperature;
         }
       }
       this.platform.debug(`Meter ${this.accessory.displayName} - Temperature: ${this.CurrentTemperature}°c`);
@@ -240,7 +239,7 @@ export class Meter {
    * Asks the SwitchBot API for the latest device information
    */
   async refreshStatus() {
-    if (this.devicesetting.ble && (this.devicesetting.deviceId === this.device.deviceId)) {
+    if (this.device.ble) {
       this.platform.device('BLE');
       await this.BLErefreshStatus();
     } else {
@@ -332,15 +331,13 @@ export class Meter {
       this.service.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
       this.platform.device(`Meter ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
     }
-    if ((this.devicesetting.meter?.hide_humidity && (this.devicesetting.deviceId === this.device.deviceId))
-    && this.CurrentRelativeHumidity === undefined) {
+    if (this.device.meter?.hide_humidity && this.CurrentRelativeHumidity === undefined) {
       this.platform.debug(`Meter ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
     } else {
       this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
       this.platform.device(`Meter ${this.accessory.displayName} updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
     }
-    if ((this.devicesetting.meter?.hide_temperature && (this.devicesetting.deviceId === this.device.deviceId))
-    && this.CurrentTemperature === undefined) {
+    if (this.device.meter?.hide_temperature || this.CurrentTemperature === undefined) {
       this.platform.debug(`Meter ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
     } else {
       this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
@@ -351,10 +348,10 @@ export class Meter {
   public apiError(e: any) {
     this.service.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
     this.service.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
-    if (!this.devicesetting.meter?.hide_humidity && (this.devicesetting.deviceId === this.device.deviceId)) {
+    if (!this.device.meter?.hide_humidity) {
       this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, e);
     }
-    if (!this.devicesetting.meter?.hide_temperature && (this.devicesetting.deviceId === this.device.deviceId)) {
+    if (!this.device.meter?.hide_temperature) {
       this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
     }
   }

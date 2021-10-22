@@ -2,7 +2,7 @@ import { Service, PlatformAccessory, CharacteristicValue, MacAddress } from 'hom
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device, DevicesConfig } from '../settings';
+import { DeviceURL, device, devicesConfig } from '../settings';
 
 export class Plug {
   // Services
@@ -36,15 +36,14 @@ export class Plug {
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
-    public device: device,
-    public devicesetting: DevicesConfig,
+    public device: device & devicesConfig,
   ) {
     // default placeholders
     this.On = false;
     this.OutletInUse = true;
 
     // BLE Connections
-    if (devicesetting.ble && (devicesetting.deviceId === device.deviceId)) {
+    if (device.ble) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const SwitchBot = require('node-switchbot');
       this.switchbot = new SwitchBot();
@@ -133,7 +132,7 @@ export class Plug {
   }
 
   async refreshStatus() {
-    if (this.devicesetting.ble && (this.devicesetting.deviceId === this.device.deviceId)) {
+    if (this.device.ble) {
       this.platform.device('BLE');
       await this.BLErefreshStatus();
     } else {
