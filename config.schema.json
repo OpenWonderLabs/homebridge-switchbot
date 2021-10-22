@@ -61,6 +61,18 @@
                       ]
                     },
                     {
+                      "title": "Contact Sensor",
+                      "enum": [
+                        "Contact Sensor"
+                      ]
+                    },
+                    {
+                      "title": "Motion Sensor",
+                      "enum": [
+                        "Motion Sensor"
+                      ]
+                    },
+                    {
                       "title": "Humidifier",
                       "enum": [
                         "Humidifier"
