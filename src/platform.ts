@@ -652,9 +652,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   private isCurtainGrouped(device: device & devicesConfig) {
+    this.log.error(`deviceId: ${device.deviceId}, curtainDevicesIds: ${device.curtainDevicesIds},`
+      + ` master: ${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group}`);
+
     if (device.group && !device.curtain?.disable_group) {
+      this.log.warn(`[Curtain Config] disable_group: ${device.curtain?.disable_group}`);
       return device.master && !device.hide_device && device.enableCloudService;
     } else {
+      this.log.warn(`[Curtain Config] disable_group: ${device.curtain?.disable_group}, UnGrouping ${device.master}`);
       return !device.hide_device && device.enableCloudService;
     }
   }

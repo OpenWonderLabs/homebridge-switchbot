@@ -1,12 +1,12 @@
 # This workflow will run tests using node and then publish a package to GitHub Packages when a release is created
 # For more information see: https://help.github.com/actions/language-and-framework-guides/publishing-nodejs-packages
 
-name: Beta
+name: Alpha
 
 on:
   push:
     branches:
-      - beta
+      - alpha
 
 jobs:
   build:
@@ -39,7 +39,7 @@ jobs:
           registry-url: https://registry.npmjs.org/
       - run: npm ci
       - run: node .github/workflows/prerelease.js
-      - run: npm --no-git-tag-version version prerelease-beta --preid=beta
-      - run: npm publish --tag=beta 
+      - run: npm --no-git-tag-version version prerelease-alpha --preid=alpha
+      - run: npm publish --tag=alpha 
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}

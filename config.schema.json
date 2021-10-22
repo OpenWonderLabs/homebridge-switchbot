@@ -443,75 +443,75 @@
       ]
     },
     {
+      "key": "options.devices",
+      "notitle": false,
+      "add": "Add Another Device",
+      "type": "fieldset",
+      "title": "Optional Device Settings",
+      "expandable": true,
+      "expanded": false,
+      "orderable": false,
+      "buttonText": "Add Device",
+      "items": [
+        {
+          "type": "div",
+          "displayFlex": true,
+          "flex-direction": "column",
+          "items": [
+            "options.devices[].type",
+            "options.devices[].deviceId",
+            "options.devices[].hide_device",
+            "options.devices[].ble",
+            "options.devices[].bot.mode",
+            "options.devices[].bot.switch",
+            "options.devices[].meter.hide_temperature",
+            "options.devices[].meter.hide_humidity",
+            "options.devices[].meter.unit",
+            "options.devices[].humidifier.set_minStep",
+            "options.devices[].humidifier.hide_temperature",
+            "options.devices[].curtain.disable_group",
+            "options.devices[].curtain.refreshRate",
+            "options.devices[].curtain.set_minStep",
+            "options.devices[].curtain.set_min",
+            "options.devices[].curtain.set_max",
+            "options.devices[].bulb.set_minStep",
+            "options.devices[].fan.rotation_speed",
+            "options.devices[].fan.set_minStep",
+            "options.devices[].fan.set_min",
+            "options.devices[].fan.set_max",
+            "options.devices[].fan.swing_mode",
+            "options.devices[].irair.hide_automode",
+            "options.devices[].other.deviceType",
+            "options.devices[].other.commandOn",
+            "options.devices[].other.commandOff"
+          ]
+        }
+      ]
+    },
+    {
       "type": "fieldset",
       "title": "Advanced Settings",
       "expandable": true,
       "expanded": false,
       "items": [
         {
-          "key": "options.devices",
-          "notitle": false,
-          "add": "Add Another Device",
-          "type": "fieldset",
-          "title": "Optional Device Settings",
-          "expandable": true,
-          "expanded": false,
-          "orderable": false,
-          "buttonText": "Add Device",
-          "items": [
-            {
-              "type": "div",
-              "displayFlex": true,
-              "flex-direction": "column",
-              "items": [
-                "options.devices[].type",
-                "options.devices[].deviceId",
-                "options.devices[].hide_device",
-                "options.devices[].ble",
-                "options.devices[].bot.mode",
-                "options.devices[].bot.switch",
-                "options.devices[].meter.hide_temperature",
-                "options.devices[].meter.hide_humidity",
-                "options.devices[].meter.unit",
-                "options.devices[].humidifier.set_minStep",
-                "options.devices[].humidifier.hide_temperature",
-                "options.devices[].curtain.disable_group",
-                "options.devices[].curtain.refreshRate",
-                "options.devices[].curtain.set_minStep",
-                "options.devices[].curtain.set_min",
-                "options.devices[].curtain.set_max",
-                "options.devices[].bulb.set_minStep",
-                "options.devices[].fan.rotation_speed",
-                "options.devices[].fan.set_minStep",
-                "options.devices[].fan.set_min",
-                "options.devices[].fan.set_max",
-                "options.devices[].fan.swing_mode",
-                "options.devices[].irair.hide_automode",
-                "options.devices[].other.deviceType",
-                "options.devices[].other.commandOn",
-                "options.devices[].other.commandOff"
-              ]
-            }
-          ]
-        }
+          "type": "help",
+          "helpvalue": "<h5>Refresh Rate</h5><em class='primary-text'>Refresh Rate indicates the number of seconds between polls of SwitchBot API.</em>"
+        },
+        {
+          "key": "options.refreshRate",
+          "notitle": true
+        },
+        {
+          "type": "help",
+          "helpvalue": "<h5>Push Rate</h5><em class='primary-text'>Push Rate indicates the number of seconds between pushes to SwitchBot API, Currently only for Curtains.</em>"
+        },
+        {
+          "key": "options.pushRate",
+          "notitle": true
+        },
+        "options.debug"
       ]
-    },
-    {
-      "type": "help",
-      "helpvalue": "<h5>Refresh Rate</h5><em class='primary-text'>Refresh Rate indicates the number of seconds between polls of SwitchBot API.</em>"
-    },
-    {
-      "key": "options.refreshRate",
-      "notitle": true
-    },
-    {
-      "type": "help",
-      "helpvalue": "<h5>Push Rate</h5><em class='primary-text'>Push Rate indicates the number of seconds between pushes to SwitchBot API, Currently only for Curtains.</em>"
-    },
-    {
-      "key": "options.pushRate",
-      "notitle": true
-    },
-    "options.debug"
+    }
   ]
 }
