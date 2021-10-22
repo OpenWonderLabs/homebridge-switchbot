@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
-import { DeviceURL, irdevice } from '../settings';
+import { DevicesConfig, DeviceURL, irdevice } from '../settings';
 
 /**
  * Platform Accessory
@@ -32,6 +32,7 @@ export class AirPurifier {
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
     public device: irdevice,
+    public devicesetting: DevicesConfig,
   ) {
     // set accessory information
     accessory

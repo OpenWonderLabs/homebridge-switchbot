@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
-import { DeviceURL, irdevice } from '../settings';
+import { DevicesConfig, DeviceURL, irdevice } from '../settings';
 
 /**
  * Platform Accessory
@@ -17,6 +17,7 @@ export class Others {
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
     public device: irdevice,
+    public devicesetting: DevicesConfig,
   ) {
     // set accessory information
     accessory
@@ -28,7 +29,7 @@ export class Others {
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
     this.service = accessory.getService(this.platform.Service.Fanv2);
-    if (!this.service && this.platform.config.options?.other?.deviceType === 'Fan') {
+    if (!this.service && devicesetting?.other?.deviceType === 'Fan') {
       this.service = accessory.addService(this.platform.Service.Fanv2, `${accessory.displayName} Fan`);
 
       this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -62,13 +63,13 @@ export class Others {
    */
   async pushOnChanges() {
     if (this.platform.config.options) {
-      if (this.platform.config.options!.other) {
-        if (this.platform.config.options!.other.commandOn) {
+      if (this.devicesetting.other) {
+        if (this.devicesetting.other.commandOn) {
           if (this.Active) {
             const payload = {
               commandType: 'customize',
               parameter: 'default',
-              command: `${this.platform.config.options!.other.commandOn}`,
+              command: `${this.devicesetting.other.commandOn}`,
             } as any;
             await this.pushChanges(payload);
           }
@@ -85,13 +86,13 @@ export class Others {
 
   async pushOffChanges() {
     if (this.platform.config.options) {
-      if (this.platform.config.options!.other) {
-        if (this.platform.config.options!.other.commandOff) {
+      if (this.devicesetting.other) {
+        if (this.devicesetting.other.commandOff) {
           if (!this.Active) {
             const payload = {
               commandType: 'customize',
               parameter: 'default',
-              command: `${this.platform.config.options!.other.commandOff}`,
+              command: `${this.devicesetting.other.commandOff}`,
             } as any;
             await this.pushChanges(payload);
           }

@@ -2,7 +2,7 @@ import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device } from '../settings';
+import { DeviceURL, device, DevicesConfig } from '../settings';
 
 /**
  * Platform Accessory
@@ -29,11 +29,13 @@ export class Humidifier {
   // Updates
   humidifierUpdateInProgress!: boolean;
   doHumidifierUpdate;
+  set_minStep: number | undefined;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
     public device: device,
+    public devicesetting: DevicesConfig,
   ) {
     // default placeholders
     this.CurrentRelativeHumidity = 0;
@@ -99,13 +101,13 @@ export class Humidifier {
         validValueRanges: [0, 100],
         minValue: 0,
         maxValue: 100,
-        minStep: this.platform.config.options?.humidifier?.set_minStep || 1,
+        minStep: this.minStep(),
       })
       .onSet(this.handleRelativeHumidityHumidifierThresholdSet.bind(this));
 
     // create a new Temperature Sensor service
     // Temperature Sensor Service
-    if (this.platform.config.options?.humidifier?.hide_temperature) {
+    if (this.devicesetting.humidifier?.hide_temperature && (this.device.deviceId === this.devicesetting.deviceId)) {
       this.platform.device('Removing Temerature Sensor Service');
       this.temperatureservice = this.accessory.getService(this.platform.Service.TemperatureSensor);
       accessory.removeService(this.temperatureservice!);
@@ -165,6 +167,15 @@ export class Humidifier {
       });
   }
 
+  private minStep(): number | undefined {
+    if ((this.device.deviceId === this.devicesetting.deviceId) && this.devicesetting.humidifier?.set_minStep) {
+      this.set_minStep = this.devicesetting.humidifier?.set_minStep;
+    } else {
+      this.set_minStep = 1;
+    }
+    return this.set_minStep;
+  }
+
   /**
    * Parse the device status from the SwitchBot api
    */
@@ -215,7 +226,7 @@ export class Humidifier {
     this.platform.debug(`Humidifier ${this.accessory.displayName} RelativeHumidityHumidifierThreshold: ${this.RelativeHumidityHumidifierThreshold}`);
     this.platform.debug(`Humidifier ${this.accessory.displayName} CurrentHumidifierDehumidifierState: ${this.CurrentHumidifierDehumidifierState}`);
     // Current Temperature
-    if (!this.platform.config.options?.humidifier?.hide_temperature) {
+    if (!this.devicesetting.humidifier?.hide_temperature && (this.device.deviceId === this.devicesetting.deviceId)) {
       this.CurrentTemperature = this.deviceStatus.body.temperature!;
       this.platform.debug(`Humidifier ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
     }
@@ -406,7 +417,8 @@ export class Humidifier {
       this.platform.device(`Humidifier ${this.accessory.displayName}`
         + ` updateCharacteristic RelativeHumidityHumidifierThreshold: ${this.RelativeHumidityHumidifierThreshold}`);
     }
-    if (this.platform.config.options?.humidifier?.hide_temperature && this.CurrentTemperature === undefined) {
+    if ((!this.devicesetting.humidifier?.hide_temperature && (this.device.deviceId === this.devicesetting.deviceId))
+    && this.CurrentTemperature === undefined) {
       this.platform.debug(`Humidifier ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
     } else {
       this.temperatureservice!.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
@@ -421,7 +433,7 @@ export class Humidifier {
     this.service.updateCharacteristic(this.platform.Characteristic.TargetHumidifierDehumidifierState, e);
     this.service.updateCharacteristic(this.platform.Characteristic.Active, e);
     this.service.updateCharacteristic(this.platform.Characteristic.RelativeHumidityHumidifierThreshold, e);
-    if (!this.platform.config.options?.humidifier?.hide_temperature) {
+    if (!this.devicesetting.humidifier?.hide_temperature && (this.device.deviceId === this.devicesetting.deviceId)) {
       this.temperatureservice!.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
     }
   }

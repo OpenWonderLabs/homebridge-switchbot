@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
-import { DeviceURL, irdevice } from '../settings';
+import { DevicesConfig, DeviceURL, irdevice } from '../settings';
 
 /**
  * Platform Accessory
@@ -33,6 +33,7 @@ export class AirConditioner {
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
     public device: irdevice,
+    public devicesetting: DevicesConfig,
   ) {
     // set accessory information
     accessory
@@ -69,7 +70,7 @@ export class AirConditioner {
         return this.CurrentTemperatureGet(Number(value));
       });
 
-    if (this.platform.config.options?.irair?.hide_automode) {
+    if (devicesetting.irair?.hide_automode && (devicesetting.deviceId === device.deviceId)) {
       this.ValidValues = [1, 2];
     } else {
       this.ValidValues = [0, 1, 2];

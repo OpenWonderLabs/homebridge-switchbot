@@ -2,7 +2,7 @@ import { Service, PlatformAccessory, CharacteristicValue, MacAddress } from 'hom
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
-import { DeviceURL, device } from '../settings';
+import { DeviceURL, device, DevicesConfig } from '../settings';
 
 /**
  * Platform Accessory
@@ -42,12 +42,13 @@ export class Motion {
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
     public device: device,
+    public devicesetting: DevicesConfig,
   ) {
     // default placeholders
     this.MotionDetected = false;
 
     // BLE Connection
-    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+    if (devicesetting.ble && (devicesetting.deviceId === device.deviceId)) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const SwitchBot = require('node-switchbot');
       this.switchbot = new SwitchBot();
@@ -106,9 +107,11 @@ export class Motion {
    * Parse the device status from the SwitchBot api
    */
   async parseStatus() {
-    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+    if (this.devicesetting.ble && (this.devicesetting.deviceId === this.device.deviceId)) {
+      this.platform.device('BLE');
       await this.BLEparseStatus();
     } else {
+      this.platform.device('OpenAPI');
       await this.openAPIparseStatus();
     }
   }
@@ -127,9 +130,11 @@ export class Motion {
    * Asks the SwitchBot API for the latest device information
    */
   async refreshStatus() {
-    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+    if (this.devicesetting.ble && (this.devicesetting.deviceId === this.device.deviceId)) {
+      this.platform.device('BLE');
       await this.BLErefreshStatus();
     } else {
+      this.platform.device('OpenAPI');
       await this.openAPIRefreshStatus();
     }
   }

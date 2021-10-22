@@ -32,8 +32,13 @@ export type credentials = {
 export type options = {
   refreshRate?: number;
   pushRate?: number;
-  hide_device: string[];
   debug?: string;
+  devices?: Array<DevicesConfig>;
+};
+
+export type DevicesConfig = {
+  type?: string;
+  deviceId?: string;
   bot?: bot;
   meter?: meter;
   humidifier?: humidifier;
@@ -42,7 +47,8 @@ export type options = {
   fan?: irfan;
   irair?: irair;
   other?: other;
-  ble?: string[];
+  ble?: string;
+  hide_device: boolean;
 };
 
 export type meter = {
@@ -52,9 +58,7 @@ export type meter = {
 };
 
 export type bot = {
-  switch?: boolean;
-  device_switch?: string[];
-  device_press?: string[];
+  mode?: string;
 };
 
 export type humidifier = {
@@ -75,8 +79,8 @@ export type bulb = {
 };
 
 export type irfan = {
-  swing_mode?: string[];
-  rotation_speed?: string[];
+  swing_mode?: boolean;
+  rotation_speed?: boolean;
   set_minStep?: number; //set_minStep
   set_max?: number; //set_max
   set_min?: number; //set_min
@@ -84,19 +88,19 @@ export type irfan = {
 
 //For Potential Future Use
 export type set_minStep = {
-  set_minStep_device?: string[];
+  set_minStep_device?: boolean;
   set_minStep?: number;
 };
 
 //For Potential Future Use
 export type set_max = {
-  set_max_device?: string[];
+  set_max_device?: boolean;
   set_max?: number;
 };
 
 //For Potential Future Use
 export type set_min = {
-  set_min_device?: string[];
+  set_min_device?: boolean;
   set_min?: number;
 };
 

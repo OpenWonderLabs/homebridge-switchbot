@@ -20,7 +20,10 @@
           "openToken": {
             "title": "Token",
             "type": "string",
-            "required": true
+            "required": true,
+            "x-schema-form": {
+              "type": "password"
+            }
           },
           "notice": {
             "title": "Notice",
@@ -32,7 +35,354 @@
       },
       "options": {
         "type": "object",
+        "required": false,
         "properties": {
+          "devices": {
+            "type": "array",
+            "items": {
+              "title": "Devices",
+              "type": "object",
+              "properties": {
+                "type": {
+                  "title": "Device Type",
+                  "type": "string",
+                  "required": true,
+                  "oneOf": [
+                    {
+                      "title": "Bot",
+                      "enum": [
+                        "Bot"
+                      ]
+                    },
+                    {
+                      "title": "Meter",
+                      "enum": [
+                        "Meter"
+                      ]
+                    },
+                    {
+                      "title": "Humidifier",
+                      "enum": [
+                        "Humidifier"
+                      ]
+                    },
+                    {
+                      "title": "Curtain",
+                      "enum": [
+                        "Curtain"
+                      ]
+                    },
+                    {
+                      "title": "Bulb",
+                      "enum": [
+                        "Fan"
+                      ]
+                    },
+                    {
+                      "title": "IR Fan",
+                      "enum": [
+                        "Fan"
+                      ]
+                    },
+                    {
+                      "title": "DIY IR Fan",
+                      "enum": [
+                        "DIY Fan"
+                      ]
+                    },
+                    {
+                      "title": "IR Air Conditioner",
+                      "enum": [
+                        "Air Conditioner"
+                      ]
+                    },
+                    {
+                      "title": "DIY IR Air Conditioner",
+                      "enum": [
+                        "DIY Air Conditioner"
+                      ]
+                    },
+                    {
+                      "title": "Others",
+                      "enum": [
+                        "Others"
+                      ]
+                    }
+                  ]
+                },
+                "deviceId": {
+                  "title": "Device ID",
+                  "type": "string",
+                  "required": true,
+                  "placeholder": "81F3UT59513F",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].type);"
+                  }
+                },
+                "hide_device": {
+                  "title": "Hide Device",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].ble && model.options.devices[arrayIndices].type && model.options.devices[arrayIndices].deviceId);"
+                  }
+                },
+                "ble": {
+                  "title": "Enable BLE Connection",
+                  "type": "boolean",
+                  "required": true,
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type && model.options.devices[arrayIndices].deviceId);"
+                  }
+                },
+                "bot": {
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "title": "Mode",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "Press",
+                          "enum": [
+                            "press"
+                          ]
+                        },
+                        {
+                          "title": "Switch",
+                          "enum": [
+                            "switch"
+                          ]
+                        }
+                      ],
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Bot' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "switch": {
+                      "title": "Display as Switch",
+                      "type": "boolean",
+                      "description": "This allows you to display bot as a switch.",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Bot' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].bot && model.options.devices[arrayIndices].bot.mode);"
+                      }
+                    }
+                  }
+                },
+                "meter": {
+                  "type": "object",
+                  "properties": {
+                    "hide_temperature": {
+                      "title": "Hide Meter's Temperature Sensor",
+                      "type": "boolean",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Meter' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "hide_humidity": {
+                      "title": "Hide Meter's Humidity Sensor",
+                      "type": "boolean",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Meter' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "unit": {
+                      "title": "Convert your Meter's Temperature to Celsius or Fahrenheit",
+                      "type": "number",
+                      "oneOf": [
+                        {
+                          "title": "Celsius",
+                          "enum": [
+                            0
+                          ]
+                        },
+                        {
+                          "title": "Fahrenheit",
+                          "enum": [
+                            1
+                          ]
+                        }
+                      ],
+                      "required": false,
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Meter' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].meter  && !model.options.devices[arrayIndices].meter.hide_temperature);"
+                      }
+                    }
+                  }
+                },
+                "humidifier": {
+                  "type": "object",
+                  "properties": {
+                    "hide_temperature": {
+                      "title": "Hide Humidifier's Temperature Sensor",
+                      "type": "boolean",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Humidifier' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "set_minStep": {
+                      "title": "Set Min Step",
+                      "type": "number",
+                      "placeholder": "1",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Humidifier' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    }
+                  }
+                },
+                "curtain": {
+                  "type": "object",
+                  "properties": {
+                    "disable_group": {
+                      "title": "Disable Grouping",
+                      "type": "boolean",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "refreshRate": {
+                      "title": "Refresh Rate",
+                      "type": "number",
+                      "minimum": 1,
+                      "placeholder": 5,
+                      "description": "Indicates the number of seconds between before refreshing Curtain status while updating slide progress.",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "set_minStep": {
+                      "title": "Set Min Step",
+                      "type": "number",
+                      "placeholder": "1",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "set_min": {
+                      "title": "Set Min",
+                      "type": "number",
+                      "placeholder": "0",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "set_max": {
+                      "title": "Set Max",
+                      "type": "number",
+                      "placeholder": "100",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    }
+                  }
+                },
+                "bulb": {
+                  "type": "object",
+                  "properties": {
+                    "set_minStep": {
+                      "title": "Set Min Step",
+                      "type": "number",
+                      "placeholder": "1",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Bulb' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    }
+                  }
+                },
+                "fan": {
+                  "type": "object",
+                  "properties": {
+                    "swing_mode": {
+                      "title": "Enable Swing Mode by Device ID",
+                      "type": "boolean",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].type === 'Fan' || model.options.devices[arrayIndices].type === 'DIY Fan') && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "rotation_speed": {
+                      "title": "Enable Rotation Speed by Device ID",
+                      "type": "boolean",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].type === 'Fan' || model.options.devices[arrayIndices].type === 'DIY Fan') && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "set_minStep": {
+                      "title": "Set Min Step",
+                      "type": "number",
+                      "placeholder": "1",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].type === 'Fan' || model.options.devices[arrayIndices].type === 'DIY Fan') && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].fan  && !model.options.devices[arrayIndices].meter.rotation_speed);"
+                      }
+                    },
+                    "set_min": {
+                      "title": "Set Min",
+                      "type": "number",
+                      "placeholder": "0",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].type === 'Fan' || model.options.devices[arrayIndices].type === 'DIY Fan') && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].fan  && !model.options.devices[arrayIndices].meter.rotation_speed);"
+                      }
+                    },
+                    "set_max": {
+                      "title": "Set Max",
+                      "type": "number",
+                      "placeholder": "100",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].type === 'Fan' || model.options.devices[arrayIndices].type === 'DIY Fan') && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].fan  && !model.options.devices[arrayIndices].meter.rotation_speed);"
+                      }
+                    }
+                  }
+                },
+                "irair": {
+                  "type": "object",
+                  "properties": {
+                    "hide_automode": {
+                      "title": "Hide Auto Mode on IR Air Conditioners",
+                      "type": "boolean",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].type === 'Air Conditioner' || model.options.devices[arrayIndices].type === 'DIY Air Conditioner') && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    }
+                  }
+                },
+                "other": {
+                  "type": "object",
+                  "properties": {
+                    "deviceType": {
+                      "title": "What Type of Device do you want to display in the Home App?",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "Fan",
+                          "enum": [
+                            "Fan"
+                          ]
+                        }
+                      ],
+                      "required": false,
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Others' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "commandOn": {
+                      "title": "Command sent to turn On Device.",
+                      "type": "string",
+                      "placeholder": "On",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Others' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].other  && model.options.devices[arrayIndices].other.deviceType);"
+                      }
+                    },
+                    "commandOff": {
+                      "title": "Command sent to turn Off Device.",
+                      "type": "string",
+                      "placeholder": "Off",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Others' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].other  && !model.options.devices[arrayIndices].other.deviceType);"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
           "refreshRate": {
             "title": "Refresh Rate",
             "type": "number",
@@ -65,202 +415,6 @@
               }
             ],
             "required": false
-          },
-          "ble": {
-            "title": "Enable BLE Device",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "hide_device": {
-            "title": "Hide Device",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "bot": {
-            "type": "object",
-            "properties": {
-              "device_switch": {
-                "title": "Switch Mode Bots",
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "device_press": {
-                "title": "Press Mode Bots",
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "switch": {
-                "title": "Display as Switch",
-                "type": "boolean",
-                "description": "This allows you to display bot as a switch."
-              }
-            }
-          },
-          "meter": {
-            "type": "object",
-            "properties": {
-              "hide_temperature": {
-                "title": "Hide Meter's Temperature Sensor",
-                "type": "boolean"
-              },
-              "hide_humidity": {
-                "title": "Hide Meter's Humidity Sensor",
-                "type": "boolean"
-              },
-              "unit": {
-                "title": "Convert your Meter's Temperature to Celsius or Fahrenheit",
-                "type": "number",
-                "oneOf": [
-                  {
-                    "title": "Celsius",
-                    "enum": [
-                      0
-                    ]
-                  },
-                  {
-                    "title": "Fahrenheit",
-                    "enum": [
-                      1
-                    ]
-                  }
-                ],
-                "required": false
-              }
-            }
-          },
-          "humidifier": {
-            "type": "object",
-            "properties": {
-              "hide_temperature": {
-                "title": "Hide Humidifier's Temperature Sensor",
-                "type": "boolean"
-              },
-              "set_minStep": {
-                "title": "Set Min Step",
-                "type": "number",
-                "placeholder": "1"
-              }
-            }
-          },
-          "curtain": {
-            "type": "object",
-            "properties": {
-              "disable_group": {
-                "title": "Disable Grouping",
-                "type": "boolean"
-              },
-              "refreshRate": {
-                "title": "Refresh Rate",
-                "type": "number",
-                "minimum": 1,
-                "placeholder": 5,
-                "description": "Indicates the number of seconds between before refreshing Curtain status while updating slide progress."
-              },
-              "set_minStep": {
-                "title": "Set Min Step",
-                "type": "number",
-                "placeholder": "1"
-              },
-              "set_min": {
-                "title": "Set Min",
-                "type": "number",
-                "placeholder": "0"
-              },
-              "set_max": {
-                "title": "Set Max",
-                "type": "number",
-                "placeholder": "100"
-              }
-            }
-          },
-          "bulb": {
-            "type": "object",
-            "properties": {
-              "set_minStep": {
-                "title": "Set Min Step",
-                "type": "number",
-                "placeholder": "1"
-              }
-            }
-          },
-          "fan": {
-            "type": "object",
-            "properties": {
-              "swing_mode": {
-                "title": "Enable Swing Mode by Device ID",
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "rotation_speed": {
-                "title": "Enable Rotation Speed by Device ID",
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "set_minStep": {
-                "title": "Set Min Step",
-                "type": "number",
-                "placeholder": "1"
-              },
-              "set_min": {
-                "title": "Set Min",
-                "type": "number",
-                "placeholder": "0"
-              },
-              "set_max": {
-                "title": "Set Max",
-                "type": "number",
-                "placeholder": "100"
-              }
-            }
-          },
-          "irair": {
-            "type": "object",
-            "properties": {
-              "hide_automode": {
-                "title": "Hide Auto Mode on IR Air Conditioners",
-                "type": "boolean"
-              }
-            }
-          },
-          "other": {
-            "type": "object",
-            "properties": {
-              "deviceType": {
-                "title": "What Type of Device do you want to display in the Home App?",
-                "type": "string",
-                "oneOf": [
-                  {
-                    "title": "Fan",
-                    "enum": [
-                      "Fan"
-                    ]
-                  }
-                ],
-                "required": false
-              },
-              "commandOn": {
-                "title": "Command sent to turn On Device.",
-                "type": "string",
-                "placeholder": "On"
-              },
-              "commandOff": {
-                "title": "Command sent to turn Off Device.",
-                "type": "string",
-                "placeholder": "Off"
-              }
-            }
           }
         }
       }
@@ -283,276 +437,69 @@
       "expanded": false,
       "items": [
         {
-          "type": "help",
-          "helpvalue": "<h5>Refresh Rate</h5><em class='primary-text'>Refresh Rate indicates the number of seconds between polls of SwitchBot API.</em>"
-        },
-        {
-          "key": "options.refreshRate",
-          "notitle": true
-        },
-        {
-          "type": "help",
-          "helpvalue": "<h5>Push Rate</h5><em class='primary-text'>Push Rate indicates the number of seconds between pushes to SwitchBot API, Currently only for Curtains.</em>"
-        },
-        {
-          "key": "options.pushRate",
-          "notitle": true
-        },
-        "options.debug",
-        {
+          "key": "options.devices",
+          "notitle": false,
+          "add": "Add Another Device",
           "type": "fieldset",
-          "title": "BLE Settings",
+          "title": "Optional Device Settings",
           "expandable": true,
           "expanded": false,
+          "orderable": false,
+          "buttonText": "Add Device",
           "items": [
             {
-              "type": "help",
-              "helpvalue": "<h5>BLE Settings</h5><em class='primary-text'>Enables Bluetooth Connection, based off deviceID.</em>"
-            },
-            {
-              "key": "options.ble",
-              "notitle": true,
-              "add": "Add Another Device",
-              "type": "array",
+              "type": "div",
+              "displayFlex": true,
+              "flex-direction": "column",
               "items": [
-                {
-                  "type": "div",
-                  "displayFlex": true,
-                  "flex-direction": "row",
-                  "items": [
-                    {
-                      "key": "options.ble[]",
-                      "placeholder": "81F3UT59513F"
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "fieldset",
-          "title": "Hidden Devices",
-          "expandable": true,
-          "expanded": false,
-          "items": [
-            {
-              "type": "help",
-              "helpvalue": "<h5>Hide Device</h5><em class='primary-text'>Hide Device allows you to hide a device using it's deviceID.</em>"
-            },
-            {
-              "key": "options.hide_device",
-              "notitle": true,
-              "add": "Add Another Device",
-              "type": "array",
-              "items": [
-                {
-                  "type": "div",
-                  "displayFlex": true,
-                  "flex-direction": "row",
-                  "items": [
-                    {
-                      "key": "options.hide_device[]",
-                      "placeholder": "81F3UT59513F"
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "fieldset",
-          "title": "SwitchBot Device Settings",
-          "expandable": true,
-          "expanded": false,
-          "items": [
-            {
-              "type": "fieldset",
-              "title": "Bot Settings",
-              "expandable": true,
-              "expanded": false,
-              "items": [
-                {
-                  "key": "options.bot.device_switch",
-                  "notitle": false,
-                  "add": "Add Another Bot in Switch Mode",
-                  "type": "array",
-                  "items": [
-                    {
-                      "type": "div",
-                      "displayFlex": true,
-                      "flex-direction": "row",
-                      "items": [
-                        {
-                          "key": "options.bot.device_switch[]",
-                          "placeholder": "81F3UT59513F"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "key": "options.bot.device_press",
-                  "notitle": false,
-                  "add": "Add Another Bot in Press Mode",
-                  "type": "array",
-                  "items": [
-                    {
-                      "type": "div",
-                      "displayFlex": true,
-                      "flex-direction": "row",
-                      "items": [
-                        {
-                          "key": "options.bot.device_press[]",
-                          "placeholder": "81F3UT59513F"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                "options.bot.switch"
-              ]
-            },
-            {
-              "type": "fieldset",
-              "title": "Meter Settings",
-              "expandable": true,
-              "expanded": false,
-              "items": [
-                "options.meter.hide_temperature",
-                "options.meter.hide_humidity",
-                "options.meter.unit"
-              ]
-            },
-            {
-              "type": "fieldset",
-              "title": "Humidifier Settings",
-              "expandable": true,
-              "expanded": false,
-              "items": [
-                "options.humidifier.set_minStep",
-                "options.humidifier.hide_temperature"
-              ]
-            },
-            {
-              "type": "fieldset",
-              "title": "Curtain Settings",
-              "expandable": true,
-              "expanded": false,
-              "items": [
-                "options.curtain.disable_group",
-                "options.curtain.refreshRate",
-                "options.curtain.set_minStep",
-                "options.curtain.set_min",
-                "options.curtain.set_max"
-              ]
-            },
-            {
-              "type": "fieldset",
-              "title": "Bulb Settings",
-              "expandable": true,
-              "expanded": false,
-              "items": [
-                "options.bulb.set_minStep"
-              ]
-            }
-          ]
-        },
-        {
-          "type": "fieldset",
-          "title": "IR Device Settings",
-          "expandable": true,
-          "expanded": false,
-          "items": [
-            {
-              "type": "fieldset",
-              "title": "Fan Settings",
-              "expandable": true,
-              "expanded": false,
-              "items": [
-                {
-                  "type": "fieldset",
-                  "title": "Rotation Speed Settings",
-                  "expandable": true,
-                  "expanded": false,
-                  "items": [
-                    {
-                      "key": "options.fan.rotation_speed",
-                      "notitle": false,
-                      "add": "Add Another Fan Device ID to Enable Rotation Speed on Device",
-                      "type": "array",
-                      "items": [
-                        {
-                          "type": "div",
-                          "displayFlex": true,
-                          "flex-direction": "row",
-                          "items": [
-                            {
-                              "key": "options.fan.rotation_speed[]",
-                              "placeholder": "81F3UT59513F"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    "options.fan.set_minStep",
-                    "options.fan.set_min",
-                    "options.fan.set_max"
-                  ]
-                },
-                {
-                  "type": "fieldset",
-                  "title": "Swing Mode Settings",
-                  "expandable": true,
-                  "expanded": false,
-                  "items": [
-                    {
-                      "key": "options.fan.swing_mode",
-                      "notitle": false,
-                      "add": "Add Another Fan Device ID to Enable Swing Mode on Device",
-                      "type": "array",
-                      "items": [
-                        {
-                          "type": "div",
-                          "displayFlex": true,
-                          "flex-direction": "row",
-                          "items": [
-                            {
-                              "key": "options.fan.swing_mode[]",
-                              "placeholder": "81F3UT59513F"
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "fieldset",
-              "title": "Air Conditioner Settings",
-              "expandable": true,
-              "expanded": false,
-              "items": [
-                "options.irair.hide_automode"
-              ]
-            },
-            {
-              "type": "fieldset",
-              "title": "Others Settings",
-              "expandable": true,
-              "expanded": false,
-              "items": [
-                "options.other.deviceType",
-                "options.other.commandOn",
-                "options.other.commandOff"
+                "options.devices[].type",
+                "options.devices[].deviceId",
+                "options.devices[].hide_device",
+                "options.devices[].ble",
+                "options.devices[].bot.mode",
+                "options.devices[].bot.switch",
+                "options.devices[].meter.hide_temperature",
+                "options.devices[].meter.hide_humidity",
+                "options.devices[].meter.unit",
+                "options.devices[].humidifier.set_minStep",
+                "options.devices[].humidifier.hide_temperature",
+                "options.devices[].curtain.disable_group",
+                "options.devices[].curtain.refreshRate",
+                "options.devices[].curtain.set_minStep",
+                "options.devices[].curtain.set_min",
+                "options.devices[].curtain.set_max",
+                "options.devices[].bulb.set_minStep",
+                "options.devices[].fan.rotation_speed",
+                "options.devices[].fan.set_minStep",
+                "options.devices[].fan.set_min",
+                "options.devices[].fan.set_max",
+                "options.devices[].fan.swing_mode",
+                "options.devices[].irair.hide_automode",
+                "options.devices[].other.deviceType",
+                "options.devices[].other.commandOn",
+                "options.devices[].other.commandOff"
               ]
             }
           ]
         }
       ]
-    }
+    },
+    {
+      "type": "help",
+      "helpvalue": "<h5>Refresh Rate</h5><em class='primary-text'>Refresh Rate indicates the number of seconds between polls of SwitchBot API.</em>"
+    },
+    {
+      "key": "options.refreshRate",
+      "notitle": true
+    },
+    {
+      "type": "help",
+      "helpvalue": "<h5>Push Rate</h5><em class='primary-text'>Push Rate indicates the number of seconds between pushes to SwitchBot API, Currently only for Curtains.</em>"
+    },
+    {
+      "key": "options.pushRate",
+      "notitle": true
+    },
+    "options.debug"
   ]
 }

@@ -2,7 +2,7 @@ import { Service, PlatformAccessory, CharacteristicValue, MacAddress } from 'hom
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device } from '../settings';
+import { DeviceURL, device, DevicesConfig } from '../settings';
 
 /**
  * Platform Accessory
@@ -38,16 +38,18 @@ export class Bulb {
   // Updates
   bulbUpdateInProgress!: boolean;
   doBulbUpdate;
+  set_minStep: any;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
     public device: device,
+    public devicesetting: DevicesConfig,
   ) {
     // default placeholders
     this.On = false;
     this.Brightness = 0;
-    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+    if ((devicesetting.deviceId === device.deviceId) && devicesetting.ble) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const SwitchBot = require('node-switchbot');
       this.switchbot = new SwitchBot();
@@ -93,7 +95,7 @@ export class Bulb {
     // handle Brightness events using the Brightness characteristic
     this.service.getCharacteristic(this.platform.Characteristic.Brightness)
       .setProps({
-        minStep: this.platform.config.options?.bulb?.set_minStep || 1,
+        minStep: this.minStep(),
         minValue: 0,
         maxValue: 100,
         validValueRanges: [0, 100],
@@ -106,7 +108,7 @@ export class Bulb {
     // handle ColorTemperature events using the ColorTemperature characteristic
     this.service.getCharacteristic(this.platform.Characteristic.ColorTemperature)
       .setProps({
-        minStep: this.platform.config.options?.bulb?.set_minStep || 1,
+        minStep: this.minStep(),
         minValue: 0,
         maxValue: 100,
         validValueRanges: [0, 100],
@@ -145,6 +147,15 @@ export class Bulb {
         }
         this.bulbUpdateInProgress = false;
       });
+  }
+
+  private minStep(): number | undefined {
+    if (this.devicesetting.bulb?.set_minStep) {
+      this.set_minStep = this.devicesetting.bulb?.set_minStep;
+    } else {
+      this.set_minStep = 1;
+    }
+    return this.set_minStep;
   }
 
   parseStatus() {

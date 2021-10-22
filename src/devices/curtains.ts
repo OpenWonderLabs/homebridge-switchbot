@@ -3,7 +3,7 @@ import { Service, PlatformAccessory, CharacteristicValue, MacAddress } from 'hom
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device } from '../settings';
+import { DeviceURL, device, DevicesConfig } from '../settings';
 
 export class Curtain {
   // Services
@@ -33,6 +33,8 @@ export class Curtain {
   PreviousPosition: any;
   Position: any;
   FastScanDuration: number | undefined;
+  set_minStep!: number;
+  refreshRate!: number;
   switchbot!: {
     discover: (
       arg0:
@@ -56,6 +58,7 @@ export class Curtain {
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
     public device: device,
+    public devicesetting: DevicesConfig,
   ) {
     // default placeholders
     this.setMinMax();
@@ -65,7 +68,7 @@ export class Curtain {
     this.ScanDuration = this.platform.config.options!.refreshRate!;
 
     // BLE Connection
-    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+    if ((devicesetting.deviceId === device.deviceId) && devicesetting.ble) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const SwitchBot = require('node-switchbot');
       this.switchbot = new SwitchBot();
@@ -113,7 +116,7 @@ export class Curtain {
     this.service
       .getCharacteristic(this.platform.Characteristic.CurrentPosition)
       .setProps({
-        minStep: this.platform.config.options?.curtain?.set_minStep || 1,
+        minStep: this.minStep(),
         minValue: 0,
         maxValue: 100,
         validValueRanges: [0, 100],
@@ -125,7 +128,7 @@ export class Curtain {
     this.service
       .getCharacteristic(this.platform.Characteristic.TargetPosition)
       .setProps({
-        minStep: this.platform.config.options?.curtain?.set_minStep || 1,
+        minStep: this.minStep(),
         validValueRanges: [0, 100],
       })
       .onSet(this.TargetPositionSet.bind(this));
@@ -156,7 +159,7 @@ export class Curtain {
       });
 
     // update slide progress
-    interval(this.platform.config.options!.curtain!.refreshRate! * 1000)
+    interval(this.curtainRefreshRate() * 1000)
       .pipe(skipWhile(() => this.curtainUpdateInProgress))
       .subscribe(() => {
         if (this.PositionState === this.platform.Characteristic.PositionState.STOPPED) {
@@ -188,10 +191,34 @@ export class Curtain {
       });
   }
 
+  private curtainRefreshRate() {
+    if (this.devicesetting?.curtain?.refreshRate && (this.device.deviceId === this.devicesetting.deviceId)) {
+      this.refreshRate = this.devicesetting?.curtain?.refreshRate;
+    } else {
+      this.refreshRate = 5;
+      if (this.platform.config.options?.debug === 'device') {
+        this.platform.log.warn('Using Default Curtain Refresh Rate.');
+      }
+    }
+
+    return this.refreshRate;
+  }
+
+  private minStep(): number | undefined {
+    if (this.devicesetting.curtain?.set_minStep && (this.device.deviceId === this.devicesetting.deviceId)) {
+      this.set_minStep = this.devicesetting.curtain?.set_minStep;
+    } else {
+      this.set_minStep = 1;
+    }
+    return this.set_minStep;
+  }
+
   async parseStatus() {
-    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+    if ((this.devicesetting.deviceId === this.device.deviceId) && this.devicesetting.ble) {
+      this.platform.device('BLE');
       await this.BLEparseStatus();
     } else {
+      this.platform.device('OpenAPI');
       await this.openAPIparseStatus();
     }
   }
@@ -244,9 +271,11 @@ export class Curtain {
   }
 
   async refreshStatus() {
-    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+    if ((this.devicesetting.deviceId === this.device.deviceId) && this.devicesetting.ble) {
+      this.platform.device('BLE');
       await this.BLErefreshStatus();
     } else {
+      this.platform.device('OpenAPI');
       await this.openAPIRefreshStatus();
     }
   }
@@ -316,9 +345,11 @@ export class Curtain {
   }
 
   async pushChanges() {
-    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+    if ((this.devicesetting.deviceId === this.device.deviceId) && this.devicesetting.ble) {
+      this.platform.device('BLE');
       await this.BLEpushChanges();
     } else {
+      this.platform.device('OpenAPI');
       await this.OpenAPIpushChanges();
     }
   }
@@ -431,7 +462,7 @@ export class Curtain {
    * Handle requests to set the value of the "Target Position" characteristic
    */
   TargetPositionSet(value: CharacteristicValue) {
-    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+    if ((this.devicesetting.deviceId === this.device.deviceId) && this.devicesetting.ble) {
       this.TargetPosition = value as number;
       this.platform.log.info('Target position of Curtain setting: ' + this.TargetPosition + '%');
       clearTimeout(this.moveTimer);
@@ -643,13 +674,13 @@ export class Curtain {
   }
 
   public setMinMax() {
-    if (this.platform.config.options?.curtain?.set_min) {
-      if (this.CurrentPosition <= this.platform.config.options?.curtain?.set_min) {
+    if (this.devicesetting.curtain?.set_min && (this.devicesetting.deviceId === this.device.deviceId)) {
+      if (this.CurrentPosition <= this.devicesetting.curtain?.set_min) {
         this.CurrentPosition = 0;
       }
     }
-    if (this.platform.config.options?.curtain?.set_max) {
-      if (this.CurrentPosition >= this.platform.config.options?.curtain?.set_max) {
+    if (this.devicesetting.curtain?.set_max && (this.devicesetting.deviceId === this.device.deviceId)) {
+      if (this.CurrentPosition >= this.devicesetting.curtain?.set_max) {
         this.CurrentPosition = 100;
       }
     }

@@ -2,7 +2,7 @@ import { Service, PlatformAccessory, CharacteristicValue, MacAddress } from 'hom
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device } from '../settings';
+import { DeviceURL, device, DevicesConfig } from '../settings';
 
 export class IndoorCam {
   // Services
@@ -37,13 +37,14 @@ export class IndoorCam {
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
     public device: device,
+    public devicesetting: DevicesConfig,
   ) {
     // default placeholders
     this.On = false;
     this.OutletInUse = true;
 
     // BLE Connections
-    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+    if ((devicesetting.deviceId === device.deviceId) && devicesetting.ble) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const SwitchBot = require('node-switchbot');
       this.switchbot = new SwitchBot();
@@ -132,9 +133,11 @@ export class IndoorCam {
   }
 
   async refreshStatus() {
-    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+    if ((this.devicesetting.deviceId === this.device.deviceId) && this.devicesetting.ble) {
+      this.platform.device('BLE');
       await this.BLErefreshStatus();
     } else {
+      this.platform.device('OpenAPI');
       await this.openAPIRefreshStatus();
     }
   }
