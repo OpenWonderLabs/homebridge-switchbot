@@ -122,10 +122,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     if (this.config.options.devices) {
       for (const deviceConfig of this.config.options.devices!) {
         if (!deviceConfig.type) {
-          this.log.error('The devices config section is missing the "Type" in the config, check your conifg.');
+          this.log.error('The devices config section is missing the "Type" in the config, Check Your Conifg.');
         }
         if (!deviceConfig.deviceId) {
-          this.log.error('The devices config section is missing the "Device ID" in the config, check your conifg.');
+          this.log.error('The devices config section is missing the "Device ID" in the config, Check Your Conifg.');
         }
       }
     }
@@ -182,8 +182,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } else {
         this.debug(`Config Set: ${JSON.stringify(this.config.options?.devices)}`);
         const deviceConfigs = this.config.options?.devices;
-        // eslint-disable-next-line max-len
-        const devices = deviceLists.map((v: any) => v).map((item, i) => Object.assign({}, item, deviceConfigs.map(v => v)[i]));
+
+        const mergeBydeviceId = (a1: { deviceId: string; }[], a2: any[]) =>
+          a1.map((itm: { deviceId: string; }) => ({
+            ...a2.find((item: { deviceId: string; }) => (item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId) && item),
+            ...itm,
+          }));
+
+        const devices = mergeBydeviceId(deviceLists, deviceConfigs);
         this.debug(JSON.stringify(devices));
         for (const device of devices) {
           if (device.deviceType) {
@@ -193,59 +199,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           }
         }
       }
-      /*
-      // Common deviceIds (ie. Intersection)
-      const common_deviceIds = deviceList_deviceIds.filter(value => deviceConfig_deviceIds.includes(value));
-      this.log.debug(JSON.stringify(common_deviceIds));
-
-      // All deviceIds with no duplicates (ie. union)
-      const unique_deviceIds = [...new Set([...deviceList_deviceIds, ...deviceConfig_deviceIds])];
-      this.log.debug(JSON.stringify(unique_deviceIds));
-
-      // a_deviceIds not in b_deviceIds (ie. subtract)
-      const new_deviceIds = deviceList_deviceIds.filter(n => !deviceConfig_deviceIds.includes(n));
-      this.log.debug(JSON.stringify(new_deviceIds));
-
-      if (unique_deviceIds) {
-        //this.createDevice(device, unique_deviceIds);
-      }
-
-      for (const device of devices.body.deviceList) {
-        this.deviceInfo(device);
-        this.debug(JSON.stringify(device));
-        for (const devicesetting of this.config.options!.devices!) {
-          if (devicesetting) {
-            if (devicesetting.deviceId === device.deviceId) {
-              this.debug(JSON.stringify(device));
-              this.debug(JSON.stringify(devicesetting));
-              this.createDevice(device);
-            }
-          } else {
-            this.debug(JSON.stringify(device));
-            this.createDevice(device, this.devicesetting);
-          }
-        }
-      }
-      for (const device of devices.body.infraredRemoteList) {
-        this.deviceInfo(device);
-        this.debug(JSON.stringify(device));
-        for (const devicesetting of this.config.options!.devices!) {
-          if (devicesetting) {
-            if (devicesetting.deviceId === device.deviceId) {
-              this.debug(JSON.stringify(devicesetting));
-              this.debug(JSON.stringify(device));
-              this.createIRDevice(device);
-            } else {
-              this.devicesetting = devicesetting;
-            }
-          } else {
-            this.debug(JSON.stringify(this.devicesetting));
-            this.debug(JSON.stringify(device));
-            this.createIRDevice(device, this.devicesetting);
-          }
-        }
-      }
-      */
     } catch (e: any) {
       this.log.error('Failed to Discover Devices.', JSON.stringify(e.message));
       this.debug(JSON.stringify(e));

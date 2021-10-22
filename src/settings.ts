@@ -37,6 +37,7 @@ export type options = {
 };
 
 export interface devicesConfig extends device, irdevice {
+  id: any;
   type?: string;
   deviceId: string;
   bot?: bot;
