@@ -47,7 +47,7 @@
     "ir"
   ],
   "dependencies": {
-    "axios": "^0.21.4",
+    "axios": "^0.23.0",
     "rxjs": "^7.3.0",
     "node-switchbot": "^1.0.6",
     "@homebridge/plugin-ui-utils": "^0.0.19"
