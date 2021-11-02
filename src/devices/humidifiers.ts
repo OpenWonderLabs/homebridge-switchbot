@@ -2,7 +2,7 @@ import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device, devicesConfig } from '../settings';
+import { DeviceURL, device, devicesConfig, serviceData, ad, deviceStatusResponse } from '../settings';
 
 /**
  * Platform Accessory
@@ -23,13 +23,21 @@ export class Humidifier {
   Active!: CharacteristicValue;
   WaterLevel!: CharacteristicValue;
 
-  // Others
-  deviceStatus!: any;
+  // BLE Others
+  serviceData!: serviceData;
+  onState!: serviceData['onState'];
+  autoMode!: serviceData['autoMode'];
+  percentage!: serviceData['percentage'];
+
+  // OpenAPI
+  deviceStatus!: deviceStatusResponse;
+
+  // Config
+  set_minStep?: number;
 
   // Updates
   humidifierUpdateInProgress!: boolean;
-  doHumidifierUpdate;
-  set_minStep: number | undefined;
+  doHumidifierUpdate!: Subject<void>;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -180,7 +188,11 @@ export class Humidifier {
    */
   parseStatus() {
     // Current Relative Humidity
-    this.CurrentRelativeHumidity = this.deviceStatus.body.humidity!;
+    if (this.device.ble) {
+      this.CurrentRelativeHumidity = this.serviceData?.percentage || this.percentage!;
+    } else {
+      this.CurrentRelativeHumidity = this.deviceStatus.body.humidity!;
+    }
     this.platform.debug(`Humidifier ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
     this.platform.device(JSON.stringify(this.deviceStatus.body));
     // Water Level
@@ -191,12 +203,16 @@ export class Humidifier {
     }
     this.platform.debug(`Humidifier ${this.accessory.displayName} WaterLevel: ${this.WaterLevel}`);
     // Active
-    switch (this.deviceStatus.body.power) {
-      case 'on':
-        this.Active = this.platform.Characteristic.Active.ACTIVE;
-        break;
-      default:
-        this.Active = this.platform.Characteristic.Active.INACTIVE;
+    if (this.device.ble) {
+      this.Active = this.State();
+    } else {
+      switch (this.deviceStatus.body.power) {
+        case 'on':
+          this.Active = this.platform.Characteristic.Active.ACTIVE;
+          break;
+        default:
+          this.Active = this.platform.Characteristic.Active.INACTIVE;
+      }
     }
     this.platform.debug(`Humidifier ${this.accessory.displayName} Active: ${this.Active}`);
     // Target Humidifier Dehumidifier State
@@ -226,8 +242,16 @@ export class Humidifier {
     this.platform.debug(`Humidifier ${this.accessory.displayName} CurrentHumidifierDehumidifierState: ${this.CurrentHumidifierDehumidifierState}`);
     // Current Temperature
     if (!this.device.humidifier?.hide_temperature) {
-      this.CurrentTemperature = this.deviceStatus.body.temperature;
+      this.CurrentTemperature = Number(this.deviceStatus.body.temperature);
       this.platform.debug(`Humidifier ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
+    }
+  }
+
+  private State(): CharacteristicValue {
+    if (this.onState || this.serviceData.onState) {
+      return this.platform.Characteristic.Active.ACTIVE;
+    } else {
+      return this.platform.Characteristic.Active.INACTIVE;
     }
   }
 
@@ -235,6 +259,60 @@ export class Humidifier {
    * Asks the SwitchBot API for the latest device information
    */
   async refreshStatus() {
+    if (this.device.ble) {
+      this.platform.device('BLE');
+      await this.BLERefreshStatus();
+    } else {
+      this.platform.device('OpenAPI');
+      await this.openAPIRefreshStatus();
+    }
+  }
+
+  private connectBLE() {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const Switchbot = require('node-switchbot');
+    const switchbot = new Switchbot();
+    const colon = this.device.deviceId!.match(/.{1,2}/g);
+    const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
+    this.device.bleMac = bleMac.toLowerCase();
+    this.platform.device(this.device.bleMac!);
+    return switchbot;
+  }
+
+  private async BLERefreshStatus() {
+    this.platform.device('Bot BLE Device refreshStatus');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const switchbot = this.connectBLE();
+    // Start to monitor advertisement packets
+    switchbot.startScan({
+      model: 'e',
+      id: this.device.bleMac,
+    }).then(() => {
+      // Set an event hander
+      switchbot.onadvertisement = (ad: ad) => {
+        this.serviceData = ad.serviceData;
+        this.autoMode = ad.serviceData.autoMode;
+        this.onState = ad.serviceData.onState;
+        this.percentage = ad.serviceData.percentage;
+        this.platform.device(`${this.device.bleMac}: ${JSON.stringify(ad.serviceData)}`);
+        this.platform.device(`${this.accessory.displayName}, Model: ${ad.serviceData.model}, Model Name: ${ad.serviceData.modelName},`
+           + `autoMode: ${ad.serviceData.autoMode}, onState: ${ad.serviceData.onState}, percentage: ${ad.serviceData.percentage}`);
+      };
+      // Wait 10 seconds
+      return switchbot.wait(10000);
+    }).then(() => {
+      // Stop to monitor
+      switchbot.stopScan();
+      this.parseStatus();
+      this.updateHomeKitCharacteristics();
+    }).catch(async (e: any) => {
+      this.platform.log.error(`BLE Connection Failed: ${e.message}`);
+      this.platform.log.warn('Using OpenAPI Connection');
+      await this.openAPIRefreshStatus();
+    });
+  }
+
+  private async openAPIRefreshStatus() {
     try {
       this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
       if (this.deviceStatus.message === 'success') {

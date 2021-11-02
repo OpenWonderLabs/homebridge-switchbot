@@ -1,4 +1,4 @@
-import { PlatformConfig } from 'homebridge';
+import { MacAddress, PlatformConfig } from 'homebridge';
 /**
  * This is the name of the platform that users will use to register the plugin in the Homebridge config.json
  */
@@ -227,4 +227,64 @@ export type deviceStatus = {
   colorTemperature?: number;
   //only available for Humidifier devices. determines if the water tank empty or not
   lackWater?: boolean;
+};
+
+export type ad = {
+  serviceData: serviceData;
+};
+
+export type serviceData = {
+  //Model of BLE SwitchBot Device
+  model: string,
+  //Model Name of BLE SwitchBot Device
+  modelName: string
+  //Mode for Bot either Press or Switch
+  mode?: boolean;
+  //Bot State
+  state?: string;
+  //Battery percentage left on Bot, Meter, Motion, Contact, and Curtain
+  battery?: number;
+  //Humidifier's humidity level percentage
+  percentage?: boolean | string;
+  //Humidifier's humidity level percentage
+  onState?: boolean;
+  //Humidifier's AutoMode
+  autoMode?: boolean;
+  //Meter Temperature Levels
+  temperature?: {
+    c: number,
+    f: number
+  };
+  // Fahrenheit enabled for Meter
+  fahrenheit: boolean;
+  // Humidity level for Meter
+  humidity?: number,
+  //Motion Detected for Contact or Motion Sensors
+  movement?: boolean,
+  //Motion ((lightLevel == 1) ? 'dark' : ((lightLevel == 2) ? 'bright' : 'unknown'))
+  //Contact ((lightLevel == 0) ? 'dark' : 'bright')
+  //Curtain (light sensor level (1-10))
+  //Light Level
+  lightLevel?: number | string;
+  //Contact DoorState
+  doorState?: number | string;
+  //Is Curtain Calibrated
+  calibration?: boolean;
+  //Current Curtain Positon %
+  position?: number;
+};
+
+export type switchbot = {
+  discover: (
+    arg0:
+      {
+        duration?: any;
+        model: string;
+        quick: boolean;
+        id?: MacAddress;
+      }
+  ) => Promise<any>;
+  wait: (
+    arg0: number
+  ) => any;
 };

@@ -121,8 +121,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     // Device Config
     if (this.config.options.devices) {
       for (const deviceConfig of this.config.options.devices!) {
-        if (!deviceConfig.type) {
-          this.log.error('The devices config section is missing the "Type" in the config, Check Your Conifg.');
+        if (!deviceConfig.hide_device && !deviceConfig.deviceType) {
+          this.log.error('The devices config section is missing the "Device Type" in the config, Check Your Conifg.');
         }
         if (!deviceConfig.deviceId) {
           this.log.error('The devices config section is missing the "Device ID" in the config, Check Your Conifg.');
@@ -382,7 +382,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       if (!device.hide_device && device.enableCloudService) {
         this.log.info(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
 
-        this.log.error(JSON.stringify(device.bot?.mode));
+        this.debug(JSON.stringify(device.bot?.mode));
         if (!device.bot?.mode) {
           this.log.error('You must set your Bot to Press or Switch Mode');
         }
@@ -405,7 +405,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       // the accessory does not yet exist, so we need to create it
       this.log.info(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
 
-      this.log.error(JSON.stringify(device.bot?.mode));
+      this.debug(JSON.stringify(device.bot?.mode));
       if (!device.bot?.mode) {
         this.log.error('You must set your Bot to Press or Switch Mode');
       }
@@ -652,14 +652,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   private isCurtainGrouped(device: device & devicesConfig) {
-    this.log.error(`deviceId: ${device.deviceId}, curtainDevicesIds: ${device.curtainDevicesIds},`
+    this.debug(`deviceId: ${device.deviceId}, curtainDevicesIds: ${device.curtainDevicesIds},`
       + ` master: ${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group}`);
 
     if (device.group && !device.curtain?.disable_group) {
-      this.log.warn(`[Curtain Config] disable_group: ${device.curtain?.disable_group}`);
+      this.debug(`[Curtain Config] disable_group: ${device.curtain?.disable_group}`);
       return device.master && !device.hide_device && device.enableCloudService;
     } else {
-      this.log.warn(`[Curtain Config] disable_group: ${device.curtain?.disable_group}, UnGrouping ${device.master}`);
+      this.debug(`[Curtain Config] disable_group: ${device.curtain?.disable_group}, UnGrouping ${device.master}`);
       return !device.hide_device && device.enableCloudService;
     }
   }

@@ -20,6 +20,7 @@ export class Bulb {
 
   // Others
   deviceStatus: any;
+  set_minStep: any;
   switchbot!: {
     discover: (
       arg0:
@@ -38,7 +39,6 @@ export class Bulb {
   // Updates
   bulbUpdateInProgress!: boolean;
   doBulbUpdate;
-  set_minStep: any;
 
   constructor(
     private readonly platform: SwitchBotPlatform,

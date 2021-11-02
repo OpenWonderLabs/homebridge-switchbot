@@ -1,8 +1,8 @@
-import { Service, PlatformAccessory, CharacteristicValue, MacAddress } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device, devicesConfig } from '../settings';
+import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceStatusResponse } from '../settings';
 
 /**
  * Platform Accessory
@@ -10,31 +10,29 @@ import { DeviceURL, device, devicesConfig } from '../settings';
  * Each accessory may expose multiple services of different service types.
  */
 export class Bot {
+  // Services
   private service: Service;
+  private batteryService?: Service;
 
+  // Characteristic Values
   SwitchOn!: CharacteristicValue;
-  OutletInUse!: CharacteristicValue;
-  deviceStatus!: { statusCode: number; body: { deviceId: string; deviceType: string; hubDeviceId: string; power: string; }; message: string; };
-  RunTimer!: NodeJS.Timeout;
-  ScanDuration: number;
-  TargetState;
-  switchbot!: {
-    discover: (
-      arg0:
-        {
-          duration: any;
-          model: string;
-          quick: boolean;
-          id: MacAddress;
-        }
-    ) => Promise<any>;
-    wait: (
-      arg0: number
-    ) => any;
-  };
+  BatteryLevel!: CharacteristicValue;
+  StatusLowBattery!: CharacteristicValue;
 
+  // Others
+  deviceStatus!: deviceStatusResponse;
+  RunTimer!: NodeJS.Timeout;
+  switchbot!: switchbot;
+  serviceData!: serviceData;
+  Mode!: serviceData['mode'];
+  BotState!: serviceData['state'];
+  BotBattery!: serviceData['battery'];
+  ScanDuration: number;
+  TargetState!: boolean;
+
+  // Updates
   botUpdateInProgress!: boolean;
-  doBotUpdate;
+  doBotUpdate!: Subject<void>;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -44,26 +42,13 @@ export class Bot {
     // default placeholders
     this.SwitchOn = false;
     this.ScanDuration = this.platform.config.options!.refreshRate!;
-    if (device.bot?.mode !== 'switch') {
-      this.OutletInUse = true;
-    }
-    if (device.ble) {
-      this.SwitchOn = false;
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const SwitchBot = require('node-switchbot');
-      this.switchbot = new SwitchBot();
-      const colon = device.deviceId!.match(/.{1,2}/g);
-      const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
-      this.device.bleMac = bleMac.toLowerCase();
-      this.platform.device(this.device.bleMac);
-    }
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doBotUpdate = new Subject();
     this.botUpdateInProgress = false;
 
     // Retrieve initial values and updateHomekit
-    this.parseStatus();
+    this.refreshStatus();
 
     // set accessory information
     accessory
@@ -82,6 +67,12 @@ export class Bot {
       (this.service =
         accessory.getService(this.platform.Service.Outlet) ||
         accessory.addService(this.platform.Service.Outlet)), `${accessory.displayName} Outlet`;
+    }
+
+    if (device.ble) {
+      (this.batteryService =
+        accessory.getService(this.platform.Service.Battery) ||
+        accessory.addService(this.platform.Service.Battery)), `${accessory.displayName} Battery`;
     }
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
@@ -143,17 +134,22 @@ export class Bot {
 
   private async BLEparseStatus() {
     this.platform.debug('Bots BLE Device RefreshStatus');
+    // BLEmode (true if Switch Mode) | (false if Press Mode)
+    if (this.Mode) {
+      this.platform.device(`Switch Mode, Mode: ${JSON.stringify(this.Mode)}`);
+    }
+    this.SwitchOn = Number(this.serviceData?.state || this.BotState);
+    this.BatteryLevel = Number(this.serviceData?.battery || this.BotBattery);
+    if (this.BatteryLevel < 10) {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
+    } else {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    }
   }
 
   private async openAPIparseStatus() {
-    if (this.device.bot?.mode !== 'switch') {
-      this.OutletInUse = true;
-      this.SwitchOn = false;
-      this.platform.debug(`Bot ${this.accessory.displayName} OutletInUse: ${this.OutletInUse} On: ${this.SwitchOn}`);
-    } else {
-      this.SwitchOn = false;
-      this.platform.debug(`Bot ${this.accessory.displayName} On: ${this.SwitchOn}`);
-    }
+    this.SwitchOn = false;
+    this.platform.debug(`Bot ${this.accessory.displayName} On: ${this.SwitchOn}`);
   }
 
   /**
@@ -162,15 +158,14 @@ export class Bot {
   async refreshStatus() {
     if (this.device.ble) {
       this.platform.device('BLE');
-      await this.BLErefreshStatus();
+      await this.BLERefreshStatus();
     } else {
       this.platform.device('OpenAPI');
       await this.openAPIRefreshStatus();
     }
   }
 
-  private async BLErefreshStatus() {
-    this.platform.device('Bot BLE Device refreshStatus');
+  private connectBLE() {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const Switchbot = require('node-switchbot');
     const switchbot = new Switchbot();
@@ -178,45 +173,40 @@ export class Bot {
     const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
     this.device.bleMac = bleMac.toLowerCase();
     this.platform.device(this.device.bleMac!);
-    switchbot.onadvertisement = (ad: any) => {
-      this.platform.debug(JSON.stringify(ad, null, '  '));
-      this.platform.device(`ad: ${JSON.stringify(ad)}`);
-    };
-    switchbot
-      .startScan({
-        id: this.device.bleMac,
-      })
-      .then(() => {
-        return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
-      })
-      .then(() => {
-        switchbot.stopScan();
-      })
-      .catch(async (error: any) => {
-        this.platform.log.error(error);
-        this.openAPIRefreshStatus();
-      });
-    setInterval(() => {
-      this.platform.log.info('Start scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
-      switchbot
-        .startScan({
-          mode: 'T',
-          id: bleMac,
-        })
-        .then(() => {
-          return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
-        })
-        .then(() => {
-          switchbot.stopScan();
-          this.platform.log.info('Stop scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
-        })
-        .catch(async (error: any) => {
-          this.platform.log.error(error);
-          this.openAPIRefreshStatus();
-        });
+    return switchbot;
+  }
+
+  private async BLERefreshStatus() {
+    this.platform.device('Bot BLE Device refreshStatus');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const switchbot = this.connectBLE();
+    // Start to monitor advertisement packets
+    switchbot.startScan({
+      model: 'H',
+      id: this.device.bleMac,
+    }).then(() => {
+      // Set an event hander
+      switchbot.onadvertisement = (ad: ad) => {
+        this.serviceData = ad.serviceData;
+        this.Mode === ad.serviceData.mode;
+        this.SwitchOn === ad.serviceData.state;
+        this.BatteryLevel === ad.serviceData.battery;
+        this.platform.device(`${this.device.bleMac}: ${JSON.stringify(ad.serviceData)}`);
+        this.platform.device(`${this.accessory.displayName}, Model: ${ad.serviceData.model}, Model Name: ${ad.serviceData.modelName},`
+          + ` Mode: ${ad.serviceData.mode}, State: ${ad.serviceData.state}, Battery: ${ad.serviceData.battery}`);
+      };
+      // Wait 10 seconds
+      return switchbot.wait(10000);
+    }).then(() => {
+      // Stop to monitor
+      switchbot.stopScan();
       this.parseStatus();
       this.updateHomeKitCharacteristics();
-    }, this.platform.config.options!.refreshRate! * 60000);
+    }).catch(async (e: any) => {
+      this.platform.log.error(`BLE Connection Failed: ${e.message}`);
+      this.platform.log.warn('Using OpenAPI Connection');
+      await this.openAPIRefreshStatus();
+    });
   }
 
   private async openAPIRefreshStatus() {
@@ -260,53 +250,38 @@ export class Bot {
 
   private async BLEpushChanges() {
     this.platform.device('Bot BLE Device pushChanges');
-    // Target state has been changed.
-    this.platform.log.info('Target state of Bot setting: ' + (this.TargetState ? 'ON' : 'OFF'));
-    this.switchbot
-      .discover({ duration: this.ScanDuration, model: 'H', quick: true, id: (this.device.bleMac!) })
-      .then((device_list: any) => {
-        this.platform.log.info('Scan done.');
-        let targetDevice: any = null;
-        for (const device of device_list) {
-          // log.info(device.modelName, device.address);
-          if (device.address === this.device.bleMac) {
-            targetDevice = device;
-            break;
-          }
-        }
-        if (!targetDevice) {
-          this.platform.log.info('No device was found during scan.');
-          return new Promise((resolve, reject) => {
-            reject(new Error('No device was found during scan.'));
-          });
-        } else {
-          this.platform.log.info(targetDevice.modelName + ' (' + targetDevice.address + ') was found.');
-          // Set event handers
-          targetDevice.onconnect = () => {
-            // log.info('Connected.');
-          };
-          targetDevice.ondisconnect = () => {
-            // log.info('Disconnected.');
-          };
-          this.platform.log.info('Bot is running...');
-          return this.setTargetDeviceState(targetDevice, this.TargetState);
-        }
-      })
-      .then(() => {
-        this.platform.log.info('Done.');
-        this.SwitchOn = this.TargetState;
-        this.RunTimer = setTimeout(() => {
-          this.service?.getCharacteristic(this.platform.Characteristic.On).updateValue(this.SwitchOn);
-        }, 500);
-        this.platform.log.info('Bot state has been set to: ' + (this.SwitchOn ? 'ON' : 'OFF'));
-      })
-      .catch((error: any) => {
-        this.platform.log.error(error);
-        this.RunTimer = setTimeout(() => {
-          this.service?.getCharacteristic(this.platform.Characteristic.On).updateValue(this.SwitchOn);
-        }, 500);
-        this.platform.log.info('Bot state failed to be set to: ' + (this.TargetState ? 'ON' : 'OFF'));
+    const switchbot = this.connectBLE();
+    if (this.device.bot?.mode === 'press') {
+      this.platform.device(`Press Mode: ${this.device.bot?.mode}`);
+      switchbot.discover({ model: 'H', quick: true, id: this.device.bleMac }).then((device_list) => {
+        this.platform.log.info(`${this.accessory.displayName}, On: ${this.SwitchOn}`);
+        return device_list[0].press({ id: this.device.bleMac });
+      }).then(() => {
+        this.platform.device('Done.');
+      }).catch((e: any) => {
+        this.platform.log.error(`BLE pushChanges Error Message: ${e.message}`);
       });
+    } else if (this.device.bot?.mode === 'switch') {
+      this.platform.device(`Press Mode: ${this.device.bot?.mode}`);
+      switchbot.discover({ model: 'H', quick: true, id: this.device.bleMac }).then((device_list) => {
+        this.platform.log.info(`${this.accessory.displayName}, On: ${this.SwitchOn}`);
+        return this.turnOnOff(device_list);
+      }).then(() => {
+        this.platform.device('Done.');
+      }).catch((e: any) => {
+        this.platform.log.error(`BLE pushChanges Error Message: ${e.message}`);
+      });
+    } else {
+      this.platform.log.error('Mode Not Set.');
+    }
+  }
+
+  private turnOnOff(device_list: any) {
+    if (this.SwitchOn) {
+      return device_list[0].turnOn({ id: this.device.bleMac });
+    } else {
+      return device_list[0].turnOff({ id: this.device.bleMac });
+    }
   }
 
   private async openAPIpushChanges() {
@@ -359,20 +334,24 @@ export class Bot {
       this.service.updateCharacteristic(this.platform.Characteristic.On, this.SwitchOn);
       this.platform.device(`Bot ${this.accessory.displayName} updateCharacteristic On: ${this.SwitchOn}`);
     }
-    if (this.OutletInUse === undefined || this.device.bot?.mode === 'switch') {
-      this.platform.debug(`Bot ${this.accessory.displayName} On: ${this.OutletInUse}, Switch: ${this.device.bot?.mode}`);
+    if (this.BatteryLevel === undefined) {
+      this.platform.debug(`Bot ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
     } else {
-      this.service.updateCharacteristic(this.platform.Characteristic.OutletInUse, this.OutletInUse);
-      this.platform.device(`Bot ${this.accessory.displayName} updateCharacteristic On: ${this.OutletInUse},`
-        + ` Switch: ${this.device.bot?.mode}`);
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
+      this.platform.device(`Bot ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
+    }
+    if (this.StatusLowBattery === undefined) {
+      this.platform.debug(`Bot ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
+    } else {
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
+      this.platform.device(`Bot ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
     }
   }
 
   public apiError(e: any) {
     this.service.updateCharacteristic(this.platform.Characteristic.On, e);
-    if (this.device.bot?.mode !== 'switch') {
-      this.service.updateCharacteristic(this.platform.Characteristic.OutletInUse, e);
-    }
+    this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
+    this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
   }
 
   private statusCode(push: { data: { statusCode: any; }; }) {
@@ -407,40 +386,8 @@ export class Bot {
    * Handle requests to set the "On" characteristic
    */
   private handleOnSet(value: CharacteristicValue) {
-    if (this.device.ble) {
-      this.TargetState = value as boolean;
-      this.platform.device(`Bot BLE Device - ${this.TargetState}`);
-      if (this.TargetState === this.SwitchOn) {
-        this.platform.log.info('Target state of Bot has not changed: ' + (this.SwitchOn ? 'ON' : 'OFF'));
-        this.service?.getCharacteristic(this.platform.Characteristic.On).updateValue(this.SwitchOn);
-      }
-    } else {
-      this.platform.debug(`Bot ${this.accessory.displayName} - Set On: ${value}`);
-      this.SwitchOn = value;
-      this.doBotUpdate.next();
-    }
+    this.platform.debug(`Bot ${this.accessory.displayName} - Set On: ${value}`);
+    this.SwitchOn === this.TargetState === value;
+    this.doBotUpdate.next();
   }
-
-  async setTargetDeviceState(targetDevice: any, targetState: boolean): Promise<null> {
-    return await this.retry(5, () => {
-      if (targetState) {
-        return targetDevice.turnOn();
-      } else {
-        return targetDevice.turnOff();
-      }
-    });
-  }
-
-  async retry(max: number, fn: { (): any; (): Promise<any>; }): Promise<null> {
-    return fn().catch(async (err: any) => {
-      if (max === 0) {
-        throw err;
-      }
-      this.platform.log.info(err);
-      this.platform.log.info('Retrying');
-      await this.switchbot.wait(1000);
-      return this.retry(max - 1, fn);
-    });
-  }
-
 }

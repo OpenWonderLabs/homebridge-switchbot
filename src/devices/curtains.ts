@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import { Service, PlatformAccessory, CharacteristicValue, MacAddress } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device, devicesConfig } from '../settings';
+import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse } from '../settings';
 
 export class Curtain {
   // Services
@@ -16,8 +16,9 @@ export class Curtain {
   TargetPosition!: CharacteristicValue;
   CurrentAmbientLightLevel!: CharacteristicValue;
 
-  // Others
-  deviceStatus!: any;
+  // BLE Others
+  switchbot!: switchbot;
+  serviceData!: serviceData;
   moveTimer!: NodeJS.Timeout;
   ScanIntervalId!: NodeJS.Timeout;
   setNewTargetTimer!: NodeJS.Timeout;
@@ -32,27 +33,18 @@ export class Curtain {
   OpenCloseThreshold: any;
   PreviousPosition: any;
   Position: any;
-  FastScanDuration: number | undefined;
+  FastScanDuration!: number;
+
+  // OpenAPI Others
+  deviceStatus!: deviceStatusResponse;
+
+  // Config
   set_minStep!: number;
   refreshRate!: number;
-  switchbot!: {
-    discover: (
-      arg0:
-        {
-          duration: any;
-          model: string;
-          quick: boolean;
-          id: MacAddress;
-        }
-    ) => Promise<any>;
-    wait: (
-      arg0: number
-    ) => any;
-  };
 
   // Updates
   curtainUpdateInProgress!: boolean;
-  doCurtainUpdate;
+  doCurtainUpdate!: Subject<void>;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -274,61 +266,55 @@ export class Curtain {
   async refreshStatus() {
     if (this.device.ble) {
       this.platform.device('BLE');
-      await this.BLErefreshStatus();
+      await this.BLERefreshStatus();
     } else {
       this.platform.device('OpenAPI');
       await this.openAPIRefreshStatus();
     }
   }
 
-  private async BLErefreshStatus() {
-    this.platform.debug('Curtains BLE Device RefreshStatus');
+  private connectBLE() {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const Switchbot = require('node-switchbot');
     const switchbot = new Switchbot();
     const colon = this.device.deviceId!.match(/.{1,2}/g);
     const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
     this.device.bleMac = bleMac.toLowerCase();
-    this.platform.debug(this.device.bleMac!);
-    switchbot.onadvertisement = (ad: any) => {
-      this.platform.debug(JSON.stringify(ad, null, '  '));
-      this.platform.device(`ad: ${JSON.stringify(ad)}`);
-    };
-    this.parseStatus();
-    this.updateHomeKitCharacteristics();
-    switchbot
-      .startScan({
-        id: this.device.bleMac,
-      })
-      .then(() => {
-        return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
-      })
-      .then(() => {
-        switchbot.stopScan();
-      })
-      .catch(async (error: any) => {
-        this.platform.log.error(error);
-        await this.openAPIRefreshStatus();
-      });
-    setInterval(() => {
-      this.platform.log.info('Start scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
-      switchbot
-        .startScan({
-          mode: 'T',
-          id: bleMac,
-        })
-        .then(() => {
-          return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
-        })
-        .then(() => {
-          switchbot.stopScan();
-          this.platform.log.info('Stop scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
-        })
-        .catch(async (error: any) => {
-          this.platform.log.error(error);
-          await this.openAPIRefreshStatus();
-        });
-    }, this.platform.config.options!.refreshRate! * 60000);
+    this.platform.device(this.device.bleMac!);
+    return switchbot;
+  }
+
+  private async BLERefreshStatus() {
+    this.platform.debug('Curtains BLE Device RefreshStatus');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const switchbot = this.connectBLE();
+    // Start to monitor advertisement packets
+    switchbot.startScan({
+      model: 'd',
+      id: this.device.bleMac,
+    }).then(() => {
+      // Set an event hander
+      switchbot.onadvertisement = (ad: any) => {
+        this.serviceData = ad.serviceData;
+        this.platform.device(`${this.device.bleMac}: ${JSON.stringify(ad.serviceData)}`);
+        /*this.Mode === ad.serviceData.mode;
+        this.SwitchOn === ad.serviceData.state;
+        this.BatteryLevel === ad.serviceData.battery;
+        this.platform.device(`${this.accessory.displayName}, Mode: ${ad.serviceData.mode}, State: ${ad.serviceData.state},`
+          + ` Battery: ${ad.serviceData.battery}`);*/
+      };
+      // Wait 10 seconds
+      return switchbot.wait(10000);
+    }).then(() => {
+      // Stop to monitor
+      switchbot.stopScan();
+      this.parseStatus();
+      this.updateHomeKitCharacteristics();
+    }).catch(async (e: any) => {
+      this.platform.log.error(`BLE Connection Failed: ${e.message}`);
+      this.platform.log.warn('Using OpenAPI Connection');
+      await this.openAPIRefreshStatus();
+    });
   }
 
   private async openAPIRefreshStatus() {

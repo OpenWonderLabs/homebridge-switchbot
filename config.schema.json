@@ -43,7 +43,20 @@
               "title": "Devices",
               "type": "object",
               "properties": {
-                "type": {
+                "deviceId": {
+                  "title": "Device ID",
+                  "type": "string",
+                  "required": true,
+                  "placeholder": "81F3UT59513F"
+                },
+                "hide_device": {
+                  "title": "Hide Device",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].ble && model.options.devices[arrayIndices].deviceId);"
+                  }
+                },
+                "deviceType": {
                   "title": "Device Type",
                   "type": "string",
                   "required": true,
@@ -120,22 +133,9 @@
                         "Others"
                       ]
                     }
-                  ]
-                },
-                "deviceId": {
-                  "title": "Device ID",
-                  "type": "string",
-                  "required": true,
-                  "placeholder": "81F3UT59513F",
+                  ],
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].type);"
-                  }
-                },
-                "hide_device": {
-                  "title": "Hide Device",
-                  "type": "boolean",
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].ble && model.options.devices[arrayIndices].type && model.options.devices[arrayIndices].deviceId);"
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
                   }
                 },
                 "ble": {
@@ -143,7 +143,7 @@
                   "type": "boolean",
                   "required": true,
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type && model.options.devices[arrayIndices].deviceId);"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType && model.options.devices[arrayIndices].deviceId);"
                   }
                 },
                 "bot": {
@@ -167,7 +167,7 @@
                         }
                       ],
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Bot' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Bot' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "switch": {
@@ -175,7 +175,7 @@
                       "type": "boolean",
                       "description": "This allows you to display bot as a switch.",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Bot' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].bot && model.options.devices[arrayIndices].bot.mode);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Bot' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].bot && model.options.devices[arrayIndices].bot.mode);"
                       }
                     }
                   }
@@ -187,14 +187,14 @@
                       "title": "Hide Meter's Temperature Sensor",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Meter' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Meter' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "hide_humidity": {
                       "title": "Hide Meter's Humidity Sensor",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Meter' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Meter' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "unit": {
@@ -216,7 +216,7 @@
                       ],
                       "required": false,
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Meter' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].meter  && !model.options.devices[arrayIndices].meter.hide_temperature);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Meter' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].meter  && !model.options.devices[arrayIndices].meter.hide_temperature);"
                       }
                     }
                   }
@@ -228,7 +228,7 @@
                       "title": "Hide Humidifier's Temperature Sensor",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Humidifier' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Humidifier' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "set_minStep": {
@@ -236,7 +236,7 @@
                       "type": "number",
                       "placeholder": "1",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Humidifier' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Humidifier' && model.options.devices[arrayIndices].deviceId);"
                       }
                     }
                   }
@@ -248,7 +248,7 @@
                       "title": "Disable Grouping",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "refreshRate": {
@@ -258,7 +258,7 @@
                       "placeholder": 5,
                       "description": "Indicates the number of seconds between before refreshing Curtain status while updating slide progress.",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "set_minStep": {
@@ -266,7 +266,7 @@
                       "type": "number",
                       "placeholder": "1",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "set_min": {
@@ -274,7 +274,7 @@
                       "type": "number",
                       "placeholder": "0",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "set_max": {
@@ -282,7 +282,7 @@
                       "type": "number",
                       "placeholder": "100",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
                       }
                     }
                   }
@@ -295,7 +295,7 @@
                       "type": "number",
                       "placeholder": "1",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Bulb' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Bulb' && model.options.devices[arrayIndices].deviceId);"
                       }
                     }
                   }
@@ -307,14 +307,14 @@
                       "title": "Enable Swing Mode by Device ID",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].type === 'Fan' || model.options.devices[arrayIndices].type === 'DIY Fan') && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].deviceType === 'Fan' || model.options.devices[arrayIndices].deviceType === 'DIY Fan') && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "rotation_speed": {
                       "title": "Enable Rotation Speed by Device ID",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].type === 'Fan' || model.options.devices[arrayIndices].type === 'DIY Fan') && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].deviceType === 'Fan' || model.options.devices[arrayIndices].deviceType === 'DIY Fan') && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "set_minStep": {
@@ -322,7 +322,7 @@
                       "type": "number",
                       "placeholder": "1",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].type === 'Fan' || model.options.devices[arrayIndices].type === 'DIY Fan') && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].fan  && !model.options.devices[arrayIndices].meter.rotation_speed);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].deviceType === 'Fan' || model.options.devices[arrayIndices].deviceType === 'DIY Fan') && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].fan  && !model.options.devices[arrayIndices].meter.rotation_speed);"
                       }
                     },
                     "set_min": {
@@ -330,7 +330,7 @@
                       "type": "number",
                       "placeholder": "0",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].type === 'Fan' || model.options.devices[arrayIndices].type === 'DIY Fan') && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].fan  && !model.options.devices[arrayIndices].meter.rotation_speed);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].deviceType === 'Fan' || model.options.devices[arrayIndices].deviceType === 'DIY Fan') && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].fan  && !model.options.devices[arrayIndices].meter.rotation_speed);"
                       }
                     },
                     "set_max": {
@@ -338,7 +338,7 @@
                       "type": "number",
                       "placeholder": "100",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].type === 'Fan' || model.options.devices[arrayIndices].type === 'DIY Fan') && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].fan  && !model.options.devices[arrayIndices].meter.rotation_speed);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].deviceType === 'Fan' || model.options.devices[arrayIndices].deviceType === 'DIY Fan') && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].fan  && !model.options.devices[arrayIndices].meter.rotation_speed);"
                       }
                     }
                   }
@@ -350,7 +350,7 @@
                       "title": "Hide Auto Mode on IR Air Conditioners",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].type === 'Air Conditioner' || model.options.devices[arrayIndices].type === 'DIY Air Conditioner') && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].deviceType === 'Air Conditioner' || model.options.devices[arrayIndices].deviceType === 'DIY Air Conditioner') && model.options.devices[arrayIndices].deviceId);"
                       }
                     }
                   }
@@ -371,7 +371,7 @@
                       ],
                       "required": false,
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Others' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Others' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "commandOn": {
@@ -379,7 +379,7 @@
                       "type": "string",
                       "placeholder": "On",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Others' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].other  && model.options.devices[arrayIndices].other.deviceType);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Others' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].other  && model.options.devices[arrayIndices].other.deviceType);"
                       }
                     },
                     "commandOff": {
@@ -387,7 +387,7 @@
                       "type": "string",
                       "placeholder": "Off",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].type === 'Others' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].other  && !model.options.devices[arrayIndices].other.deviceType);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Others' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].other  && !model.options.devices[arrayIndices].other.deviceType);"
                       }
                     }
                   }
@@ -398,8 +398,8 @@
           "refreshRate": {
             "title": "Refresh Rate",
             "type": "number",
-            "minimum": 120,
-            "placeholder": 900,
+            "minimum": 30,
+            "placeholder": 360,
             "description": "Indicates the number of seconds between polls of SwitchBot API."
           },
           "pushRate": {
@@ -411,7 +411,7 @@
           "debug": {
             "title": "Logging Setting",
             "type": "string",
-            "description": "Enble 'Device' or 'Debug' logging.",
+            "description": "Enable 'Device' or 'Debug' logging.",
             "oneOf": [
               {
                 "title": "Enable Debug Logging",
@@ -458,9 +458,9 @@
           "displayFlex": true,
           "flex-direction": "column",
           "items": [
-            "options.devices[].type",
             "options.devices[].deviceId",
             "options.devices[].hide_device",
+            "options.devices[].deviceType",
             "options.devices[].ble",
             "options.devices[].bot.mode",
             "options.devices[].bot.switch",
