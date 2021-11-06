@@ -166,7 +166,7 @@ export class AirConditioner {
         .getCharacteristic(this.platform.Characteristic.CurrentTemperature)
         .updateValue(Number(this.CurrentTemperature) || 24);
     }
-    return (this.CurrentTemperature === Number(value));
+    return (this.CurrentTemperature = Number(value));
   }
 
   private TargetHeaterCoolerStateSet(value: CharacteristicValue) {
