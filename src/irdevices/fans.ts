@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
-import { DeviceURL, irdevice, deviceStatusResponse } from '../settings';
+import { DeviceURL, irdevice, deviceStatusResponse, devicesConfig } from '../settings';
 
 /**
  * Platform Accessory
@@ -24,14 +24,14 @@ export class Fan {
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
-    public device: irdevice,
+    public device: irdevice & devicesConfig,
   ) {
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId);
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
@@ -50,19 +50,19 @@ export class Fan {
     // handle on / off events using the Active characteristic
     this.service.getCharacteristic(this.platform.Characteristic.Active).onSet(this.ActiveSet.bind(this));
 
-    if (this.platform.config.options?.fan?.rotation_speed?.includes(device.deviceId)) {
-      if (this.platform.config.options?.fan?.set_minStep) {
-        this.minStep = this.platform.config.options?.fan?.set_minStep;
+    if (device.fan?.rotation_speed) {
+      if (device.fan?.set_minStep) {
+        this.minStep = device.fan?.set_minStep;
       } else {
         this.minStep = 1;
       }
-      if (this.platform.config.options?.fan?.set_min) {
-        this.minValue = this.platform.config.options?.fan?.set_min;
+      if (device.fan?.set_min) {
+        this.minValue = device.fan?.set_min;
       } else {
         this.minValue = 1;
       }
-      if (this.platform.config.options?.fan?.set_max) {
-        this.maxValue = this.platform.config.options?.fan?.set_max;
+      if (device.fan?.set_max) {
+        this.maxValue = device.fan?.set_max;
       } else {
         this.maxValue = 100;
       }
@@ -77,8 +77,7 @@ export class Fan {
         .onSet(this.RotationSpeedSet.bind(this));
     } else if (
       this.service.testCharacteristic(this.platform.Characteristic.RotationSpeed) &&
-      !this.platform.config.options?.fan?.swing_mode?.includes(device.deviceId)
-    ) {
+      !device.fan?.swing_mode) {
       const characteristic = this.service.getCharacteristic(this.platform.Characteristic.RotationSpeed);
       this.service.removeCharacteristic(characteristic);
       this.platform.log.warn('Rotation Speed Characteristic was removed.');
@@ -88,13 +87,10 @@ export class Fan {
       );
     }
 
-    if (this.platform.config.options?.fan?.swing_mode?.includes(device.deviceId)) {
+    if (device.fan?.swing_mode) {
       // handle Osolcation events using the SwingMode characteristic
       this.service.getCharacteristic(this.platform.Characteristic.SwingMode).onSet(this.SwingModeSet.bind(this));
-    } else if (
-      this.service.testCharacteristic(this.platform.Characteristic.SwingMode) &&
-      !this.platform.config.options?.fan?.swing_mode?.includes(device.deviceId)
-    ) {
+    } else if (this.service.testCharacteristic(this.platform.Characteristic.SwingMode) && !device.fan?.swing_mode) {
       const characteristic = this.service.getCharacteristic(this.platform.Characteristic.SwingMode);
       this.service.removeCharacteristic(characteristic);
       this.platform.log.warn('Swing Mode Characteristic was removed.');

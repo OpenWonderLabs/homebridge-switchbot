@@ -2,7 +2,7 @@ import { Service, PlatformAccessory, CharacteristicValue, MacAddress } from 'hom
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device } from '../settings';
+import { DeviceURL, device, devicesConfig } from '../settings';
 
 /**
  * Platform Accessory
@@ -20,6 +20,7 @@ export class Bulb {
 
   // Others
   deviceStatus: any;
+  set_minStep: any;
   switchbot!: {
     discover: (
       arg0:
@@ -42,12 +43,12 @@ export class Bulb {
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
-    public device: device,
+    public device: device & devicesConfig,
   ) {
     // default placeholders
     this.On = false;
     this.Brightness = 0;
-    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
+    if (device.ble) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const SwitchBot = require('node-switchbot');
       this.switchbot = new SwitchBot();
@@ -70,7 +71,7 @@ export class Bulb {
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-BULB-W1401400')
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId);
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
@@ -93,7 +94,7 @@ export class Bulb {
     // handle Brightness events using the Brightness characteristic
     this.service.getCharacteristic(this.platform.Characteristic.Brightness)
       .setProps({
-        minStep: this.platform.config.options?.bulb?.set_minStep || 1,
+        minStep: this.minStep(),
         minValue: 0,
         maxValue: 100,
         validValueRanges: [0, 100],
@@ -106,7 +107,7 @@ export class Bulb {
     // handle ColorTemperature events using the ColorTemperature characteristic
     this.service.getCharacteristic(this.platform.Characteristic.ColorTemperature)
       .setProps({
-        minStep: this.platform.config.options?.bulb?.set_minStep || 1,
+        minStep: this.minStep(),
         minValue: 0,
         maxValue: 100,
         validValueRanges: [0, 100],
@@ -145,6 +146,15 @@ export class Bulb {
         }
         this.bulbUpdateInProgress = false;
       });
+  }
+
+  private minStep(): number | undefined {
+    if (this.device.bulb?.set_minStep) {
+      this.set_minStep = this.device.bulb?.set_minStep;
+    } else {
+      this.set_minStep = 1;
+    }
+    return this.set_minStep;
   }
 
   parseStatus() {

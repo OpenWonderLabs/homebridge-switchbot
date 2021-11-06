@@ -2,7 +2,7 @@ import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device } from '../settings';
+import { DeviceURL, device, devicesConfig, serviceData, ad, deviceStatusResponse } from '../settings';
 
 /**
  * Platform Accessory
@@ -23,17 +23,26 @@ export class Humidifier {
   Active!: CharacteristicValue;
   WaterLevel!: CharacteristicValue;
 
-  // Others
-  deviceStatus!: any;
+  // BLE Others
+  serviceData!: serviceData;
+  onState!: serviceData['onState'];
+  autoMode!: serviceData['autoMode'];
+  percentage!: serviceData['percentage'];
+
+  // OpenAPI
+  deviceStatus!: deviceStatusResponse;
+
+  // Config
+  set_minStep?: number;
 
   // Updates
   humidifierUpdateInProgress!: boolean;
-  doHumidifierUpdate;
+  doHumidifierUpdate!: Subject<void>;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
-    public device: device,
+    public device: device & devicesConfig,
   ) {
     // default placeholders
     this.CurrentRelativeHumidity = 0;
@@ -99,13 +108,13 @@ export class Humidifier {
         validValueRanges: [0, 100],
         minValue: 0,
         maxValue: 100,
-        minStep: this.platform.config.options?.humidifier?.set_minStep || 1,
+        minStep: this.minStep(),
       })
       .onSet(this.handleRelativeHumidityHumidifierThresholdSet.bind(this));
 
     // create a new Temperature Sensor service
     // Temperature Sensor Service
-    if (this.platform.config.options?.humidifier?.hide_temperature) {
+    if (device.humidifier?.hide_temperature) {
       this.platform.device('Removing Temerature Sensor Service');
       this.temperatureservice = this.accessory.getService(this.platform.Service.TemperatureSensor);
       accessory.removeService(this.temperatureservice!);
@@ -126,7 +135,7 @@ export class Humidifier {
           minStep: 0.1,
         })
         .onGet(() => {
-          return this.CurrentTemperature;
+          return Number.isNaN(this.CurrentTemperature);
         });
     } else {
       if (this.platform.config.options?.debug) {
@@ -165,12 +174,25 @@ export class Humidifier {
       });
   }
 
+  private minStep(): number | undefined {
+    if (this.device.humidifier?.set_minStep) {
+      this.set_minStep = this.device.humidifier?.set_minStep;
+    } else {
+      this.set_minStep = 1;
+    }
+    return this.set_minStep;
+  }
+
   /**
    * Parse the device status from the SwitchBot api
    */
   parseStatus() {
     // Current Relative Humidity
-    this.CurrentRelativeHumidity = this.deviceStatus.body.humidity!;
+    if (this.device.ble) {
+      this.CurrentRelativeHumidity = this.percentage!;
+    } else {
+      this.CurrentRelativeHumidity = this.deviceStatus.body.humidity!;
+    }
     this.platform.debug(`Humidifier ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
     this.platform.device(JSON.stringify(this.deviceStatus.body));
     // Water Level
@@ -181,12 +203,16 @@ export class Humidifier {
     }
     this.platform.debug(`Humidifier ${this.accessory.displayName} WaterLevel: ${this.WaterLevel}`);
     // Active
-    switch (this.deviceStatus.body.power) {
-      case 'on':
-        this.Active = this.platform.Characteristic.Active.ACTIVE;
-        break;
-      default:
-        this.Active = this.platform.Characteristic.Active.INACTIVE;
+    if (this.device.ble) {
+      this.Active = this.State();
+    } else {
+      switch (this.deviceStatus.body.power) {
+        case 'on':
+          this.Active = this.platform.Characteristic.Active.ACTIVE;
+          break;
+        default:
+          this.Active = this.platform.Characteristic.Active.INACTIVE;
+      }
     }
     this.platform.debug(`Humidifier ${this.accessory.displayName} Active: ${this.Active}`);
     // Target Humidifier Dehumidifier State
@@ -215,9 +241,17 @@ export class Humidifier {
     this.platform.debug(`Humidifier ${this.accessory.displayName} RelativeHumidityHumidifierThreshold: ${this.RelativeHumidityHumidifierThreshold}`);
     this.platform.debug(`Humidifier ${this.accessory.displayName} CurrentHumidifierDehumidifierState: ${this.CurrentHumidifierDehumidifierState}`);
     // Current Temperature
-    if (!this.platform.config.options?.humidifier?.hide_temperature) {
-      this.CurrentTemperature = this.deviceStatus.body.temperature!;
+    if (!this.device.humidifier?.hide_temperature) {
+      this.CurrentTemperature = Number(this.deviceStatus.body.temperature);
       this.platform.debug(`Humidifier ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
+    }
+  }
+
+  private State(): CharacteristicValue {
+    if (this.onState) {
+      return this.platform.Characteristic.Active.ACTIVE;
+    } else {
+      return this.platform.Characteristic.Active.INACTIVE;
     }
   }
 
@@ -225,6 +259,60 @@ export class Humidifier {
    * Asks the SwitchBot API for the latest device information
    */
   async refreshStatus() {
+    if (this.device.ble) {
+      this.platform.device('BLE');
+      await this.BLERefreshStatus();
+    } else {
+      this.platform.device('OpenAPI');
+      await this.openAPIRefreshStatus();
+    }
+  }
+
+  private connectBLE() {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const Switchbot = require('node-switchbot');
+    const switchbot = new Switchbot();
+    const colon = this.device.deviceId!.match(/.{1,2}/g);
+    const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
+    this.device.bleMac = bleMac.toLowerCase();
+    this.platform.device(this.device.bleMac!);
+    return switchbot;
+  }
+
+  private async BLERefreshStatus() {
+    this.platform.device('Bot BLE Device refreshStatus');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const switchbot = this.connectBLE();
+    // Start to monitor advertisement packets
+    switchbot.startScan({
+      model: 'e',
+      id: this.device.bleMac,
+    }).then(() => {
+      // Set an event hander
+      switchbot.onadvertisement = (ad: ad) => {
+        this.serviceData = ad.serviceData;
+        this.autoMode = ad.serviceData.autoMode;
+        this.onState = ad.serviceData.onState;
+        this.percentage = ad.serviceData.percentage;
+        this.platform.device(`${this.device.bleMac}: ${JSON.stringify(ad.serviceData)}`);
+        this.platform.device(`${this.accessory.displayName}, Model: ${ad.serviceData.model}, Model Name: ${ad.serviceData.modelName},`
+           + `autoMode: ${ad.serviceData.autoMode}, onState: ${ad.serviceData.onState}, percentage: ${ad.serviceData.percentage}`);
+      };
+      // Wait 10 seconds
+      return switchbot.wait(10000);
+    }).then(() => {
+      // Stop to monitor
+      switchbot.stopScan();
+      this.parseStatus();
+      this.updateHomeKitCharacteristics();
+    }).catch(async (e: any) => {
+      this.platform.log.error(`BLE Connection Failed: ${e.message}`);
+      this.platform.log.warn('Using OpenAPI Connection');
+      await this.openAPIRefreshStatus();
+    });
+  }
+
+  private async openAPIRefreshStatus() {
     try {
       this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
       if (this.deviceStatus.message === 'success') {
@@ -406,7 +494,7 @@ export class Humidifier {
       this.platform.device(`Humidifier ${this.accessory.displayName}`
         + ` updateCharacteristic RelativeHumidityHumidifierThreshold: ${this.RelativeHumidityHumidifierThreshold}`);
     }
-    if (this.platform.config.options?.humidifier?.hide_temperature && this.CurrentTemperature === undefined) {
+    if (!this.device.humidifier?.hide_temperature || this.CurrentTemperature === undefined) {
       this.platform.debug(`Humidifier ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
     } else {
       this.temperatureservice!.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
@@ -421,7 +509,7 @@ export class Humidifier {
     this.service.updateCharacteristic(this.platform.Characteristic.TargetHumidifierDehumidifierState, e);
     this.service.updateCharacteristic(this.platform.Characteristic.Active, e);
     this.service.updateCharacteristic(this.platform.Characteristic.RelativeHumidityHumidifierThreshold, e);
-    if (!this.platform.config.options?.humidifier?.hide_temperature) {
+    if (!this.device.humidifier?.hide_temperature) {
       this.temperatureservice!.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
     }
   }
