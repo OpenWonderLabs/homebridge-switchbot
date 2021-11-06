@@ -97,7 +97,7 @@ export class Curtain {
       accessory.getService(this.platform.Service.WindowCovering) ||
       accessory.addService(this.platform.Service.WindowCovering)), `${device.deviceName} ${device.deviceType}`;
 
-    this.platform.log.error(`[Curtain Config] disable_group: ${device.curtain?.disable_group}, refreshRate: ${device.curtain?.refreshRate},`
+    this.platform.device(`[Curtain Config] disable_group: ${device.curtain?.disable_group}, refreshRate: ${device.curtain?.refreshRate},`
       + ` set_max: ${device.curtain?.set_max}, set_min: ${device.curtain?.set_min}, set_minStep: ${device.curtain?.set_minStep}`);
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -434,7 +434,6 @@ export class Curtain {
       this.platform.debug(`Curtain ${this.accessory.displayName} pushchanges: ${JSON.stringify(payload)}`);
 
       // Make the API request
-      this.platform.log.error(this.device.deviceId!);
       const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId!}/commands`, payload));
       this.platform.debug(`Curtain ${this.accessory.displayName} Changes pushed: ${JSON.stringify(push.data)}`);
       this.statusCode(push);
