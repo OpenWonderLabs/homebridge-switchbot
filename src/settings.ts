@@ -47,6 +47,7 @@ export interface devicesConfig extends device, irdevice {
   bulb?: bulb;
   fan?: irfan;
   irair?: irair;
+  irtv?: irtv;
   other?: other;
   ble?: string;
   hide_device?: boolean;
@@ -107,6 +108,10 @@ export type set_min = {
 
 export type irair = {
   hide_automode?: boolean;
+};
+
+export type irtv = {
+  disable_power?: boolean;
 };
 
 export type other = {

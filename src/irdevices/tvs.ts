@@ -191,10 +191,12 @@ export class TV {
 
   private ActiveSet(value: CharacteristicValue) {
     this.platform.debug(`${this.accessory.displayName} Set Active: ${value}`);
-    if (value === this.platform.Characteristic.Active.INACTIVE) {
-      this.pushTvOffChanges();
-    } else {
-      this.pushTvOnChanges();
+    if (!this.device.irtv?.disable_power) {
+      if (value === this.platform.Characteristic.Active.INACTIVE) {
+        this.pushTvOffChanges();
+      } else {
+        this.pushTvOnChanges();
+      }
     }
     this.ActiveIdentifier = value;
     if (this.ActiveIdentifier !== undefined) {

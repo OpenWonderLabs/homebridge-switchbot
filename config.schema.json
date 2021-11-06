@@ -104,31 +104,103 @@
                       ]
                     },
                     {
-                      "title": "IR Fan",
+                      "title": "Fan (IR)",
                       "enum": [
                         "Fan"
                       ]
                     },
                     {
-                      "title": "DIY IR Fan",
+                      "title": "DIY Fan (IR)",
                       "enum": [
                         "DIY Fan"
                       ]
                     },
                     {
-                      "title": "IR Air Conditioner",
+                      "title": "Air Conditioner (IR)",
                       "enum": [
                         "Air Conditioner"
                       ]
                     },
                     {
-                      "title": "DIY IR Air Conditioner",
+                      "title": "DIY Air Conditioner (IR)",
                       "enum": [
                         "DIY Air Conditioner"
                       ]
                     },
                     {
-                      "title": "Others",
+                      "title": "TV (IR)",
+                      "enum": [
+                        "TV"
+                      ]
+                    },
+                    {
+                      "title": "DIY TV (IR)",
+                      "enum": [
+                        "DIY TV"
+                      ]
+                    },
+                    {
+                      "title": "Projector (IR)",
+                      "enum": [
+                        "Projector"
+                      ]
+                    },
+                    {
+                      "title": "DIY Projector (IR)",
+                      "enum": [
+                        "DIY Projector"
+                      ]
+                    },
+                    {
+                      "title": "Set Top Box (IR)",
+                      "enum": [
+                        "Set Top Box"
+                      ]
+                    },
+                    {
+                      "title": "DIY Set Top Box (IR)",
+                      "enum": [
+                        "DIY Set Top Box"
+                      ]
+                    },
+                    {
+                      "title": "IPTV (IR)",
+                      "enum": [
+                        "IPTV"
+                      ]
+                    },
+                    {
+                      "title": "DIY IPTV (IR)",
+                      "enum": [
+                        "DIY IPTV"
+                      ]
+                    },
+                    {
+                      "title": "DVD (IR)",
+                      "enum": [
+                        "DVD"
+                      ]
+                    },
+                    {
+                      "title": "DIY DVD (IR)",
+                      "enum": [
+                        "DIY DVD"
+                      ]
+                    },
+                    {
+                      "title": "Speaker (IR)",
+                      "enum": [
+                        "Speaker"
+                      ]
+                    },
+                    {
+                      "title": "DIY Speaker (IR)",
+                      "enum": [
+                        "DIY Speaker"
+                      ]
+                    },
+                    {
+                      "title": "Others (IR)",
                       "enum": [
                         "Others"
                       ]
@@ -355,6 +427,18 @@
                     }
                   }
                 },
+                "irtv": {
+                  "type": "object",
+                  "properties": {
+                    "disable_power": {
+                      "title": "Disable Power Command",
+                      "type": "boolean",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].deviceType === 'TV' || model.options.devices[arrayIndices].deviceType === 'DIY TV' || model.options.devices[arrayIndices].deviceType === 'Projector' || model.options.devices[arrayIndices].deviceType === 'DIY Projector' || model.options.devices[arrayIndices].deviceType === 'Set Top Box' || model.options.devices[arrayIndices].deviceType === 'DIY Set Top Box' || model.options.devices[arrayIndices].deviceType === 'IPTV' || model.options.devices[arrayIndices].deviceType === 'DIY IPTV' || model.options.devices[arrayIndices].deviceType === 'DVD' || model.options.devices[arrayIndices].deviceType === 'DIY DVD' || model.options.devices[arrayIndices].deviceType === 'Speaker' || model.options.devices[arrayIndices].deviceType === 'DIY Speaker') && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    }
+                  }
+                },
                 "other": {
                   "type": "object",
                   "properties": {
@@ -481,6 +565,7 @@
             "options.devices[].fan.set_max",
             "options.devices[].fan.swing_mode",
             "options.devices[].irair.hide_automode",
+            "options.devices[].irtv.disable_power",
             "options.devices[].other.deviceType",
             "options.devices[].other.commandOn",
             "options.devices[].other.commandOff"
