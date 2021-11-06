@@ -25,8 +25,8 @@ export class Bot {
   switchbot!: switchbot;
   serviceData!: serviceData;
   Mode!: serviceData['mode'];
-  BotState!: serviceData['state'];
-  BotBattery!: serviceData['battery'];
+  state!: serviceData['state'];
+  battery!: serviceData['battery'];
   ScanDuration: number;
   TargetState!: boolean;
 
@@ -73,6 +73,8 @@ export class Bot {
       (this.batteryService =
         accessory.getService(this.platform.Service.Battery) ||
         accessory.addService(this.platform.Service.Battery)), `${accessory.displayName} Battery`;
+
+      this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
     }
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
@@ -133,18 +135,19 @@ export class Bot {
   }
 
   private async BLEparseStatus() {
-    this.platform.debug('Bots BLE Device RefreshStatus');
+    this.platform.debug('Bots BLE Device parseStatus');
     // BLEmode (true if Switch Mode) | (false if Press Mode)
     if (this.Mode) {
       this.platform.device(`Switch Mode, Mode: ${JSON.stringify(this.Mode)}`);
     }
-    this.SwitchOn = Number(this.serviceData?.state || this.BotState);
-    this.BatteryLevel = Number(this.serviceData?.battery || this.BotBattery);
+    this.SwitchOn = Boolean(this.state);
+    this.BatteryLevel = Number(this.battery);
     if (this.BatteryLevel < 10) {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     }
+    this.platform.debug(`Bot ${this.accessory.displayName} On: ${this.SwitchOn}, BatteryLevel: ${this.BatteryLevel}`);
   }
 
   private async openAPIparseStatus() {
@@ -188,9 +191,9 @@ export class Bot {
       // Set an event hander
       switchbot.onadvertisement = (ad: ad) => {
         this.serviceData = ad.serviceData;
-        this.Mode === ad.serviceData.mode;
-        this.SwitchOn === ad.serviceData.state;
-        this.BatteryLevel === ad.serviceData.battery;
+        this.Mode = ad.serviceData.mode;
+        this.state = ad.serviceData.state;
+        this.battery = ad.serviceData.battery;
         this.platform.device(`${this.device.bleMac}: ${JSON.stringify(ad.serviceData)}`);
         this.platform.device(`${this.accessory.displayName}, Model: ${ad.serviceData.model}, Model Name: ${ad.serviceData.modelName},`
           + ` Mode: ${ad.serviceData.mode}, State: ${ad.serviceData.state}, Battery: ${ad.serviceData.battery}`);

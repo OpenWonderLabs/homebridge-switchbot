@@ -189,7 +189,7 @@ export class Humidifier {
   parseStatus() {
     // Current Relative Humidity
     if (this.device.ble) {
-      this.CurrentRelativeHumidity = this.serviceData?.percentage || this.percentage!;
+      this.CurrentRelativeHumidity = this.percentage!;
     } else {
       this.CurrentRelativeHumidity = this.deviceStatus.body.humidity!;
     }
@@ -248,7 +248,7 @@ export class Humidifier {
   }
 
   private State(): CharacteristicValue {
-    if (this.onState || this.serviceData.onState) {
+    if (this.onState) {
       return this.platform.Characteristic.Active.ACTIVE;
     } else {
       return this.platform.Characteristic.Active.INACTIVE;

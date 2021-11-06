@@ -12,17 +12,24 @@ import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusR
 export class Contact {
   // Services
   private service: Service;
-  motionService: Service;
+  private motionService: Service;
+  private lightSensorService: Service;
+  private batteryService?: Service;
 
   // Characteristic Values
   ContactSensorState!: CharacteristicValue;
   MotionDetected!: CharacteristicValue;
+  CurrentAmbientLightLevel!: CharacteristicValue;
+  BatteryLevel!: CharacteristicValue;
+  StatusLowBattery!: CharacteristicValue;
 
   // BLE Others
   switchbot!: switchbot;
   serviceData!: serviceData;
-  BLEstate!: serviceData['state'];
-  BLEmotion!: serviceData['movement'];
+  battery!: serviceData['battery'];
+  movement!: serviceData['movement'];
+  doorState!: serviceData['doorState'];
+  lightLevel!: serviceData['lightLevel'];
 
   // OpenAPI others
   deviceStatus!: deviceStatusResponse;
@@ -86,6 +93,20 @@ export class Contact {
 
     this.motionService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Motion Sensor`);
 
+    (this.lightSensorService =
+      accessory.getService(this.platform.Service.LightSensor) ||
+      accessory.addService(this.platform.Service.LightSensor)), `${accessory.displayName} Light Sensor`;
+
+    this.lightSensorService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Light Sensor`);
+
+    if (device.ble) {
+      (this.batteryService =
+        accessory.getService(this.platform.Service.Battery) ||
+        accessory.addService(this.platform.Service.Battery)), `${accessory.displayName} Battery`;
+
+      this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
+    }
+
     // Retrieve initial values and updateHomekit
     this.updateHomeKitCharacteristics();
 
@@ -111,10 +132,41 @@ export class Contact {
   }
 
   private async BLEparseStatus() {
-    this.MotionDetected = Boolean(this.BLEmotion);
-    this.ContactSensorState = Boolean(this.BLEstate);
-    this.platform.debug(`${this.accessory.displayName}
-    , ContactSensorState: ${this.ContactSensorState}, MotionDetected: ${this.MotionDetected}`);
+    this.platform.debug('Contact BLE Device parseStatus');
+    // Movement
+    this.MotionDetected = Boolean(this.movement);
+    // Door State
+    switch (this.doorState) {
+      case 'open':
+      case 1:
+        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
+        break;
+      case 'close':
+      case 0:
+        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+        break;
+      default:
+        this.platform.log.error('timeout no closed');
+    }
+    // Light Level
+    switch (this.lightLevel) {
+      case 'dark':
+      case 0:
+        this.CurrentAmbientLightLevel = 0.0001;
+        break;
+      default:
+        this.CurrentAmbientLightLevel = 100000;
+    }
+    // Battery
+    this.BatteryLevel = Number(this.battery);
+    if (this.BatteryLevel < 10) {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
+    } else {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    }
+
+    this.platform.debug(`${this.accessory.displayName}, ContactSensorState: ${this.ContactSensorState}, MotionDetected: ${this.MotionDetected}`
+      + `CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}, BatteryLevel: ${this.BatteryLevel}`);
   }
 
   private async openAPIparseStatus() {
@@ -169,11 +221,12 @@ export class Contact {
       switchbot.onadvertisement = (ad: any) => {
         this.serviceData = ad.serviceData;
         this.platform.device(`${this.device.bleMac}: ${JSON.stringify(ad.serviceData)}`);
-        /*this.Mode === ad.serviceData.mode;
-        this.SwitchOn === ad.serviceData.state;
-        this.BatteryLevel === ad.serviceData.battery;
-        this.platform.device(`${this.accessory.displayName}, Mode: ${ad.serviceData.mode}, State: ${ad.serviceData.state},`
-          + ` Battery: ${ad.serviceData.battery}`);*/
+        this.movement = ad.serviceData.movement;
+        this.doorState = ad.serviceData.doorState;
+        this.lightLevel = ad.serviceData.lightLevel;
+        this.battery = ad.serviceData.battery;
+        this.platform.device(`${this.accessory.displayName}, Movement: ${ad.serviceData.movement}, Door State: ${ad.serviceData.doorState},`
+          + ` Light Level: ${ad.serviceData.lightLevel}, Battery: ${ad.serviceData.battery}`);
       };
       // Wait 10 seconds
       return switchbot.wait(10000);
@@ -218,10 +271,31 @@ export class Contact {
       this.motionService.updateCharacteristic(this.platform.Characteristic.MotionDetected, this.MotionDetected);
       this.platform.device(`Contact ${this.accessory.displayName} updateCharacteristic MotionDetected: ${this.MotionDetected}`);
     }
+    if (this.CurrentAmbientLightLevel === undefined) {
+      this.platform.debug(`Contact ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+    } else {
+      this.lightSensorService.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
+      this.platform.device(`Contact ${this.accessory.displayName} updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+    }
+    if (this.BatteryLevel === undefined) {
+      this.platform.debug(`Contact ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
+    } else {
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
+      this.platform.device(`Contact ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
+    }
+    if (this.StatusLowBattery === undefined) {
+      this.platform.debug(`Contact ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
+    } else {
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
+      this.platform.device(`Contact ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
+    }
   }
 
   public apiError(e: any) {
     this.service.updateCharacteristic(this.platform.Characteristic.ContactSensorState, e);
     this.motionService.updateCharacteristic(this.platform.Characteristic.MotionDetected, e);
+    this.lightSensorService.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, e);
+    this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
+    this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
   }
 }

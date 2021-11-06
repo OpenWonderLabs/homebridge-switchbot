@@ -12,9 +12,14 @@ import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusR
 export class Motion {
   // Services
   private service: Service;
+  private lightSensorService?: Service;
+  private batteryService?: Service;
 
   // Characteristic Values
   MotionDetected!: CharacteristicValue;
+  BatteryLevel?: CharacteristicValue;
+  StatusLowBattery?: CharacteristicValue;
+  CurrentAmbientLightLevel?: CharacteristicValue;
 
   // BLE Others
   switchbot!: switchbot;
@@ -27,6 +32,9 @@ export class Motion {
   // Updates
   motionUbpdateInProgress!: boolean;
   doMotionUpdate!: Subject<void>;
+  movement: any;
+  battery: any;
+  lightLevel: any;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -67,6 +75,21 @@ export class Motion {
       accessory.getService(this.platform.Service.MotionSensor) ||
       accessory.addService(this.platform.Service.MotionSensor)), `${accessory.displayName} Motion Sensor`;
 
+    if (device.ble) {
+      (this.lightSensorService =
+        accessory.getService(this.platform.Service.LightSensor) ||
+        accessory.addService(this.platform.Service.LightSensor)), `${accessory.displayName} Light Sensor`;
+
+      this.lightSensorService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Light Sensor`);
+
+
+      (this.batteryService =
+        accessory.getService(this.platform.Service.Battery) ||
+        accessory.addService(this.platform.Service.Battery)), `${accessory.displayName} Battery`;
+
+      this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
+    }
+
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
     // accessory.getService('NAME') ?? accessory.addService(this.platform.Service.Motion, 'NAME', 'USER_DEFINED_SUBTYPE');
@@ -106,8 +129,24 @@ export class Motion {
   }
 
   private async BLEparseStatus() {
-    this.MotionDetected = Boolean(this.BLEmotion);
+    this.MotionDetected = Boolean(this.movement);
     this.platform.debug(`${this.accessory.displayName}, MotionDetected: ${this.MotionDetected}`);
+    // Light Level
+    switch (this.lightLevel) {
+      case 'dark':
+      case 0:
+        this.CurrentAmbientLightLevel = 0.0001;
+        break;
+      default:
+        this.CurrentAmbientLightLevel = 100000;
+    }
+    // Battery
+    this.BatteryLevel = Number(this.battery);
+    if (this.BatteryLevel < 10) {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
+    } else {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    }
   }
 
   private async openAPIparseStatus() {
@@ -152,11 +191,11 @@ export class Motion {
       switchbot.onadvertisement = (ad: any) => {
         this.serviceData = ad.serviceData;
         this.platform.device(`${this.device.bleMac}: ${JSON.stringify(ad.serviceData)}`);
-        /*this.Mode === ad.serviceData.mode;
-        this.SwitchOn === ad.serviceData.state;
-        this.BatteryLevel === ad.serviceData.battery;
-        this.platform.device(`${this.accessory.displayName}, Mode: ${ad.serviceData.mode}, State: ${ad.serviceData.state},`
-          + ` Battery: ${ad.serviceData.battery}`);*/
+        this.movement = ad.serviceData.movement;
+        this.battery = ad.serviceData.battery;
+        this.lightLevel = ad.serviceData.lightLevel;
+        this.platform.device(`${this.accessory.displayName}, Movement: ${ad.serviceData.movement}, Light Level: ${ad.serviceData.lightLevel},`
+          + ` Battery: ${ad.serviceData.battery}`);
       };
       // Wait 10 seconds
       return switchbot.wait(10000);
@@ -195,9 +234,34 @@ export class Motion {
       this.service.updateCharacteristic(this.platform.Characteristic.MotionDetected, this.MotionDetected);
       this.platform.device(`Motion ${this.accessory.displayName} updateCharacteristic MotionDetected: ${this.MotionDetected}`);
     }
+    if (this.device.ble) {
+      if (this.BatteryLevel === undefined) {
+        this.platform.debug(`Motion ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
+      } else {
+        this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
+        this.platform.device(`Motion ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
+      }
+      if (this.StatusLowBattery === undefined) {
+        this.platform.debug(`Motion ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
+      } else {
+        this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
+        this.platform.device(`Motion ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
+      }
+      if (this.CurrentAmbientLightLevel === undefined) {
+        this.platform.debug(`Motion ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+      } else {
+        this.lightSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
+        this.platform.device(`Motion ${this.accessory.displayName} updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+      }
+    }
   }
 
   public apiError(e: any) {
     this.service.updateCharacteristic(this.platform.Characteristic.MotionDetected, e);
+    if (this.device.ble) {
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
+      this.lightSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, e);
+    }
   }
 }
