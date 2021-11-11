@@ -1,5 +1,6 @@
 import { AxiosResponse } from 'axios';
 import { CharacteristicValue, HAPStatus, PlatformAccessory, Service } from 'homebridge';
+import util from 'util';
 import { SwitchBotPlatform } from '../platform';
 import { DeviceURL, irdevice } from '../settings';
 
@@ -261,7 +262,7 @@ export class AirConditioner {
     this.CurrentARMode = this.CurrentMode || 1;
     this.CurrentARFanSpeed = this.CurrentFanSpeed || 1;
     this.ARActive = this.Active === 1 ? 'on' : 'off';
-    payload.parameter = '%s,%s,%s,%s', this.CurrentARTemp, this.CurrentARMode, this.CurrentARFanSpeed, this.ARActive;
+    payload.parameter = util.format('%s,%s,%s,%s', this.CurrentARTemp, this.CurrentARMode, this.CurrentARFanSpeed, this.ARActive);
 
 
     if (this.Active === 1) {

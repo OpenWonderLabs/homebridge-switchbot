@@ -1,5 +1,6 @@
 import { AxiosResponse } from 'axios';
 import { CharacteristicValue, HAPStatus, PlatformAccessory, Service } from 'homebridge';
+import util from 'util';
 import { SwitchBotPlatform } from '../platform';
 import { DeviceURL, irdevice } from '../settings';
 
@@ -159,7 +160,7 @@ export class AirPurifier {
     this.CurrentAPMode = this.CurrentMode || 1;
     this.CurrentAPFanSpeed = this.CurrentFanSpeed || 1;
     this.APActive = this.Active === 1 ? 'on' : 'off';
-    payload.parameter = '%s,%s,%s,%s', this.CurrentAPTemp, this.CurrentAPMode, this.CurrentAPFanSpeed, this.APActive;
+    payload.parameter = util.format('%s,%s,%s,%s', this.CurrentAPTemp, this.CurrentAPMode, this.CurrentAPFanSpeed, this.APActive);
 
     if (this.Active === 1) {
       if ((this.CurrentTemperature || 24) < (this.LastTemperature || 30)) {
