@@ -538,7 +538,7 @@
                       "title": "Disable Power Command",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.devices[arrayIndices].deviceType === 'TV' || model.options.devices[arrayIndices].deviceType === 'DIY TV' || model.options.devices[arrayIndices].deviceType === 'Projector' || model.options.devices[arrayIndices].deviceType === 'DIY Projector' || model.options.devices[arrayIndices].deviceType === 'Set Top Box' || model.options.devices[arrayIndices].deviceType === 'DIY Set Top Box' || model.options.irdevices[arrayIndices].deviceType === 'IPTV' || model.options.irdevices[arrayIndices].deviceType === 'DIY IPTV' || model.options.devices[arrayIndices].deviceType === 'DVD' || model.options.devices[arrayIndices].deviceType === 'DIY DVD' || model.options.devices[arrayIndices].deviceType === 'Speaker' || model.options.devices[arrayIndices].deviceType === 'DIY Speaker') && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].remoteType === 'TV' || model.options.irdevices[arrayIndices].remoteType === 'DIY TV' || model.options.irdevices[arrayIndices].remoteType === 'Projector' || model.options.irdevices[arrayIndices].remoteType === 'DIY Projector' || model.options.irdevices[arrayIndices].remoteType === 'Set Top Box' || model.options.irdevices[arrayIndices].remoteType === 'DIY Set Top Box' || model.options.irdevices[arrayIndices].remoteType === 'IPTV' || model.options.irdevices[arrayIndices].remoteType === 'DIY IPTV' || model.options.irdevices[arrayIndices].remoteType === 'DVD' || model.options.irdevices[arrayIndices].remoteType === 'DIY DVD' || model.options.irdevices[arrayIndices].remoteType === 'Speaker' || model.options.irdevices[arrayIndices].remoteType === 'DIY Speaker') && model.options.irdevices[arrayIndices].deviceId);"
                       }
                     }
                   }
@@ -662,7 +662,7 @@
             "options.devices[].curtain.set_minStep",
             "options.devices[].curtain.set_min",
             "options.devices[].curtain.set_max",
-            "options.devices[].bulb.set_minStep"
+            "options.devices[].colorbulb.set_minStep"
           ]
         }
       ]
@@ -686,12 +686,12 @@
             "options.irdevices[].deviceId",
             "options.irdevices[].hide_device",
             "options.irdevices[].remoteType",
+            "options.irdevices[].irair.hide_automode",
             "options.irdevices[].irfan.rotation_speed",
+            "options.irdevices[].irfan.swing_mode",
             "options.irdevices[].irfan.set_minStep",
             "options.irdevices[].irfan.set_min",
             "options.irdevices[].irfan.set_max",
-            "options.irdevices[].fan.swing_mode",
-            "options.irdevices[].irair.hide_automode",
             "options.irdevices[].irtv.disable_power",
             "options.irdevices[].other.deviceType",
             "options.irdevices[].other.commandOn",

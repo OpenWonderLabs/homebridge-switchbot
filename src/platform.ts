@@ -16,7 +16,7 @@ import { Meter } from './devices/meters';
 import { Motion } from './devices/motion';
 import { Contact } from './devices/contact';
 import { Curtain } from './devices/curtains';
-//import { ColorBulb } from './devices/colorbulb';
+import { ColorBulb } from './devices/colorbulb';
 import { IndoorCam } from './devices/indoorcam';
 import { Humidifier } from './devices/humidifiers';
 import { TV } from './irdevices/tvs';
@@ -182,7 +182,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.log.info('Total SwitchBot Devices Found:', devicesAPI.body.deviceList.length);
       const deviceLists = devicesAPI.body.deviceList;
       if (!this.config.options?.devices) {
-        this.debug(`Config Not Set: ${JSON.stringify(this.config.options?.devices)}`);
+        this.debug(`SwitchBot Device Config Not Set: ${JSON.stringify(this.config.options?.devices)}`);
         const devices = deviceLists.map((v: any) => v);
         for (const device of devices) {
           if (device.deviceType) {
@@ -190,7 +190,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           }
         }
       } else {
-        this.debug(`Config Set: ${JSON.stringify(this.config.options?.devices)}`);
+        this.debug(`SwitchBot Device Config Set: ${JSON.stringify(this.config.options?.devices)}`);
         const deviceConfigs = this.config.options?.devices;
 
         const mergeBydeviceId = (a1: { deviceId: string; }[], a2: any[]) =>
@@ -211,7 +211,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.log.info('Total IR Devices Found:', devicesAPI.body.infraredRemoteList.length);
       const irDeviceLists = devicesAPI.body.infraredRemoteList;
       if (!this.config.options?.irdevices) {
-        this.debug(`Config Not Set: ${JSON.stringify(this.config.options?.irdevices)}`);
+        this.debug(`IR Device Config Not Set: ${JSON.stringify(this.config.options?.irdevices)}`);
         const devices = irDeviceLists.map((v: any) => v);
         for (const device of devices) {
           if (device.remoteType) {
@@ -219,16 +219,16 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           }
         }
       } else {
-        this.debug(`Config Set: ${JSON.stringify(this.config.options?.irdevices)}`);
+        this.debug(`IR Device Config Set: ${JSON.stringify(this.config.options?.irdevices)}`);
         const irDeviceConfig = this.config.options?.irdevices;
 
-        const mergeBydeviceId = (a1: { deviceId: string; }[], a2: any[]) =>
+        const mergeIRBydeviceId = (a1: { deviceId: string; }[], a2: any[]) =>
           a1.map((itm: { deviceId: string; }) => ({
-            ...a2.find((item: { deviceId: string; }) => (item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId) && item),
+            ...a2.find((item: { deviceId: string; }) => (item.deviceId === itm.deviceId) && item),
             ...itm,
           }));
 
-        const devices = mergeBydeviceId(irDeviceLists, irDeviceConfig);
+        const devices = mergeIRBydeviceId(irDeviceLists, irDeviceConfig);
         this.debug(`IR Devices: ${JSON.stringify(devices)}`);
         for (const device of devices) {
           if (device.remoteType) {
@@ -277,6 +277,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       case 'Plug':
         this.debug(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createPlug(device);
+        break;
+      case 'Color Bulb':
+        this.debug(`Discovered ${device.deviceType}: ${device.deviceId}`);
+        this.createColorBulb(device);
         break;
       case 'IndoorCam':
         this.debug(`Discovered ${device.deviceType}: ${device.deviceId}`);
@@ -744,6 +748,59 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new Plug(this, accessory, device);
+      this.debug(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
+
+      // link the accessory to your platform
+      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      this.accessories.push(accessory);
+    } else {
+      this.device(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
+    }
+  }
+
+  private async createColorBulb(device: device & devicesConfig) {
+    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`);
+
+    // see if an accessory with the same uuid has already been registered and restored from
+    // the cached devices we stored in the `configureAccessory` method above
+    const existingAccessory = this.accessories.find((accessory) => accessory.UUID === uuid);
+
+    if (existingAccessory) {
+      // the accessory already exists
+      if (!device.hide_device && device.enableCloudService) {
+        this.log.info(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+
+        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
+        existingAccessory.context.model = device.deviceType;
+        existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.displayName = device.deviceName;
+        existingAccessory.context.firmwareRevision = this.version;
+        await this.connectionTypeExistingAccessory(device, existingAccessory);
+        this.api.updatePlatformAccessories([existingAccessory]);
+        // create the accessory handler for the restored accessory
+        // this is imported from `platformAccessory.ts`
+        new ColorBulb(this, existingAccessory, device);
+        this.debug(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`);
+      } else {
+        this.unregisterPlatformAccessories(existingAccessory);
+      }
+    } else if (!device.hide_device && device.enableCloudService) {
+      // the accessory does not yet exist, so we need to create it
+      this.log.info(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+
+      // create a new accessory
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+
+      // store a copy of the device object in the `accessory.context`
+      // the `context` property can be used to store any data about the accessory you may need
+      accessory.context.device = device;
+      accessory.context.model = device.deviceType;
+      accessory.context.deviceID = device.deviceId;
+      accessory.context.firmwareRevision = this.version;
+      await this.connectionTypeExistingAccessory(device, accessory);
+      // create the accessory handler for the newly create accessory
+      // this is imported from `platformAccessory.ts`
+      new ColorBulb(this, accessory, device);
       this.debug(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
       // link the accessory to your platform
