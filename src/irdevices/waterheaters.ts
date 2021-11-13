@@ -1,12 +1,7 @@
 import { AxiosResponse } from 'axios';
-import {
-  CharacteristicValue,
-  HAPStatus,
-  PlatformAccessory,
-  Service,
-} from 'homebridge';
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
-import { DeviceURL, irdevice } from '../settings';
+import { irDevicesConfig, DeviceURL, irdevice } from '../settings';
 
 /**
  * Platform Accessory
@@ -21,20 +16,20 @@ export class WaterHeater {
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
-    public device: irdevice,
+    public device: irdevice & irDevicesConfig,
   ) {
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId);
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
     (this.service =
-      accessory.getService(this.platform.Service.Valve) || accessory.addService(this.platform.Service.Valve)),
-    `${device.deviceName} ${device.remoteType}`;
+      accessory.getService(this.platform.Service.Valve) ||
+      accessory.addService(this.platform.Service.Valve)), `${accessory.displayName} Water Heater`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -58,7 +53,7 @@ export class WaterHeater {
   }
 
   private ActiveSet(value: CharacteristicValue) {
-    this.platform.debug('WaterHeater %s Set Active: %s', this.accessory.displayName, value);
+    this.platform.debug(`${this.accessory.displayName} Set Active: ${value}`);
     if (value === this.platform.Characteristic.Active.INACTIVE) {
       this.pushWaterHeaterOffChanges();
       this.service.setCharacteristic(
@@ -119,11 +114,11 @@ export class WaterHeater {
         'commandType:',
         payload.commandType,
       );
-      this.platform.debug('WaterHeater %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
+      this.platform.debug(`${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.debug('WaterHeater %s Changes pushed -', this.accessory.displayName, push.data);
+      this.platform.debug(`${this.accessory.displayName} Changes pushed - ${push.data}`);
       this.statusCode(push);
     } catch (e) {
       this.apiError(e);
@@ -131,7 +126,7 @@ export class WaterHeater {
   }
 
 
-  private statusCode(push: AxiosResponse<any>) {
+  private statusCode(push: AxiosResponse<{ statusCode: number;}>) {
     switch (push.data.statusCode) {
       case 151:
         this.platform.log.error('Command not supported by this device type.');
@@ -163,6 +158,5 @@ export class WaterHeater {
     this.service.updateCharacteristic(this.platform.Characteristic.ValveType, e);
     this.service.updateCharacteristic(this.platform.Characteristic.Active, e);
     this.service.updateCharacteristic(this.platform.Characteristic.InUse, e);
-    new this.platform.api.hap.HapStatusError(HAPStatus.OPERATION_TIMED_OUT);
   }
 }

@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
-import { CharacteristicValue, HAPStatus, PlatformAccessory, Service } from 'homebridge';
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
-import { DeviceURL, irdevice } from '../settings';
+import { irDevicesConfig, DeviceURL, irdevice } from '../settings';
 
 /**
  * Platform Accessory
@@ -31,20 +31,20 @@ export class AirPurifier {
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
-    public device: irdevice,
+    public device: irdevice & irDevicesConfig,
   ) {
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId);
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.AirPurifier) ||
-      accessory.addService(this.platform.Service.AirPurifier)), '%s %s', device.deviceName, device.remoteType;
+      accessory.addService(this.platform.Service.AirPurifier)), `${accessory.displayName} Air Purifier`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -65,7 +65,7 @@ export class AirPurifier {
   }
 
   private ActiveSet(value: CharacteristicValue) {
-    this.platform.debug('%s %s Set Active: %s', this.device.remoteType, this.accessory.displayName, value);
+    this.platform.debug(`${this.accessory.displayName} Set Active: ${value}`);
     if (value === this.platform.Characteristic.Active.INACTIVE) {
       this.pushAirConditionerOffChanges();
     } else {
@@ -159,7 +159,7 @@ export class AirPurifier {
     this.CurrentAPMode = this.CurrentMode || 1;
     this.CurrentAPFanSpeed = this.CurrentFanSpeed || 1;
     this.APActive = this.Active === 1 ? 'on' : 'off';
-    payload.parameter = '%s,%s,%s,%s', this.CurrentAPTemp, this.CurrentAPMode, this.CurrentAPFanSpeed, this.APActive;
+    payload.parameter = `${this.CurrentAPTemp},${this.CurrentAPMode},${this.CurrentAPFanSpeed},${this.APActive}`;
 
     if (this.Active === 1) {
       if ((this.CurrentTemperature || 24) < (this.LastTemperature || 30)) {
@@ -195,23 +195,18 @@ export class AirPurifier {
         'commandType:',
         payload.commandType,
       );
-      this.platform.debug(
-        '%s %s pushChanges -',
-        this.device.remoteType,
-        this.accessory.displayName,
-        JSON.stringify(payload),
-      );
+      this.platform.debug(`${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.debug('%s %s Changes pushed -', this.device.remoteType, this.accessory.displayName, push.data);
+      this.platform.debug(`${this.accessory.displayName} Changes pushed - ${push.data}`);
       this.statusCode(push);
     } catch (e) {
       this.apiError(e);
     }
   }
 
-  private statusCode(push: AxiosResponse<any>) {
+  private statusCode(push: AxiosResponse<{ statusCode: number;}>) {
     switch (push.data.statusCode) {
       case 151:
         this.platform.log.error('Command not supported by this device type.');
@@ -244,6 +239,5 @@ export class AirPurifier {
     this.service.updateCharacteristic(this.platform.Characteristic.CurrentAirPurifierState, e);
     this.service.updateCharacteristic(this.platform.Characteristic.TargetAirPurifierState, e);
     this.service.updateCharacteristic(this.platform.Characteristic.Active, e);
-    new this.platform.api.hap.HapStatusError(HAPStatus.OPERATION_TIMED_OUT);
   }
 }

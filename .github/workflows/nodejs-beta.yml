@@ -12,8 +12,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2.3.4
-      - uses: actions/setup-node@v2.4.0
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
         with:
           node-version: 14
       - name: npm install, build and test
@@ -32,13 +32,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2.3.4
-      - uses: actions/setup-node@v2.4.0
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
         with:
           node-version: 14
           registry-url: https://registry.npmjs.org/
       - run: npm ci
-      - run: node .github/workflows/prerelease.js
+      - run: node .github/workflows/prerelease-beta.js
       - run: npm --no-git-tag-version version prerelease --preid=beta
       - run: npm publish --tag=beta 
         env:

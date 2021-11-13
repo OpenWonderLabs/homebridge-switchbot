@@ -1,6 +1,7 @@
+#Others
 node_modules
-.DS_Store
 dist/
+#DS_Store Files
+.DS_Store
 src/.DS_Store
 .github/.DS_Store
-src/.DS_Store

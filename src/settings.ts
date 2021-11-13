@@ -1,4 +1,4 @@
-import { PlatformConfig } from 'homebridge';
+import { MacAddress, PlatformConfig } from 'homebridge';
 /**
  * This is the name of the platform that users will use to register the plugin in the Homebridge config.json
  */
@@ -22,7 +22,6 @@ export const DeviceURL = 'https://api.switch-bot.com/v1.0/devices';
 //Config
 export interface SwitchBotPlatformConfig extends PlatformConfig {
   credentials?: credentials;
-  devicediscovery?: boolean;
   options?: options | Record<string, never>;
 }
 
@@ -33,17 +32,22 @@ export type credentials = {
 export type options = {
   refreshRate?: number;
   pushRate?: number;
-  hide_device: string[];
-  debug?: boolean;
+  debug?: string;
+  devices?: Array<devicesConfig>;
+  irdevices?: Array<irDevicesConfig>;
+};
+
+export interface devicesConfig extends device {
+  type?: string;
+  deviceId: string;
   bot?: bot;
   meter?: meter;
   humidifier?: humidifier;
   curtain?: curtain;
-  fan?: irfan;
-  irair?: irair;
-  other?: other;
-  ble?: string[];
-};
+  colorbulb?: colorbulb;
+  ble?: string;
+  hide_device?: boolean;
+}
 
 export type meter = {
   unit?: number;
@@ -52,9 +56,7 @@ export type meter = {
 };
 
 export type bot = {
-  switch?: boolean;
-  device_switch?: string[];
-  device_press?: string[];
+  mode?: string;
 };
 
 export type humidifier = {
@@ -70,9 +72,23 @@ export type curtain = {
   set_minStep?: number;
 };
 
+export type colorbulb = {
+  set_minStep?: number;
+};
+
+export interface irDevicesConfig extends irdevice {
+  type?: string;
+  deviceId: string;
+  irfan?: irfan;
+  irair?: irair;
+  irtv?: irtv;
+  other?: other;
+  hide_device?: boolean;
+}
+
 export type irfan = {
-  swing_mode?: string[];
-  rotation_speed?: string[];
+  swing_mode?: boolean;
+  rotation_speed?: boolean;
   set_minStep?: number; //set_minStep
   set_max?: number; //set_max
   set_min?: number; //set_min
@@ -80,24 +96,28 @@ export type irfan = {
 
 //For Potential Future Use
 export type set_minStep = {
-  set_minStep_device?: string[];
+  set_minStep_device?: boolean;
   set_minStep?: number;
 };
 
 //For Potential Future Use
 export type set_max = {
-  set_max_device?: string[];
+  set_max_device?: boolean;
   set_max?: number;
 };
 
 //For Potential Future Use
 export type set_min = {
-  set_min_device?: string[];
+  set_min_device?: boolean;
   set_min?: number;
 };
 
 export type irair = {
   hide_automode?: boolean;
+};
+
+export type irtv = {
+  disable_power?: boolean;
 };
 
 export type other = {
@@ -124,7 +144,7 @@ export type deviceList = {
 
 export type device = {
   //device ID.
-  deviceId: string;
+  deviceId?: string;
   //device name.
   deviceName: string;
   //device type.
@@ -153,7 +173,7 @@ export type infraredRemoteList = {
 };
 
 export type irdevice = {
-  deviceId: string; //device ID
+  deviceId?: string; //device ID
   deviceName: string; //device name
   remoteType: string; //device type
   hubDeviceId: string; //remote device's parent Hub ID
@@ -218,4 +238,64 @@ export type deviceStatus = {
   colorTemperature?: number;
   //only available for Humidifier devices. determines if the water tank empty or not
   lackWater?: boolean;
+};
+
+export type ad = {
+  serviceData: serviceData;
+};
+
+export type serviceData = {
+  //Model of BLE SwitchBot Device
+  model: string,
+  //Model Name of BLE SwitchBot Device
+  modelName: string
+  //Mode for Bot either Press or Switch
+  mode?: boolean;
+  //Bot State
+  state?: string;
+  //Battery percentage left on Bot, Meter, Motion, Contact, and Curtain
+  battery?: number;
+  //Humidifier's humidity level percentage
+  percentage?: boolean | string;
+  //Humidifier's humidity level percentage
+  onState?: boolean;
+  //Humidifier's AutoMode
+  autoMode?: boolean;
+  //Meter Temperature Levels
+  temperature?: {
+    c: number,
+    f: number
+  };
+  // Fahrenheit enabled for Meter
+  fahrenheit: boolean;
+  // Humidity level for Meter
+  humidity?: number,
+  //Motion Detected for Contact or Motion Sensors
+  movement?: boolean,
+  //Motion ((lightLevel == 1) ? 'dark' : ((lightLevel == 2) ? 'bright' : 'unknown'))
+  //Contact ((lightLevel == 0) ? 'dark' : 'bright')
+  //Curtain (light sensor level (1-10))
+  //Light Level
+  lightLevel?: number | string;
+  //Contact DoorState
+  doorState?: number | string;
+  //Is Curtain Calibrated
+  calibration?: boolean;
+  //Current Curtain Positon %
+  position?: number;
+};
+
+export type switchbot = {
+  discover: (
+    arg0:
+      {
+        duration?: any;
+        model: string;
+        quick: boolean;
+        id?: MacAddress;
+      }
+  ) => Promise<any>;
+  wait: (
+    arg0: number
+  ) => any;
 };

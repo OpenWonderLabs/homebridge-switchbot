@@ -3,8 +3,9 @@ import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
 import { DeviceURL, device, devicesConfig } from '../settings';
+import { AxiosResponse } from 'axios';
 
-export class Plug {
+export class IndoorCam {
   // Services
   private service: Service;
 
@@ -30,8 +31,8 @@ export class Plug {
   };
 
   // Updates
-  plugUpdateInProgress!: boolean;
-  doPlugUpdate;
+  cameraUpdateInProgress!: boolean;
+  doCameraUpdate;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -54,8 +55,8 @@ export class Plug {
     }
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
-    this.doPlugUpdate = new Subject();
-    this.plugUpdateInProgress = false;
+    this.doCameraUpdate = new Subject();
+    this.cameraUpdateInProgress = false;
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();
@@ -64,14 +65,14 @@ export class Plug {
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-PLUG-SP11')
+      .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-CAMERA-')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
     // get the WindowCovering service if it exists, otherwise create a new WindowCovering service
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.Outlet) ||
-      accessory.addService(this.platform.Service.Outlet)), `${device.deviceName} ${device.deviceType}`;
+      accessory.addService(this.platform.Service.Outlet)), `${accessory.displayName} Indoor Camera`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -94,17 +95,17 @@ export class Plug {
 
     // Start an update interval
     interval(this.platform.config.options!.refreshRate! * 1000)
-      .pipe(skipWhile(() => this.plugUpdateInProgress))
+      .pipe(skipWhile(() => this.cameraUpdateInProgress))
       .subscribe(() => {
         this.refreshStatus();
       });
 
-    // Watch for Plug change events
+    // Watch for Camera change events
     // We put in a debounce of 100ms so we don't make duplicate calls
-    this.doPlugUpdate
+    this.doCameraUpdate
       .pipe(
         tap(() => {
-          this.plugUpdateInProgress = true;
+          this.cameraUpdateInProgress = true;
         }),
         debounceTime(this.platform.config.options!.pushRate! * 1000),
       )
@@ -113,10 +114,10 @@ export class Plug {
           await this.pushChanges();
         } catch (e: any) {
           this.platform.log.error(JSON.stringify(e.message));
-          this.platform.debug(`Plug ${accessory.displayName} - ${JSON.stringify(e)}`);
+          this.platform.debug(`Camera ${accessory.displayName} - ${JSON.stringify(e)}`);
           this.apiError(e);
         }
-        this.plugUpdateInProgress = false;
+        this.cameraUpdateInProgress = false;
       });
   }
 
@@ -128,7 +129,7 @@ export class Plug {
       default:
         this.On = false;
     }
-    this.platform.debug(`Plug ${this.accessory.displayName} On: ${this.On}`);
+    this.platform.debug(`Camera ${this.accessory.displayName} On: ${this.On}`);
   }
 
   async refreshStatus() {
@@ -142,7 +143,7 @@ export class Plug {
   }
 
   private async BLErefreshStatus() {
-    this.platform.debug('Plug BLE Device RefreshStatus');
+    this.platform.debug('IndoorCam BLE Device RefreshStatus');
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const Switchbot = require('node-switchbot');
     const switchbot = new Switchbot();
@@ -152,10 +153,8 @@ export class Plug {
     this.platform.device(this.device.bleMac!);
     switchbot.onadvertisement = (ad: any) => {
       this.platform.debug(JSON.stringify(ad, null, '  '));
-      this.platform.device('ad:', JSON.stringify(ad));
+      this.platform.device(`ad: ${JSON.stringify(ad)}`);
     };
-    this.parseStatus();
-    this.updateHomeKitCharacteristics();
     switchbot
       .startScan({
         id: this.device.bleMac,
@@ -193,14 +192,13 @@ export class Plug {
 
   private async openAPIRefreshStatus() {
     try {
-      this.platform.debug('Plug - Reading', `${DeviceURL}/${this.device.deviceId}/status`);
       this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
-      this.platform.device(`Plug ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+      this.platform.device(`Camera ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
-      this.platform.log.error(`Plug ${this.accessory.displayName} failed to refresh status, Error Message: ${JSON.stringify(e.message)}`);
-      this.platform.debug(`Plug ${this.accessory.displayName}, Error: ${JSON.stringify(e)}`);
+      this.platform.log.error(`IndoorCam ${this.accessory.displayName} failed to refresh status, Error Message: ${JSON.stringify(e.message)}`);
+      this.platform.debug(`IndoorCam ${this.accessory.displayName}, Error: ${JSON.stringify(e)}`);
       this.apiError(e);
     }
   }
@@ -208,8 +206,8 @@ export class Plug {
   /**
  * Pushes the requested changes to the SwitchBot API
  * deviceType	commandType	  Command	    command parameter	  Description
- * Plug   -    "command"     "turnOff"   "default"	  =        set to OFF state
- * Plug   -    "command"     "turnOn"    "default"	  =        set to ON state
+ * Camera   -    "command"     "turnOff"   "default"	  =        set to OFF state
+ * Camera   -    "command"     "turnOn"    "default"	  =        set to ON state
  */
   async pushChanges() {
     const payload = {
@@ -233,26 +231,26 @@ export class Plug {
       'commandType:',
       payload.commandType,
     );
-    this.platform.debug(`Plug ${this.accessory.displayName} pushchanges: ${JSON.stringify(payload)}`);
+    this.platform.debug(`Camera ${this.accessory.displayName} pushchanges: ${JSON.stringify(payload)}`);
 
     // Make the API request
-    const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload));
-    this.platform.debug(`Plug ${this.accessory.displayName} Changes pushed: ${JSON.stringify(push.data)}`);
+    const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
+    this.platform.debug(`Camera ${this.accessory.displayName} Changes pushed: ${JSON.stringify(push.data)}`);
     this.statusCode(push);
   }
 
   updateHomeKitCharacteristics() {
     if (this.On === undefined) {
-      this.platform.debug(`Plug ${this.accessory.displayName} On: ${this.On}`);
+      this.platform.debug(`Camera ${this.accessory.displayName} On: ${this.On}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.On, this.On);
-      this.platform.device(`Plug ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+      this.platform.device(`Camera ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
     if (this.OutletInUse === undefined) {
-      this.platform.debug(`Plug ${this.accessory.displayName} OutletInUse: ${this.OutletInUse}`);
+      this.platform.debug(`Camera ${this.accessory.displayName} OutletInUse: ${this.OutletInUse}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.OutletInUse, this.OutletInUse);
-      this.platform.device(`Plug ${this.accessory.displayName} updateCharacteristic OutletInUse: ${this.OutletInUse}`);
+      this.platform.device(`Camera ${this.accessory.displayName} updateCharacteristic OutletInUse: ${this.OutletInUse}`);
     }
   }
 
@@ -262,7 +260,7 @@ export class Plug {
   }
 
 
-  private statusCode(push: { data: { statusCode: any; }; }) {
+  private statusCode(push: AxiosResponse<{ statusCode: number;}>) {
     switch (push.data.statusCode) {
       case 151:
         this.platform.log.error('Command not supported by this device type.');
@@ -296,10 +294,10 @@ export class Plug {
    * Handle requests to set the value of the "On" characteristic
    */
   OnSet(value: CharacteristicValue) {
-    this.platform.debug(`Plug ${this.accessory.displayName} - Set On: ${value}`);
+    this.platform.debug(`Camera ${this.accessory.displayName} - Set On: ${value}`);
 
     this.On = value;
-    this.doPlugUpdate.next();
+    this.doCameraUpdate.next();
   }
 
 

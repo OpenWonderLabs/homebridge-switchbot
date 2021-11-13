@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
-import { CharacteristicValue, HAPStatus, PlatformAccessory, Service } from 'homebridge';
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
-import { DeviceURL, irdevice, deviceStatusResponse } from '../settings';
+import { DeviceURL, irdevice, deviceStatusResponse, irDevicesConfig } from '../settings';
 
 /**
  * Platform Accessory
@@ -24,20 +24,20 @@ export class Fan {
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
-    public device: irdevice,
+    public device: irdevice & irDevicesConfig,
   ) {
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId);
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.Fanv2) ||
-      accessory.addService(this.platform.Service.Fanv2)), '%s %s', device.deviceName, device.remoteType;
+      accessory.addService(this.platform.Service.Fanv2)), `${accessory.displayName} Fan`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -50,19 +50,19 @@ export class Fan {
     // handle on / off events using the Active characteristic
     this.service.getCharacteristic(this.platform.Characteristic.Active).onSet(this.ActiveSet.bind(this));
 
-    if (this.platform.config.options?.fan?.rotation_speed?.includes(device.deviceId)) {
-      if (this.platform.config.options?.fan?.set_minStep) {
-        this.minStep = this.platform.config.options?.fan?.set_minStep;
+    if (device.irfan?.rotation_speed) {
+      if (device.irfan?.set_minStep) {
+        this.minStep = device.irfan?.set_minStep;
       } else {
         this.minStep = 1;
       }
-      if (this.platform.config.options?.fan?.set_min) {
-        this.minValue = this.platform.config.options?.fan?.set_min;
+      if (device.irfan?.set_min) {
+        this.minValue = device.irfan?.set_min;
       } else {
         this.minValue = 1;
       }
-      if (this.platform.config.options?.fan?.set_max) {
-        this.maxValue = this.platform.config.options?.fan?.set_max;
+      if (device.irfan?.set_max) {
+        this.maxValue = device.irfan?.set_max;
       } else {
         this.maxValue = 100;
       }
@@ -77,8 +77,7 @@ export class Fan {
         .onSet(this.RotationSpeedSet.bind(this));
     } else if (
       this.service.testCharacteristic(this.platform.Characteristic.RotationSpeed) &&
-      !this.platform.config.options?.fan?.swing_mode?.includes(device.deviceId)
-    ) {
+      !device.irfan?.swing_mode) {
       const characteristic = this.service.getCharacteristic(this.platform.Characteristic.RotationSpeed);
       this.service.removeCharacteristic(characteristic);
       this.platform.log.warn('Rotation Speed Characteristic was removed.');
@@ -88,13 +87,10 @@ export class Fan {
       );
     }
 
-    if (this.platform.config.options?.fan?.swing_mode?.includes(device.deviceId)) {
+    if (device.irfan?.swing_mode) {
       // handle Osolcation events using the SwingMode characteristic
       this.service.getCharacteristic(this.platform.Characteristic.SwingMode).onSet(this.SwingModeSet.bind(this));
-    } else if (
-      this.service.testCharacteristic(this.platform.Characteristic.SwingMode) &&
-      !this.platform.config.options?.fan?.swing_mode?.includes(device.deviceId)
-    ) {
+    } else if (this.service.testCharacteristic(this.platform.Characteristic.SwingMode) && !device.irfan?.swing_mode) {
       const characteristic = this.service.getCharacteristic(this.platform.Characteristic.SwingMode);
       this.service.removeCharacteristic(characteristic);
       this.platform.log.warn('Swing Mode Characteristic was removed.');
@@ -106,7 +102,7 @@ export class Fan {
   }
 
   private SwingModeSet(value: CharacteristicValue) {
-    this.platform.debug('Fan %s Set SwingMode: %s', this.accessory.displayName, value);
+    this.platform.debug(`${this.accessory.displayName} Set SwingMode: ${value}`);
     if (value > this.SwingMode) {
       this.SwingMode = 1;
       this.pushFanOnChanges();
@@ -123,7 +119,7 @@ export class Fan {
   }
 
   private RotationSpeedSet(value: CharacteristicValue) {
-    this.platform.debug('Fan %s Set Active: %s', this.accessory.displayName, value);
+    this.platform.debug(`${this.accessory.displayName} Set Active: ${value}`);
     if (value > this.RotationSpeed) {
       this.RotationSpeed = 1;
       this.pushFanSpeedUpChanges();
@@ -139,7 +135,7 @@ export class Fan {
   }
 
   private ActiveSet(value: CharacteristicValue) {
-    this.platform.debug('Fan %s Set Active: %s', this.accessory.displayName, value);
+    this.platform.debug(`${this.accessory.displayName} Set Active: ${value}`);
     if (value === this.platform.Characteristic.Active.INACTIVE) {
       this.pushFanOffChanges();
     } else {
@@ -219,18 +215,18 @@ export class Fan {
         'commandType:',
         payload.commandType,
       );
-      this.platform.debug('TV %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
+      this.platform.debug(`TV ${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.debug('TV %s Changes pushed -', this.accessory.displayName, push.data);
+      this.platform.debug(`TV ${this.accessory.displayName} Changes pushed - ${push.data}`);
       this.statusCode(push);
     } catch (e) {
       this.apiError(e);
     }
   }
 
-  private statusCode(push: AxiosResponse<any>) {
+  private statusCode(push: AxiosResponse<{ statusCode: number;}>) {
     switch (push.data.statusCode) {
       case 151:
         this.platform.log.error('Command not supported by this device type.');
@@ -262,6 +258,5 @@ export class Fan {
     this.service.updateCharacteristic(this.platform.Characteristic.Active, e);
     this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, e);
     this.service.updateCharacteristic(this.platform.Characteristic.SwingMode, e);
-    new this.platform.api.hap.HapStatusError(HAPStatus.OPERATION_TIMED_OUT);
   }
 }

@@ -1,12 +1,7 @@
 import { AxiosResponse } from 'axios';
-import {
-  CharacteristicValue,
-  HAPStatus,
-  PlatformAccessory,
-  Service,
-} from 'homebridge';
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
-import { DeviceURL, irdevice } from '../settings';
+import { irDevicesConfig, DeviceURL, irdevice } from '../settings';
 
 /**
  * Platform Accessory
@@ -21,23 +16,21 @@ export class Others {
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
-    public device: irdevice,
+    public device: irdevice & irDevicesConfig,
   ) {
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId);
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
     this.service = accessory.getService(this.platform.Service.Fanv2);
-    if (!this.service && this.platform.config.options?.other?.deviceType === 'Fan') {
-      this.service = accessory.addService(
-        this.platform.Service.Fanv2,
-        `${device.deviceName} ${device.remoteType} Temperature Sensor`,
-      );
+    if (!this.service && device?.other?.deviceType === 'Fan') {
+      this.service = accessory.addService(this.platform.Service.Fanv2, `${accessory.displayName} Fan`);
+
       this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
 
       this.service.getCharacteristic(this.platform.Characteristic.Active).onSet(this.ActiveSet.bind(this));
@@ -48,7 +41,7 @@ export class Others {
   }
 
   private ActiveSet(value: CharacteristicValue) {
-    this.platform.debug('%s %s Set On: %s', this.device.remoteType, this.accessory.displayName, value);
+    this.platform.debug(`${this.accessory.displayName} Set On: ${value}`);
     this.Active = value;
     if (this.Active) {
       this.pushOnChanges();
@@ -69,13 +62,13 @@ export class Others {
    */
   async pushOnChanges() {
     if (this.platform.config.options) {
-      if (this.platform.config.options!.other) {
-        if (this.platform.config.options!.other.commandOn) {
+      if (this.device.other) {
+        if (this.device.other.commandOn) {
           if (this.Active) {
             const payload = {
               commandType: 'customize',
               parameter: 'default',
-              command: `${this.platform.config.options!.other.commandOn}`,
+              command: `${this.device.other.commandOn}`,
             } as any;
             await this.pushChanges(payload);
           }
@@ -92,13 +85,13 @@ export class Others {
 
   async pushOffChanges() {
     if (this.platform.config.options) {
-      if (this.platform.config.options!.other) {
-        if (this.platform.config.options!.other.commandOff) {
+      if (this.device.other) {
+        if (this.device.other.commandOff) {
           if (!this.Active) {
             const payload = {
               commandType: 'customize',
               parameter: 'default',
-              command: `${this.platform.config.options!.other.commandOff}`,
+              command: `${this.device.other.commandOff}`,
             } as any;
             await this.pushChanges(payload);
           }
@@ -125,18 +118,18 @@ export class Others {
         'commandType:',
         payload.commandType,
       );
-      this.platform.debug('Light %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
+      this.platform.debug(`${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.debug('Light %s Changes pushed -', this.accessory.displayName, push.data);
+      this.platform.debug(`${this.accessory.displayName} Changes pushed - ${push.data}`);
       this.statusCode(push);
     } catch (e) {
       this.apiError(e);
     }
   }
 
-  private statusCode(push: AxiosResponse<any>) {
+  private statusCode(push: AxiosResponse<{ statusCode: number;}>) {
     switch (push.data.statusCode) {
       case 151:
         this.platform.log.error('Command not supported by this device type.');
@@ -166,6 +159,5 @@ export class Others {
 
   public apiError(e: any) {
     this.service!.updateCharacteristic(this.platform.Characteristic.Active, e);
-    new this.platform.api.hap.HapStatusError(HAPStatus.OPERATION_TIMED_OUT);
   }
 }

@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
-import { CharacteristicValue, HAPStatus, PlatformAccessory, Service } from 'homebridge';
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
-import { DeviceURL, irdevice } from '../settings';
+import { irDevicesConfig, DeviceURL, irdevice } from '../settings';
 
 /**
  * Platform Accessory
@@ -16,21 +16,20 @@ export class VacuumCleaner {
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
-    public device: irdevice,
+    public device: irdevice & irDevicesConfig,
   ) {
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId);
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.Switch) ||
-      accessory.addService(this.platform.Service.Switch)),
-    `${device.deviceName} ${device.remoteType}`;
+      accessory.addService(this.platform.Service.Switch)), `${accessory.displayName} Vacuum`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -38,17 +37,14 @@ export class VacuumCleaner {
 
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    this.service.setCharacteristic(
-      this.platform.Characteristic.Name,
-      `${device.deviceName} ${device.remoteType}`,
-    );
+    this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
 
     // handle on / off events using the On characteristic
     this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
   }
 
   private OnSet(value: CharacteristicValue) {
-    this.platform.debug('%s %s Set On: %s', this.device.remoteType, this.accessory.displayName, value);
+    this.platform.debug(`${this.device.remoteType} ${this.accessory.displayName} Set On: ${value}`);
     this.On = value;
     if (this.On) {
       this.pushOnChanges();
@@ -101,11 +97,11 @@ export class VacuumCleaner {
         'commandType:',
         payload.commandType,
       );
-      this.platform.debug('Light %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
+      this.platform.debug(`${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.debug('Light %s Changes pushed -', this.accessory.displayName, push.data);
+      this.platform.debug(`${this.accessory.displayName} Changes pushed - ${push.data}`);
       this.statusCode(push);
     } catch (e) {
       this.apiError(e);
@@ -113,7 +109,7 @@ export class VacuumCleaner {
   }
 
 
-  private statusCode(push: AxiosResponse<any>) {
+  private statusCode(push: AxiosResponse<{ statusCode: number;}>) {
     switch (push.data.statusCode) {
       case 151:
         this.platform.log.error('Command not supported by this device type.');
@@ -143,6 +139,5 @@ export class VacuumCleaner {
 
   public apiError(e: any) {
     this.service.updateCharacteristic(this.platform.Characteristic.On, e);
-    new this.platform.api.hap.HapStatusError(HAPStatus.OPERATION_TIMED_OUT);
   }
 }

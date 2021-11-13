@@ -1,8 +1,8 @@
-import { Service, PlatformAccessory, Units, CharacteristicValue, HAPStatus } from 'homebridge';
+import { Service, PlatformAccessory, Units, CharacteristicValue } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
-import { DeviceURL, device, deviceStatusResponse } from '../settings';
+import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceStatusResponse } from '../settings';
 
 /**
  * Platform Accessory
@@ -10,10 +10,12 @@ import { DeviceURL, device, deviceStatusResponse } from '../settings';
  * Each accessory may expose multiple services of different service types.
  */
 export class Meter {
+  // Services
   private service: Service;
   temperatureservice?: Service;
   humidityservice?: Service;
 
+  // Characteristic Values
   CurrentRelativeHumidity!: CharacteristicValue;
   CurrentTemperature!: CharacteristicValue;
   BatteryLevel!: CharacteristicValue;
@@ -21,18 +23,26 @@ export class Meter {
   StatusLowBattery!: CharacteristicValue;
   Active!: CharacteristicValue;
   WaterLevel!: CharacteristicValue;
-  deviceStatus!: deviceStatusResponse;
-  switchbot;
 
+  // BLE Others
+  switchbot!: switchbot;
+  serviceData!: serviceData;
+  battery!: serviceData['battery'];
+  humidity!: serviceData['humidity'];
+  fahrenheit!: serviceData['fahrenheit'];
+  temperature!: serviceData['temperature'];
+
+  // OpenAPI Others
+  deviceStatus!: deviceStatusResponse;
+
+  // Updates
   meterUpdateInProgress!: boolean;
-  doMeterUpdate;
-  BLEtemperature: any;
-  BLEHumidity: any;
+  doMeterUpdate: Subject<void>;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
-    public device: device,
+    public device: device & devicesConfig,
   ) {
     // default placeholders
     this.BatteryLevel = 0;
@@ -40,6 +50,17 @@ export class Meter {
     this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     this.CurrentRelativeHumidity = 0;
     this.CurrentTemperature = 0;
+
+    // BLE Connection
+    if (device.ble) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const SwitchBot = require('node-switchbot');
+      this.switchbot = new SwitchBot();
+      const colon = device.deviceId!.match(/.{1,2}/g);
+      const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
+      this.device.bleMac = bleMac.toLowerCase();
+      this.platform.device(this.device.bleMac.toLowerCase());
+    }
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doMeterUpdate = new Subject();
@@ -59,7 +80,7 @@ export class Meter {
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.Battery) ||
-      accessory.addService(this.platform.Service.Battery)), '%s %s', device.deviceName, device.deviceType;
+      accessory.addService(this.platform.Service.Battery)), `${accessory.displayName} Battery`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -76,19 +97,17 @@ export class Meter {
     this.service.setCharacteristic(this.platform.Characteristic.ChargingState, 2);
 
     // Temperature Sensor Service
-    if (this.platform.config.options?.meter?.hide_temperature) {
-      if (this.platform.config.options.debug) {
-        this.platform.log.error('Removing service');
-      }
+    if (device.meter?.hide_temperature) {
+      this.platform.device('Removing Temperature Sensor Service');
       this.temperatureservice = this.accessory.getService(this.platform.Service.TemperatureSensor);
       accessory.removeService(this.temperatureservice!);
     } else if (!this.temperatureservice) {
-      if (this.platform.config.options?.debug) {
-        this.platform.log.warn('Adding service');
-      }
+      this.platform.device('Adding Temperature Sensor Service');
       (this.temperatureservice =
         this.accessory.getService(this.platform.Service.TemperatureSensor) ||
-        this.accessory.addService(this.platform.Service.TemperatureSensor)), '%s %s TemperatureSensor', device.deviceName, device.deviceType;
+        this.accessory.addService(this.platform.Service.TemperatureSensor)), `${accessory.displayName} Temperature Sensor`;
+
+      this.service.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
 
       this.temperatureservice
         .getCharacteristic(this.platform.Characteristic.CurrentTemperature)
@@ -100,26 +119,24 @@ export class Meter {
           minStep: 0.1,
         })
         .onGet(() => {
-          return this.CurrentTemperature;
+          return Number.isNaN(this.CurrentTemperature);
         });
-      this.platform.log.info(this.device.deviceName + ' current temperature: ' + this.CurrentTemperature + '\u2103');
     } else {
-      if (this.platform.config.options?.debug) {
-        this.platform.log.warn('TemperatureSensor not added.');
-      }
+      this.platform.device('Temperature Sensor Not Added');
     }
 
     // Humidity Sensor Service
-    if (this.platform.config.options?.meter?.hide_humidity) {
-      if (this.platform.config.options.debug) {
-        this.platform.log.error('Removing service');
-      }
+    if (device.meter?.hide_humidity) {
+      this.platform.device('Removing Humidity Sensor Service');
       this.humidityservice = this.accessory.getService(this.platform.Service.HumiditySensor);
       accessory.removeService(this.humidityservice!);
     } else if (!this.humidityservice) {
+      this.platform.device('Adding Humidity Sensor Service');
       (this.humidityservice =
         this.accessory.getService(this.platform.Service.HumiditySensor) ||
-        this.accessory.addService(this.platform.Service.HumiditySensor)), '%s %s HumiditySensor', device.deviceName, device.deviceType;
+        this.accessory.addService(this.platform.Service.HumiditySensor)), `${accessory.displayName} Humidity Sensor`;
+
+      this.service.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
 
       this.humidityservice
         .getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
@@ -129,11 +146,8 @@ export class Meter {
         .onGet(() => {
           return this.CurrentRelativeHumidity;
         });
-      this.platform.log.info(this.device.deviceName + ' current humidity: ' + this.CurrentRelativeHumidity + '%');
     } else {
-      if (this.platform.config.options?.debug) {
-        this.platform.log.warn('HumiditySensor not added.');
-      }
+      this.platform.device('Adding Humidity Sensor Not Added');
     }
 
     // Retrieve initial values and updateHomekit
@@ -150,8 +164,32 @@ export class Meter {
   /**
    * Parse the device status from the SwitchBot api
    */
-  parseStatus() {
-    // Set Room Sensor State
+  async parseStatus() {
+    if (this.device.ble) {
+      this.platform.device('BLE');
+      await this.BLEparseStatus();
+    } else {
+      this.platform.device('OpenAPI');
+      await this.openAPIparseStatus();
+    }
+  }
+
+  private async BLEparseStatus() {
+    if (this.deviceStatus.body) {
+      this.BatteryLevel = 100;
+    } else {
+      this.BatteryLevel = 10;
+    }
+    if (this.BatteryLevel < 15) {
+      this.StatusLowBattery = 1;
+    } else {
+      this.StatusLowBattery = 0;
+    }
+    this.platform.debug(`${this.accessory.displayName}
+    , BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
+  }
+
+  private async openAPIparseStatus() {
     if (this.deviceStatus.body) {
       this.BatteryLevel = 100;
     } else {
@@ -163,29 +201,29 @@ export class Meter {
       this.StatusLowBattery = 0;
     }
     // Current Relative Humidity
-    if (!this.platform.config.options?.meter?.hide_humidity) {
-      if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-        this.CurrentRelativeHumidity = this.BLEHumidity;
+    if (!this.device.meter?.hide_humidity) {
+      if (this.device.ble) {
+        this.CurrentRelativeHumidity = Number(this.humidity);
       } else {
         this.CurrentRelativeHumidity = this.deviceStatus.body.humidity!;
       }
-      this.platform.debug('Meter %s - Humidity: %s%', this.accessory.displayName, this.CurrentRelativeHumidity);
+      this.platform.debug(`Meter ${this.accessory.displayName} - Humidity: ${this.CurrentRelativeHumidity}%`);
     }
 
     // Current Temperature
-    if (!this.platform.config.options?.meter?.hide_temperature) {
-      if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-        this.CurrentTemperature = this.BLEtemperature;
+    if (!this.device.meter?.hide_temperature) {
+      if (this.device.ble) {
+        this.CurrentTemperature = Number(this.temperature);
       } else {
-        if (this.platform.config.options?.meter?.unit === 1) {
+        if (this.device.meter?.unit === 1) {
           this.CurrentTemperature = this.toFahrenheit(this.deviceStatus.body.temperature!);
-        } else if (this.platform.config.options?.meter?.unit === 0) {
+        } else if (this.device.meter?.unit === 0) {
           this.CurrentTemperature = this.toCelsius(this.deviceStatus.body.temperature!);
         } else {
-          this.CurrentTemperature = this.deviceStatus.body.temperature!;
+          this.CurrentTemperature = Number(this.deviceStatus.body.temperature);
         }
       }
-      this.platform.debug('Meter %s - Temperature: %s°c', this.accessory.displayName, this.CurrentTemperature);
+      this.platform.debug(`Meter ${this.accessory.displayName} - Temperature: ${this.CurrentTemperature}°c`);
     }
   }
 
@@ -193,117 +231,113 @@ export class Meter {
    * Asks the SwitchBot API for the latest device information
    */
   async refreshStatus() {
-    if (this.platform.config.options?.ble?.includes(this.device.deviceId!)) {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const Switchbot = require('node-switchbot');
-      const switchbot = new Switchbot();
-      const colon = this.device.deviceId!.match(/.{1,2}/g);
-      const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
-      this.device.bleMac = bleMac.toLowerCase();
-      if (this.platform.config.options.debug) {
-        this.platform.log.warn(this.device.bleMac!);
-      }
-      switchbot.onadvertisement = (ad: any) => {
-        this.platform.log.info(JSON.stringify(ad, null, '  '));
-        this.platform.log.warn('ad:', JSON.stringify(ad));
-        this.platform.log.info('Temperature:', ad.serviceData.temperature.c);
-        this.platform.log.info('Humidity:', ad.serviceData.humidity);
-        this.BLEtemperature = ad.serviceData.temperature.c;
-        this.BLEHumidity = ad.serviceData.humidity;
-      };
-      switchbot
-        .startScan({
-          id: this.device.bleMac,
-        })
-        .then(() => {
-          return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
-        })
-        .then(() => {
-          switchbot.stopScan();
-        })
-        .catch((error: any) => {
-          this.platform.log.error(error);
-        });
-      setInterval(() => {
-        // log.info("Start scan " + name + "(" + bleMac + ")");
-        switchbot
-          .startScan({
-            // mode: 'T',
-            id: bleMac,
-          })
-          .then(() => {
-            return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
-          })
-          .then(() => {
-            switchbot.stopScan();
-            this.platform.log.info('Stop scan ' + this.device.deviceName + '(' + bleMac + ')');
-          })
-          .catch((error: any) => {
-            this.platform.log.error(error);
-          });
-      }, this.platform.config.options!.refreshRate! * 60000);
+    if (this.device.ble) {
+      this.platform.device('BLE');
+      await this.BLErefreshStatus();
+    } else {
+      this.platform.device('OpenAPI');
+      await this.openAPIRefreshStatus();
     }
-    try {
-      const deviceStatus: deviceStatusResponse = (
-        await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)
-      ).data;
-      if (deviceStatus.message === 'success') {
-        this.deviceStatus = deviceStatus;
-        this.platform.debug(
-          'Meter %s refreshStatus -',
-          this.accessory.displayName,
-          JSON.stringify(this.deviceStatus),
-        );
+  }
 
-        this.parseStatus();
-        this.updateHomeKitCharacteristics();
-      }
+  private connectBLE() {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const Switchbot = require('node-switchbot');
+    const switchbot = new Switchbot();
+    const colon = this.device.deviceId!.match(/.{1,2}/g);
+    const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
+    this.device.bleMac = bleMac.toLowerCase();
+    this.platform.device(this.device.bleMac!);
+    return switchbot;
+  }
+
+  private async BLErefreshStatus() {
+    this.platform.debug('Meter BLE Device RefreshStatus');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const switchbot = this.connectBLE();
+    // Start to monitor advertisement packets
+    switchbot.startScan({
+      model: 'e',
+      id: this.device.bleMac,
+    }).then(() => {
+      // Set an event hander
+      switchbot.onadvertisement = (ad: ad) => {
+        this.serviceData = ad.serviceData;
+        this.temperature = ad.serviceData.temperature;
+        this.fahrenheit = ad.serviceData.fahrenheit;
+        this.humidity = ad.serviceData.humidity;
+        this.battery = ad.serviceData.battery;
+        this.platform.device(`${this.device.bleMac}: ${JSON.stringify(ad.serviceData)}`);
+        this.platform.device(`${this.accessory.displayName}, Model: ${ad.serviceData.model}, Model Name: ${ad.serviceData.modelName},`
+           + `Temperature: ${ad.serviceData.temperature}, Fahrenheit: ${ad.serviceData.fahrenheit}, Humidity: ${ad.serviceData.humidity}`
+           + `Battery: ${ad.serviceData.battery}`);
+      };
+      // Wait 10 seconds
+      return switchbot.wait(10000);
+    }).then(() => {
+      // Stop to monitor
+      switchbot.stopScan();
+      this.parseStatus();
+      this.updateHomeKitCharacteristics();
+    }).catch(async (e: any) => {
+      this.platform.log.error(`BLE Connection Failed: ${e.message}`);
+      this.platform.log.warn('Using OpenAPI Connection');
+      await this.openAPIRefreshStatus();
+    });
+  }
+
+  private async openAPIRefreshStatus() {
+    try {
+      this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
+      this.platform.debug(`Meter ${this.accessory.displayName} openAPIRefreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+      this.parseStatus();
+      this.updateHomeKitCharacteristics();
     } catch (e: any) {
-      this.platform.log.error(
-        'Meter - Failed to update status of',
-        this.device.deviceName,
-        JSON.stringify(e.message),
-        this.platform.debug('Meter %s -', this.accessory.displayName, JSON.stringify(e)),
-      );
+      this.platform.log.error(`Meter ${this.accessory.displayName} failed to refresh status, Error Message: ${JSON.stringify(e.message)}`);
+      this.platform.debug(`Meter ${this.accessory.displayName}, Error: ${JSON.stringify(e)}`);
       this.apiError(e);
     }
-
   }
 
   /**
    * Updates the status for each of the HomeKit Characteristics
    */
   updateHomeKitCharacteristics() {
-    if (this.StatusLowBattery !== undefined) {
+    if (this.StatusLowBattery === undefined) {
+      this.platform.debug(`Meter ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
+    } else {
       this.service.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
+      this.platform.device(`Meter ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
     }
-    if (this.BatteryLevel !== undefined) {
+    if (this.BatteryLevel === undefined) {
+      this.platform.debug(`Meter ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
+    } else {
       this.service.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
+      this.platform.device(`Meter ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
     }
-    if (!this.platform.config.options?.meter?.hide_humidity && (this.CurrentRelativeHumidity !== undefined)) {
-      this.humidityservice?.updateCharacteristic(
-        this.platform.Characteristic.CurrentRelativeHumidity,
-        this.CurrentRelativeHumidity,
-      );
+    if (this.device.meter?.hide_humidity && this.CurrentRelativeHumidity === undefined) {
+      this.platform.debug(`Meter ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+    } else {
+      this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
+      this.platform.device(`Meter ${this.accessory.displayName} updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
     }
-    if (!this.platform.config.options?.meter?.hide_temperature && (this.CurrentTemperature !== undefined)) {
-      this.temperatureservice?.updateCharacteristic(
-        this.platform.Characteristic.CurrentTemperature,
-        this.CurrentTemperature,
-      );
+    if (this.device.meter?.hide_temperature || this.CurrentTemperature === undefined) {
+      this.platform.debug(`Meter ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
+    } else {
+      this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
+      this.platform.device(`Meter ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
     }
   }
 
   public apiError(e: any) {
     this.service.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
     this.service.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
-    if (!this.platform.config.options?.meter?.hide_humidity) {
+    if (!this.device.meter?.hide_humidity) {
       this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, e);
     }
-    if (!this.platform.config.options?.meter?.hide_temperature) {
+    if (!this.device.meter?.hide_temperature) {
       this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
     }
-    new this.platform.api.hap.HapStatusError(HAPStatus.OPERATION_TIMED_OUT);
   }
 
   /**

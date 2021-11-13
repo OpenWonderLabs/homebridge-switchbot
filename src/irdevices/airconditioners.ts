@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
-import { CharacteristicValue, HAPStatus, PlatformAccessory, Service } from 'homebridge';
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
-import { DeviceURL, irdevice } from '../settings';
+import { irDevicesConfig, DeviceURL, irdevice } from '../settings';
 
 /**
  * Platform Accessory
@@ -19,7 +19,7 @@ export class AirConditioner {
   CurrentARMode!: CharacteristicValue;
   CurrentARFanSpeed!: CharacteristicValue;
   ARActive!: CharacteristicValue;
-  LastTemperature!: number;
+  LastTemperature!: CharacteristicValue;
   CurrentMode!: number;
   CurrentFanSpeed!: number;
   Busy: any;
@@ -32,20 +32,22 @@ export class AirConditioner {
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
-    public device: irdevice,
+    public device: irdevice & irDevicesConfig,
   ) {
+    this.CurrentTemperature = 24;
+
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId);
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.HeaterCooler) ||
-      accessory.addService(this.platform.Service.HeaterCooler)), '%s %s', device.deviceName, device.remoteType;
+      accessory.addService(this.platform.Service.HeaterCooler)), `${accessory.displayName} Air Conditioner`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -66,10 +68,11 @@ export class AirConditioner {
         minStep: 0.01,
       })
       .onGet((value: CharacteristicValue) => {
+        this.platform.device(`onGet: ${this.CurrentTemperature}`);
         return this.CurrentTemperatureGet(value);
       });
 
-    if (this.platform.config.options?.irair?.hide_automode) {
+    if (device.irair?.hide_automode) {
       this.ValidValues = [1, 2];
     } else {
       this.ValidValues = [0, 1, 2];
@@ -143,7 +146,7 @@ export class AirConditioner {
   }
 
   private ActiveSet(value: CharacteristicValue) {
-    this.platform.debug('%s %s Set Active: %s', this.device.remoteType, this.accessory.displayName, value);
+    this.platform.debug(`${this.accessory.displayName} Set Active: ${value}`);
 
     if (value === this.platform.Characteristic.Active.INACTIVE) {
       this.pushAirConditionerOffChanges();
@@ -158,11 +161,17 @@ export class AirConditioner {
 
   private CurrentTemperatureGet(value: CharacteristicValue) {
     this.platform.debug('Trigger Get CurrentTemperture');
+    if (this.CurrentTemperature) {
+      this.CurrentTemperature;
+      this.service
+        .getCharacteristic(this.platform.Characteristic.CurrentTemperature).updateValue(this.CurrentTemperature);
+    } else {
+      this.CurrentTemperature = 24;
+      this.service
+        .getCharacteristic(this.platform.Characteristic.CurrentTemperature).updateValue(this.CurrentTemperature);
+    }
 
-    this.service
-      .getCharacteristic(this.platform.Characteristic.CurrentTemperature)
-      .updateValue(this.CurrentTemperature || 24);
-    return (this.CurrentTemperature = Number(value));
+    return (this.CurrentTemperature = value);
   }
 
   private TargetHeaterCoolerStateSet(value: CharacteristicValue) {
@@ -192,18 +201,32 @@ export class AirConditioner {
     } else {
       this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.INACTIVE;
     }
+    this.platform.device(`CurrentHeaterCoolerStateGet: ${this.CurrentHeaterCoolerState}`);
     return this.CurrentHeaterCoolerState;
   }
 
   private HeatingThresholdTemperatureGet() {
-    this.CurrentTemperature = this.CurrentTemperature || 24;
+    if (this.CurrentTemperature) {
+      this.CurrentTemperature;
+    } else {
+      this.CurrentTemperature = 24;
+    }
+    this.platform.device(`HeatingThresholdTemperatureGet: ${this.CurrentTemperature}`);
     return this.CurrentTemperature;
   }
 
   private HeatingThresholdTemperatureSet(value: CharacteristicValue) {
+    this.platform.device(`Before HeatingThresholdTemperatureSet CurrentTemperature: ${this.CurrentTemperature},`
+      + ` HeatingThresholdTemperatureSet LastTemperature: ${this.LastTemperature}`);
     this.pushAirConditionerStatusChanges();
-    this.LastTemperature = Number(this.CurrentTemperature);
-    this.CurrentTemperature = Number(value);
+    this.LastTemperature = this.CurrentTemperature;
+    if (this.CurrentTemperature) {
+      this.CurrentTemperature = value;
+    } else {
+      this.CurrentTemperature = 24;
+    }
+    this.platform.device(`After HeatingThresholdTemperatureSet CurrentTemperature: ${this.CurrentTemperature},`
+      + ` HeatingThresholdTemperatureSet LastTemperature: ${this.LastTemperature}`);
   }
 
   /**
@@ -261,7 +284,7 @@ export class AirConditioner {
     this.CurrentARMode = this.CurrentMode || 1;
     this.CurrentARFanSpeed = this.CurrentFanSpeed || 1;
     this.ARActive = this.Active === 1 ? 'on' : 'off';
-    payload.parameter = '%s,%s,%s,%s', this.CurrentARTemp, this.CurrentARMode, this.CurrentARFanSpeed, this.ARActive;
+    payload.parameter = `${this.CurrentARTemp},${this.CurrentARMode},${this.CurrentARFanSpeed},${this.ARActive}`;
 
 
     if (this.Active === 1) {
@@ -298,23 +321,18 @@ export class AirConditioner {
         'commandType:',
         payload.commandType,
       );
-      this.platform.debug(
-        '%s %s pushChanges -',
-        this.device.remoteType,
-        this.accessory.displayName,
-        JSON.stringify(payload),
-      );
+      this.platform.debug(`${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.debug('%s %s Changes pushed -', this.device.remoteType, this.accessory.displayName, push.data);
+      this.platform.debug(`${this.accessory.displayName} Changes pushed - ${push.data}`);
       this.statusCode(push);
     } catch (e) {
       this.apiError(e);
     }
   }
 
-  private statusCode(push: AxiosResponse<any>) {
+  private statusCode(push: AxiosResponse<{ statusCode: number;}>) {
     switch (push.data.statusCode) {
       case 151:
         this.platform.log.error('Command not supported by this device type.');
@@ -349,6 +367,5 @@ export class AirConditioner {
     this.service.updateCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState, e);
     this.service.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, e);
     this.service.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, e);
-    new this.platform.api.hap.HapStatusError(HAPStatus.OPERATION_TIMED_OUT);
   }
 }

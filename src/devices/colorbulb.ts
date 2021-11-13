@@ -3,17 +3,25 @@ import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
 import { DeviceURL, device, devicesConfig } from '../settings';
+import { AxiosResponse } from 'axios';
 
-export class Plug {
+/**
+ * Platform Accessory
+ * An instance of this class is created for each accessory your platform registers
+ * Each accessory may expose multiple services of different service types.
+ */
+export class ColorBulb {
   // Services
-  private service: Service;
+  service!: Service;
 
   // Characteristic Values
   On!: CharacteristicValue;
-  OutletInUse!: CharacteristicValue;
+  Brightness!: CharacteristicValue;
+  ColorTemperature!: CharacteristicValue;
 
   // Others
-  deviceStatus!: any;
+  deviceStatus: any;
+  set_minStep: any;
   switchbot!: {
     discover: (
       arg0:
@@ -30,8 +38,8 @@ export class Plug {
   };
 
   // Updates
-  plugUpdateInProgress!: boolean;
-  doPlugUpdate;
+  colorBulbUpdateInProgress!: boolean;
+  doColorBulbUpdate;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -40,9 +48,7 @@ export class Plug {
   ) {
     // default placeholders
     this.On = false;
-    this.OutletInUse = true;
-
-    // BLE Connections
+    this.Brightness = 0;
     if (device.ble) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const SwitchBot = require('node-switchbot');
@@ -54,8 +60,9 @@ export class Plug {
     }
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
-    this.doPlugUpdate = new Subject();
-    this.plugUpdateInProgress = false;
+    this.doColorBulbUpdate = new Subject();
+    this.colorBulbUpdateInProgress = false;
+
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();
@@ -64,47 +71,69 @@ export class Plug {
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-PLUG-SP11')
+      .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-COLORBULB-W1401400')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
-    // get the WindowCovering service if it exists, otherwise create a new WindowCovering service
+    // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
     (this.service =
-      accessory.getService(this.platform.Service.Outlet) ||
-      accessory.addService(this.platform.Service.Outlet)), `${device.deviceName} ${device.deviceType}`;
+      accessory.getService(this.platform.Service.Lightbulb) ||
+      accessory.addService(this.platform.Service.Lightbulb)), `${accessory.displayName} Light Bulb`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
-    // accessory.getService('NAME') ?? accessory.addService(this.platform.Service.Lightbulb, 'NAME', 'USER_DEFINED_SUBTYPE');
+    // accessory.getService('NAME') ?? accessory.addService(this.platform.Service.Outlet, 'NAME', 'USER_DEFINED_SUBTYPE');
 
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
 
-    // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/WindowCovering
+    // handle on / off events using the On characteristic
+    this.service.getCharacteristic(this.platform.Characteristic.On)
+      .onSet(this.OnSet.bind(this));
 
-    // create handlers for required characteristics
-    this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
+    // handle Brightness events using the Brightness characteristic
+    this.service.getCharacteristic(this.platform.Characteristic.Brightness)
+      .setProps({
+        minStep: this.minStep(),
+        minValue: 0,
+        maxValue: 100,
+        validValueRanges: [0, 100],
+      })
+      .onGet(() => {
+        return this.Brightness;
+      })
+      .onSet(this.BrightnessSet.bind(this));
 
-    this.service.setCharacteristic(this.platform.Characteristic.OutletInUse, this.OutletInUse || true);
+    // handle ColorTemperature events using the ColorTemperature characteristic
+    this.service.getCharacteristic(this.platform.Characteristic.ColorTemperature)
+      .setProps({
+        minStep: this.minStep(),
+        minValue: 0,
+        maxValue: 100,
+        validValueRanges: [0, 100],
+      })
+      .onGet(() => {
+        return this.ColorTemperature;
+      })
+      .onSet(this.ColorTemperatureSet.bind(this));
 
     // Update Homekit
     this.updateHomeKitCharacteristics();
 
     // Start an update interval
     interval(this.platform.config.options!.refreshRate! * 1000)
-      .pipe(skipWhile(() => this.plugUpdateInProgress))
+      .pipe(skipWhile(() => this.colorBulbUpdateInProgress))
       .subscribe(() => {
         this.refreshStatus();
       });
 
-    // Watch for Plug change events
+    // Watch for Bulb change events
     // We put in a debounce of 100ms so we don't make duplicate calls
-    this.doPlugUpdate
+    this.doColorBulbUpdate
       .pipe(
         tap(() => {
-          this.plugUpdateInProgress = true;
+          this.colorBulbUpdateInProgress = true;
         }),
         debounceTime(this.platform.config.options!.pushRate! * 1000),
       )
@@ -113,11 +142,20 @@ export class Plug {
           await this.pushChanges();
         } catch (e: any) {
           this.platform.log.error(JSON.stringify(e.message));
-          this.platform.debug(`Plug ${accessory.displayName} - ${JSON.stringify(e)}`);
+          this.platform.debug(`Color Bulb ${accessory.displayName} - ${JSON.stringify(e)}`);
           this.apiError(e);
         }
-        this.plugUpdateInProgress = false;
+        this.colorBulbUpdateInProgress = false;
       });
+  }
+
+  private minStep(): number | undefined {
+    if (this.device.colorbulb?.set_minStep) {
+      this.set_minStep = this.device.colorbulb?.set_minStep;
+    } else {
+      this.set_minStep = 1;
+    }
+    return this.set_minStep;
   }
 
   parseStatus() {
@@ -128,79 +166,21 @@ export class Plug {
       default:
         this.On = false;
     }
-    this.platform.debug(`Plug ${this.accessory.displayName} On: ${this.On}`);
+    this.platform.debug(`Color Bulb ${this.accessory.displayName} On: ${this.On}`);
+    this.deviceStatus.body.brightness = Number(this.Brightness);
+    this.deviceStatus.body.colorTemperature = Number(this.ColorTemperature);
   }
 
   async refreshStatus() {
-    if (this.device.ble) {
-      this.platform.device('BLE');
-      await this.BLErefreshStatus();
-    } else {
-      this.platform.device('OpenAPI');
-      await this.openAPIRefreshStatus();
-    }
-  }
-
-  private async BLErefreshStatus() {
-    this.platform.debug('Plug BLE Device RefreshStatus');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const Switchbot = require('node-switchbot');
-    const switchbot = new Switchbot();
-    const colon = this.device.deviceId!.match(/.{1,2}/g);
-    const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
-    this.device.bleMac = bleMac.toLowerCase();
-    this.platform.device(this.device.bleMac!);
-    switchbot.onadvertisement = (ad: any) => {
-      this.platform.debug(JSON.stringify(ad, null, '  '));
-      this.platform.device('ad:', JSON.stringify(ad));
-    };
-    this.parseStatus();
-    this.updateHomeKitCharacteristics();
-    switchbot
-      .startScan({
-        id: this.device.bleMac,
-      })
-      .then(() => {
-        return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
-      })
-      .then(() => {
-        switchbot.stopScan();
-      })
-      .catch(async (error: any) => {
-        this.platform.log.error(error);
-        await this.openAPIRefreshStatus();
-      });
-    setInterval(() => {
-      this.platform.log.info('Start scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
-      switchbot
-        .startScan({
-          mode: 'T',
-          id: bleMac,
-        })
-        .then(() => {
-          return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
-        })
-        .then(() => {
-          switchbot.stopScan();
-          this.platform.log.info('Stop scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
-        })
-        .catch(async (error: any) => {
-          this.platform.log.error(error);
-          await this.openAPIRefreshStatus();
-        });
-    }, this.platform.config.options!.refreshRate! * 60000);
-  }
-
-  private async openAPIRefreshStatus() {
     try {
-      this.platform.debug('Plug - Reading', `${DeviceURL}/${this.device.deviceId}/status`);
+      this.platform.debug('Color Bulb - Reading', `${DeviceURL}/${this.device.deviceId}/status`);
       this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
-      this.platform.device(`Plug ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+      this.platform.device(`Color Bulb ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
-      this.platform.log.error(`Plug ${this.accessory.displayName} failed to refresh status, Error Message: ${JSON.stringify(e.message)}`);
-      this.platform.debug(`Plug ${this.accessory.displayName}, Error: ${JSON.stringify(e)}`);
+      this.platform.log.error(`Color Bulb ${this.accessory.displayName} failed to refresh status, Error Message ${JSON.stringify(e.message)}`);
+      this.platform.debug(`Color Bulb ${this.accessory.displayName}, Error: ${JSON.stringify(e)}`);
       this.apiError(e);
     }
   }
@@ -208,8 +188,8 @@ export class Plug {
   /**
  * Pushes the requested changes to the SwitchBot API
  * deviceType	commandType	  Command	    command parameter	  Description
- * Plug   -    "command"     "turnOff"   "default"	  =        set to OFF state
- * Plug   -    "command"     "turnOn"    "default"	  =        set to ON state
+ * Color Bulb   -    "command"     "turnOff"   "default"	  =        set to OFF state
+ * Color Bulb   -    "command"     "turnOn"    "default"	  =        set to ON state
  */
   async pushChanges() {
     const payload = {
@@ -233,36 +213,43 @@ export class Plug {
       'commandType:',
       payload.commandType,
     );
-    this.platform.debug(`Plug ${this.accessory.displayName} pushchanges: ${JSON.stringify(payload)}`);
+    this.platform.debug(`Color Bulb ${this.accessory.displayName} pushchanges: ${JSON.stringify(payload)}`);
 
     // Make the API request
     const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload));
-    this.platform.debug(`Plug ${this.accessory.displayName} Changes pushed: ${JSON.stringify(push.data)}`);
+    this.platform.debug(`Color Bulb ${this.accessory.displayName} Changes pushed: ${JSON.stringify(push.data)}`);
     this.statusCode(push);
   }
 
   updateHomeKitCharacteristics() {
     if (this.On === undefined) {
-      this.platform.debug(`Plug ${this.accessory.displayName} On: ${this.On}`);
+      this.platform.debug(`Color Bulb ${this.accessory.displayName} On: ${this.On}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.On, this.On);
-      this.platform.device(`Plug ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+      this.platform.device(`Color Bulb ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
-    if (this.OutletInUse === undefined) {
-      this.platform.debug(`Plug ${this.accessory.displayName} OutletInUse: ${this.OutletInUse}`);
+    if (this.Brightness === undefined) {
+      this.platform.debug(`Color Bulb ${this.accessory.displayName} Brightness: ${this.Brightness}`);
     } else {
-      this.service.updateCharacteristic(this.platform.Characteristic.OutletInUse, this.OutletInUse);
-      this.platform.device(`Plug ${this.accessory.displayName} updateCharacteristic OutletInUse: ${this.OutletInUse}`);
+      this.service.updateCharacteristic(this.platform.Characteristic.Brightness, this.Brightness);
+      this.platform.device(`Color Bulb ${this.accessory.displayName} updateCharacteristic Brightness: ${this.Brightness}`);
+    }
+    if (this.ColorTemperature === undefined) {
+      this.platform.debug(`Color Bulb ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
+    } else {
+      this.service.updateCharacteristic(this.platform.Characteristic.Brightness, this.ColorTemperature);
+      this.platform.debug(`Color Bulb ${this.accessory.displayName} updateCharacteristic ColorTemperature: ${this.ColorTemperature}`);
     }
   }
 
   public apiError(e: any) {
     this.service.updateCharacteristic(this.platform.Characteristic.On, e);
-    this.service.updateCharacteristic(this.platform.Characteristic.OutletInUse, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.Brightness, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.ColorTemperature, e);
   }
 
 
-  private statusCode(push: { data: { statusCode: any; }; }) {
+  private statusCode(push: AxiosResponse<{ statusCode: number;}>) {
     switch (push.data.statusCode) {
       case 151:
         this.platform.log.error('Command not supported by this device type.');
@@ -296,11 +283,29 @@ export class Plug {
    * Handle requests to set the value of the "On" characteristic
    */
   OnSet(value: CharacteristicValue) {
-    this.platform.debug(`Plug ${this.accessory.displayName} - Set On: ${value}`);
+    this.platform.debug(`${this.accessory.displayName} - Set On: ${value}`);
 
     this.On = value;
-    this.doPlugUpdate.next();
+    this.doColorBulbUpdate.next();
   }
 
+  /**
+   * Handle requests to set the value of the "Brightness" characteristic
+   */
+  BrightnessSet(value: CharacteristicValue) {
+    this.platform.debug(`${this.accessory.displayName} - Set On: ${value}`);
 
+    this.Brightness = value;
+    this.doColorBulbUpdate.next();
+  }
+
+  /**
+   * Handle requests to set the value of the "ColorTemperature" characteristic
+   */
+  ColorTemperatureSet(value: CharacteristicValue) {
+    this.platform.debug(`${this.accessory.displayName} - Set On: ${value}`);
+
+    this.ColorTemperature = value;
+    this.doColorBulbUpdate.next();
+  }
 }

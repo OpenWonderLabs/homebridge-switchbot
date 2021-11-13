@@ -2,7 +2,7 @@
 
 <a href="https://github.com/homebridge/verified/blob/master/verified-plugins.json"><img alt="homebridge-verified" src="https://raw.githubusercontent.com/OpenWonderLabs/homebridge-switchbot/main/switchbot/Homebridge_x_SwitchBot.svg?sanitize=true" width="500px"></a>
 
-# homebridge-switchbot
+# @switchbot/homebridge-switchbot
 
 [![npm version](https://badgen.net/npm/v/@switchbot/homebridge-switchbot)](https://www.npmjs.com/package/@switchbot/homebridge-switchbot)
 [![npm downloads](https://badgen.net/npm/dt/@switchbot/homebridge-switchbot)](https://www.npmjs.com/package/@switchbot/homebridge-switchbot)
@@ -19,6 +19,7 @@ plugin allows you to access your SwitchBot Device(s) from HomeKit with
 
 1. Search for "SwitchBot" on the plugin screen of [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x)
 2. Find: `@switchbot/homebridge-switchbot`
+    - See noble [prerequisites](https://github.com/homebridge/noble#prerequisites) for your OS. (This is used for BLE connection.)
 3. Click **Install**
 
 ## Configuration
@@ -44,19 +45,22 @@ plugin allows you to access your SwitchBot Device(s) from HomeKit with
 - [SwitchBot Humidifier](https://www.switch-bot.com/products/switchbot-smart-humidifier)
 - [SwitchBot Meter](https://www.switch-bot.com/products/switchbot-meter)
     - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
-    - Enable Cloud Services for Device on SwitchBot App
+    - Enable Cloud Services for Device on SwitchBot App, If using OpenAPI.
 - [SwitchBot Motion Sensor](https://www.switch-bot.com/products/motion-sensor)
     - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
-    - Enable Cloud Services for Device on SwitchBot App
+    - Enable Cloud Services for Device on SwitchBot App, If using OpenAPI.
 - [SwitchBot Contact Sensor](https://www.switch-bot.com/products/contact-sensor)
     - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
-    - Enable Cloud Services for Device on SwitchBot App    
+    - Enable Cloud Services for Device on SwitchBot App, If using OpenAPI.  
 - [SwitchBot Curtain](https://www.switch-bot.com/products/switchbot-curtain)
     - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
-    - Enable Cloud Services for Device on SwitchBot App
+    - Enable Cloud Services for Device on SwitchBot App, If using OpenAPI.
+- [SwitchBot Bulb](https://www.switch-bot.com/products/switchbot-color-bulb)
+    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
+    - Enable Cloud Services for Device on SwitchBot App, If using OpenAPI.
 - [SwitchBot Bot](https://www.switch-bot.com/products/switchbot-bot)
     - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
-    - Enable Cloud Services for Device on SwitchBot App
+    - Enable Cloud Services for Device on SwitchBot App, If using OpenAPI.
     - You must set your Bot's Device ID in the Press Mode or Switch Mode Bot Settings (Advanced Settings > Bot Settings)
         - Press Mode - Turns on then instantly turn it off
         - Switch Mode - Turns on and keep it on until it is turned off
@@ -104,6 +108,7 @@ plugin allows you to access your SwitchBot Device(s) from HomeKit with
 ## SwitchBotAPI
 
 - [OpenWonderLabs/SwitchBotAPI](https://github.com/OpenWonderLabs/SwitchBotAPI)
+- [OpenWonderLabs/node-switchbot](https://github.com/OpenWonderLabs/node-switchbot)
 
 ## Community
 

@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
-import { CharacteristicValue, HAPStatus, PlatformAccessory, Service } from 'homebridge';
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
-import { DeviceURL, irdevice, deviceStatusResponse } from '../settings';
+import { DeviceURL, irdevice, deviceStatusResponse, irDevicesConfig } from '../settings';
 
 /**
  * Platform Accessory
@@ -19,7 +19,7 @@ export class TV {
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
-    public device: irdevice,
+    public device: irdevice & irDevicesConfig,
   ) {
     // set accessory information
     accessory
@@ -27,33 +27,42 @@ export class TV {
       .setCharacteristic(this.platform.Characteristic.Name, `${device.deviceName} ${device.remoteType}`)
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId);
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
     // set the accessory category
     switch (device.remoteType) {
       case 'Speaker':
       case 'DIY Speaker':
         accessory.category = this.platform.api.hap.Categories.SPEAKER;
+        (this.service =
+          accessory.getService(this.platform.Service.Television) ||
+          accessory.addService(this.platform.Service.Television)), `${accessory.displayName} Speaker`;
         break;
       case 'IPTV':
       case 'DIY IPTV':
         accessory.category = this.platform.api.hap.Categories.TV_STREAMING_STICK;
+        (this.service =
+          accessory.getService(this.platform.Service.Television) ||
+          accessory.addService(this.platform.Service.Television)), `${accessory.displayName} Streaming Stick`;
         break;
       case 'DVD':
       case 'DIY DVD':
       case 'Set Top Box':
       case 'DIY Set Top Box':
         accessory.category = this.platform.api.hap.Categories.TV_SET_TOP_BOX;
+        (this.service =
+          accessory.getService(this.platform.Service.Television) ||
+          accessory.addService(this.platform.Service.Television)), `${accessory.displayName} Set Top Box`;
         break;
       default:
         accessory.category = this.platform.api.hap.Categories.TELEVISION;
-    }
 
-    // get the Television service if it exists, otherwise create a new Television service
-    // you can create multiple services for each accessory
-    (this.service =
-      accessory.getService(this.platform.Service.Television) ||
-      accessory.addService(this.platform.Service.Television)), '%s %s', device.deviceName, device.remoteType;
+        // get the Television service if it exists, otherwise create a new Television service
+        // you can create multiple services for each accessory
+        (this.service =
+          accessory.getService(this.platform.Service.Television) ||
+          accessory.addService(this.platform.Service.Television)), `${accessory.displayName} TV`;
+    }
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -62,8 +71,6 @@ export class TV {
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.service.getCharacteristic(this.platform.Characteristic.ConfiguredName);
-
-    //this.service.setCharacteristic(this.platform.Characteristic.Name, `${device.deviceName} ${device.remoteType}`);
 
     // set sleep discovery characteristic
     this.service.setCharacteristic(
@@ -88,7 +95,9 @@ export class TV {
     // create a new Television Speaker service
     (this.speakerService =
       accessory.getService(this.platform.Service.TelevisionSpeaker) ||
-      accessory.addService(this.platform.Service.TelevisionSpeaker)), '%s %s Speaker', device.deviceName, device.remoteType;
+      accessory.addService(this.platform.Service.TelevisionSpeaker)), `${accessory.displayName} Speaker`;
+
+    this.speakerService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Speaker`);
 
     this.speakerService
       .setCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.ACTIVE)
@@ -104,7 +113,7 @@ export class TV {
   }
 
   private VolumeSelectorSet(value: CharacteristicValue) {
-    this.platform.debug('TV %s Set VolumeSelector: %s', this.accessory.displayName, value);
+    this.platform.debug(`${this.accessory.displayName} Set VolumeSelector: ${value}`);
     if (value === this.platform.Characteristic.VolumeSelector.INCREMENT) {
       this.pushVolumeUpChanges();
     } else {
@@ -115,61 +124,61 @@ export class TV {
   private RemoteKeySet(value: CharacteristicValue) {
     switch (value) {
       case this.platform.Characteristic.RemoteKey.REWIND: {
-        this.platform.debug('TV %s Set Remote Key Pressed: REWIND', this.accessory.displayName);
+        this.platform.debug(`${this.accessory.displayName} Set Remote Key Pressed: REWIND`);
         break;
       }
       case this.platform.Characteristic.RemoteKey.FAST_FORWARD: {
-        this.platform.debug('TV %s Set Remote Key Pressed: FAST_FORWARD', this.accessory.displayName);
+        this.platform.debug(`${this.accessory.displayName} Set Remote Key Pressed: FAST_FORWARD`);
         break;
       }
       case this.platform.Characteristic.RemoteKey.NEXT_TRACK: {
-        this.platform.debug('TV %s Set Remote Key Pressed: NEXT_TRACK', this.accessory.displayName);
+        this.platform.debug(`${this.accessory.displayName} Set Remote Key Pressed: NEXT_TRACK`);
         break;
       }
       case this.platform.Characteristic.RemoteKey.PREVIOUS_TRACK: {
-        this.platform.debug('TV %s Set Remote Key Pressed: PREVIOUS_TRACK', this.accessory.displayName);
+        this.platform.debug(`${this.accessory.displayName} Set Remote Key Pressed: PREVIOUS_TRACK`);
         break;
       }
       case this.platform.Characteristic.RemoteKey.ARROW_UP: {
-        this.platform.debug('TV %s Set Remote Key Pressed: ARROW_UP', this.accessory.displayName);
+        this.platform.debug(`${this.accessory.displayName} Set Remote Key Pressed: ARROW_UP`);
         //this.pushUpChanges();
         break;
       }
       case this.platform.Characteristic.RemoteKey.ARROW_DOWN: {
-        this.platform.debug('TV %s Set Remote Key Pressed: ARROW_DOWN', this.accessory.displayName);
+        this.platform.debug(`${this.accessory.displayName} Set Remote Key Pressed: ARROW_DOWN`);
         //this.pushDownChanges();
         break;
       }
       case this.platform.Characteristic.RemoteKey.ARROW_LEFT: {
-        this.platform.debug('TV %s Set Remote Key Pressed: ARROW_LEFT', this.accessory.displayName);
+        this.platform.debug(`${this.accessory.displayName} Set Remote Key Pressed: ARROW_LEFT`);
         //this.pushLeftChanges();
         break;
       }
       case this.platform.Characteristic.RemoteKey.ARROW_RIGHT: {
-        this.platform.debug('TV %s Set Remote Key Pressed: ARROW_RIGHT', this.accessory.displayName);
+        this.platform.debug(`${this.accessory.displayName} Set Remote Key Pressed: ARROW_RIGHT`);
         //this.pushRightChanges();
         break;
       }
       case this.platform.Characteristic.RemoteKey.SELECT: {
-        this.platform.debug('TV %s Set Remote Key Pressed: SELECT', this.accessory.displayName);
+        this.platform.debug(`${this.accessory.displayName} Set Remote Key Pressed: SELECT`);
         //this.pushOkChanges();
         break;
       }
       case this.platform.Characteristic.RemoteKey.BACK: {
-        this.platform.debug('TV %s Set Remote Key Pressed: BACK', this.accessory.displayName);
+        this.platform.debug(`${this.accessory.displayName} Set Remote Key Pressed: BACK`);
         //this.pushBackChanges();
         break;
       }
       case this.platform.Characteristic.RemoteKey.EXIT: {
-        this.platform.debug('TV %s Set Remote Key Pressed: EXIT', this.accessory.displayName);
+        this.platform.debug(`${this.accessory.displayName} Set Remote Key Pressed: EXIT`);
         break;
       }
       case this.platform.Characteristic.RemoteKey.PLAY_PAUSE: {
-        this.platform.debug('TV %s Set Remote Key Pressed: PLAY_PAUSE', this.accessory.displayName);
+        this.platform.debug(`${this.accessory.displayName} Set Remote Key Pressed: PLAY_PAUSE`);
         break;
       }
       case this.platform.Characteristic.RemoteKey.INFORMATION: {
-        this.platform.debug('TV %s Set Remote Key Pressed: INFORMATION', this.accessory.displayName);
+        this.platform.debug(`${this.accessory.displayName} Set Remote Key Pressed: INFORMATION`);
         //this.pushMenuChanges();
         break;
       }
@@ -177,15 +186,17 @@ export class TV {
   }
 
   private ActiveIdentifierSet(value: CharacteristicValue) {
-    this.platform.debug('TV %s Set Active Identifier: %s', this.accessory.displayName, value);
+    this.platform.debug(`${this.accessory.displayName} Set Active Identifier: ${value}`);
   }
 
   private ActiveSet(value: CharacteristicValue) {
-    this.platform.debug('TV %s Set Active: %s', this.accessory.displayName, value);
-    if (value === this.platform.Characteristic.Active.INACTIVE) {
-      this.pushTvOffChanges();
-    } else {
-      this.pushTvOnChanges();
+    this.platform.debug(`${this.accessory.displayName} Set Active: ${value}`);
+    if (!this.device.irtv?.disable_power) {
+      if (value === this.platform.Characteristic.Active.INACTIVE) {
+        this.pushTvOffChanges();
+      } else {
+        this.pushTvOnChanges();
+      }
     }
     this.ActiveIdentifier = value;
     if (this.ActiveIdentifier !== undefined) {
@@ -316,11 +327,11 @@ export class TV {
         'commandType:',
         payload.commandType,
       );
-      this.platform.debug('TV %s pushChanges -', this.accessory.displayName, JSON.stringify(payload));
+      this.platform.debug(`${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.debug('TV %s Changes pushed -', this.accessory.displayName, push.data);
+      this.platform.debug(`${this.accessory.displayName} Changes pushed - ${push.data}`);
       this.statusCode(push);
     } catch (e) {
       this.apiError(e);
@@ -328,7 +339,7 @@ export class TV {
   }
 
 
-  private statusCode(push: AxiosResponse<any>) {
+  private statusCode(push: AxiosResponse<{ statusCode: number;}>) {
     switch (push.data.statusCode) {
       case 151:
         this.platform.log.error('Command not supported by this device type.');
@@ -359,6 +370,5 @@ export class TV {
   public apiError(e: any) {
     this.service.updateCharacteristic(this.platform.Characteristic.Active, e);
     this.speakerService.updateCharacteristic(this.platform.Characteristic.Active, e);
-    new this.platform.api.hap.HapStatusError(HAPStatus.OPERATION_TIMED_OUT);
   }
 }
