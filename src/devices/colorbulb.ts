@@ -9,7 +9,7 @@ import { DeviceURL, device, devicesConfig } from '../settings';
  * An instance of this class is created for each accessory your platform registers
  * Each accessory may expose multiple services of different service types.
  */
-export class Bulb {
+export class ColorBulb {
   // Services
   service!: Service;
 
@@ -37,8 +37,8 @@ export class Bulb {
   };
 
   // Updates
-  bulbUpdateInProgress!: boolean;
-  doBulbUpdate;
+  colorBulbUpdateInProgress!: boolean;
+  doColorBulbUpdate;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -59,8 +59,8 @@ export class Bulb {
     }
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
-    this.doBulbUpdate = new Subject();
-    this.bulbUpdateInProgress = false;
+    this.doColorBulbUpdate = new Subject();
+    this.colorBulbUpdateInProgress = false;
 
 
     // Retrieve initial values and updateHomekit
@@ -70,7 +70,7 @@ export class Bulb {
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-BULB-W1401400')
+      .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-COLORBULB-W1401400')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
     // get the Television service if it exists, otherwise create a new Television service
@@ -122,17 +122,17 @@ export class Bulb {
 
     // Start an update interval
     interval(this.platform.config.options!.refreshRate! * 1000)
-      .pipe(skipWhile(() => this.bulbUpdateInProgress))
+      .pipe(skipWhile(() => this.colorBulbUpdateInProgress))
       .subscribe(() => {
         this.refreshStatus();
       });
 
     // Watch for Bulb change events
     // We put in a debounce of 100ms so we don't make duplicate calls
-    this.doBulbUpdate
+    this.doColorBulbUpdate
       .pipe(
         tap(() => {
-          this.bulbUpdateInProgress = true;
+          this.colorBulbUpdateInProgress = true;
         }),
         debounceTime(this.platform.config.options!.pushRate! * 1000),
       )
@@ -141,16 +141,16 @@ export class Bulb {
           await this.pushChanges();
         } catch (e: any) {
           this.platform.log.error(JSON.stringify(e.message));
-          this.platform.debug(`Bulb ${accessory.displayName} - ${JSON.stringify(e)}`);
+          this.platform.debug(`Color Bulb ${accessory.displayName} - ${JSON.stringify(e)}`);
           this.apiError(e);
         }
-        this.bulbUpdateInProgress = false;
+        this.colorBulbUpdateInProgress = false;
       });
   }
 
   private minStep(): number | undefined {
-    if (this.device.bulb?.set_minStep) {
-      this.set_minStep = this.device.bulb?.set_minStep;
+    if (this.device.colorbulb?.set_minStep) {
+      this.set_minStep = this.device.colorbulb?.set_minStep;
     } else {
       this.set_minStep = 1;
     }
@@ -165,21 +165,21 @@ export class Bulb {
       default:
         this.On = false;
     }
-    this.platform.debug(`Bulb ${this.accessory.displayName} On: ${this.On}`);
+    this.platform.debug(`Color Bulb ${this.accessory.displayName} On: ${this.On}`);
     this.deviceStatus.body.brightness = Number(this.Brightness);
     this.deviceStatus.body.colorTemperature = Number(this.ColorTemperature);
   }
 
   async refreshStatus() {
     try {
-      this.platform.debug('Bulb - Reading', `${DeviceURL}/${this.device.deviceId}/status`);
+      this.platform.debug('Color Bulb - Reading', `${DeviceURL}/${this.device.deviceId}/status`);
       this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
-      this.platform.device(`Bulb ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+      this.platform.device(`Color Bulb ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
-      this.platform.log.error(`Bulb ${this.accessory.displayName} failed to refresh status, Error Message ${JSON.stringify(e.message)}`);
-      this.platform.debug(`Bulb ${this.accessory.displayName}, Error: ${JSON.stringify(e)}`);
+      this.platform.log.error(`Color Bulb ${this.accessory.displayName} failed to refresh status, Error Message ${JSON.stringify(e.message)}`);
+      this.platform.debug(`Color Bulb ${this.accessory.displayName}, Error: ${JSON.stringify(e)}`);
       this.apiError(e);
     }
   }
@@ -187,8 +187,8 @@ export class Bulb {
   /**
  * Pushes the requested changes to the SwitchBot API
  * deviceType	commandType	  Command	    command parameter	  Description
- * Bulb   -    "command"     "turnOff"   "default"	  =        set to OFF state
- * Bulb   -    "command"     "turnOn"    "default"	  =        set to ON state
+ * Color Bulb   -    "command"     "turnOff"   "default"	  =        set to OFF state
+ * Color Bulb   -    "command"     "turnOn"    "default"	  =        set to ON state
  */
   async pushChanges() {
     const payload = {
@@ -212,32 +212,32 @@ export class Bulb {
       'commandType:',
       payload.commandType,
     );
-    this.platform.debug(`Bulb ${this.accessory.displayName} pushchanges: ${JSON.stringify(payload)}`);
+    this.platform.debug(`Color Bulb ${this.accessory.displayName} pushchanges: ${JSON.stringify(payload)}`);
 
     // Make the API request
     const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload));
-    this.platform.debug(`Bulb ${this.accessory.displayName} Changes pushed: ${JSON.stringify(push.data)}`);
+    this.platform.debug(`Color Bulb ${this.accessory.displayName} Changes pushed: ${JSON.stringify(push.data)}`);
     this.statusCode(push);
   }
 
   updateHomeKitCharacteristics() {
     if (this.On === undefined) {
-      this.platform.debug(`Bulb ${this.accessory.displayName} On: ${this.On}`);
+      this.platform.debug(`Color Bulb ${this.accessory.displayName} On: ${this.On}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.On, this.On);
-      this.platform.device(`Bulb ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+      this.platform.device(`Color Bulb ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
     if (this.Brightness === undefined) {
-      this.platform.debug(`Bulb ${this.accessory.displayName} Brightness: ${this.Brightness}`);
+      this.platform.debug(`Color Bulb ${this.accessory.displayName} Brightness: ${this.Brightness}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.Brightness, this.Brightness);
-      this.platform.device(`Bulb ${this.accessory.displayName} updateCharacteristic Brightness: ${this.Brightness}`);
+      this.platform.device(`Color Bulb ${this.accessory.displayName} updateCharacteristic Brightness: ${this.Brightness}`);
     }
     if (this.ColorTemperature === undefined) {
-      this.platform.debug(`Bulb ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
+      this.platform.debug(`Color Bulb ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.Brightness, this.ColorTemperature);
-      this.platform.debug(`Bulb ${this.accessory.displayName} updateCharacteristic ColorTemperature: ${this.ColorTemperature}`);
+      this.platform.debug(`Color Bulb ${this.accessory.displayName} updateCharacteristic ColorTemperature: ${this.ColorTemperature}`);
     }
   }
 
@@ -285,7 +285,7 @@ export class Bulb {
     this.platform.debug(`${this.accessory.displayName} - Set On: ${value}`);
 
     this.On = value;
-    this.doBulbUpdate.next();
+    this.doColorBulbUpdate.next();
   }
 
   /**
@@ -295,7 +295,7 @@ export class Bulb {
     this.platform.debug(`${this.accessory.displayName} - Set On: ${value}`);
 
     this.Brightness = value;
-    this.doBulbUpdate.next();
+    this.doColorBulbUpdate.next();
   }
 
   /**
@@ -305,6 +305,6 @@ export class Bulb {
     this.platform.debug(`${this.accessory.displayName} - Set On: ${value}`);
 
     this.ColorTemperature = value;
-    this.doBulbUpdate.next();
+    this.doColorBulbUpdate.next();
   }
 }

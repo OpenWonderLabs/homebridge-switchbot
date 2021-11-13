@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
-import { DeviceURL, irdevice, deviceStatusResponse, devicesConfig } from '../settings';
+import { DeviceURL, irdevice, deviceStatusResponse, irDevicesConfig } from '../settings';
 
 /**
  * Platform Accessory
@@ -19,7 +19,7 @@ export class TV {
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
-    public device: irdevice & devicesConfig,
+    public device: irdevice & irDevicesConfig,
   ) {
     // set accessory information
     accessory

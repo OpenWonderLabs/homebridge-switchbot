@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
-import { devicesConfig, DeviceURL, irdevice } from '../settings';
+import { irDevicesConfig, DeviceURL, irdevice } from '../settings';
 
 /**
  * Platform Accessory
@@ -19,7 +19,7 @@ export class AirConditioner {
   CurrentARMode!: CharacteristicValue;
   CurrentARFanSpeed!: CharacteristicValue;
   ARActive!: CharacteristicValue;
-  LastTemperature!: number;
+  LastTemperature!: CharacteristicValue;
   CurrentMode!: number;
   CurrentFanSpeed!: number;
   Busy: any;
@@ -32,8 +32,10 @@ export class AirConditioner {
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
-    public device: irdevice & devicesConfig,
+    public device: irdevice & irDevicesConfig,
   ) {
+    this.CurrentTemperature = 24;
+
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
@@ -66,7 +68,8 @@ export class AirConditioner {
         minStep: 0.01,
       })
       .onGet((value: CharacteristicValue) => {
-        return this.CurrentTemperatureGet(Number(value));
+        this.platform.device(`onGet: ${this.CurrentTemperature}`);
+        return this.CurrentTemperatureGet(value);
       });
 
     if (device.irair?.hide_automode) {
@@ -158,15 +161,17 @@ export class AirConditioner {
 
   private CurrentTemperatureGet(value: CharacteristicValue) {
     this.platform.debug('Trigger Get CurrentTemperture');
-
-    if (Number.isNaN(this.CurrentTemperature)) {
-      this.CurrentTemperature = 24;
-    } else {
+    if (this.CurrentTemperature) {
+      this.CurrentTemperature;
       this.service
-        .getCharacteristic(this.platform.Characteristic.CurrentTemperature)
-        .updateValue(Number(this.CurrentTemperature) || 24);
+        .getCharacteristic(this.platform.Characteristic.CurrentTemperature).updateValue(this.CurrentTemperature);
+    } else {
+      this.CurrentTemperature = 24;
+      this.service
+        .getCharacteristic(this.platform.Characteristic.CurrentTemperature).updateValue(this.CurrentTemperature);
     }
-    return (this.CurrentTemperature = Number(value));
+
+    return (this.CurrentTemperature = value);
   }
 
   private TargetHeaterCoolerStateSet(value: CharacteristicValue) {
@@ -196,18 +201,32 @@ export class AirConditioner {
     } else {
       this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.INACTIVE;
     }
+    this.platform.device(`CurrentHeaterCoolerStateGet: ${this.CurrentHeaterCoolerState}`);
     return this.CurrentHeaterCoolerState;
   }
 
   private HeatingThresholdTemperatureGet() {
-    this.CurrentTemperature = this.CurrentTemperature || 24;
+    if (this.CurrentTemperature) {
+      this.CurrentTemperature;
+    } else {
+      this.CurrentTemperature = 24;
+    }
+    this.platform.device(`HeatingThresholdTemperatureGet: ${this.CurrentTemperature}`);
     return this.CurrentTemperature;
   }
 
   private HeatingThresholdTemperatureSet(value: CharacteristicValue) {
+    this.platform.device(`Before HeatingThresholdTemperatureSet CurrentTemperature: ${this.CurrentTemperature},`
+      + ` HeatingThresholdTemperatureSet LastTemperature: ${this.LastTemperature}`);
     this.pushAirConditionerStatusChanges();
-    this.LastTemperature = Number(this.CurrentTemperature);
-    this.CurrentTemperature = Number(value);
+    this.LastTemperature = this.CurrentTemperature;
+    if (this.CurrentTemperature) {
+      this.CurrentTemperature = value;
+    } else {
+      this.CurrentTemperature = 24;
+    }
+    this.platform.device(`After HeatingThresholdTemperatureSet CurrentTemperature: ${this.CurrentTemperature},`
+      + ` HeatingThresholdTemperatureSet LastTemperature: ${this.LastTemperature}`);
   }
 
   /**

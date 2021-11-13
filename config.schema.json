@@ -68,15 +68,21 @@
                       ]
                     },
                     {
-                      "title": "Meter",
+                      "title": "Curtain",
                       "enum": [
-                        "Meter"
+                        "Curtain"
                       ]
                     },
                     {
-                      "title": "Contact Sensor",
+                      "title": "Plug",
                       "enum": [
-                        "Contact Sensor"
+                        "Plug"
+                      ]
+                    },
+                    {
+                      "title": "Meter",
+                      "enum": [
+                        "Meter"
                       ]
                     },
                     {
@@ -86,123 +92,27 @@
                       ]
                     },
                     {
+                      "title": "Contact Sensor",
+                      "enum": [
+                        "Contact Sensor"
+                      ]
+                    },
+                    {
+                      "title": "Color Bulb",
+                      "enum": [
+                        "Color Bulb"
+                      ]
+                    },
+                    {
                       "title": "Humidifier",
                       "enum": [
                         "Humidifier"
                       ]
                     },
                     {
-                      "title": "Curtain",
+                      "title": "Smart Fan",
                       "enum": [
-                        "Curtain"
-                      ]
-                    },
-                    {
-                      "title": "Bulb",
-                      "enum": [
-                        "Fan"
-                      ]
-                    },
-                    {
-                      "title": "Fan (IR)",
-                      "enum": [
-                        "Fan"
-                      ]
-                    },
-                    {
-                      "title": "DIY Fan (IR)",
-                      "enum": [
-                        "DIY Fan"
-                      ]
-                    },
-                    {
-                      "title": "Air Conditioner (IR)",
-                      "enum": [
-                        "Air Conditioner"
-                      ]
-                    },
-                    {
-                      "title": "DIY Air Conditioner (IR)",
-                      "enum": [
-                        "DIY Air Conditioner"
-                      ]
-                    },
-                    {
-                      "title": "TV (IR)",
-                      "enum": [
-                        "TV"
-                      ]
-                    },
-                    {
-                      "title": "DIY TV (IR)",
-                      "enum": [
-                        "DIY TV"
-                      ]
-                    },
-                    {
-                      "title": "Projector (IR)",
-                      "enum": [
-                        "Projector"
-                      ]
-                    },
-                    {
-                      "title": "DIY Projector (IR)",
-                      "enum": [
-                        "DIY Projector"
-                      ]
-                    },
-                    {
-                      "title": "Set Top Box (IR)",
-                      "enum": [
-                        "Set Top Box"
-                      ]
-                    },
-                    {
-                      "title": "DIY Set Top Box (IR)",
-                      "enum": [
-                        "DIY Set Top Box"
-                      ]
-                    },
-                    {
-                      "title": "IPTV (IR)",
-                      "enum": [
-                        "IPTV"
-                      ]
-                    },
-                    {
-                      "title": "DIY IPTV (IR)",
-                      "enum": [
-                        "DIY IPTV"
-                      ]
-                    },
-                    {
-                      "title": "DVD (IR)",
-                      "enum": [
-                        "DVD"
-                      ]
-                    },
-                    {
-                      "title": "DIY DVD (IR)",
-                      "enum": [
-                        "DIY DVD"
-                      ]
-                    },
-                    {
-                      "title": "Speaker (IR)",
-                      "enum": [
-                        "Speaker"
-                      ]
-                    },
-                    {
-                      "title": "DIY Speaker (IR)",
-                      "enum": [
-                        "DIY Speaker"
-                      ]
-                    },
-                    {
-                      "title": "Others (IR)",
-                      "enum": [
-                        "Others"
+                        "Smart Fan"
                       ]
                     }
                   ],
@@ -359,7 +269,7 @@
                     }
                   }
                 },
-                "bulb": {
+                "colorbulb": {
                   "type": "object",
                   "properties": {
                     "set_minStep": {
@@ -367,52 +277,203 @@
                       "type": "number",
                       "placeholder": "1",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Bulb' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Color Bulb' && model.options.devices[arrayIndices].deviceId);"
                       }
                     }
                   }
+                }
+              }
+            }
+          },
+          "irdevices": {
+            "type": "array",
+            "items": {
+              "title": "IR Devices",
+              "type": "object",
+              "properties": {
+                "deviceId": {
+                  "title": "Device ID",
+                  "type": "string",
+                  "required": true,
+                  "placeholder": "81F3UT59513F"
                 },
-                "fan": {
-                  "type": "object",
-                  "properties": {
-                    "swing_mode": {
-                      "title": "Enable Swing Mode by Device ID",
-                      "type": "boolean",
-                      "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].deviceType === 'Fan' || model.options.devices[arrayIndices].deviceType === 'DIY Fan') && model.options.devices[arrayIndices].deviceId);"
-                      }
+                "hide_device": {
+                  "title": "Hide Device",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId);"
+                  }
+                },
+                "remoteType": {
+                  "title": "Remote Type",
+                  "type": "string",
+                  "required": true,
+                  "oneOf": [
+                    {
+                      "title": "Air Conditioner (IR)",
+                      "enum": [
+                        "Air Conditioner"
+                      ]
                     },
-                    "rotation_speed": {
-                      "title": "Enable Rotation Speed by Device ID",
-                      "type": "boolean",
-                      "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].deviceType === 'Fan' || model.options.devices[arrayIndices].deviceType === 'DIY Fan') && model.options.devices[arrayIndices].deviceId);"
-                      }
+                    {
+                      "title": "DIY Air Conditioner (IR)",
+                      "enum": [
+                        "DIY Air Conditioner"
+                      ]
                     },
-                    "set_minStep": {
-                      "title": "Set Min Step",
-                      "type": "number",
-                      "placeholder": "1",
-                      "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].deviceType === 'Fan' || model.options.devices[arrayIndices].deviceType === 'DIY Fan') && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].fan  && !model.options.devices[arrayIndices].meter.rotation_speed);"
-                      }
+                    {
+                      "title": "TV (IR)",
+                      "enum": [
+                        "TV"
+                      ]
                     },
-                    "set_min": {
-                      "title": "Set Min",
-                      "type": "number",
-                      "placeholder": "0",
-                      "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].deviceType === 'Fan' || model.options.devices[arrayIndices].deviceType === 'DIY Fan') && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].fan  && !model.options.devices[arrayIndices].meter.rotation_speed);"
-                      }
+                    {
+                      "title": "DIY TV (IR)",
+                      "enum": [
+                        "DIY TV"
+                      ]
                     },
-                    "set_max": {
-                      "title": "Set Max",
-                      "type": "number",
-                      "placeholder": "100",
-                      "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].deviceType === 'Fan' || model.options.devices[arrayIndices].deviceType === 'DIY Fan') && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].fan  && !model.options.devices[arrayIndices].meter.rotation_speed);"
-                      }
+                    {
+                      "title": "Light (IR)",
+                      "enum": [
+                        "Light"
+                      ]
+                    },
+                    {
+                      "title": "DIY Light (IR)",
+                      "enum": [
+                        "DIY Light"
+                      ]
+                    },
+                    {
+                      "title": "IPTV (IR)",
+                      "enum": [
+                        "IPTV"
+                      ]
+                    },
+                    {
+                      "title": "DIY IPTV (IR)",
+                      "enum": [
+                        "DIY IPTV"
+                      ]
+                    },
+                    {
+                      "title": "Set Top Box (IR)",
+                      "enum": [
+                        "Set Top Box"
+                      ]
+                    },
+                    {
+                      "title": "DIY Set Top Box (IR)",
+                      "enum": [
+                        "DIY Set Top Box"
+                      ]
+                    },
+                    {
+                      "title": "DVD (IR)",
+                      "enum": [
+                        "DVD"
+                      ]
+                    },
+                    {
+                      "title": "DIY DVD (IR)",
+                      "enum": [
+                        "DIY DVD"
+                      ]
+                    },
+                    {
+                      "title": "Fan (IR)",
+                      "enum": [
+                        "Fan"
+                      ]
+                    },
+                    {
+                      "title": "DIY Fan (IR)",
+                      "enum": [
+                        "DIY Fan"
+                      ]
+                    },
+                    {
+                      "title": "Projector (IR)",
+                      "enum": [
+                        "Projector"
+                      ]
+                    },
+                    {
+                      "title": "DIY Projector (IR)",
+                      "enum": [
+                        "DIY Projector"
+                      ]
+                    },
+                    {
+                      "title": "Camera (IR)",
+                      "enum": [
+                        "Camera"
+                      ]
+                    },
+                    {
+                      "title": "DIY Camera (IR)",
+                      "enum": [
+                        "DIY Camera"
+                      ]
+                    },
+                    {
+                      "title": "Air Purifier (IR)",
+                      "enum": [
+                        "Air Purifier"
+                      ]
+                    },
+                    {
+                      "title": "DIY Air Purifier (IR)",
+                      "enum": [
+                        "DIY Air Purifier"
+                      ]
+                    },
+                    {
+                      "title": "Speaker (IR)",
+                      "enum": [
+                        "Speaker"
+                      ]
+                    },
+                    {
+                      "title": "DIY Speaker (IR)",
+                      "enum": [
+                        "DIY Speaker"
+                      ]
+                    },
+                    {
+                      "title": "Water Heater (IR)",
+                      "enum": [
+                        "Water Heater"
+                      ]
+                    },
+                    {
+                      "title": "DIY Water Heater (IR)",
+                      "enum": [
+                        "DIY Water Heater"
+                      ]
+                    },
+                    {
+                      "title": "Vacuum Cleaner (IR)",
+                      "enum": [
+                        "Vacuum Cleaner"
+                      ]
+                    },
+                    {
+                      "title": "DIY Vacuum Cleaner (IR)",
+                      "enum": [
+                        "DIY Vacuum Cleaner"
+                      ]
+                    },
+                    {
+                      "title": "Others (IR)",
+                      "enum": [
+                        "Others"
+                      ]
                     }
+                  ],
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device);"
                   }
                 },
                 "irair": {
@@ -422,7 +483,50 @@
                       "title": "Hide Auto Mode on IR Air Conditioners",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].deviceType === 'Air Conditioner' || model.options.devices[arrayIndices].deviceType === 'DIY Air Conditioner') && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].remoteType === 'Air Conditioner' || model.options.irdevices[arrayIndices].remoteType === 'DIY Air Conditioner') && model.options.irdevices[arrayIndices].deviceId);"
+                      }
+                    }
+                  }
+                },
+                "irfan": {
+                  "type": "object",
+                  "properties": {
+                    "swing_mode": {
+                      "title": "Enable Swing Mode by Device ID",
+                      "type": "boolean",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].remoteType === 'Fan' || model.options.irdevices[arrayIndices].remoteType === 'DIY Fan') && model.options.irdevices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "rotation_speed": {
+                      "title": "Enable Rotation Speed by Device ID",
+                      "type": "boolean",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].remoteType === 'Fan' || model.options.irdevices[arrayIndices].remoteType === 'DIY Fan') && model.options.irdevices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "set_minStep": {
+                      "title": "Set Min Step",
+                      "type": "number",
+                      "placeholder": "1",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].remoteType === 'Fan' || model.options.irdevices[arrayIndices].remoteType === 'DIY Fan') && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].irfan  && !model.options.irdevices[arrayIndices].irfan.rotation_speed);"
+                      }
+                    },
+                    "set_min": {
+                      "title": "Set Min",
+                      "type": "number",
+                      "placeholder": "0",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].remoteType === 'Fan' || model.options.irdevices[arrayIndices].remoteType === 'DIY Fan') && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].irfan  && !model.options.irdevices[arrayIndices].irfan.rotation_speed);"
+                      }
+                    },
+                    "set_max": {
+                      "title": "Set Max",
+                      "type": "number",
+                      "placeholder": "100",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].remoteType === 'Fan' || model.options.irdevices[arrayIndices].remoteType === 'DIY Fan') && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].irfan  && !model.options.irdevices[arrayIndices].irfan.rotation_speed);"
                       }
                     }
                   }
@@ -434,7 +538,7 @@
                       "title": "Disable Power Command",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].deviceType === 'TV' || model.options.devices[arrayIndices].deviceType === 'DIY TV' || model.options.devices[arrayIndices].deviceType === 'Projector' || model.options.devices[arrayIndices].deviceType === 'DIY Projector' || model.options.devices[arrayIndices].deviceType === 'Set Top Box' || model.options.devices[arrayIndices].deviceType === 'DIY Set Top Box' || model.options.devices[arrayIndices].deviceType === 'IPTV' || model.options.devices[arrayIndices].deviceType === 'DIY IPTV' || model.options.devices[arrayIndices].deviceType === 'DVD' || model.options.devices[arrayIndices].deviceType === 'DIY DVD' || model.options.devices[arrayIndices].deviceType === 'Speaker' || model.options.devices[arrayIndices].deviceType === 'DIY Speaker') && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.devices[arrayIndices].deviceType === 'TV' || model.options.devices[arrayIndices].deviceType === 'DIY TV' || model.options.devices[arrayIndices].deviceType === 'Projector' || model.options.devices[arrayIndices].deviceType === 'DIY Projector' || model.options.devices[arrayIndices].deviceType === 'Set Top Box' || model.options.devices[arrayIndices].deviceType === 'DIY Set Top Box' || model.options.irdevices[arrayIndices].deviceType === 'IPTV' || model.options.irdevices[arrayIndices].deviceType === 'DIY IPTV' || model.options.devices[arrayIndices].deviceType === 'DVD' || model.options.devices[arrayIndices].deviceType === 'DIY DVD' || model.options.devices[arrayIndices].deviceType === 'Speaker' || model.options.devices[arrayIndices].deviceType === 'DIY Speaker') && model.options.devices[arrayIndices].deviceId);"
                       }
                     }
                   }
@@ -455,7 +559,7 @@
                       ],
                       "required": false,
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Others' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].remoteType === 'Others' && model.options.irdevices[arrayIndices].deviceId);"
                       }
                     },
                     "commandOn": {
@@ -463,7 +567,7 @@
                       "type": "string",
                       "placeholder": "On",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Others' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].other  && model.options.devices[arrayIndices].other.deviceType);"
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].remoteType === 'Others' && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].other  && model.options.irdevices[arrayIndices].other.deviceType);"
                       }
                     },
                     "commandOff": {
@@ -471,7 +575,7 @@
                       "type": "string",
                       "placeholder": "Off",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Others' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].other  && !model.options.devices[arrayIndices].other.deviceType);"
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].remoteType === 'Others' && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].other  && !model.options.irdevices[arrayIndices].other.deviceType);"
                       }
                     }
                   }
@@ -558,17 +662,40 @@
             "options.devices[].curtain.set_minStep",
             "options.devices[].curtain.set_min",
             "options.devices[].curtain.set_max",
-            "options.devices[].bulb.set_minStep",
-            "options.devices[].fan.rotation_speed",
-            "options.devices[].fan.set_minStep",
-            "options.devices[].fan.set_min",
-            "options.devices[].fan.set_max",
-            "options.devices[].fan.swing_mode",
-            "options.devices[].irair.hide_automode",
-            "options.devices[].irtv.disable_power",
-            "options.devices[].other.deviceType",
-            "options.devices[].other.commandOn",
-            "options.devices[].other.commandOff"
+            "options.devices[].bulb.set_minStep"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "options.irdevices",
+      "notitle": false,
+      "add": "Add Another IR Device",
+      "type": "fieldset",
+      "title": "Optional Device Settings",
+      "expandable": true,
+      "expanded": false,
+      "orderable": false,
+      "buttonText": "Add IR Device",
+      "items": [
+        {
+          "type": "div",
+          "displayFlex": true,
+          "flex-direction": "column",
+          "items": [
+            "options.irdevices[].deviceId",
+            "options.irdevices[].hide_device",
+            "options.irdevices[].remoteType",
+            "options.irdevices[].irfan.rotation_speed",
+            "options.irdevices[].irfan.set_minStep",
+            "options.irdevices[].irfan.set_min",
+            "options.irdevices[].irfan.set_max",
+            "options.irdevices[].fan.swing_mode",
+            "options.irdevices[].irair.hide_automode",
+            "options.irdevices[].irtv.disable_power",
+            "options.irdevices[].other.deviceType",
+            "options.irdevices[].other.commandOn",
+            "options.irdevices[].other.commandOff"
           ]
         }
       ]

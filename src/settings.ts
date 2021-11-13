@@ -34,21 +34,17 @@ export type options = {
   pushRate?: number;
   debug?: string;
   devices?: Array<devicesConfig>;
+  irdevices?: Array<irDevicesConfig>;
 };
 
-export interface devicesConfig extends device, irdevice {
-  id: any;
+export interface devicesConfig extends device {
   type?: string;
   deviceId: string;
   bot?: bot;
   meter?: meter;
   humidifier?: humidifier;
   curtain?: curtain;
-  bulb?: bulb;
-  fan?: irfan;
-  irair?: irair;
-  irtv?: irtv;
-  other?: other;
+  colorbulb?: colorbulb;
   ble?: string;
   hide_device?: boolean;
 }
@@ -76,9 +72,19 @@ export type curtain = {
   set_minStep?: number;
 };
 
-export type bulb = {
+export type colorbulb = {
   set_minStep?: number;
 };
+
+export interface irDevicesConfig extends irdevice {
+  type?: string;
+  deviceId: string;
+  irfan?: irfan;
+  irair?: irair;
+  irtv?: irtv;
+  other?: other;
+  hide_device?: boolean;
+}
 
 export type irfan = {
   swing_mode?: boolean;
