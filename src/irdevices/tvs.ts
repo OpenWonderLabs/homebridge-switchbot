@@ -9,11 +9,15 @@ import { DeviceURL, irdevice, deviceStatusResponse, irDevicesConfig } from '../s
  * Each accessory may expose multiple services of different service types.
  */
 export class TV {
+  // Services
   service!: Service;
   speakerService: Service;
 
+  // Characteristic Values
   Active!: CharacteristicValue;
   ActiveIdentifier!: CharacteristicValue;
+
+  // Others
   deviceStatus!: deviceStatusResponse;
 
   constructor(

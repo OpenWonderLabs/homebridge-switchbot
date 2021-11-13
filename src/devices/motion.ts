@@ -21,20 +21,19 @@ export class Motion {
   StatusLowBattery?: CharacteristicValue;
   CurrentAmbientLightLevel?: CharacteristicValue;
 
+  // OpenAPI Others
+  deviceStatus!: deviceStatusResponse;
+
   // BLE Others
   switchbot!: switchbot;
   serviceData!: serviceData;
-  BLEmotion!: serviceData['movement'];
-
-  // OpenAPI Others
-  deviceStatus!: deviceStatusResponse;
+  battery!: serviceData['battery'];
+  movement!: serviceData['movement'];
+  lightLevel!: serviceData['lightLevel'];
 
   // Updates
   motionUbpdateInProgress!: boolean;
   doMotionUpdate!: Subject<void>;
-  movement: any;
-  battery: any;
-  lightLevel: any;
 
   constructor(
     private readonly platform: SwitchBotPlatform,

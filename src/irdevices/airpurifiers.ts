@@ -9,24 +9,28 @@ import { irDevicesConfig, DeviceURL, irdevice } from '../settings';
  * Each accessory may expose multiple services of different service types.
  */
 export class AirPurifier {
+  // Services
   service!: Service;
 
+  // Characteristic Values
   Active!: CharacteristicValue;
-  RotationSpeed!: CharacteristicValue;
-  CurrentAirPurifierState!: CharacteristicValue;
-  CurrentTemperature!: CharacteristicValue;
+  APActive!: CharacteristicValue;
   CurrentAPTemp!: CharacteristicValue;
   CurrentAPMode!: CharacteristicValue;
+  RotationSpeed!: CharacteristicValue;
   CurrentAPFanSpeed!: CharacteristicValue;
-  APActive!: CharacteristicValue;
-  LastTemperature!: number;
-  CurrentMode!: number;
-  CurrentFanSpeed!: number;
+  CurrentTemperature!: CharacteristicValue;
+  CurrentAirPurifierState!: CharacteristicValue;
+
+  // Others
   Busy: any;
   Timeout: any = null;
-  static PURIFYING_AIR: number;
   static IDLE: number;
+  CurrentMode!: number;
   static INACTIVE: number;
+  LastTemperature!: number;
+  CurrentFanSpeed!: number;
+  static PURIFYING_AIR: number;
 
   constructor(
     private readonly platform: SwitchBotPlatform,

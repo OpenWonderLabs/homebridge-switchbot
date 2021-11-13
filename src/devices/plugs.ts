@@ -1,8 +1,8 @@
-import { Service, PlatformAccessory, CharacteristicValue, MacAddress } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device, devicesConfig } from '../settings';
+import { DeviceURL, device, devicesConfig, switchbot, deviceStatusResponse } from '../settings';
 
 export class Plug {
   // Services
@@ -12,26 +12,15 @@ export class Plug {
   On!: CharacteristicValue;
   OutletInUse!: CharacteristicValue;
 
-  // Others
-  deviceStatus!: any;
-  switchbot!: {
-    discover: (
-      arg0:
-        {
-          duration: any;
-          model: string;
-          quick: boolean;
-          id: MacAddress;
-        }
-    ) => Promise<any>;
-    wait: (
-      arg0: number
-    ) => any;
-  };
+  // OpenAPI Others
+  deviceStatus!: deviceStatusResponse;
+
+  // BLE Others
+  switchbot!: switchbot;
 
   // Updates
   plugUpdateInProgress!: boolean;
-  doPlugUpdate;
+  doPlugUpdate!: Subject<void>;
 
   constructor(
     private readonly platform: SwitchBotPlatform,

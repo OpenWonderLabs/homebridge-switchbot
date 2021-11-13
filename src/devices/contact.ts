@@ -23,6 +23,9 @@ export class Contact {
   BatteryLevel!: CharacteristicValue;
   StatusLowBattery!: CharacteristicValue;
 
+  // OpenAPI others
+  deviceStatus!: deviceStatusResponse;
+
   // BLE Others
   switchbot!: switchbot;
   serviceData!: serviceData;
@@ -30,9 +33,6 @@ export class Contact {
   movement!: serviceData['movement'];
   doorState!: serviceData['doorState'];
   lightLevel!: serviceData['lightLevel'];
-
-  // OpenAPI others
-  deviceStatus!: deviceStatusResponse;
 
   // Updates
   contactUbpdateInProgress!: boolean;

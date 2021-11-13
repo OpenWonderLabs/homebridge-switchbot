@@ -24,14 +24,14 @@ export class Humidifier {
   Active!: CharacteristicValue;
   WaterLevel!: CharacteristicValue;
 
+  // OpenAPI
+  deviceStatus!: deviceStatusResponse;
+
   // BLE Others
   serviceData!: serviceData;
   onState!: serviceData['onState'];
   autoMode!: serviceData['autoMode'];
   percentage!: serviceData['percentage'];
-
-  // OpenAPI
-  deviceStatus!: deviceStatusResponse;
 
   // Config
   set_minStep?: number;

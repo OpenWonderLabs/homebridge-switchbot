@@ -24,6 +24,9 @@ export class Meter {
   Active!: CharacteristicValue;
   WaterLevel!: CharacteristicValue;
 
+  // OpenAPI Others
+  deviceStatus!: deviceStatusResponse;
+
   // BLE Others
   switchbot!: switchbot;
   serviceData!: serviceData;
@@ -31,9 +34,6 @@ export class Meter {
   humidity!: serviceData['humidity'];
   fahrenheit!: serviceData['fahrenheit'];
   temperature!: serviceData['temperature'];
-
-  // OpenAPI Others
-  deviceStatus!: deviceStatusResponse;
 
   // Updates
   meterUpdateInProgress!: boolean;

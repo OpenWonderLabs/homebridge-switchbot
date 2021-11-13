@@ -20,31 +20,18 @@ export class Curtain {
   BatteryLevel?: CharacteristicValue;
   StatusLowBattery?: CharacteristicValue;
 
+  // OpenAPI Others
+  deviceStatus!: deviceStatusResponse;
+  setNewTarget!: boolean;
+  setNewTargetTimer!: NodeJS.Timeout;
+
   // BLE Others
   switchbot!: switchbot;
   serviceData!: serviceData;
-  moveTimer!: NodeJS.Timeout;
-  ScanIntervalId!: NodeJS.Timeout;
-  setNewTargetTimer!: NodeJS.Timeout;
-  AutoDisableFastScanTimeoutId!: NodeJS.Timeout;
-  setNewTarget!: boolean;
-  moveTime!: number;
-  ScanDuration: any;
-  ReverseDir: any;
-  FastScanEnabled!: boolean;
-  FastScanInterval!: number;
-  SlowScanInterval!: number;
-  OpenCloseThreshold: any;
-  PreviousPosition: any;
-  Position: any;
-  FastScanDuration!: number;
   calibration: serviceData['calibration'];
   battery: serviceData['battery'];
   position: serviceData['position'];
   lightLevel: serviceData['lightLevel'];
-
-  // OpenAPI Others
-  deviceStatus!: deviceStatusResponse;
 
   // Config
   set_minStep!: number;
@@ -64,7 +51,6 @@ export class Curtain {
     this.CurrentPosition = 0;
     this.TargetPosition = 0;
     this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
-    this.ScanDuration = this.platform.config.options!.refreshRate!;
 
     // BLE Connection
     if (device.ble) {
@@ -123,7 +109,7 @@ export class Curtain {
         validValueRanges: [0, 100],
       })
       .onGet(() => {
-        return Number.isNaN(this.CurrentPosition);
+        return this.CurrentPosition;
       });
 
     this.service
@@ -277,6 +263,7 @@ export class Curtain {
   }
 
   private async openAPIparseStatus() {
+    this.platform.device('Curtains OpenAPI Device parseStatus');
     this.setMinMax();
     this.CurrentPosition = 100 - this.deviceStatus.body.slidePosition!;
     this.setMinMax();
@@ -376,6 +363,7 @@ export class Curtain {
   }
 
   private async openAPIRefreshStatus() {
+    this.platform.debug('Curtains OpenAPI Device RefreshStatus');
     try {
       this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
       this.platform.debug(`Curtain ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);

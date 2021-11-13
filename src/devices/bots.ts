@@ -20,16 +20,16 @@ export class Bot {
   BatteryLevel!: CharacteristicValue;
   StatusLowBattery!: CharacteristicValue;
 
-  // Others
+  // OpenAPI Others
   deviceStatus!: deviceStatusResponse;
-  RunTimer!: NodeJS.Timeout;
+
+  // BLE Others
   switchbot!: switchbot;
+  TargetState!: boolean;
   serviceData!: serviceData;
   Mode!: serviceData['mode'];
   state!: serviceData['state'];
   battery!: serviceData['battery'];
-  ScanDuration: number;
-  TargetState!: boolean;
 
   // Updates
   botUpdateInProgress!: boolean;
@@ -42,7 +42,6 @@ export class Bot {
   ) {
     // default placeholders
     this.SwitchOn = false;
-    this.ScanDuration = this.platform.config.options!.refreshRate!;
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doBotUpdate = new Subject();

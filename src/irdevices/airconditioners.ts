@@ -9,25 +9,29 @@ import { irDevicesConfig, DeviceURL, irdevice } from '../settings';
  * Each accessory may expose multiple services of different service types.
  */
 export class AirConditioner {
+  // Services
   service!: Service;
 
+  // Characteristic Values
   Active!: CharacteristicValue;
+  ARActive!: CharacteristicValue;
   RotationSpeed!: CharacteristicValue;
-  CurrentHeaterCoolerState!: CharacteristicValue;
-  CurrentTemperature!: CharacteristicValue;
   CurrentARTemp!: CharacteristicValue;
   CurrentARMode!: CharacteristicValue;
-  CurrentARFanSpeed!: CharacteristicValue;
-  ARActive!: CharacteristicValue;
   LastTemperature!: CharacteristicValue;
-  CurrentMode!: number;
-  CurrentFanSpeed!: number;
+  CurrentARFanSpeed!: CharacteristicValue;
+  CurrentTemperature!: CharacteristicValue;
+  CurrentHeaterCoolerState!: CharacteristicValue;
+
+  // Others
   Busy: any;
   Timeout: any = null;
+  CurrentMode!: number;
+  ValidValues: number[];
+  CurrentFanSpeed!: number;
   static MODE_AUTO: number;
   static MODE_COOL: number;
   static MODE_HEAT: number;
-  ValidValues: number[];
 
   constructor(
     private readonly platform: SwitchBotPlatform,
