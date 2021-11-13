@@ -47,7 +47,6 @@ export class Curtain {
     public device: device & devicesConfig,
   ) {
     // default placeholders
-    this.setMinMax();
     this.CurrentPosition = 0;
     this.TargetPosition = 0;
     this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
@@ -203,18 +202,31 @@ export class Curtain {
 
   private async BLEparseStatus() {
     this.platform.device('Curtains BLE Device parseStatus');
+    this.CurrentPosition = 100 - Number(this.position);
     this.setMinMax();
-    this.CurrentPosition = Number(this.position);
-    this.setMinMax();
-    if (this.TargetPosition > this.CurrentPosition) {
-      this.platform.debug(`Curtain ${this.accessory.displayName} - Current position: ${this.CurrentPosition} closing`);
-      this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
-    } else if (this.TargetPosition < this.CurrentPosition) {
-      this.platform.debug(`Curtain ${this.accessory.displayName} - Current position: ${this.CurrentPosition} opening`);
-      this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
+    this.platform.debug(`Curtain ${this.accessory.displayName} CurrentPosition - Device is Currently: ${this.CurrentPosition}`);
+    if (this.setNewTarget) {
+      this.platform.log.info(`Checking ${this.accessory.displayName} Status ...`);
+    }
+
+    if (this.setNewTarget) {
+      if (this.TargetPosition > this.CurrentPosition) {
+        this.platform.debug(`Curtain ${this.accessory.displayName} - Current position: ${this.CurrentPosition} closing`);
+        this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
+      } else if (this.TargetPosition < this.CurrentPosition) {
+        this.platform.debug(`Curtain ${this.accessory.displayName} - Current position: ${this.CurrentPosition} opening`);
+        this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
+      } else {
+        this.platform.debug(`Curtain ${this.CurrentPosition} - standby`);
+        this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
+      }
     } else {
-      this.platform.debug(`Curtain ${this.CurrentPosition} - standby`);
-      this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
+      this.platform.debug(`Curtain ${this.accessory.displayName} - Current position: ${this.CurrentPosition} standby`);
+      if (!this.setNewTarget) {
+        /*If Curtain calibration distance is short, there will be an error between the current percentage and the target percentage.*/
+        this.TargetPosition = this.CurrentPosition;
+        this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
+      }
     }
     // Brightness
     switch (this.lightLevel) {
@@ -264,7 +276,6 @@ export class Curtain {
 
   private async openAPIparseStatus() {
     this.platform.device('Curtains OpenAPI Device parseStatus');
-    this.setMinMax();
     this.CurrentPosition = 100 - this.deviceStatus.body.slidePosition!;
     this.setMinMax();
     this.platform.debug(`Curtain ${this.accessory.displayName} CurrentPosition - Device is Currently: ${this.CurrentPosition}`);
@@ -367,7 +378,6 @@ export class Curtain {
     try {
       this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
       this.platform.debug(`Curtain ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
-      this.setMinMax();
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
@@ -392,7 +402,7 @@ export class Curtain {
     const switchbot = this.connectBLE();
     switchbot.discover({ model: 'c', quick: true, id: this.device.bleMac }).then((device_list) => {
       this.platform.log.info(`${this.accessory.displayName}, Target Position: ${this.TargetPosition}`);
-      return device_list[0].runToPos(Number(this.TargetPosition));
+      return device_list[0].runToPos(100 - Number(this.TargetPosition));
     }).then(() => {
       this.platform.device('Done.');
     }).catch((e: any) => {
@@ -438,9 +448,6 @@ export class Curtain {
         CurrentAmbientLightLevel: this.CurrentAmbientLightLevel,
       })}`,
     );
-    if (!this.device.ble) {
-      this.setMinMax();
-    }
     if (this.CurrentPosition === undefined) {
       this.platform.debug(`Curtain ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition}`);
     } else {
@@ -492,7 +499,7 @@ export class Curtain {
     }
   }
 
-  private statusCode(push: AxiosResponse<{ statusCode: number;}>) {
+  private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
     switch (push.data.statusCode) {
       case 151:
         this.platform.log.error('Command not supported by this device type.');
@@ -528,18 +535,16 @@ export class Curtain {
 
     this.TargetPosition = value;
 
+    this.setMinMax();
     if (value > this.CurrentPosition) {
       this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
       this.setNewTarget = true;
-      this.setMinMax();
     } else if (value < this.CurrentPosition) {
       this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
       this.setNewTarget = true;
-      this.setMinMax();
     } else {
       this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
       this.setNewTarget = false;
-      this.setMinMax();
     }
     this.service.setCharacteristic(this.platform.Characteristic.PositionState, this.PositionState);
 
