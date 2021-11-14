@@ -44,6 +44,10 @@ export class Meter {
     private accessory: PlatformAccessory,
     public device: device & devicesConfig,
   ) {
+    // Meter Config
+    this.platform.device(`[Meter Config] ble: ${device.ble}, unit: ${device.meter?.unit},`
+    + ` hide_temperature: ${device.meter?.hide_temperature}, hide_humidity: ${device.meter?.hide_humidity}`);
+
     // default placeholders
     this.BatteryLevel = 0;
     this.ChargingState = 2;

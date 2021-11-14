@@ -12,7 +12,8 @@ import { AxiosResponse } from 'axios';
  */
 export class Bot {
   // Services
-  private service: Service;
+  private outletService?: Service;
+  private switchService?: Service;
   private batteryService?: Service;
 
   // Characteristic Values
@@ -25,9 +26,8 @@ export class Bot {
 
   // BLE Others
   switchbot!: switchbot;
-  TargetState!: boolean;
   serviceData!: serviceData;
-  Mode!: serviceData['mode'];
+  mode!: serviceData['mode'];
   state!: serviceData['state'];
   battery!: serviceData['battery'];
 
@@ -40,15 +40,21 @@ export class Bot {
     private accessory: PlatformAccessory,
     public device: device & devicesConfig,
   ) {
+    // Bot Config
+    this.platform.device(`[Bot Config] ble: ${device.ble}, mode: ${device.bot?.mode},`
+      + ` deviceType: ${device.bot?.deviceType}`);
+
     // default placeholders
     this.SwitchOn = false;
+    this.BatteryLevel = 100;
+    this.StatusLowBattery = 1;
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doBotUpdate = new Subject();
     this.botUpdateInProgress = false;
 
     // Retrieve initial values and updateHomekit
-    this.refreshStatus();
+    this.parseStatus();
 
     // set accessory information
     accessory
@@ -59,14 +65,39 @@ export class Bot {
 
     // get the LightBulb service if it exists, otherwise create a new LightBulb service
     // you can create multiple services for each accessory
-    if (device.bot?.mode === 'switch') {
-      (this.service =
-        accessory.getService(this.platform.Service.Switch) ||
-        accessory.addService(this.platform.Service.Switch)), `${accessory.displayName} Switch`;
-    } else {
-      (this.service =
-        accessory.getService(this.platform.Service.Outlet) ||
-        accessory.addService(this.platform.Service.Outlet)), `${accessory.displayName} Outlet`;
+    switch (device.bot!.deviceType) {
+      case 'switch':
+        // If outletService still pressent, then remove first
+        if (this.outletService) {
+          this.platform.device('Removing Leftover outletService first');
+        }
+        this.outletService = this.accessory.getService(this.platform.Service.Outlet);
+        accessory.removeService(this.outletService!);
+
+        // Add switchService
+        (this.switchService =
+          accessory.getService(this.platform.Service.Switch) ||
+          accessory.addService(this.platform.Service.Switch)), `${accessory.displayName} Switch`;
+        this.platform.log.info('Displaying as Switch');
+
+        this.switchService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+        break;
+      case 'outlet':
+      default:
+        // If switchService still pressent, then remove first
+        if (this.switchService) {
+          this.platform.device('Removing Leftover switchService first');
+        }
+        this.switchService = this.accessory.getService(this.platform.Service.Switch);
+        accessory.removeService(this.switchService!);
+
+        // Add outletService
+        (this.outletService =
+          accessory.getService(this.platform.Service.Outlet) ||
+          accessory.addService(this.platform.Service.Outlet)), `${accessory.displayName} Outlet`;
+        this.platform.log.info('Displaying as Outlet');
+
+        this.outletService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
     }
 
     if (device.ble) {
@@ -77,20 +108,17 @@ export class Bot {
       this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
     }
 
-    // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
-    // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
-    // accessory.getService('NAME') ?? accessory.addService(this.platform.Service.Outlet, 'NAME', 'USER_DEFINED_SUBTYPE');
-
-    // set the service name, this is what is displayed as the default name on the Home app
-    // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
-
     // each service must implement at-minimum the "required characteristics" for the given service type
     // see https://developers.homebridge.io/#/service/Outlet
 
-    this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.handleOnSet.bind(this));
+    if (device.bot?.deviceType === 'switch') {
+      this.switchService!.getCharacteristic(this.platform.Characteristic.On).onSet(this.handleOnSet.bind(this));
+    } else {
+      this.outletService!.getCharacteristic(this.platform.Characteristic.On).onSet(this.handleOnSet.bind(this));
+    }
 
     // Retrieve initial values and updateHomekit
+    this.refreshStatus();
     this.updateHomeKitCharacteristics();
 
     // Start an update interval
@@ -137,8 +165,8 @@ export class Bot {
   private async BLEparseStatus() {
     this.platform.debug('Bots BLE Device parseStatus');
     // BLEmode (true if Switch Mode) | (false if Press Mode)
-    if (this.Mode) {
-      this.platform.device(`Switch Mode, Mode: ${JSON.stringify(this.Mode)}`);
+    if (this.mode) {
+      this.platform.device(`Switch Mode, mode: ${JSON.stringify(this.mode)}`);
     }
     this.SwitchOn = Boolean(this.state);
     this.BatteryLevel = Number(this.battery);
@@ -147,11 +175,16 @@ export class Bot {
     } else {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     }
+    if (Number.isNaN(this.BatteryLevel)) {
+      this.BatteryLevel = 100;
+    }
     this.platform.debug(`Bot ${this.accessory.displayName} On: ${this.SwitchOn}, BatteryLevel: ${this.BatteryLevel}`);
   }
 
   private async openAPIparseStatus() {
-    this.SwitchOn = false;
+    if (this.device.bot?.mode === 'press') {
+      this.SwitchOn = false;
+    }
     this.platform.debug(`Bot ${this.accessory.displayName} On: ${this.SwitchOn}`);
   }
 
@@ -191,7 +224,7 @@ export class Bot {
       // Set an event hander
       switchbot.onadvertisement = (ad: ad) => {
         this.serviceData = ad.serviceData;
-        this.Mode = ad.serviceData.mode;
+        this.mode = ad.serviceData.mode;
         this.state = ad.serviceData.state;
         this.battery = ad.serviceData.battery;
         this.platform.device(`${this.device.bleMac}: ${JSON.stringify(ad.serviceData)}`);
@@ -293,11 +326,11 @@ export class Bot {
       parameter: 'default',
     } as any;
 
-    if (this.device.bot?.mode === 'switch' && (this.SwitchOn)) {
+    if (this.device.bot?.mode === 'switch' && this.SwitchOn) {
       payload.command = 'turnOn';
       this.SwitchOn = true;
       this.platform.debug(`Switch Mode, Turning ${this.SwitchOn}`);
-    } else if (this.device.bot?.mode === 'switch' && (!this.SwitchOn)) {
+    } else if (this.device.bot?.mode === 'switch' && !this.SwitchOn) {
       payload.command = 'turnOff';
       this.SwitchOn = false;
       this.platform.debug(`Switch Mode, Turning ${this.SwitchOn}`);
@@ -334,30 +367,42 @@ export class Bot {
     if (this.SwitchOn === undefined) {
       this.platform.debug(`Bot ${this.accessory.displayName} On: ${this.SwitchOn}`);
     } else {
-      this.service.updateCharacteristic(this.platform.Characteristic.On, this.SwitchOn);
+      if (this.device.bot?.deviceType === 'switch') {
+        this.switchService!.updateCharacteristic(this.platform.Characteristic.On, this.SwitchOn);
+      } else {
+        this.outletService!.updateCharacteristic(this.platform.Characteristic.On, this.SwitchOn);
+      }
       this.platform.device(`Bot ${this.accessory.displayName} updateCharacteristic On: ${this.SwitchOn}`);
     }
-    if (this.BatteryLevel === undefined) {
-      this.platform.debug(`Bot ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
-    } else {
-      this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
-      this.platform.device(`Bot ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
-    }
-    if (this.StatusLowBattery === undefined) {
-      this.platform.debug(`Bot ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
-    } else {
-      this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
-      this.platform.device(`Bot ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
+    if (this.device.ble) {
+      if (this.BatteryLevel === undefined) {
+        this.platform.debug(`Bot ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
+      } else {
+        this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
+        this.platform.device(`Bot ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
+      }
+      if (this.StatusLowBattery === undefined) {
+        this.platform.debug(`Bot ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
+      } else {
+        this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
+        this.platform.device(`Bot ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
+      }
     }
   }
 
   public apiError(e: any) {
-    this.service.updateCharacteristic(this.platform.Characteristic.On, e);
-    this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
-    this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
+    if (this.device.bot?.deviceType === 'switch') {
+      this.switchService!.updateCharacteristic(this.platform.Characteristic.On, e);
+    } else {
+      this.outletService!.updateCharacteristic(this.platform.Characteristic.On, e);
+    }
+    if (this.device.ble) {
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
+    }
   }
 
-  private statusCode(push: AxiosResponse<{ statusCode: number;}>) {
+  private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
     switch (push.data.statusCode) {
       case 151:
         this.platform.log.error('Command not supported by this device type.');
@@ -390,7 +435,7 @@ export class Bot {
    */
   private handleOnSet(value: CharacteristicValue) {
     this.platform.debug(`Bot ${this.accessory.displayName} - Set On: ${value}`);
-    this.SwitchOn === this.TargetState === value;
+    this.SwitchOn = value;
     this.doBotUpdate.next();
   }
 }

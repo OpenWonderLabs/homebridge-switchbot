@@ -37,6 +37,9 @@ export class ColorBulb {
     private accessory: PlatformAccessory,
     public device: device & devicesConfig,
   ) {
+    // ColorBulb Config
+    this.platform.device(`[ColorBulb Config] ble: ${device.ble}, set_minStep: ${device.colorbulb?.set_minStep}`);
+
     // default placeholders
     this.On = false;
     this.Brightness = 0;
