@@ -123,7 +123,7 @@ export class Meter {
           minStep: 0.1,
         })
         .onGet(() => {
-          return Number.isNaN(this.CurrentTemperature);
+          return this.CurrentTemperature;
         });
     } else {
       this.platform.device('Temperature Sensor Not Added');
