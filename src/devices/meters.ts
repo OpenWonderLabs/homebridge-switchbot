@@ -24,6 +24,9 @@ export class Meter {
   Active!: CharacteristicValue;
   WaterLevel!: CharacteristicValue;
 
+  // OpenAPI Others
+  deviceStatus!: deviceStatusResponse;
+
   // BLE Others
   switchbot!: switchbot;
   serviceData!: serviceData;
@@ -31,9 +34,6 @@ export class Meter {
   humidity!: serviceData['humidity'];
   fahrenheit!: serviceData['fahrenheit'];
   temperature!: serviceData['temperature'];
-
-  // OpenAPI Others
-  deviceStatus!: deviceStatusResponse;
 
   // Updates
   meterUpdateInProgress!: boolean;
@@ -44,6 +44,10 @@ export class Meter {
     private accessory: PlatformAccessory,
     public device: device & devicesConfig,
   ) {
+    // Meter Config
+    this.platform.device(`[Meter Config] ble: ${device.ble}, unit: ${device.meter?.unit},`
+    + ` hide_temperature: ${device.meter?.hide_temperature}, hide_humidity: ${device.meter?.hide_humidity}`);
+
     // default placeholders
     this.BatteryLevel = 0;
     this.ChargingState = 2;
@@ -119,7 +123,7 @@ export class Meter {
           minStep: 0.1,
         })
         .onGet(() => {
-          return Number.isNaN(this.CurrentTemperature);
+          return this.CurrentTemperature;
         });
     } else {
       this.platform.device('Temperature Sensor Not Added');

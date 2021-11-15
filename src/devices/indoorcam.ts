@@ -1,8 +1,8 @@
-import { Service, PlatformAccessory, CharacteristicValue, MacAddress } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device, devicesConfig } from '../settings';
+import { DeviceURL, device, devicesConfig, switchbot, deviceStatusResponse } from '../settings';
 import { AxiosResponse } from 'axios';
 
 export class IndoorCam {
@@ -13,26 +13,15 @@ export class IndoorCam {
   On!: CharacteristicValue;
   OutletInUse!: CharacteristicValue;
 
-  // Others
-  deviceStatus!: any;
-  switchbot!: {
-    discover: (
-      arg0:
-        {
-          duration: any;
-          model: string;
-          quick: boolean;
-          id: MacAddress;
-        }
-    ) => Promise<any>;
-    wait: (
-      arg0: number
-    ) => any;
-  };
+  // OpenAPI Others
+  deviceStatus!: deviceStatusResponse;
+
+  // BLE Others
+  switchbot!: switchbot;
 
   // Updates
   cameraUpdateInProgress!: boolean;
-  doCameraUpdate;
+  doCameraUpdate!: Subject<void>;
 
   constructor(
     private readonly platform: SwitchBotPlatform,

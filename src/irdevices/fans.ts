@@ -9,17 +9,23 @@ import { DeviceURL, irdevice, deviceStatusResponse, irDevicesConfig } from '../s
  * Each accessory may expose multiple services of different service types.
  */
 export class Fan {
+  // Services
   service!: Service;
 
+  // Characteristic Values
   Active!: CharacteristicValue;
   ActiveIdentifier!: CharacteristicValue;
   RotationSpeed!: CharacteristicValue;
   SwingMode!: CharacteristicValue;
   RotationDirection!: CharacteristicValue;
+
+  // Others
   deviceStatus!: deviceStatusResponse;
-  minStep: number | undefined;
-  minValue: number | undefined;
-  maxValue: number | undefined;
+
+  // Config
+  minStep?: number;
+  minValue?: number;
+  maxValue?: number;
 
   constructor(
     private readonly platform: SwitchBotPlatform,

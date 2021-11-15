@@ -134,6 +134,7 @@
                     "mode": {
                       "title": "Mode",
                       "type": "string",
+                      "required": true,
                       "oneOf": [
                         {
                           "title": "Press",
@@ -152,10 +153,25 @@
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Bot' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
-                    "switch": {
-                      "title": "Display as Switch",
-                      "type": "boolean",
-                      "description": "This allows you to display bot as a switch.",
+                    "deviceType": {
+                      "title": "What Type of Device do you want to display in the Home App?",
+                      "type": "string",
+                      "required": true,
+                      "oneOf": [
+                        {
+                          "title": "Switch",
+                          "enum": [
+                            "switch"
+                          ]
+                        },
+                        {
+                          "title": "Outlet",
+                          "enum": [
+                            "outlet"
+                          ]
+                        }
+                      ],
+                      "default": "outlet",
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Bot' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].bot && model.options.devices[arrayIndices].bot.mode);"
                       }
@@ -651,7 +667,7 @@
             "options.devices[].deviceType",
             "options.devices[].ble",
             "options.devices[].bot.mode",
-            "options.devices[].bot.switch",
+            "options.devices[].bot.deviceType",
             "options.devices[].meter.hide_temperature",
             "options.devices[].meter.hide_humidity",
             "options.devices[].meter.unit",

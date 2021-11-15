@@ -24,14 +24,14 @@ export class Humidifier {
   Active!: CharacteristicValue;
   WaterLevel!: CharacteristicValue;
 
+  // OpenAPI
+  deviceStatus!: deviceStatusResponse;
+
   // BLE Others
   serviceData!: serviceData;
   onState!: serviceData['onState'];
   autoMode!: serviceData['autoMode'];
   percentage!: serviceData['percentage'];
-
-  // OpenAPI
-  deviceStatus!: deviceStatusResponse;
 
   // Config
   set_minStep?: number;
@@ -45,6 +45,10 @@ export class Humidifier {
     private accessory: PlatformAccessory,
     public device: device & devicesConfig,
   ) {
+    // Humidifiers Config
+    this.platform.device(`[Humidifiers Config] ble: ${device.ble}, hide_temperature: ${device.humidifier?.hide_temperature},`
+      + ` set_minStep: ${device.humidifier?.set_minStep}`);
+
     // default placeholders
     this.CurrentRelativeHumidity = 0;
     this.TargetHumidifierDehumidifierState = this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER;
@@ -297,7 +301,7 @@ export class Humidifier {
         this.percentage = ad.serviceData.percentage;
         this.platform.device(`${this.device.bleMac}: ${JSON.stringify(ad.serviceData)}`);
         this.platform.device(`${this.accessory.displayName}, Model: ${ad.serviceData.model}, Model Name: ${ad.serviceData.modelName},`
-           + `autoMode: ${ad.serviceData.autoMode}, onState: ${ad.serviceData.onState}, percentage: ${ad.serviceData.percentage}`);
+          + `autoMode: ${ad.serviceData.autoMode}, onState: ${ad.serviceData.onState}, percentage: ${ad.serviceData.percentage}`);
       };
       // Wait 10 seconds
       return switchbot.wait(10000);
@@ -515,7 +519,7 @@ export class Humidifier {
     }
   }
 
-  private statusCode(push: AxiosResponse<{ statusCode: number;}>) {
+  private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
     switch (push.data.statusCode) {
       case 151:
         this.platform.log.error('Command not supported by this device type.');

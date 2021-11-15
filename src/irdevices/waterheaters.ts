@@ -9,8 +9,10 @@ import { irDevicesConfig, DeviceURL, irdevice } from '../settings';
  * Each accessory may expose multiple services of different service types.
  */
 export class WaterHeater {
+  // Services
   service!: Service;
 
+  // Characteristic Values
   Active!: CharacteristicValue;
 
   constructor(
