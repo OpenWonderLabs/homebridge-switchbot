@@ -38,7 +38,7 @@ export type options = {
 };
 
 export interface devicesConfig extends device {
-  type?: string;
+  deviceType: string;
   deviceId: string;
   bot?: bot;
   meter?: meter;

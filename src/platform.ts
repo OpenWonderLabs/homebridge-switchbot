@@ -123,10 +123,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     if (this.config.options.devices) {
       for (const deviceConfig of this.config.options.devices!) {
         if (!deviceConfig.hide_device && !deviceConfig.deviceType) {
-          this.log.error('The devices config section is missing the "Device Type" in the config, Check Your Conifg.');
+          throw new Error('The devices config section is missing the "Device Type" in the config, Check Your Conifg.');
         }
         if (!deviceConfig.deviceId) {
-          this.log.error('The devices config section is missing the "Device ID" in the config, Check Your Conifg.');
+          throw new Error('The devices config section is missing the "Device ID" in the config, Check Your Conifg.');
         }
       }
     }
@@ -135,10 +135,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     if (this.config.options.irdevices) {
       for (const irDeviceConfig of this.config.options.irdevices!) {
         if (!irDeviceConfig.hide_device && !irDeviceConfig.remoteType) {
-          this.log.error('The devices config section is missing the "Device Type" in the config, Check Your Conifg.');
+          throw new Error('The devices config section is missing the "Device Type" in the config, Check Your Conifg.');
         }
         if (!irDeviceConfig.deviceId) {
-          this.log.error('The devices config section is missing the "Device ID" in the config, Check Your Conifg.');
+          throw new Error('The devices config section is missing the "Device ID" in the config, Check Your Conifg.');
         }
       }
     }
@@ -166,8 +166,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       throw new Error('Missing openToken');
     }
   }
-
-
 
   /**
  * this method discovers the Locations
