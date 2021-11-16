@@ -706,7 +706,7 @@
             "options.devices[].curtain.set_min",
             "options.devices[].curtain.set_max",
             "options.devices[].contact.hide_lightsensor",
-            "options.devices[].contact .hide_motionsensor",
+            "options.devices[].contact.hide_motionsensor",
             "options.devices[].colorbulb.set_minStep"
           ]
         }

@@ -38,7 +38,7 @@ export class Curtain {
 
   // Updates
   curtainUpdateInProgress!: boolean;
-  doCurtainUpdate;
+  doCurtainUpdate!: Subject<void>;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -172,7 +172,7 @@ export class Curtain {
       });
   }
 
-  /*private connectBLE() {
+  private connectBLE() {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const Switchbot = require('node-switchbot');
     const switchbot = new Switchbot();
@@ -181,7 +181,7 @@ export class Curtain {
     this.device.bleMac = bleMac.toLowerCase();
     this.platform.device(this.device.bleMac.toLowerCase());
     return switchbot;
-  }*/
+  }
 
   private curtainRefreshRate() {
     if (this.device?.curtain?.refreshRate) {
@@ -204,17 +204,104 @@ export class Curtain {
     return this.set_minStep;
   }
 
-  parseStatus() {
+  async parseStatus() {
+    if (this.device.ble) {
+      this.platform.device('BLE');
+      await this.BLEparseStatus();
+    } else {
+      this.platform.device('OpenAPI');
+      await this.openAPIparseStatus();
+    }
+  }
+
+  private async BLEparseStatus() {
+    this.platform.device('Curtains BLE Device parseStatus');
+    this.CurrentPosition = 100 - Number(this.position);
+    //this.setMinMax();
+    this.platform.debug(`Curtain ${this.accessory.displayName} CurrentPosition - Device is Currently: ${this.CurrentPosition}`);
+    if (this.setNewTarget) {
+      this.platform.log.info(`Checking ${this.accessory.displayName} Status ...`);
+    }
+
+    if (this.setNewTarget) {
+      if (this.TargetPosition > this.CurrentPosition) {
+        this.platform.debug(`Curtain ${this.accessory.displayName} - Current position: ${this.CurrentPosition} closing`);
+        this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
+      } else if (this.TargetPosition < this.CurrentPosition) {
+        this.platform.debug(`Curtain ${this.accessory.displayName} - Current position: ${this.CurrentPosition} opening`);
+        this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
+      } else {
+        this.platform.debug(`Curtain ${this.CurrentPosition} - standby`);
+        this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
+      }
+    } else {
+      this.platform.debug(`Curtain ${this.accessory.displayName} - Current position: ${this.CurrentPosition} standby`);
+      if (!this.setNewTarget) {
+        // If Curtain calibration distance is short, there will be an error between the current percentage and the target percentage.
+        this.TargetPosition = this.CurrentPosition;
+        this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
+      }
+    }
+    this.platform.debug(`Curtain ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition},`
+      + ` TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState},`);
+
+    if (!this.device.curtain?.hide_lightsensor) {
+      // Brightness
+      switch (this.lightLevel) {
+        case 1:
+          this.CurrentAmbientLightLevel = 1;
+          break;
+        case 2:
+          this.CurrentAmbientLightLevel = 2;
+          break;
+        case 3:
+          this.CurrentAmbientLightLevel = 3;
+          break;
+        case 4:
+          this.CurrentAmbientLightLevel = 4;
+          break;
+        case 5:
+          this.CurrentAmbientLightLevel = 5;
+          break;
+        case 6:
+          this.CurrentAmbientLightLevel = 6;
+          break;
+        case 7:
+          this.CurrentAmbientLightLevel = 7;
+          break;
+        case 8:
+          this.CurrentAmbientLightLevel = 8;
+          break;
+        case 9:
+          this.CurrentAmbientLightLevel = 9;
+          break;
+        case 10:
+        default:
+          this.CurrentAmbientLightLevel = 10;
+      }
+      this.platform.debug(`Curtain ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+    }
+    // Battery
+    this.BatteryLevel = Number(this.battery);
+    if (this.BatteryLevel < 10) {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
+    } else {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    }
+    this.platform.debug(`Curtain ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
+  }
+
+  private async openAPIparseStatus() {
+    this.platform.device('Curtains OpenAPI Device parseStatus');
     // CurrentPosition
-    this.setMinMax();
     this.CurrentPosition = 100 - this.deviceStatus.body.slidePosition!;
-    this.setMinMax();
     this.platform.debug(`Curtain ${this.accessory.displayName} CurrentPosition - Device is Currently: ${this.CurrentPosition}`);
     if (this.setNewTarget) {
       this.platform.log.info(`Checking ${this.accessory.displayName} Status ...`);
     }
 
     if (this.deviceStatus.body.moving) {
+      this.setMinMax();
       if (this.TargetPosition > this.CurrentPosition) {
         this.platform.debug(`Curtain: ${this.accessory.displayName} - Current position: ${this.CurrentPosition} closing`);
         this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
@@ -233,24 +320,69 @@ export class Curtain {
         this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
       }
     }
+    this.platform.debug(`Curtain: ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition},`
+      + ` TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState},`);
 
-    // Brightness
-    switch (this.deviceStatus.body.brightness) {
-      case 'dim':
-        this.CurrentAmbientLightLevel = 0.0001;
-        break;
-      case 'bright':
-      default:
-        this.CurrentAmbientLightLevel = 100000;
+    if (!this.device.curtain?.hide_lightsensor) {
+      // Brightness
+      switch (this.deviceStatus.body.brightness) {
+        case 'dim':
+          this.CurrentAmbientLightLevel = 0.0001;
+          break;
+        case 'bright':
+        default:
+          this.CurrentAmbientLightLevel = 100000;
+      }
+      this.platform.debug(`Curtain: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
     }
-
-    this.platform.debug(
-      `Curtain: ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition},`
-      + ` TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState},`
-      + ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
   }
 
   async refreshStatus() {
+    if (this.device.ble) {
+      this.platform.device('BLE');
+      await this.BLERefreshStatus();
+    } else {
+      this.platform.device('OpenAPI');
+      await this.openAPIRefreshStatus();
+    }
+  }
+
+  private async BLERefreshStatus() {
+    this.platform.debug('Curtains BLE Device RefreshStatus');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const switchbot = this.connectBLE();
+    // Start to monitor advertisement packets
+    switchbot.startScan({
+      model: 'c',
+      id: this.device.bleMac,
+    }).then(() => {
+      // Set an event hander
+      switchbot.onadvertisement = (ad: any) => {
+        this.serviceData = ad.serviceData;
+        this.platform.device(`${this.device.bleMac}: ${JSON.stringify(ad.serviceData)}`);
+        this.calibration = ad.serviceData.calibration;
+        this.battery = ad.serviceData.battery;
+        this.position = ad.serviceData.position;
+        this.lightLevel = ad.serviceData.lightLevel;
+        this.platform.device(`${this.accessory.displayName}, Calibration: ${ad.serviceData.calibration}, Position: ${ad.serviceData.position},`
+          + ` Light Level: ${ad.serviceData.lightLevel}, Battery: ${ad.serviceData.battery}`);
+      };
+      // Wait 10 seconds
+      return switchbot.wait(10000);
+    }).then(() => {
+      // Stop to monitor
+      switchbot.stopScan();
+      this.parseStatus();
+      this.updateHomeKitCharacteristics();
+    }).catch(async (e: any) => {
+      this.platform.log.error(`BLE Connection Failed: ${e.message}`);
+      this.platform.log.warn('Using OpenAPI Connection');
+      await this.openAPIRefreshStatus();
+    });
+  }
+
+  private async openAPIRefreshStatus() {
+    this.platform.debug('Curtains OpenAPI Device RefreshStatus');
     try {
       this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
       this.platform.debug(`Curtain: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
@@ -265,6 +397,29 @@ export class Curtain {
   }
 
   async pushChanges() {
+    if (this.device.ble) {
+      this.platform.device('BLE');
+      await this.BLEpushChanges();
+    } else {
+      this.platform.device('OpenAPI');
+      await this.OpenAPIpushChanges();
+    }
+  }
+
+  private async BLEpushChanges() {
+    this.platform.device('Curtains BLE Device pushChanges');
+    const switchbot = this.connectBLE();
+    switchbot.discover({ model: 'c', quick: true, id: this.device.bleMac }).then((device_list) => {
+      this.platform.log.info(`${this.accessory.displayName}, Target Position: ${this.TargetPosition}`);
+      return device_list[0].runToPos(100 - Number(this.TargetPosition));
+    }).then(() => {
+      this.platform.device('Done.');
+    }).catch((e: any) => {
+      this.platform.log.error(`BLE pushChanges Error Message: ${e.message}`);
+    });
+  }
+
+  private async OpenAPIpushChanges() {
     if (this.TargetPosition !== this.CurrentPosition) {
       this.platform.debug(`Pushing ${this.TargetPosition}`);
       const adjustedTargetPosition = 100 - Number(this.TargetPosition);
@@ -321,6 +476,20 @@ export class Curtain {
           + ` updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
       }
     }
+    if (this.device.ble) {
+      if (this.BatteryLevel === undefined) {
+        this.platform.debug(`Curtain ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
+      } else {
+        this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
+        this.platform.device(`Curtain ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
+      }
+      if (this.StatusLowBattery === undefined) {
+        this.platform.debug(`Curtain ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
+      } else {
+        this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
+        this.platform.device(`Curtain ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
+      }
+    }
   }
 
   public apiError(e: any) {
@@ -372,18 +541,19 @@ export class Curtain {
 
     this.TargetPosition = value;
 
+    this.setMinMax();
     if (value > this.CurrentPosition) {
       this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
       this.setNewTarget = true;
-      this.setMinMax();
+      //this.setMinMax();
     } else if (value < this.CurrentPosition) {
       this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
       this.setNewTarget = true;
-      this.setMinMax();
+      //this.setMinMax();
     } else {
       this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
       this.setNewTarget = false;
-      this.setMinMax();
+      //this.setMinMax();
     }
     this.service.setCharacteristic(this.platform.Characteristic.PositionState, this.PositionState);
 
