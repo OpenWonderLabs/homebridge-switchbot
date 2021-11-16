@@ -386,7 +386,6 @@ export class Curtain {
     try {
       this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
       this.platform.debug(`Curtain: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
-      this.setMinMax();
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
