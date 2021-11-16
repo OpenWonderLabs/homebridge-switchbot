@@ -111,11 +111,23 @@ export class Curtain {
       })
       .onSet(this.TargetPositionSet.bind(this));
 
-    //set up brightness level from the builtin sensor as light sensor accessory
-    (this.lightSensorService =
-      accessory.getService(this.platform.Service.LightSensor) ||
-      accessory.addService(this.platform.Service.LightSensor)), `${device.deviceName} Light Sensor`;
-    this.lightSensorService.setCharacteristic(this.platform.Characteristic.Name, `${device.deviceName} Light Sensor`);
+    // Temperature Sensor Service
+    if (this.device.curtain?.hide_lightsensor) {
+      this.platform.device(`Curtain: ${accessory.displayName} Removing Light Sensor Service`);
+      this.lightSensorService = this.accessory.getService(this.platform.Service.TemperatureSensor);
+      accessory.removeService(this.lightSensorService!);
+    } else if (!this.lightSensorService) {
+      this.platform.device(`Curtain: ${accessory.displayName} Add Light Sensor Service`);
+      (this.lightSensorService =
+        this.accessory.getService(this.platform.Service.TemperatureSensor) ||
+        this.accessory.addService(this.platform.Service.TemperatureSensor)), `${accessory.displayName} Light Sensor`;
+
+      this.lightSensorService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Light Sensor`);
+
+    } else {
+      this.platform.device(`Curtain: ${accessory.displayName} Light Sensor Service Not Added`);
+    }
+
 
     // Update Homekit
     this.updateHomeKitCharacteristics();
@@ -300,7 +312,7 @@ export class Curtain {
       this.service.updateCharacteristic(this.platform.Characteristic.TargetPosition, Number(this.TargetPosition));
       this.platform.device(`Curtain: ${this.accessory.displayName} updateCharacteristic TargetPosition: ${this.TargetPosition}`);
     }
-    if (this.device.curtain?.hide_lightsensor) {
+    if (!this.device.curtain?.hide_lightsensor) {
       if (this.CurrentAmbientLightLevel === undefined || Number.isNaN(this.CurrentAmbientLightLevel)) {
         this.platform.debug(`Curtain: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
       } else {
@@ -315,7 +327,7 @@ export class Curtain {
     this.service.updateCharacteristic(this.platform.Characteristic.CurrentPosition, e);
     this.service.updateCharacteristic(this.platform.Characteristic.PositionState, e);
     this.service.updateCharacteristic(this.platform.Characteristic.TargetPosition, e);
-    if (this.device.curtain?.hide_lightsensor) {
+    if (!this.device.curtain?.hide_lightsensor) {
       this.lightSensorService!.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, e);
     }
     if (this.device.ble) {

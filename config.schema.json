@@ -249,6 +249,13 @@
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
+                    "hide_lightsensor": {
+                      "title": "Hide Curtains's Light Sensor",
+                      "type": "boolean",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
                     "refreshRate": {
                       "title": "Refresh Rate",
                       "type": "number",
@@ -674,6 +681,7 @@
             "options.devices[].humidifier.set_minStep",
             "options.devices[].humidifier.hide_temperature",
             "options.devices[].curtain.disable_group",
+            "options.devices[].curtain.hide_lightsensor",
             "options.devices[].curtain.refreshRate",
             "options.devices[].curtain.set_minStep",
             "options.devices[].curtain.set_min",
