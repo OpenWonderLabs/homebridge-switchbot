@@ -12,8 +12,8 @@ import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusR
 export class Contact {
   // Services
   private service: Service;
-  private motionService: Service;
-  private lightSensorService: Service;
+  private motionService?: Service;
+  private lightSensorService?: Service;
   private batteryService?: Service;
 
   // Characteristic Values
@@ -87,17 +87,40 @@ export class Contact {
 
     // each service must implement at-minimum the "required characteristics" for the given service type
     // see https://developers.homebridge.io/#/service/MotionSensor
-    (this.motionService =
-      accessory.getService(this.platform.Service.MotionSensor) ||
-      accessory.addService(this.platform.Service.MotionSensor)), `${accessory.displayName} Motion Sensor`;
 
-    this.motionService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Motion Sensor`);
+    // Motion Sensor Service
+    if (this.device.contact?.hide_motionsensor) {
+      this.platform.device(`Contact: ${accessory.displayName} Removing Motion Sensor Service`);
+      this.motionService = this.accessory.getService(this.platform.Service.MotionSensor);
+      accessory.removeService(this.motionService!);
+    } else if (!this.motionService) {
+      this.platform.device(`Contact: ${accessory.displayName} Add Motion Sensor Service`);
+      (this.motionService =
+        this.accessory.getService(this.platform.Service.MotionSensor) ||
+        this.accessory.addService(this.platform.Service.MotionSensor)), `${accessory.displayName} Motion Sensor`;
 
-    (this.lightSensorService =
-      accessory.getService(this.platform.Service.LightSensor) ||
-      accessory.addService(this.platform.Service.LightSensor)), `${accessory.displayName} Light Sensor`;
+      this.motionService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Motion Sensor`);
 
-    this.lightSensorService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Light Sensor`);
+    } else {
+      this.platform.device(`Contact: ${accessory.displayName} Motion Sensor Service Not Added`);
+    }
+
+    // Light Sensor Service
+    if (this.device.contact?.hide_lightsensor) {
+      this.platform.device(`Contact: ${accessory.displayName} Removing Light Sensor Service`);
+      this.lightSensorService = this.accessory.getService(this.platform.Service.LightSensor);
+      accessory.removeService(this.lightSensorService!);
+    } else if (!this.lightSensorService) {
+      this.platform.device(`Contact: ${accessory.displayName} Add Light Sensor Service`);
+      (this.lightSensorService =
+        this.accessory.getService(this.platform.Service.LightSensor) ||
+        this.accessory.addService(this.platform.Service.LightSensor)), `${accessory.displayName} Light Sensor`;
+
+      this.lightSensorService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Light Sensor`);
+
+    } else {
+      this.platform.device(`Contact: ${accessory.displayName} Light Sensor Service Not Added`);
+    }
 
     if (device.ble) {
       (this.batteryService =
@@ -133,8 +156,10 @@ export class Contact {
 
   private async BLEparseStatus() {
     this.platform.debug('Contact BLE Device parseStatus');
-    // Movement
-    this.MotionDetected = Boolean(this.movement);
+    if (this.device.contact?.hide_motionsensor) {
+      // Movement
+      this.MotionDetected = Boolean(this.movement);
+    }
     // Door State
     switch (this.doorState) {
       case 'open':
@@ -148,14 +173,15 @@ export class Contact {
       default:
         this.platform.log.error('timeout no closed');
     }
-    // Light Level
-    switch (this.lightLevel) {
-      case 'dark':
-      case 0:
-        this.CurrentAmbientLightLevel = 0.0001;
-        break;
-      default:
-        this.CurrentAmbientLightLevel = 100000;
+    if (this.device.contact?.hide_lightsensor) {// Light Level
+      switch (this.lightLevel) {
+        case 'dark':
+        case 0:
+          this.CurrentAmbientLightLevel = 0.0001;
+          break;
+        default:
+          this.CurrentAmbientLightLevel = 100000;
+      }
     }
     // Battery
     this.BatteryLevel = Number(this.battery);
@@ -179,7 +205,9 @@ export class Contact {
     } else {
       this.platform.device(`${this.accessory.displayName} ${this.deviceStatus.body.openState}`);
     }
-    this.MotionDetected = Boolean(this.deviceStatus.body.moveDetected);
+    if (this.device.contact?.hide_motionsensor) {
+      this.MotionDetected = Boolean(this.deviceStatus.body.moveDetected);
+    }
     this.platform.debug(`${this.accessory.displayName}
     , ContactSensorState: ${this.ContactSensorState}, MotionDetected: ${this.MotionDetected}`);
   }
@@ -265,37 +293,49 @@ export class Contact {
       this.service.updateCharacteristic(this.platform.Characteristic.ContactSensorState, this.ContactSensorState);
       this.platform.device(`Contact ${this.accessory.displayName} updateCharacteristic ContactSensorState: ${this.ContactSensorState}`);
     }
-    if (this.MotionDetected === undefined) {
-      this.platform.debug(`Contact ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
-    } else {
-      this.motionService.updateCharacteristic(this.platform.Characteristic.MotionDetected, this.MotionDetected);
-      this.platform.device(`Contact ${this.accessory.displayName} updateCharacteristic MotionDetected: ${this.MotionDetected}`);
+    if (!this.device.contact?.hide_motionsensor) {
+      if (this.MotionDetected === undefined) {
+        this.platform.debug(`Contact ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
+      } else {
+        this.motionService!.updateCharacteristic(this.platform.Characteristic.MotionDetected, this.MotionDetected);
+        this.platform.device(`Contact ${this.accessory.displayName} updateCharacteristic MotionDetected: ${this.MotionDetected}`);
+      }
     }
-    if (this.CurrentAmbientLightLevel === undefined) {
-      this.platform.debug(`Contact ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
-    } else {
-      this.lightSensorService.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
-      this.platform.device(`Contact ${this.accessory.displayName} updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+    if (!this.device.contact?.hide_lightsensor) {
+      if (this.CurrentAmbientLightLevel === undefined) {
+        this.platform.debug(`Contact ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+      } else {
+        this.lightSensorService!.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
+        this.platform.device(`Contact ${this.accessory.displayName} updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+      }
     }
-    if (this.BatteryLevel === undefined) {
-      this.platform.debug(`Contact ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
-    } else {
-      this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
-      this.platform.device(`Contact ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
-    }
-    if (this.StatusLowBattery === undefined) {
-      this.platform.debug(`Contact ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
-    } else {
-      this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
-      this.platform.device(`Contact ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
+    if (this.device.ble) {
+      if (this.BatteryLevel === undefined) {
+        this.platform.debug(`Contact ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
+      } else {
+        this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
+        this.platform.device(`Contact ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
+      }
+      if (this.StatusLowBattery === undefined) {
+        this.platform.debug(`Contact ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
+      } else {
+        this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
+        this.platform.device(`Contact ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
+      }
     }
   }
 
   public apiError(e: any) {
     this.service.updateCharacteristic(this.platform.Characteristic.ContactSensorState, e);
-    this.motionService.updateCharacteristic(this.platform.Characteristic.MotionDetected, e);
-    this.lightSensorService.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, e);
-    this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
-    this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
+    if (!this.device.contact?.hide_motionsensor) {
+      this.motionService!.updateCharacteristic(this.platform.Characteristic.MotionDetected, e);
+    }
+    if (!this.device.contact?.hide_lightsensor) {
+      this.lightSensorService!.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, e);
+    }
+    if (this.device.ble) {
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
+    }
   }
 }

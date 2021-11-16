@@ -102,11 +102,11 @@ export class Meter {
 
     // Temperature Sensor Service
     if (device.meter?.hide_temperature) {
-      this.platform.device('Removing Temperature Sensor Service');
+      this.platform.device(`Meter: ${accessory.displayName} Removing Temperature Sensor Service`);
       this.temperatureservice = this.accessory.getService(this.platform.Service.TemperatureSensor);
       accessory.removeService(this.temperatureservice!);
     } else if (!this.temperatureservice) {
-      this.platform.device('Adding Temperature Sensor Service');
+      this.platform.device(`Meter: ${accessory.displayName} Add Temperature Sensor Service`);
       (this.temperatureservice =
         this.accessory.getService(this.platform.Service.TemperatureSensor) ||
         this.accessory.addService(this.platform.Service.TemperatureSensor)), `${accessory.displayName} Temperature Sensor`;
@@ -126,16 +126,16 @@ export class Meter {
           return this.CurrentTemperature;
         });
     } else {
-      this.platform.device('Temperature Sensor Not Added');
+      this.platform.device(`Meter: ${accessory.displayName} Temperature Sensor Service Not Added`);
     }
 
     // Humidity Sensor Service
     if (device.meter?.hide_humidity) {
-      this.platform.device('Removing Humidity Sensor Service');
+      this.platform.device(`Meter: ${accessory.displayName} Removing Humidity Sensor Service`);
       this.humidityservice = this.accessory.getService(this.platform.Service.HumiditySensor);
       accessory.removeService(this.humidityservice!);
     } else if (!this.humidityservice) {
-      this.platform.device('Adding Humidity Sensor Service');
+      this.platform.device(`Meter: ${accessory.displayName} Add Humidity Sensor Service`);
       (this.humidityservice =
         this.accessory.getService(this.platform.Service.HumiditySensor) ||
         this.accessory.addService(this.platform.Service.HumiditySensor)), `${accessory.displayName} Humidity Sensor`;
@@ -151,7 +151,7 @@ export class Meter {
           return this.CurrentRelativeHumidity;
         });
     } else {
-      this.platform.device('Adding Humidity Sensor Not Added');
+      this.platform.device(`Meter: ${accessory.displayName} Humidity Sensor Service Not Added`);
     }
 
     // Retrieve initial values and updateHomekit

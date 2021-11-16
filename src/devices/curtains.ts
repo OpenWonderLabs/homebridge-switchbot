@@ -111,16 +111,16 @@ export class Curtain {
       })
       .onSet(this.TargetPositionSet.bind(this));
 
-    // Temperature Sensor Service
+    // Light Sensor Service
     if (this.device.curtain?.hide_lightsensor) {
       this.platform.device(`Curtain: ${accessory.displayName} Removing Light Sensor Service`);
-      this.lightSensorService = this.accessory.getService(this.platform.Service.TemperatureSensor);
+      this.lightSensorService = this.accessory.getService(this.platform.Service.LightSensor);
       accessory.removeService(this.lightSensorService!);
     } else if (!this.lightSensorService) {
       this.platform.device(`Curtain: ${accessory.displayName} Add Light Sensor Service`);
       (this.lightSensorService =
-        this.accessory.getService(this.platform.Service.TemperatureSensor) ||
-        this.accessory.addService(this.platform.Service.TemperatureSensor)), `${accessory.displayName} Light Sensor`;
+        this.accessory.getService(this.platform.Service.LightSensor) ||
+        this.accessory.addService(this.platform.Service.LightSensor)), `${accessory.displayName} Light Sensor`;
 
       this.lightSensorService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Light Sensor`);
 

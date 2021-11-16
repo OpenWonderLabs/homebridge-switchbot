@@ -292,6 +292,25 @@
                     }
                   }
                 },
+                "contact": {
+                  "type": "object",
+                  "properties": {
+                    "hide_lightsensor": {
+                      "title": "Hide Curtains's Light Sensor",
+                      "type": "boolean",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Contact Sensor' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "hide_motionsensor": {
+                      "title": "Hide Curtains's Motion Sensor",
+                      "type": "boolean",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Contact Sensor' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    }
+                  }
+                },
                 "colorbulb": {
                   "type": "object",
                   "properties": {
@@ -686,6 +705,8 @@
             "options.devices[].curtain.set_minStep",
             "options.devices[].curtain.set_min",
             "options.devices[].curtain.set_max",
+            "options.devices[].contact.hide_lightsensor",
+            "options.devices[].contact .hide_motionsensor",
             "options.devices[].colorbulb.set_minStep"
           ]
         }
