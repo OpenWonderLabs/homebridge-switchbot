@@ -499,11 +499,13 @@ export class Humidifier {
       this.platform.device(`Humidifier ${this.accessory.displayName}`
         + ` updateCharacteristic RelativeHumidityHumidifierThreshold: ${this.RelativeHumidityHumidifierThreshold}`);
     }
-    if (!this.device.humidifier?.hide_temperature || this.CurrentTemperature === undefined) {
-      this.platform.debug(`Humidifier ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
-    } else {
-      this.temperatureservice!.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
-      this.platform.device(`Humidifier ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
+    if (!this.device.humidifier?.hide_temperature) {
+      if (this.CurrentTemperature === undefined) {
+        this.platform.debug(`Humidifier ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
+      } else {
+        this.temperatureservice!.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
+        this.platform.device(`Humidifier ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
+      }
     }
   }
 

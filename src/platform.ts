@@ -869,7 +869,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     // the cached devices we stored in the `configureAccessory` method above
     const existingAccessory = this.accessories.find((accessory) => accessory.UUID === uuid);
 
-    if (existingAccessory) {
+    if (!device.hide_device && existingAccessory) {
       this.log.info(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
 
       // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
@@ -883,7 +883,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       // this is imported from `platformAccessory.ts`
       new TV(this, existingAccessory, device);
       this.debug(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${existingAccessory.UUID})`);
-    } else if (device.hubDeviceId) {
+    } else if (!device.hide_device && device.hubDeviceId) {
       // the accessory does not yet exist, so we need to create it
       this.log.info(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
 
@@ -923,7 +923,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       // the accessory already exists
-      if (device.hubDeviceId) {
+      if (!device.hide_device && device.hubDeviceId) {
         this.log.info(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
 
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
@@ -941,7 +941,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } else {
         this.unregisterPlatformAccessories(existingAccessory);
       }
-    } else if (device.hubDeviceId) {
+    } else if (!device.hide_device && device.hubDeviceId) {
       // the accessory does not yet exist, so we need to create it
       this.log.info(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
 
