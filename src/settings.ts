@@ -67,6 +67,7 @@ export type humidifier = {
 
 export type curtain = {
   disable_group?: boolean;
+  hide_lightsensor?: boolean;
   refreshRate?: number;
   set_max?: number;
   set_min?: number;
