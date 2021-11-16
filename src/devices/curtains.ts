@@ -146,7 +146,7 @@ export class Curtain {
         if (this.PositionState === this.platform.Characteristic.PositionState.STOPPED) {
           return;
         }
-        this.platform.debug('Refresh status when moving', this.PositionState);
+        this.platform.debug(`Curtain: ${accessory.displayName} Refresh Status When Moving, PositionState: ${this.PositionState}`);
         this.refreshStatus();
       });
 
@@ -164,8 +164,8 @@ export class Curtain {
         try {
           await this.pushChanges();
         } catch (e: any) {
-          this.platform.log.error(JSON.stringify(e.message));
-          this.platform.debug(`Curtain: ${accessory.displayName} - ${JSON.stringify(e)}`);
+          this.platform.log.error(`Curtain: ${this.accessory.displayName} Error Message ${JSON.stringify(e.message)}`);
+          this.platform.debug(`Curtain: ${accessory.displayName} Error: ${JSON.stringify(e)}`);
           this.apiError(e);
         }
         this.curtainUpdateInProgress = false;
@@ -217,25 +217,25 @@ export class Curtain {
   private async BLEparseStatus() {
     this.platform.device('Curtains BLE Device parseStatus');
     this.CurrentPosition = 100 - Number(this.position);
-    //this.setMinMax();
-    this.platform.debug(`Curtain ${this.accessory.displayName} CurrentPosition - Device is Currently: ${this.CurrentPosition}`);
+    this.platform.debug(`Curtain ${this.accessory.displayName} CurrentPosition ${this.CurrentPosition}`);
     if (this.setNewTarget) {
       this.platform.log.info(`Checking ${this.accessory.displayName} Status ...`);
     }
 
     if (this.setNewTarget) {
+      this.setMinMax();
       if (this.TargetPosition > this.CurrentPosition) {
-        this.platform.debug(`Curtain ${this.accessory.displayName} - Current position: ${this.CurrentPosition} closing`);
+        this.platform.debug(`Curtain ${this.accessory.displayName} Closing, Current position: ${this.CurrentPosition}`);
         this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
       } else if (this.TargetPosition < this.CurrentPosition) {
-        this.platform.debug(`Curtain ${this.accessory.displayName} - Current position: ${this.CurrentPosition} opening`);
+        this.platform.debug(`Curtain ${this.accessory.displayName} Opening, Current position: ${this.CurrentPosition}`);
         this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
       } else {
-        this.platform.debug(`Curtain ${this.CurrentPosition} - standby`);
+        this.platform.debug(`Curtain ${this.CurrentPosition} Standby, Current position: ${this.CurrentPosition}`);
         this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
       }
     } else {
-      this.platform.debug(`Curtain ${this.accessory.displayName} - Current position: ${this.CurrentPosition} standby`);
+      this.platform.debug(`Curtain ${this.accessory.displayName} Standby, Current position: ${this.CurrentPosition}`);
       if (!this.setNewTarget) {
         // If Curtain calibration distance is short, there will be an error between the current percentage and the target percentage.
         this.TargetPosition = this.CurrentPosition;
@@ -303,17 +303,17 @@ export class Curtain {
     if (this.deviceStatus.body.moving) {
       this.setMinMax();
       if (this.TargetPosition > this.CurrentPosition) {
-        this.platform.debug(`Curtain: ${this.accessory.displayName} - Current position: ${this.CurrentPosition} closing`);
+        this.platform.debug(`Curtain: ${this.accessory.displayName} Closing, Current Position: ${this.CurrentPosition} `);
         this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
       } else if (this.TargetPosition < this.CurrentPosition) {
-        this.platform.debug(`Curtain: ${this.accessory.displayName} - Current position: ${this.CurrentPosition} opening`);
+        this.platform.debug(`Curtain: ${this.accessory.displayName} Opening, Current Position: ${this.CurrentPosition} `);
         this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
       } else {
-        this.platform.debug(`Curtain: ${this.CurrentPosition} - standby`);
+        this.platform.debug(`Curtain: ${this.CurrentPosition} Standby, Current position: ${this.CurrentPosition}`);
         this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
       }
     } else {
-      this.platform.debug(`Curtain: ${this.accessory.displayName} - Current position: ${this.CurrentPosition} standby`);
+      this.platform.debug(`Curtain: ${this.accessory.displayName} Standby, Current position: ${this.CurrentPosition}`);
       if (!this.setNewTarget) {
         /*If Curtain calibration distance is short, there will be an error between the current percentage and the target percentage.*/
         this.TargetPosition = this.CurrentPosition;
@@ -389,8 +389,8 @@ export class Curtain {
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
-      this.platform.log.error(`Curtain: ${this.accessory.displayName} failed to refresh status, Eror Message ${JSON.stringify(e.message)}`);
-      this.platform.debug(`Curtain: ${this.accessory.displayName}, Error: ${JSON.stringify(e)}`);
+      this.platform.log.error(`Curtain: ${this.accessory.displayName} failed to refresh status, Error Message ${JSON.stringify(e.message)}`);
+      this.platform.debug(`Curtain: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
       this.apiError(e);
     }
   }
@@ -409,7 +409,7 @@ export class Curtain {
     this.platform.device('Curtains BLE Device pushChanges');
     const switchbot = this.connectBLE();
     switchbot.discover({ model: 'c', quick: true, id: this.device.bleMac }).then((device_list) => {
-      this.platform.log.info(`${this.accessory.displayName}, Target Position: ${this.TargetPosition}`);
+      this.platform.log.info(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
       return device_list[0].runToPos(100 - Number(this.TargetPosition));
     }).then(() => {
       this.platform.device('Done.');

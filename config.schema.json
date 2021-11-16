@@ -250,7 +250,7 @@
                       }
                     },
                     "hide_lightsensor": {
-                      "title": "Hide Curtains's Light Sensor",
+                      "title": "Hide Curtain's Light Sensor",
                       "type": "boolean",
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
