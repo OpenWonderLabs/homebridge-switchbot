@@ -201,10 +201,13 @@ export class TV {
       } else {
         this.pushTvOnChanges();
       }
-    }
-    this.ActiveIdentifier = value;
-    if (this.ActiveIdentifier !== undefined) {
-      this.service.updateCharacteristic(this.platform.Characteristic.Active, this.ActiveIdentifier);
+      this.ActiveIdentifier = value;
+      if (this.ActiveIdentifier === undefined) {
+        this.platform.debug(`IR TV ${this.accessory.displayName} ActiveIdentifier: ${this.ActiveIdentifier}`);
+      } else {
+        this.service!.updateCharacteristic(this.platform.Characteristic.Active, this.ActiveIdentifier);
+        this.platform.device(`Humidifier ${this.accessory.displayName} updateCharacteristic Active: ${this.ActiveIdentifier}`);
+      }
     }
   }
 
@@ -343,7 +346,7 @@ export class TV {
   }
 
 
-  private statusCode(push: AxiosResponse<{ statusCode: number;}>) {
+  private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
     switch (push.data.statusCode) {
       case 151:
         this.platform.log.error('Command not supported by this device type.');

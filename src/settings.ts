@@ -44,6 +44,7 @@ export interface devicesConfig extends device {
   meter?: meter;
   humidifier?: humidifier;
   curtain?: curtain;
+  contact?: contact;
   colorbulb?: colorbulb;
   ble?: string;
   hide_device?: boolean;
@@ -67,10 +68,16 @@ export type humidifier = {
 
 export type curtain = {
   disable_group?: boolean;
+  hide_lightsensor?: boolean;
   refreshRate?: number;
   set_max?: number;
   set_min?: number;
   set_minStep?: number;
+};
+
+export type contact = {
+  hide_lightsensor?: boolean;
+  hide_motionsensor?: boolean;
 };
 
 export type colorbulb = {

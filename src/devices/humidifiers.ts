@@ -120,11 +120,11 @@ export class Humidifier {
     // create a new Temperature Sensor service
     // Temperature Sensor Service
     if (device.humidifier?.hide_temperature) {
-      this.platform.device('Removing Temerature Sensor Service');
+      this.platform.device(`Humidifier: ${accessory.displayName} Removing Temperature Sensor Service`);
       this.temperatureservice = this.accessory.getService(this.platform.Service.TemperatureSensor);
       accessory.removeService(this.temperatureservice!);
     } else if (!this.temperatureservice) {
-      this.platform.device('Adding Temerature Sensor Service');
+      this.platform.device(`Humidifier: ${accessory.displayName} Add Temperature Sensor Service`);
       (this.temperatureservice =
         this.accessory.getService(this.platform.Service.TemperatureSensor) ||
         this.accessory.addService(this.platform.Service.TemperatureSensor)), `${accessory.displayName} Temperature Sensor`;
@@ -144,7 +144,7 @@ export class Humidifier {
         });
     } else {
       if (this.platform.config.options?.debug) {
-        this.platform.device('Temperature Sensor Not Added');
+        this.platform.device(`Humidifier: ${accessory.displayName} Temperature Sensor Service Not Added`);
       }
     }
 
@@ -499,11 +499,13 @@ export class Humidifier {
       this.platform.device(`Humidifier ${this.accessory.displayName}`
         + ` updateCharacteristic RelativeHumidityHumidifierThreshold: ${this.RelativeHumidityHumidifierThreshold}`);
     }
-    if (!this.device.humidifier?.hide_temperature || this.CurrentTemperature === undefined) {
-      this.platform.debug(`Humidifier ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
-    } else {
-      this.temperatureservice!.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
-      this.platform.device(`Humidifier ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
+    if (!this.device.humidifier?.hide_temperature) {
+      if (this.CurrentTemperature === undefined) {
+        this.platform.debug(`Humidifier ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
+      } else {
+        this.temperatureservice!.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
+        this.platform.device(`Humidifier ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
+      }
     }
   }
 

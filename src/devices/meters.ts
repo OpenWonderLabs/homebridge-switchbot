@@ -46,7 +46,7 @@ export class Meter {
   ) {
     // Meter Config
     this.platform.device(`[Meter Config] ble: ${device.ble}, unit: ${device.meter?.unit},`
-    + ` hide_temperature: ${device.meter?.hide_temperature}, hide_humidity: ${device.meter?.hide_humidity}`);
+      + ` hide_temperature: ${device.meter?.hide_temperature}, hide_humidity: ${device.meter?.hide_humidity}`);
 
     // default placeholders
     this.BatteryLevel = 0;
@@ -102,11 +102,11 @@ export class Meter {
 
     // Temperature Sensor Service
     if (device.meter?.hide_temperature) {
-      this.platform.device('Removing Temperature Sensor Service');
+      this.platform.device(`Meter: ${accessory.displayName} Removing Temperature Sensor Service`);
       this.temperatureservice = this.accessory.getService(this.platform.Service.TemperatureSensor);
       accessory.removeService(this.temperatureservice!);
     } else if (!this.temperatureservice) {
-      this.platform.device('Adding Temperature Sensor Service');
+      this.platform.device(`Meter: ${accessory.displayName} Add Temperature Sensor Service`);
       (this.temperatureservice =
         this.accessory.getService(this.platform.Service.TemperatureSensor) ||
         this.accessory.addService(this.platform.Service.TemperatureSensor)), `${accessory.displayName} Temperature Sensor`;
@@ -126,16 +126,16 @@ export class Meter {
           return this.CurrentTemperature;
         });
     } else {
-      this.platform.device('Temperature Sensor Not Added');
+      this.platform.device(`Meter: ${accessory.displayName} Temperature Sensor Service Not Added`);
     }
 
     // Humidity Sensor Service
     if (device.meter?.hide_humidity) {
-      this.platform.device('Removing Humidity Sensor Service');
+      this.platform.device(`Meter: ${accessory.displayName} Removing Humidity Sensor Service`);
       this.humidityservice = this.accessory.getService(this.platform.Service.HumiditySensor);
       accessory.removeService(this.humidityservice!);
     } else if (!this.humidityservice) {
-      this.platform.device('Adding Humidity Sensor Service');
+      this.platform.device(`Meter: ${accessory.displayName} Add Humidity Sensor Service`);
       (this.humidityservice =
         this.accessory.getService(this.platform.Service.HumiditySensor) ||
         this.accessory.addService(this.platform.Service.HumiditySensor)), `${accessory.displayName} Humidity Sensor`;
@@ -151,7 +151,7 @@ export class Meter {
           return this.CurrentRelativeHumidity;
         });
     } else {
-      this.platform.device('Adding Humidity Sensor Not Added');
+      this.platform.device(`Meter: ${accessory.displayName} Humidity Sensor Service Not Added`);
     }
 
     // Retrieve initial values and updateHomekit
@@ -273,8 +273,8 @@ export class Meter {
         this.battery = ad.serviceData.battery;
         this.platform.device(`${this.device.bleMac}: ${JSON.stringify(ad.serviceData)}`);
         this.platform.device(`${this.accessory.displayName}, Model: ${ad.serviceData.model}, Model Name: ${ad.serviceData.modelName},`
-           + `Temperature: ${ad.serviceData.temperature}, Fahrenheit: ${ad.serviceData.fahrenheit}, Humidity: ${ad.serviceData.humidity}`
-           + `Battery: ${ad.serviceData.battery}`);
+          + `Temperature: ${ad.serviceData.temperature}, Fahrenheit: ${ad.serviceData.fahrenheit}, Humidity: ${ad.serviceData.humidity}`
+          + `Battery: ${ad.serviceData.battery}`);
       };
       // Wait 10 seconds
       return switchbot.wait(10000);
@@ -319,17 +319,21 @@ export class Meter {
       this.service.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
       this.platform.device(`Meter ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
     }
-    if (this.device.meter?.hide_humidity && this.CurrentRelativeHumidity === undefined) {
-      this.platform.debug(`Meter ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
-    } else {
-      this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
-      this.platform.device(`Meter ${this.accessory.displayName} updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+    if (!this.device.meter?.hide_humidity) {
+      if (this.CurrentRelativeHumidity === undefined) {
+        this.platform.debug(`Meter ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+      } else {
+        this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
+        this.platform.device(`Meter ${this.accessory.displayName} updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+      }
     }
-    if (this.device.meter?.hide_temperature || this.CurrentTemperature === undefined) {
-      this.platform.debug(`Meter ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
-    } else {
-      this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
-      this.platform.device(`Meter ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
+    if (!this.device.meter?.hide_temperature) {
+      if (this.CurrentTemperature === undefined) {
+        this.platform.debug(`Meter ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
+      } else {
+        this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
+        this.platform.device(`Meter ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
+      }
     }
   }
 
