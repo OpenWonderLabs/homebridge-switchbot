@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file. This projec
 ## [Beta - Version 1.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.0) (2021-11-XX)
 
 ## What's Changed
-* Fixed Bug: Curtains alternate between open/close state. [#85](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/85)
+* Fixed Bug: Air conditioner temperature not able to change. [#43](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/43)
 * Add option to set Min Lux and Max Lux for Curtain's Light Sensor.
 * Add `updateHomeKitCharacteristics` to IR Devices to contain all `updateCharacteristics` in one spot.
 * Housekeeping and updated dependencies.
