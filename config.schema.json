@@ -35,7 +35,6 @@
       },
       "options": {
         "type": "object",
-        "required": false,
         "properties": {
           "devices": {
             "type": "array",
@@ -46,7 +45,6 @@
                 "deviceId": {
                   "title": "Device ID",
                   "type": "string",
-                  "required": true,
                   "placeholder": "81F3UT59513F"
                 },
                 "hide_device": {
@@ -59,7 +57,6 @@
                 "deviceType": {
                   "title": "Device Type",
                   "type": "string",
-                  "required": true,
                   "oneOf": [
                     {
                       "title": "Bot",
@@ -123,7 +120,6 @@
                 "ble": {
                   "title": "Enable BLE Connection",
                   "type": "boolean",
-                  "required": true,
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType && model.options.devices[arrayIndices].deviceId) && !model.options.devices[arrayIndices].deviceType === 'Color Bulb' && !model.options.devices[arrayIndices].deviceType === 'Plug';"
                   }
@@ -134,7 +130,6 @@
                     "mode": {
                       "title": "Mode",
                       "type": "string",
-                      "required": true,
                       "oneOf": [
                         {
                           "title": "Press",
@@ -156,7 +151,6 @@
                     "deviceType": {
                       "title": "What Type of Device do you want to display in the Home App?",
                       "type": "string",
-                      "required": true,
                       "oneOf": [
                         {
                           "title": "Switch",
@@ -212,7 +206,6 @@
                           ]
                         }
                       ],
-                      "required": false,
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Meter' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].meter  && !model.options.devices[arrayIndices].meter.hide_temperature);"
                       }
@@ -352,7 +345,6 @@
                 "deviceId": {
                   "title": "Device ID",
                   "type": "string",
-                  "required": true,
                   "placeholder": "81F3UT59513F"
                 },
                 "hide_device": {
@@ -365,7 +357,6 @@
                 "remoteType": {
                   "title": "Remote Type",
                   "type": "string",
-                  "required": true,
                   "oneOf": [
                     {
                       "title": "Air Conditioner (IR)",
@@ -615,7 +606,6 @@
                           ]
                         }
                       ],
-                      "required": false,
                       "condition": {
                         "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].remoteType === 'Others' && model.options.irdevices[arrayIndices].deviceId);"
                       }
@@ -671,8 +661,7 @@
                   "device"
                 ]
               }
-            ],
-            "required": false
+            ]
           }
         }
       }
