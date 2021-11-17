@@ -153,19 +153,19 @@
                       "type": "string",
                       "oneOf": [
                         {
-                          "title": "Switch",
-                          "enum": [
-                            "switch"
-                          ]
-                        },
-                        {
                           "title": "Outlet",
                           "enum": [
                             "outlet"
                           ]
+                        },
+                        {
+                          "title": "Switch",
+                          "enum": [
+                            "switch"
+                          ]
                         }
                       ],
-                      "default": "outlet",
+                      "placeholder": "outlet",
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Bot' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].bot && model.options.devices[arrayIndices].bot.mode);"
                       }
