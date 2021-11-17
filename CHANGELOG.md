@@ -2,12 +2,22 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Beta - Version 1.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.0) (2021-11-XX)
+
+## What's Changed
+* Fixed Bug: Curtains alternate between open/close state. [#85](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/85)
+* Add option to set Min Lux and Max Lux for Curtain's Light Sensor.
+* Add `updateHomeKitCharacteristics` to IR Devices to contain all `updateCharacteristics` in one spot.
+* Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.1.0...v1.2.0
+
 ## [Version 1.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.1.0) (2021-11-16)
 
 ## What's Changed
 * Fixed Bug: Curtains alternate between open/close state. [#85](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/85)
 * Fixed Bug: IR Fan won't be hidden in Home app. [#90](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/90)
-* Fixed Bug: `hide_temperature` config option causing `Cannot read property 'updateCharacteristic' of undefined` for  Humidifiers. [#90](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/90)
+* Fixed Bug: `hide_temperature` config option causing `Cannot read property 'updateCharacteristic' of undefined` for  Humidifiers. [#89](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/89)
 * Add option to Hide Curtain's Light Sensor. [#91](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/91)
 * Add option to Hide Contact Sensor's Motion Sensor or Light Sensor.
 

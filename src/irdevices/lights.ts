@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
-import { irDevicesConfig, DeviceURL, irdevice } from '../settings';
+import { irDevicesConfig, DeviceURL, irdevice, payload } from '../settings';
 
 /**
  * Platform Accessory
@@ -61,14 +61,22 @@ export class Light {
   }
 
   private OnSet(value: CharacteristicValue) {
-    this.platform.debug(`${this.device.remoteType} ${this.accessory.displayName} Set On: ${value}`);
+    this.platform.debug(`Light: ${this.accessory.displayName} On: ${value}`);
     this.On = value;
     if (this.On) {
       this.pushLightOnChanges();
     } else {
       this.pushLightOffChanges();
     }
-    this.service.updateCharacteristic(this.platform.Characteristic.Active, this.On);
+  }
+
+  private updateHomeKitCharacteristics() {
+    if (this.On === undefined) {
+      this.platform.debug(`Light: ${this.accessory.displayName} On: ${this.On}`);
+    } else {
+      this.service!.updateCharacteristic(this.platform.Characteristic.On, this.On);
+      this.platform.device(`Light: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+    }
   }
 
   /**
@@ -87,7 +95,7 @@ export class Light {
         commandType: 'command',
         parameter: 'default',
         command: 'turnOn',
-      } as any;
+      } as payload;
       await this.pushChanges(payload);
     }
   }
@@ -98,7 +106,7 @@ export class Light {
         commandType: 'command',
         parameter: 'default',
         command: 'turnOff',
-      } as any;
+      } as payload;
       await this.pushChanges(payload);
     }
   }
@@ -108,7 +116,7 @@ export class Light {
       commandType: 'command',
       parameter: 'default',
       command: 'brightnessUp',
-    } as any;
+    } as payload;
     await this.pushChanges(payload);
   }
 
@@ -117,59 +125,55 @@ export class Light {
       commandType: 'command',
       parameter: 'default',
       command: 'brightnessDown',
-    } as any;
+    } as payload;
     await this.pushChanges(payload);
   }
 
-  public async pushChanges(payload: any) {
+  public async pushChanges(payload: payload) {
     try {
-      this.platform.log.info(
-        'Sending request for',
-        this.accessory.displayName,
-        'to SwitchBot API. command:',
-        payload.command,
-        'parameter:',
-        payload.parameter,
-        'commandType:',
-        payload.commandType,
-      );
-      this.platform.debug(`${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
+      this.platform.log.info(`Light: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
+        + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.debug(`${this.accessory.displayName} Changes pushed - ${push.data}`);
+      this.platform.debug(`Light: ${this.accessory.displayName} pushChanges: ${push.data}`);
       this.statusCode(push);
-    } catch (e) {
+      this.updateHomeKitCharacteristics();
+    } catch (e: any) {
+      this.platform.log.error(`Light: ${this.accessory.displayName}: failed to push changes,`
+        + ` Error Message: ${JSON.stringify(e.message)}`);
+      this.platform.debug(`Light: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
       this.apiError(e);
     }
   }
 
 
-  private statusCode(push: AxiosResponse<{ statusCode: number;}>) {
+  private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
     switch (push.data.statusCode) {
       case 151:
-        this.platform.log.error('Command not supported by this device type.');
+        this.platform.log.error(`Light: ${this.accessory.displayName} Command not supported by this device type.`);
         break;
       case 152:
-        this.platform.log.error('Device not found.');
+        this.platform.log.error(`Light: ${this.accessory.displayName} Device not found.`);
         break;
       case 160:
-        this.platform.log.error('Command is not supported.');
+        this.platform.log.error(`Light: ${this.accessory.displayName} Command is not supported.`);
         break;
       case 161:
-        this.platform.log.error('Device is offline.');
+        this.platform.log.error(`Light: ${this.accessory.displayName} Device is offline.`);
         break;
       case 171:
-        this.platform.log.error('Hub Device is offline.');
+        this.platform.log.error(`Light: ${this.accessory.displayName} Hub Device is offline.`);
         break;
       case 190:
-        this.platform.log.error('Device internal error due to device states not synchronized with server. Or command fomrat is invalid.');
+        // eslint-disable-next-line max-len
+        this.platform.log.error(`Light: ${this.accessory.displayName} Device internal error due to device states not synchronized with server. Or command fomrat is invalid.`);
         break;
       case 100:
-        this.platform.debug('Command successfully sent.');
+        this.platform.debug(`Light: ${this.accessory.displayName} Command successfully sent.`);
         break;
       default:
-        this.platform.debug('Unknown statusCode.');
+        this.platform.debug(`Light: ${this.accessory.displayName} Unknown statusCode.`);
     }
   }
 

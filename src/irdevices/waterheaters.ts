@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
-import { irDevicesConfig, DeviceURL, irdevice } from '../settings';
+import { irDevicesConfig, DeviceURL, irdevice, payload } from '../settings';
 
 /**
  * Platform Accessory
@@ -55,7 +55,7 @@ export class WaterHeater {
   }
 
   private ActiveSet(value: CharacteristicValue) {
-    this.platform.debug(`${this.accessory.displayName} Set Active: ${value}`);
+    this.platform.debug(`Water Heater: ${this.accessory.displayName} Active: ${value}`);
     if (value === this.platform.Characteristic.Active.INACTIVE) {
       this.pushWaterHeaterOffChanges();
       this.service.setCharacteristic(
@@ -67,8 +67,14 @@ export class WaterHeater {
       this.service.setCharacteristic(this.platform.Characteristic.InUse, this.platform.Characteristic.InUse.IN_USE);
     }
     this.Active = value;
-    if (this.Active !== undefined) {
-      this.service.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
+  }
+
+  private updateHomeKitCharacteristics() {
+    if (this.Active === undefined) {
+      this.platform.debug(`Water Heater: ${this.accessory.displayName} Active: ${this.Active}`);
+    } else {
+      this.service!.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
+      this.platform.device(`Water Heater: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
     }
   }
 
@@ -88,7 +94,7 @@ export class WaterHeater {
         commandType: 'command',
         parameter: 'default',
         command: 'turnOn',
-      } as any;
+      } as payload;
       await this.pushChanges(payload);
     }
   }
@@ -99,66 +105,59 @@ export class WaterHeater {
         commandType: 'command',
         parameter: 'default',
         command: 'turnOff',
-      } as any;
+      } as payload;
       await this.pushChanges(payload);
     }
   }
 
-  public async pushChanges(payload: any) {
+  public async pushChanges(payload: payload) {
     try {
-      this.platform.log.info(
-        'Sending request for',
-        this.accessory.displayName,
-        'to SwitchBot API. command:',
-        payload.command,
-        'parameter:',
-        payload.parameter,
-        'commandType:',
-        payload.commandType,
-      );
-      this.platform.debug(`${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
+      this.platform.log.info(`Water Heater: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
+        + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.debug(`${this.accessory.displayName} Changes pushed - ${push.data}`);
+      this.platform.debug(`Water Heater: ${this.accessory.displayName} pushChanges: ${push.data}`);
       this.statusCode(push);
-    } catch (e) {
+      this.updateHomeKitCharacteristics();
+    } catch (e: any) {
+      this.platform.log.error(`Water Heater: ${this.accessory.displayName}: failed to push changes,`
+        + ` Error Message: ${JSON.stringify(e.message)}`);
+      this.platform.debug(`Water Heater: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
       this.apiError(e);
     }
   }
 
-
-  private statusCode(push: AxiosResponse<{ statusCode: number;}>) {
+  private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
     switch (push.data.statusCode) {
       case 151:
-        this.platform.log.error('Command not supported by this device type.');
+        this.platform.log.error(`Water Heater: ${this.accessory.displayName} Command not supported by this device type.`);
         break;
       case 152:
-        this.platform.log.error('Device not found.');
+        this.platform.log.error(`Water Heater: ${this.accessory.displayName} Device not found.`);
         break;
       case 160:
-        this.platform.log.error('Command is not supported.');
+        this.platform.log.error(`Water Heater: ${this.accessory.displayName} Command is not supported.`);
         break;
       case 161:
-        this.platform.log.error('Device is offline.');
+        this.platform.log.error(`Water Heater: ${this.accessory.displayName} Device is offline.`);
         break;
       case 171:
-        this.platform.log.error('Hub Device is offline.');
+        this.platform.log.error(`Water Heater: ${this.accessory.displayName} Hub Device is offline.`);
         break;
       case 190:
-        this.platform.log.error('Device internal error due to device states not synchronized with server. Or command fomrat is invalid.');
+        // eslint-disable-next-line max-len
+        this.platform.log.error(`Water Heater: ${this.accessory.displayName} Device internal error due to device states not synchronized with server. Or command fomrat is invalid.`);
         break;
       case 100:
-        this.platform.debug('Command successfully sent.');
+        this.platform.debug(`Water Heater: ${this.accessory.displayName} Command successfully sent.`);
         break;
       default:
-        this.platform.debug('Unknown statusCode.');
+        this.platform.debug(`Water Heater: ${this.accessory.displayName} Unknown statusCode.`);
     }
   }
 
   public apiError(e: any) {
-    this.service.updateCharacteristic(this.platform.Characteristic.ValveType, e);
     this.service.updateCharacteristic(this.platform.Characteristic.Active, e);
-    this.service.updateCharacteristic(this.platform.Characteristic.InUse, e);
   }
 }

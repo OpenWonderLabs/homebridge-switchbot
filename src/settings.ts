@@ -69,6 +69,8 @@ export type humidifier = {
 export type curtain = {
   disable_group?: boolean;
   hide_lightsensor?: boolean;
+  set_minLux?: number;
+  set_maxLux?: number;
   refreshRate?: number;
   set_max?: number;
   set_min?: number;
@@ -132,6 +134,12 @@ export type other = {
   deviceType?: string;
   commandOn?: string;
   commandOff?: string;
+};
+
+export type payload = {
+  commandType: string;
+  parameter: string;
+  command: string;
 };
 
 export interface AxiosRequestConfig {

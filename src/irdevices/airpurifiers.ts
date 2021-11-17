@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
-import { irDevicesConfig, DeviceURL, irdevice } from '../settings';
+import { irDevicesConfig, DeviceURL, irdevice, payload } from '../settings';
 
 /**
  * Platform Accessory
@@ -21,6 +21,7 @@ export class AirPurifier {
   CurrentAPFanSpeed!: CharacteristicValue;
   CurrentTemperature!: CharacteristicValue;
   CurrentAirPurifierState!: CharacteristicValue;
+  CurrentHeaterCoolerState!: CharacteristicValue;
 
   // Others
   Busy: any;
@@ -69,15 +70,35 @@ export class AirPurifier {
   }
 
   private ActiveSet(value: CharacteristicValue) {
-    this.platform.debug(`${this.accessory.displayName} Set Active: ${value}`);
+    this.platform.debug(`Air Purifier: ${this.accessory.displayName} Set Active: ${value}`);
     if (value === this.platform.Characteristic.Active.INACTIVE) {
       this.pushAirConditionerOffChanges();
     } else {
       this.pushAirConditionerOnChanges();
     }
     this.Active = value;
-    if (this.Active !== undefined) {
-      this.service.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
+  }
+
+  private updateHomeKitCharacteristics() {
+    if (this.Active === undefined) {
+      this.platform.debug(`Air Purifier: ${this.accessory.displayName} Active: ${this.Active}`);
+    } else {
+      this.service!.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
+      this.platform.device(`Air Purifier: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
+    }
+    if (this.CurrentAirPurifierState === undefined) {
+      this.platform.debug(`Air Purifier: ${this.accessory.displayName} CurrentAirPurifierState: ${this.CurrentAirPurifierState}`);
+    } else {
+      this.service!.updateCharacteristic(this.platform.Characteristic.CurrentAirPurifierState, this.CurrentAirPurifierState);
+      this.platform.device(`Air Purifier: ${this.accessory.displayName}`
+        + ` updateCharacteristic CurrentAirPurifierState: ${this.CurrentAirPurifierState}`);
+    }
+    if (this.CurrentHeaterCoolerState === undefined) {
+      this.platform.debug(`Air Purifier: ${this.accessory.displayName} CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
+    } else {
+      this.service!.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, this.CurrentHeaterCoolerState);
+      this.platform.device(`Air Purifier: ${this.accessory.displayName}`
+        + ` updateCharacteristic CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
     }
   }
 
@@ -123,7 +144,7 @@ export class AirPurifier {
         commandType: 'command',
         parameter: 'default',
         command: 'turnOn',
-      } as any;
+      } as payload;
       await this.pushChanges(payload);
     }
   }
@@ -134,7 +155,7 @@ export class AirPurifier {
         commandType: 'command',
         parameter: 'default',
         command: 'turnOff',
-      } as any;
+      } as payload;
       await this.pushChanges(payload);
     }
   }
@@ -142,10 +163,7 @@ export class AirPurifier {
   async pushAirConditionerStatusChanges() {
     if (!this.Busy) {
       this.Busy = true;
-      this.service.updateCharacteristic(
-        this.platform.Characteristic.CurrentHeaterCoolerState,
-        this.platform.Characteristic.CurrentHeaterCoolerState.IDLE,
-      );
+      this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.IDLE;
     }
     clearTimeout(this.Timeout);
 
@@ -157,7 +175,7 @@ export class AirPurifier {
     const payload = {
       commandType: 'command',
       command: 'setAll',
-    } as any;
+    } as payload;
 
     this.CurrentAPTemp = this.CurrentTemperature || 24;
     this.CurrentAPMode = this.CurrentMode || 1;
@@ -167,74 +185,61 @@ export class AirPurifier {
 
     if (this.Active === 1) {
       if ((this.CurrentTemperature || 24) < (this.LastTemperature || 30)) {
-        this.service.updateCharacteristic(
-          this.platform.Characteristic.CurrentHeaterCoolerState,
-          this.platform.Characteristic.CurrentHeaterCoolerState.COOLING,
-        );
+        this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.COOLING;
       } else {
-        this.service.updateCharacteristic(
-          this.platform.Characteristic.CurrentHeaterCoolerState,
-          this.platform.Characteristic.CurrentHeaterCoolerState.HEATING,
-        );
+        this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.HEATING;
       }
     } else {
-      this.service.updateCharacteristic(
-        this.platform.Characteristic.CurrentHeaterCoolerState,
-        this.platform.Characteristic.CurrentHeaterCoolerState.INACTIVE,
-      );
+      this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.INACTIVE;
     }
 
     await this.pushChanges(payload);
   }
 
-  public async pushChanges(payload: any) {
+  public async pushChanges(payload: payload) {
     try {
-      this.platform.log.info(
-        'Sending request for',
-        this.accessory.displayName,
-        'to SwitchBot API. command:',
-        payload.command,
-        'parameter:',
-        payload.parameter,
-        'commandType:',
-        payload.commandType,
-      );
-      this.platform.debug(`${this.accessory.displayName} pushChanges - ${JSON.stringify(payload)}`);
+      this.platform.log.info(`Air Purifier: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
+        + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.debug(`${this.accessory.displayName} Changes pushed - ${push.data}`);
+      this.platform.debug(`Air Purifier: ${this.accessory.displayName} pushChanges: ${push.data}`);
       this.statusCode(push);
-    } catch (e) {
+      this.updateHomeKitCharacteristics();
+    } catch (e: any) {
+      this.platform.log.error(`Air Purifier: ${this.accessory.displayName}: failed to push changes,`
+        + ` Error Message: ${JSON.stringify(e.message)}`);
+      this.platform.debug(`Air Purifier: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
       this.apiError(e);
     }
   }
 
-  private statusCode(push: AxiosResponse<{ statusCode: number;}>) {
+  private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
     switch (push.data.statusCode) {
       case 151:
-        this.platform.log.error('Command not supported by this device type.');
+        this.platform.log.error(`Air Purifier: ${this.accessory.displayName} Command not supported by this device type.`);
         break;
       case 152:
-        this.platform.log.error('Device not found.');
+        this.platform.log.error(`Air Purifier: ${this.accessory.displayName} Device not found.`);
         break;
       case 160:
-        this.platform.log.error('Command is not supported.');
+        this.platform.log.error(`Air Purifier: ${this.accessory.displayName} Command is not supported.`);
         break;
       case 161:
-        this.platform.log.error('Device is offline.');
+        this.platform.log.error(`Air Purifier: ${this.accessory.displayName} Device is offline.`);
         break;
       case 171:
-        this.platform.log.error('Hub Device is offline.');
+        this.platform.log.error(`Air Purifier: ${this.accessory.displayName} Hub Device is offline.`);
         break;
       case 190:
-        this.platform.log.error('Device internal error due to device states not synchronized with server. Or command fomrat is invalid.');
+        // eslint-disable-next-line max-len
+        this.platform.log.error(`Air Purifier: ${this.accessory.displayName} Device internal error due to device states not synchronized with server. Or command fomrat is invalid.`);
         break;
       case 100:
-        this.platform.debug('Command successfully sent.');
+        this.platform.debug(`Air Purifier: ${this.accessory.displayName} Command successfully sent.`);
         break;
       default:
-        this.platform.debug('Unknown statusCode.');
+        this.platform.debug(`Air Purifier: ${this.accessory.displayName} Unknown statusCode.`);
     }
   }
 

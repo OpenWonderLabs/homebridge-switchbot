@@ -43,6 +43,8 @@ plugin allows you to access your SwitchBot Device(s) from HomeKit with
 ## Supported SwitchBot Devices
 
 - [SwitchBot Humidifier](https://www.switch-bot.com/products/switchbot-smart-humidifier)
+    - Can Push Updates over OpenAPI
+    - Can Receive Udpates over BLE and OpenAPI
 - [SwitchBot Meter](https://www.switch-bot.com/products/switchbot-meter)
     - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
     - Enable Cloud Services for Device on SwitchBot App, If using OpenAPI.

@@ -2,7 +2,7 @@ import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceStatusResponse } from '../settings';
+import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceStatusResponse, payload } from '../settings';
 import { AxiosResponse } from 'axios';
 
 /**
@@ -41,8 +41,8 @@ export class Bot {
     public device: device & devicesConfig,
   ) {
     // Bot Config
-    this.platform.device(`[Bot Config] ble: ${device.ble}, mode: ${device.bot?.mode},`
-      + ` deviceType: ${device.bot?.deviceType}`);
+    this.platform.device(`Bot: ${this.accessory.displayName} Config: (ble: ${device.ble}, mode: ${device.bot?.mode},`
+      + ` deviceType: ${device.bot?.deviceType})`);
 
     // default placeholders
     this.SwitchOn = false;
@@ -69,7 +69,7 @@ export class Bot {
       case 'switch':
         // If outletService still pressent, then remove first
         if (this.outletService) {
-          this.platform.device('Removing Leftover outletService first');
+          this.platform.device(`Bot: ${this.accessory.displayName} Removing Leftover outletService first`);
         }
         this.outletService = this.accessory.getService(this.platform.Service.Outlet);
         accessory.removeService(this.outletService!);
@@ -78,7 +78,7 @@ export class Bot {
         (this.switchService =
           accessory.getService(this.platform.Service.Switch) ||
           accessory.addService(this.platform.Service.Switch)), `${accessory.displayName} Switch`;
-        this.platform.log.info('Displaying as Switch');
+        this.platform.log.info(`Bot: ${this.accessory.displayName} Displaying as Switch`);
 
         this.switchService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
         break;
@@ -86,7 +86,7 @@ export class Bot {
       default:
         // If switchService still pressent, then remove first
         if (this.switchService) {
-          this.platform.device('Removing Leftover switchService first');
+          this.platform.device(`Bot: ${this.accessory.displayName} Removing Leftover switchService first`);
         }
         this.switchService = this.accessory.getService(this.platform.Service.Switch);
         accessory.removeService(this.switchService!);
@@ -95,7 +95,7 @@ export class Bot {
         (this.outletService =
           accessory.getService(this.platform.Service.Outlet) ||
           accessory.addService(this.platform.Service.Outlet)), `${accessory.displayName} Outlet`;
-        this.platform.log.info('Displaying as Outlet');
+        this.platform.log.info(`Bot: ${this.accessory.displayName} Displaying as Outlet`);
 
         this.outletService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
     }
@@ -141,8 +141,9 @@ export class Bot {
         try {
           await this.pushChanges();
         } catch (e: any) {
-          this.platform.log.error(JSON.stringify(e.message));
-          this.platform.debug(`Bot ${accessory.displayName} - ${JSON.stringify(e)}`);
+          this.platform.log.error(`Bot: ${this.accessory.displayName} failed to pushChanges,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
+          this.platform.debug(`Bot: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
           this.apiError(e);
         }
         this.botUpdateInProgress = false;
@@ -154,16 +155,14 @@ export class Bot {
    */
   async parseStatus() {
     if (this.device.ble) {
-      this.platform.device('BLE');
       await this.BLEparseStatus();
     } else {
-      this.platform.device('OpenAPI');
       await this.openAPIparseStatus();
     }
   }
 
   private async BLEparseStatus() {
-    this.platform.debug('Bots BLE Device parseStatus');
+    this.platform.debug(`Bot: ${this.accessory.displayName} BLE parseStatus`);
     // BLEmode (true if Switch Mode) | (false if Press Mode)
     if (this.mode) {
       this.platform.device(`Switch Mode, mode: ${JSON.stringify(this.mode)}`);
@@ -182,6 +181,7 @@ export class Bot {
   }
 
   private async openAPIparseStatus() {
+    this.platform.debug(`Bot: ${this.accessory.displayName} OpenAPI parseStatus`);
     if (this.device.bot?.mode === 'press') {
       this.SwitchOn = false;
     }
@@ -193,10 +193,8 @@ export class Bot {
    */
   async refreshStatus() {
     if (this.device.ble) {
-      this.platform.device('BLE');
       await this.BLERefreshStatus();
     } else {
-      this.platform.device('OpenAPI');
       await this.openAPIRefreshStatus();
     }
   }
@@ -213,7 +211,7 @@ export class Bot {
   }
 
   private async BLERefreshStatus() {
-    this.platform.device('Bot BLE Device refreshStatus');
+    this.platform.debug(`Bot: ${this.accessory.displayName} BLE refreshStatus`);
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const switchbot = this.connectBLE();
     // Start to monitor advertisement packets
@@ -246,6 +244,7 @@ export class Bot {
   }
 
   private async openAPIRefreshStatus() {
+    this.platform.debug(`Bot: ${this.accessory.displayName} OpenAPI refreshStatus`);
     try {
       this.deviceStatus = {
         statusCode: 100,
@@ -260,8 +259,8 @@ export class Bot {
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
-      this.platform.log.error(`Bot ${this.accessory.displayName} failed to refresh status, Error Message: ${JSON.stringify(e.message)}`);
-      this.platform.debug(`Bot ${this.accessory.displayName}, Error: ${JSON.stringify(e)}`);
+      this.platform.log.error(`Bot: ${this.accessory.displayName} failed to refresh status, Error Message: ${JSON.stringify(e.message)}`);
+      this.platform.debug(`Bot: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
       this.apiError(e);
     }
   }
@@ -275,40 +274,42 @@ export class Bot {
    */
   async pushChanges() {
     if (this.device.ble) {
-      this.platform.device('BLE');
       await this.BLEpushChanges();
     } else {
-      this.platform.device('OpenAPI');
       await this.openAPIpushChanges();
     }
     this.refreshStatus();
   }
 
   private async BLEpushChanges() {
-    this.platform.device('Bot BLE Device pushChanges');
+    this.platform.debug(`Bot: ${this.accessory.displayName} BLE pushChanges`);
     const switchbot = this.connectBLE();
     if (this.device.bot?.mode === 'press') {
-      this.platform.device(`Press Mode: ${this.device.bot?.mode}`);
+      this.platform.device(`Bot: ${this.accessory.displayName} Press Mode: ${this.device.bot?.mode}`);
       switchbot.discover({ model: 'H', quick: true, id: this.device.bleMac }).then((device_list) => {
-        this.platform.log.info(`${this.accessory.displayName}, On: ${this.SwitchOn}`);
+        this.platform.log.info(`Bot: ${this.accessory.displayName}, On: ${this.SwitchOn}`);
         return device_list[0].press({ id: this.device.bleMac });
       }).then(() => {
         this.platform.device('Done.');
-      }).catch((e: any) => {
-        this.platform.log.error(`BLE pushChanges Error Message: ${e.message}`);
+      }).catch(async (e: any) => {
+        this.platform.log.error(`Bot: ${this.accessory.displayName} BLE Connection failed, Error Message: ${JSON.stringify(e.message)}`);
+        this.platform.log.warn(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
+        await this.openAPIpushChanges();
       });
     } else if (this.device.bot?.mode === 'switch') {
-      this.platform.device(`Press Mode: ${this.device.bot?.mode}`);
+      this.platform.device(`Bot: ${this.accessory.displayName} Press Mode: ${this.device.bot?.mode}`);
       switchbot.discover({ model: 'H', quick: true, id: this.device.bleMac }).then((device_list) => {
-        this.platform.log.info(`${this.accessory.displayName}, On: ${this.SwitchOn}`);
+        this.platform.log.info(`Bot: ${this.accessory.displayName} On: ${this.SwitchOn}`);
         return this.turnOnOff(device_list);
       }).then(() => {
         this.platform.device('Done.');
-      }).catch((e: any) => {
-        this.platform.log.error(`BLE pushChanges Error Message: ${e.message}`);
+      }).catch(async (e: any) => {
+        this.platform.log.error(`Bot: ${this.accessory.displayName} BLE Connection failed, Error Message: ${JSON.stringify(e.message)}`);
+        this.platform.log.warn(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
+        await this.openAPIpushChanges();
       });
     } else {
-      this.platform.log.error('Mode Not Set.');
+      this.platform.log.error(`Bot: ${this.accessory.displayName} Mode Not Set.`);
     }
   }
 
@@ -321,42 +322,34 @@ export class Bot {
   }
 
   private async openAPIpushChanges() {
+    this.platform.debug(`Bot: ${this.accessory.displayName} OpenAPI pushChanges`);
     const payload = {
       commandType: 'command',
       parameter: 'default',
-    } as any;
+    } as payload;
 
     if (this.device.bot?.mode === 'switch' && this.SwitchOn) {
       payload.command = 'turnOn';
       this.SwitchOn = true;
-      this.platform.debug(`Switch Mode, Turning ${this.SwitchOn}`);
+      this.platform.debug(`Bot: ${this.accessory.displayName} Switch Mode, Turning ${this.SwitchOn}`);
     } else if (this.device.bot?.mode === 'switch' && !this.SwitchOn) {
       payload.command = 'turnOff';
       this.SwitchOn = false;
-      this.platform.debug(`Switch Mode, Turning ${this.SwitchOn}`);
+      this.platform.debug(`Bot: ${this.accessory.displayName} Switch Mode, Turning ${this.SwitchOn}`);
     } else if (this.device.bot?.mode === 'press') {
       payload.command = 'press';
-      this.platform.debug('Press Mode');
+      this.platform.debug(`Bot: ${this.accessory.displayName} Press Mode`);
       this.SwitchOn = false;
     } else {
-      throw new Error('Bot Device Paramters not set for this Bot.');
+      throw new Error(`Bot: ${this.accessory.displayName} Device Paramters not set for this Bot.`);
     }
 
-    this.platform.log.info(
-      'Sending request for',
-      this.accessory.displayName,
-      'to SwitchBot API. command:',
-      payload.command,
-      'parameter:',
-      payload.parameter,
-      'commandType:',
-      payload.commandType,
-    );
-    this.platform.debug(`Bot ${this.accessory.displayName} pushchanges: ${JSON.stringify(payload)}`);
+    this.platform.log.info(`Bot: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
+      + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
 
     // Make the API request
     const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload));
-    this.platform.debug(`Bot ${this.accessory.displayName} Changes pushed: ${JSON.stringify(push.data)}`);
+    this.platform.debug(`Bot ${this.accessory.displayName} pushchanges: ${JSON.stringify(push.data)}`);
     this.statusCode(push);
   }
 
@@ -365,27 +358,27 @@ export class Bot {
    */
   updateHomeKitCharacteristics() {
     if (this.SwitchOn === undefined) {
-      this.platform.debug(`Bot ${this.accessory.displayName} On: ${this.SwitchOn}`);
+      this.platform.debug(`Bot: ${this.accessory.displayName} On: ${this.SwitchOn}`);
     } else {
       if (this.device.bot?.deviceType === 'switch') {
         this.switchService!.updateCharacteristic(this.platform.Characteristic.On, this.SwitchOn);
       } else {
         this.outletService!.updateCharacteristic(this.platform.Characteristic.On, this.SwitchOn);
       }
-      this.platform.device(`Bot ${this.accessory.displayName} updateCharacteristic On: ${this.SwitchOn}`);
+      this.platform.device(`Bot: ${this.accessory.displayName} updateCharacteristic On: ${this.SwitchOn}`);
     }
     if (this.device.ble) {
       if (this.BatteryLevel === undefined) {
-        this.platform.debug(`Bot ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
+        this.platform.debug(`Bot: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
       } else {
         this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
-        this.platform.device(`Bot ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
+        this.platform.device(`Bot: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
       }
       if (this.StatusLowBattery === undefined) {
-        this.platform.debug(`Bot ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
+        this.platform.debug(`Bot: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
       } else {
         this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
-        this.platform.device(`Bot ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
+        this.platform.device(`Bot: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
       }
     }
   }
@@ -405,28 +398,29 @@ export class Bot {
   private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
     switch (push.data.statusCode) {
       case 151:
-        this.platform.log.error('Command not supported by this device type.');
+        this.platform.log.error(`Bot: ${this.accessory.displayName} Command not supported by this device type.`);
         break;
       case 152:
-        this.platform.log.error('Device not found.');
+        this.platform.log.error(`Bot: ${this.accessory.displayName} Device not found.`);
         break;
       case 160:
-        this.platform.log.error('Command is not supported.');
+        this.platform.log.error(`Bot: ${this.accessory.displayName} Command is not supported.`);
         break;
       case 161:
-        this.platform.log.error('Device is offline.');
+        this.platform.log.error(`Bot: ${this.accessory.displayName} Device is offline.`);
         break;
       case 171:
-        this.platform.log.error('Hub Device is offline.');
+        this.platform.log.error(`Bot: ${this.accessory.displayName} Hub Device is offline.`);
         break;
       case 190:
-        this.platform.log.error('Device internal error due to device states not synchronized with server. Or command fomrat is invalid.');
+        // eslint-disable-next-line max-len
+        this.platform.log.error(`Bot: ${this.accessory.displayName} Device internal error due to device states not synchronized with server. Or command fomrat is invalid.`);
         break;
       case 100:
-        this.platform.debug('Command successfully sent.');
+        this.platform.debug(`Bot: ${this.accessory.displayName} Command successfully sent.`);
         break;
       default:
-        this.platform.debug('Unknown statusCode.');
+        this.platform.debug(`Bot: ${this.accessory.displayName} Unknown statusCode.`);
     }
   }
 
@@ -434,7 +428,7 @@ export class Bot {
    * Handle requests to set the "On" characteristic
    */
   private handleOnSet(value: CharacteristicValue) {
-    this.platform.debug(`Bot ${this.accessory.displayName} - Set On: ${value}`);
+    this.platform.debug(`Bot: ${this.accessory.displayName} On: ${value}`);
     this.SwitchOn = value;
     this.doBotUpdate.next();
   }
