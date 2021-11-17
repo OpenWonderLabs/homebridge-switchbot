@@ -305,7 +305,7 @@ export class Humidifier {
         this.onState = ad.serviceData.onState;
         this.percentage = ad.serviceData.percentage;
         this.platform.device(`Humidifier: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-        this.platform.device(`Humidifier: ${this.accessory.displayName} Model: ${ad.serviceData.model}, Model Name: ${ad.serviceData.modelName},`
+        this.platform.device(`Humidifier: ${this.accessory.displayName} model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName},`
           + `autoMode: ${ad.serviceData.autoMode}, onState: ${ad.serviceData.onState}, percentage: ${ad.serviceData.percentage}`);
       };
       // Wait 10 seconds
@@ -349,6 +349,7 @@ export class Humidifier {
     //} else {
     await this.OpenAPIpushChanges();
     //}
+    this.refreshStatus();
   }
 
   private async BLEpushChanges() {

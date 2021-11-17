@@ -147,6 +147,7 @@ export class IndoorCam {
     const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
     this.platform.debug(`Indoor Cam: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
     this.statusCode(push);
+    this.refreshStatus();
   }
 
   updateHomeKitCharacteristics() {

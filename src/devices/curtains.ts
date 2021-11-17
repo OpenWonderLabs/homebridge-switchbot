@@ -399,8 +399,9 @@ export class Curtain {
         this.battery = ad.serviceData.battery;
         this.position = ad.serviceData.position;
         this.lightLevel = ad.serviceData.lightLevel;
-        this.platform.device(`Curtain: ${this.accessory.displayName} Calibration: ${ad.serviceData.calibration}, `
-          + `Position: ${ad.serviceData.position}, Light Level: ${ad.serviceData.lightLevel}, Battery: ${ad.serviceData.battery}`);
+        this.platform.device(`Curtain: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+        this.platform.device(`Curtain: ${this.accessory.displayName} calibration: ${ad.serviceData.calibration}, `
+          + `position: ${ad.serviceData.position}, lightLevel: ${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}`);
       };
       // Wait 10 seconds
       return switchbot.wait(10000);
@@ -436,6 +437,7 @@ export class Curtain {
     } else {
       await this.OpenAPIpushChanges();
     }
+    this.refreshStatus();
   }
 
   private async BLEpushChanges() {

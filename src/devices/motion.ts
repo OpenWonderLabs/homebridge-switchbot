@@ -180,8 +180,8 @@ export class Motion {
         this.battery = ad.serviceData.battery;
         this.lightLevel = ad.serviceData.lightLevel;
         this.platform.device(`Motion Sensor: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-        this.platform.device(`Motion Sensor: ${this.accessory.displayName} Movement: ${ad.serviceData.movement}, LightLevel: `
-          + `${ad.serviceData.lightLevel}, Battery: ${ad.serviceData.battery}`);
+        this.platform.device(`Motion Sensor: ${this.accessory.displayName} movement: ${ad.serviceData.movement}, lightLevel: `
+          + `${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}`);
       };
       // Wait 10 seconds
       return switchbot.wait(10000);

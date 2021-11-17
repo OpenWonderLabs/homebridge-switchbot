@@ -260,9 +260,9 @@ export class Meter {
         this.humidity = ad.serviceData.humidity;
         this.battery = ad.serviceData.battery;
         this.platform.device(`Meter: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-        this.platform.device(`Meter: ${this.accessory.displayName} Model: ${ad.serviceData.model}, Model Name: ${ad.serviceData.modelName},`
-          + `Temperature: ${ad.serviceData.temperature}, Fahrenheit: ${ad.serviceData.fahrenheit}, Humidity: ${ad.serviceData.humidity}`
-          + `Battery: ${ad.serviceData.battery}`);
+        this.platform.device(`Meter: ${this.accessory.displayName} model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName}, `
+          + `temperature: ${ad.serviceData.temperature}, fahrenheit: ${ad.serviceData.fahrenheit}, humidity: ${ad.serviceData.humidity}, `
+          + `battery: ${ad.serviceData.battery}`);
       };
       // Wait 10 seconds
       return switchbot.wait(10000);

@@ -225,9 +225,9 @@ export class Bot {
         this.mode = ad.serviceData.mode;
         this.state = ad.serviceData.state;
         this.battery = ad.serviceData.battery;
-        this.platform.device(`${this.device.bleMac}: ${JSON.stringify(ad.serviceData)}`);
-        this.platform.device(`${this.accessory.displayName}, Model: ${ad.serviceData.model}, Model Name: ${ad.serviceData.modelName},`
-          + ` Mode: ${ad.serviceData.mode}, State: ${ad.serviceData.state}, Battery: ${ad.serviceData.battery}`);
+        this.platform.device(`Bot: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+        this.platform.device(`Bot: ${this.accessory.displayName}, model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName},`
+          + ` mode: ${ad.serviceData.mode}, state: ${ad.serviceData.state}, battery: ${ad.serviceData.battery}`);
       };
       // Wait 10 seconds
       return switchbot.wait(10000);
@@ -237,8 +237,8 @@ export class Bot {
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     }).catch(async (e: any) => {
-      this.platform.log.error(`BLE Connection Failed: ${e.message}`);
-      this.platform.log.warn('Using OpenAPI Connection');
+      this.platform.log.error(`Bot: ${this.accessory.displayName} BLE Connection failed, Error Message: ${JSON.stringify(e.message)}`);
+      this.platform.log.warn(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
       await this.openAPIRefreshStatus();
     });
   }
