@@ -65,39 +65,36 @@ export class Bot {
 
     // get the LightBulb service if it exists, otherwise create a new LightBulb service
     // you can create multiple services for each accessory
-    switch (device.bot!.deviceType) {
-      case 'switch':
-        // If outletService still pressent, then remove first
-        if (this.outletService) {
-          this.platform.device(`Bot: ${this.accessory.displayName} Removing Leftover outletService first`);
-        }
-        this.outletService = this.accessory.getService(this.platform.Service.Outlet);
-        accessory.removeService(this.outletService!);
+    if (device.bot?.deviceType === 'switch') {
+      // If outletService still pressent, then remove first
+      if (this.outletService) {
+        this.platform.device(`Bot: ${this.accessory.displayName} Removing Leftover outletService first`);
+      }
+      this.outletService = this.accessory.getService(this.platform.Service.Outlet);
+      accessory.removeService(this.outletService!);
 
-        // Add switchService
-        (this.switchService =
-          accessory.getService(this.platform.Service.Switch) ||
-          accessory.addService(this.platform.Service.Switch)), `${accessory.displayName} Switch`;
-        this.platform.log.info(`Bot: ${this.accessory.displayName} Displaying as Switch`);
+      // Add switchService
+      (this.switchService =
+        accessory.getService(this.platform.Service.Switch) ||
+        accessory.addService(this.platform.Service.Switch)), `${accessory.displayName} Switch`;
+      this.platform.log.info(`Bot: ${this.accessory.displayName} Displaying as Switch`);
 
-        this.switchService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
-        break;
-      case 'outlet':
-      default:
-        // If switchService still pressent, then remove first
-        if (this.switchService) {
-          this.platform.device(`Bot: ${this.accessory.displayName} Removing Leftover switchService first`);
-        }
-        this.switchService = this.accessory.getService(this.platform.Service.Switch);
-        accessory.removeService(this.switchService!);
+      this.switchService?.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+    } else {
+      // If switchService still pressent, then remove first
+      if (this.switchService) {
+        this.platform.device(`Bot: ${this.accessory.displayName} Removing Leftover switchService first`);
+      }
+      this.switchService = this.accessory.getService(this.platform.Service.Switch);
+      accessory.removeService(this.switchService!);
 
-        // Add outletService
-        (this.outletService =
-          accessory.getService(this.platform.Service.Outlet) ||
-          accessory.addService(this.platform.Service.Outlet)), `${accessory.displayName} Outlet`;
-        this.platform.log.info(`Bot: ${this.accessory.displayName} Displaying as Outlet`);
+      // Add outletService
+      (this.outletService =
+        accessory.getService(this.platform.Service.Outlet) ||
+        accessory.addService(this.platform.Service.Outlet)), `${accessory.displayName} Outlet`;
+      this.platform.log.info(`Bot: ${this.accessory.displayName} Displaying as Outlet`);
 
-        this.outletService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      this.outletService?.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
     }
 
     if (device.ble) {
