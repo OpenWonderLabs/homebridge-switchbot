@@ -137,9 +137,11 @@ export class Motion {
   }
 
   private async openAPIparseStatus() {
-    this.platform.device(`Motion Sensor: ${this.accessory.displayName} OpenAPI parseStatus`);
-    this.MotionDetected = Boolean(this.deviceStatus.body.moveDetected);
-    this.platform.debug(`Motion Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
+    if (this.platform.config.credentials?.openToken) {
+      this.platform.device(`Motion Sensor: ${this.accessory.displayName} OpenAPI parseStatus`);
+      this.MotionDetected = Boolean(this.deviceStatus.body.moveDetected);
+      this.platform.debug(`Motion Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
+    }
   }
 
   /**
@@ -192,22 +194,26 @@ export class Motion {
       this.updateHomeKitCharacteristics();
     }).catch(async (e: any) => {
       this.platform.log.error(`Motion Sensor: ${this.accessory.displayName} BLE Connection Failed: ${e.message}`);
-      this.platform.log.warn(`Motion Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
-      await this.openAPIRefreshStatus();
+      if (this.platform.config.credentials?.openToken) {
+        this.platform.log.warn(`Motion Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
+        await this.openAPIRefreshStatus();
+      }
     });
   }
 
   private async openAPIRefreshStatus() {
-    this.platform.debug(`Motion Sensor: ${this.accessory.displayName} OpenAPI RefreshStatus`);
-    try {
-      this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
-      this.platform.debug(`Motion Sensor: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
-      this.parseStatus();
-      this.updateHomeKitCharacteristics();
-    } catch (e: any) {
-      this.platform.log.error(`Motion Sensor: ${this.accessory.displayName} failed to refreshStatus, Error Message: ${JSON.stringify(e.message)}`);
-      this.platform.debug(`Motion Sensor: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
-      this.apiError(e);
+    if (this.platform.config.credentials?.openToken) {
+      this.platform.debug(`Motion Sensor: ${this.accessory.displayName} OpenAPI RefreshStatus`);
+      try {
+        this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
+        this.platform.debug(`Motion Sensor: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+        this.parseStatus();
+        this.updateHomeKitCharacteristics();
+      } catch (e: any) {
+        this.platform.log.error(`Motion Sensor: ${this.accessory.displayName} failed to refreshStatus, Error Message: ${JSON.stringify(e.message)}`);
+        this.platform.debug(`Motion Sensor: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
+        this.apiError(e);
+      }
     }
   }
 

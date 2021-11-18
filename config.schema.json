@@ -51,10 +51,10 @@
                   "title": "Hide Device",
                   "type": "boolean",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].ble && model.options.devices[arrayIndices].deviceId);"
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].ble);"
                   }
                 },
-                "deviceType": {
+                "configDeviceType": {
                   "title": "Device Type",
                   "type": "string",
                   "oneOf": [
@@ -117,11 +117,19 @@
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
                   }
                 },
+                "configDeviceName": {
+                  "title": "Device Name",
+                  "type": "string",
+                  "placeholder": "Bot",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].ble);"
+                  }
+                },
                 "ble": {
-                  "title": "Enable BLE Connection",
+                  "title": "Enable Bluetooth Low Energy (BLE) Connection",
                   "type": "boolean",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType && model.options.devices[arrayIndices].deviceId) && !model.options.devices[arrayIndices].deviceType === 'Color Bulb' && !model.options.devices[arrayIndices].deviceType === 'Plug';"
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
                   }
                 },
                 "bot": {
@@ -145,7 +153,7 @@
                         }
                       ],
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Bot' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Bot' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "deviceType": {
@@ -167,7 +175,7 @@
                       ],
                       "placeholder": "outlet",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Bot' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].bot && model.options.devices[arrayIndices].bot.mode);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Bot' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].bot && model.options.devices[arrayIndices].bot.mode);"
                       }
                     }
                   }
@@ -179,14 +187,14 @@
                       "title": "Hide Meter's Temperature Sensor",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Meter' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Meter' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "hide_humidity": {
                       "title": "Hide Meter's Humidity Sensor",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Meter' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Meter' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "unit": {
@@ -207,7 +215,7 @@
                         }
                       ],
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Meter' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].meter  && !model.options.devices[arrayIndices].meter.hide_temperature);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Meter' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].meter  && !model.options.devices[arrayIndices].meter.hide_temperature);"
                       }
                     }
                   }
@@ -219,7 +227,7 @@
                       "title": "Hide Humidifier's Temperature Sensor",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Humidifier' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Humidifier' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "set_minStep": {
@@ -227,7 +235,7 @@
                       "type": "number",
                       "placeholder": "1",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Humidifier' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Humidifier' && model.options.devices[arrayIndices].deviceId);"
                       }
                     }
                   }
@@ -239,14 +247,14 @@
                       "title": "Disable Grouping",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "hide_lightsensor": {
                       "title": "Hide Curtain's Light Sensor",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "set_minlux": {
@@ -254,7 +262,7 @@
                       "type": "number",
                       "placeholder": "1",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].curtain.hide_lightsensor);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].curtain.hide_lightsensor);"
                       }
                     },
                     "set_maxlux": {
@@ -262,7 +270,7 @@
                       "type": "number",
                       "placeholder": "6001",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].curtain.hide_lightsensor);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].curtain.hide_lightsensor);"
                       }
                     },
                     "refreshRate": {
@@ -272,7 +280,7 @@
                       "placeholder": 5,
                       "description": "Indicates the number of seconds between before refreshing Curtain status while updating slide progress.",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "set_minStep": {
@@ -280,7 +288,7 @@
                       "type": "number",
                       "placeholder": "1",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "set_min": {
@@ -288,7 +296,7 @@
                       "type": "number",
                       "placeholder": "0",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "set_max": {
@@ -296,7 +304,7 @@
                       "type": "number",
                       "placeholder": "100",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
                       }
                     }
                   }
@@ -308,14 +316,14 @@
                       "title": "Hide Curtains's Light Sensor",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Contact Sensor' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Contact Sensor' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "hide_motionsensor": {
                       "title": "Hide Curtains's Motion Sensor",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Contact Sensor' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Contact Sensor' && model.options.devices[arrayIndices].deviceId);"
                       }
                     }
                   }
@@ -328,7 +336,7 @@
                       "type": "number",
                       "placeholder": "1",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceType === 'Color Bulb' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Color Bulb' && model.options.devices[arrayIndices].deviceId);"
                       }
                     }
                   }
@@ -354,7 +362,7 @@
                     "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId);"
                   }
                 },
-                "remoteType": {
+                "configRemoteType": {
                   "title": "Remote Type",
                   "type": "string",
                   "oneOf": [
@@ -532,7 +540,7 @@
                       "title": "Hide Auto Mode on IR Air Conditioners",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].remoteType === 'Air Conditioner' || model.options.irdevices[arrayIndices].remoteType === 'DIY Air Conditioner') && model.options.irdevices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Air Conditioner' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Air Conditioner') && model.options.irdevices[arrayIndices].deviceId);"
                       }
                     }
                   }
@@ -544,14 +552,14 @@
                       "title": "Enable Swing Mode by Device ID",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].remoteType === 'Fan' || model.options.irdevices[arrayIndices].remoteType === 'DIY Fan') && model.options.irdevices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Fan' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Fan') && model.options.irdevices[arrayIndices].deviceId);"
                       }
                     },
                     "rotation_speed": {
                       "title": "Enable Rotation Speed by Device ID",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].remoteType === 'Fan' || model.options.irdevices[arrayIndices].remoteType === 'DIY Fan') && model.options.irdevices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Fan' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Fan') && model.options.irdevices[arrayIndices].deviceId);"
                       }
                     },
                     "set_minStep": {
@@ -559,7 +567,7 @@
                       "type": "number",
                       "placeholder": "1",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].remoteType === 'Fan' || model.options.irdevices[arrayIndices].remoteType === 'DIY Fan') && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].irfan  && !model.options.irdevices[arrayIndices].irfan.rotation_speed);"
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Fan' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Fan') && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].irfan  && !model.options.irdevices[arrayIndices].irfan.rotation_speed);"
                       }
                     },
                     "set_min": {
@@ -567,7 +575,7 @@
                       "type": "number",
                       "placeholder": "0",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].remoteType === 'Fan' || model.options.irdevices[arrayIndices].remoteType === 'DIY Fan') && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].irfan  && !model.options.irdevices[arrayIndices].irfan.rotation_speed);"
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Fan' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Fan') && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].irfan  && !model.options.irdevices[arrayIndices].irfan.rotation_speed);"
                       }
                     },
                     "set_max": {
@@ -575,7 +583,7 @@
                       "type": "number",
                       "placeholder": "100",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].remoteType === 'Fan' || model.options.irdevices[arrayIndices].remoteType === 'DIY Fan') && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].irfan  && !model.options.irdevices[arrayIndices].irfan.rotation_speed);"
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Fan' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Fan') && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].irfan  && !model.options.irdevices[arrayIndices].irfan.rotation_speed);"
                       }
                     }
                   }
@@ -587,7 +595,7 @@
                       "title": "Disable Power Command",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].remoteType === 'TV' || model.options.irdevices[arrayIndices].remoteType === 'DIY TV' || model.options.irdevices[arrayIndices].remoteType === 'Projector' || model.options.irdevices[arrayIndices].remoteType === 'DIY Projector' || model.options.irdevices[arrayIndices].remoteType === 'Set Top Box' || model.options.irdevices[arrayIndices].remoteType === 'DIY Set Top Box' || model.options.irdevices[arrayIndices].remoteType === 'IPTV' || model.options.irdevices[arrayIndices].remoteType === 'DIY IPTV' || model.options.irdevices[arrayIndices].remoteType === 'DVD' || model.options.irdevices[arrayIndices].remoteType === 'DIY DVD' || model.options.irdevices[arrayIndices].remoteType === 'Speaker' || model.options.irdevices[arrayIndices].remoteType === 'DIY Speaker') && model.options.irdevices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'TV' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY TV' || model.options.irdevices[arrayIndices].configRemoteType === 'Projector' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Projector' || model.options.irdevices[arrayIndices].configRemoteType === 'Set Top Box' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Set Top Box' || model.options.irdevices[arrayIndices].configRemoteType === 'IPTV' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY IPTV' || model.options.irdevices[arrayIndices].configRemoteType === 'DVD' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY DVD' || model.options.irdevices[arrayIndices].configRemoteType === 'Speaker' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Speaker') && model.options.irdevices[arrayIndices].deviceId);"
                       }
                     }
                   }
@@ -607,7 +615,7 @@
                         }
                       ],
                       "condition": {
-                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].remoteType === 'Others' && model.options.irdevices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType === 'Others' && model.options.irdevices[arrayIndices].deviceId);"
                       }
                     },
                     "commandOn": {
@@ -615,7 +623,7 @@
                       "type": "string",
                       "placeholder": "On",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].remoteType === 'Others' && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].other  && model.options.irdevices[arrayIndices].other.deviceType);"
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType === 'Others' && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].other  && model.options.irdevices[arrayIndices].other.deviceType);"
                       }
                     },
                     "commandOff": {
@@ -623,7 +631,7 @@
                       "type": "string",
                       "placeholder": "Off",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].remoteType === 'Others' && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].other  && !model.options.irdevices[arrayIndices].other.deviceType);"
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType === 'Others' && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].other  && !model.options.irdevices[arrayIndices].other.deviceType);"
                       }
                     }
                   }
@@ -695,8 +703,9 @@
           "items": [
             "options.devices[].deviceId",
             "options.devices[].hide_device",
-            "options.devices[].deviceType",
             "options.devices[].ble",
+            "options.devices[].configDeviceName",
+            "options.devices[].configDeviceType",
             "options.devices[].bot.mode",
             "options.devices[].bot.deviceType",
             "options.devices[].meter.hide_temperature",
@@ -737,7 +746,7 @@
           "items": [
             "options.irdevices[].deviceId",
             "options.irdevices[].hide_device",
-            "options.irdevices[].remoteType",
+            "options.irdevices[].configRemoteType",
             "options.irdevices[].irair.hide_automode",
             "options.irdevices[].irfan.rotation_speed",
             "options.irdevices[].irfan.swing_mode",

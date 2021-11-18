@@ -38,7 +38,8 @@ export type options = {
 };
 
 export interface devicesConfig extends device {
-  deviceType: string;
+  configDeviceType: string;
+  configDeviceName?: string;
   deviceId: string;
   bot?: bot;
   meter?: meter;
@@ -87,7 +88,7 @@ export type colorbulb = {
 };
 
 export interface irDevicesConfig extends irdevice {
-  type?: string;
+  configRemoteType?: string;
   deviceId: string;
   irfan?: irfan;
   irair?: irair;

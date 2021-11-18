@@ -165,7 +165,7 @@ export class Bot {
     this.platform.debug(`Bot: ${this.accessory.displayName} BLE parseStatus`);
     // BLEmode (true if Switch Mode) | (false if Press Mode)
     if (this.mode) {
-      this.platform.device(`Switch Mode, mode: ${JSON.stringify(this.mode)}`);
+      this.platform.device(`Bot: ${this.accessory.displayName} Switch Mode, mode: ${JSON.stringify(this.mode)}`);
     }
     this.SwitchOn = Boolean(this.state);
     this.BatteryLevel = Number(this.battery);
@@ -177,15 +177,17 @@ export class Bot {
     if (Number.isNaN(this.BatteryLevel)) {
       this.BatteryLevel = 100;
     }
-    this.platform.debug(`Bot ${this.accessory.displayName} On: ${this.SwitchOn}, BatteryLevel: ${this.BatteryLevel}`);
+    this.platform.debug(`Bot: ${this.accessory.displayName} On: ${this.SwitchOn}, BatteryLevel: ${this.BatteryLevel}`);
   }
 
   private async openAPIparseStatus() {
-    this.platform.debug(`Bot: ${this.accessory.displayName} OpenAPI parseStatus`);
-    if (this.device.bot?.mode === 'press') {
-      this.SwitchOn = false;
+    if (this.platform.config.credentials?.openToken) {
+      this.platform.debug(`Bot: ${this.accessory.displayName} OpenAPI parseStatus`);
+      if (this.device.bot?.mode === 'press') {
+        this.SwitchOn = false;
+      }
+      this.platform.debug(`Bot ${this.accessory.displayName} On: ${this.SwitchOn}`);
     }
-    this.platform.debug(`Bot ${this.accessory.displayName} On: ${this.SwitchOn}`);
   }
 
   /**
@@ -237,31 +239,35 @@ export class Bot {
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     }).catch(async (e: any) => {
-      this.platform.log.error(`Bot: ${this.accessory.displayName} BLE Connection failed, Error Message: ${JSON.stringify(e.message)}`);
-      this.platform.log.warn(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
-      await this.openAPIRefreshStatus();
+      this.platform.log.error(`Bot: ${this.accessory.displayName} BLE Connection failed refreshStatus, Error Message: ${JSON.stringify(e.message)}`);
+      if (this.platform.config.credentials?.openToken) {
+        this.platform.log.warn(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
+        await this.openAPIRefreshStatus();
+      }
     });
   }
 
   private async openAPIRefreshStatus() {
-    this.platform.debug(`Bot: ${this.accessory.displayName} OpenAPI refreshStatus`);
-    try {
-      this.deviceStatus = {
-        statusCode: 100,
-        body: {
-          deviceId: this.device.deviceId!,
-          deviceType: this.device.deviceType!,
-          hubDeviceId: this.device.hubDeviceId,
-          power: 'on',
-        },
-        message: 'success',
-      };
-      this.parseStatus();
-      this.updateHomeKitCharacteristics();
-    } catch (e: any) {
-      this.platform.log.error(`Bot: ${this.accessory.displayName} failed to refresh status, Error Message: ${JSON.stringify(e.message)}`);
-      this.platform.debug(`Bot: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
-      this.apiError(e);
+    if (this.platform.config.credentials?.openToken) {
+      this.platform.debug(`Bot: ${this.accessory.displayName} OpenAPI refreshStatus`);
+      try {
+        this.deviceStatus = {
+          statusCode: 100,
+          body: {
+            deviceId: this.device.deviceId!,
+            deviceType: this.device.deviceType!,
+            hubDeviceId: this.device.hubDeviceId,
+            power: 'on',
+          },
+          message: 'success',
+        };
+        this.parseStatus();
+        this.updateHomeKitCharacteristics();
+      } catch (e: any) {
+        this.platform.log.error(`Bot: ${this.accessory.displayName} failed to refresh status, Error Message: ${JSON.stringify(e.message)}`);
+        this.platform.debug(`Bot: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
+        this.apiError(e);
+      }
     }
   }
 
@@ -290,11 +296,13 @@ export class Bot {
         this.platform.log.info(`Bot: ${this.accessory.displayName}, On: ${this.SwitchOn}`);
         return device_list[0].press({ id: this.device.bleMac });
       }).then(() => {
-        this.platform.device('Done.');
+        this.platform.device(`Bot: ${this.accessory.displayName} Done.`);
       }).catch(async (e: any) => {
-        this.platform.log.error(`Bot: ${this.accessory.displayName} BLE Connection failed, Error Message: ${JSON.stringify(e.message)}`);
-        this.platform.log.warn(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
-        await this.openAPIpushChanges();
+        this.platform.log.error(`Bot: ${this.accessory.displayName} BLE Connection failed pushChanges, Error Message: ${JSON.stringify(e.message)}`);
+        if (this.platform.config.credentials?.openToken) {
+          this.platform.log.warn(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
+          await this.openAPIpushChanges();
+        }
       });
     } else if (this.device.bot?.mode === 'switch') {
       this.platform.device(`Bot: ${this.accessory.displayName} Press Mode: ${this.device.bot?.mode}`);
@@ -302,11 +310,13 @@ export class Bot {
         this.platform.log.info(`Bot: ${this.accessory.displayName} On: ${this.SwitchOn}`);
         return this.turnOnOff(device_list);
       }).then(() => {
-        this.platform.device('Done.');
+        this.platform.device(`Bot: ${this.accessory.displayName} Done.`);
       }).catch(async (e: any) => {
-        this.platform.log.error(`Bot: ${this.accessory.displayName} BLE Connection failed, Error Message: ${JSON.stringify(e.message)}`);
-        this.platform.log.warn(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
-        await this.openAPIpushChanges();
+        this.platform.log.error(`Bot: ${this.accessory.displayName} BLE Connection failed pushChanges, Error Message: ${JSON.stringify(e.message)}`);
+        if (this.platform.config.credentials?.openToken) {
+          this.platform.log.warn(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
+          await this.openAPIpushChanges();
+        }
       });
     } else {
       this.platform.log.error(`Bot: ${this.accessory.displayName} Mode Not Set.`);
@@ -322,35 +332,37 @@ export class Bot {
   }
 
   private async openAPIpushChanges() {
-    this.platform.debug(`Bot: ${this.accessory.displayName} OpenAPI pushChanges`);
-    const payload = {
-      commandType: 'command',
-      parameter: 'default',
-    } as payload;
+    if (this.platform.config.credentials?.openToken) {
+      this.platform.debug(`Bot: ${this.accessory.displayName} OpenAPI pushChanges`);
+      const payload = {
+        commandType: 'command',
+        parameter: 'default',
+      } as payload;
 
-    if (this.device.bot?.mode === 'switch' && this.SwitchOn) {
-      payload.command = 'turnOn';
-      this.SwitchOn = true;
-      this.platform.debug(`Bot: ${this.accessory.displayName} Switch Mode, Turning ${this.SwitchOn}`);
-    } else if (this.device.bot?.mode === 'switch' && !this.SwitchOn) {
-      payload.command = 'turnOff';
-      this.SwitchOn = false;
-      this.platform.debug(`Bot: ${this.accessory.displayName} Switch Mode, Turning ${this.SwitchOn}`);
-    } else if (this.device.bot?.mode === 'press') {
-      payload.command = 'press';
-      this.platform.debug(`Bot: ${this.accessory.displayName} Press Mode`);
-      this.SwitchOn = false;
-    } else {
-      throw new Error(`Bot: ${this.accessory.displayName} Device Paramters not set for this Bot.`);
+      if (this.device.bot?.mode === 'switch' && this.SwitchOn) {
+        payload.command = 'turnOn';
+        this.SwitchOn = true;
+        this.platform.debug(`Bot: ${this.accessory.displayName} Switch Mode, Turning ${this.SwitchOn}`);
+      } else if (this.device.bot?.mode === 'switch' && !this.SwitchOn) {
+        payload.command = 'turnOff';
+        this.SwitchOn = false;
+        this.platform.debug(`Bot: ${this.accessory.displayName} Switch Mode, Turning ${this.SwitchOn}`);
+      } else if (this.device.bot?.mode === 'press') {
+        payload.command = 'press';
+        this.platform.debug(`Bot: ${this.accessory.displayName} Press Mode`);
+        this.SwitchOn = false;
+      } else {
+        throw new Error(`Bot: ${this.accessory.displayName} Device Paramters not set for this Bot.`);
+      }
+
+      this.platform.log.info(`Bot: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
+        + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
+
+      // Make the API request
+      const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload));
+      this.platform.debug(`Bot ${this.accessory.displayName} pushchanges: ${JSON.stringify(push.data)}`);
+      this.statusCode(push);
     }
-
-    this.platform.log.info(`Bot: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
-      + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
-
-    // Make the API request
-    const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload));
-    this.platform.debug(`Bot ${this.accessory.displayName} pushchanges: ${JSON.stringify(push.data)}`);
-    this.statusCode(push);
   }
 
   /**

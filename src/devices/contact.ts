@@ -188,20 +188,22 @@ export class Contact {
   }
 
   private async openAPIparseStatus() {
-    this.platform.debug(`Contact Sensor: ${this.accessory.displayName} OpenAPI parseStatus`);
-    if (this.deviceStatus.body.openState === 'open') {
-      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
-      this.platform.device(`Contact Sensor: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
-    } else if (this.deviceStatus.body.openState === 'close') {
-      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
-      this.platform.device(`Contact Sensor: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
-    } else {
-      this.platform.device(`Contact Sensor: ${this.accessory.displayName} openState: ${this.deviceStatus.body.openState}`);
+    if (this.platform.config.credentials?.openToken) {
+      this.platform.debug(`Contact Sensor: ${this.accessory.displayName} OpenAPI parseStatus`);
+      if (this.deviceStatus.body.openState === 'open') {
+        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
+        this.platform.device(`Contact Sensor: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
+      } else if (this.deviceStatus.body.openState === 'close') {
+        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+        this.platform.device(`Contact Sensor: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
+      } else {
+        this.platform.device(`Contact Sensor: ${this.accessory.displayName} openState: ${this.deviceStatus.body.openState}`);
+      }
+      if (this.device.contact?.hide_motionsensor) {
+        this.MotionDetected = Boolean(this.deviceStatus.body.moveDetected);
+      }
+      this.platform.debug(`Contact Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
     }
-    if (this.device.contact?.hide_motionsensor) {
-      this.MotionDetected = Boolean(this.deviceStatus.body.moveDetected);
-    }
-    this.platform.debug(`Contact Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
   }
 
   /**
@@ -238,7 +240,6 @@ export class Contact {
       // Set an event hander
       switchbot.onadvertisement = (ad: any) => {
         this.serviceData = ad.serviceData;
-        this.platform.device(`${this.device.bleMac}: ${JSON.stringify(ad.serviceData)}`);
         this.movement = ad.serviceData.movement;
         this.doorState = ad.serviceData.doorState;
         this.lightLevel = ad.serviceData.lightLevel;
@@ -256,22 +257,27 @@ export class Contact {
       this.updateHomeKitCharacteristics();
     }).catch(async (e: any) => {
       this.platform.log.error(`Contact Sensor: ${this.accessory.displayName} BLE Connection failed, Error Message: ${JSON.stringify(e.message)}`);
-      this.platform.log.warn(`Contact Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
-      await this.openAPIRefreshStatus();
+      if (this.platform.config.credentials?.openToken) {
+        this.platform.log.warn(`Contact Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
+        await this.openAPIRefreshStatus();
+      }
     });
   }
 
   private async openAPIRefreshStatus() {
-    this.platform.debug(`Contact Sensor: ${this.accessory.displayName} OpenAPI refreshStatus`);
-    try {
-      this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
-      this.platform.debug(`Contact Sensor: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
-      this.parseStatus();
-      this.updateHomeKitCharacteristics();
-    } catch (e: any) {
-      this.platform.log.error(`Contact Sensor: ${this.accessory.displayName} failed to refresh status. Error Message: ${JSON.stringify(e.message)}`);
-      this.platform.debug(`Contact Sensor: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
-      this.apiError(e);
+    if (this.platform.config.credentials?.openToken) {
+      this.platform.debug(`Contact Sensor: ${this.accessory.displayName} OpenAPI refreshStatus`);
+      try {
+        this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
+        this.platform.debug(`Contact Sensor: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+        this.parseStatus();
+        this.updateHomeKitCharacteristics();
+      } catch (e: any) {
+        this.platform.log.error(`Contact Sensor: ${this.accessory.displayName} failed to refresh status.`
+          + ` Error Message: ${JSON.stringify(e.message)}`);
+        this.platform.debug(`Contact Sensor: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
+        this.apiError(e);
+      }
     }
   }
 

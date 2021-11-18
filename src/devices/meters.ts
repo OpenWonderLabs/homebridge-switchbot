@@ -191,33 +191,35 @@ export class Meter {
   }
 
   private async openAPIparseStatus() {
-    this.platform.debug(`Meter: ${this.accessory.displayName} OpenAPI parseStatus`);
-    if (this.deviceStatus.body) {
-      this.BatteryLevel = 100;
-    } else {
-      this.BatteryLevel = 10;
-    }
-    if (this.BatteryLevel < 15) {
-      this.StatusLowBattery = 1;
-    } else {
-      this.StatusLowBattery = 0;
-    }
-    // Current Relative Humidity
-    if (!this.device.meter?.hide_humidity) {
-      this.CurrentRelativeHumidity = this.deviceStatus.body.humidity!;
-      this.platform.debug(`Meter: ${this.accessory.displayName} Humidity: ${this.CurrentRelativeHumidity}%`);
-    }
-
-    // Current Temperature
-    if (!this.device.meter?.hide_temperature) {
-      if (this.device.meter?.unit === 1) {
-        this.CurrentTemperature = this.toFahrenheit(this.deviceStatus.body.temperature!);
-      } else if (this.device.meter?.unit === 0) {
-        this.CurrentTemperature = this.toCelsius(this.deviceStatus.body.temperature!);
+    if (this.platform.config.credentials?.openToken) {
+      this.platform.debug(`Meter: ${this.accessory.displayName} OpenAPI parseStatus`);
+      if (this.deviceStatus.body) {
+        this.BatteryLevel = 100;
       } else {
-        this.CurrentTemperature = Number(this.deviceStatus.body.temperature);
+        this.BatteryLevel = 10;
       }
-      this.platform.debug(`Meter: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c`);
+      if (this.BatteryLevel < 15) {
+        this.StatusLowBattery = 1;
+      } else {
+        this.StatusLowBattery = 0;
+      }
+      // Current Relative Humidity
+      if (!this.device.meter?.hide_humidity) {
+        this.CurrentRelativeHumidity = this.deviceStatus.body.humidity!;
+        this.platform.debug(`Meter: ${this.accessory.displayName} Humidity: ${this.CurrentRelativeHumidity}%`);
+      }
+
+      // Current Temperature
+      if (!this.device.meter?.hide_temperature) {
+        if (this.device.meter?.unit === 1) {
+          this.CurrentTemperature = this.toFahrenheit(this.deviceStatus.body.temperature!);
+        } else if (this.device.meter?.unit === 0) {
+          this.CurrentTemperature = this.toCelsius(this.deviceStatus.body.temperature!);
+        } else {
+          this.CurrentTemperature = Number(this.deviceStatus.body.temperature);
+        }
+        this.platform.debug(`Meter: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c`);
+      }
     }
   }
 
@@ -273,22 +275,26 @@ export class Meter {
       this.updateHomeKitCharacteristics();
     }).catch(async (e: any) => {
       this.platform.log.error(`Meter: ${this.accessory.displayName} BLE Connection failed, Error Message: ${JSON.stringify(e.message)}`);
-      this.platform.log.warn(`Meter: ${this.accessory.displayName} Using OpenAPI Connection`);
-      await this.openAPIRefreshStatus();
+      if (this.platform.config.credentials?.openToken) {
+        this.platform.log.warn(`Meter: ${this.accessory.displayName} Using OpenAPI Connection`);
+        await this.openAPIRefreshStatus();
+      }
     });
   }
 
   private async openAPIRefreshStatus() {
-    this.platform.debug(`Meter: ${this.accessory.displayName} OpenAPI RefreshStatus`);
-    try {
-      this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
-      this.platform.debug(`Meter: ${this.accessory.displayName} openAPIRefreshStatus: ${JSON.stringify(this.deviceStatus)}`);
-      this.parseStatus();
-      this.updateHomeKitCharacteristics();
-    } catch (e: any) {
-      this.platform.log.error(`Meter: ${this.accessory.displayName} failed to refresh status, Error Message: ${JSON.stringify(e.message)}`);
-      this.platform.debug(`Meter: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
-      this.apiError(e);
+    if (this.platform.config.credentials?.openToken) {
+      this.platform.debug(`Meter: ${this.accessory.displayName} OpenAPI RefreshStatus`);
+      try {
+        this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
+        this.platform.debug(`Meter: ${this.accessory.displayName} openAPIRefreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+        this.parseStatus();
+        this.updateHomeKitCharacteristics();
+      } catch (e: any) {
+        this.platform.log.error(`Meter: ${this.accessory.displayName} failed to refresh status, Error Message: ${JSON.stringify(e.message)}`);
+        this.platform.debug(`Meter: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
+        this.apiError(e);
+      }
     }
   }
 

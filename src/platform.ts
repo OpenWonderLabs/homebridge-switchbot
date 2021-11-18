@@ -47,7 +47,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
   // debugMode!: boolean;
   version = require('../package.json').version; // eslint-disable-line @typescript-eslint/no-var-requires
-  deviceStatus!: any;
+  deviceStatus!: deviceResponses;
+  registeringDevice!: boolean;
 
   constructor(public readonly log: Logger, public readonly config: SwitchBotPlatformConfig, public readonly api: API) {
     this.log.debug('Finished initializing platform:', this.config.name);
@@ -121,24 +122,33 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     // Device Config
     if (this.config.options.devices) {
-      for (const deviceConfig of this.config.options.devices!) {
-        if (!deviceConfig.hide_device && !deviceConfig.deviceType) {
-          throw new Error('The devices config section is missing the "Device Type" in the config, Check Your Conifg.');
-        }
-        if (!deviceConfig.deviceId) {
-          throw new Error('The devices config section is missing the "Device ID" in the config, Check Your Conifg.');
+      for (const deviceConfig of this.config.options.devices) {
+        if (!deviceConfig.hide_device) {
+          if (!deviceConfig.deviceId) {
+            this.log.error('The devices config section is missing the *Device ID* in the config, Check Your Conifg.');
+          }
+          if (!deviceConfig.configDeviceType) {
+            this.log.error('The devices config section is missing the *Device Type* in the config, Check Your Conifg.');
+          }
+          if (deviceConfig.bot) {
+            if (!deviceConfig.bot?.mode) {
+              this.log.error('You must set your Bot to Press or Switch Mode');
+            }
+          }
         }
       }
     }
 
     // IR Device Config
     if (this.config.options.irdevices) {
-      for (const irDeviceConfig of this.config.options.irdevices!) {
-        if (!irDeviceConfig.hide_device && !irDeviceConfig.remoteType) {
-          throw new Error('The devices config section is missing the "Device Type" in the config, Check Your Conifg.');
-        }
-        if (!irDeviceConfig.deviceId) {
-          throw new Error('The devices config section is missing the "Device ID" in the config, Check Your Conifg.');
+      for (const irDeviceConfig of this.config.options.irdevices) {
+        if (!irDeviceConfig.hide_device) {
+          if (!irDeviceConfig.configRemoteType) {
+            this.log.error('The devices config section is missing the *Device Type* in the config, Check Your Conifg.');
+          }
+          if (!irDeviceConfig.deviceId) {
+            this.log.error('The devices config section is missing the *Device ID* in the config, Check Your Conifg.');
+          }
         }
       }
     }
@@ -160,10 +170,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
 
     if (!this.config.credentials) {
-      throw new Error('Missing Credentials');
+      this.debug('Missing Credentials');
     }
-    if (!this.config.credentials.openToken) {
-      throw new Error('Missing openToken');
+    if (!this.config.credentials?.openToken) {
+      this.log.error('Missing openToken');
+      this.log.warn('Cloud Enabled SwitchBot Devices & IR Devices will not work');
     }
   }
 
@@ -172,67 +183,84 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
  */
   async discoverDevices() {
     try {
-      const devicesAPI: any = (await this.axios.get(DeviceURL)).data;
-      this.deviceListInfo(devicesAPI);
-      this.debug(JSON.stringify(devicesAPI));
+      if (this.config.credentials?.openToken) {
+        const devicesAPI: any = (await this.axios.get(DeviceURL)).data;
+        this.deviceListInfo(devicesAPI);
+        this.debug(JSON.stringify(devicesAPI));
 
-      // SwitchBot Devices
-      this.log.info('Total SwitchBot Devices Found:', devicesAPI.body.deviceList.length);
-      const deviceLists = devicesAPI.body.deviceList;
-      if (!this.config.options?.devices) {
-        this.debug(`SwitchBot Device Config Not Set: ${JSON.stringify(this.config.options?.devices)}`);
-        const devices = deviceLists.map((v: any) => v);
-        for (const device of devices) {
-          if (device.deviceType) {
-            this.createDevice(device);
+        // SwitchBot Devices
+        this.log.info('Total SwitchBot Devices Found:', devicesAPI.body.deviceList.length);
+        const deviceLists = devicesAPI.body.deviceList;
+        if (!this.config.options?.devices) {
+          this.debug(`SwitchBot Device Config Not Set: ${JSON.stringify(this.config.options?.devices)}`);
+          const devices = deviceLists.map((v: any) => v);
+          for (const device of devices) {
+            if (device.deviceType) {
+              this.createDevice(device);
+            }
+          }
+        } else if (this.config.credentials?.openToken && this.config.options.devices) {
+          this.debug(`SwitchBot Device Config Set: ${JSON.stringify(this.config.options?.devices)}`);
+          const deviceConfigs = this.config.options?.devices;
+
+          const mergeBydeviceId = (a1: { deviceId: string; }[], a2: any[]) =>
+            a1.map((itm: { deviceId: string; }) => ({
+              ...a2.find((item: { deviceId: string; }) => (item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId) && item),
+              ...itm,
+            }));
+
+          const devices = mergeBydeviceId(deviceLists, deviceConfigs);
+          this.debug(`SwitchBot Devices: ${JSON.stringify(devices)}`);
+          for (const device of devices) {
+            if (device.deviceType) {
+              this.createDevice(device);
+            }
+          }
+        } else {
+          this.log.error('Neither SwitchBot OpenToken or Device Config are not set.');
+        }
+        // IR Devices
+        this.log.info('Total IR Devices Found:', devicesAPI.body.infraredRemoteList.length);
+        const irDeviceLists = devicesAPI.body.infraredRemoteList;
+        if (!this.config.options?.irdevices) {
+          this.debug(`IR Device Config Not Set: ${JSON.stringify(this.config.options?.irdevices)}`);
+          const devices = irDeviceLists.map((v: any) => v);
+          for (const device of devices) {
+            if (device.remoteType) {
+              this.createIRDevice(device);
+            }
+          }
+        } else {
+          this.debug(`IR Device Config Set: ${JSON.stringify(this.config.options?.irdevices)}`);
+          const irDeviceConfig = this.config.options?.irdevices;
+
+          const mergeIRBydeviceId = (a1: { deviceId: string; }[], a2: any[]) =>
+            a1.map((itm: { deviceId: string; }) => ({
+              ...a2.find((item: { deviceId: string; }) => (item.deviceId === itm.deviceId) && item),
+              ...itm,
+            }));
+
+          const devices = mergeIRBydeviceId(irDeviceLists, irDeviceConfig);
+          this.debug(`IR Devices: ${JSON.stringify(devices)}`);
+          for (const device of devices) {
+            if (device.remoteType) {
+              this.createIRDevice(device);
+            }
           }
         }
-      } else {
-        this.debug(`SwitchBot Device Config Set: ${JSON.stringify(this.config.options?.devices)}`);
+      } else if (!this.config.credentials?.openToken && this.config.options?.devices) {
+        this.debug(`SwitchBot Device Manual Config Set: ${JSON.stringify(this.config.options?.devices)}`);
         const deviceConfigs = this.config.options?.devices;
-
-        const mergeBydeviceId = (a1: { deviceId: string; }[], a2: any[]) =>
-          a1.map((itm: { deviceId: string; }) => ({
-            ...a2.find((item: { deviceId: string; }) => (item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId) && item),
-            ...itm,
-          }));
-
-        const devices = mergeBydeviceId(deviceLists, deviceConfigs);
-        this.debug(`SwitchBot Devices: ${JSON.stringify(devices)}`);
+        const devices = deviceConfigs.map((v: any) => v);
         for (const device of devices) {
+          device.deviceType = device.configDeviceType;
+          device.deviceName = device.configDeviceName;
           if (device.deviceType) {
             this.createDevice(device);
           }
         }
-      }
-      // IR Devices
-      this.log.info('Total IR Devices Found:', devicesAPI.body.infraredRemoteList.length);
-      const irDeviceLists = devicesAPI.body.infraredRemoteList;
-      if (!this.config.options?.irdevices) {
-        this.debug(`IR Device Config Not Set: ${JSON.stringify(this.config.options?.irdevices)}`);
-        const devices = irDeviceLists.map((v: any) => v);
-        for (const device of devices) {
-          if (device.remoteType) {
-            this.createIRDevice(device);
-          }
-        }
       } else {
-        this.debug(`IR Device Config Set: ${JSON.stringify(this.config.options?.irdevices)}`);
-        const irDeviceConfig = this.config.options?.irdevices;
-
-        const mergeIRBydeviceId = (a1: { deviceId: string; }[], a2: any[]) =>
-          a1.map((itm: { deviceId: string; }) => ({
-            ...a2.find((item: { deviceId: string; }) => (item.deviceId === itm.deviceId) && item),
-            ...itm,
-          }));
-
-        const devices = mergeIRBydeviceId(irDeviceLists, irDeviceConfig);
-        this.debug(`IR Devices: ${JSON.stringify(devices)}`);
-        for (const device of devices) {
-          if (device.remoteType) {
-            this.createIRDevice(device);
-          }
-        }
+        this.log.error('Neither SwitchBot OpenToken or Device Config are not set.');
       }
     } catch (e: any) {
       this.log.error('Failed to Discover Devices.', JSON.stringify(e.message));
@@ -355,6 +383,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
+  private registerDevice(device: device & devicesConfig) {
+    if (!device.hide_device && device.enableCloudService) {
+      this.registeringDevice = true;
+    } else if (!device.hide_device && device.deviceId && device.configDeviceType && device.configDeviceName) {
+      this.registeringDevice = true;
+    } else {
+      this.registeringDevice = false;
+    }
+    return this.registeringDevice;
+  }
+
   private async createHumidifier(device: device & devicesConfig) {
     const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`);
 
@@ -364,7 +403,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       // the accessory already exists
-      if (!device.hide_device && device.enableCloudService) {
+      if (this.registerDevice(device)) {
         this.log.info(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
 
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
@@ -382,7 +421,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } else {
         this.unregisterPlatformAccessories(existingAccessory);
       }
-    } else if (!device.hide_device && device.enableCloudService) {
+    } else if (this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
       this.log.info(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
 
@@ -418,13 +457,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       // the accessory already exists
-      if (!device.hide_device && device.enableCloudService) {
+      if (this.registerDevice(device)) {
         this.log.info(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
 
         this.debug(JSON.stringify(device.bot?.mode));
-        if (!device.bot?.mode) {
-          this.log.error('You must set your Bot to Press or Switch Mode');
-        }
 
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.deviceType;
@@ -440,14 +476,12 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } else {
         this.unregisterPlatformAccessories(existingAccessory);
       }
-    } else if (!device.hide_device && device.enableCloudService) {
+    } else if (this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
       this.log.info(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
 
       this.debug(JSON.stringify(device.bot?.mode));
-      if (!device.bot?.mode) {
-        this.log.error('You must set your Bot to Press or Switch Mode');
-      }
+
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
 
@@ -481,7 +515,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       // the accessory already exists
-      if (!device.hide_device && device.enableCloudService) {
+      if (this.registerDevice(device)) {
         this.log.info(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
 
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
@@ -498,7 +532,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } else {
         this.unregisterPlatformAccessories(existingAccessory);
       }
-    } else if (!device.hide_device && device.enableCloudService) {
+    } else if (this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
       this.log.info(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
 
@@ -534,7 +568,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       // the accessory already exists
-      if (!device.hide_device && device.enableCloudService) {
+      if (this.registerDevice(device)) {
         this.log.info(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
 
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
@@ -550,7 +584,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } else {
         this.unregisterPlatformAccessories(existingAccessory);
       }
-    } else if (!device.hide_device && device.enableCloudService) {
+    } else if (this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
       this.log.info(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
 
@@ -585,7 +619,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       // the accessory already exists
-      if (!device.hide_device && device.enableCloudService!) {
+      if (this.registerDevice(device)) {
         this.log.info(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
 
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
@@ -601,7 +635,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } else {
         this.unregisterPlatformAccessories(existingAccessory);
       }
-    } else if (!device.hide_device && device.enableCloudService!) {
+    } else if (this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
       this.log.info(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
 
@@ -696,10 +730,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     if (device.group && !device.curtain?.disable_group) {
       this.debug(`[Curtain Config] disable_group: ${device.curtain?.disable_group}`);
-      return device.master && !device.hide_device && device.enableCloudService;
+      return device.master && this.registerDevice(device);
     } else {
       this.debug(`[Curtain Config] disable_group: ${device.curtain?.disable_group}, UnGrouping ${device.master}`);
-      return !device.hide_device && device.enableCloudService;
+      return this.registerDevice(device);
     }
   }
 
