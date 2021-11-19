@@ -4,8 +4,7 @@ import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
 import { DeviceURL, device, devicesConfig, switchbot, deviceStatusResponse, payload } from '../settings';
 import { AxiosResponse } from 'axios';
-import hsvToRgb from '@fantasy-color/hsv-to-rgb';
-import rgbToHsv from '@fantasy-color/rgb-to-hsv';
+import { hsv, rgb } from '@anzerr/color.util';
 
 /**
  * Platform Accessory
@@ -190,8 +189,8 @@ export class ColorBulb {
     this.platform.debug(`Color Bulb: ${this.accessory.displayName} On: ${this.On}`);
     this.Brightness = Number(this.deviceStatus.body.brightness);
 
-
-    rgbToHsv({red: 60, green: 32, blue: 23});
+    // red: 60, green: 32, blue: 23
+    rgb(60, 32, 23).toHsv();
 
 
     //this.Hue = this.deviceStatus.body.color;
@@ -228,7 +227,7 @@ export class ColorBulb {
   async pushChanges() {
     try {
       // eslint-disable-next-line max-len
-      this.platform.log.warn(JSON.stringify(hsvToRgb({ hue: Number(this.Hue), saturation: Number(this.Saturation), value: Number(this.Brightness) })));
+      this.platform.log.warn(JSON.stringify(hsv(Number(this.Hue), Number(this.Saturation), Number(this.Brightness)).toRgb));
       const payload = {
         commandType: 'command',
         parameter: 'default',

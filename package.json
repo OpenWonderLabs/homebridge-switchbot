@@ -47,24 +47,23 @@
     "ir"
   ],
   "dependencies": {
+    "@anzerr/color.util": "^1.0.12",
     "@homebridge/plugin-ui-utils": "^0.0.19",
-    "@fantasy-color/hsv-to-rgb": "^2.1.0",
-    "@fantasy-color/rgb-to-hsv": "^2.1.0",
-    "node-switchbot": "^1.1.2",
     "axios": "^0.24.0",
+    "node-switchbot": "^1.1.2",
     "rxjs": "^7.4.0"
   },
   "devDependencies": {
+    "@types/node": "^16.11.8",
     "@typescript-eslint/eslint-plugin": "^5.4.0",
     "@typescript-eslint/parser": "^5.4.0",
-    "typescript-axios-wb": "^1.0.3",
-    "npm-check-updates": "^12.0.2",
-    "@types/node": "^16.11.7",
-    "homebridge": "^1.3.6",
-    "typescript": "^4.5.2",
-    "nodemon": "^2.0.15",
-    "ts-node": "^10.4.0",
     "eslint": "^8.2.0",
-    "rimraf": "^3.0.2"
+    "homebridge": "^1.3.6",
+    "nodemon": "^2.0.15",
+    "npm-check-updates": "^12.0.2",
+    "rimraf": "^3.0.2",
+    "ts-node": "^10.4.0",
+    "typescript": "^4.5.2",
+    "typescript-axios-wb": "^1.0.3"
   }
 }
