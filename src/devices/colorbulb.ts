@@ -2,9 +2,8 @@ import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device, devicesConfig, switchbot, deviceStatusResponse, payload } from '../settings';
+import { DeviceURL, device, devicesConfig, switchbot, deviceStatusResponse, payload, hs2rgb, rgb2hs } from '../settings';
 import { AxiosResponse } from 'axios';
-import { hsv, rgb } from '@anzerr/color.util';
 
 /**
  * Platform Accessory
@@ -179,6 +178,20 @@ export class ColorBulb {
   }
 
   parseStatus() {
+    /* this.deviceStatus = {
+       statusCode: 100,
+       body: {
+         deviceId: '56F90426AD3D',
+         deviceType: 'Color Bulb',
+         hubDeviceId: '84F70353DD5A',
+         power: 'on',
+         brightness: 100,
+         color: '250:10:0',
+         colorTemperature: 6500,
+       },
+       message: 'success',
+     };*/
+
     switch (this.deviceStatus.body.power) {
       case 'on':
         this.On = true;
@@ -194,17 +207,14 @@ export class ColorBulb {
 
     // Color, Hue & Brightness
     if (this.deviceStatus.body.color) {
+      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} color: ${JSON.stringify(this.deviceStatus.body.color)}`);
       const [red, green, blue] = this.deviceStatus.body.color!.split(':');
       this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} red: ${JSON.stringify(red)}`);
       this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} green: ${JSON.stringify(green)}`);
       this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} blue: ${JSON.stringify(blue)}`);
 
-      const rgbtohsv = rgb(Number(red), Number(green), Number(blue)).toHsv();
-
-      const [hue, saturation, brightness] = JSON.stringify(rgbtohsv).split(',');
-      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} hue: ${JSON.stringify(hue)}`);
-      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} saturation: ${JSON.stringify(saturation)}`);
-      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} brightness: ${JSON.stringify(brightness)}`);
+      const [hue, saturation] = rgb2hs(Number(red), Number(green), Number(blue));
+      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} hs: ${JSON.stringify(rgb2hs(Number(red), Number(green), Number(blue)))}`);
 
       // Hue
       this.Hue = hue;
@@ -216,8 +226,14 @@ export class ColorBulb {
     }
 
     // ColorTemperature
-    this.ColorTemperature = Number(this.deviceStatus.body.colorTemperature);
-    this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
+    if (this.deviceStatus.body.colorTemperature) {
+      // Convert mired to kelvin to nearest 100 (Govee seems to need this)
+      const mired = Math.round(1000000 / this.deviceStatus.body.colorTemperature);
+      //kelvin = Math.round(1000000 / mired)
+
+      this.ColorTemperature = Number(mired);
+      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
+    }
   }
 
   async refreshStatus() {
@@ -252,43 +268,83 @@ export class ColorBulb {
  */
   async pushChanges() {
     try {
-      this.platform.log.warn(JSON.stringify(Number(this.Hue)));
-      this.platform.log.warn(JSON.stringify(Number(this.Saturation)));
-      this.platform.log.warn(JSON.stringify(Number(this.Brightness)));
-
-      const hsvtoRgb = hsv(Number(this.Hue), Number(this.Saturation), 100).toRgb;
-
-      const [hue, saturation, brightness] = JSON.stringify(hsvtoRgb).split(',');
-      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} hue: ${JSON.stringify(hue)}`);
-      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} saturation: ${JSON.stringify(saturation)}`);
-      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} brightness: ${JSON.stringify(brightness)}`);
-
-      const [red, green, blue] = JSON.stringify(hsvtoRgb).split(',');
-      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} red: ${JSON.stringify(red)}`);
-      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} green: ${JSON.stringify(green)}`);
-      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} blue: ${JSON.stringify(blue)}`);
-      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName}`
-        + ` RGB: {${JSON.stringify(red)}:${JSON.stringify(green)}:${JSON.stringify(blue)}}`);
-
-      this.platform.log.error(JSON.stringify(hsvtoRgb));
-      const payload = {
-        commandType: 'command',
-        parameter: 'default',
-      } as payload;
-
       if (this.On) {
-        payload.command = 'turnOn';
-      } else {
-        payload.command = 'turnOff';
+        const payload = {
+          commandType: 'command',
+          parameter: 'default',
+        } as payload;
+
+        if (this.On) {
+          payload.command = 'turnOn';
+        } else {
+          payload.command = 'turnOff';
+        }
+
+        this.platform.log.info(`Color Bulb: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
+          + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
+
+        // Make the API request
+        const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload));
+        this.platform.debug(`Color Bulb: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
+        this.statusCode(push);
       }
 
-      this.platform.log.info(`Color Bulb: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
-        + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
+      if (this.On) {
+        const payload = {
+          commandType: 'command',
+          command: 'setBrightness',
+          parameter: `{${this.Brightness}}`,
+        } as payload;
 
-      // Make the API request
-      const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload));
-      this.platform.debug(`Color Bulb: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
-      this.statusCode(push);
+        this.platform.log.info(`Color Bulb: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
+          + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
+
+        // Make the API request
+        const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload));
+        this.platform.debug(`Color Bulb: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
+        this.statusCode(push);
+      }
+
+      if (this.On) {
+        const kelvin = Math.round(1000000 / Number(this.ColorTemperature));
+
+        const payload = {
+          commandType: 'command',
+          command: 'setColorTemperature',
+          parameter: `{${kelvin}}`,
+        } as payload;
+
+        this.platform.log.info(`Color Bulb: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
+          + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
+
+        // Make the API request
+        const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload));
+        this.platform.debug(`Color Bulb: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
+        this.statusCode(push);
+      }
+
+      if (this.On) {
+        this.platform.log.warn(JSON.stringify(this.Hue));
+        this.platform.log.warn(JSON.stringify(this.Saturation));
+
+        const [red, green, blue] = hs2rgb(Number(this.Hue), Number(this.Saturation));
+        this.platform.log.error(`Color Bulb: ${this.accessory.displayName} rgb: ${JSON.stringify([red, green, blue])}`);
+
+        const payload = {
+          commandType: 'command',
+          command: 'setColorTemperature',
+          parameter: `{${red}}:{${green}}:{${blue}}`,
+        } as payload;
+
+        this.platform.log.info(`Color Bulb: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
+          + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
+
+        // Make the API request
+        const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload));
+        this.platform.debug(`Color Bulb: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
+        this.statusCode(push);
+      }
+
     } catch (e: any) {
       this.platform.log.error(`Color Bulb: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
       if (this.deviceDebug) {
@@ -321,11 +377,25 @@ export class ColorBulb {
       this.service.updateCharacteristic(this.platform.Characteristic.Brightness, this.ColorTemperature);
       this.platform.debug(`Color Bulb: ${this.accessory.displayName} updateCharacteristic ColorTemperature: ${this.ColorTemperature}`);
     }
+    if (this.Hue === undefined) {
+      this.platform.debug(`Color Bulb: ${this.accessory.displayName} Hue: ${this.Hue}`);
+    } else {
+      this.service.updateCharacteristic(this.platform.Characteristic.Hue, this.Hue);
+      this.platform.debug(`Color Bulb: ${this.accessory.displayName} updateCharacteristic Hue: ${this.Hue}`);
+    }
+    if (this.Saturation === undefined) {
+      this.platform.debug(`Color Bulb: ${this.accessory.displayName} Saturation: ${this.Saturation}`);
+    } else {
+      this.service.updateCharacteristic(this.platform.Characteristic.Saturation, this.Saturation);
+      this.platform.debug(`Color Bulb: ${this.accessory.displayName} updateCharacteristic Saturation: ${this.Saturation}`);
+    }
   }
 
   public apiError(e: any) {
     this.service.updateCharacteristic(this.platform.Characteristic.On, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.Hue, e);
     this.service.updateCharacteristic(this.platform.Characteristic.Brightness, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.Saturation, e);
     this.service.updateCharacteristic(this.platform.Characteristic.ColorTemperature, e);
   }
 
@@ -409,3 +479,4 @@ export class ColorBulb {
     this.doColorBulbUpdate.next();
   }
 }
+
