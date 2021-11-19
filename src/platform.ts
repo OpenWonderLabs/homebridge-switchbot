@@ -49,6 +49,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   version = require('../package.json').version; // eslint-disable-line @typescript-eslint/no-var-requires
   deviceStatus!: deviceResponses;
   registeringDevice!: boolean;
+  debugMode!: boolean;
 
   constructor(public readonly log: Logger, public readonly config: SwitchBotPlatformConfig, public readonly api: API) {
     this.log.debug('Finished initializing platform:', this.config.name);
@@ -73,7 +74,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       return;
     }
 
-    //this.debugMode = process.argv.includes('-D') || process.argv.includes('--debug');
+    this.debugMode = process.argv.includes('-D') || process.argv.includes('--debug');
 
     // setup axios interceptor to add headers / api key to each request
     this.axios.interceptors.request.use((request: AxiosRequestConfig) => {

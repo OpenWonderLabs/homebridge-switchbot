@@ -34,6 +34,10 @@ export class Contact {
   doorState!: serviceData['doorState'];
   lightLevel!: serviceData['lightLevel'];
 
+  // Config
+  private readonly deviceDebug = this.platform.config.options?.debug === 'device' || this.platform.debugMode;
+  private readonly debugDebug = this.platform.config.options?.debug === 'debug' || this.platform.debugMode;
+
   // Updates
   contactUbpdateInProgress!: boolean;
   doContactUpdate!: Subject<void>;
@@ -163,7 +167,7 @@ export class Contact {
         this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
         break;
       default:
-        this.platform.log.error('timeout no closed');
+        this.platform.log.error(`Contact Sensor: ${this.accessory.displayName} timeout no closed, doorstate: ${this.doorState}`);
     }
     if (this.device.contact?.hide_lightsensor) {// Light Level
       switch (this.lightLevel) {
@@ -256,7 +260,15 @@ export class Contact {
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     }).catch(async (e: any) => {
-      this.platform.log.error(`Contact Sensor: ${this.accessory.displayName} BLE Connection failed, Error Message: ${JSON.stringify(e.message)}`);
+      this.platform.log.error(`Contact Sensor: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
+      if (this.deviceDebug) {
+        this.platform.log.error(`Contact Sensor: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+          + ` Error Message: ${JSON.stringify(e.message)}`);
+      }
+      if (this.debugDebug) {
+        this.platform.log.error(`Contact Sensor: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+          + ` Error: ${JSON.stringify(e)}`);
+      }
       if (this.platform.config.credentials?.openToken) {
         this.platform.log.warn(`Contact Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.openAPIRefreshStatus();
@@ -273,9 +285,15 @@ export class Contact {
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       } catch (e: any) {
-        this.platform.log.error(`Contact Sensor: ${this.accessory.displayName} failed to refresh status.`
-          + ` Error Message: ${JSON.stringify(e.message)}`);
-        this.platform.debug(`Contact Sensor: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
+        this.platform.log.error(`Contact Sensor: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
+        if (this.deviceDebug) {
+          this.platform.log.error(`Contact Sensor: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
+        }
+        if (this.debugDebug) {
+          this.platform.log.error(`Contact Sensor: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
+            + ` Error: ${JSON.stringify(e)}`);
+        }
         this.apiError(e);
       }
     }

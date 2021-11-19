@@ -16,6 +16,10 @@ export class IndoorCam {
   // OpenAPI Others
   deviceStatus!: deviceStatusResponse;
 
+  // Config
+  private readonly deviceDebug = this.platform.config.options?.debug === 'device' || this.platform.debugMode;
+  private readonly debugDebug = this.platform.config.options?.debug === 'debug' || this.platform.debugMode;
+
   // Updates
   cameraUpdateInProgress!: boolean;
   doCameraUpdate!: Subject<void>;
@@ -88,9 +92,15 @@ export class IndoorCam {
         try {
           await this.pushChanges();
         } catch (e: any) {
-          this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} failed to pushChanges,`
-            + ` Error Message: ${JSON.stringify(e.message)}`);
-          this.platform.debug(`Indoor Cam: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
+          this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} failed pushChanges`);
+          if (this.deviceDebug) {
+            this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} failed pushChanges,`
+              + ` Error Message: ${JSON.stringify(e.message)}`);
+          }
+          if (this.debugDebug) {
+            this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} failed pushChanges,`
+              + ` Error: ${JSON.stringify(e)}`);
+          }
           this.apiError(e);
         }
         this.cameraUpdateInProgress = false;
@@ -116,8 +126,15 @@ export class IndoorCam {
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
-      this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} failed to refreshStatus, Error Message: ${JSON.stringify(e.message)}`);
-      this.platform.debug(`Indoor Cam: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
+      this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
+      if (this.deviceDebug) {
+        this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+          + ` Error Message: ${JSON.stringify(e.message)}`);
+      }
+      if (this.debugDebug) {
+        this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+          + ` Error: ${JSON.stringify(e)}`);
+      }
       this.apiError(e);
     }
   }
@@ -189,7 +206,8 @@ export class IndoorCam {
         break;
       case 190:
         // eslint-disable-next-line max-len
-        this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} Device internal error due to device states not synchronized with server. Or command fomrat is invalid.`);
+        this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,`
+          + ` Or command: ${JSON.stringify(push.data)} format is invalid`);
         break;
       case 100:
         this.platform.debug(`Indoor Cam: ${this.accessory.displayName} Command successfully sent.`);

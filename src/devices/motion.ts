@@ -31,6 +31,10 @@ export class Motion {
   movement!: serviceData['movement'];
   lightLevel!: serviceData['lightLevel'];
 
+  // Config
+  private readonly deviceDebug = this.platform.config.options?.debug === 'device' || this.platform.debugMode;
+  private readonly debugDebug = this.platform.config.options?.debug === 'debug' || this.platform.debugMode;
+
   // Updates
   motionUbpdateInProgress!: boolean;
   doMotionUpdate!: Subject<void>;
@@ -193,7 +197,15 @@ export class Motion {
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     }).catch(async (e: any) => {
-      this.platform.log.error(`Motion Sensor: ${this.accessory.displayName} BLE Connection Failed: ${e.message}`);
+      this.platform.log.error(`Motion Sensor: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
+      if (this.deviceDebug) {
+        this.platform.log.error(`Motion Sensor: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+          + ` Error Message: ${JSON.stringify(e.message)}`);
+      }
+      if (this.debugDebug) {
+        this.platform.log.error(`Motion Sensor: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+          + ` Error: ${JSON.stringify(e)}`);
+      }
       if (this.platform.config.credentials?.openToken) {
         this.platform.log.warn(`Motion Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.openAPIRefreshStatus();
@@ -210,8 +222,15 @@ export class Motion {
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       } catch (e: any) {
-        this.platform.log.error(`Motion Sensor: ${this.accessory.displayName} failed to refreshStatus, Error Message: ${JSON.stringify(e.message)}`);
-        this.platform.debug(`Motion Sensor: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
+        this.platform.log.error(`Motion Sensor: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
+        if (this.deviceDebug) {
+          this.platform.log.error(`Motion Sensor: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
+        }
+        if (this.debugDebug) {
+          this.platform.log.error(`Motion Sensor: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
+            + ` Error: ${JSON.stringify(e)}`);
+        }
         this.apiError(e);
       }
     }

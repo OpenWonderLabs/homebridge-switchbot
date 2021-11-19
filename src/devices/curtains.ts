@@ -38,6 +38,8 @@ export class Curtain {
   // Config
   set_minStep!: number;
   refreshRate!: number;
+  private readonly deviceDebug = this.platform.config.options?.debug === 'device' || this.platform.debugMode;
+  private readonly debugDebug = this.platform.config.options?.debug === 'debug' || this.platform.debugMode;
 
   // Updates
   curtainUpdateInProgress!: boolean;
@@ -168,9 +170,15 @@ export class Curtain {
         try {
           await this.pushChanges();
         } catch (e: any) {
-          this.platform.log.error(`Curtain: ${this.accessory.displayName} failed to pushChanges,`
-            + ` Error Message: ${JSON.stringify(e.message)}`);
-          this.platform.debug(`Curtain: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
+          this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges`);
+          if (this.deviceDebug) {
+            this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges,`
+              + ` Error Message: ${JSON.stringify(e.message)}`);
+          }
+          if (this.debugDebug) {
+            this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges,`
+              + ` Error: ${JSON.stringify(e)}`);
+          }
           this.apiError(e);
         }
         this.curtainUpdateInProgress = false;
@@ -412,7 +420,15 @@ export class Curtain {
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     }).catch(async (e: any) => {
-      this.platform.log.error(`Curtain: ${this.accessory.displayName} BLE Connection failed, Error Message: ${JSON.stringify(e.message)}`);
+      this.platform.log.error(`Curtain: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
+      if (this.deviceDebug) {
+        this.platform.log.error(`Curtain: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+          + ` Error Message: ${JSON.stringify(e.message)}`);
+      }
+      if (this.debugDebug) {
+        this.platform.log.error(`Curtain: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+          + ` Error: ${JSON.stringify(e)}`);
+      }
       if (this.platform.config.credentials?.openToken) {
         this.platform.log.warn(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.openAPIRefreshStatus();
@@ -429,8 +445,15 @@ export class Curtain {
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       } catch (e: any) {
-        this.platform.log.error(`Curtain: ${this.accessory.displayName} failed to refresh status, Error Message ${JSON.stringify(e.message)}`);
-        this.platform.debug(`Curtain: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
+        this.platform.log.error(`Curtain: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
+        if (this.deviceDebug) {
+          this.platform.log.error(`Curtain: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
+        }
+        if (this.debugDebug) {
+          this.platform.log.error(`Curtain: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
+            + ` Error: ${JSON.stringify(e)}`);
+        }
         this.apiError(e);
       }
     }
@@ -454,31 +477,53 @@ export class Curtain {
     }).then(() => {
       this.platform.device(`Curtain: ${this.accessory.displayName} Done.`);
     }).catch(async (e: any) => {
-      this.platform.log.error(`Curtain: ${this.accessory.displayName} BLE Connection failed, Error Message: ${JSON.stringify(e.message)}`);
-      this.platform.log.warn(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
-      await this.OpenAPIpushChanges();
+      this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
+      if (this.deviceDebug) {
+        this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
+          + ` Error Message: ${JSON.stringify(e.message)}`);
+      }
+      if (this.debugDebug) {
+        this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
+          + ` Error: ${JSON.stringify(e)}`);
+      }
+      if (this.platform.config.credentials?.openToken) {
+        this.platform.log.warn(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
+        await this.OpenAPIpushChanges();
+      }
     });
   }
 
   private async OpenAPIpushChanges() {
     if (this.platform.config.credentials?.openToken) {
-      this.platform.debug(`Curtain: ${this.accessory.displayName} OpenAPI pushChanges`);
-      if (this.TargetPosition !== this.CurrentPosition) {
-        this.platform.debug(`Pushing ${this.TargetPosition}`);
-        const adjustedTargetPosition = 100 - Number(this.TargetPosition);
-        const payload = {
-          commandType: 'command',
-          command: 'setPosition',
-          parameter: `0,ff,${adjustedTargetPosition}`,
-        } as payload;
+      try {
+        this.platform.debug(`Curtain: ${this.accessory.displayName} OpenAPI pushChanges`);
+        if (this.TargetPosition !== this.CurrentPosition) {
+          this.platform.debug(`Pushing ${this.TargetPosition}`);
+          const adjustedTargetPosition = 100 - Number(this.TargetPosition);
+          const payload = {
+            commandType: 'command',
+            command: 'setPosition',
+            parameter: `0,ff,${adjustedTargetPosition}`,
+          } as payload;
 
-        this.platform.log.info(`Curtain: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
-          + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
+          this.platform.log.info(`Curtain: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
+            + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
 
-        // Make the API request
-        const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId!}/commands`, payload));
-        this.platform.debug(`Curtain: ${this.accessory.displayName} pushchanges: ${JSON.stringify(push.data)}`);
-        this.statusCode(push);
+          // Make the API request
+          const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId!}/commands`, payload));
+          this.platform.debug(`Curtain: ${this.accessory.displayName} pushchanges: ${JSON.stringify(push.data)}`);
+          this.statusCode(push);
+        }
+      } catch (e: any) {
+        this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
+        if (this.deviceDebug) {
+          this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
+        }
+        if (this.debugDebug) {
+          this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
+            + ` Error: ${JSON.stringify(e)}`);
+        }
       }
     }
   }
@@ -559,7 +604,8 @@ export class Curtain {
         break;
       case 190:
         // eslint-disable-next-line max-len
-        this.platform.log.error(`Curtain: ${this.accessory.displayName} Device internal error due to device states not synchronized with server. Or command fomrat is invalid.`);
+        this.platform.log.error(`Curtain: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,`
+          + ` Or command: ${JSON.stringify(push.data)} format is invalid`);
         break;
       case 100:
         this.platform.debug(`Curtain: ${this.accessory.displayName} Command successfully sent.`);

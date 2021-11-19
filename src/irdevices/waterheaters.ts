@@ -15,6 +15,10 @@ export class WaterHeater {
   // Characteristic Values
   Active!: CharacteristicValue;
 
+  // Config
+  private readonly deviceDebug = this.platform.config.options?.debug === 'device' || this.platform.debugMode;
+  private readonly debugDebug = this.platform.config.options?.debug === 'debug' || this.platform.debugMode;
+
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
@@ -121,9 +125,15 @@ export class WaterHeater {
       this.statusCode(push);
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
-      this.platform.log.error(`Water Heater: ${this.accessory.displayName}: failed to push changes,`
-        + ` Error Message: ${JSON.stringify(e.message)}`);
-      this.platform.debug(`Water Heater: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
+      this.platform.log.error(`Water Heater: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
+      if (this.deviceDebug) {
+        this.platform.log.error(`Water Heater: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
+          + ` Error Message: ${JSON.stringify(e.message)}`);
+      }
+      if (this.debugDebug) {
+        this.platform.log.error(`Water Heater: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
+          + ` Error: ${JSON.stringify(e)}`);
+      }
       this.apiError(e);
     }
   }
@@ -147,7 +157,8 @@ export class WaterHeater {
         break;
       case 190:
         // eslint-disable-next-line max-len
-        this.platform.log.error(`Water Heater: ${this.accessory.displayName} Device internal error due to device states not synchronized with server. Or command fomrat is invalid.`);
+        this.platform.log.error(`Water Heater: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,`
+          + ` Or command: ${JSON.stringify(push.data)} format is invalid`);
         break;
       case 100:
         this.platform.debug(`Water Heater: ${this.accessory.displayName} Command successfully sent.`);

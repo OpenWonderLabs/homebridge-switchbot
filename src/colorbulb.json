@@ -1,0 +1,22 @@
+[
+    {
+        "deviceId": "56F90426AD3D",
+        "deviceName": "Color Bulb DD5A",
+        "deviceType": "Color Bulb",
+        "enableCloudService": true,
+        "hubDeviceId": "000000000000"
+    },
+    {
+        "statusCode": 100,
+        "body": {
+            "deviceId": "56F90426AD3D",
+            "deviceType": "Color Bulb",
+            "hubDeviceId": "84F70353DD5A",
+            "power": "on",
+            "brightness": 100,
+            "color": "0:0:0",
+            "colorTemperature": 6500
+        },
+        "message": "success"
+    }
+]

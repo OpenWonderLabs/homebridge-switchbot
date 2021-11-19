@@ -35,6 +35,10 @@ export class Meter {
   fahrenheit!: serviceData['fahrenheit'];
   temperature!: serviceData['temperature'];
 
+  // Config
+  private readonly deviceDebug = this.platform.config.options?.debug === 'device' || this.platform.debugMode;
+  private readonly debugDebug = this.platform.config.options?.debug === 'debug' || this.platform.debugMode;
+
   // Updates
   meterUpdateInProgress!: boolean;
   doMeterUpdate: Subject<void>;
@@ -274,7 +278,15 @@ export class Meter {
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     }).catch(async (e: any) => {
-      this.platform.log.error(`Meter: ${this.accessory.displayName} BLE Connection failed, Error Message: ${JSON.stringify(e.message)}`);
+      this.platform.log.error(`Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
+      if (this.deviceDebug) {
+        this.platform.log.error(`Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+          + ` Error Message: ${JSON.stringify(e.message)}`);
+      }
+      if (this.debugDebug) {
+        this.platform.log.error(`Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+          + ` Error: ${JSON.stringify(e)}`);
+      }
       if (this.platform.config.credentials?.openToken) {
         this.platform.log.warn(`Meter: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.openAPIRefreshStatus();
@@ -291,8 +303,15 @@ export class Meter {
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       } catch (e: any) {
-        this.platform.log.error(`Meter: ${this.accessory.displayName} failed to refresh status, Error Message: ${JSON.stringify(e.message)}`);
-        this.platform.debug(`Meter: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
+        this.platform.log.error(`Meter: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
+        if (this.deviceDebug) {
+          this.platform.log.error(`Meter: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
+        }
+        if (this.debugDebug) {
+          this.platform.log.error(`Meter: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
+            + ` Error: ${JSON.stringify(e)}`);
+        }
         this.apiError(e);
       }
     }

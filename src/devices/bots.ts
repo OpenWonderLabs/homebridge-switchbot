@@ -31,6 +31,10 @@ export class Bot {
   state!: serviceData['state'];
   battery!: serviceData['battery'];
 
+  // Config
+  private readonly deviceDebug = this.platform.config.options?.debug === 'device' || this.platform.debugMode;
+  private readonly debugDebug = this.platform.config.options?.debug === 'debug' || this.platform.debugMode;
+
   // Updates
   botUpdateInProgress!: boolean;
   doBotUpdate!: Subject<void>;
@@ -138,10 +142,15 @@ export class Bot {
         try {
           await this.pushChanges();
         } catch (e: any) {
-          this.platform.log.error(`Bot: ${this.accessory.displayName} failed to pushChanges,`
-            + ` Error Message: ${JSON.stringify(e.message)}`);
-          this.platform.debug(`Bot: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
-          this.apiError(e);
+          this.platform.log.error(`Bot: ${this.accessory.displayName} failed pushChanges`);
+          if (this.deviceDebug) {
+            this.platform.log.error(`Bot: ${this.accessory.displayName} failed pushChanges,`
+              + ` Error Message: ${JSON.stringify(e.message)}`);
+          }
+          if (this.debugDebug) {
+            this.platform.log.error(`Bot: ${this.accessory.displayName} failed pushChanges,`
+              + ` Error: ${JSON.stringify(e)}`);
+          }
         }
         this.botUpdateInProgress = false;
       });
@@ -236,7 +245,15 @@ export class Bot {
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     }).catch(async (e: any) => {
-      this.platform.log.error(`Bot: ${this.accessory.displayName} BLE Connection failed refreshStatus, Error Message: ${JSON.stringify(e.message)}`);
+      this.platform.log.error(`Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
+      if (this.deviceDebug) {
+        this.platform.log.error(`Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+          + ` Error Message: ${JSON.stringify(e.message)}`);
+      }
+      if (this.debugDebug) {
+        this.platform.log.error(`Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+          + ` Error: ${JSON.stringify(e)}`);
+      }
       if (this.platform.config.credentials?.openToken) {
         this.platform.log.warn(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.openAPIRefreshStatus();
@@ -261,8 +278,15 @@ export class Bot {
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       } catch (e: any) {
-        this.platform.log.error(`Bot: ${this.accessory.displayName} failed to refresh status, Error Message: ${JSON.stringify(e.message)}`);
-        this.platform.debug(`Bot: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
+        this.platform.log.error(`Bot: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
+        if (this.deviceDebug) {
+          this.platform.log.error(`Bot: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
+        }
+        if (this.debugDebug) {
+          this.platform.log.error(`Bot: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
+            + ` Error: ${JSON.stringify(e)}`);
+        }
         this.apiError(e);
       }
     }
@@ -295,7 +319,15 @@ export class Bot {
       }).then(() => {
         this.platform.device(`Bot: ${this.accessory.displayName} Done.`);
       }).catch(async (e: any) => {
-        this.platform.log.error(`Bot: ${this.accessory.displayName} BLE Connection failed pushChanges, Error Message: ${JSON.stringify(e.message)}`);
+        this.platform.log.error(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
+        if (this.deviceDebug) {
+          this.platform.log.error(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
+        }
+        if (this.debugDebug) {
+          this.platform.log.error(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
+            + ` Error: ${JSON.stringify(e)}`);
+        }
         if (this.platform.config.credentials?.openToken) {
           this.platform.log.warn(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
           await this.openAPIpushChanges();
@@ -303,20 +335,28 @@ export class Bot {
       });
     } else if (this.device.bot?.mode === 'switch') {
       this.platform.device(`Bot: ${this.accessory.displayName} Press Mode: ${this.device.bot?.mode}`);
-      switchbot.discover({ model: 'H', quick: true, id: this.device.bleMac }).then((device_list) => {
+      switchbot.discover({ model: 'H', quick: true, id: this.device.bleMac }).then((device_list: any) => {
         this.platform.log.info(`Bot: ${this.accessory.displayName} On: ${this.SwitchOn}`);
         return this.turnOnOff(device_list);
       }).then(() => {
         this.platform.device(`Bot: ${this.accessory.displayName} Done.`);
       }).catch(async (e: any) => {
-        this.platform.log.error(`Bot: ${this.accessory.displayName} BLE Connection failed pushChanges, Error Message: ${JSON.stringify(e.message)}`);
+        this.platform.log.error(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
+        if (this.deviceDebug) {
+          this.platform.log.error(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
+        }
+        if (this.debugDebug) {
+          this.platform.log.error(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
+            + ` Error: ${JSON.stringify(e)}`);
+        }
         if (this.platform.config.credentials?.openToken) {
           this.platform.log.warn(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
           await this.openAPIpushChanges();
         }
       });
     } else {
-      this.platform.log.error(`Bot: ${this.accessory.displayName} Mode Not Set.`);
+      this.platform.log.error(`Bot: ${this.accessory.displayName} Mode Not Set, mode: ${this.device.bot?.mode}`);
     }
   }
 
@@ -330,35 +370,47 @@ export class Bot {
 
   private async openAPIpushChanges() {
     if (this.platform.config.credentials?.openToken) {
-      this.platform.debug(`Bot: ${this.accessory.displayName} OpenAPI pushChanges`);
-      const payload = {
-        commandType: 'command',
-        parameter: 'default',
-      } as payload;
+      try {
+        this.platform.debug(`Bot: ${this.accessory.displayName} OpenAPI pushChanges`);
+        const payload = {
+          commandType: 'command',
+          parameter: 'default',
+        } as payload;
 
-      if (this.device.bot?.mode === 'switch' && this.SwitchOn) {
-        payload.command = 'turnOn';
-        this.SwitchOn = true;
-        this.platform.debug(`Bot: ${this.accessory.displayName} Switch Mode, Turning ${this.SwitchOn}`);
-      } else if (this.device.bot?.mode === 'switch' && !this.SwitchOn) {
-        payload.command = 'turnOff';
-        this.SwitchOn = false;
-        this.platform.debug(`Bot: ${this.accessory.displayName} Switch Mode, Turning ${this.SwitchOn}`);
-      } else if (this.device.bot?.mode === 'press') {
-        payload.command = 'press';
-        this.platform.debug(`Bot: ${this.accessory.displayName} Press Mode`);
-        this.SwitchOn = false;
-      } else {
-        throw new Error(`Bot: ${this.accessory.displayName} Device Paramters not set for this Bot.`);
+        if (this.device.bot?.mode === 'switch' && this.SwitchOn) {
+          payload.command = 'turnOn';
+          this.SwitchOn = true;
+          this.platform.debug(`Bot: ${this.accessory.displayName} Switch Mode, Turning ${this.SwitchOn}`);
+        } else if (this.device.bot?.mode === 'switch' && !this.SwitchOn) {
+          payload.command = 'turnOff';
+          this.SwitchOn = false;
+          this.platform.debug(`Bot: ${this.accessory.displayName} Switch Mode, Turning ${this.SwitchOn}`);
+        } else if (this.device.bot?.mode === 'press') {
+          payload.command = 'press';
+          this.platform.debug(`Bot: ${this.accessory.displayName} Press Mode`);
+          this.SwitchOn = false;
+        } else {
+          throw new Error(`Bot: ${this.accessory.displayName} Device Paramters not set for this Bot.`);
+        }
+
+        this.platform.log.info(`Bot: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
+          + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
+
+        // Make the API request
+        const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload));
+        this.platform.debug(`Bot ${this.accessory.displayName} pushchanges: ${JSON.stringify(push.data)}`);
+        this.statusCode(push);
+      } catch (e: any) {
+        this.platform.log.error(`Bot: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
+        if (this.deviceDebug) {
+          this.platform.log.error(`Bot: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
+        }
+        if (this.debugDebug) {
+          this.platform.log.error(`Bot: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
+            + ` Error: ${JSON.stringify(e)}`);
+        }
       }
-
-      this.platform.log.info(`Bot: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
-        + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
-
-      // Make the API request
-      const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload));
-      this.platform.debug(`Bot ${this.accessory.displayName} pushchanges: ${JSON.stringify(push.data)}`);
-      this.statusCode(push);
     }
   }
 
@@ -423,7 +475,8 @@ export class Bot {
         break;
       case 190:
         // eslint-disable-next-line max-len
-        this.platform.log.error(`Bot: ${this.accessory.displayName} Device internal error due to device states not synchronized with server. Or command fomrat is invalid.`);
+        this.platform.log.error(`Bot: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,`
+          + ` Or command: ${JSON.stringify(push.data)} format is invalid`);
         break;
       case 100:
         this.platform.debug(`Bot: ${this.accessory.displayName} Command successfully sent.`);
