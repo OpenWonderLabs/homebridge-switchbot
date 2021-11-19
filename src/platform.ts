@@ -283,8 +283,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         break;
       case 'Bot':
         this.debug(`Discovered ${device.deviceType}: ${device.deviceId}`);
-        this.createColorBulb(device);
-        //this.createBot(device);
+        this.createBot(device);
         break;
       case 'Meter':
         this.debug(`Discovered ${device.deviceType}: ${device.deviceId}`);
