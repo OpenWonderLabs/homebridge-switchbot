@@ -47,6 +47,14 @@
                   "type": "string",
                   "placeholder": "81F3UT59513F"
                 },
+                "configDeviceName": {
+                  "title": "Device Name",
+                  "type": "string",
+                  "placeholder": "Bot",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].ble);"
+                  }
+                },
                 "hide_device": {
                   "title": "Hide Device",
                   "type": "boolean",
@@ -115,14 +123,6 @@
                   ],
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
-                  }
-                },
-                "configDeviceName": {
-                  "title": "Device Name",
-                  "type": "string",
-                  "placeholder": "Bot",
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].ble);"
                   }
                 },
                 "ble": {
@@ -701,10 +701,10 @@
           "displayFlex": true,
           "flex-direction": "column",
           "items": [
+            "options.devices[].configDeviceName",
             "options.devices[].deviceId",
             "options.devices[].hide_device",
             "options.devices[].ble",
-            "options.devices[].configDeviceName",
             "options.devices[].configDeviceType",
             "options.devices[].bot.mode",
             "options.devices[].bot.deviceType",

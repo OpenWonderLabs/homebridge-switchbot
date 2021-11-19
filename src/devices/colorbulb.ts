@@ -186,16 +186,38 @@ export class ColorBulb {
       default:
         this.On = false;
     }
-    this.platform.debug(`Color Bulb: ${this.accessory.displayName} On: ${this.On}`);
+    this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} On: ${this.On}`);
+
+    // Brightness
     this.Brightness = Number(this.deviceStatus.body.brightness);
+    this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} Brightness: ${this.Brightness}`);
 
-    // red: 60, green: 32, blue: 23
-    rgb(60, 32, 23).toHsv();
+    // Color, Hue & Brightness
+    if (this.deviceStatus.body.color) {
+      const [red, green, blue] = this.deviceStatus.body.color!.split(':');
+      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} red: ${JSON.stringify(red)}`);
+      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} green: ${JSON.stringify(green)}`);
+      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} blue: ${JSON.stringify(blue)}`);
 
+      const rgbtohsv = rgb(Number(red), Number(green), Number(blue)).toHsv();
 
-    //this.Hue = this.deviceStatus.body.color;
-    //this.Saturation = this.deviceStatus.body.color;
+      const [hue, saturation, brightness] = JSON.stringify(rgbtohsv).split(',');
+      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} hue: ${JSON.stringify(hue)}`);
+      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} saturation: ${JSON.stringify(saturation)}`);
+      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} brightness: ${JSON.stringify(brightness)}`);
+
+      // Hue
+      this.Hue = hue;
+      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} Hue: ${this.Hue}`);
+
+      // Saturation
+      this.Saturation = saturation;
+      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} Saturation: ${this.Saturation}`);
+    }
+
+    // ColorTemperature
     this.ColorTemperature = Number(this.deviceStatus.body.colorTemperature);
+    this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
   }
 
   async refreshStatus() {
@@ -220,14 +242,35 @@ export class ColorBulb {
 
   /**
  * Pushes the requested changes to the SwitchBot API
- * deviceType	commandType	  Command	    command parameter	  Description
- * Color Bulb   -    "command"     "turnOff"   "default"	  =        set to OFF state
- * Color Bulb   -    "command"     "turnOn"    "default"	  =        set to ON state
+ * deviceType	      commandType	          Command	               command parameter	                     Description
+ * Color Bulb   -    "command"            "turnOff"                  "default"	              =        set to OFF state
+ * Color Bulb   -    "command"            "turnOn"                   "default"	              =        set to ON state
+ * Color Bulb   -    "command"            "toggle"                   "default"	              =        toggle state
+ * Color Bulb   -    "command"         "setBrightness"	             "{1-100}"	              =        set brightness
+ * Color Bulb   -    "command"           "setColor"	         "{0-255}:{0-255}:{0-255}"	      =        set RGB color value
+ * Color Bulb   -    "command"     "setColorTemperature"	         "{2700-6500}"	            =        set color temperature
  */
   async pushChanges() {
     try {
-      // eslint-disable-next-line max-len
-      this.platform.log.warn(JSON.stringify(hsv(Number(this.Hue), Number(this.Saturation), Number(this.Brightness)).toRgb));
+      this.platform.log.warn(JSON.stringify(Number(this.Hue)));
+      this.platform.log.warn(JSON.stringify(Number(this.Saturation)));
+      this.platform.log.warn(JSON.stringify(Number(this.Brightness)));
+
+      const hsvtoRgb = hsv(Number(this.Hue), Number(this.Saturation), 100).toRgb;
+
+      const [hue, saturation, brightness] = JSON.stringify(hsvtoRgb).split(',');
+      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} hue: ${JSON.stringify(hue)}`);
+      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} saturation: ${JSON.stringify(saturation)}`);
+      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} brightness: ${JSON.stringify(brightness)}`);
+
+      const [red, green, blue] = JSON.stringify(hsvtoRgb).split(',');
+      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} red: ${JSON.stringify(red)}`);
+      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} green: ${JSON.stringify(green)}`);
+      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} blue: ${JSON.stringify(blue)}`);
+      this.platform.log.warn(`Color Bulb: ${this.accessory.displayName}`
+        + ` RGB: {${JSON.stringify(red)}:${JSON.stringify(green)}:${JSON.stringify(blue)}}`);
+
+      this.platform.log.error(JSON.stringify(hsvtoRgb));
       const payload = {
         commandType: 'command',
         parameter: 'default',

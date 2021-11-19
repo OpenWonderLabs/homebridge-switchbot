@@ -283,7 +283,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         break;
       case 'Bot':
         this.debug(`Discovered ${device.deviceType}: ${device.deviceId}`);
-        this.createBot(device);
+        this.createColorBulb(device);
+        //this.createBot(device);
         break;
       case 'Meter':
         this.debug(`Discovered ${device.deviceType}: ${device.deviceId}`);
@@ -385,12 +386,18 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   private registerDevice(device: device & devicesConfig) {
-    if (!device.hide_device && device.enableCloudService) {
+    if (!device.hide_device && device.enableCloudService && device.ble) {
       this.registeringDevice = true;
-    } else if (!device.hide_device && device.deviceId && device.configDeviceType && device.configDeviceName) {
+      this.device(`Device: ${device.deviceName} Both OpenAPI and BLE Connections Enabled`);
+    } else if (!device.hide_device && device.deviceId && device.configDeviceType && device.configDeviceName && !device.enableCloudService) {
       this.registeringDevice = true;
+      this.device(`Device: ${device.deviceName} BLE Connection Enabled`);
+    } else if (!device.hide_device && device.enableCloudService && !device.ble) {
+      this.registeringDevice = true;
+      this.device(`Device: ${device.deviceName} OpenAPI Connection Enabled`);
     } else {
       this.registeringDevice = false;
+      this.device(`Device: ${device.deviceName} Neither OpenAPI and BLE Enabled`);
     }
     return this.registeringDevice;
   }
