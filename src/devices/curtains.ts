@@ -25,9 +25,6 @@ export class Curtain {
   setNewTargetTimer!: NodeJS.Timeout;
 
   // BLE Others
-  set_minLux!: number;
-  set_maxLux!: number;
-  spaceBetweenLevels!: number;
   switchbot!: switchbot;
   serviceData!: serviceData;
   calibration: serviceData['calibration'];
@@ -38,6 +35,9 @@ export class Curtain {
   // Config
   set_minStep!: number;
   refreshRate!: number;
+  set_minLux!: number;
+  set_maxLux!: number;
+  spaceBetweenLevels!: number;
   private readonly deviceDebug = this.platform.config.options?.debug === 'device' || this.platform.debugMode;
   private readonly debugDebug = this.platform.config.options?.debug === 'debug' || this.platform.debugMode;
 
@@ -245,6 +245,7 @@ export class Curtain {
 
   private async BLEparseStatus() {
     this.platform.debug(`Curtain: ${this.accessory.displayName} BLE parseStatus`);
+    this.setMinMax();
     this.CurrentPosition = 100 - Number(this.position);
     this.platform.debug(`Curtain: ${this.accessory.displayName} CurrentPosition ${this.CurrentPosition}`);
     if (this.setNewTarget) {
@@ -340,6 +341,7 @@ export class Curtain {
     if (this.platform.config.credentials?.openToken) {
       this.platform.debug(`Curtain: ${this.accessory.displayName} OpenAPI parseStatus`);
       // CurrentPosition
+      this.setMinMax();
       this.CurrentPosition = 100 - this.deviceStatus.body.slidePosition!;
       this.platform.debug(`Curtain ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition}`);
       if (this.setNewTarget) {
@@ -656,11 +658,13 @@ export class Curtain {
     if (this.device.curtain?.set_min) {
       if (this.CurrentPosition <= this.device.curtain?.set_min) {
         this.CurrentPosition = 0;
+        this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
       }
     }
     if (this.device.curtain?.set_max) {
       if (this.CurrentPosition >= this.device.curtain?.set_max) {
         this.CurrentPosition = 100;
+        this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
       }
     }
   }
