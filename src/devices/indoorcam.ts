@@ -2,7 +2,7 @@ import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device, devicesConfig, switchbot, deviceStatusResponse } from '../settings';
+import { DeviceURL, device, devicesConfig, deviceStatusResponse, payload } from '../settings';
 import { AxiosResponse } from 'axios';
 
 export class IndoorCam {
@@ -16,8 +16,9 @@ export class IndoorCam {
   // OpenAPI Others
   deviceStatus!: deviceStatusResponse;
 
-  // BLE Others
-  switchbot!: switchbot;
+  // Config
+  private readonly deviceDebug = this.platform.config.options?.debug === 'device' || this.platform.debugMode;
+  private readonly debugDebug = this.platform.config.options?.debug === 'debug' || this.platform.debugMode;
 
   // Updates
   cameraUpdateInProgress!: boolean;
@@ -31,17 +32,6 @@ export class IndoorCam {
     // default placeholders
     this.On = false;
     this.OutletInUse = true;
-
-    // BLE Connections
-    if (device.ble) {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const SwitchBot = require('node-switchbot');
-      this.switchbot = new SwitchBot();
-      const colon = device.deviceId!.match(/.{1,2}/g);
-      const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
-      this.device.bleMac = bleMac.toLowerCase();
-      this.platform.device(this.device.bleMac.toLowerCase());
-    }
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doCameraUpdate = new Subject();
@@ -102,8 +92,15 @@ export class IndoorCam {
         try {
           await this.pushChanges();
         } catch (e: any) {
-          this.platform.log.error(JSON.stringify(e.message));
-          this.platform.debug(`Camera ${accessory.displayName} - ${JSON.stringify(e)}`);
+          this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} failed pushChanges`);
+          if (this.deviceDebug) {
+            this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} failed pushChanges,`
+              + ` Error Message: ${JSON.stringify(e.message)}`);
+          }
+          if (this.debugDebug) {
+            this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} failed pushChanges,`
+              + ` Error: ${JSON.stringify(e)}`);
+          }
           this.apiError(e);
         }
         this.cameraUpdateInProgress = false;
@@ -118,76 +115,26 @@ export class IndoorCam {
       default:
         this.On = false;
     }
-    this.platform.debug(`Camera ${this.accessory.displayName} On: ${this.On}`);
+    this.platform.debug(`Indoor Cam ${this.accessory.displayName} On: ${this.On}`);
   }
 
-  async refreshStatus() {
-    if (this.device.ble) {
-      this.platform.device('BLE');
-      await this.BLErefreshStatus();
-    } else {
-      this.platform.device('OpenAPI');
-      await this.openAPIRefreshStatus();
-    }
-  }
 
-  private async BLErefreshStatus() {
-    this.platform.debug('IndoorCam BLE Device RefreshStatus');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const Switchbot = require('node-switchbot');
-    const switchbot = new Switchbot();
-    const colon = this.device.deviceId!.match(/.{1,2}/g);
-    const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
-    this.device.bleMac = bleMac.toLowerCase();
-    this.platform.device(this.device.bleMac!);
-    switchbot.onadvertisement = (ad: any) => {
-      this.platform.debug(JSON.stringify(ad, null, '  '));
-      this.platform.device(`ad: ${JSON.stringify(ad)}`);
-    };
-    switchbot
-      .startScan({
-        id: this.device.bleMac,
-      })
-      .then(() => {
-        return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
-      })
-      .then(() => {
-        switchbot.stopScan();
-      })
-      .catch(async (error: any) => {
-        this.platform.log.error(error);
-        await this.openAPIRefreshStatus();
-      });
-    setInterval(() => {
-      this.platform.log.info('Start scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
-      switchbot
-        .startScan({
-          mode: 'T',
-          id: bleMac,
-        })
-        .then(() => {
-          return switchbot.wait(this.platform.config.options!.refreshRate! * 1000);
-        })
-        .then(() => {
-          switchbot.stopScan();
-          this.platform.log.info('Stop scan ' + this.device.deviceName + '(' + this.device.bleMac + ')');
-        })
-        .catch(async (error: any) => {
-          this.platform.log.error(error);
-          await this.openAPIRefreshStatus();
-        });
-    }, this.platform.config.options!.refreshRate! * 60000);
-  }
-
-  private async openAPIRefreshStatus() {
+  private async refreshStatus() {
     try {
       this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
-      this.platform.device(`Camera ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+      this.platform.device(`Indoor Cam: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
-      this.platform.log.error(`IndoorCam ${this.accessory.displayName} failed to refresh status, Error Message: ${JSON.stringify(e.message)}`);
-      this.platform.debug(`IndoorCam ${this.accessory.displayName}, Error: ${JSON.stringify(e)}`);
+      this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
+      if (this.deviceDebug) {
+        this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+          + ` Error Message: ${JSON.stringify(e.message)}`);
+      }
+      if (this.debugDebug) {
+        this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+          + ` Error: ${JSON.stringify(e)}`);
+      }
       this.apiError(e);
     }
   }
@@ -202,7 +149,7 @@ export class IndoorCam {
     const payload = {
       commandType: 'command',
       parameter: 'default',
-    } as any;
+    } as payload;
 
     if (this.On) {
       payload.command = 'turnOn';
@@ -210,36 +157,28 @@ export class IndoorCam {
       payload.command = 'turnOff';
     }
 
-    this.platform.log.info(
-      'Sending request for',
-      this.accessory.displayName,
-      'to SwitchBot API. command:',
-      payload.command,
-      'parameter:',
-      payload.parameter,
-      'commandType:',
-      payload.commandType,
-    );
-    this.platform.debug(`Camera ${this.accessory.displayName} pushchanges: ${JSON.stringify(payload)}`);
+    this.platform.log.info(`Indoor Cam: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
+      + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
 
     // Make the API request
     const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-    this.platform.debug(`Camera ${this.accessory.displayName} Changes pushed: ${JSON.stringify(push.data)}`);
+    this.platform.debug(`Indoor Cam: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
     this.statusCode(push);
+    this.refreshStatus();
   }
 
   updateHomeKitCharacteristics() {
     if (this.On === undefined) {
-      this.platform.debug(`Camera ${this.accessory.displayName} On: ${this.On}`);
+      this.platform.debug(`Indoor Cam: ${this.accessory.displayName} On: ${this.On}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.On, this.On);
-      this.platform.device(`Camera ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+      this.platform.device(`Indoor Cam: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
     if (this.OutletInUse === undefined) {
-      this.platform.debug(`Camera ${this.accessory.displayName} OutletInUse: ${this.OutletInUse}`);
+      this.platform.debug(`Indoor Cam: ${this.accessory.displayName} OutletInUse: ${this.OutletInUse}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.OutletInUse, this.OutletInUse);
-      this.platform.device(`Camera ${this.accessory.displayName} updateCharacteristic OutletInUse: ${this.OutletInUse}`);
+      this.platform.device(`Indoor Cam: ${this.accessory.displayName} updateCharacteristic OutletInUse: ${this.OutletInUse}`);
     }
   }
 
@@ -248,34 +187,32 @@ export class IndoorCam {
     this.service.updateCharacteristic(this.platform.Characteristic.OutletInUse, e);
   }
 
-
-  private statusCode(push: AxiosResponse<{ statusCode: number;}>) {
+  private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
     switch (push.data.statusCode) {
       case 151:
-        this.platform.log.error('Command not supported by this device type.');
+        this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} Command not supported by this device type.`);
         break;
       case 152:
-        this.platform.log.error('Device not found.');
+        this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} Device not found.`);
         break;
       case 160:
-        this.platform.log.error('Command is not supported.');
+        this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} Command is not supported.`);
         break;
       case 161:
-        this.platform.log.error('Device is offline.');
+        this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} Device is offline.`);
         break;
       case 171:
-        this.platform.log.error('Hub Device is offline.');
+        this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} Hub Device is offline.`);
         break;
       case 190:
-        this.platform.log.error('Device internal error due to device states not synchronized with server. Or command fomrat is invalid.');
+        this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,`
+          + ` Or command: ${JSON.stringify(push.data)} format is invalid`);
         break;
       case 100:
-        if (this.platform.config.options?.debug) {
-          this.platform.log.info('Command successfully sent.');
-        }
+        this.platform.debug(`Indoor Cam: ${this.accessory.displayName} Command successfully sent.`);
         break;
       default:
-        this.platform.debug('Unknown statusCode.');
+        this.platform.debug(`Indoor Cam: ${this.accessory.displayName} Unknown statusCode.`);
     }
   }
 
@@ -283,7 +220,7 @@ export class IndoorCam {
    * Handle requests to set the value of the "On" characteristic
    */
   OnSet(value: CharacteristicValue) {
-    this.platform.debug(`Camera ${this.accessory.displayName} - Set On: ${value}`);
+    this.platform.debug(`Indoor Cam: ${this.accessory.displayName} On: ${value}`);
 
     this.On = value;
     this.doCameraUpdate.next();

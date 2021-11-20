@@ -2,7 +2,7 @@ import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
 import { interval, Subject } from 'rxjs';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse } from '../settings';
+import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse, payload } from '../settings';
 import { AxiosResponse } from 'axios';
 
 export class Curtain {
@@ -25,6 +25,9 @@ export class Curtain {
   setNewTargetTimer!: NodeJS.Timeout;
 
   // BLE Others
+  set_minLux!: number;
+  set_maxLux!: number;
+  spaceBetweenLevels!: number;
   switchbot!: switchbot;
   serviceData!: serviceData;
   calibration: serviceData['calibration'];
@@ -35,6 +38,8 @@ export class Curtain {
   // Config
   set_minStep!: number;
   refreshRate!: number;
+  private readonly deviceDebug = this.platform.config.options?.debug === 'device' || this.platform.debugMode;
+  private readonly debugDebug = this.platform.config.options?.debug === 'debug' || this.platform.debugMode;
 
   // Updates
   curtainUpdateInProgress!: boolean;
@@ -46,9 +51,10 @@ export class Curtain {
     public device: device & devicesConfig,
   ) {
     // Curtain Config
-    this.platform.device(`[Curtain Config] ble: ${device.ble}, disable_group: ${device.curtain?.disable_group},`
-      + ` refreshRate: ${device.curtain?.refreshRate}, set_max: ${device.curtain?.set_max}, set_min: ${device.curtain?.set_min},`
-      + ` set_minStep: ${device.curtain?.set_minStep}`);
+    this.platform.device(`Curtain: ${this.accessory.displayName} Config: (ble: ${device.ble}, disable_group: ${device.curtain?.disable_group},`
+      + ` hide_lightsensor: ${device.curtain?.hide_lightsensor}, set_minLux: ${device.curtain?.set_minLux}, set_maxLux: `
+      + `${device.curtain?.set_maxLux}, refreshRate: ${device.curtain?.refreshRate}, set_max: ${device.curtain?.set_max}, set_min: `
+      + `${device.curtain?.set_min}, set_minStep: ${device.curtain?.set_minStep})`);
 
     // default placeholders
     this.setMinMax();
@@ -164,8 +170,15 @@ export class Curtain {
         try {
           await this.pushChanges();
         } catch (e: any) {
-          this.platform.log.error(`Curtain: ${this.accessory.displayName} Error Message ${JSON.stringify(e.message)}`);
-          this.platform.debug(`Curtain: ${accessory.displayName} Error: ${JSON.stringify(e)}`);
+          this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges`);
+          if (this.deviceDebug) {
+            this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges,`
+              + ` Error Message: ${JSON.stringify(e.message)}`);
+          }
+          if (this.debugDebug) {
+            this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges,`
+              + ` Error: ${JSON.stringify(e)}`);
+          }
           this.apiError(e);
         }
         this.curtainUpdateInProgress = false;
@@ -179,7 +192,7 @@ export class Curtain {
     const colon = this.device.deviceId!.match(/.{1,2}/g);
     const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
     this.device.bleMac = bleMac.toLowerCase();
-    this.platform.device(this.device.bleMac.toLowerCase());
+    this.platform.device(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     return switchbot;
   }
 
@@ -189,13 +202,13 @@ export class Curtain {
     } else {
       this.refreshRate = 5;
       if (this.platform.config.options?.debug === 'device') {
-        this.platform.log.warn('Using Default Curtain Refresh Rate.');
+        this.platform.log.warn(`Curtain: ${this.accessory.displayName} Using Default Curtain Refresh Rate.`);
       }
     }
     return this.refreshRate;
   }
 
-  private minStep(): number | undefined {
+  private minStep(): number {
     if (this.device.curtain?.set_minStep) {
       this.set_minStep = this.device.curtain?.set_minStep;
     } else {
@@ -204,118 +217,56 @@ export class Curtain {
     return this.set_minStep;
   }
 
+  private minLux(): number {
+    if (this.device.curtain?.set_minLux) {
+      this.set_minLux = this.device.curtain?.set_minLux;
+    } else {
+      this.set_minLux = 1;
+    }
+    return this.set_minLux;
+  }
+
+  private maxLux(): number {
+    if (this.device.curtain?.set_maxLux) {
+      this.set_maxLux = this.device.curtain?.set_maxLux;
+    } else {
+      this.set_maxLux = 6001;
+    }
+    return this.set_maxLux;
+  }
+
   async parseStatus() {
     if (this.device.ble) {
-      this.platform.device('BLE');
       await this.BLEparseStatus();
     } else {
-      this.platform.device('OpenAPI');
       await this.openAPIparseStatus();
     }
   }
 
   private async BLEparseStatus() {
-    this.platform.device('Curtains BLE Device parseStatus');
+    this.platform.debug(`Curtain: ${this.accessory.displayName} BLE parseStatus`);
     this.CurrentPosition = 100 - Number(this.position);
-    this.platform.debug(`Curtain ${this.accessory.displayName} CurrentPosition ${this.CurrentPosition}`);
+    this.platform.debug(`Curtain: ${this.accessory.displayName} CurrentPosition ${this.CurrentPosition}`);
     if (this.setNewTarget) {
-      this.platform.log.info(`Checking ${this.accessory.displayName} Status ...`);
+      this.platform.log.info(`Curtain: ${this.accessory.displayName} Checking Status ...`);
     }
 
     if (this.setNewTarget) {
       this.setMinMax();
       if (this.TargetPosition > this.CurrentPosition) {
-        this.platform.debug(`Curtain ${this.accessory.displayName} Closing, Current position: ${this.CurrentPosition}`);
+        this.platform.debug(`Curtain: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition}`);
         this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
       } else if (this.TargetPosition < this.CurrentPosition) {
-        this.platform.debug(`Curtain ${this.accessory.displayName} Opening, Current position: ${this.CurrentPosition}`);
+        this.platform.debug(`Curtain: ${this.accessory.displayName} Opening, CurrentPosition: ${this.CurrentPosition}`);
         this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
       } else {
-        this.platform.debug(`Curtain ${this.CurrentPosition} Standby, Current position: ${this.CurrentPosition}`);
+        this.platform.debug(`Curtain: ${this.CurrentPosition} Standby, CurrentPosition: ${this.CurrentPosition}`);
         this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
       }
     } else {
-      this.platform.debug(`Curtain ${this.accessory.displayName} Standby, Current position: ${this.CurrentPosition}`);
+      this.platform.debug(`Curtain: ${this.accessory.displayName} Standby, CurrentPosition: ${this.CurrentPosition}`);
       if (!this.setNewTarget) {
         // If Curtain calibration distance is short, there will be an error between the current percentage and the target percentage.
-        this.TargetPosition = this.CurrentPosition;
-        this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
-      }
-    }
-    this.platform.debug(`Curtain ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition},`
-      + ` TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState},`);
-
-    if (!this.device.curtain?.hide_lightsensor) {
-      // Brightness
-      switch (this.lightLevel) {
-        case 1:
-          this.CurrentAmbientLightLevel = 1;
-          break;
-        case 2:
-          this.CurrentAmbientLightLevel = 2;
-          break;
-        case 3:
-          this.CurrentAmbientLightLevel = 3;
-          break;
-        case 4:
-          this.CurrentAmbientLightLevel = 4;
-          break;
-        case 5:
-          this.CurrentAmbientLightLevel = 5;
-          break;
-        case 6:
-          this.CurrentAmbientLightLevel = 6;
-          break;
-        case 7:
-          this.CurrentAmbientLightLevel = 7;
-          break;
-        case 8:
-          this.CurrentAmbientLightLevel = 8;
-          break;
-        case 9:
-          this.CurrentAmbientLightLevel = 9;
-          break;
-        case 10:
-        default:
-          this.CurrentAmbientLightLevel = 10;
-      }
-      this.platform.debug(`Curtain ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
-    }
-    // Battery
-    this.BatteryLevel = Number(this.battery);
-    if (this.BatteryLevel < 10) {
-      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
-    } else {
-      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
-    }
-    this.platform.debug(`Curtain ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
-  }
-
-  private async openAPIparseStatus() {
-    this.platform.device('Curtains OpenAPI Device parseStatus');
-    // CurrentPosition
-    this.CurrentPosition = 100 - this.deviceStatus.body.slidePosition!;
-    this.platform.debug(`Curtain ${this.accessory.displayName} CurrentPosition - Device is Currently: ${this.CurrentPosition}`);
-    if (this.setNewTarget) {
-      this.platform.log.info(`Checking ${this.accessory.displayName} Status ...`);
-    }
-
-    if (this.deviceStatus.body.moving) {
-      this.setMinMax();
-      if (this.TargetPosition > this.CurrentPosition) {
-        this.platform.debug(`Curtain: ${this.accessory.displayName} Closing, Current Position: ${this.CurrentPosition} `);
-        this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
-      } else if (this.TargetPosition < this.CurrentPosition) {
-        this.platform.debug(`Curtain: ${this.accessory.displayName} Opening, Current Position: ${this.CurrentPosition} `);
-        this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
-      } else {
-        this.platform.debug(`Curtain: ${this.CurrentPosition} Standby, Current position: ${this.CurrentPosition}`);
-        this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
-      }
-    } else {
-      this.platform.debug(`Curtain: ${this.accessory.displayName} Standby, Current position: ${this.CurrentPosition}`);
-      if (!this.setNewTarget) {
-        /*If Curtain calibration distance is short, there will be an error between the current percentage and the target percentage.*/
         this.TargetPosition = this.CurrentPosition;
         this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
       }
@@ -324,31 +275,125 @@ export class Curtain {
       + ` TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState},`);
 
     if (!this.device.curtain?.hide_lightsensor) {
+      this.set_minLux = this.minLux();
+      this.set_maxLux = this.maxLux();
+      this.spaceBetweenLevels = 9;
+
       // Brightness
-      switch (this.deviceStatus.body.brightness) {
-        case 'dim':
-          this.CurrentAmbientLightLevel = 0.0001;
+      switch (this.lightLevel) {
+        case 1:
+          this.CurrentAmbientLightLevel = this.set_minLux;
+          this.platform.device(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
           break;
-        case 'bright':
+        case 2:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels);
+          this.platform.device(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel},`
+            + ` Calculation: ${((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels)}`);
+          break;
+        case 3:
+          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 2);
+          this.platform.device(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 4:
+          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 3);
+          this.platform.device(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 5:
+          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 4);
+          this.platform.device(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 6:
+          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 5);
+          this.platform.device(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 7:
+          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 6);
+          this.platform.device(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 8:
+          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 7);
+          this.platform.device(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 9:
+          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 8);
+          this.platform.device(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 10:
         default:
-          this.CurrentAmbientLightLevel = 100000;
+          this.CurrentAmbientLightLevel = this.set_maxLux;
+          this.platform.device();
       }
-      this.platform.debug(`Curtain: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+      this.platform.debug(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel},`
+        + ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+    }
+    // Battery
+    this.BatteryLevel = Number(this.battery);
+    if (this.BatteryLevel < 10) {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
+    } else {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    }
+    this.platform.debug(`Curtain: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
+  }
+
+  private async openAPIparseStatus() {
+    if (this.platform.config.credentials?.openToken) {
+      this.platform.debug(`Curtain: ${this.accessory.displayName} OpenAPI parseStatus`);
+      // CurrentPosition
+      this.CurrentPosition = 100 - this.deviceStatus.body.slidePosition!;
+      this.platform.debug(`Curtain ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition}`);
+      if (this.setNewTarget) {
+        this.platform.log.info(`Checking ${this.accessory.displayName} Status ...`);
+      }
+
+      if (this.deviceStatus.body.moving) {
+        this.setMinMax();
+        if (this.TargetPosition > this.CurrentPosition) {
+          this.platform.debug(`Curtain: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition} `);
+          this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
+        } else if (this.TargetPosition < this.CurrentPosition) {
+          this.platform.debug(`Curtain: ${this.accessory.displayName} Opening, CurrentPosition: ${this.CurrentPosition} `);
+          this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
+        } else {
+          this.platform.debug(`Curtain: ${this.CurrentPosition} Standby, CurrentPosition: ${this.CurrentPosition}`);
+          this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
+        }
+      } else {
+        this.platform.debug(`Curtain: ${this.accessory.displayName} Standby, CurrentPosition: ${this.CurrentPosition}`);
+        if (!this.setNewTarget) {
+          /*If Curtain calibration distance is short, there will be an error between the current percentage and the target percentage.*/
+          this.TargetPosition = this.CurrentPosition;
+          this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
+        }
+      }
+      this.platform.debug(`Curtain: ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition},`
+        + ` TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState},`);
+
+      if (!this.device.curtain?.hide_lightsensor) {
+        // Brightness
+        switch (this.deviceStatus.body.brightness) {
+          case 'dim':
+            this.CurrentAmbientLightLevel = 0.0001;
+            break;
+          case 'bright':
+          default:
+            this.CurrentAmbientLightLevel = 100000;
+        }
+        this.platform.debug(`Curtain: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+      }
     }
   }
 
   async refreshStatus() {
     if (this.device.ble) {
-      this.platform.device('BLE');
       await this.BLERefreshStatus();
     } else {
-      this.platform.device('OpenAPI');
       await this.openAPIRefreshStatus();
     }
   }
 
   private async BLERefreshStatus() {
-    this.platform.debug('Curtains BLE Device RefreshStatus');
+    this.platform.debug(`Curtain: ${this.accessory.displayName} BLE refreshStatus`);
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const switchbot = this.connectBLE();
     // Start to monitor advertisement packets
@@ -359,13 +404,13 @@ export class Curtain {
       // Set an event hander
       switchbot.onadvertisement = (ad: any) => {
         this.serviceData = ad.serviceData;
-        this.platform.device(`${this.device.bleMac}: ${JSON.stringify(ad.serviceData)}`);
         this.calibration = ad.serviceData.calibration;
         this.battery = ad.serviceData.battery;
         this.position = ad.serviceData.position;
         this.lightLevel = ad.serviceData.lightLevel;
-        this.platform.device(`${this.accessory.displayName}, Calibration: ${ad.serviceData.calibration}, Position: ${ad.serviceData.position},`
-          + ` Light Level: ${ad.serviceData.lightLevel}, Battery: ${ad.serviceData.battery}`);
+        this.platform.device(`Curtain: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+        this.platform.device(`Curtain: ${this.accessory.displayName} calibration: ${ad.serviceData.calibration}, `
+          + `position: ${ad.serviceData.position}, lightLevel: ${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}`);
       };
       // Wait 10 seconds
       return switchbot.wait(10000);
@@ -375,75 +420,111 @@ export class Curtain {
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     }).catch(async (e: any) => {
-      this.platform.log.error(`BLE Connection Failed: ${e.message}`);
-      this.platform.log.warn('Using OpenAPI Connection');
-      await this.openAPIRefreshStatus();
+      this.platform.log.error(`Curtain: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
+      if (this.deviceDebug) {
+        this.platform.log.error(`Curtain: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+          + ` Error Message: ${JSON.stringify(e.message)}`);
+      }
+      if (this.debugDebug) {
+        this.platform.log.error(`Curtain: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+          + ` Error: ${JSON.stringify(e)}`);
+      }
+      if (this.platform.config.credentials?.openToken) {
+        this.platform.log.warn(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
+        await this.openAPIRefreshStatus();
+      }
     });
   }
 
   private async openAPIRefreshStatus() {
-    this.platform.debug('Curtains OpenAPI Device RefreshStatus');
-    try {
-      this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
-      this.platform.debug(`Curtain: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
-      this.parseStatus();
-      this.updateHomeKitCharacteristics();
-    } catch (e: any) {
-      this.platform.log.error(`Curtain: ${this.accessory.displayName} failed to refresh status, Error Message ${JSON.stringify(e.message)}`);
-      this.platform.debug(`Curtain: ${this.accessory.displayName} Error: ${JSON.stringify(e)}`);
-      this.apiError(e);
+    if (this.platform.config.credentials?.openToken) {
+      this.platform.debug(`Curtain: ${this.accessory.displayName} OpenAPI refreshStatus`);
+      try {
+        this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
+        this.platform.debug(`Curtain: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+        this.parseStatus();
+        this.updateHomeKitCharacteristics();
+      } catch (e: any) {
+        this.platform.log.error(`Curtain: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
+        if (this.deviceDebug) {
+          this.platform.log.error(`Curtain: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
+        }
+        if (this.debugDebug) {
+          this.platform.log.error(`Curtain: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
+            + ` Error: ${JSON.stringify(e)}`);
+        }
+        this.apiError(e);
+      }
     }
   }
 
   async pushChanges() {
     if (this.device.ble) {
-      this.platform.device('BLE');
       await this.BLEpushChanges();
     } else {
-      this.platform.device('OpenAPI');
       await this.OpenAPIpushChanges();
     }
+    this.refreshStatus();
   }
 
   private async BLEpushChanges() {
-    this.platform.device('Curtains BLE Device pushChanges');
+    this.platform.debug(`Curtain: ${this.accessory.displayName} BLE pushChanges`);
     const switchbot = this.connectBLE();
     switchbot.discover({ model: 'c', quick: true, id: this.device.bleMac }).then((device_list) => {
       this.platform.log.info(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
       return device_list[0].runToPos(100 - Number(this.TargetPosition));
     }).then(() => {
-      this.platform.device('Done.');
-    }).catch((e: any) => {
-      this.platform.log.error(`BLE pushChanges Error Message: ${e.message}`);
+      this.platform.device(`Curtain: ${this.accessory.displayName} Done.`);
+    }).catch(async (e: any) => {
+      this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
+      if (this.deviceDebug) {
+        this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
+          + ` Error Message: ${JSON.stringify(e.message)}`);
+      }
+      if (this.debugDebug) {
+        this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
+          + ` Error: ${JSON.stringify(e)}`);
+      }
+      if (this.platform.config.credentials?.openToken) {
+        this.platform.log.warn(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
+        await this.OpenAPIpushChanges();
+      }
     });
   }
 
   private async OpenAPIpushChanges() {
-    if (this.TargetPosition !== this.CurrentPosition) {
-      this.platform.debug(`Pushing ${this.TargetPosition}`);
-      const adjustedTargetPosition = 100 - Number(this.TargetPosition);
-      const payload = {
-        commandType: 'command',
-        command: 'setPosition',
-        parameter: `0,ff,${adjustedTargetPosition}`,
-      } as any;
+    if (this.platform.config.credentials?.openToken) {
+      try {
+        this.platform.debug(`Curtain: ${this.accessory.displayName} OpenAPI pushChanges`);
+        if (this.TargetPosition !== this.CurrentPosition) {
+          this.platform.debug(`Pushing ${this.TargetPosition}`);
+          const adjustedTargetPosition = 100 - Number(this.TargetPosition);
+          const payload = {
+            commandType: 'command',
+            command: 'setPosition',
+            parameter: `0,ff,${adjustedTargetPosition}`,
+          } as payload;
 
-      this.platform.log.info(
-        'Sending request for',
-        this.accessory.displayName,
-        'to SwitchBot API. command:',
-        payload.command,
-        'parameter:',
-        payload.parameter,
-        'commandType:',
-        payload.commandType,
-      );
-      this.platform.debug(`Curtain: ${this.accessory.displayName} pushchanges: ${JSON.stringify(payload)}`);
+          this.platform.log.info(`Curtain: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
+            + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
 
-      // Make the API request
-      const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId!}/commands`, payload));
-      this.platform.debug(`Curtain: ${this.accessory.displayName} Changes pushed: ${JSON.stringify(push.data)}`);
-      this.statusCode(push);
+          // Make the API request
+          const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId!}/commands`, payload));
+          this.platform.debug(`Curtain: ${this.accessory.displayName} pushchanges: ${JSON.stringify(push.data)}`);
+          this.statusCode(push);
+        }
+      } catch (e: any) {
+        this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
+        if (this.deviceDebug) {
+          this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
+        }
+        if (this.debugDebug) {
+          this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
+            + ` Error: ${JSON.stringify(e)}`);
+        }
+      }
     }
   }
 
@@ -477,16 +558,16 @@ export class Curtain {
     }
     if (this.device.ble) {
       if (this.BatteryLevel === undefined) {
-        this.platform.debug(`Curtain ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
+        this.platform.debug(`Curtain: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
       } else {
         this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
-        this.platform.device(`Curtain ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
+        this.platform.device(`Curtain: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
       }
       if (this.StatusLowBattery === undefined) {
-        this.platform.debug(`Curtain ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
+        this.platform.debug(`Curtain: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
       } else {
         this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
-        this.platform.device(`Curtain ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
+        this.platform.device(`Curtain: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
       }
     }
   }
@@ -507,28 +588,29 @@ export class Curtain {
   private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
     switch (push.data.statusCode) {
       case 151:
-        this.platform.log.error('Command not supported by this device type.');
+        this.platform.log.error(`Curtain: ${this.accessory.displayName} Command not supported by this device type.`);
         break;
       case 152:
-        this.platform.log.error('Device not found.');
+        this.platform.log.error(`Curtain: ${this.accessory.displayName} Device not found.`);
         break;
       case 160:
-        this.platform.log.error('Command is not supported.');
+        this.platform.log.error(`Curtain: ${this.accessory.displayName} Command is not supported.`);
         break;
       case 161:
-        this.platform.log.error('Device is offline.');
+        this.platform.log.error(`Curtain: ${this.accessory.displayName} Device is offline.`);
         break;
       case 171:
-        this.platform.log.error('Hub Device is offline.');
+        this.platform.log.error(`Curtain: ${this.accessory.displayName} Hub Device is offline.`);
         break;
       case 190:
-        this.platform.log.error('Device internal error due to device states not synchronized with server. Or command fomrat is invalid.');
+        this.platform.log.error(`Curtain: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,`
+          + ` Or command: ${JSON.stringify(push.data)} format is invalid`);
         break;
       case 100:
-        this.platform.debug('Command successfully sent.');
+        this.platform.debug(`Curtain: ${this.accessory.displayName} Command successfully sent.`);
         break;
       default:
-        this.platform.debug('Unknown statusCode.');
+        this.platform.debug(`Curtain: ${this.accessory.displayName} Unknown statusCode.`);
     }
   }
 
@@ -536,7 +618,7 @@ export class Curtain {
    * Handle requests to set the value of the "Target Position" characteristic
    */
   TargetPositionSet(value: CharacteristicValue) {
-    this.platform.debug(`Curtain: ${this.accessory.displayName} - Set TargetPosition: ${value}`);
+    this.platform.debug(`Curtain: ${this.accessory.displayName} TargetPosition: ${value}`);
 
     this.TargetPosition = value;
 
@@ -563,7 +645,7 @@ export class Curtain {
     clearTimeout(this.setNewTargetTimer);
     if (this.setNewTarget) {
       this.setNewTargetTimer = setTimeout(() => {
-        this.platform.debug(`Curtain: ${this.accessory.displayName} - setNewTarget ${this.setNewTarget} timeout`);
+        this.platform.debug(`Curtain: ${this.accessory.displayName} setNewTarget ${this.setNewTarget} timeout`);
         this.setNewTarget = false;
       }, 10000);
     }
