@@ -178,20 +178,6 @@ export class ColorBulb {
   }
 
   parseStatus() {
-    /* this.deviceStatus = {
-       statusCode: 100,
-       body: {
-         deviceId: '56F90426AD3D',
-         deviceType: 'Color Bulb',
-         hubDeviceId: '84F70353DD5A',
-         power: 'on',
-         brightness: 100,
-         color: '250:10:0',
-         colorTemperature: 6500,
-       },
-       message: 'success',
-     };*/
-
     switch (this.deviceStatus.body.power) {
       case 'on':
         this.On = true;
@@ -229,7 +215,6 @@ export class ColorBulb {
     if (this.deviceStatus.body.colorTemperature) {
       // Convert mired to kelvin to nearest 100 (Govee seems to need this)
       const mired = Math.round(1000000 / this.deviceStatus.body.colorTemperature);
-      //kelvin = Math.round(1000000 / mired)
 
       this.ColorTemperature = Number(mired);
       this.platform.log.warn(`Color Bulb: ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
@@ -268,6 +253,7 @@ export class ColorBulb {
  */
   async pushChanges() {
     try {
+      // Push On Update
       if (this.On) {
         const payload = {
           commandType: 'command',
@@ -289,6 +275,7 @@ export class ColorBulb {
         this.statusCode(push);
       }
 
+      // Push Brightness Update
       if (this.On) {
         const payload = {
           commandType: 'command',
@@ -305,6 +292,7 @@ export class ColorBulb {
         this.statusCode(push);
       }
 
+      // Push ColorTemperature Update
       if (this.On) {
         const kelvin = Math.round(1000000 / Number(this.ColorTemperature));
 
@@ -323,6 +311,7 @@ export class ColorBulb {
         this.statusCode(push);
       }
 
+      // Push Hue & Saturation Update
       if (this.On) {
         this.platform.log.warn(JSON.stringify(this.Hue));
         this.platform.log.warn(JSON.stringify(this.Saturation));
@@ -332,7 +321,7 @@ export class ColorBulb {
 
         const payload = {
           commandType: 'command',
-          command: 'setColorTemperature',
+          command: 'setColor',
           parameter: `{${red}}:{${green}}:{${blue}}`,
         } as payload;
 

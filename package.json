@@ -47,14 +47,13 @@
     "ir"
   ],
   "dependencies": {
-    "@anzerr/color.util": "^1.0.12",
     "@homebridge/plugin-ui-utils": "^0.0.19",
     "axios": "^0.24.0",
     "node-switchbot": "^1.1.2",
     "rxjs": "^7.4.0"
   },
   "devDependencies": {
-    "@types/node": "^16.11.8",
+    "@types/node": "^16.11.9",
     "@typescript-eslint/eslint-plugin": "^5.4.0",
     "@typescript-eslint/parser": "^5.4.0",
     "eslint": "^8.2.0",

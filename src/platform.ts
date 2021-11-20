@@ -121,34 +121,37 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     this.config.options = this.config.options || {};
     this.config.options.debug;
 
-    // Device Config
-    if (this.config.options.devices) {
-      for (const deviceConfig of this.config.options.devices) {
-        if (!deviceConfig.hide_device) {
-          if (!deviceConfig.deviceId) {
-            this.log.error('The devices config section is missing the *Device ID* in the config, Check Your Conifg.');
-          }
-          if (!deviceConfig.configDeviceType) {
-            this.log.error('The devices config section is missing the *Device Type* in the config, Check Your Conifg.');
-          }
-          if (deviceConfig.bot) {
-            if (!deviceConfig.bot?.mode) {
-              this.log.error('You must set your Bot to Press or Switch Mode');
+    if (this.config.options) {
+
+      // Device Config
+      if (this.config.options.devices) {
+        for (const deviceConfig of this.config.options.devices) {
+          if (!deviceConfig.hide_device) {
+            if (!deviceConfig.deviceId) {
+              throw new Error('The devices config section is missing the *Device ID* in the config, Check Your Conifg.');
+            }
+            if (!deviceConfig.configDeviceType && deviceConfig.ble) {
+              throw new Error('The devices config section is missing the *Device Type* in the config, Check Your Conifg.');
+            }
+            if (deviceConfig.bot) {
+              if (!deviceConfig.bot?.mode) {
+                this.log.error('You must set your Bot to Press or Switch Mode');
+              }
             }
           }
         }
       }
-    }
 
-    // IR Device Config
-    if (this.config.options.irdevices) {
-      for (const irDeviceConfig of this.config.options.irdevices) {
-        if (!irDeviceConfig.hide_device) {
-          if (!irDeviceConfig.configRemoteType) {
-            this.log.error('The devices config section is missing the *Device Type* in the config, Check Your Conifg.');
-          }
-          if (!irDeviceConfig.deviceId) {
-            this.log.error('The devices config section is missing the *Device ID* in the config, Check Your Conifg.');
+      // IR Device Config
+      if (this.config.options.irdevices) {
+        for (const irDeviceConfig of this.config.options.irdevices) {
+          if (!irDeviceConfig.hide_device) {
+            if (!irDeviceConfig.deviceId) {
+              this.log.error('The devices config section is missing the *Device ID* in the config, Check Your Conifg.');
+            }
+            if (!irDeviceConfig.deviceId && !irDeviceConfig.configRemoteType) {
+              this.log.error('The devices config section is missing the *Device Type* in the config, Check Your Conifg.');
+            }
           }
         }
       }
