@@ -243,6 +243,43 @@
                 "curtain": {
                   "type": "object",
                   "properties": {
+                    "set_minStep": {
+                      "title": "Set Minimum Step",
+                      "type": "number",
+                      "placeholder": "1",
+                      "description": "Sets the minimum steps that curtain allows. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "set_min": {
+                      "title": "Set Minimum Open State",
+                      "type": "number",
+                      "placeholder": "0",
+                      "description": "Sets the minimum percentage before needed to set Curtain to Open",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "set_max": {
+                      "title": "Set Maximum Close State",
+                      "type": "number",
+                      "placeholder": "100",
+                      "description": "Sets the maximum percentage before needing to set Curtain to Closed",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "refreshRate": {
+                      "title": "Refresh Rate",
+                      "type": "number",
+                      "minimum": 1,
+                      "placeholder": 5,
+                      "description": "Indicates the number of seconds between before refreshing Curtain status while updating slide progress.",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
                     "disable_group": {
                       "title": "Disable Grouping",
                       "type": "boolean",
@@ -271,40 +308,6 @@
                       "placeholder": "6001",
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].curtain.hide_lightsensor);"
-                      }
-                    },
-                    "refreshRate": {
-                      "title": "Refresh Rate",
-                      "type": "number",
-                      "minimum": 1,
-                      "placeholder": 5,
-                      "description": "Indicates the number of seconds between before refreshing Curtain status while updating slide progress.",
-                      "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
-                      }
-                    },
-                    "set_minStep": {
-                      "title": "Set Min Step",
-                      "type": "number",
-                      "placeholder": "1",
-                      "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
-                      }
-                    },
-                    "set_min": {
-                      "title": "Set Min",
-                      "type": "number",
-                      "placeholder": "0",
-                      "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
-                      }
-                    },
-                    "set_max": {
-                      "title": "Set Max",
-                      "type": "number",
-                      "placeholder": "100",
-                      "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
                       }
                     }
                   }
@@ -713,14 +716,14 @@
             "options.devices[].meter.unit",
             "options.devices[].humidifier.set_minStep",
             "options.devices[].humidifier.hide_temperature",
+            "options.devices[].curtain.set_minStep",
+            "options.devices[].curtain.set_min",
+            "options.devices[].curtain.set_max",
+            "options.devices[].curtain.refreshRate",
             "options.devices[].curtain.disable_group",
             "options.devices[].curtain.hide_lightsensor",
             "options.devices[].curtain.set_minlux",
             "options.devices[].curtain.set_maxlux",
-            "options.devices[].curtain.refreshRate",
-            "options.devices[].curtain.set_minStep",
-            "options.devices[].curtain.set_min",
-            "options.devices[].curtain.set_max",
             "options.devices[].contact.hide_lightsensor",
             "options.devices[].contact.hide_motionsensor",
             "options.devices[].colorbulb.set_minStep"
