@@ -264,7 +264,6 @@ export class Fan {
         this.platform.log.error(`Fan: ${this.accessory.displayName} Hub Device is offline.`);
         break;
       case 190:
-        // eslint-disable-next-line max-len
         this.platform.log.error(`Fan: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,`
           + ` Or command: ${JSON.stringify(push.data)} format is invalid`);
         break;

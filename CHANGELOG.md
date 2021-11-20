@@ -2,12 +2,16 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [Beta - Version 1.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.0) (2021-11-XX)
+## [Version 1.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.0) (2021-11-19)
 
 ## What's Changed
+* Added option to be able to do Bluetooth Low Energy (BLE) Only Connection.
+    * Must supply `Device ID` & `Device Name` to the Device Config
+    * Must Check `Enable Bluetooth Low Energy (BLE) Connection`
 * Fixed Bug: Air conditioner temperature not able to change. [#43](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/43)
 * Add option to set Min Lux and Max Lux for Curtain's Light Sensor.
 * Add `updateHomeKitCharacteristics` to IR Devices to contain all `updateCharacteristics` in one spot.
+* Add `Saturation` and `Hue` to Colorbulb.
 * Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.1.0...v1.2.0
