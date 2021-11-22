@@ -21,8 +21,6 @@ export class Curtain {
 
   // OpenAPI Others
   deviceStatus!: deviceStatusResponse;
-  setNewTarget!: boolean;
-  setNewTargetTimer!: NodeJS.Timeout;
 
   // BLE Others
   switchbot!: switchbot;
@@ -31,6 +29,10 @@ export class Curtain {
   battery: serviceData['battery'];
   position: serviceData['position'];
   lightLevel: serviceData['lightLevel'];
+
+  // Target
+  setNewTarget!: boolean;
+  setNewTargetTimer!: NodeJS.Timeout;
 
   // Config
   set_minStep!: number;
@@ -247,13 +249,13 @@ export class Curtain {
     this.platform.debug(`Curtain: ${this.accessory.displayName} BLE parseStatus`);
     this.setMinMax();
     this.CurrentPosition = 100 - Number(this.position);
+    this.setMinMax();
     this.platform.debug(`Curtain: ${this.accessory.displayName} CurrentPosition ${this.CurrentPosition}`);
     if (this.setNewTarget) {
       this.platform.log.info(`Curtain: ${this.accessory.displayName} Checking Status ...`);
     }
 
     if (this.setNewTarget) {
-      this.setMinMax();
       if (this.TargetPosition > this.CurrentPosition) {
         this.platform.debug(`Curtain: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition}`);
         this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
@@ -343,13 +345,13 @@ export class Curtain {
       // CurrentPosition
       this.setMinMax();
       this.CurrentPosition = 100 - this.deviceStatus.body.slidePosition!;
+      this.setMinMax();
       this.platform.debug(`Curtain ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition}`);
       if (this.setNewTarget) {
         this.platform.log.info(`Checking ${this.accessory.displayName} Status ...`);
       }
 
       if (this.deviceStatus.body.moving) {
-        this.setMinMax();
         if (this.TargetPosition > this.CurrentPosition) {
           this.platform.debug(`Curtain: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition} `);
           this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
@@ -419,6 +421,7 @@ export class Curtain {
     }).then(() => {
       // Stop to monitor
       switchbot.stopScan();
+      this.setMinMax();
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     }).catch(async (e: any) => {
@@ -434,6 +437,7 @@ export class Curtain {
       if (this.platform.config.credentials?.openToken) {
         this.platform.log.warn(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.openAPIRefreshStatus();
+        this.apiError(e);
       }
     });
   }
@@ -444,6 +448,7 @@ export class Curtain {
       try {
         this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
         this.platform.debug(`Curtain: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+        this.setMinMax();
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       } catch (e: any) {
@@ -624,19 +629,18 @@ export class Curtain {
 
     this.TargetPosition = value;
 
-    this.setMinMax();
     if (value > this.CurrentPosition) {
       this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
       this.setNewTarget = true;
-      //this.setMinMax();
+      this.setMinMax();
     } else if (value < this.CurrentPosition) {
       this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
       this.setNewTarget = true;
-      //this.setMinMax();
+      this.setMinMax();
     } else {
       this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
       this.setNewTarget = false;
-      //this.setMinMax();
+      this.setMinMax();
     }
     this.service.setCharacteristic(this.platform.Characteristic.PositionState, this.PositionState);
 
@@ -658,13 +662,11 @@ export class Curtain {
     if (this.device.curtain?.set_min) {
       if (this.CurrentPosition <= this.device.curtain?.set_min) {
         this.CurrentPosition = 0;
-        this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
       }
     }
     if (this.device.curtain?.set_max) {
       if (this.CurrentPosition >= this.device.curtain?.set_max) {
         this.CurrentPosition = 100;
-        this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
       }
     }
   }
