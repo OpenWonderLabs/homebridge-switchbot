@@ -249,13 +249,13 @@ export class Curtain {
     this.platform.debug(`Curtain: ${this.accessory.displayName} BLE parseStatus`);
     this.setMinMax();
     this.CurrentPosition = 100 - Number(this.position);
-    this.setMinMax();
     this.platform.debug(`Curtain: ${this.accessory.displayName} CurrentPosition ${this.CurrentPosition}`);
     if (this.setNewTarget) {
       this.platform.log.info(`Curtain: ${this.accessory.displayName} Checking Status ...`);
     }
 
     if (this.setNewTarget) {
+      this.setMinMax();
       if (this.TargetPosition > this.CurrentPosition) {
         this.platform.debug(`Curtain: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition}`);
         this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
@@ -345,13 +345,13 @@ export class Curtain {
       // CurrentPosition
       this.setMinMax();
       this.CurrentPosition = 100 - this.deviceStatus.body.slidePosition!;
-      this.setMinMax();
       this.platform.debug(`Curtain ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition}`);
       if (this.setNewTarget) {
         this.platform.log.info(`Checking ${this.accessory.displayName} Status ...`);
       }
 
       if (this.deviceStatus.body.moving) {
+        this.setMinMax();
         if (this.TargetPosition > this.CurrentPosition) {
           this.platform.debug(`Curtain: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition} `);
           this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
@@ -421,7 +421,6 @@ export class Curtain {
     }).then(() => {
       // Stop to monitor
       switchbot.stopScan();
-      this.setMinMax();
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     }).catch(async (e: any) => {
@@ -437,8 +436,8 @@ export class Curtain {
       if (this.platform.config.credentials?.openToken) {
         this.platform.log.warn(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.openAPIRefreshStatus();
-        this.apiError(e);
       }
+      this.apiError(e);
     });
   }
 
@@ -448,7 +447,6 @@ export class Curtain {
       try {
         this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
         this.platform.debug(`Curtain: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
-        this.setMinMax();
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       } catch (e: any) {
@@ -497,6 +495,7 @@ export class Curtain {
         this.platform.log.warn(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.OpenAPIpushChanges();
       }
+      this.apiError(e);
     });
   }
 
@@ -531,6 +530,7 @@ export class Curtain {
           this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
             + ` Error: ${JSON.stringify(e)}`);
         }
+        this.apiError(e);
       }
     }
   }
@@ -629,20 +629,22 @@ export class Curtain {
 
     this.TargetPosition = value;
 
+    this.setMinMax();
     if (value > this.CurrentPosition) {
       this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
       this.setNewTarget = true;
-      this.setMinMax();
+      this.platform.debug(`Curtain: ${this.accessory.displayName} value: ${value}, CurrentPosition: ${this.CurrentPosition}`);
     } else if (value < this.CurrentPosition) {
       this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
       this.setNewTarget = true;
-      this.setMinMax();
+      this.platform.debug(`Curtain: ${this.accessory.displayName} value: ${value}, CurrentPosition: ${this.CurrentPosition}`);
     } else {
       this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
       this.setNewTarget = false;
-      this.setMinMax();
+      this.platform.debug(`Curtain: ${this.accessory.displayName} value: ${value}, CurrentPosition: ${this.CurrentPosition}`);
     }
     this.service.setCharacteristic(this.platform.Characteristic.PositionState, this.PositionState);
+    this.service.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
 
     /**
    * If Curtain movement time is short, the moving flag from backend is always false.

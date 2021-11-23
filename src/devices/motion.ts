@@ -210,6 +210,7 @@ export class Motion {
         this.platform.log.warn(`Motion Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.openAPIRefreshStatus();
       }
+      this.apiError(e);
     });
   }
 

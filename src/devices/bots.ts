@@ -260,6 +260,7 @@ export class Bot {
         this.platform.log.warn(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.openAPIRefreshStatus();
       }
+      this.apiError(e);
     });
   }
 
@@ -334,6 +335,7 @@ export class Bot {
           this.platform.log.warn(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
           await this.openAPIpushChanges();
         }
+        this.apiError(e);
       });
     } else if (this.device.bot?.mode === 'switch') {
       this.platform.device(`Bot: ${this.accessory.displayName} Press Mode: ${this.device.bot?.mode}`);
@@ -356,6 +358,7 @@ export class Bot {
           this.platform.log.warn(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
           await this.openAPIpushChanges();
         }
+        this.apiError(e);
       });
     } else {
       this.platform.log.error(`Bot: ${this.accessory.displayName} Mode Not Set, mode: ${this.device.bot?.mode}`);
@@ -412,6 +415,7 @@ export class Bot {
           this.platform.log.error(`Bot: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
             + ` Error: ${JSON.stringify(e)}`);
         }
+        this.apiError(e);
       }
     }
   }

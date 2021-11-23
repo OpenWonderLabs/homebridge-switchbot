@@ -273,6 +273,7 @@ export class Contact {
         this.platform.log.warn(`Contact Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.openAPIRefreshStatus();
       }
+      this.apiError(e);
     });
   }
 

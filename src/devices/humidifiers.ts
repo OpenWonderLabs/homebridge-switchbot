@@ -340,6 +340,7 @@ export class Humidifier {
         this.platform.log.warn(`Humidifier: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.openAPIRefreshStatus();
       }
+      this.apiError(e);
     });
   }
 
@@ -387,7 +388,7 @@ export class Humidifier {
     const switchbot = this.connectBLE();
     switchbot.discover({ model: 'e', quick: true, id: this.device.bleMac }).then((device_list) => {
       this.platform.log.info(`${this.accessory.displayName} Target Position: ${this.Active}`);
-      return device_list[0].runToPos(100 - Number(this.Active));
+      return device_list[0].percentage(this.RelativeHumidityHumidifierThreshold);
     }).then(() => {
       this.platform.device(`Humidifier: ${this.accessory.displayName} Done.`);
     }).catch(async (e: any) => {
@@ -404,6 +405,7 @@ export class Humidifier {
         this.platform.log.warn(`Humidifier: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.OpenAPIpushChanges();
       }
+      this.apiError(e);
     });
   }
 

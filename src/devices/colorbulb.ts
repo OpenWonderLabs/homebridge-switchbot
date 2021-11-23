@@ -344,6 +344,7 @@ export class ColorBulb {
         this.platform.log.error(`Color Bulb: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
           + ` Error: ${JSON.stringify(e)}`);
       }
+      this.apiError(e);
     }
   }
 

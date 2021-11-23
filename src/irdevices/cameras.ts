@@ -142,8 +142,8 @@ export class Camera {
         this.platform.log.error(`Camera: ${this.accessory.displayName} Hub Device is offline.`);
         break;
       case 190:
-        this.platform.log.error(`Camera: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,`
-          + ` Or command: ${JSON.stringify(push.data)} format is invalid`);
+        this.platform.log.error(`Camera: ${this.accessory.displayName} Device internal error due to device states not synchronized`
+          + ` with server, Or command: ${JSON.stringify(push.data)} format is invalid`);
         break;
       case 100:
         this.platform.debug(`Camera: ${this.accessory.displayName} Command successfully sent.`);

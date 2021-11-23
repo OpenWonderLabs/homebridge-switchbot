@@ -50,7 +50,7 @@
                 "configDeviceName": {
                   "title": "Device Name",
                   "type": "string",
-                  "placeholder": "Bot",
+                  "placeholder": "SwitchBot",
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].ble);"
                   }
@@ -59,7 +59,7 @@
                   "title": "Hide Device",
                   "type": "boolean",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].ble);"
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId);"
                   }
                 },
                 "configDeviceType": {

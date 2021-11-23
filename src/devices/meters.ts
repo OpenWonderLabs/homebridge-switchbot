@@ -291,6 +291,7 @@ export class Meter {
         this.platform.log.warn(`Meter: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.openAPIRefreshStatus();
       }
+      this.apiError(e);
     });
   }
 
