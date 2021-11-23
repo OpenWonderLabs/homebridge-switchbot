@@ -17,7 +17,7 @@ export class Bot {
   private batteryService?: Service;
 
   // Characteristic Values
-  SwitchOn!: CharacteristicValue;
+  On!: CharacteristicValue;
   BatteryLevel!: CharacteristicValue;
   StatusLowBattery!: CharacteristicValue;
 
@@ -49,7 +49,7 @@ export class Bot {
       + ` deviceType: ${device.bot?.deviceType})`);
 
     // default placeholders
-    this.SwitchOn = false;
+    this.On = false;
     this.BatteryLevel = 100;
     this.StatusLowBattery = 1;
 
@@ -173,7 +173,9 @@ export class Bot {
     if (this.mode) {
       this.platform.device(`Bot: ${this.accessory.displayName} Switch Mode, mode: ${JSON.stringify(this.mode)}`);
     }
-    this.SwitchOn = Boolean(this.state);
+    this.On = Boolean(this.state);
+    this.platform.log.error(`Bot: ${this.accessory.displayName} On: ${JSON.stringify(this.On)}`);
+
     this.BatteryLevel = Number(this.battery);
     if (this.BatteryLevel < 10) {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
@@ -183,16 +185,16 @@ export class Bot {
     if (Number.isNaN(this.BatteryLevel)) {
       this.BatteryLevel = 100;
     }
-    this.platform.debug(`Bot: ${this.accessory.displayName} On: ${this.SwitchOn}, BatteryLevel: ${this.BatteryLevel}`);
+    this.platform.debug(`Bot: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
   }
 
   private async openAPIparseStatus() {
     if (this.platform.config.credentials?.openToken) {
       this.platform.debug(`Bot: ${this.accessory.displayName} OpenAPI parseStatus`);
       if (this.device.bot?.mode === 'press') {
-        this.SwitchOn = false;
+        this.On = false;
       }
-      this.platform.debug(`Bot ${this.accessory.displayName} On: ${this.SwitchOn}`);
+      this.platform.debug(`Bot ${this.accessory.displayName} On: ${this.On}`);
     }
   }
 
@@ -314,7 +316,7 @@ export class Bot {
     if (this.device.bot?.mode === 'press') {
       this.platform.device(`Bot: ${this.accessory.displayName} Press Mode: ${this.device.bot?.mode}`);
       switchbot.discover({ model: 'H', quick: true, id: this.device.bleMac }).then((device_list) => {
-        this.platform.log.info(`Bot: ${this.accessory.displayName}, On: ${this.SwitchOn}`);
+        this.platform.log.info(`Bot: ${this.accessory.displayName}, On: ${this.On}`);
         return device_list[0].press({ id: this.device.bleMac });
       }).then(() => {
         this.platform.device(`Bot: ${this.accessory.displayName} Done.`);
@@ -336,7 +338,7 @@ export class Bot {
     } else if (this.device.bot?.mode === 'switch') {
       this.platform.device(`Bot: ${this.accessory.displayName} Press Mode: ${this.device.bot?.mode}`);
       switchbot.discover({ model: 'H', quick: true, id: this.device.bleMac }).then((device_list: any) => {
-        this.platform.log.info(`Bot: ${this.accessory.displayName} On: ${this.SwitchOn}`);
+        this.platform.log.info(`Bot: ${this.accessory.displayName} On: ${this.On}`);
         return this.turnOnOff(device_list);
       }).then(() => {
         this.platform.device(`Bot: ${this.accessory.displayName} Done.`);
@@ -361,7 +363,7 @@ export class Bot {
   }
 
   private turnOnOff(device_list: any) {
-    if (this.SwitchOn) {
+    if (this.On) {
       return device_list[0].turnOn({ id: this.device.bleMac });
     } else {
       return device_list[0].turnOff({ id: this.device.bleMac });
@@ -377,18 +379,18 @@ export class Bot {
           parameter: 'default',
         } as payload;
 
-        if (this.device.bot?.mode === 'switch' && this.SwitchOn) {
+        if (this.device.bot?.mode === 'switch' && this.On) {
           payload.command = 'turnOn';
-          this.SwitchOn = true;
-          this.platform.debug(`Bot: ${this.accessory.displayName} Switch Mode, Turning ${this.SwitchOn}`);
-        } else if (this.device.bot?.mode === 'switch' && !this.SwitchOn) {
+          this.On = true;
+          this.platform.debug(`Bot: ${this.accessory.displayName} Switch Mode, Turning ${this.On}`);
+        } else if (this.device.bot?.mode === 'switch' && !this.On) {
           payload.command = 'turnOff';
-          this.SwitchOn = false;
-          this.platform.debug(`Bot: ${this.accessory.displayName} Switch Mode, Turning ${this.SwitchOn}`);
+          this.On = false;
+          this.platform.debug(`Bot: ${this.accessory.displayName} Switch Mode, Turning ${this.On}`);
         } else if (this.device.bot?.mode === 'press') {
           payload.command = 'press';
           this.platform.debug(`Bot: ${this.accessory.displayName} Press Mode`);
-          this.SwitchOn = false;
+          this.On = false;
         } else {
           throw new Error(`Bot: ${this.accessory.displayName} Device Paramters not set for this Bot.`);
         }
@@ -418,15 +420,15 @@ export class Bot {
    * Updates the status for each of the HomeKit Characteristics
    */
   updateHomeKitCharacteristics() {
-    if (this.SwitchOn === undefined) {
-      this.platform.debug(`Bot: ${this.accessory.displayName} On: ${this.SwitchOn}`);
+    if (this.On === undefined) {
+      this.platform.debug(`Bot: ${this.accessory.displayName} On: ${this.On}`);
     } else {
       if (this.device.bot?.deviceType === 'switch') {
-        this.switchService!.updateCharacteristic(this.platform.Characteristic.On, this.SwitchOn);
+        this.switchService!.updateCharacteristic(this.platform.Characteristic.On, this.On);
       } else {
-        this.outletService!.updateCharacteristic(this.platform.Characteristic.On, this.SwitchOn);
+        this.outletService!.updateCharacteristic(this.platform.Characteristic.On, this.On);
       }
-      this.platform.device(`Bot: ${this.accessory.displayName} updateCharacteristic On: ${this.SwitchOn}`);
+      this.platform.device(`Bot: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
     if (this.device.ble) {
       if (this.BatteryLevel === undefined) {
@@ -490,7 +492,7 @@ export class Bot {
    */
   private handleOnSet(value: CharacteristicValue) {
     this.platform.debug(`Bot: ${this.accessory.displayName} On: ${value}`);
-    this.SwitchOn = value;
+    this.On = value;
     this.doBotUpdate.next();
   }
 }

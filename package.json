@@ -13,7 +13,7 @@
     "url": "https://github.com/OpenWonderLabs/homebridge-switchbot/issues"
   },
   "engines": {
-    "homebridge": "^1.3.6",
+    "homebridge": "^1.3.8",
     "node": "^14.18.1 || ^16.13.0"
   },
   "main": "dist/index.js",
@@ -57,7 +57,7 @@
     "@typescript-eslint/eslint-plugin": "^5.4.0",
     "@typescript-eslint/parser": "^5.4.0",
     "eslint": "^8.3.0",
-    "homebridge": "^1.3.6",
+    "homebridge": "^1.3.8",
     "nodemon": "^2.0.15",
     "npm-check-updates": "^12.0.2",
     "rimraf": "^3.0.2",
