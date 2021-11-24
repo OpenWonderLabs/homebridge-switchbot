@@ -225,7 +225,7 @@ export class Contact {
   private connectBLE() {
     const switchbot = new Switchbot();
     this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
-    this.platform.log.error(`Bot: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    this.platform.device(`Contact Sensor: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     return switchbot;
   }
 
