@@ -1,15 +1,4 @@
-import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, Service, Characteristic } from 'homebridge';
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
-import {
-  PLATFORM_NAME,
-  PLUGIN_NAME,
-  DeviceURL,
-  irdevice,
-  device,
-  SwitchBotPlatformConfig,
-  deviceResponses,
-  devicesConfig,
-} from './settings';
+
 import { Bot } from './devices/bots';
 import { Plug } from './devices/plugs';
 import { Meter } from './devices/meters';
@@ -28,6 +17,9 @@ import { AirPurifier } from './irdevices/airpurifiers';
 import { WaterHeater } from './irdevices/waterheaters';
 import { VacuumCleaner } from './irdevices/vacuumcleaners';
 import { AirConditioner } from './irdevices/airconditioners';
+import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, Service, Characteristic } from 'homebridge';
+import { PLATFORM_NAME, PLUGIN_NAME, DeviceURL, irdevice, device, SwitchBotPlatformConfig, deviceResponses, devicesConfig } from './settings';
 
 /**
  * HomebridgePlatform

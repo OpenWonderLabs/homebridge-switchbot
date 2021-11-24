@@ -1,9 +1,11 @@
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { SwitchBotPlatform } from '../platform';
-import { interval, Subject } from 'rxjs';
-import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceStatusResponse, payload } from '../settings';
+
 import { AxiosResponse } from 'axios';
+import Switchbot from 'node-switchbot';
+import { interval, Subject } from 'rxjs';
+import { SwitchBotPlatform } from '../platform';
+import { debounceTime, skipWhile, tap } from 'rxjs/operators';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceStatusResponse, payload } from '../settings';
 
 /**
  * Platform Accessory
@@ -171,10 +173,11 @@ export class Bot {
     this.platform.debug(`Bot: ${this.accessory.displayName} BLE parseStatus`);
     // BLEmode (true if Switch Mode) | (false if Press Mode)
     if (this.mode) {
-      this.platform.device(`Bot: ${this.accessory.displayName} Switch Mode, mode: ${JSON.stringify(this.mode)}`);
+      this.On = Boolean(this.state);
+      this.platform.device(`Bot: ${this.accessory.displayName} Switch Mode, mode: ${JSON.stringify(this.mode)}, On: ${JSON.stringify(this.On)}`);
+    } else {
+      this.platform.device(`Bot: ${this.accessory.displayName} Press Mode, mode: ${JSON.stringify(this.mode)}, On: ${JSON.stringify(this.On)}`);
     }
-    this.On = Boolean(this.state);
-    this.platform.log.error(`Bot: ${this.accessory.displayName} On: ${JSON.stringify(this.On)}`);
 
     this.BatteryLevel = Number(this.battery);
     if (this.BatteryLevel < 10) {
@@ -210,13 +213,9 @@ export class Bot {
   }
 
   private connectBLE() {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const Switchbot = require('node-switchbot');
     const switchbot = new Switchbot();
-    const colon = this.device.deviceId!.match(/.{1,2}/g);
-    const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
-    this.device.bleMac = bleMac.toLowerCase();
-    this.platform.device(`Bot: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
+    this.platform.log.error(`Bot: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     return switchbot;
   }
 

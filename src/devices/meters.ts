@@ -1,7 +1,8 @@
-import { Service, PlatformAccessory, Units, CharacteristicValue } from 'homebridge';
-import { SwitchBotPlatform } from '../platform';
+import Switchbot from 'node-switchbot';
 import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
+import { SwitchBotPlatform } from '../platform';
+import { Service, PlatformAccessory, Units, CharacteristicValue } from 'homebridge';
 import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceStatusResponse } from '../settings';
 
 /**
@@ -239,13 +240,9 @@ export class Meter {
   }
 
   private connectBLE() {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const Switchbot = require('node-switchbot');
     const switchbot = new Switchbot();
-    const colon = this.device.deviceId!.match(/.{1,2}/g);
-    const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
-    this.device.bleMac = bleMac.toLowerCase();
-    this.platform.device(`Meter: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
+    this.platform.log.error(`Bot: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     return switchbot;
   }
 

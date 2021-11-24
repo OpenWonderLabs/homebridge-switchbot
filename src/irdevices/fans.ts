@@ -1,6 +1,6 @@
 import { AxiosResponse } from 'axios';
-import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { SwitchBotPlatform } from '../platform';
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { DeviceURL, irdevice, deviceStatusResponse, irDevicesConfig, payload } from '../settings';
 
 /**
