@@ -260,7 +260,7 @@ export class Contact {
       };
       // Wait 10 seconds
       return switchbot.wait(10000);
-    }).then(() => {
+    }).then(async () => {
       // Stop to monitor
       switchbot.stopScan();
       if (this.connected) {
@@ -268,6 +268,10 @@ export class Contact {
         this.updateHomeKitCharacteristics();
       } else {
         this.platform.log.error(`Contact Sensor: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+        if (this.platform.config.credentials?.openToken) {
+          this.platform.log.warn(`Contact Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
+          await this.openAPIRefreshStatus();
+        }
       }
     }).catch(async (e: any) => {
       this.platform.log.error(`Contact Sensor: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
