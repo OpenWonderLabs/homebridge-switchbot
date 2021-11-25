@@ -573,7 +573,7 @@ export class Curtain {
       if (this.CurrentAmbientLightLevel === undefined || Number.isNaN(this.CurrentAmbientLightLevel)) {
         this.platform.debug(`Curtain: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
       } else {
-        this.lightSensorService!.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
+        this.lightSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
         this.platform.device(`Curtain: ${this.accessory.displayName}`
           + ` updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
       }
@@ -599,11 +599,11 @@ export class Curtain {
     this.service.updateCharacteristic(this.platform.Characteristic.PositionState, e);
     this.service.updateCharacteristic(this.platform.Characteristic.TargetPosition, e);
     if (!this.device.curtain?.hide_lightsensor) {
-      this.lightSensorService!.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, e);
+      this.lightSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, e);
     }
     if (this.device.ble) {
-      this.batteryService!.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
-      this.batteryService!.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
     }
   }
 

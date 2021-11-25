@@ -595,7 +595,7 @@ export class Humidifier {
       if (this.CurrentTemperature === undefined) {
         this.platform.debug(`Humidifier: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
       } else {
-        this.temperatureservice!.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
+        this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
         this.platform.device(`Humidifier: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
       }
     }
@@ -611,7 +611,7 @@ export class Humidifier {
     this.service.updateCharacteristic(this.platform.Characteristic.Active, e);
     this.service.updateCharacteristic(this.platform.Characteristic.RelativeHumidityHumidifierThreshold, e);
     if (!this.device.humidifier?.hide_temperature && !this.device.ble) {
-      this.temperatureservice!.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
+      this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
     }
   }
 

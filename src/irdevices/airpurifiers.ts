@@ -87,20 +87,20 @@ export class AirPurifier {
     if (this.Active === undefined) {
       this.platform.debug(`Air Purifier: ${this.accessory.displayName} Active: ${this.Active}`);
     } else {
-      this.service!.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
+      this.service?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
       this.platform.device(`Air Purifier: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
     }
     if (this.CurrentAirPurifierState === undefined) {
       this.platform.debug(`Air Purifier: ${this.accessory.displayName} CurrentAirPurifierState: ${this.CurrentAirPurifierState}`);
     } else {
-      this.service!.updateCharacteristic(this.platform.Characteristic.CurrentAirPurifierState, this.CurrentAirPurifierState);
+      this.service?.updateCharacteristic(this.platform.Characteristic.CurrentAirPurifierState, this.CurrentAirPurifierState);
       this.platform.device(`Air Purifier: ${this.accessory.displayName}`
         + ` updateCharacteristic CurrentAirPurifierState: ${this.CurrentAirPurifierState}`);
     }
     if (this.CurrentHeaterCoolerState === undefined) {
       this.platform.debug(`Air Purifier: ${this.accessory.displayName} CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
     } else {
-      this.service!.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, this.CurrentHeaterCoolerState);
+      this.service?.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, this.CurrentHeaterCoolerState);
       this.platform.device(`Air Purifier: ${this.accessory.displayName}`
         + ` updateCharacteristic CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
     }

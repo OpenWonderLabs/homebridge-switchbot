@@ -444,9 +444,9 @@ export class Bot {
       this.platform.debug(`Bot: ${this.accessory.displayName} On: ${this.On}`);
     } else {
       if (this.device.bot?.deviceType === 'switch') {
-        this.switchService!.updateCharacteristic(this.platform.Characteristic.On, this.On);
+        this.switchService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
       } else {
-        this.outletService!.updateCharacteristic(this.platform.Characteristic.On, this.On);
+        this.outletService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
       }
       this.platform.device(`Bot: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
@@ -468,9 +468,9 @@ export class Bot {
 
   public apiError(e: any) {
     if (this.device.bot?.deviceType === 'switch') {
-      this.switchService!.updateCharacteristic(this.platform.Characteristic.On, e);
+      this.switchService?.updateCharacteristic(this.platform.Characteristic.On, e);
     } else {
-      this.outletService!.updateCharacteristic(this.platform.Characteristic.On, e);
+      this.outletService?.updateCharacteristic(this.platform.Characteristic.On, e);
     }
     if (this.device.ble) {
       this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);

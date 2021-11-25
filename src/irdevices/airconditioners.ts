@@ -168,39 +168,39 @@ export class AirConditioner {
     if (this.Active === undefined) {
       this.platform.debug(`Air Conditioner: ${this.accessory.displayName} Active: ${this.Active}`);
     } else {
-      this.service!.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
+      this.service?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
       this.platform.device(`Air Conditioner: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
     }
     if (this.RotationSpeed === undefined) {
       this.platform.debug(`Air Conditioner: ${this.accessory.displayName} RotationSpeed: ${this.RotationSpeed}`);
     } else {
-      this.service!.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.RotationSpeed);
+      this.service?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.RotationSpeed);
       this.platform.device(`Air Conditioner: ${this.accessory.displayName} updateCharacteristic RotationSpeed: ${this.RotationSpeed}`);
     }
     if (this.CurrentTemperature === undefined) {
       this.platform.debug(`Air Conditioner: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
     } else {
-      this.service!.updateCharacteristic(this.platform.Characteristic.Active, this.CurrentTemperature);
+      this.service?.updateCharacteristic(this.platform.Characteristic.Active, this.CurrentTemperature);
       this.platform.device(`Air Conditioner: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
     }
     if (this.TargetHeaterCoolerState === undefined) {
       this.platform.debug(`Air Conditioner: ${this.accessory.displayName} TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
     } else {
-      this.service!.updateCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState, this.TargetHeaterCoolerState);
+      this.service?.updateCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState, this.TargetHeaterCoolerState);
       this.platform.device(`Air Conditioner: ${this.accessory.displayName}`
         + ` updateCharacteristic TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
     }
     if (this.CurrentHeaterCoolerState === undefined) {
       this.platform.debug(`Air Conditioner: ${this.accessory.displayName} CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
     } else {
-      this.service!.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, this.CurrentHeaterCoolerState);
+      this.service?.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, this.CurrentHeaterCoolerState);
       this.platform.device(`Air Conditioner: ${this.accessory.displayName}`
         + ` updateCharacteristic CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
     }
     if (this.HeatingThresholdTemperature === undefined) {
       this.platform.debug(`Air Conditioner: ${this.accessory.displayName} HeatingThresholdTemperature: ${this.HeatingThresholdTemperature}`);
     } else {
-      this.service!.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, this.HeatingThresholdTemperature);
+      this.service?.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, this.HeatingThresholdTemperature);
       this.platform.device(`Air Conditioner: ${this.accessory.displayName}`
         + ` updateCharacteristic HeatingThresholdTemperature: ${this.HeatingThresholdTemperature}`);
     }

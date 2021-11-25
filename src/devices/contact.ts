@@ -328,7 +328,7 @@ export class Contact {
       if (this.MotionDetected === undefined) {
         this.platform.debug(`Contact Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
       } else {
-        this.motionService!.updateCharacteristic(this.platform.Characteristic.MotionDetected, this.MotionDetected);
+        this.motionService?.updateCharacteristic(this.platform.Characteristic.MotionDetected, this.MotionDetected);
         this.platform.device(`Contact Sensor: ${this.accessory.displayName} updateCharacteristic MotionDetected: ${this.MotionDetected}`);
       }
     }
@@ -336,7 +336,7 @@ export class Contact {
       if (this.CurrentAmbientLightLevel === undefined) {
         this.platform.debug(`Contact Sensor: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
       } else {
-        this.lightSensorService!.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
+        this.lightSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
         this.platform.device(`Contact Sensor: ${this.accessory.displayName}`
           + ` updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
       }
@@ -360,10 +360,10 @@ export class Contact {
   public apiError(e: any) {
     this.service.updateCharacteristic(this.platform.Characteristic.ContactSensorState, e);
     if (!this.device.contact?.hide_motionsensor) {
-      this.motionService!.updateCharacteristic(this.platform.Characteristic.MotionDetected, e);
+      this.motionService?.updateCharacteristic(this.platform.Characteristic.MotionDetected, e);
     }
     if (!this.device.contact?.hide_lightsensor) {
-      this.lightSensorService!.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, e);
+      this.lightSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, e);
     }
     if (this.device.ble) {
       this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
