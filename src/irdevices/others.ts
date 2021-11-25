@@ -60,7 +60,7 @@ export class Others {
     if (this.Active === undefined) {
       this.platform.debug(`Other: ${this.accessory.displayName} Active: ${this.Active}`);
     } else {
-      this.service!.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
+      this.service?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
       this.platform.device(`Other: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
     }
   }
@@ -175,6 +175,6 @@ export class Others {
   }
 
   public apiError(e: any) {
-    this.service!.updateCharacteristic(this.platform.Characteristic.Active, e);
+    this.service?.updateCharacteristic(this.platform.Characteristic.Active, e);
   }
 }

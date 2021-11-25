@@ -78,7 +78,7 @@ export class Light {
     if (this.On === undefined) {
       this.platform.debug(`Light: ${this.accessory.displayName} On: ${this.On}`);
     } else {
-      this.service!.updateCharacteristic(this.platform.Characteristic.On, this.On);
+      this.service?.updateCharacteristic(this.platform.Characteristic.On, this.On);
       this.platform.device(`Light: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
   }

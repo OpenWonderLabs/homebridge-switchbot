@@ -77,7 +77,7 @@ export class WaterHeater {
     if (this.Active === undefined) {
       this.platform.debug(`Water Heater: ${this.accessory.displayName} Active: ${this.Active}`);
     } else {
-      this.service!.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
+      this.service?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
       this.platform.device(`Water Heater: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
     }
   }

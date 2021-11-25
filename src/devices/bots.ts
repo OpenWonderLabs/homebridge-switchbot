@@ -75,7 +75,7 @@ export class Bot {
     if (device.bot?.deviceType === 'switch') {
       // If outletService still pressent, then remove first
       if (this.outletService) {
-        this.platform.device(`Bot: ${this.accessory.displayName} Removing Leftover outletService first`);
+        this.platform.device(`Bot: ${accessory.displayName} Removing Leftover outletService first`);
       }
       this.outletService = this.accessory.getService(this.platform.Service.Outlet);
       accessory.removeService(this.outletService!);
@@ -84,13 +84,13 @@ export class Bot {
       (this.switchService =
         accessory.getService(this.platform.Service.Switch) ||
         accessory.addService(this.platform.Service.Switch)), `${accessory.displayName} Switch`;
-      this.platform.log.info(`Bot: ${this.accessory.displayName} Displaying as Switch`);
+      this.platform.log.info(`Bot: ${accessory.displayName} Displaying as Switch`);
 
       this.switchService?.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
     } else {
       // If switchService still pressent, then remove first
       if (this.switchService) {
-        this.platform.device(`Bot: ${this.accessory.displayName} Removing Leftover switchService first`);
+        this.platform.device(`Bot: ${accessory.displayName} Removing Leftover switchService first`);
       }
       this.switchService = this.accessory.getService(this.platform.Service.Switch);
       accessory.removeService(this.switchService!);
@@ -99,7 +99,7 @@ export class Bot {
       (this.outletService =
         accessory.getService(this.platform.Service.Outlet) ||
         accessory.addService(this.platform.Service.Outlet)), `${accessory.displayName} Outlet`;
-      this.platform.log.info(`Bot: ${this.accessory.displayName} Displaying as Outlet`);
+      this.platform.log.info(`Bot: ${accessory.displayName} Displaying as Outlet`);
 
       this.outletService?.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
     }
@@ -444,9 +444,9 @@ export class Bot {
       this.platform.debug(`Bot: ${this.accessory.displayName} On: ${this.On}`);
     } else {
       if (this.device.bot?.deviceType === 'switch') {
-        this.switchService!.updateCharacteristic(this.platform.Characteristic.On, this.On);
+        this.switchService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
       } else {
-        this.outletService!.updateCharacteristic(this.platform.Characteristic.On, this.On);
+        this.outletService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
       }
       this.platform.device(`Bot: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
@@ -468,9 +468,9 @@ export class Bot {
 
   public apiError(e: any) {
     if (this.device.bot?.deviceType === 'switch') {
-      this.switchService!.updateCharacteristic(this.platform.Characteristic.On, e);
+      this.switchService?.updateCharacteristic(this.platform.Characteristic.On, e);
     } else {
-      this.outletService!.updateCharacteristic(this.platform.Characteristic.On, e);
+      this.outletService?.updateCharacteristic(this.platform.Characteristic.On, e);
     }
     if (this.device.ble) {
       this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);

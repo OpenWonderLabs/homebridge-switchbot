@@ -214,13 +214,13 @@ export class TV {
     if (this.Active === undefined) {
       this.platform.debug(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Active}`);
     } else {
-      this.service!.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
+      this.service?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
       this.platform.device(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
     }
     if (this.ActiveIdentifier === undefined) {
       this.platform.debug(`${this.device.remoteType}: ${this.accessory.displayName} ActiveIdentifier: ${this.ActiveIdentifier}`);
     } else {
-      this.service!.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, this.ActiveIdentifier);
+      this.service?.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, this.ActiveIdentifier);
       this.platform.device(`${this.device.remoteType}: ${this.accessory.displayName}`
         + ` updateCharacteristic ActiveIdentifier: ${this.ActiveIdentifier}`);
     }

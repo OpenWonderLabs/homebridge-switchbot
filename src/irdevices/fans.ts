@@ -126,19 +126,19 @@ export class Fan {
     if (this.Active === undefined) {
       this.platform.debug(`Fan: ${this.accessory.displayName} Active: ${this.Active}`);
     } else {
-      this.service!.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
+      this.service?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
       this.platform.device(`Fan: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
     }
     if (this.SwingMode === undefined) {
       this.platform.debug(`Fan: ${this.accessory.displayName} SwingMode: ${this.SwingMode}`);
     } else {
-      this.service!.updateCharacteristic(this.platform.Characteristic.SwingMode, this.SwingMode);
+      this.service?.updateCharacteristic(this.platform.Characteristic.SwingMode, this.SwingMode);
       this.platform.device(`Fan: ${this.accessory.displayName} updateCharacteristic SwingMode: ${this.SwingMode}`);
     }
     if (this.RotationSpeed === undefined) {
       this.platform.debug(`Fan: ${this.accessory.displayName} RotationSpeed: ${this.RotationSpeed}`);
     } else {
-      this.service!.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.RotationSpeed);
+      this.service?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.RotationSpeed);
       this.platform.device(`Fan: ${this.accessory.displayName} updateCharacteristic RotationSpeed: ${this.RotationSpeed}`);
     }
   }
