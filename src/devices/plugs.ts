@@ -1,9 +1,10 @@
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { SwitchBotPlatform } from '../platform';
-import { interval, Subject } from 'rxjs';
-import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device, devicesConfig, deviceStatusResponse, payload } from '../settings';
+
 import { AxiosResponse } from 'axios';
+import { interval, Subject } from 'rxjs';
+import { SwitchBotPlatform } from '../platform';
+import { debounceTime, skipWhile, tap } from 'rxjs/operators';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import { DeviceURL, device, devicesConfig, deviceStatusResponse, payload } from '../settings';
 
 export class Plug {
   // Services

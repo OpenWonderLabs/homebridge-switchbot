@@ -1,9 +1,11 @@
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { SwitchBotPlatform } from '../platform';
-import { interval, Subject } from 'rxjs';
-import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse, payload } from '../settings';
+
 import { AxiosResponse } from 'axios';
+import Switchbot from 'node-switchbot';
+import { interval, Subject } from 'rxjs';
+import { SwitchBotPlatform } from '../platform';
+import { debounceTime, skipWhile, tap } from 'rxjs/operators';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse, payload } from '../settings';
 
 export class Curtain {
   // Services
@@ -21,13 +23,8 @@ export class Curtain {
 
   // OpenAPI Others
   deviceStatus!: deviceStatusResponse;
-  setNewTarget!: boolean;
-  setNewTargetTimer!: NodeJS.Timeout;
 
   // BLE Others
-  set_minLux!: number;
-  set_maxLux!: number;
-  spaceBetweenLevels!: number;
   switchbot!: switchbot;
   serviceData!: serviceData;
   calibration: serviceData['calibration'];
@@ -35,9 +32,16 @@ export class Curtain {
   position: serviceData['position'];
   lightLevel: serviceData['lightLevel'];
 
+  // Target
+  setNewTarget!: boolean;
+  setNewTargetTimer!: NodeJS.Timeout;
+
   // Config
   set_minStep!: number;
   refreshRate!: number;
+  set_minLux!: number;
+  set_maxLux!: number;
+  spaceBetweenLevels!: number;
   private readonly deviceDebug = this.platform.config.options?.debug === 'device' || this.platform.debugMode;
   private readonly debugDebug = this.platform.config.options?.debug === 'debug' || this.platform.debugMode;
 
@@ -186,12 +190,8 @@ export class Curtain {
   }
 
   private connectBLE() {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const Switchbot = require('node-switchbot');
     const switchbot = new Switchbot();
-    const colon = this.device.deviceId!.match(/.{1,2}/g);
-    const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
-    this.device.bleMac = bleMac.toLowerCase();
+    this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
     this.platform.device(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     return switchbot;
   }
@@ -245,6 +245,7 @@ export class Curtain {
 
   private async BLEparseStatus() {
     this.platform.debug(`Curtain: ${this.accessory.displayName} BLE parseStatus`);
+    this.setMinMax();
     this.CurrentPosition = 100 - Number(this.position);
     this.platform.debug(`Curtain: ${this.accessory.displayName} CurrentPosition ${this.CurrentPosition}`);
     if (this.setNewTarget) {
@@ -340,6 +341,7 @@ export class Curtain {
     if (this.platform.config.credentials?.openToken) {
       this.platform.debug(`Curtain: ${this.accessory.displayName} OpenAPI parseStatus`);
       // CurrentPosition
+      this.setMinMax();
       this.CurrentPosition = 100 - this.deviceStatus.body.slidePosition!;
       this.platform.debug(`Curtain ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition}`);
       if (this.setNewTarget) {
@@ -433,6 +435,7 @@ export class Curtain {
         this.platform.log.warn(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.openAPIRefreshStatus();
       }
+      this.apiError(e);
     });
   }
 
@@ -490,6 +493,7 @@ export class Curtain {
         this.platform.log.warn(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.OpenAPIpushChanges();
       }
+      this.apiError(e);
     });
   }
 
@@ -524,6 +528,7 @@ export class Curtain {
           this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
             + ` Error: ${JSON.stringify(e)}`);
         }
+        this.apiError(e);
       }
     }
   }
@@ -626,17 +631,18 @@ export class Curtain {
     if (value > this.CurrentPosition) {
       this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
       this.setNewTarget = true;
-      //this.setMinMax();
+      this.platform.debug(`Curtain: ${this.accessory.displayName} value: ${value}, CurrentPosition: ${this.CurrentPosition}`);
     } else if (value < this.CurrentPosition) {
       this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
       this.setNewTarget = true;
-      //this.setMinMax();
+      this.platform.debug(`Curtain: ${this.accessory.displayName} value: ${value}, CurrentPosition: ${this.CurrentPosition}`);
     } else {
       this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
       this.setNewTarget = false;
-      //this.setMinMax();
+      this.platform.debug(`Curtain: ${this.accessory.displayName} value: ${value}, CurrentPosition: ${this.CurrentPosition}`);
     }
     this.service.setCharacteristic(this.platform.Characteristic.PositionState, this.PositionState);
+    this.service.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
 
     /**
    * If Curtain movement time is short, the moving flag from backend is always false.

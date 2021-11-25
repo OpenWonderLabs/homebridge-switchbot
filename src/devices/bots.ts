@@ -1,9 +1,11 @@
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { SwitchBotPlatform } from '../platform';
-import { interval, Subject } from 'rxjs';
-import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceStatusResponse, payload } from '../settings';
+
 import { AxiosResponse } from 'axios';
+import Switchbot from 'node-switchbot';
+import { interval, Subject } from 'rxjs';
+import { SwitchBotPlatform } from '../platform';
+import { debounceTime, skipWhile, tap } from 'rxjs/operators';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceStatusResponse, payload } from '../settings';
 
 /**
  * Platform Accessory
@@ -17,7 +19,7 @@ export class Bot {
   private batteryService?: Service;
 
   // Characteristic Values
-  SwitchOn!: CharacteristicValue;
+  On!: CharacteristicValue;
   BatteryLevel!: CharacteristicValue;
   StatusLowBattery!: CharacteristicValue;
 
@@ -49,7 +51,7 @@ export class Bot {
       + ` deviceType: ${device.bot?.deviceType})`);
 
     // default placeholders
-    this.SwitchOn = false;
+    this.On = false;
     this.BatteryLevel = 100;
     this.StatusLowBattery = 1;
 
@@ -171,9 +173,12 @@ export class Bot {
     this.platform.debug(`Bot: ${this.accessory.displayName} BLE parseStatus`);
     // BLEmode (true if Switch Mode) | (false if Press Mode)
     if (this.mode) {
-      this.platform.device(`Bot: ${this.accessory.displayName} Switch Mode, mode: ${JSON.stringify(this.mode)}`);
+      this.On = Boolean(this.state);
+      this.platform.device(`Bot: ${this.accessory.displayName} Switch Mode, mode: ${JSON.stringify(this.mode)}, On: ${JSON.stringify(this.On)}`);
+    } else {
+      this.platform.device(`Bot: ${this.accessory.displayName} Press Mode, mode: ${JSON.stringify(this.mode)}, On: ${JSON.stringify(this.On)}`);
     }
-    this.SwitchOn = Boolean(this.state);
+
     this.BatteryLevel = Number(this.battery);
     if (this.BatteryLevel < 10) {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
@@ -183,16 +188,16 @@ export class Bot {
     if (Number.isNaN(this.BatteryLevel)) {
       this.BatteryLevel = 100;
     }
-    this.platform.debug(`Bot: ${this.accessory.displayName} On: ${this.SwitchOn}, BatteryLevel: ${this.BatteryLevel}`);
+    this.platform.debug(`Bot: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
   }
 
   private async openAPIparseStatus() {
     if (this.platform.config.credentials?.openToken) {
       this.platform.debug(`Bot: ${this.accessory.displayName} OpenAPI parseStatus`);
       if (this.device.bot?.mode === 'press') {
-        this.SwitchOn = false;
+        this.On = false;
       }
-      this.platform.debug(`Bot ${this.accessory.displayName} On: ${this.SwitchOn}`);
+      this.platform.debug(`Bot ${this.accessory.displayName} On: ${this.On}`);
     }
   }
 
@@ -208,12 +213,8 @@ export class Bot {
   }
 
   private connectBLE() {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const Switchbot = require('node-switchbot');
     const switchbot = new Switchbot();
-    const colon = this.device.deviceId!.match(/.{1,2}/g);
-    const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
-    this.device.bleMac = bleMac.toLowerCase();
+    this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
     this.platform.device(`Bot: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     return switchbot;
   }
@@ -258,6 +259,7 @@ export class Bot {
         this.platform.log.warn(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.openAPIRefreshStatus();
       }
+      this.apiError(e);
     });
   }
 
@@ -314,7 +316,7 @@ export class Bot {
     if (this.device.bot?.mode === 'press') {
       this.platform.device(`Bot: ${this.accessory.displayName} Press Mode: ${this.device.bot?.mode}`);
       switchbot.discover({ model: 'H', quick: true, id: this.device.bleMac }).then((device_list) => {
-        this.platform.log.info(`Bot: ${this.accessory.displayName}, On: ${this.SwitchOn}`);
+        this.platform.log.info(`Bot: ${this.accessory.displayName}, On: ${this.On}`);
         return device_list[0].press({ id: this.device.bleMac });
       }).then(() => {
         this.platform.device(`Bot: ${this.accessory.displayName} Done.`);
@@ -332,11 +334,12 @@ export class Bot {
           this.platform.log.warn(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
           await this.openAPIpushChanges();
         }
+        this.apiError(e);
       });
     } else if (this.device.bot?.mode === 'switch') {
       this.platform.device(`Bot: ${this.accessory.displayName} Press Mode: ${this.device.bot?.mode}`);
       switchbot.discover({ model: 'H', quick: true, id: this.device.bleMac }).then((device_list: any) => {
-        this.platform.log.info(`Bot: ${this.accessory.displayName} On: ${this.SwitchOn}`);
+        this.platform.log.info(`Bot: ${this.accessory.displayName} On: ${this.On}`);
         return this.turnOnOff(device_list);
       }).then(() => {
         this.platform.device(`Bot: ${this.accessory.displayName} Done.`);
@@ -354,6 +357,7 @@ export class Bot {
           this.platform.log.warn(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
           await this.openAPIpushChanges();
         }
+        this.apiError(e);
       });
     } else {
       this.platform.log.error(`Bot: ${this.accessory.displayName} Mode Not Set, mode: ${this.device.bot?.mode}`);
@@ -361,7 +365,7 @@ export class Bot {
   }
 
   private turnOnOff(device_list: any) {
-    if (this.SwitchOn) {
+    if (this.On) {
       return device_list[0].turnOn({ id: this.device.bleMac });
     } else {
       return device_list[0].turnOff({ id: this.device.bleMac });
@@ -377,18 +381,18 @@ export class Bot {
           parameter: 'default',
         } as payload;
 
-        if (this.device.bot?.mode === 'switch' && this.SwitchOn) {
+        if (this.device.bot?.mode === 'switch' && this.On) {
           payload.command = 'turnOn';
-          this.SwitchOn = true;
-          this.platform.debug(`Bot: ${this.accessory.displayName} Switch Mode, Turning ${this.SwitchOn}`);
-        } else if (this.device.bot?.mode === 'switch' && !this.SwitchOn) {
+          this.On = true;
+          this.platform.debug(`Bot: ${this.accessory.displayName} Switch Mode, Turning ${this.On}`);
+        } else if (this.device.bot?.mode === 'switch' && !this.On) {
           payload.command = 'turnOff';
-          this.SwitchOn = false;
-          this.platform.debug(`Bot: ${this.accessory.displayName} Switch Mode, Turning ${this.SwitchOn}`);
+          this.On = false;
+          this.platform.debug(`Bot: ${this.accessory.displayName} Switch Mode, Turning ${this.On}`);
         } else if (this.device.bot?.mode === 'press') {
           payload.command = 'press';
           this.platform.debug(`Bot: ${this.accessory.displayName} Press Mode`);
-          this.SwitchOn = false;
+          this.On = false;
         } else {
           throw new Error(`Bot: ${this.accessory.displayName} Device Paramters not set for this Bot.`);
         }
@@ -410,6 +414,7 @@ export class Bot {
           this.platform.log.error(`Bot: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
             + ` Error: ${JSON.stringify(e)}`);
         }
+        this.apiError(e);
       }
     }
   }
@@ -418,15 +423,15 @@ export class Bot {
    * Updates the status for each of the HomeKit Characteristics
    */
   updateHomeKitCharacteristics() {
-    if (this.SwitchOn === undefined) {
-      this.platform.debug(`Bot: ${this.accessory.displayName} On: ${this.SwitchOn}`);
+    if (this.On === undefined) {
+      this.platform.debug(`Bot: ${this.accessory.displayName} On: ${this.On}`);
     } else {
       if (this.device.bot?.deviceType === 'switch') {
-        this.switchService!.updateCharacteristic(this.platform.Characteristic.On, this.SwitchOn);
+        this.switchService!.updateCharacteristic(this.platform.Characteristic.On, this.On);
       } else {
-        this.outletService!.updateCharacteristic(this.platform.Characteristic.On, this.SwitchOn);
+        this.outletService!.updateCharacteristic(this.platform.Characteristic.On, this.On);
       }
-      this.platform.device(`Bot: ${this.accessory.displayName} updateCharacteristic On: ${this.SwitchOn}`);
+      this.platform.device(`Bot: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
     if (this.device.ble) {
       if (this.BatteryLevel === undefined) {
@@ -490,7 +495,7 @@ export class Bot {
    */
   private handleOnSet(value: CharacteristicValue) {
     this.platform.debug(`Bot: ${this.accessory.displayName} On: ${value}`);
-    this.SwitchOn = value;
+    this.On = value;
     this.doBotUpdate.next();
   }
 }

@@ -1,9 +1,10 @@
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { SwitchBotPlatform } from '../platform';
-import { interval, Subject } from 'rxjs';
-import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { DeviceURL, device, devicesConfig, serviceData, ad, deviceStatusResponse, payload } from '../settings';
 import { AxiosResponse } from 'axios';
+import Switchbot from 'node-switchbot';
+import { interval, Subject } from 'rxjs';
+import { SwitchBotPlatform } from '../platform';
+import { debounceTime, skipWhile, tap } from 'rxjs/operators';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import { DeviceURL, device, devicesConfig, serviceData, ad, deviceStatusResponse, payload } from '../settings';
 
 /**
  * Platform Accessory
@@ -290,12 +291,8 @@ export class Humidifier {
   }
 
   private connectBLE() {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const Switchbot = require('node-switchbot');
     const switchbot = new Switchbot();
-    const colon = this.device.deviceId!.match(/.{1,2}/g);
-    const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
-    this.device.bleMac = bleMac.toLowerCase();
+    this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
     this.platform.device(`Humidifier: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     return switchbot;
   }
@@ -340,6 +337,7 @@ export class Humidifier {
         this.platform.log.warn(`Humidifier: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.openAPIRefreshStatus();
       }
+      this.apiError(e);
     });
   }
 
@@ -387,7 +385,7 @@ export class Humidifier {
     const switchbot = this.connectBLE();
     switchbot.discover({ model: 'e', quick: true, id: this.device.bleMac }).then((device_list) => {
       this.platform.log.info(`${this.accessory.displayName} Target Position: ${this.Active}`);
-      return device_list[0].runToPos(100 - Number(this.Active));
+      return device_list[0].percentage(this.RelativeHumidityHumidifierThreshold);
     }).then(() => {
       this.platform.device(`Humidifier: ${this.accessory.displayName} Done.`);
     }).catch(async (e: any) => {
@@ -404,6 +402,7 @@ export class Humidifier {
         this.platform.log.warn(`Humidifier: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.OpenAPIpushChanges();
       }
+      this.apiError(e);
     });
   }
 

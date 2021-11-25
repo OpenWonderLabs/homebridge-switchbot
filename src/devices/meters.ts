@@ -1,7 +1,8 @@
-import { Service, PlatformAccessory, Units, CharacteristicValue } from 'homebridge';
-import { SwitchBotPlatform } from '../platform';
+import Switchbot from 'node-switchbot';
 import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
+import { SwitchBotPlatform } from '../platform';
+import { Service, PlatformAccessory, Units, CharacteristicValue } from 'homebridge';
 import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceStatusResponse } from '../settings';
 
 /**
@@ -189,7 +190,19 @@ export class Meter {
 
     // Current Temperature
     if (!this.device.meter?.hide_temperature) {
-      this.CurrentTemperature = Number(this.temperature);
+      if (this.device.meter?.unit === 1) {
+        this.CurrentTemperature = Number(this.temperature?.f);
+      } else if (this.device.meter?.unit === 0) {
+        this.CurrentTemperature = Number(this.temperature?.c);
+      } else {
+        if (this.fahrenheit) {
+          this.CurrentTemperature = Number(this.temperature?.f);
+        } else {
+          this.CurrentTemperature = Number(this.temperature?.c);
+        }
+      }
+
+      this.CurrentTemperature = Number();
       this.platform.debug(`Meter: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c, fahrenheit: ${this.fahrenheit}`);
     }
   }
@@ -239,12 +252,8 @@ export class Meter {
   }
 
   private connectBLE() {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const Switchbot = require('node-switchbot');
     const switchbot = new Switchbot();
-    const colon = this.device.deviceId!.match(/.{1,2}/g);
-    const bleMac = colon!.join(':'); //returns 1A:23:B4:56:78:9A;
-    this.device.bleMac = bleMac.toLowerCase();
+    this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
     this.platform.device(`Meter: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     return switchbot;
   }
@@ -255,7 +264,7 @@ export class Meter {
     const switchbot = this.connectBLE();
     // Start to monitor advertisement packets
     switchbot.startScan({
-      model: 'e',
+      model: 'T',
       id: this.device.bleMac,
     }).then(() => {
       // Set an event hander
@@ -267,8 +276,8 @@ export class Meter {
         this.battery = ad.serviceData.battery;
         this.platform.device(`Meter: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
         this.platform.device(`Meter: ${this.accessory.displayName} model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName}, `
-          + `temperature: ${ad.serviceData.temperature}, fahrenheit: ${ad.serviceData.fahrenheit}, humidity: ${ad.serviceData.humidity}, `
-          + `battery: ${ad.serviceData.battery}`);
+          + `temperature: ${JSON.stringify(ad.serviceData.temperature)}, fahrenheit: ${ad.serviceData.fahrenheit}, `
+          + `humidity: ${ad.serviceData.humidity}, battery: ${ad.serviceData.battery}`);
       };
       // Wait 10 seconds
       return switchbot.wait(10000);
@@ -291,6 +300,7 @@ export class Meter {
         this.platform.log.warn(`Meter: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.openAPIRefreshStatus();
       }
+      this.apiError(e);
     });
   }
 
