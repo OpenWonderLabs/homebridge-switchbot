@@ -27,6 +27,7 @@ export class Bot {
   deviceStatus!: deviceStatusResponse;
 
   // BLE Others
+  connected?: boolean;
   switchbot!: switchbot;
   serviceData!: serviceData;
   mode!: serviceData['mode'];
@@ -237,14 +238,26 @@ export class Bot {
         this.platform.device(`Bot: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
         this.platform.device(`Bot: ${this.accessory.displayName}, model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName},`
           + ` mode: ${ad.serviceData.mode}, state: ${ad.serviceData.state}, battery: ${ad.serviceData.battery}`);
+
+        if (this.serviceData) {
+          this.connected = true;
+          this.platform.device(`Bot: ${this.accessory.displayName} connected: ${this.connected}`);
+        } else {
+          this.connected = false;
+          this.platform.device(`Bot: ${this.accessory.displayName} connected: ${this.connected}`);
+        }
       };
       // Wait 10 seconds
       return switchbot.wait(10000);
     }).then(() => {
       // Stop to monitor
       switchbot.stopScan();
-      this.parseStatus();
-      this.updateHomeKitCharacteristics();
+      if (this.connected) {
+        this.parseStatus();
+        this.updateHomeKitCharacteristics();
+      } else {
+        this.platform.log.error(`Bot: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+      }
     }).catch(async (e: any) => {
       this.platform.log.error(`Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
       if (this.deviceDebug) {

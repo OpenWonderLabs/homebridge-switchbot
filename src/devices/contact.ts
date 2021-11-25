@@ -28,6 +28,7 @@ export class Contact {
   deviceStatus!: deviceStatusResponse;
 
   // BLE Others
+  connected?: boolean;
   switchbot!: switchbot;
   serviceData!: serviceData;
   battery!: serviceData['battery'];
@@ -248,14 +249,26 @@ export class Contact {
         this.platform.device(`Contact Sensor: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
         this.platform.device(`Contact Sensor: ${this.accessory.displayName} movement: ${ad.serviceData.movement}, doorState: `
           + `${ad.serviceData.doorState}, lightLevel: ${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}`);
+
+        if (this.serviceData) {
+          this.connected = true;
+          this.platform.device(`Contact Sensor: ${this.accessory.displayName} connected: ${this.connected}`);
+        } else {
+          this.connected = false;
+          this.platform.device(`Contact Sensor: ${this.accessory.displayName} connected: ${this.connected}`);
+        }
       };
       // Wait 10 seconds
       return switchbot.wait(10000);
     }).then(() => {
       // Stop to monitor
       switchbot.stopScan();
-      this.parseStatus();
-      this.updateHomeKitCharacteristics();
+      if (this.connected) {
+        this.parseStatus();
+        this.updateHomeKitCharacteristics();
+      } else {
+        this.platform.log.error(`Contact Sensor: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+      }
     }).catch(async (e: any) => {
       this.platform.log.error(`Contact Sensor: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
       if (this.deviceDebug) {

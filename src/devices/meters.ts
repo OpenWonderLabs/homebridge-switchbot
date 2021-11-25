@@ -29,6 +29,7 @@ export class Meter {
   deviceStatus!: deviceStatusResponse;
 
   // BLE Others
+  connected?: boolean;
   switchbot!: switchbot;
   serviceData!: serviceData;
   battery!: serviceData['battery'];
@@ -191,19 +192,13 @@ export class Meter {
     // Current Temperature
     if (!this.device.meter?.hide_temperature) {
       if (this.device.meter?.unit === 1) {
-        this.CurrentTemperature = Number(this.temperature?.f);
+        this.CurrentTemperature = this.toFahrenheit(this.temperature!.c);
       } else if (this.device.meter?.unit === 0) {
-        this.CurrentTemperature = Number(this.temperature?.c);
+        this.CurrentTemperature = this.toCelsius(this.temperature!.c);
       } else {
-        if (this.fahrenheit) {
-          this.CurrentTemperature = Number(this.temperature?.f);
-        } else {
-          this.CurrentTemperature = Number(this.temperature?.c);
-        }
+        this.CurrentTemperature = Number(this.temperature?.c);
       }
-
-      this.CurrentTemperature = Number();
-      this.platform.debug(`Meter: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c, fahrenheit: ${this.fahrenheit}`);
+      this.platform.debug(`Meter: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c`);
     }
   }
 
@@ -278,14 +273,26 @@ export class Meter {
         this.platform.device(`Meter: ${this.accessory.displayName} model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName}, `
           + `temperature: ${JSON.stringify(ad.serviceData.temperature)}, fahrenheit: ${ad.serviceData.fahrenheit}, `
           + `humidity: ${ad.serviceData.humidity}, battery: ${ad.serviceData.battery}`);
+
+        if (this.serviceData) {
+          this.connected = true;
+          this.platform.device(`Meter: ${this.accessory.displayName} connected: ${this.connected}`);
+        } else {
+          this.connected = false;
+          this.platform.device(`Meter: ${this.accessory.displayName} connected: ${this.connected}`);
+        }
       };
       // Wait 10 seconds
       return switchbot.wait(10000);
     }).then(() => {
       // Stop to monitor
       switchbot.stopScan();
-      this.parseStatus();
-      this.updateHomeKitCharacteristics();
+      if (this.connected) {
+        this.parseStatus();
+        this.updateHomeKitCharacteristics();
+      } else {
+        this.platform.log.error(`Meter: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+      }
     }).catch(async (e: any) => {
       this.platform.log.error(`Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
       if (this.deviceDebug) {

@@ -29,6 +29,7 @@ export class Humidifier {
   deviceStatus!: deviceStatusResponse;
 
   // BLE Others
+  connected?: boolean;
   serviceData!: serviceData;
   onState!: serviceData['onState'];
   autoMode!: serviceData['autoMode'];
@@ -315,14 +316,26 @@ export class Humidifier {
         this.platform.device(`Humidifier: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
         this.platform.device(`Humidifier: ${this.accessory.displayName} model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName},`
           + `autoMode: ${ad.serviceData.autoMode}, onState: ${ad.serviceData.onState}, percentage: ${ad.serviceData.percentage}`);
+
+        if (this.serviceData) {
+          this.connected = true;
+          this.platform.device(`Humidifier: ${this.accessory.displayName} connected: ${this.connected}`);
+        } else {
+          this.connected = false;
+          this.platform.device(`Humidifier: ${this.accessory.displayName} connected: ${this.connected}`);
+        }
       };
       // Wait 10 seconds
       return switchbot.wait(10000);
     }).then(() => {
       // Stop to monitor
       switchbot.stopScan();
-      this.parseStatus();
-      this.updateHomeKitCharacteristics();
+      if (this.connected) {
+        this.parseStatus();
+        this.updateHomeKitCharacteristics();
+      } else {
+        this.platform.log.error(`Humidifier: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+      }
     }).catch(async (e: any) => {
       this.platform.log.error(`Humidifier: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
       if (this.deviceDebug) {

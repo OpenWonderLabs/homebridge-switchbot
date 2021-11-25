@@ -2,7 +2,15 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [Version 1.2.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.0) (2021-11-24)
+## [Version 1.2.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.2) (2021-11-24)
+
+## What's Changed
+* Allow the `configDeviceName` to override `deviceName`.
+* Added Logging when BLE Connection wasn't established.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.1...v1.2.2
+
+## [Version 1.2.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.1) (2021-11-24)
 
 ## What's Changed
 * Fixed Bug: Curtains alternate between open/close state. [#85](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/85)
