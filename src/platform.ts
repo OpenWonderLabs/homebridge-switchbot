@@ -192,6 +192,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           const devices = deviceLists.map((v: any) => v);
           for (const device of devices) {
             if (device.deviceType) {
+              if (device.configDeviceName) {
+                device.deviceName = device.configDeviceName;
+              }
               this.createDevice(device);
             }
           }
@@ -209,6 +212,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           this.debug(`SwitchBot Devices: ${JSON.stringify(devices)}`);
           for (const device of devices) {
             if (device.deviceType) {
+              if (device.configDeviceName) {
+                device.deviceName = device.configDeviceName;
+              }
               this.createDevice(device);
             }
           }
