@@ -373,14 +373,16 @@ export class Curtain {
         + ` TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState},`);
 
       if (!this.device.curtain?.hide_lightsensor) {
+        this.set_minLux = this.minLux();
+        this.set_maxLux = this.maxLux();
         // Brightness
         switch (this.deviceStatus.body.brightness) {
           case 'dim':
-            this.CurrentAmbientLightLevel = 0.0001;
+            this.CurrentAmbientLightLevel = this.set_minLux;
             break;
           case 'bright':
           default:
-            this.CurrentAmbientLightLevel = 100000;
+            this.CurrentAmbientLightLevel = this.set_maxLux;
         }
         this.platform.debug(`Curtain: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
       }
