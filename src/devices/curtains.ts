@@ -123,7 +123,7 @@ export class Curtain {
       .onSet(this.TargetPositionSet.bind(this));
 
     // Light Sensor Service
-    if (this.device.curtain?.hide_lightsensor) {
+    if (device.curtain?.hide_lightsensor) {
       this.platform.device(`Curtain: ${accessory.displayName} Removing Light Sensor Service`);
       this.lightSensorService = this.accessory.getService(this.platform.Service.LightSensor);
       accessory.removeService(this.lightSensorService!);

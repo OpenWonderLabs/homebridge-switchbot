@@ -12,7 +12,6 @@ export class Plug {
 
   // Characteristic Values
   On!: CharacteristicValue;
-  OutletInUse!: CharacteristicValue;
 
   // OpenAPI Others
   deviceStatus!: deviceStatusResponse;
@@ -32,7 +31,6 @@ export class Plug {
   ) {
     // default placeholders
     this.On = false;
-    this.OutletInUse = true;
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doPlugUpdate = new Subject();
@@ -67,8 +65,6 @@ export class Plug {
 
     // create handlers for required characteristics
     this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
-
-    this.service.setCharacteristic(this.platform.Characteristic.OutletInUse, this.OutletInUse || true);
 
     // Update Homekit
     this.updateHomeKitCharacteristics();
@@ -173,17 +169,10 @@ export class Plug {
       this.service.updateCharacteristic(this.platform.Characteristic.On, this.On);
       this.platform.device(`Plug: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
-    if (this.OutletInUse === undefined) {
-      this.platform.debug(`Plug: ${this.accessory.displayName} OutletInUse: ${this.OutletInUse}`);
-    } else {
-      this.service.updateCharacteristic(this.platform.Characteristic.OutletInUse, this.OutletInUse);
-      this.platform.device(`Plug: ${this.accessory.displayName} updateCharacteristic OutletInUse: ${this.OutletInUse}`);
-    }
   }
 
   public apiError(e: any) {
     this.service.updateCharacteristic(this.platform.Characteristic.On, e);
-    this.service.updateCharacteristic(this.platform.Characteristic.OutletInUse, e);
   }
 
   private statusCode(push: AxiosResponse<{ statusCode: number; }>) {

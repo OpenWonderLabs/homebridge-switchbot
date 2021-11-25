@@ -89,7 +89,7 @@ export class Contact {
     // see https://developers.homebridge.io/#/service/MotionSensor
 
     // Motion Sensor Service
-    if (this.device.contact?.hide_motionsensor) {
+    if (device.contact?.hide_motionsensor) {
       this.platform.device(`Contact Sensor: ${accessory.displayName} Removing Motion Sensor Service`);
       this.motionService = this.accessory.getService(this.platform.Service.MotionSensor);
       accessory.removeService(this.motionService!);
@@ -106,7 +106,7 @@ export class Contact {
     }
 
     // Light Sensor Service
-    if (this.device.contact?.hide_lightsensor) {
+    if (device.contact?.hide_lightsensor) {
       this.platform.device(`Contact Sensor: ${accessory.displayName} Removing Light Sensor Service`);
       this.lightSensorService = this.accessory.getService(this.platform.Service.LightSensor);
       accessory.removeService(this.lightSensorService!);
