@@ -1451,6 +1451,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   device(...log: any[]) {
     if (this.config.options!.debug === 'device') {
       this.log.warn('[DEVICE]', String(...log));
+    } else if (this.config.options!.debug === 'debug') {
+      this.log.info('[DEBUG]', String(...log));
     } else {
       this.log.debug(String(...log));
     }
