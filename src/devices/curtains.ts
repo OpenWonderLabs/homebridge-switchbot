@@ -491,29 +491,34 @@ export class Curtain {
   }
 
   private async BLEpushChanges() {
-    this.platform.debug(`Curtain: ${this.accessory.displayName} BLE pushChanges`);
-    const switchbot = this.connectBLE();
-    switchbot.discover({ model: 'c', quick: true, id: this.device.bleMac }).then((device_list) => {
-      this.platform.log.info(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
-      return device_list[0].runToPos(100 - Number(this.TargetPosition));
-    }).then(() => {
-      this.platform.device(`Curtain: ${this.accessory.displayName} Done.`);
-    }).catch(async (e: any) => {
-      this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
-      if (this.deviceDebug) {
-        this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
-          + ` Error Message: ${JSON.stringify(e.message)}`);
-      }
-      if (this.debugDebug) {
-        this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
-          + ` Error: ${JSON.stringify(e)}`);
-      }
-      if (this.platform.config.credentials?.openToken) {
-        this.platform.log.warn(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
-        await this.OpenAPIpushChanges();
-      }
-      this.apiError(e);
-    });
+    if (this.TargetPosition !== this.CurrentPosition) {
+      this.platform.debug(`Curtain: ${this.accessory.displayName} BLE pushChanges`);
+      const switchbot = this.connectBLE();
+      switchbot.discover({ model: 'c', quick: true, id: this.device.bleMac }).then((device_list) => {
+        this.platform.log.info(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
+        return device_list[0].runToPos(100 - Number(this.TargetPosition));
+      }).then(() => {
+        this.platform.device(`Curtain: ${this.accessory.displayName} Done.`);
+      }).catch(async (e: any) => {
+        this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
+        if (this.deviceDebug) {
+          this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
+        }
+        if (this.debugDebug) {
+          this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
+            + ` Error: ${JSON.stringify(e)}`);
+        }
+        if (this.platform.config.credentials?.openToken) {
+          this.platform.log.warn(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
+          await this.OpenAPIpushChanges();
+        }
+        this.apiError(e);
+      });
+    } else {
+      this.platform.debug(`Curtain: ${this.accessory.displayName} No BLE Changes, CurrentPosition & TargetPosition Are the Same.`
+      + `  CurrentPosition: ${this.CurrentPosition}, TargetPosition  ${this.TargetPosition}`);
+    }
   }
 
   private async OpenAPIpushChanges() {
@@ -536,6 +541,9 @@ export class Curtain {
           const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId!}/commands`, payload));
           this.platform.debug(`Curtain: ${this.accessory.displayName} pushchanges: ${JSON.stringify(push.data)}`);
           this.statusCode(push);
+        } else {
+          this.platform.debug(`Curtain: ${this.accessory.displayName} No OpenAPI Changes, CurrentPosition & TargetPosition Are the Same.`
+        + `  CurrentPosition: ${this.CurrentPosition}, TargetPosition  ${this.TargetPosition}`);
         }
       } catch (e: any) {
         this.platform.log.error(`Curtain: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
