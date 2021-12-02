@@ -46,7 +46,10 @@ export class ColorBulb {
 
     // default placeholders
     this.On = false;
+    this.ColorTemperature = 140;
     this.Brightness = 0;
+    this.Saturation = 0;
+    this.Hue = 0;
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doColorBulbUpdate = new Subject();
@@ -212,11 +215,13 @@ export class ColorBulb {
     }
 
     // ColorTemperature
-    if (this.deviceStatus.body.colorTemperature) {
-      // Convert mired to kelvin to nearest 100 (Govee seems to need this)
-      const mired = Math.round(1000000 / this.deviceStatus.body.colorTemperature);
+    if (!Number.isNaN(this.deviceStatus.body.colorTemperature)) {
+      this.platform.device(`Color Bulb: ${this.accessory.displayName} OpenAPI ColorTemperature: ${this.deviceStatus.body.colorTemperature}`);
+      const mired = Math.round(1000000 / this.deviceStatus.body.colorTemperature!);
 
       this.ColorTemperature = Number(mired);
+
+      this.ColorTemperature = Math.max(Math.min(this.ColorTemperature, 500), 140);
       this.platform.device(`Color Bulb: ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
     }
   }
@@ -278,7 +283,7 @@ export class ColorBulb {
         const payload = {
           commandType: 'command',
           command: 'setBrightness',
-          parameter: `{${this.Brightness}}`,
+          parameter: `${this.Brightness}`,
         } as payload;
 
         this.platform.log.info(`Color Bulb: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
@@ -297,7 +302,7 @@ export class ColorBulb {
         const payload = {
           commandType: 'command',
           command: 'setColorTemperature',
-          parameter: `{${kelvin}}`,
+          parameter: `${kelvin}`,
         } as payload;
 
         this.platform.log.info(`Color Bulb: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
@@ -315,12 +320,12 @@ export class ColorBulb {
         this.platform.device(`Color Bulb: ${this.accessory.displayName} Saturation: ${JSON.stringify(this.Saturation)}`);
 
         const [red, green, blue] = hs2rgb(Number(this.Hue), Number(this.Saturation));
-        this.platform.log.error(`Color Bulb: ${this.accessory.displayName} rgb: ${JSON.stringify([red, green, blue])}`);
+        this.platform.device(`Color Bulb: ${this.accessory.displayName} rgb: ${JSON.stringify([red, green, blue])}`);
 
         const payload = {
           commandType: 'command',
           command: 'setColor',
-          parameter: `{${red}}:{${green}}:{${blue}}`,
+          parameter: `${red}:${green}:${blue}`,
         } as payload;
 
         this.platform.log.info(`Color Bulb: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
@@ -362,7 +367,7 @@ export class ColorBulb {
     if (this.ColorTemperature === undefined) {
       this.platform.debug(`Color Bulb: ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
     } else {
-      this.service.updateCharacteristic(this.platform.Characteristic.Brightness, this.ColorTemperature);
+      this.service.updateCharacteristic(this.platform.Characteristic.ColorTemperature, this.ColorTemperature);
       this.platform.debug(`Color Bulb: ${this.accessory.displayName} updateCharacteristic ColorTemperature: ${this.ColorTemperature}`);
     }
     if (this.Hue === undefined) {
