@@ -341,6 +341,15 @@
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Color Bulb' && model.options.devices[arrayIndices].deviceId);"
                       }
+                    },
+                    "adaptiveLightingShift": {
+                      "title": "Adaptive Lighting Shift",
+                      "type": "number",
+                      "placeholder": "-1",
+                      "description": "The mired for each Adaptive Lighting update will be increased by this value, making the light appear warmer. Set to -1 to remove Adaptive Lighting feature. Must be -1 or more.",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Color Bulb' && model.options.devices[arrayIndices].deviceId);"
+                      }
                     }
                   }
                 }
@@ -726,7 +735,8 @@
             "options.devices[].curtain.set_maxlux",
             "options.devices[].contact.hide_lightsensor",
             "options.devices[].contact.hide_motionsensor",
-            "options.devices[].colorbulb.set_minStep"
+            "options.devices[].colorbulb.set_minStep",
+            "options.devices[].colorbulb.adaptiveLightingShift"
           ]
         }
       ]

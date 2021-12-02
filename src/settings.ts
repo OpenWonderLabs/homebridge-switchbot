@@ -85,6 +85,7 @@ export type contact = {
 
 export type colorbulb = {
   set_minStep?: number;
+  adaptiveLightingShift?: number;
 };
 
 export interface irDevicesConfig extends irdevice {
