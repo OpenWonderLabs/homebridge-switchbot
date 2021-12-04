@@ -10,8 +10,13 @@ export class IndoorCam {
   private service: Service;
 
   // Characteristic Values
-  On!: CharacteristicValue;
-  OutletInUse!: CharacteristicValue;
+  Active!: CharacteristicValue;
+  SetupEndpoints!: CharacteristicValue;
+  StreamingStatus!: CharacteristicValue;
+  SupportedRTPConfiguration!: CharacteristicValue;
+  SelectedRTPStreamConfiguration!: CharacteristicValue;
+  SupportedVideoStreamConfiguration!: CharacteristicValue;
+  SupportedAudioStreamConfiguration!: CharacteristicValue;
 
   // OpenAPI Others
   deviceStatus!: deviceStatusResponse;
@@ -29,9 +34,12 @@ export class IndoorCam {
     private accessory: PlatformAccessory,
     public device: device & devicesConfig,
   ) {
+    // Indoor Cam Config
+    this.platform.device(`Indoor Cam: ${this.accessory.displayName} Config: (hide_device: ${device.hide_device})`);
+
+    this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} was added but will not work as OpenAPI doesn't support it yet.`);
     // default placeholders
-    this.On = false;
-    this.OutletInUse = true;
+    this.SelectedRTPStreamConfiguration;
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doCameraUpdate = new Subject();
@@ -50,8 +58,8 @@ export class IndoorCam {
     // get the WindowCovering service if it exists, otherwise create a new WindowCovering service
     // you can create multiple services for each accessory
     (this.service =
-      accessory.getService(this.platform.Service.Outlet) ||
-      accessory.addService(this.platform.Service.Outlet)), `${accessory.displayName} Indoor Camera`;
+      accessory.getService(this.platform.Service.CameraRTPStreamManagement) ||
+      accessory.addService(this.platform.Service.CameraRTPStreamManagement)), `${accessory.displayName} Indoor Camera`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -65,9 +73,26 @@ export class IndoorCam {
     // see https://developers.homebridge.io/#/service/WindowCovering
 
     // create handlers for required characteristics
-    this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
+    this.service.getCharacteristic(this.platform.Characteristic.Active)
+      .onSet(this.ActiveSet.bind(this));
 
-    this.service.setCharacteristic(this.platform.Characteristic.OutletInUse, this.OutletInUse || true);
+    this.service.getCharacteristic(this.platform.Characteristic.SelectedRTPStreamConfiguration)
+      .onSet(this.SelectedRTPStreamConfigurationSet.bind(this));
+
+    this.service.getCharacteristic(this.platform.Characteristic.SetupEndpoints)
+      .onSet(this.SetupEndpointsSet.bind(this));
+
+    this.service.getCharacteristic(this.platform.Characteristic.StreamingStatus)
+      .onSet(this.StreamingStatusSet.bind(this));
+
+    this.service.getCharacteristic(this.platform.Characteristic.SupportedAudioStreamConfiguration)
+      .onSet(this.SupportedAudioStreamConfigurationSet.bind(this));
+
+    this.service.getCharacteristic(this.platform.Characteristic.SupportedRTPConfiguration)
+      .onSet(this.SupportedRTPConfigurationSet.bind(this));
+
+    this.service.getCharacteristic(this.platform.Characteristic.SupportedVideoStreamConfiguration)
+      .onSet(this.SupportedVideoStreamConfigurationSet.bind(this));
 
     // Update Homekit
     this.updateHomeKitCharacteristics();
@@ -108,14 +133,7 @@ export class IndoorCam {
   }
 
   parseStatus() {
-    switch (this.deviceStatus.body.power) {
-      case 'on':
-        this.On = true;
-        break;
-      default:
-        this.On = false;
-    }
-    this.platform.debug(`Indoor Cam ${this.accessory.displayName} On: ${this.On}`);
+    this.platform.debug(`Indoor Cam ${this.accessory.displayName} SelectedRTPStreamConfiguration: ${this.SelectedRTPStreamConfiguration}`);
   }
 
 
@@ -146,45 +164,37 @@ export class IndoorCam {
  * Camera   -    "command"     "turnOn"    "default"	  =        set to ON state
  */
   async pushChanges() {
-    const payload = {
-      commandType: 'command',
-      parameter: 'default',
-    } as payload;
+    if (!this.Active) {
+      const payload = {
+        commandType: 'command',
+        parameter: 'default',
+        command: 'turnOn',
+      } as payload;
 
-    if (this.On) {
-      payload.command = 'turnOn';
+      this.platform.log.info(`Indoor Cam: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
+        + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
+
+      // Make the API request
+      const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
+      this.platform.debug(`Indoor Cam: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
+      this.statusCode(push);
+      this.refreshStatus();
     } else {
-      payload.command = 'turnOff';
+      this.platform.device(`Indoor Cam: ${this.accessory.displayName} No pushChanges. Active: ${this.Active}`);
     }
-
-    this.platform.log.info(`Indoor Cam: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
-      + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
-
-    // Make the API request
-    const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-    this.platform.debug(`Indoor Cam: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
-    this.statusCode(push);
-    this.refreshStatus();
   }
 
   updateHomeKitCharacteristics() {
-    if (this.On === undefined) {
-      this.platform.debug(`Indoor Cam: ${this.accessory.displayName} On: ${this.On}`);
+    if (this.SelectedRTPStreamConfiguration === undefined) {
+      this.platform.debug(`Indoor Cam: ${this.accessory.displayName} On: ${this.SelectedRTPStreamConfiguration}`);
     } else {
-      this.service.updateCharacteristic(this.platform.Characteristic.On, this.On);
-      this.platform.device(`Indoor Cam: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
-    }
-    if (this.OutletInUse === undefined) {
-      this.platform.debug(`Indoor Cam: ${this.accessory.displayName} OutletInUse: ${this.OutletInUse}`);
-    } else {
-      this.service.updateCharacteristic(this.platform.Characteristic.OutletInUse, this.OutletInUse);
-      this.platform.device(`Indoor Cam: ${this.accessory.displayName} updateCharacteristic OutletInUse: ${this.OutletInUse}`);
+      this.service.updateCharacteristic(this.platform.Characteristic.SelectedRTPStreamConfiguration, this.SelectedRTPStreamConfiguration);
+      this.platform.device(`Indoor Cam: ${this.accessory.displayName} updateCharacteristic On: ${this.SelectedRTPStreamConfiguration}`);
     }
   }
 
   public apiError(e: any) {
-    this.service.updateCharacteristic(this.platform.Characteristic.On, e);
-    this.service.updateCharacteristic(this.platform.Characteristic.OutletInUse, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.SelectedRTPStreamConfiguration, e);
   }
 
   private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
@@ -202,7 +212,7 @@ export class IndoorCam {
         this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} Device is offline.`);
         break;
       case 171:
-        this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} Hub Device is offline.`);
+        this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
         break;
       case 190:
         this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,`
@@ -217,14 +227,72 @@ export class IndoorCam {
   }
 
   /**
-   * Handle requests to set the value of the "On" characteristic
+   * Handle requests to set the value of the "Active" characteristic
    */
-  OnSet(value: CharacteristicValue) {
-    this.platform.debug(`Indoor Cam: ${this.accessory.displayName} On: ${value}`);
+  ActiveSet(value: CharacteristicValue) {
+    this.platform.debug(`Indoor Cam: ${this.accessory.displayName} Active: ${value}`);
 
-    this.On = value;
+    this.Active = value;
     this.doCameraUpdate.next();
   }
 
+  /**
+   * Handle requests to set the value of the "SelectedRTPStreamConfiguration" characteristic
+   */
+  SelectedRTPStreamConfigurationSet(value: CharacteristicValue) {
+    this.platform.debug(`Indoor Cam: ${this.accessory.displayName} SelectedRTPStreamConfiguration: ${value}`);
 
+    this.SelectedRTPStreamConfiguration = value;
+    this.doCameraUpdate.next();
+  }
+
+  /**
+   * Handle requests to set the value of the "On" characteristic
+   */
+  SetupEndpointsSet(value: CharacteristicValue) {
+    this.platform.debug(`Indoor Cam: ${this.accessory.displayName} SetupEndpoints: ${value}`);
+
+    this.SetupEndpoints = value;
+    this.doCameraUpdate.next();
+  }
+
+  /**
+   * Handle requests to set the value of the "On" characteristic
+   */
+  SupportedAudioStreamConfigurationSet(value: CharacteristicValue) {
+    this.platform.debug(`Indoor Cam: ${this.accessory.displayName} SupportedAudioStreamConfiguration: ${value}`);
+
+    this.SupportedAudioStreamConfiguration = value;
+    this.doCameraUpdate.next();
+  }
+
+  /**
+   * Handle requests to set the value of the "On" characteristic
+   */
+  SupportedRTPConfigurationSet(value: CharacteristicValue) {
+    this.platform.debug(`Indoor Cam: ${this.accessory.displayName} SupportedRTPConfiguration: ${value}`);
+
+    this.SupportedRTPConfiguration = value;
+    this.doCameraUpdate.next();
+  }
+
+  /**
+   * Handle requests to set the value of the "On" characteristic
+   */
+  StreamingStatusSet(value: CharacteristicValue) {
+    this.platform.debug(`Indoor Cam: ${this.accessory.displayName} StreamingStatus: ${value}`);
+
+    this.StreamingStatus = value;
+    this.doCameraUpdate.next();
+  }
+
+  /**
+   * Handle requests to set the value of the "On" characteristic
+   */
+  SupportedVideoStreamConfigurationSet(value: CharacteristicValue) {
+    this.platform.debug(`Indoor Cam: ${this.accessory.displayName} SupportedVideoStreamConfiguration: ${value}`);
+
+    this.SupportedVideoStreamConfiguration = value;
+    this.doCameraUpdate.next();
+  }
 }

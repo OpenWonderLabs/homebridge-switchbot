@@ -204,7 +204,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
           const mergeBydeviceId = (a1: { deviceId: string; }[], a2: any[]) =>
             a1.map((itm: { deviceId: string; }) => ({
-              ...a2.find((item: { deviceId: string; }) => (item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId) && item),
+              ...a2.find((item: { deviceId: string; }) => (
+                item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '')) && item),
               ...itm,
             }));
 
@@ -238,7 +239,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
           const mergeIRBydeviceId = (a1: { deviceId: string; }[], a2: any[]) =>
             a1.map((itm: { deviceId: string; }) => ({
-              ...a2.find((item: { deviceId: string; }) => (item.deviceId === itm.deviceId) && item),
+              ...a2.find((item: { deviceId: string; }) => (
+                item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '')) && item),
               ...itm,
             }));
 
@@ -310,7 +312,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.debug(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createColorBulb(device);
         break;
-      case 'IndoorCam':
+      case 'Indoor Cam':
         this.debug(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createIndoorCam(device);
         break;

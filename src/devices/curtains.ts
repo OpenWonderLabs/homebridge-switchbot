@@ -632,7 +632,7 @@ export class Curtain {
         this.platform.log.error(`Curtain: ${this.accessory.displayName} Device is offline.`);
         break;
       case 171:
-        this.platform.log.error(`Curtain: ${this.accessory.displayName} Hub Device is offline.`);
+        this.platform.log.error(`Curtain: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
         break;
       case 190:
         this.platform.log.error(`Curtain: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,`
