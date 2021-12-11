@@ -561,14 +561,14 @@
                   "type": "object",
                   "properties": {
                     "swing_mode": {
-                      "title": "Enable Swing Mode by Device ID",
+                      "title": "Enable Swing Mode",
                       "type": "boolean",
                       "condition": {
                         "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Fan' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Fan') && model.options.irdevices[arrayIndices].deviceId);"
                       }
                     },
                     "rotation_speed": {
-                      "title": "Enable Rotation Speed by Device ID",
+                      "title": "Enable Rotation Speed",
                       "type": "boolean",
                       "condition": {
                         "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Fan' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Fan') && model.options.irdevices[arrayIndices].deviceId);"
@@ -643,7 +643,7 @@
                       "type": "string",
                       "placeholder": "Off",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType === 'Others' && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].other  && !model.options.irdevices[arrayIndices].other.deviceType);"
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType === 'Others' && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].other  && model.options.irdevices[arrayIndices].other.deviceType);"
                       }
                     }
                   }
