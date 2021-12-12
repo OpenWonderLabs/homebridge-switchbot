@@ -14,6 +14,7 @@ export class Camera {
 
   // Characteristic Values
   On!: CharacteristicValue;
+  OnCached!: CharacteristicValue;
 
   // Config
   private readonly deviceDebug = this.platform.config.options?.debug === 'device' || this.platform.debugMode;
@@ -24,6 +25,13 @@ export class Camera {
     private accessory: PlatformAccessory,
     public device: irdevice & irDevicesConfig,
   ) {
+    // default placeholders
+    if (this.On === undefined) {
+      this.On = false;
+    } else {
+      this.On = this.accessory.context.On;
+    }
+
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
@@ -110,6 +118,8 @@ export class Camera {
       this.platform.debug(`Camera: ${this.accessory.displayName} pushChanges: ${push.data}`);
       this.statusCode(push);
       this.updateHomeKitCharacteristics();
+      this.OnCached = this.On;
+      this.accessory.context.On = this.OnCached;
     } catch (e: any) {
       this.platform.log.error(`Camera: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
       if (this.deviceDebug) {

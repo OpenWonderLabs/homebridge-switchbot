@@ -15,11 +15,13 @@ export class AirPurifier {
   // Characteristic Values
   Active!: CharacteristicValue;
   APActive!: CharacteristicValue;
+  ActiveCached!: CharacteristicValue;
   CurrentAPTemp!: CharacteristicValue;
   CurrentAPMode!: CharacteristicValue;
   RotationSpeed!: CharacteristicValue;
   CurrentAPFanSpeed!: CharacteristicValue;
   CurrentTemperature!: CharacteristicValue;
+  CurrentTemperatureCached!: CharacteristicValue;
   CurrentAirPurifierState!: CharacteristicValue;
   CurrentHeaterCoolerState!: CharacteristicValue;
 
@@ -42,6 +44,18 @@ export class AirPurifier {
     private accessory: PlatformAccessory,
     public device: irdevice & irDevicesConfig,
   ) {
+    // default placeholders
+    if (this.Active === undefined) {
+      this.Active = this.platform.Characteristic.Active.INACTIVE;
+    } else {
+      this.Active = this.accessory.context.Active;
+    }
+    if (this.CurrentTemperature === undefined) {
+      this.CurrentTemperature = 24;
+    } else {
+      this.CurrentTemperature = this.accessory.context.CurrentTemperature;
+    }
+
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
@@ -81,6 +95,8 @@ export class AirPurifier {
       this.pushAirConditionerOnChanges();
     }
     this.Active = value;
+    this.ActiveCached = this.Active;
+    this.accessory.context.Active = this.ActiveCached;
   }
 
   private updateHomeKitCharacteristics() {
@@ -210,6 +226,8 @@ export class AirPurifier {
       this.platform.debug(`Air Purifier: ${this.accessory.displayName} pushChanges: ${push.data}`);
       this.statusCode(push);
       this.updateHomeKitCharacteristics();
+      this.CurrentTemperatureCached = this.CurrentTemperature;
+      this.accessory.context.CurrentTemperature = this.CurrentTemperatureCached;
     } catch (e: any) {
       this.platform.log.error(`Air Purifier: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
       if (this.deviceDebug) {

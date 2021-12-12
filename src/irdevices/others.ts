@@ -14,6 +14,7 @@ export class Others {
 
   // Characteristic Values
   Active!: CharacteristicValue;
+  ActiveCached!: CharacteristicValue;
 
   // Config
   private readonly deviceDebug = this.platform.config.options?.debug === 'device' || this.platform.debugMode;
@@ -24,6 +25,13 @@ export class Others {
     private accessory: PlatformAccessory,
     public device: irdevice & irDevicesConfig,
   ) {
+    // default placeholders
+    if (this.Active === undefined) {
+      this.Active = this.platform.Characteristic.Active.INACTIVE;
+    } else {
+      this.Active = this.accessory.context.Active;
+    }
+
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
@@ -54,6 +62,8 @@ export class Others {
       this.pushOffChanges();
     }
     this.Active = value;
+    this.ActiveCached = this.Active;
+    this.accessory.context.Active = this.ActiveCached;
   }
 
   private updateHomeKitCharacteristics() {

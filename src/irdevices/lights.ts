@@ -14,6 +14,7 @@ export class Light {
 
   // Characteristic Values
   On!: CharacteristicValue;
+  OnCached!: CharacteristicValue;
 
   // Config
   private readonly deviceDebug = this.platform.config.options?.debug === 'device' || this.platform.debugMode;
@@ -24,6 +25,13 @@ export class Light {
     private accessory: PlatformAccessory,
     public device: irdevice & irDevicesConfig,
   ) {
+    // default placeholders
+    if (this.On === undefined) {
+      this.On = false;
+    } else {
+      this.On = this.accessory.context.On;
+    }
+
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
@@ -142,6 +150,8 @@ export class Light {
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
       this.platform.debug(`Light: ${this.accessory.displayName} pushChanges: ${push.data}`);
       this.statusCode(push);
+      this.OnCached = this.On;
+      this.accessory.context.On = this.OnCached;
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.platform.log.error(`Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);

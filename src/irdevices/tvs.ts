@@ -15,6 +15,7 @@ export class TV {
 
   // Characteristic Values
   Active!: CharacteristicValue;
+  ActiveCached!: CharacteristicValue;
   ActiveIdentifier!: CharacteristicValue;
 
   // Others
@@ -29,6 +30,13 @@ export class TV {
     private accessory: PlatformAccessory,
     public device: irdevice & irDevicesConfig,
   ) {
+    // default placeholders
+    if (this.Active === undefined) {
+      this.Active = this.platform.Characteristic.Active.INACTIVE;
+    } else {
+      this.Active = this.accessory.context.Active;
+    }
+
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
@@ -207,6 +215,8 @@ export class TV {
         this.pushTvOnChanges();
       }
       this.Active = value;
+      this.ActiveCached = this.Active;
+      this.accessory.context.Active = this.ActiveCached;
     }
   }
 

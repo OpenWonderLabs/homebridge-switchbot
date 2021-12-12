@@ -50,7 +50,7 @@ export class Humidifier {
     public device: device & devicesConfig,
   ) {
     // Humidifiers Config
-    this.platform.device(`Humidifier: ${this.accessory.displayName} Config: (ble: ${device.ble}, hide_temperature: `
+    this.platform.device(`Humidifier: ${this.accessory.displayName} Config: (ble: ${device.ble}, offline: ${device.offline}, hide_temperature: `
       + `${device.humidifier?.hide_temperature}, set_minStep: ${device.humidifier?.set_minStep})`);
 
     // default placeholders
@@ -633,15 +633,11 @@ export class Humidifier {
         break;
       case 161:
         this.platform.log.error(`Humidifier: ${this.accessory.displayName} Device is offline.`);
-        if (this.device.offline) {
-          this.Active = false;
-        }
+        this.offlineOff();
         break;
       case 171:
         this.platform.log.error(`Humidifier: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
-        if (this.device.offline) {
-          this.Active = false;
-        }
+        this.offlineOff();
         break;
       case 190:
         this.platform.log.error(`Humidifier: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,`
@@ -652,6 +648,13 @@ export class Humidifier {
         break;
       default:
         this.platform.debug(`Humidifier: ${this.accessory.displayName} Unknown statusCode.`);
+    }
+  }
+
+  private offlineOff() {
+    if (this.device.offline) {
+      this.Active = this.platform.Characteristic.Active.INACTIVE;
+      this.service.getCharacteristic(this.platform.Characteristic.Active).updateValue(this.Active);
     }
   }
 

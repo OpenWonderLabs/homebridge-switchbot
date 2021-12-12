@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file. This projec
 
 ## What's Changed
 * Added Status Messages to logs for discoverDevices request.
+* Added Cached Status to IR device, Status will be saved to accessory context and restored on restart.
 * Added Option `Offline as Off` to be able set the device as off, if API reports offline.
 * Housekeeping and updated dependencies.
 
