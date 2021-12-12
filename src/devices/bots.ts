@@ -61,7 +61,7 @@ export class Bot {
     this.botUpdateInProgress = false;
 
     // Retrieve initial values and updateHomekit
-    this.parseStatus();
+    this.refreshStatus();
 
     // set accessory information
     accessory
@@ -122,7 +122,7 @@ export class Bot {
     }
 
     // Retrieve initial values and updateHomekit
-    this.refreshStatus();
+    this.parseStatus();
     this.updateHomeKitCharacteristics();
 
     // Start an update interval
