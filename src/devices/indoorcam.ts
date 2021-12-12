@@ -215,9 +215,15 @@ export class IndoorCam {
         break;
       case 161:
         this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} Device is offline.`);
+        if (this.device.offline) {
+          this.Active = false;
+        }
         break;
       case 171:
         this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
+        if (this.device.offline) {
+          this.Active = false;
+        }
         break;
       case 190:
         this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,`

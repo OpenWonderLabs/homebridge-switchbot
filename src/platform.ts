@@ -267,8 +267,43 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.log.error('Neither SwitchBot OpenToken or Device Config are not set.');
       }
     } catch (e: any) {
-      this.log.error('Failed to Discover Devices.', JSON.stringify(e.message));
-      this.debug(JSON.stringify(e));
+      if (e.message.includes('400')) {
+        this.log.error('Failed to Discover Devices: Bad Request');
+        this.debug('The client has issued an invalid request. This is commonly used to specify validation errors in a request payload.');
+      } else if (e.message.includes('401')) {
+        this.log.error('Failed to Discover Devices: Unauthorized Request');
+        this.debug('Authorization for the API is required, but the request has not been authenticated.');
+      } else if (e.message.includes('403')) {
+        this.log.error('Failed to Discover Devices: Forbidden Request');
+        this.debug('The request has been authenticated but does not have appropriate permissions, or a requested resource is not found.');
+      } else if (e.message.includes('404')) {
+        this.log.error('Failed to Discover Devices: Requst Not Found');
+        this.debug('Specifies the requested path does not exist.');
+      } else if (e.message.includes('406')) {
+        this.log.error('Failed to Discover Devices: Request Not Acceptable');
+        this.debug('The client has requested a MIME type via the Accept header for a value not supported by the server.');
+      } else if (e.message.includes('415')) {
+        this.log.error('Failed to Discover Devices: Unsupported Requst Header');
+        this.debug('The client has defined a contentType header that is not supported by the server.');
+      } else if (e.message.includes('422')) {
+        this.log.error('Failed to Discover Devices: Unprocessable Entity');
+        this.debug('The client has made a valid request, but the server cannot process it.'
+          + ' This is often used for APIs for which certain limits have been exceeded.');
+      } else if (e.message.includes('429')) {
+        this.log.error('Failed to Discover Devices: Too Many Requests');
+        this.debug('The client has exceeded the number of requests allowed for a given time window.');
+      } else if (e.message.includes('500')) {
+        this.log.error('Failed to Discover Devices: Internal Server Error');
+        this.debug('An unexpected error on the SmartThings servers has occurred. These errors should be rare.');
+      } else {
+        this.log.error('Failed to Discover Devices');
+      }
+      if (this.config.options?.debug === 'device') {
+        this.log.error(`Failed to Discover Devices, Error Message: ${JSON.stringify(e.message)}`);
+      }
+      if (this.config.options?.debug === 'debug' || this.debugMode) {
+        this.log.error(`Failed to Discover Devices, Error: ${JSON.stringify(e)}`);
+      }
     }
   }
 

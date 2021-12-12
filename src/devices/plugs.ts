@@ -194,9 +194,15 @@ export class Plug {
         break;
       case 161:
         this.platform.log.error(`Plug: ${this.accessory.displayName} Device is offline.`);
+        if (this.device.offline) {
+          this.On = false;
+        }
         break;
       case 171:
         this.platform.log.error(`Plug: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
+        if (this.device.offline) {
+          this.On = false;
+        }
         break;
       case 190:
         this.platform.log.error(`Plug: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,`

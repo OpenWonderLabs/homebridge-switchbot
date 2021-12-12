@@ -2,7 +2,15 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [Version 1.3.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.3.0) (2021-12-2)
+## [Beta - Version 1.3.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.3.1) (2021-12-XX)
+
+## What's Changed
+* Added Status Messages to logs for discoverDevices request.
+* Added Option `Offline as Off` to be able set the device as off, if API reports offline.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.3.0...v1.3.1
+
+## [Version 1.3.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.3.0) (2021-12-02)
 
 ## What's Changed
 * Added Adpative Lighting to Color Bulb

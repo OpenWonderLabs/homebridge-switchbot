@@ -58,6 +58,14 @@
                 "hide_device": {
                   "title": "Hide Device",
                   "type": "boolean",
+                  "description": "If true then devices that are reported as offline will be shown as off in HomeKit.",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId);"
+                  }
+                },
+                "offline": {
+                  "title": "Offline as Off",
+                  "type": "boolean",
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId);"
                   }
@@ -716,6 +724,7 @@
             "options.devices[].configDeviceName",
             "options.devices[].deviceId",
             "options.devices[].hide_device",
+            "options.devices[].offline",
             "options.devices[].ble",
             "options.devices[].configDeviceType",
             "options.devices[].bot.mode",

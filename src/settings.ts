@@ -49,6 +49,7 @@ export interface devicesConfig extends device {
   colorbulb?: colorbulb;
   ble?: string;
   hide_device?: boolean;
+  offline?: boolean;
 }
 
 export type meter = {
