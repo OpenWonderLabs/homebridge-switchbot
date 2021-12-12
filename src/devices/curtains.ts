@@ -487,7 +487,7 @@ export class Curtain {
     } else {
       await this.OpenAPIpushChanges();
     }
-    this.refreshStatus();
+    setTimeout(this.refreshStatus, 5000);
   }
 
   private async BLEpushChanges() {

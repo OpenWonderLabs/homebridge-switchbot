@@ -178,7 +178,7 @@ export class IndoorCam {
       const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
       this.platform.debug(`Indoor Cam: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
       this.statusCode(push);
-      this.refreshStatus();
+      setTimeout(this.refreshStatus, 5000);
     } else {
       this.platform.device(`Indoor Cam: ${this.accessory.displayName} No pushChanges. Active: ${this.Active}`);
     }
