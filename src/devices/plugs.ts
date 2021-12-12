@@ -2,7 +2,7 @@
 import { AxiosResponse } from 'axios';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
-import { debounceTime, skipWhile, tap } from 'rxjs/operators';
+import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { DeviceURL, device, devicesConfig, deviceStatusResponse, payload } from '../settings';
 
@@ -160,6 +160,12 @@ export class Plug {
     const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload));
     this.platform.debug(`Plug: ${this.accessory.displayName} pushchanges: ${JSON.stringify(push.data)}`);
     this.statusCode(push);
+    interval(5000)
+      .pipe(skipWhile(() => this.plugUpdateInProgress))
+      .pipe(take(1))
+      .subscribe(() => {
+        this.refreshStatus();
+      });
   }
 
   updateHomeKitCharacteristics() {

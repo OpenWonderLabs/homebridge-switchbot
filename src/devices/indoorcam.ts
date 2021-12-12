@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
-import { debounceTime, skipWhile, tap } from 'rxjs/operators';
+import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { DeviceURL, device, devicesConfig, deviceStatusResponse, payload } from '../settings';
 
@@ -178,7 +178,12 @@ export class IndoorCam {
       const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
       this.platform.debug(`Indoor Cam: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
       this.statusCode(push);
-      setTimeout(this.refreshStatus, 5000);
+      interval(5000)
+        .pipe(skipWhile(() => this.cameraUpdateInProgress))
+        .pipe(take(1))
+        .subscribe(() => {
+          this.refreshStatus();
+        });
     } else {
       this.platform.device(`Indoor Cam: ${this.accessory.displayName} No pushChanges. Active: ${this.Active}`);
     }

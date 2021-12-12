@@ -2,7 +2,7 @@ import { AxiosResponse } from 'axios';
 import Switchbot from 'node-switchbot';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
-import { debounceTime, skipWhile, tap } from 'rxjs/operators';
+import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { DeviceURL, device, devicesConfig, serviceData, ad, deviceStatusResponse, payload } from '../settings';
 
@@ -394,7 +394,12 @@ export class Humidifier {
     //} else {
     await this.OpenAPIpushChanges();
     //}
-    setTimeout(this.refreshStatus, 5000);
+    interval(5000)
+      .pipe(skipWhile(() => this.humidifierUpdateInProgress))
+      .pipe(take(1))
+      .subscribe(() => {
+        this.refreshStatus();
+      });
   }
 
   private async BLEpushChanges() {
