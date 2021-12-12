@@ -122,7 +122,6 @@ export class Bot {
     }
 
     // Retrieve initial values and updateHomekit
-    this.parseStatus();
     this.updateHomeKitCharacteristics();
 
     // Start an update interval
