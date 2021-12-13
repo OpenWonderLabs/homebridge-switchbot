@@ -18,8 +18,11 @@ export class Meter {
 
   // Characteristic Values
   CurrentRelativeHumidity!: CharacteristicValue;
+  CurrentRelativeHumidityCached!: CharacteristicValue;
   CurrentTemperature!: CharacteristicValue;
+  CurrentTemperatureCached!: CharacteristicValue;
   BatteryLevel!: CharacteristicValue;
+  BatteryLevelCached!: CharacteristicValue;
   ChargingState!: CharacteristicValue;
   StatusLowBattery!: CharacteristicValue;
   Active!: CharacteristicValue;
@@ -54,11 +57,27 @@ export class Meter {
       + ` hide_humidity: ${device.meter?.hide_humidity})`);
 
     // default placeholders
-    this.BatteryLevel = 0;
-    this.ChargingState = 2;
-    this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
-    this.CurrentRelativeHumidity = 0;
-    this.CurrentTemperature = 0;
+    if (this.BatteryLevel === undefined) {
+      this.BatteryLevel = 100;
+    } else {
+      this.BatteryLevel = this.accessory.context.BatteryLevel;
+    }
+    if (this.BatteryLevel < 15) {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
+    } else {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    }
+    this.ChargingState = this.platform.Characteristic.ChargingState.NOT_CHARGEABLE;
+    if (this.CurrentRelativeHumidity === undefined) {
+      this.CurrentRelativeHumidity = 0;
+    } else {
+      this.CurrentRelativeHumidity = this.accessory.context.CurrentRelativeHumidity;
+    }
+    if (this.CurrentTemperature === undefined) {
+      this.CurrentTemperature = 0;
+    } else {
+      this.CurrentTemperature = this.accessory.context.CurrentTemperature;
+    }
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doMeterUpdate = new Subject();
@@ -176,9 +195,9 @@ export class Meter {
     // Battery
     this.BatteryLevel = Number(this.battery);
     if (this.BatteryLevel < 15) {
-      this.StatusLowBattery = 1;
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
-      this.StatusLowBattery = 0;
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     }
     this.platform.debug(`${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
 
@@ -205,9 +224,9 @@ export class Meter {
         this.BatteryLevel = 10;
       }
       if (this.BatteryLevel < 15) {
-        this.StatusLowBattery = 1;
+        this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
       } else {
-        this.StatusLowBattery = 0;
+        this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
       }
       // Current Relative Humidity
       if (!this.device.meter?.hide_humidity) {
@@ -274,6 +293,12 @@ export class Meter {
       // Stop to monitor
       switchbot.stopScan();
       if (this.connected) {
+        this.CurrentTemperatureCached = this.temperature;
+        this.accessory.context.CurrentTemperature = this.CurrentTemperatureCached;
+        this.CurrentRelativeHumidityCached = this.humidity!;
+        this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidityCached;
+        this.BatteryLevelCached = this.battery!;
+        this.accessory.context.BatteryLevel = this.BatteryLevelCached;
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       } else {
