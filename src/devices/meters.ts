@@ -271,7 +271,7 @@ export class Meter {
       // Set an event hander
       switchbot.onadvertisement = (ad: ad) => {
         this.serviceData = ad.serviceData;
-        this.temperature = Number(ad.serviceData.temperature?.c);
+        this.temperature = ad.serviceData.temperature!.c;
         this.humidity = ad.serviceData.humidity;
         this.battery = ad.serviceData.battery;
         this.platform.device(`Meter: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
@@ -332,6 +332,12 @@ export class Meter {
       try {
         this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
         this.platform.debug(`Meter: ${this.accessory.displayName} openAPIRefreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+        this.CurrentTemperatureCached = this.deviceStatus.body.humidity!;
+        this.accessory.context.CurrentTemperature = this.CurrentTemperatureCached;
+        this.CurrentRelativeHumidityCached = this.deviceStatus.body.humidity!;
+        this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidityCached;
+        this.BatteryLevelCached = 100;
+        this.accessory.context.BatteryLevel = this.BatteryLevelCached;
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       } catch (e: any) {
