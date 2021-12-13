@@ -53,7 +53,6 @@ export interface devicesConfig extends device {
 }
 
 export type meter = {
-  unit?: number;
   hide_temperature?: boolean;
   hide_humidity?: boolean;
 };
@@ -281,10 +280,7 @@ export type serviceData = {
   //Humidifier's AutoMode
   autoMode?: boolean;
   //Meter Temperature Levels
-  temperature?: {
-    c: number,
-    f: number
-  };
+  temperature?: temperature;
   // Fahrenheit enabled for Meter
   fahrenheit: boolean;
   // Humidity level for Meter
@@ -302,6 +298,11 @@ export type serviceData = {
   calibration?: boolean;
   //Current Curtain Positon %
   position?: number;
+};
+
+export type temperature = {
+  c: number;
+  f: number;
 };
 
 export type switchbot = {

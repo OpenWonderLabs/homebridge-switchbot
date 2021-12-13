@@ -3,7 +3,7 @@ import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
 import { SwitchBotPlatform } from '../platform';
 import { Service, PlatformAccessory, Units, CharacteristicValue } from 'homebridge';
-import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceStatusResponse } from '../settings';
+import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceStatusResponse, temperature } from '../settings';
 
 /**
  * Platform Accessory
@@ -32,10 +32,9 @@ export class Meter {
   connected?: boolean;
   switchbot!: switchbot;
   serviceData!: serviceData;
+  temperature!: temperature['c'];
   battery!: serviceData['battery'];
   humidity!: serviceData['humidity'];
-  fahrenheit!: serviceData['fahrenheit'];
-  temperature!: serviceData['temperature'];
 
   // Config
   private readonly deviceDebug = this.platform.config.options?.debug === 'device' || this.platform.debugMode;
@@ -51,8 +50,8 @@ export class Meter {
     public device: device & devicesConfig,
   ) {
     // Meter Config
-    this.platform.device(`Meter: ${this.accessory.displayName} Config: (ble: ${device.ble}, unit: ${device.meter?.unit},`
-      + ` hide_temperature: ${device.meter?.hide_temperature}, hide_humidity: ${device.meter?.hide_humidity})`);
+    this.platform.device(`Meter: ${this.accessory.displayName} Config: (ble: ${device.ble}, hide_temperature: ${device.meter?.hide_temperature},`
+      + ` hide_humidity: ${device.meter?.hide_humidity})`);
 
     // default placeholders
     this.BatteryLevel = 0;
@@ -191,13 +190,8 @@ export class Meter {
 
     // Current Temperature
     if (!this.device.meter?.hide_temperature) {
-      if (this.device.meter?.unit === 1) {
-        this.CurrentTemperature = this.toFahrenheit(this.temperature!.c);
-      } else if (this.device.meter?.unit === 0) {
-        this.CurrentTemperature = this.toCelsius(this.temperature!.c);
-      } else {
-        this.CurrentTemperature = Number(this.temperature?.c);
-      }
+      this.temperature < 0 ? 0 : this.temperature > 100 ? 100 : this.temperature;
+      this.CurrentTemperature = this.temperature;
       this.platform.debug(`Meter: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c`);
     }
   }
@@ -223,13 +217,7 @@ export class Meter {
 
       // Current Temperature
       if (!this.device.meter?.hide_temperature) {
-        if (this.device.meter?.unit === 1) {
-          this.CurrentTemperature = this.toFahrenheit(this.deviceStatus.body.temperature!);
-        } else if (this.device.meter?.unit === 0) {
-          this.CurrentTemperature = this.toCelsius(this.deviceStatus.body.temperature!);
-        } else {
-          this.CurrentTemperature = Number(this.deviceStatus.body.temperature);
-        }
+        this.CurrentTemperature = Number(this.deviceStatus.body.temperature);
         this.platform.debug(`Meter: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c`);
       }
     }
@@ -259,20 +247,18 @@ export class Meter {
     const switchbot = this.connectBLE();
     // Start to monitor advertisement packets
     switchbot.startScan({
-      model: 'T',
       id: this.device.bleMac,
     }).then(() => {
       // Set an event hander
       switchbot.onadvertisement = (ad: ad) => {
         this.serviceData = ad.serviceData;
-        this.temperature = ad.serviceData.temperature;
-        this.fahrenheit = ad.serviceData.fahrenheit;
+        this.temperature = Number(ad.serviceData.temperature?.c);
         this.humidity = ad.serviceData.humidity;
         this.battery = ad.serviceData.battery;
         this.platform.device(`Meter: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
         this.platform.device(`Meter: ${this.accessory.displayName} model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName}, `
-          + `temperature: ${JSON.stringify(ad.serviceData.temperature)}, fahrenheit: ${ad.serviceData.fahrenheit}, `
-          + `humidity: ${ad.serviceData.humidity}, battery: ${ad.serviceData.battery}`);
+          + `temperature: ${JSON.stringify(ad.serviceData.temperature?.c)}, humidity: ${ad.serviceData.humidity}, `
+          + `battery: ${ad.serviceData.battery}`);
 
         if (this.serviceData) {
           this.connected = true;
@@ -381,20 +367,5 @@ export class Meter {
     if (!this.device.meter?.hide_temperature) {
       this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
     }
-  }
-
-  /**
-   * Converts the value to celsius if the temperature units are in Fahrenheit
-   */
-  toCelsius(value: number) {
-    // celsius should be to the nearest 0.5 degree
-    return Math.round((5 / 9) * (value - 32) * 2) / 2;
-  }
-
-  /**
-   * Converts the value to fahrenheit if the temperature units are in Fahrenheit
-   */
-  toFahrenheit(value: number) {
-    return Math.round((value * 9) / 5 + 32);
   }
 }
