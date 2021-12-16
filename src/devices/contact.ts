@@ -50,7 +50,7 @@ export class Contact {
     public device: device & devicesConfig,
   ) {
     // Contact Config
-    this.platform.device(`Contact Sensor: ${this.accessory.displayName} Config: (ble: ${device.ble},`
+    this.platform.device(`Contact Sensor: ${this.accessory.displayName} Config: (ble: ${device.ble}, offline: ${device.offline},`
       + ` hide_lightsensor: ${device.contact?.hide_lightsensor}, hide_motionsensor: ${device.contact?.hide_motionsensor})`);
 
 

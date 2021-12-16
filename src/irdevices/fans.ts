@@ -14,6 +14,7 @@ export class Fan {
 
   // Characteristic Values
   Active!: CharacteristicValue;
+  ActiveCached!: CharacteristicValue;
   ActiveIdentifier!: CharacteristicValue;
   RotationSpeed!: CharacteristicValue;
   SwingMode!: CharacteristicValue;
@@ -34,6 +35,13 @@ export class Fan {
     private accessory: PlatformAccessory,
     public device: irdevice & irDevicesConfig,
   ) {
+    // default placeholders
+    if (this.Active === undefined) {
+      this.Active = this.platform.Characteristic.Active.INACTIVE;
+    } else {
+      this.Active = this.accessory.context.Active;
+    }
+
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
@@ -164,6 +172,8 @@ export class Fan {
       this.pushFanOnChanges();
     }
     this.Active = value;
+    this.ActiveCached = this.Active;
+    this.accessory.context.Active = this.ActiveCached;
   }
 
   /**
@@ -261,7 +271,7 @@ export class Fan {
         this.platform.log.error(`Fan: ${this.accessory.displayName} Device is offline.`);
         break;
       case 171:
-        this.platform.log.error(`Fan: ${this.accessory.displayName} Hub Device is offline.`);
+        this.platform.log.error(`Fan: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
         break;
       case 190:
         this.platform.log.error(`Fan: ${this.accessory.displayName} Device internal error due to device states not synchronized`

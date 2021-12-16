@@ -2,7 +2,18 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [Version 1.3.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.3.0) (2021-12-2)
+## [Version 1.4.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.4.0) (2021-12-15)
+
+## What's Changed
+* Added Status Messages to logs for discoverDevices request.
+* Added Cached Status to IR device, Status will be saved to accessory context and restored on restart.
+* Added Option `Offline as Off` to be able set the device as off, if API reports offline.
+* Removed Meter Unit Config Option as it was confusing and probably never used.
+* Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.3.0...v1.4.0
+
+## [Version 1.3.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.3.0) (2021-12-02)
 
 ## What's Changed
 * Added Adpative Lighting to Color Bulb

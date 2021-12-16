@@ -14,6 +14,7 @@ export class WaterHeater {
 
   // Characteristic Values
   Active!: CharacteristicValue;
+  ActiveCached!: CharacteristicValue;
 
   // Config
   private readonly deviceDebug = this.platform.config.options?.debug === 'device' || this.platform.debugMode;
@@ -24,6 +25,13 @@ export class WaterHeater {
     private accessory: PlatformAccessory,
     public device: irdevice & irDevicesConfig,
   ) {
+    // default placeholders
+    if (this.Active === undefined) {
+      this.Active = this.platform.Characteristic.Active.INACTIVE;
+    } else {
+      this.Active = this.accessory.context.Active;
+    }
+
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
@@ -71,6 +79,8 @@ export class WaterHeater {
       this.service.setCharacteristic(this.platform.Characteristic.InUse, this.platform.Characteristic.InUse.IN_USE);
     }
     this.Active = value;
+    this.ActiveCached = this.Active;
+    this.accessory.context.Active = this.ActiveCached;
   }
 
   private updateHomeKitCharacteristics() {
@@ -153,7 +163,7 @@ export class WaterHeater {
         this.platform.log.error(`Water Heater: ${this.accessory.displayName} Device is offline.`);
         break;
       case 171:
-        this.platform.log.error(`Water Heater: ${this.accessory.displayName} Hub Device is offline.`);
+        this.platform.log.error(`Water Heater: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
         break;
       case 190:
         this.platform.log.error(`Water Heater: ${this.accessory.displayName} Device internal error due to device states not synchronized`

@@ -204,7 +204,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
           const mergeBydeviceId = (a1: { deviceId: string; }[], a2: any[]) =>
             a1.map((itm: { deviceId: string; }) => ({
-              ...a2.find((item: { deviceId: string; }) => (item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId) && item),
+              ...a2.find((item: { deviceId: string; }) => (
+                item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '')) && item),
               ...itm,
             }));
 
@@ -238,7 +239,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
           const mergeIRBydeviceId = (a1: { deviceId: string; }[], a2: any[]) =>
             a1.map((itm: { deviceId: string; }) => ({
-              ...a2.find((item: { deviceId: string; }) => (item.deviceId === itm.deviceId) && item),
+              ...a2.find((item: { deviceId: string; }) => (
+                item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '')) && item),
               ...itm,
             }));
 
@@ -265,8 +267,43 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.log.error('Neither SwitchBot OpenToken or Device Config are not set.');
       }
     } catch (e: any) {
-      this.log.error('Failed to Discover Devices.', JSON.stringify(e.message));
-      this.debug(JSON.stringify(e));
+      if (e.message.includes('400')) {
+        this.log.error('Failed to Discover Devices: Bad Request');
+        this.debug('The client has issued an invalid request. This is commonly used to specify validation errors in a request payload.');
+      } else if (e.message.includes('401')) {
+        this.log.error('Failed to Discover Devices: Unauthorized Request');
+        this.debug('Authorization for the API is required, but the request has not been authenticated.');
+      } else if (e.message.includes('403')) {
+        this.log.error('Failed to Discover Devices: Forbidden Request');
+        this.debug('The request has been authenticated but does not have appropriate permissions, or a requested resource is not found.');
+      } else if (e.message.includes('404')) {
+        this.log.error('Failed to Discover Devices: Requst Not Found');
+        this.debug('Specifies the requested path does not exist.');
+      } else if (e.message.includes('406')) {
+        this.log.error('Failed to Discover Devices: Request Not Acceptable');
+        this.debug('The client has requested a MIME type via the Accept header for a value not supported by the server.');
+      } else if (e.message.includes('415')) {
+        this.log.error('Failed to Discover Devices: Unsupported Requst Header');
+        this.debug('The client has defined a contentType header that is not supported by the server.');
+      } else if (e.message.includes('422')) {
+        this.log.error('Failed to Discover Devices: Unprocessable Entity');
+        this.debug('The client has made a valid request, but the server cannot process it.'
+          + ' This is often used for APIs for which certain limits have been exceeded.');
+      } else if (e.message.includes('429')) {
+        this.log.error('Failed to Discover Devices: Too Many Requests');
+        this.debug('The client has exceeded the number of requests allowed for a given time window.');
+      } else if (e.message.includes('500')) {
+        this.log.error('Failed to Discover Devices: Internal Server Error');
+        this.debug('An unexpected error on the SmartThings servers has occurred. These errors should be rare.');
+      } else {
+        this.log.error('Failed to Discover Devices');
+      }
+      if (this.config.options?.debug === 'device') {
+        this.log.error(`Failed to Discover Devices, Error Message: ${JSON.stringify(e.message)}`);
+      }
+      if (this.config.options?.debug === 'debug' || this.debugMode) {
+        this.log.error(`Failed to Discover Devices, Error: ${JSON.stringify(e)}`);
+      }
     }
   }
 
@@ -310,7 +347,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.debug(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createColorBulb(device);
         break;
-      case 'IndoorCam':
+      case 'Indoor Cam':
         this.debug(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createIndoorCam(device);
         break;
@@ -420,6 +457,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceID = device.deviceId;
         existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
+        existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
         await this.connectionTypeExistingAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
@@ -442,6 +480,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.model = device.deviceType;
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = this.version;
+      accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
       await this.connectionTypeNewAccessory(device, accessory);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
@@ -475,6 +514,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceID = device.deviceId;
         existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
+        existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
         await this.connectionTypeExistingAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
@@ -499,6 +539,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.model = device.deviceType;
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = this.version;
+      accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
       await this.connectionTypeNewAccessory(device, accessory);
       // accessory.context.firmwareRevision = findaccessories.accessoryAttribute.softwareRevision;
       // create the accessory handler for the newly create accessory
@@ -531,6 +572,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceID = device.deviceId;
         existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
+        existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
         await this.connectionTypeExistingAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
@@ -553,6 +595,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.model = device.deviceType;
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = this.version;
+      accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
       await this.connectionTypeNewAccessory(device, accessory);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
@@ -584,6 +627,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceID = device.deviceId;
         existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
+        existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
         await this.connectionTypeExistingAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
@@ -606,6 +650,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.model = device.deviceType;
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = this.version;
+      accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
       await this.connectionTypeNewAccessory(device, accessory);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
@@ -637,6 +682,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceID = device.deviceId;
         existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
+        existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
         await this.connectionTypeExistingAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
@@ -659,6 +705,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.model = device.deviceType;
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = this.version;
+      accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
       await this.connectionTypeNewAccessory(device, accessory);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
@@ -690,6 +737,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceID = device.deviceId;
         existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
+        existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
         await this.connectionTypeExistingAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
@@ -722,6 +770,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.model = device.deviceType;
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = this.version;
+      accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
       await this.connectionTypeNewAccessory(device, accessory);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
@@ -766,6 +815,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceID = device.deviceId;
         existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
+        existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
         await this.connectionTypeExistingAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
@@ -788,6 +838,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.model = device.deviceType;
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = this.version;
+      accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
       await this.connectionTypeNewAccessory(device, accessory);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
@@ -819,6 +870,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceID = device.deviceId;
         existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
+        existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
         await this.connectionTypeExistingAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
@@ -841,6 +893,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.model = device.deviceType;
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = this.version;
+      accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
       await this.connectionTypeNewAccessory(device, accessory);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
@@ -872,6 +925,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceID = device.deviceId;
         existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
+        existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
         await this.connectionTypeExistingAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
@@ -894,6 +948,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.model = device.deviceType;
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = this.version;
+      accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
       await this.connectionTypeNewAccessory(device, accessory);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
@@ -923,7 +978,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       existingAccessory.context.deviceID = device.deviceId;
       existingAccessory.displayName = device.deviceName;
       existingAccessory.context.firmwareRevision = this.version;
-      await this.connectionTypeExistingAccessory(device, existingAccessory);
+      existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
+      await this.connectionTypeExistingIRAccessory(device, existingAccessory);
       this.api.updatePlatformAccessories([existingAccessory]);
       // create the accessory handler for the restored accessory
       // this is imported from `platformAccessory.ts`
@@ -942,7 +998,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.model = device.remoteType;
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = this.version;
-      await this.connectionTypeNewAccessory(device, accessory);
+      accessory.context.deviceType = `IR: ${device.remoteType}`;
+      await this.connectionTypeNewIRAccessory(device, accessory);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new TV(this, accessory, device);
@@ -978,7 +1035,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceID = device.deviceId;
         existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
-        await this.connectionTypeExistingAccessory(device, existingAccessory);
+        existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
+        await this.connectionTypeExistingIRAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -1000,7 +1058,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.model = device.remoteType;
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = this.version;
-      await this.connectionTypeNewAccessory(device, accessory);
+      accessory.context.deviceType = `IR: ${device.remoteType}`;
+      await this.connectionTypeNewIRAccessory(device, accessory);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new Fan(this, accessory, device);
@@ -1031,7 +1090,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceID = device.deviceId;
         existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
-        await this.connectionTypeExistingAccessory(device, existingAccessory);
+        existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
+        await this.connectionTypeExistingIRAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -1053,7 +1113,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.model = device.remoteType;
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = this.version;
-      await this.connectionTypeNewAccessory(device, accessory);
+      accessory.context.deviceType = `IR: ${device.remoteType}`;
+      await this.connectionTypeNewIRAccessory(device, accessory);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new Light(this, accessory, device);
@@ -1084,7 +1145,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceID = device.deviceId;
         existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
-        await this.connectionTypeExistingAccessory(device, existingAccessory);
+        existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
+        await this.connectionTypeExistingIRAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -1106,7 +1168,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.model = device.remoteType;
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = this.version;
-      await this.connectionTypeNewAccessory(device, accessory);
+      accessory.context.deviceType = `IR: ${device.remoteType}`;
+      await this.connectionTypeNewIRAccessory(device, accessory);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new AirConditioner(this, accessory, device);
@@ -1137,7 +1200,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceID = device.deviceId;
         existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
-        await this.connectionTypeExistingAccessory(device, existingAccessory);
+        existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
+        await this.connectionTypeExistingIRAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -1159,7 +1223,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.model = device.remoteType;
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = this.version;
-      await this.connectionTypeNewAccessory(device, accessory);
+      accessory.context.deviceType = `IR: ${device.remoteType}`;
+      await this.connectionTypeNewIRAccessory(device, accessory);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new AirPurifier(this, accessory, device);
@@ -1190,7 +1255,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceID = device.deviceId;
         existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
-        await this.connectionTypeExistingAccessory(device, existingAccessory);
+        existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
+        await this.connectionTypeExistingIRAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -1212,7 +1278,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.model = device.remoteType;
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = this.version;
-      await this.connectionTypeNewAccessory(device, accessory);
+      accessory.context.deviceType = `IR: ${device.remoteType}`;
+      await this.connectionTypeNewIRAccessory(device, accessory);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new WaterHeater(this, accessory, device);
@@ -1243,7 +1310,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceID = device.deviceId;
         existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
-        await this.connectionTypeExistingAccessory(device, existingAccessory);
+        existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
+        await this.connectionTypeExistingIRAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -1265,7 +1333,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.model = device.remoteType;
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = this.version;
-      await this.connectionTypeNewAccessory(device, accessory);
+      accessory.context.deviceType = `IR: ${device.remoteType}`;
+      await this.connectionTypeNewIRAccessory(device, accessory);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new VacuumCleaner(this, accessory, device);
@@ -1296,7 +1365,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceID = device.deviceId;
         existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
-        await this.connectionTypeExistingAccessory(device, existingAccessory);
+        existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
+        await this.connectionTypeExistingIRAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -1318,7 +1388,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.model = device.remoteType;
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = this.version;
-      await this.connectionTypeNewAccessory(device, accessory);
+      accessory.context.deviceType = `IR: ${device.remoteType}`;
+      await this.connectionTypeNewIRAccessory(device, accessory);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new Camera(this, accessory, device);
@@ -1349,7 +1420,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceID = device.deviceId;
         existingAccessory.displayName = device.deviceName;
         existingAccessory.context.firmwareRevision = this.version;
-        await this.connectionTypeExistingAccessory(device, existingAccessory);
+        existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
+        await this.connectionTypeExistingIRAccessory(device, existingAccessory);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -1371,7 +1443,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.model = device.remoteType;
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = this.version;
-      await this.connectionTypeNewAccessory(device, accessory);
+      accessory.context.deviceType = `IR: ${device.remoteType}`;
+      await this.connectionTypeNewIRAccessory(device, accessory);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new Others(this, accessory, device);
@@ -1404,6 +1477,19 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     } else {
       existingAccessory.context.connectionType = 'OpenAPI';
     }
+  }
+
+  public async connectionTypeNewIRAccessory(
+    device: irdevice & devicesConfig,
+    accessory: PlatformAccessory) {
+    accessory.context.connectionType = 'IR wirth OpenAPI';
+  }
+
+  public async connectionTypeExistingIRAccessory(
+    device: irdevice & devicesConfig,
+    existingAccessory: PlatformAccessory,
+  ) {
+    existingAccessory.context.connectionType = 'IR with OpenAPI';
   }
 
   public unregisterPlatformAccessories(existingAccessory: PlatformAccessory) {

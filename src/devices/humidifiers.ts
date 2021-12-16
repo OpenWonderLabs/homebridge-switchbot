@@ -2,7 +2,7 @@ import { AxiosResponse } from 'axios';
 import Switchbot from 'node-switchbot';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
-import { debounceTime, skipWhile, tap } from 'rxjs/operators';
+import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { DeviceURL, device, devicesConfig, serviceData, ad, deviceStatusResponse, payload } from '../settings';
 
@@ -50,7 +50,7 @@ export class Humidifier {
     public device: device & devicesConfig,
   ) {
     // Humidifiers Config
-    this.platform.device(`Humidifier: ${this.accessory.displayName} Config: (ble: ${device.ble}, hide_temperature: `
+    this.platform.device(`Humidifier: ${this.accessory.displayName} Config: (ble: ${device.ble}, offline: ${device.offline}, hide_temperature: `
       + `${device.humidifier?.hide_temperature}, set_minStep: ${device.humidifier?.set_minStep})`);
 
     // default placeholders
@@ -394,7 +394,12 @@ export class Humidifier {
     //} else {
     await this.OpenAPIpushChanges();
     //}
-    this.refreshStatus();
+    interval(5000)
+      .pipe(skipWhile(() => this.humidifierUpdateInProgress))
+      .pipe(take(1))
+      .subscribe(() => {
+        this.refreshStatus();
+      });
   }
 
   private async BLEpushChanges() {
@@ -628,9 +633,11 @@ export class Humidifier {
         break;
       case 161:
         this.platform.log.error(`Humidifier: ${this.accessory.displayName} Device is offline.`);
+        this.offlineOff();
         break;
       case 171:
-        this.platform.log.error(`Humidifier: ${this.accessory.displayName} Hub Device is offline.`);
+        this.platform.log.error(`Humidifier: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
+        this.offlineOff();
         break;
       case 190:
         this.platform.log.error(`Humidifier: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,`
@@ -641,6 +648,13 @@ export class Humidifier {
         break;
       default:
         this.platform.debug(`Humidifier: ${this.accessory.displayName} Unknown statusCode.`);
+    }
+  }
+
+  private offlineOff() {
+    if (this.device.offline) {
+      this.Active = this.platform.Characteristic.Active.INACTIVE;
+      this.service.getCharacteristic(this.platform.Characteristic.Active).updateValue(this.Active);
     }
   }
 

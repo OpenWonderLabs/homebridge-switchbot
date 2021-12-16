@@ -14,6 +14,7 @@ export class VacuumCleaner {
 
   // Characteristic Values
   On!: CharacteristicValue;
+  OnCached!: CharacteristicValue;
 
   // Config
   private readonly deviceDebug = this.platform.config.options?.debug === 'device' || this.platform.debugMode;
@@ -24,6 +25,13 @@ export class VacuumCleaner {
     private accessory: PlatformAccessory,
     public device: irdevice & irDevicesConfig,
   ) {
+    // default placeholders
+    if (this.On === undefined) {
+      this.On = false;
+    } else {
+      this.On = this.accessory.context.On;
+    }
+
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
@@ -109,6 +117,8 @@ export class VacuumCleaner {
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
       this.platform.debug(`Vacuum Cleaner: ${this.accessory.displayName} pushChanges: ${push.data}`);
       this.statusCode(push);
+      this.OnCached = this.On;
+      this.accessory.context.On = this.OnCached;
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.platform.log.error(`Vacuum Cleaner: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
@@ -139,7 +149,7 @@ export class VacuumCleaner {
         this.platform.log.error(`Vacuum Cleaner: ${this.accessory.displayName} Device is offline.`);
         break;
       case 171:
-        this.platform.log.error(`Vacuum Cleaner: ${this.accessory.displayName} Hub Device is offline.`);
+        this.platform.log.error(`Vacuum Cleaner: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
         break;
       case 190:
         this.platform.log.error(`Vacuum Cleaner: ${this.accessory.displayName} Device internal error due to device states not synchronized`

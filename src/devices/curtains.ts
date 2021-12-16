@@ -3,7 +3,7 @@ import { AxiosResponse } from 'axios';
 import Switchbot from 'node-switchbot';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
-import { debounceTime, skipWhile, tap } from 'rxjs/operators';
+import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse, payload } from '../settings';
 
@@ -487,7 +487,12 @@ export class Curtain {
     } else {
       await this.OpenAPIpushChanges();
     }
-    this.refreshStatus();
+    interval(5000)
+      .pipe(skipWhile(() => this.curtainUpdateInProgress))
+      .pipe(take(1))
+      .subscribe(() => {
+        this.refreshStatus();
+      });
   }
 
   private async BLEpushChanges() {
@@ -632,7 +637,7 @@ export class Curtain {
         this.platform.log.error(`Curtain: ${this.accessory.displayName} Device is offline.`);
         break;
       case 171:
-        this.platform.log.error(`Curtain: ${this.accessory.displayName} Hub Device is offline.`);
+        this.platform.log.error(`Curtain: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
         break;
       case 190:
         this.platform.log.error(`Curtain: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,`

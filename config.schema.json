@@ -58,6 +58,14 @@
                 "hide_device": {
                   "title": "Hide Device",
                   "type": "boolean",
+                  "description": "If true then devices that are reported as offline will be shown as off in HomeKit.",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId);"
+                  }
+                },
+                "offline": {
+                  "title": "Offline as Off",
+                  "type": "boolean",
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId);"
                   }
@@ -195,27 +203,6 @@
                       "type": "boolean",
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Meter' && model.options.devices[arrayIndices].deviceId);"
-                      }
-                    },
-                    "unit": {
-                      "title": "Convert your Meter's Temperature to Celsius or Fahrenheit",
-                      "type": "number",
-                      "oneOf": [
-                        {
-                          "title": "Celsius",
-                          "enum": [
-                            0
-                          ]
-                        },
-                        {
-                          "title": "Fahrenheit",
-                          "enum": [
-                            1
-                          ]
-                        }
-                      ],
-                      "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Meter' && model.options.devices[arrayIndices].deviceId  && !model.options.devices[arrayIndices].meter.hide_temperature);"
                       }
                     }
                   }
@@ -561,14 +548,14 @@
                   "type": "object",
                   "properties": {
                     "swing_mode": {
-                      "title": "Enable Swing Mode by Device ID",
+                      "title": "Enable Swing Mode",
                       "type": "boolean",
                       "condition": {
                         "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Fan' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Fan') && model.options.irdevices[arrayIndices].deviceId);"
                       }
                     },
                     "rotation_speed": {
-                      "title": "Enable Rotation Speed by Device ID",
+                      "title": "Enable Rotation Speed",
                       "type": "boolean",
                       "condition": {
                         "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Fan' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Fan') && model.options.irdevices[arrayIndices].deviceId);"
@@ -643,7 +630,7 @@
                       "type": "string",
                       "placeholder": "Off",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType === 'Others' && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].other  && !model.options.irdevices[arrayIndices].other.deviceType);"
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType === 'Others' && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].other  && model.options.irdevices[arrayIndices].other.deviceType);"
                       }
                     }
                   }
@@ -716,13 +703,13 @@
             "options.devices[].configDeviceName",
             "options.devices[].deviceId",
             "options.devices[].hide_device",
+            "options.devices[].offline",
             "options.devices[].ble",
             "options.devices[].configDeviceType",
             "options.devices[].bot.mode",
             "options.devices[].bot.deviceType",
             "options.devices[].meter.hide_temperature",
             "options.devices[].meter.hide_humidity",
-            "options.devices[].meter.unit",
             "options.devices[].humidifier.set_minStep",
             "options.devices[].humidifier.hide_temperature",
             "options.devices[].curtain.set_minStep",

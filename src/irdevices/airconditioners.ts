@@ -14,9 +14,11 @@ export class AirConditioner {
 
   // Characteristic Values
   Active!: CharacteristicValue;
+  ActiveCached!: CharacteristicValue;
   RotationSpeed!: CharacteristicValue;
   LastTemperature!: CharacteristicValue;
   CurrentTemperature!: CharacteristicValue;
+  CurrentTemperatureCached!: CharacteristicValue;
   TargetHeaterCoolerState?: CharacteristicValue;
   CurrentHeaterCoolerState!: CharacteristicValue;
   HeatingThresholdTemperature?: CharacteristicValue;
@@ -41,7 +43,17 @@ export class AirConditioner {
     private accessory: PlatformAccessory,
     public device: irdevice & irDevicesConfig,
   ) {
-    this.CurrentTemperature = 24;
+    // default placeholders
+    if (this.Active === undefined) {
+      this.Active = this.platform.Characteristic.Active.INACTIVE;
+    } else {
+      this.Active = this.accessory.context.Active;
+    }
+    if (this.CurrentTemperature === undefined) {
+      this.CurrentTemperature = 24;
+    } else {
+      this.CurrentTemperature = this.accessory.context.CurrentTemperature;
+    }
 
     // set accessory information
     accessory
@@ -161,6 +173,8 @@ export class AirConditioner {
       this.platform.device(`Air Conditioner: ${this.accessory.displayName} pushAirConditionerOffChanges, Active: ${this.Active}`);
     }
     this.Active = value;
+    this.ActiveCached = this.Active;
+    this.accessory.context.Active = this.ActiveCached;
   }
 
   private updateHomeKitCharacteristics() {
@@ -349,6 +363,8 @@ export class AirConditioner {
       const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
       this.platform.log.error(`Air Conditioner: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
       this.statusCode(push);
+      this.CurrentTemperatureCached = this.CurrentTemperature;
+      this.accessory.context.CurrentTemperature = this.CurrentTemperatureCached;
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.platform.log.error(`Air Conditioner: ${this.accessory.displayName} failed pushChanges`);
@@ -379,7 +395,7 @@ export class AirConditioner {
         this.platform.log.error(`Air Conditioner: ${this.accessory.displayName} Device is offline.`);
         break;
       case 171:
-        this.platform.log.error(`Air Conditioner: ${this.accessory.displayName} Hub Device is offline.`);
+        this.platform.log.error(`Air Conditioner: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
         break;
       case 190:
         this.platform.log.error(`Air Conditioner: ${this.accessory.displayName} Device internal error due to device states not synchronized`

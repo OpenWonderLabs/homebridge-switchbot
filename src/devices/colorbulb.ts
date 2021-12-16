@@ -56,13 +56,17 @@ export class ColorBulb {
     this.platform.device(`Color Bulb: ${this.accessory.displayName} Config: (ble: ${device.ble}, set_minStep: ${device.colorbulb?.set_minStep}`);
 
     // default placeholders
-    this.minKelvin = 2000;
-    this.maxKelvin = 9000;
+    if (this.On === undefined) {
+      this.On = false;
+    } else {
+      this.On = this.accessory.context.On;
+    }
     this.Hue = 0;
-    this.On = false;
     this.Brightness = 0;
     this.Saturation = 0;
     this.ColorTemperature = 140;
+    this.minKelvin = 2000;
+    this.maxKelvin = 9000;
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doColorBulbUpdate = new Subject();
@@ -299,6 +303,7 @@ export class ColorBulb {
         this.platform.debug(`Color Bulb: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
         this.statusCode(push);
         this.OnCached = this.On;
+        this.accessory.context.On = this.OnCached;
       }
       // Push Brightness Update
       if (this.On) {
@@ -498,9 +503,11 @@ export class ColorBulb {
         break;
       case 161:
         this.platform.log.error(`Color Bulb: ${this.accessory.displayName} Device is offline.`);
+        this.offlineOff();
         break;
       case 171:
-        this.platform.log.error(`Color Bulb: ${this.accessory.displayName} Hub Device is offline.`);
+        this.platform.log.error(`Color Bulb: ${this.accessory.displayName} is offline. Hub: ${this.device.hubDeviceId}`);
+        this.offlineOff();
         break;
       case 190:
         this.platform.log.error(`Color Bulb: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,`
@@ -511,6 +518,13 @@ export class ColorBulb {
         break;
       default:
         this.platform.debug(`Color Bulb: ${this.accessory.displayName} Unknown statusCode.`);
+    }
+  }
+
+  private offlineOff() {
+    if (this.device.offline) {
+      this.On = false;
+      this.service.getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);
     }
   }
 
