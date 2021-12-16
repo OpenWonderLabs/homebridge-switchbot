@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [Beta - Version 1.3.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.3.1) (2021-12-XX)
+## [Version 1.4.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.4.0) (2021-12-15)
 
 ## What's Changed
 * Added Status Messages to logs for discoverDevices request.
@@ -11,7 +11,7 @@ All notable changes to this project will be documented in this file. This projec
 * Removed Meter Unit Config Option as it was confusing and probably never used.
 * Housekeeping and updated dependencies.
 
-**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.3.0...v1.3.1
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.3.0...v1.4.0
 
 ## [Version 1.3.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.3.0) (2021-12-02)
 
