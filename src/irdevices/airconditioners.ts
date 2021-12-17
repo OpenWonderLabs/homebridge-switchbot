@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
 import { SwitchBotPlatform } from '../platform';
 import { irDevicesConfig, DeviceURL, irdevice, payload } from '../settings';
-import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+import { CharacteristicValue, HAPStatus, PlatformAccessory, Service } from 'homebridge';
 
 /**
  * Platform Accessory
@@ -376,7 +376,7 @@ export class AirConditioner {
         this.platform.log.error(`Air Conditioner: ${this.accessory.displayName} failed pushChanges,`
           + ` Error: ${JSON.stringify(e)}`);
       }
-      this.apiError(e);
+      this.apiError();
     }
   }
 
@@ -409,12 +409,7 @@ export class AirConditioner {
     }
   }
 
-  public apiError(e: any) {
-    this.service.updateCharacteristic(this.platform.Characteristic.Active, e);
-    this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, e);
-    this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
-    this.service.updateCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState, e);
-    this.service.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, e);
-    this.service.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, e);
+  public apiError() {
+    throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 }

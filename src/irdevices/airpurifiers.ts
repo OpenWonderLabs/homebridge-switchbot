@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
 import { SwitchBotPlatform } from '../platform';
 import { irDevicesConfig, DeviceURL, irdevice, payload } from '../settings';
-import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+import { CharacteristicValue, HAPStatus, PlatformAccessory, Service } from 'homebridge';
 
 /**
  * Platform Accessory
@@ -238,7 +238,7 @@ export class AirPurifier {
         this.platform.log.error(`Air Purifier: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
           + ` Error: ${JSON.stringify(e)}`);
       }
-      this.apiError(e);
+      this.apiError();
     }
   }
 
@@ -271,10 +271,7 @@ export class AirPurifier {
     }
   }
 
-  public apiError(e: any) {
-    this.service.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, e);
-    this.service.updateCharacteristic(this.platform.Characteristic.CurrentAirPurifierState, e);
-    this.service.updateCharacteristic(this.platform.Characteristic.TargetAirPurifierState, e);
-    this.service.updateCharacteristic(this.platform.Characteristic.Active, e);
+  public apiError() {
+    throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 }

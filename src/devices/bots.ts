@@ -4,7 +4,7 @@ import Switchbot from 'node-switchbot';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue, HAPStatus } from 'homebridge';
 import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceStatusResponse, payload } from '../settings';
 
 /**
@@ -286,7 +286,7 @@ export class Bot {
         this.platform.log.warn(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.openAPIRefreshStatus();
       }
-      this.apiError(e);
+      this.apiError();
     });
   }
 
@@ -318,7 +318,7 @@ export class Bot {
           this.platform.log.error(`Bot: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
             + ` Error: ${JSON.stringify(e)}`);
         }
-        this.apiError(e);
+        this.apiError();
       }
     }
   }
@@ -370,7 +370,7 @@ export class Bot {
               this.platform.log.warn(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
               await this.openAPIpushChanges();
             }
-            this.apiError(e);
+            this.apiError();
           });
       } else if (this.device.bot?.mode === 'switch') {
         this.platform.device(`Bot: ${this.accessory.displayName} Press Mode: ${this.device.bot?.mode}`);
@@ -393,7 +393,7 @@ export class Bot {
             this.platform.log.warn(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
             await this.openAPIpushChanges();
           }
-          this.apiError(e);
+          this.apiError();
         });
       } else {
         this.platform.log.error(`Bot: ${this.accessory.displayName} Mode Not Set, mode: ${this.device.bot?.mode}`);
@@ -457,7 +457,7 @@ export class Bot {
           this.platform.log.error(`Bot: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
             + ` Error: ${JSON.stringify(e)}`);
         }
-        this.apiError(e);
+        this.apiError();
       }
     }
   }
@@ -492,16 +492,8 @@ export class Bot {
     }
   }
 
-  public apiError(e: any) {
-    if (this.device.bot?.deviceType === 'switch') {
-      this.switchService?.updateCharacteristic(this.platform.Characteristic.On, e);
-    } else {
-      this.outletService?.updateCharacteristic(this.platform.Characteristic.On, e);
-    }
-    if (this.device.ble) {
-      this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
-      this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
-    }
+  public apiError() {
+    throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
   private statusCode(push: AxiosResponse<{ statusCode: number; }>) {

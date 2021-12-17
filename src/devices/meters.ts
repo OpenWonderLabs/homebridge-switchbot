@@ -2,7 +2,7 @@ import Switchbot from 'node-switchbot';
 import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
 import { SwitchBotPlatform } from '../platform';
-import { Service, PlatformAccessory, Units, CharacteristicValue } from 'homebridge';
+import { Service, PlatformAccessory, Units, CharacteristicValue, HAPStatus } from 'homebridge';
 import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceStatusResponse, temperature } from '../settings';
 
 /**
@@ -247,9 +247,9 @@ export class Meter {
    */
   async refreshStatus() {
     if (this.device.ble) {
-      await this.BLErefreshStatus();
+      this.BLErefreshStatus();
     } else {
-      await this.openAPIRefreshStatus();
+      this.openAPIRefreshStatus();
     }
   }
 
@@ -260,12 +260,13 @@ export class Meter {
     return switchbot;
   }
 
-  private async BLErefreshStatus() {
+  private BLErefreshStatus() {
     this.platform.debug(`Meter: ${this.accessory.displayName} BLE RefreshStatus`);
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const switchbot = this.connectBLE();
     // Start to monitor advertisement packets
     switchbot.startScan({
+      model: 'T',
       id: this.device.bleMac,
     }).then(() => {
       // Set an event hander
@@ -305,7 +306,7 @@ export class Meter {
         this.platform.log.error(`Meter: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
         if (this.platform.config.credentials?.openToken) {
           this.platform.log.warn(`Meter: ${this.accessory.displayName} Using OpenAPI Connection`);
-          await this.openAPIRefreshStatus();
+          this.openAPIRefreshStatus();
         }
       }
     }).catch(async (e: any) => {
@@ -320,9 +321,9 @@ export class Meter {
       }
       if (this.platform.config.credentials?.openToken) {
         this.platform.log.warn(`Meter: ${this.accessory.displayName} Using OpenAPI Connection`);
-        await this.openAPIRefreshStatus();
+        this.openAPIRefreshStatus();
       }
-      this.apiError(e);
+      this.apiError();
     });
   }
 
@@ -350,7 +351,7 @@ export class Meter {
           this.platform.log.error(`Meter: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
             + ` Error: ${JSON.stringify(e)}`);
         }
-        this.apiError(e);
+        this.apiError();
       }
     }
   }
@@ -389,14 +390,7 @@ export class Meter {
     }
   }
 
-  public apiError(e: any) {
-    this.service.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
-    this.service.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
-    if (!this.device.meter?.hide_humidity) {
-      this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, e);
-    }
-    if (!this.device.meter?.hide_temperature) {
-      this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
-    }
+  public apiError() {
+    throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 }

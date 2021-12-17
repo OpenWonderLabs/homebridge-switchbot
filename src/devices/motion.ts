@@ -2,7 +2,7 @@ import Switchbot from 'node-switchbot';
 import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
 import { SwitchBotPlatform } from '../platform';
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue, HAPStatus } from 'homebridge';
 import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse } from '../settings';
 
 /**
@@ -224,7 +224,7 @@ export class Motion {
         this.platform.log.warn(`Motion Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.openAPIRefreshStatus();
       }
-      this.apiError(e);
+      this.apiError();
     });
   }
 
@@ -246,7 +246,7 @@ export class Motion {
           this.platform.log.error(`Motion Sensor: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
             + ` Error: ${JSON.stringify(e)}`);
         }
-        this.apiError(e);
+        this.apiError();
       }
     }
   }
@@ -284,12 +284,7 @@ export class Motion {
     }
   }
 
-  public apiError(e: any) {
-    this.service.updateCharacteristic(this.platform.Characteristic.MotionDetected, e);
-    if (this.device.ble) {
-      this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
-      this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
-      this.lightSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, e);
-    }
+  public apiError() {
+    throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 }

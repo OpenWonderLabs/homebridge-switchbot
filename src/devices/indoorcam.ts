@@ -2,7 +2,7 @@ import { AxiosResponse } from 'axios';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue, HAPStatus } from 'homebridge';
 import { DeviceURL, device, devicesConfig, deviceStatusResponse, payload } from '../settings';
 
 export class IndoorCam {
@@ -126,7 +126,7 @@ export class IndoorCam {
             this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} failed pushChanges,`
               + ` Error: ${JSON.stringify(e)}`);
           }
-          this.apiError(e);
+          this.apiError();
         }
         this.cameraUpdateInProgress = false;
       });
@@ -139,7 +139,7 @@ export class IndoorCam {
 
   private async refreshStatus() {
     try {
-      this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
+      //this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
       this.platform.device(`Indoor Cam: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
       this.parseStatus();
       this.updateHomeKitCharacteristics();
@@ -153,7 +153,7 @@ export class IndoorCam {
         this.platform.log.error(`Indoor Cam: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
           + ` Error: ${JSON.stringify(e)}`);
       }
-      this.apiError(e);
+      this.apiError();
     }
   }
 
@@ -198,8 +198,8 @@ export class IndoorCam {
     }
   }
 
-  public apiError(e: any) {
-    this.service.updateCharacteristic(this.platform.Characteristic.SelectedRTPStreamConfiguration, e);
+  public apiError() {
+    throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
   private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
