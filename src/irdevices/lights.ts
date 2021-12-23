@@ -17,8 +17,7 @@ export class Light {
   OnCached!: CharacteristicValue;
 
   // Config
-  private readonly deviceDebug = this.platform.config.options?.debug === 'device' || this.platform.debugMode;
-  private readonly debugDebug = this.platform.config.options?.debug === 'debug' || this.platform.debugMode;
+  deviceLogging!: string;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -26,6 +25,7 @@ export class Light {
     public device: irdevice & irDevicesConfig,
   ) {
     // default placeholders
+    this.logs();
     if (this.On === undefined) {
       this.On = false;
     } else {
@@ -60,7 +60,7 @@ export class Light {
     /* this.service
       .getCharacteristic(this.platform.Characteristic.Brightness)
       .on(CharacteristicEventTypes.SET, (value: any, callback: CharacteristicGetCallback) => {
-        this.platform.debug(`${this.device.remoteType} ${this.accessory.displayName} Set Brightness: ${value}`);
+        this.debugLog(`${this.device.remoteType} ${this.accessory.displayName} Set Brightness: ${value}`);
         this.Brightness = value;
         if (value > this.Brightness) {
           this.pushLightBrightnessUpChanges();
@@ -72,8 +72,18 @@ export class Light {
       });*/
   }
 
+  logs() {
+    if (this.device.logging) {
+      this.deviceLogging = this.accessory.context.logging = this.device.logging;
+    } else if (this.platform.config.options?.logging) {
+      this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
+    } else {
+      this.deviceLogging = this.accessory.context.logging = 'standard';
+    }
+  }
+
   private OnSet(value: CharacteristicValue) {
-    this.platform.debug(`Light: ${this.accessory.displayName} On: ${value}`);
+    this.debugLog(`Light: ${this.accessory.displayName} On: ${value}`);
     this.On = value;
     if (this.On) {
       this.pushLightOnChanges();
@@ -84,10 +94,10 @@ export class Light {
 
   private updateHomeKitCharacteristics() {
     if (this.On === undefined) {
-      this.platform.debug(`Light: ${this.accessory.displayName} On: ${this.On}`);
+      this.debugLog(`Light: ${this.accessory.displayName} On: ${this.On}`);
     } else {
       this.service?.updateCharacteristic(this.platform.Characteristic.On, this.On);
-      this.platform.device(`Light: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+      this.debugLog(`Light: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
   }
 
@@ -143,24 +153,24 @@ export class Light {
 
   public async pushChanges(payload: payload) {
     try {
-      this.platform.log.info(`Light: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
+      this.infoLog(`Light: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
         + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.debug(`Light: ${this.accessory.displayName} pushChanges: ${push.data}`);
+      this.debugLog(`Light: ${this.accessory.displayName} pushChanges: ${push.data}`);
       this.statusCode(push);
       this.OnCached = this.On;
       this.accessory.context.On = this.OnCached;
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
-      this.platform.log.error(`Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-      if (this.deviceDebug) {
-        this.platform.log.error(`Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
+      this.errorLog(`Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
+      if (this.deviceLogging === 'debug') {
+        this.errorLog(`Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
           + ` Error Message: ${JSON.stringify(e.message)}`);
       }
-      if (this.debugDebug) {
-        this.platform.log.error(`Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
+      if (this.platform.debugMode) {
+        this.errorLog(`Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
           + ` Error: ${JSON.stringify(e)}`);
       }
       this.apiError();
@@ -171,33 +181,68 @@ export class Light {
   private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
     switch (push.data.statusCode) {
       case 151:
-        this.platform.log.error(`Light: ${this.accessory.displayName} Command not supported by this device type.`);
+        this.errorLog(`Light: ${this.accessory.displayName} Command not supported by this device type.`);
         break;
       case 152:
-        this.platform.log.error(`Light: ${this.accessory.displayName} Device not found.`);
+        this.errorLog(`Light: ${this.accessory.displayName} Device not found.`);
         break;
       case 160:
-        this.platform.log.error(`Light: ${this.accessory.displayName} Command is not supported.`);
+        this.errorLog(`Light: ${this.accessory.displayName} Command is not supported.`);
         break;
       case 161:
-        this.platform.log.error(`Light: ${this.accessory.displayName} Device is offline.`);
+        this.errorLog(`Light: ${this.accessory.displayName} Device is offline.`);
         break;
       case 171:
-        this.platform.log.error(`Light: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
+        this.errorLog(`Light: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
         break;
       case 190:
-        this.platform.log.error(`Light: ${this.accessory.displayName} Device internal error due to device states not synchronized`
+        this.errorLog(`Light: ${this.accessory.displayName} Device internal error due to device states not synchronized`
           + ` with server, Or command: ${JSON.stringify(push.data)} format is invalid`);
         break;
       case 100:
-        this.platform.debug(`Light: ${this.accessory.displayName} Command successfully sent.`);
+        this.debugLog(`Light: ${this.accessory.displayName} Command successfully sent.`);
         break;
       default:
-        this.platform.debug(`Light: ${this.accessory.displayName} Unknown statusCode.`);
+        this.debugLog(`Light: ${this.accessory.displayName} Unknown statusCode.`);
     }
   }
 
   public apiError() {
     throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+  }
+
+  /**
+ * Logging for Device
+ */
+  infoLog(...log: any[]) {
+    if (this.enablingDeviceLogging()) {
+      this.platform.log.info(String(...log));
+    }
+  }
+
+  warnLog(...log: any[]) {
+    if (this.enablingDeviceLogging()) {
+      this.platform.log.warn(String(...log));
+    }
+  }
+
+  errorLog(...log: any[]) {
+    if (this.enablingDeviceLogging()) {
+      this.platform.log.error(String(...log));
+    }
+  }
+
+  debugLog(...log: any[]) {
+    if (this.enablingDeviceLogging()) {
+      if (this.deviceLogging === 'debug') {
+        this.platform.log.info('[DEBUG]', String(...log));
+      } else {
+        this.platform.log.debug(String(...log));
+      }
+    }
+  }
+
+  enablingDeviceLogging(): boolean {
+    return this.deviceLogging === 'debug' || this.deviceLogging === 'standard';
   }
 }

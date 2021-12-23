@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Beta - Version 2.0.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.0.0) (2021-12-XX)
+
+## What's Changed
+### * Major Change To Logging:
+* Added the following Logging Options:
+    * `Standard`
+        * `None`
+        * `Debug`
+    * Removed Device Logging Option, which was pushed into new logging under debug.
+    * Added Device Logging Override for each Device, by using the Device Config.
+### * Major Changes to `refreshRate`:
+* Added an option to override `refreshRate` for each Device, by using the Device Config.
+* Fixed Bug:
+
 ## [Version 1.4.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.4.0) (2021-12-15)
 
 ## What's Changed

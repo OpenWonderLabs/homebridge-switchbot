@@ -22,8 +22,7 @@ export class TV {
   deviceStatus!: deviceStatusResponse;
 
   // Config
-  private readonly deviceDebug = this.platform.config.options?.debug === 'device' || this.platform.debugMode;
-  private readonly debugDebug = this.platform.config.options?.debug === 'debug' || this.platform.debugMode;
+  deviceLogging!: string;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -31,6 +30,7 @@ export class TV {
     public device: irdevice & irDevicesConfig,
   ) {
     // default placeholders
+    this.logs();
     if (this.Active === undefined) {
       this.Active = this.platform.Characteristic.Active.INACTIVE;
     } else {
@@ -128,8 +128,18 @@ export class TV {
       .onSet(this.VolumeSelectorSet.bind(this));
   }
 
+  logs() {
+    if (this.device.logging) {
+      this.deviceLogging = this.accessory.context.logging = this.device.logging;
+    } else if (this.platform.config.options?.logging) {
+      this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
+    } else {
+      this.deviceLogging = this.accessory.context.logging = 'standard';
+    }
+  }
+
   private VolumeSelectorSet(value: CharacteristicValue) {
-    this.platform.debug(`${this.device.remoteType}: ${this.accessory.displayName} VolumeSelector: ${value}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} VolumeSelector: ${value}`);
     if (value === this.platform.Characteristic.VolumeSelector.INCREMENT) {
       this.pushVolumeUpChanges();
     } else {
@@ -140,61 +150,61 @@ export class TV {
   private RemoteKeySet(value: CharacteristicValue) {
     switch (value) {
       case this.platform.Characteristic.RemoteKey.REWIND: {
-        this.platform.debug(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: REWIND`);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: REWIND`);
         break;
       }
       case this.platform.Characteristic.RemoteKey.FAST_FORWARD: {
-        this.platform.debug(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: FAST_FORWARD`);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: FAST_FORWARD`);
         break;
       }
       case this.platform.Characteristic.RemoteKey.NEXT_TRACK: {
-        this.platform.debug(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: NEXT_TRACK`);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: NEXT_TRACK`);
         break;
       }
       case this.platform.Characteristic.RemoteKey.PREVIOUS_TRACK: {
-        this.platform.debug(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: PREVIOUS_TRACK`);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: PREVIOUS_TRACK`);
         break;
       }
       case this.platform.Characteristic.RemoteKey.ARROW_UP: {
-        this.platform.debug(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: ARROW_UP`);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: ARROW_UP`);
         //this.pushUpChanges();
         break;
       }
       case this.platform.Characteristic.RemoteKey.ARROW_DOWN: {
-        this.platform.debug(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: ARROW_DOWN`);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: ARROW_DOWN`);
         //this.pushDownChanges();
         break;
       }
       case this.platform.Characteristic.RemoteKey.ARROW_LEFT: {
-        this.platform.debug(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: ARROW_LEFT`);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: ARROW_LEFT`);
         //this.pushLeftChanges();
         break;
       }
       case this.platform.Characteristic.RemoteKey.ARROW_RIGHT: {
-        this.platform.debug(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: ARROW_RIGHT`);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: ARROW_RIGHT`);
         //this.pushRightChanges();
         break;
       }
       case this.platform.Characteristic.RemoteKey.SELECT: {
-        this.platform.debug(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: SELECT`);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: SELECT`);
         //this.pushOkChanges();
         break;
       }
       case this.platform.Characteristic.RemoteKey.BACK: {
-        this.platform.debug(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: BACK`);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: BACK`);
         //this.pushBackChanges();
         break;
       }
       case this.platform.Characteristic.RemoteKey.EXIT: {
-        this.platform.debug(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: EXIT`);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: EXIT`);
         break;
       }
       case this.platform.Characteristic.RemoteKey.PLAY_PAUSE: {
-        this.platform.debug(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: PLAY_PAUSE`);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: PLAY_PAUSE`);
         break;
       }
       case this.platform.Characteristic.RemoteKey.INFORMATION: {
-        this.platform.debug(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: INFORMATION`);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: INFORMATION`);
         //this.pushMenuChanges();
         break;
       }
@@ -202,12 +212,12 @@ export class TV {
   }
 
   private ActiveIdentifierSet(value: CharacteristicValue) {
-    this.platform.debug(`${this.device.remoteType}: ${this.accessory.displayName} ActiveIdentifier: ${value}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} ActiveIdentifier: ${value}`);
     this.ActiveIdentifier = value;
   }
 
   private ActiveSet(value: CharacteristicValue) {
-    this.platform.debug(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${value}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${value}`);
     if (!this.device.irtv?.disable_power) {
       if (value === this.platform.Characteristic.Active.INACTIVE) {
         this.pushTvOffChanges();
@@ -222,16 +232,16 @@ export class TV {
 
   private updateHomeKitCharacteristics() {
     if (this.Active === undefined) {
-      this.platform.debug(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Active}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Active}`);
     } else {
       this.service?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
-      this.platform.device(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
     }
     if (this.ActiveIdentifier === undefined) {
-      this.platform.debug(`${this.device.remoteType}: ${this.accessory.displayName} ActiveIdentifier: ${this.ActiveIdentifier}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} ActiveIdentifier: ${this.ActiveIdentifier}`);
     } else {
       this.service?.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, this.ActiveIdentifier);
-      this.platform.device(`${this.device.remoteType}: ${this.accessory.displayName}`
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
         + ` updateCharacteristic ActiveIdentifier: ${this.ActiveIdentifier}`);
     }
   }
@@ -349,22 +359,22 @@ export class TV {
 
   public async pushTVChanges(payload: payload) {
     try {
-      this.platform.log.info(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
+      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
         + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.debug(`${this.device.remoteType}: ${this.accessory.displayName} pushChanges: ${push.data}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushChanges: ${push.data}`);
       this.statusCode(push);
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
-      this.platform.log.error(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-      if (this.deviceDebug) {
-        this.platform.log.error(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
+      this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
+      if (this.deviceLogging === 'debug') {
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
           + ` Error Message: ${JSON.stringify(e.message)}`);
       }
-      if (this.debugDebug) {
-        this.platform.log.error(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
+      if (this.platform.debugMode) {
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
           + ` Error: ${JSON.stringify(e)}`);
       }
       this.apiError();
@@ -375,34 +385,69 @@ export class TV {
   private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
     switch (push.data.statusCode) {
       case 151:
-        this.platform.log.error(`${this.device.remoteType}: ${this.accessory.displayName} Command not supported by this device type.`);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Command not supported by this device type.`);
         break;
       case 152:
-        this.platform.log.error(`${this.device.remoteType}: ${this.accessory.displayName} Device not found.`);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device not found.`);
         break;
       case 160:
-        this.platform.log.error(`${this.device.remoteType}: ${this.accessory.displayName} Command is not supported.`);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Command is not supported.`);
         break;
       case 161:
-        this.platform.log.error(`${this.device.remoteType}: ${this.accessory.displayName} Device is offline.`);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device is offline.`);
         break;
       case 171:
-        this.platform.log.error(`${this.device.remoteType}: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
         break;
       case 190:
-        this.platform.log.error(`${this.device.remoteType}: `
+        this.errorLog(`${this.device.remoteType}: `
           + `${this.accessory.displayName} Device internal error due to device states not synchronized with server,`
           + ` Or command: ${JSON.stringify(push.data)} format is invalid`);
         break;
       case 100:
-        this.platform.debug(`${this.device.remoteType}: ${this.accessory.displayName} Command successfully sent.`);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Command successfully sent.`);
         break;
       default:
-        this.platform.debug(`${this.device.remoteType}: ${this.accessory.displayName} Unknown statusCode.`);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Unknown statusCode.`);
     }
   }
 
   public apiError() {
     throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+  }
+
+  /**
+ * Logging for Device
+ */
+  infoLog(...log: any[]) {
+    if (this.enablingDeviceLogging()) {
+      this.platform.log.info(String(...log));
+    }
+  }
+
+  warnLog(...log: any[]) {
+    if (this.enablingDeviceLogging()) {
+      this.platform.log.warn(String(...log));
+    }
+  }
+
+  errorLog(...log: any[]) {
+    if (this.enablingDeviceLogging()) {
+      this.platform.log.error(String(...log));
+    }
+  }
+
+  debugLog(...log: any[]) {
+    if (this.enablingDeviceLogging()) {
+      if (this.deviceLogging === 'debug') {
+        this.platform.log.info('[DEBUG]', String(...log));
+      } else {
+        this.platform.log.debug(String(...log));
+      }
+    }
+  }
+
+  enablingDeviceLogging(): boolean {
+    return this.deviceLogging === 'debug' || this.deviceLogging === 'standard';
   }
 }
