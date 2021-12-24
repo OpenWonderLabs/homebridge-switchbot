@@ -258,7 +258,7 @@
                       }
                     },
                     "refreshRate": {
-                      "title": "Refresh Rate",
+                      "title": "Curtain Refresh Rate",
                       "type": "number",
                       "minimum": 1,
                       "placeholder": 5,

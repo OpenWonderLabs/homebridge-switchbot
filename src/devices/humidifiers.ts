@@ -193,18 +193,33 @@ export class Humidifier {
   refreshRate() {
     if (this.device.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = this.device.refreshRate;
+      if (this.platform.debugMode) {
+        this.warnLog(`Using Device Config refreshRate: ${this.deviceRefreshRate}`);
+      }
     } else if (this.platform.config.options!.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
+      if (this.platform.debugMode) {
+        this.warnLog(`Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
+      }
     }
   }
 
   logs() {
     if (this.device.logging) {
       this.deviceLogging = this.accessory.context.logging = this.device.logging;
+      if (this.platform.debugMode) {
+        this.warnLog(`Using Device Config Logging: ${this.deviceLogging}`);
+      }
     } else if (this.platform.config.options?.logging) {
       this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
+      if (this.platform.debugMode) {
+        this.warnLog(`Using Platform Config Logging: ${this.deviceLogging}`);
+      }
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
+      if (this.platform.debugMode) {
+        this.warnLog('Using Device Standard Logging');
+      }
     }
   }
 
