@@ -8,13 +8,15 @@ All notable changes to this project will be documented in this file. This projec
 ### Major Change To `Logging`:
 * Added the following Logging Options:
     * `Standard`
-        * `None`
-        * `Debug`
-    * Removed Device Logging Option, which was pushed into new logging under debug.
-    * Added Device Logging Override for each Device, by using the Device Config.
+    * `None`
+     * `Debug`
+* Removed Device Logging Option, which was pushed into new logging under debug.
+* Added Device Logging Override for each Device, by using the Device Config.
 
 ### Major Changes to `refreshRate`:
 * Added an option to override `refreshRate` for each Device, by using the Device Config.
+
+### Other Changes
 * Fixed Bug:
 * Housekeeping and updated dependencies.
 
