@@ -4,7 +4,7 @@ import Switchbot from 'node-switchbot';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
-import { Service, PlatformAccessory, CharacteristicValue, HAPStatus } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceStatusResponse, payload } from '../settings';
 
 /**
@@ -323,7 +323,7 @@ export class Bot {
         this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.openAPIRefreshStatus();
       }
-      this.apiError();
+      this.apiError(e);
     });
   }
 
@@ -333,16 +333,6 @@ export class Bot {
       try {
         this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
         this.debugLog(`Bot: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
-        /*this.deviceStatus = {
-          statusCode: 100,
-          body: {
-            deviceId: this.device.deviceId!,
-            deviceType: this.device.deviceType!,
-            hubDeviceId: this.device.hubDeviceId,
-            power: 'on',
-          },
-          message: 'success',
-        };*/
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       } catch (e: any) {
@@ -355,7 +345,7 @@ export class Bot {
           this.errorLog(`Bot: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
             + ` Error: ${JSON.stringify(e)}`);
         }
-        this.apiError();
+        this.apiError(e);
       }
     }
   }
@@ -407,7 +397,7 @@ export class Bot {
               this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
               await this.openAPIpushChanges();
             }
-            this.apiError();
+            this.apiError(e);
           });
       } else if (this.device.bot?.mode === 'switch') {
         this.debugLog(`Bot: ${this.accessory.displayName} Press Mode: ${this.device.bot?.mode}`);
@@ -430,7 +420,7 @@ export class Bot {
             this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
             await this.openAPIpushChanges();
           }
-          this.apiError();
+          this.apiError(e);
         });
       } else {
         this.errorLog(`Bot: ${this.accessory.displayName} Mode Not Set, mode: ${this.device.bot?.mode}`);
@@ -494,7 +484,7 @@ export class Bot {
           this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
             + ` Error: ${JSON.stringify(e)}`);
         }
-        this.apiError();
+        this.apiError(e);
       }
     }
   }
@@ -529,8 +519,17 @@ export class Bot {
     }
   }
 
-  public apiError() {
-    throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+  public apiError(e: any) {
+    if (this.device.bot?.deviceType === 'switch') {
+      this.switchService?.updateCharacteristic(this.platform.Characteristic.On, e);
+    } else {
+      this.outletService?.updateCharacteristic(this.platform.Characteristic.On, e);
+    }
+    if (this.device.ble) {
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
+    }
+    //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
   private statusCode(push: AxiosResponse<{ statusCode: number; }>) {

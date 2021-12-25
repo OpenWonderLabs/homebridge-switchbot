@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
 import { SwitchBotPlatform } from '../platform';
 import { irDevicesConfig, DeviceURL, irdevice, payload } from '../settings';
-import { CharacteristicValue, HAPStatus, PlatformAccessory, Service } from 'homebridge';
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 
 /**
  * Platform Accessory
@@ -21,7 +21,6 @@ export class AirConditioner {
   CurrentTemperatureCached!: CharacteristicValue;
   TargetHeaterCoolerState?: CharacteristicValue;
   CurrentHeaterCoolerState!: CharacteristicValue;
-  HeatingThresholdTemperature?: CharacteristicValue;
 
   // Others
   state!: string;
@@ -105,30 +104,6 @@ export class AirConditioner {
     this.service.getCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState).onGet(async () => {
       return this.CurrentHeaterCoolerStateGet();
     });
-
-    this.service
-      .getCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature)
-      .setProps({
-        minValue: 16,
-        maxValue: 30,
-        minStep: 1,
-      })
-      .onGet(() => {
-        return this.HeatingThresholdTemperatureGet();
-      })
-      .onSet(this.HeatingThresholdTemperatureSet.bind(this));
-
-    this.service
-      .getCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature)
-      .setProps({
-        minValue: 16,
-        maxValue: 30,
-        minStep: 1,
-      })
-      .onGet(() => {
-        return this.HeatingThresholdTemperatureGet();
-      })
-      .onSet(this.HeatingThresholdTemperatureSet.bind(this));
 
     this.service
       .getCharacteristic(this.platform.Characteristic.RotationSpeed)
@@ -220,13 +195,6 @@ export class AirConditioner {
       this.debugLog(`Air Conditioner: ${this.accessory.displayName}`
         + ` updateCharacteristic CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
     }
-    if (this.HeatingThresholdTemperature === undefined) {
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} HeatingThresholdTemperature: ${this.HeatingThresholdTemperature}`);
-    } else {
-      this.service?.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, this.HeatingThresholdTemperature);
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName}`
-        + ` updateCharacteristic HeatingThresholdTemperature: ${this.HeatingThresholdTemperature}`);
-    }
   }
 
   private CurrentTemperatureGet(value: CharacteristicValue) {
@@ -242,17 +210,17 @@ export class AirConditioner {
 
   private TargetHeaterCoolerStateSet(value: CharacteristicValue) {
     switch (value) {
-      case this.platform.Characteristic.TargetHeaterCoolerState.AUTO:
-        this.CurrentMode = AirConditioner.MODE_AUTO;
+      case this.platform.Characteristic.TargetHeaterCoolerState.HEAT:
+        this.CurrentMode = AirConditioner.MODE_HEAT;
+        this.debugLog(`Air Conditioner: ${this.accessory.displayName} (Set) TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
         break;
       case this.platform.Characteristic.TargetHeaterCoolerState.COOL:
         this.CurrentMode = AirConditioner.MODE_COOL;
+        this.debugLog(`Air Conditioner: ${this.accessory.displayName} (Set) TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
         break;
-      case this.platform.Characteristic.TargetHeaterCoolerState.HEAT:
-        this.CurrentMode = AirConditioner.MODE_HEAT;
-        break;
-      default:
-        break;
+      case this.platform.Characteristic.TargetHeaterCoolerState.AUTO:
+        this.CurrentMode = AirConditioner.MODE_AUTO;
+        this.debugLog(`Air Conditioner: ${this.accessory.displayName} (Set) TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
     }
     this.pushAirConditionerStatusChanges();
   }
@@ -261,28 +229,16 @@ export class AirConditioner {
     if (this.Active === this.platform.Characteristic.Active.ACTIVE) {
       if ((this.CurrentTemperature || 24) < (this.LastTemperature || 30)) {
         this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.COOLING;
+        this.debugLog(`Air Conditioner: ${this.accessory.displayName} (Get) CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
       } else {
         this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.HEATING;
+        this.debugLog(`Air Conditioner: ${this.accessory.displayName} (Get) CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
       }
     } else {
       this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.INACTIVE;
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} (Get) CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
     }
-    this.debugLog(`Air Conditioner: ${this.accessory.displayName} CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
     return this.CurrentHeaterCoolerState;
-  }
-
-  private HeatingThresholdTemperatureGet() {
-    this.CurrentTemperature = this.CurrentTemperature || 24;
-    this.debugLog(`Air Conditioner: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
-    return this.CurrentTemperature;
-  }
-
-  private HeatingThresholdTemperatureSet(value: CharacteristicValue) {
-    this.pushAirConditionerStatusChanges();
-    this.LastTemperature = Number(this.CurrentTemperature);
-    this.CurrentTemperature = Number(value);
-    this.debugLog(`Air Conditioner: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature},`
-      + ` LastTemperature: ${this.LastTemperature}`);
   }
 
   /**
@@ -386,7 +342,7 @@ export class AirConditioner {
         this.errorLog(`Air Conditioner: ${this.accessory.displayName} failed pushChanges,`
           + ` Error: ${JSON.stringify(e)}`);
       }
-      this.apiError();
+      this.apiError(e);
     }
   }
 
@@ -419,8 +375,14 @@ export class AirConditioner {
     }
   }
 
-  public apiError() {
-    throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+  public apiError(e: any) {
+    this.service.updateCharacteristic(this.platform.Characteristic.Active, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, e);
+    //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
   /**

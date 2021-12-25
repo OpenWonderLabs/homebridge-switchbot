@@ -1,6 +1,6 @@
 import { AxiosResponse } from 'axios';
 import { SwitchBotPlatform } from '../platform';
-import { CharacteristicValue, HAPStatus, PlatformAccessory, Service } from 'homebridge';
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { DeviceURL, irdevice, deviceStatusResponse, irDevicesConfig, payload } from '../settings';
 
 /**
@@ -262,7 +262,7 @@ export class Fan {
         this.errorLog(`Fan: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
           + ` Error: ${JSON.stringify(e)}`);
       }
-      this.apiError();
+      this.apiError(e);
     }
   }
 
@@ -295,8 +295,11 @@ export class Fan {
     }
   }
 
-  public apiError() {
-    throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+  public apiError(e: any) {
+    this.service.updateCharacteristic(this.platform.Characteristic.Active, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.SwingMode, e);
+    //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
   /**

@@ -2,7 +2,7 @@ import Switchbot from 'node-switchbot';
 import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
 import { SwitchBotPlatform } from '../platform';
-import { Service, PlatformAccessory, Units, CharacteristicValue, HAPStatus } from 'homebridge';
+import { Service, PlatformAccessory, Units, CharacteristicValue } from 'homebridge';
 import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceStatusResponse, temperature } from '../settings';
 
 /**
@@ -358,7 +358,7 @@ export class Meter {
         this.warnLog(`Meter: ${this.accessory.displayName} Using OpenAPI Connection`);
         this.openAPIRefreshStatus();
       }
-      this.apiError();
+      this.apiError(e);
     });
   }
 
@@ -386,7 +386,7 @@ export class Meter {
           this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
             + ` Error: ${JSON.stringify(e)}`);
         }
-        this.apiError();
+        this.apiError(e);
       }
     }
   }
@@ -425,8 +425,16 @@ export class Meter {
     }
   }
 
-  public apiError() {
-    throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+  public apiError(e: any) {
+    this.service.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
+    if (!this.device.meter?.hide_humidity) {
+      this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, e);
+    }
+    if (!this.device.meter?.hide_temperature) {
+      this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
+    }
+    //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
   /**

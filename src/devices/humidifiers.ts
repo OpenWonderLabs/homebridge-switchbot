@@ -3,7 +3,7 @@ import Switchbot from 'node-switchbot';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
-import { Service, PlatformAccessory, CharacteristicValue, HAPStatus } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { DeviceURL, device, devicesConfig, serviceData, ad, deviceStatusResponse, payload } from '../settings';
 
 /**
@@ -184,7 +184,7 @@ export class Humidifier {
             this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushChanges,`
               + ` Error: ${JSON.stringify(e)}`);
           }
-          this.apiError();
+          this.apiError(e);
         }
         this.humidifierUpdateInProgress = false;
       });
@@ -387,7 +387,7 @@ export class Humidifier {
         this.warnLog(`Humidifier: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.openAPIRefreshStatus();
       }
-      this.apiError();
+      this.apiError(e);
     });
   }
 
@@ -413,7 +413,7 @@ export class Humidifier {
           this.errorLog(`Humidifier: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
             + ` Error: ${JSON.stringify(e)}`);
         }
-        this.apiError();
+        this.apiError(e);
       }
     }
   }
@@ -457,7 +457,7 @@ export class Humidifier {
         this.warnLog(`Humidifier: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.OpenAPIpushChanges();
       }
-      this.apiError();
+      this.apiError(e);
     });
   }
 
@@ -494,7 +494,7 @@ export class Humidifier {
             this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
               + ` Error: ${JSON.stringify(e)}`);
           }
-          this.apiError();
+          this.apiError(e);
         }
       } else if (
         this.TargetHumidifierDehumidifierState ===
@@ -543,7 +543,7 @@ export class Humidifier {
         this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushAutoChanges with OpenAPI Connection,`
           + ` Error: ${JSON.stringify(e)}`);
       }
-      this.apiError();
+      this.apiError(e);
     }
   }
 
@@ -578,7 +578,7 @@ export class Humidifier {
         this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushActiveChanges with OpenAPI Connection,`
           + ` Error: ${JSON.stringify(e)}`);
       }
-      this.apiError();
+      this.apiError(e);
     }
   }
 
@@ -639,8 +639,19 @@ export class Humidifier {
     }
   }
 
-  public apiError() {
-    throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+  public apiError(e: any) {
+    this.service.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, e);
+    if (!this.device.ble) {
+      this.service.updateCharacteristic(this.platform.Characteristic.WaterLevel, e);
+    }
+    this.service.updateCharacteristic(this.platform.Characteristic.CurrentHumidifierDehumidifierState, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.TargetHumidifierDehumidifierState, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.Active, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.RelativeHumidityHumidifierThreshold, e);
+    if (!this.device.humidifier?.hide_temperature && !this.device.ble) {
+      this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
+    }
+    //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
   private statusCode(push: AxiosResponse<{ statusCode: number; }>) {

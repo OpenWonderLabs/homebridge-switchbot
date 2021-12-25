@@ -3,7 +3,7 @@ import { AxiosResponse } from 'axios';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
-import { Service, PlatformAccessory, CharacteristicValue, HAPStatus } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { DeviceURL, device, devicesConfig, deviceStatusResponse, payload } from '../settings';
 
 export class Plug {
@@ -108,7 +108,7 @@ export class Plug {
             this.errorLog(`Plug: ${this.accessory.displayName} failed pushChanges,`
               + ` Error: ${JSON.stringify(e)}`);
           }
-          this.apiError();
+          this.apiError(e);
         }
         this.plugUpdateInProgress = false;
       });
@@ -174,7 +174,7 @@ export class Plug {
         this.errorLog(`Plug: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
           + ` Error: ${JSON.stringify(e)}`);
       }
-      this.apiError();
+      this.apiError(e);
     }
   }
 
@@ -224,8 +224,9 @@ export class Plug {
     }
   }
 
-  public apiError() {
-    throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+  public apiError(e: any) {
+    this.service.updateCharacteristic(this.platform.Characteristic.On, e);
+    //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
   private statusCode(push: AxiosResponse<{ statusCode: number; }>) {

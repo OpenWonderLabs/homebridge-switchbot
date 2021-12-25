@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
 import { SwitchBotPlatform } from '../platform';
 import { irDevicesConfig, DeviceURL, irdevice, payload } from '../settings';
-import { CharacteristicValue, HAPStatus, PlatformAccessory, Service } from 'homebridge';
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 
 /**
  * Platform Accessory
@@ -173,7 +173,7 @@ export class Light {
         this.errorLog(`Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
           + ` Error: ${JSON.stringify(e)}`);
       }
-      this.apiError();
+      this.apiError(e);
     }
   }
 
@@ -207,8 +207,9 @@ export class Light {
     }
   }
 
-  public apiError() {
-    throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+  public apiError(e: any) {
+    this.service.updateCharacteristic(this.platform.Characteristic.On, e);
+    //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
   /**

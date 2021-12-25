@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file. This projec
 * Added the following Logging Options:
     * `Standard`
     * `None`
-     * `Debug`
+    * `Debug`
 * Removed Device Logging Option, which was pushed into new logging under debug.
 * Added Device Logging Override for each Device, by using the Device Config.
 

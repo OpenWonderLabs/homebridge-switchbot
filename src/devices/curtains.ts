@@ -186,7 +186,7 @@ export class Curtain {
             this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges,`
               + ` Error: ${JSON.stringify(e)}`);
           }
-          this.apiError();
+          this.apiError(e);
         }
         this.curtainUpdateInProgress = false;
       });
@@ -490,7 +490,7 @@ export class Curtain {
         this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.openAPIRefreshStatus();
       }
-      this.apiError();
+      this.apiError(e);
     });
   }
 
@@ -512,7 +512,7 @@ export class Curtain {
           this.errorLog(`Curtain: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
             + ` Error: ${JSON.stringify(e)}`);
         }
-        this.apiError();
+        this.apiError(e);
       }
     }
   }
@@ -554,7 +554,7 @@ export class Curtain {
           this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
           await this.OpenAPIpushChanges();
         }
-        this.apiError();
+        this.apiError(e);
       });
     } else {
       this.debugLog(`Curtain: ${this.accessory.displayName} No BLE Changes, CurrentPosition & TargetPosition Are the Same.`
@@ -596,7 +596,7 @@ export class Curtain {
           this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
             + ` Error: ${JSON.stringify(e)}`);
         }
-        this.apiError();
+        this.apiError(e);
       }
     }
   }
@@ -645,8 +645,18 @@ export class Curtain {
     }
   }
 
-  public apiError() {
-    throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+  public apiError(e: any) {
+    this.service.updateCharacteristic(this.platform.Characteristic.CurrentPosition, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.PositionState, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.TargetPosition, e);
+    if (!this.device.curtain?.hide_lightsensor) {
+      this.lightSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, e);
+    }
+    if (this.device.ble) {
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
+    }
+    //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
   private statusCode(push: AxiosResponse<{ statusCode: number; }>) {

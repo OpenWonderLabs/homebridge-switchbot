@@ -2,7 +2,7 @@ import { AxiosResponse } from 'axios';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap, HAPStatus } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap } from 'homebridge';
 import { DeviceURL, device, devicesConfig, switchbot, deviceStatusResponse, payload, hs2rgb, rgb2hs, m2hs } from '../settings';
 
 /**
@@ -191,7 +191,7 @@ export class ColorBulb {
             this.errorLog(`Color Bulb: ${this.accessory.displayName} failed pushChanges,`
               + ` Error: ${JSON.stringify(e)}`);
           }
-          this.apiError();
+          this.apiError(e);
         }
         this.colorBulbUpdateInProgress = false;
       });
@@ -301,7 +301,7 @@ export class ColorBulb {
         this.errorLog(`Color Bulb: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
           + ` Error: ${JSON.stringify(e)}`);
       }
-      this.apiError();
+      this.apiError(e);
     }
   }
 
@@ -365,7 +365,7 @@ export class ColorBulb {
         this.errorLog(`Color Bulb: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
           + ` Error: ${JSON.stringify(e)}`);
       }
-      this.apiError();
+      this.apiError(e);
     }
   }
 
@@ -407,7 +407,7 @@ export class ColorBulb {
         this.errorLog(`Color Bulb: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
           + ` Error: ${JSON.stringify(e)}`);
       }
-      this.apiError();
+      this.apiError(e);
     }
   }
 
@@ -445,7 +445,7 @@ export class ColorBulb {
         this.errorLog(`Color Bulb: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
           + ` Error: ${JSON.stringify(e)}`);
       }
-      this.apiError();
+      this.apiError(e);
     }
   }
 
@@ -480,7 +480,7 @@ export class ColorBulb {
         this.errorLog(`Color Bulb: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
           + ` Error: ${JSON.stringify(e)}`);
       }
-      this.apiError();
+      this.apiError(e);
     }
   }
 
@@ -517,8 +517,13 @@ export class ColorBulb {
     }
   }
 
-  public apiError() {
-    throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+  public apiError(e: any) {
+    this.service.updateCharacteristic(this.platform.Characteristic.On, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.Hue, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.Brightness, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.Saturation, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.ColorTemperature, e);
+    //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
   private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
