@@ -17,7 +17,7 @@ All notable changes to this project will be documented in this file. This projec
 * Added an option to override `refreshRate` for each Device, by using the Device Config.
 
 ### Other Changes
-* Fixed Bug:
+* Fixed Bug: Air conditioner temperature not able to change. [#43](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/43)
 * Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.4.0...v1.5.0

@@ -222,9 +222,7 @@ export class AirConditioner {
       command: 'setAll',
     } as any;
 
-    if (this.CurrentTemperature === undefined) {
-      this.CurrentTemperature = 24;
-    }
+    this.CurrentTemperatureUndefined();
     if (this.CurrentMode === undefined) {
       this.CurrentMode = 1;
     }
@@ -235,6 +233,11 @@ export class AirConditioner {
       this.state = 'on';
     } else {
       this.state = 'off';
+    }
+    if (this.CurrentMode === 1) {
+      this.CurrentTemperature = 25;
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} CurrentMode: ${this.CurrentMode},`
+        + ` CurrentTemperature: ${this.CurrentTemperature}`);
     }
     payload.parameter = `${this.CurrentTemperature},${this.CurrentMode},${this.CurrentFanSpeed},${this.state}`;
 
