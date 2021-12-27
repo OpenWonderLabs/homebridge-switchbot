@@ -185,7 +185,7 @@ export class AirConditioner {
    * AirConditioner:        "command"       "middleSpeed"    "default"	        =        fan speed to medium
    * AirConditioner:        "command"       "highSpeed"      "default"	        =        fan speed to high
    */
-  async pushAirConditionerOnChanges() {
+  /*async pushAirConditionerOnChanges() {
     if (this.Active !== this.platform.Characteristic.Active.ACTIVE) {
       const payload = {
         commandType: 'command',
@@ -194,7 +194,7 @@ export class AirConditioner {
       } as any;
       await this.pushChanges(payload);
     }
-  }
+  }*/
 
   async pushAirConditionerOffChanges() {
     const payload = {
