@@ -67,7 +67,7 @@
                   "title": "Offline as Off",
                   "type": "boolean",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId);"
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
                   }
                 },
                 "configDeviceType": {
@@ -258,7 +258,7 @@
                       }
                     },
                     "refreshRate": {
-                      "title": "Refresh Rate",
+                      "title": "Curtain Refresh Rate",
                       "type": "number",
                       "minimum": 1,
                       "placeholder": 5,
@@ -338,6 +338,43 @@
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Color Bulb' && model.options.devices[arrayIndices].deviceId);"
                       }
                     }
+                  }
+                },
+                "refreshRate": {
+                  "title": "Device Refresh Rate",
+                  "type": "number",
+                  "minimum": 30,
+                  "placeholder": 360,
+                  "description": "Indicates the number of seconds between polls of SwitchBot API.",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
+                  }
+                },
+                "logging": {
+                  "title": "Device Logging Override Setting",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "Standard Logging",
+                      "enum": [
+                        "standard"
+                      ]
+                    },
+                    {
+                      "title": "No Logging",
+                      "enum": [
+                        "none"
+                      ]
+                    },
+                    {
+                      "title": "Debug Logging",
+                      "enum": [
+                        "debug"
+                      ]
+                    }
+                  ],
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
                   }
                 }
               }
@@ -634,6 +671,33 @@
                       }
                     }
                   }
+                },
+                "logging": {
+                  "title": "Device Logging Override Setting",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "Standard Logging",
+                      "enum": [
+                        "standard"
+                      ]
+                    },
+                    {
+                      "title": "No Logging",
+                      "enum": [
+                        "none"
+                      ]
+                    },
+                    {
+                      "title": "Debug Logging",
+                      "enum": [
+                        "debug"
+                      ]
+                    }
+                  ],
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device);"
+                  }
                 }
               }
             }
@@ -651,21 +715,26 @@
             "placeholder": 1,
             "description": "Indicates the number of seconds between pushes to SwitchBot API."
           },
-          "debug": {
+          "logging": {
             "title": "Logging Setting",
             "type": "string",
-            "description": "Enable 'Device' or 'Debug' logging.",
             "oneOf": [
               {
-                "title": "Enable Debug Logging",
+                "title": "Standard Logging",
                 "enum": [
-                  "debug"
+                  "standard"
                 ]
               },
               {
-                "title": "Enable Device Logging",
+                "title": "No Logging",
                 "enum": [
-                  "device"
+                  "none"
+                ]
+              },
+              {
+                "title": "Debug Logging",
+                "enum": [
+                  "debug"
                 ]
               }
             ]
@@ -723,7 +792,9 @@
             "options.devices[].contact.hide_lightsensor",
             "options.devices[].contact.hide_motionsensor",
             "options.devices[].colorbulb.set_minStep",
-            "options.devices[].colorbulb.adaptiveLightingShift"
+            "options.devices[].colorbulb.adaptiveLightingShift",
+            "options.devices[].refreshRate",
+            "options.devices[].logging"
           ]
         }
       ]
@@ -756,7 +827,8 @@
             "options.irdevices[].irtv.disable_power",
             "options.irdevices[].other.deviceType",
             "options.irdevices[].other.commandOn",
-            "options.irdevices[].other.commandOff"
+            "options.irdevices[].other.commandOff",
+            "options.irdevices[].logging"
           ]
         }
       ]
@@ -783,7 +855,7 @@
           "key": "options.pushRate",
           "notitle": true
         },
-        "options.debug"
+        "options.logging"
       ]
     }
   ]

@@ -32,7 +32,7 @@ export type credentials = {
 export type options = {
   refreshRate?: number;
   pushRate?: number;
-  debug?: string;
+  logging?: string;
   devices?: Array<devicesConfig>;
   irdevices?: Array<irDevicesConfig>;
 };
@@ -41,6 +41,8 @@ export interface devicesConfig extends device {
   configDeviceType: string;
   configDeviceName?: string;
   deviceId: string;
+  logging?: string;
+  refreshRate?: number;
   bot?: bot;
   meter?: meter;
   humidifier?: humidifier;
@@ -91,6 +93,7 @@ export type colorbulb = {
 export interface irDevicesConfig extends irdevice {
   configRemoteType?: string;
   deviceId: string;
+  logging?: string;
   irfan?: irfan;
   irair?: irair;
   irtv?: irtv;

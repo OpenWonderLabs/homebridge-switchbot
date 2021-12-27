@@ -16,12 +16,17 @@ export class AirConditioner {
   Active!: CharacteristicValue;
   ActiveCached!: CharacteristicValue;
   RotationSpeed!: CharacteristicValue;
-  LastTemperature!: CharacteristicValue;
+  RotationSpeedCached!: CharacteristicValue;
   CurrentTemperature!: CharacteristicValue;
   CurrentTemperatureCached!: CharacteristicValue;
-  TargetHeaterCoolerState?: CharacteristicValue;
+  TargetHeaterCoolerState!: CharacteristicValue;
+  TargetHeaterCoolerStateCached!: CharacteristicValue;
   CurrentHeaterCoolerState!: CharacteristicValue;
-  HeatingThresholdTemperature?: CharacteristicValue;
+  CurrentHeaterCoolerStateCached!: CharacteristicValue;
+  HeatingThresholdTemperature!: CharacteristicValue;
+  HeatingThresholdTemperatureCached!: CharacteristicValue;
+  CoolingThresholdTemperature!: CharacteristicValue;
+  CoolingThresholdTemperatureCached!: CharacteristicValue;
 
   // Others
   state!: string;
@@ -35,8 +40,8 @@ export class AirConditioner {
   static MODE_HEAT: number;
 
   // Config
-  private readonly deviceDebug = this.platform.config.options?.debug === 'device' || this.platform.debugMode;
-  private readonly debugDebug = this.platform.config.options?.debug === 'debug' || this.platform.debugMode;
+  deviceLogging!: string;
+  hide_automode?: boolean;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -44,6 +49,7 @@ export class AirConditioner {
     public device: irdevice & irDevicesConfig,
   ) {
     // default placeholders
+    this.logs();
     if (this.Active === undefined) {
       this.Active = this.platform.Characteristic.Active.INACTIVE;
     } else {
@@ -53,6 +59,13 @@ export class AirConditioner {
       this.CurrentTemperature = 24;
     } else {
       this.CurrentTemperature = this.accessory.context.CurrentTemperature;
+    }
+    if (device.irair?.hide_automode) {
+      this.hide_automode = device.irair?.hide_automode;
+      this.accessory.context.hide_automode = this.hide_automode;
+    } else {
+      this.hide_automode = device.irair?.hide_automode;
+      this.accessory.context.hide_automode = this.hide_automode;
     }
 
     // set accessory information
@@ -86,25 +99,35 @@ export class AirConditioner {
         maxValue: 100,
         minStep: 0.01,
       })
-      .onGet((value: CharacteristicValue) => {
-        return this.CurrentTemperatureGet(value);
+      .onGet(() => {
+        return this.CurrentTemperatureGet();
       });
 
-    if (device.irair?.hide_automode) {
+    if (this.hide_automode) {
+      this.TargetHeaterCoolerState = 1 || 2;
       this.ValidValues = [1, 2];
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} ValidValues: ${JSON.stringify(this.ValidValues)},`
+        + ` hide_automode: ${this.hide_automode}, TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
     } else {
+      this.TargetHeaterCoolerState = 0 || 1 || 2;
       this.ValidValues = [0, 1, 2];
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} ValidValues: ${JSON.stringify(this.ValidValues)},`
+        + ` hide_automode: ${this.hide_automode}, TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
     }
     this.service
       .getCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState)
       .setProps({
         validValues: this.ValidValues,
       })
+      .onGet(async () => {
+        return this.TargetHeaterCoolerStateGet();
+      })
       .onSet(this.TargetHeaterCoolerStateSet.bind(this));
 
-    this.service.getCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState).onGet(async () => {
-      return this.CurrentHeaterCoolerStateGet();
-    });
+    this.service.getCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState)
+      .onGet(async () => {
+        return this.CurrentHeaterCoolerStateGet();
+      });
 
     this.service
       .getCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature)
@@ -126,9 +149,9 @@ export class AirConditioner {
         minStep: 1,
       })
       .onGet(() => {
-        return this.HeatingThresholdTemperatureGet();
+        return this.CoolingThresholdTemperatureGet();
       })
-      .onSet(this.HeatingThresholdTemperatureSet.bind(this));
+      .onSet(this.CoolingThresholdTemperatureSet.bind(this));
 
     this.service
       .getCharacteristic(this.platform.Characteristic.RotationSpeed)
@@ -143,136 +166,14 @@ export class AirConditioner {
       .onSet(this.RotationSpeedSet.bind(this));
   }
 
-  private RotationSpeedSet(value: CharacteristicValue) {
-    if (value === 4) {
-      this.CurrentFanSpeed = 1;
+  logs() {
+    if (this.device.logging) {
+      this.deviceLogging = this.accessory.context.logging = this.device.logging;
+    } else if (this.platform.config.options?.logging) {
+      this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
     } else {
-      this.CurrentFanSpeed = Number(value) + 1;
+      this.deviceLogging = this.accessory.context.logging = 'standard';
     }
-    this.pushAirConditionerStatusChanges();
-    this.RotationSpeed = this.CurrentFanSpeed || 1;
-  }
-
-  private RotationSpeedGet() {
-    if (!this.CurrentFanSpeed || this.CurrentFanSpeed === 1) {
-      this.RotationSpeed = 4;
-    } else {
-      this.RotationSpeed = this.CurrentFanSpeed - 1;
-    }
-    return this.RotationSpeed;
-  }
-
-  private ActiveSet(value: CharacteristicValue) {
-    this.platform.debug(`Air Conditioner: ${this.accessory.displayName} Set Active: ${value}`);
-
-    if (value === this.platform.Characteristic.Active.INACTIVE) {
-      this.pushAirConditionerOffChanges();
-      this.platform.device(`Air Conditioner: ${this.accessory.displayName} pushAirConditionerOffChanges, Active: ${this.Active}`);
-    } else {
-      this.pushAirConditionerOnChanges();
-      this.platform.device(`Air Conditioner: ${this.accessory.displayName} pushAirConditionerOffChanges, Active: ${this.Active}`);
-    }
-    this.Active = value;
-    this.ActiveCached = this.Active;
-    this.accessory.context.Active = this.ActiveCached;
-  }
-
-  private updateHomeKitCharacteristics() {
-    if (this.Active === undefined) {
-      this.platform.debug(`Air Conditioner: ${this.accessory.displayName} Active: ${this.Active}`);
-    } else {
-      this.service?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
-      this.platform.device(`Air Conditioner: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
-    }
-    if (this.RotationSpeed === undefined) {
-      this.platform.debug(`Air Conditioner: ${this.accessory.displayName} RotationSpeed: ${this.RotationSpeed}`);
-    } else {
-      this.service?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.RotationSpeed);
-      this.platform.device(`Air Conditioner: ${this.accessory.displayName} updateCharacteristic RotationSpeed: ${this.RotationSpeed}`);
-    }
-    if (this.CurrentTemperature === undefined) {
-      this.platform.debug(`Air Conditioner: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
-    } else {
-      this.service?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
-      this.platform.device(`Air Conditioner: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
-    }
-    if (this.TargetHeaterCoolerState === undefined) {
-      this.platform.debug(`Air Conditioner: ${this.accessory.displayName} TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
-    } else {
-      this.service?.updateCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState, this.TargetHeaterCoolerState);
-      this.platform.device(`Air Conditioner: ${this.accessory.displayName}`
-        + ` updateCharacteristic TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
-    }
-    if (this.CurrentHeaterCoolerState === undefined) {
-      this.platform.debug(`Air Conditioner: ${this.accessory.displayName} CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
-    } else {
-      this.service?.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, this.CurrentHeaterCoolerState);
-      this.platform.device(`Air Conditioner: ${this.accessory.displayName}`
-        + ` updateCharacteristic CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
-    }
-    if (this.HeatingThresholdTemperature === undefined) {
-      this.platform.debug(`Air Conditioner: ${this.accessory.displayName} HeatingThresholdTemperature: ${this.HeatingThresholdTemperature}`);
-    } else {
-      this.service?.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, this.HeatingThresholdTemperature);
-      this.platform.device(`Air Conditioner: ${this.accessory.displayName}`
-        + ` updateCharacteristic HeatingThresholdTemperature: ${this.HeatingThresholdTemperature}`);
-    }
-  }
-
-  private CurrentTemperatureGet(value: CharacteristicValue) {
-    value = Number(this.CurrentTemperature) || 24;
-    this.platform.debug(`Air Conditioner: ${this.accessory.displayName} Trigger Get CurrentTemperature: ${value}` );
-
-    this.service
-      .getCharacteristic(this.platform.Characteristic.CurrentTemperature)
-      .updateValue(value);
-
-    return value;
-  }
-
-  private TargetHeaterCoolerStateSet(value: CharacteristicValue) {
-    switch (value) {
-      case this.platform.Characteristic.TargetHeaterCoolerState.AUTO:
-        this.CurrentMode = AirConditioner.MODE_AUTO;
-        break;
-      case this.platform.Characteristic.TargetHeaterCoolerState.COOL:
-        this.CurrentMode = AirConditioner.MODE_COOL;
-        break;
-      case this.platform.Characteristic.TargetHeaterCoolerState.HEAT:
-        this.CurrentMode = AirConditioner.MODE_HEAT;
-        break;
-      default:
-        break;
-    }
-    this.pushAirConditionerStatusChanges();
-  }
-
-  private CurrentHeaterCoolerStateGet() {
-    if (this.Active === this.platform.Characteristic.Active.ACTIVE) {
-      if ((this.CurrentTemperature || 24) < (this.LastTemperature || 30)) {
-        this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.COOLING;
-      } else {
-        this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.HEATING;
-      }
-    } else {
-      this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.INACTIVE;
-    }
-    this.platform.device(`Air Conditioner: ${this.accessory.displayName} CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
-    return this.CurrentHeaterCoolerState;
-  }
-
-  private HeatingThresholdTemperatureGet() {
-    this.CurrentTemperature = this.CurrentTemperature || 24;
-    this.platform.device(`Air Conditioner: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
-    return this.CurrentTemperature;
-  }
-
-  private HeatingThresholdTemperatureSet(value: CharacteristicValue) {
-    this.pushAirConditionerStatusChanges();
-    this.LastTemperature = Number(this.CurrentTemperature);
-    this.CurrentTemperature = Number(value);
-    this.platform.device(`Air Conditioner: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature},`
-      + ` LastTemperature: ${this.LastTemperature}`);
   }
 
   /**
@@ -284,7 +185,7 @@ export class AirConditioner {
    * AirConditioner:        "command"       "middleSpeed"    "default"	        =        fan speed to medium
    * AirConditioner:        "command"       "highSpeed"      "default"	        =        fan speed to high
    */
-  async pushAirConditionerOnChanges() {
+  /*async pushAirConditionerOnChanges() {
     if (this.Active !== this.platform.Characteristic.Active.ACTIVE) {
       const payload = {
         commandType: 'command',
@@ -293,17 +194,15 @@ export class AirConditioner {
       } as any;
       await this.pushChanges(payload);
     }
-  }
+  }*/
 
   async pushAirConditionerOffChanges() {
-    if (this.Active !== this.platform.Characteristic.Active.INACTIVE) {
-      const payload = {
-        commandType: 'command',
-        parameter: 'default',
-        command: 'turnOff',
-      } as any;
-      await this.pushChanges(payload);
-    }
+    const payload = {
+      commandType: 'command',
+      parameter: 'default',
+      command: 'turnOff',
+    } as any;
+    await this.pushChanges(payload);
   }
 
   async pushAirConditionerStatusChanges() {
@@ -323,28 +222,31 @@ export class AirConditioner {
       command: 'setAll',
     } as any;
 
-    if (this.CurrentTemperature === undefined) {
-      this.CurrentTemperature = 24;
-    }
+    this.CurrentTemperatureUndefined();
     if (this.CurrentMode === undefined) {
       this.CurrentMode = 1;
     }
     if (this.CurrentFanSpeed === undefined) {
       this.CurrentFanSpeed = 1;
     }
-    this.Active = this.platform.Characteristic.Active.ACTIVE;
     if (this.Active === this.platform.Characteristic.Active.ACTIVE) {
       this.state = 'on';
     } else {
       this.state = 'off';
     }
+    if (this.CurrentMode === 1) {
+      this.CurrentTemperature = 25;
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} CurrentMode: ${this.CurrentMode},`
+        + ` CurrentTemperature: ${this.CurrentTemperature}`);
+    }
     payload.parameter = `${this.CurrentTemperature},${this.CurrentMode},${this.CurrentFanSpeed},${this.state}`;
 
 
     if (this.Active === this.platform.Characteristic.Active.ACTIVE) {
-      if ((this.CurrentTemperature || 24) < (this.LastTemperature || 30)) {
+      this.CurrentTemperatureUndefined();
+      if (this.CurrentTemperature < this.CurrentTemperatureCached) {
         this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.COOLING;
-      } else {
+      } else if (this.CurrentTemperature > this.CurrentTemperatureCached) {
         this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.HEATING;
       }
     } else {
@@ -356,56 +258,111 @@ export class AirConditioner {
 
   public async pushChanges(payload: payload) {
     try {
-      this.platform.log.info(`Air Conditioner: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
+      this.infoLog(`Air Conditioner: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
         + ` parameter: [${payload.parameter}], commandType: ${payload.commandType}`);
 
       // Make the API request
       const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.platform.log.error(`Air Conditioner: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
       this.statusCode(push);
       this.CurrentTemperatureCached = this.CurrentTemperature;
       this.accessory.context.CurrentTemperature = this.CurrentTemperatureCached;
+      this.HeatingThresholdTemperature = this.CurrentTemperatureCached;
+      this.HeatingThresholdTemperatureCached = this.CurrentTemperatureCached;
+      this.accessory.context.HeatingThresholdTemperature = this.HeatingThresholdTemperatureCached;
+      this.CoolingThresholdTemperature = this.CurrentTemperatureCached;
+      this.CoolingThresholdTemperatureCached = this.CurrentTemperatureCached;
+      this.accessory.context.CoolingThresholdTemperature = this.CoolingThresholdTemperatureCached;
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
-      this.platform.log.error(`Air Conditioner: ${this.accessory.displayName} failed pushChanges`);
-      if (this.deviceDebug) {
-        this.platform.log.error(`Air Conditioner: ${this.accessory.displayName} failed pushChanges,`
+      this.errorLog(`Air Conditioner: ${this.accessory.displayName} failed pushChanges`);
+      if (this.deviceLogging === 'debug') {
+        this.errorLog(`Air Conditioner: ${this.accessory.displayName} failed pushChanges,`
           + ` Error Message: ${JSON.stringify(e.message)}`);
       }
-      if (this.debugDebug) {
-        this.platform.log.error(`Air Conditioner: ${this.accessory.displayName} failed pushChanges,`
+      if (this.platform.debugMode) {
+        this.errorLog(`Air Conditioner: ${this.accessory.displayName} failed pushChanges,`
           + ` Error: ${JSON.stringify(e)}`);
       }
       this.apiError(e);
     }
   }
 
-  private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
+  statusCode(push: AxiosResponse<{ statusCode: number; }>) {
     switch (push.data.statusCode) {
       case 151:
-        this.platform.log.error(`Air Conditioner: ${this.accessory.displayName} Command not supported by this device type.`);
+        this.errorLog(`Air Conditioner: ${this.accessory.displayName} Command not supported by this device type.`);
         break;
       case 152:
-        this.platform.log.error(`Air Conditioner: ${this.accessory.displayName} Device not found.`);
+        this.errorLog(`Air Conditioner: ${this.accessory.displayName} Device not found.`);
         break;
       case 160:
-        this.platform.log.error(`Air Conditioner: ${this.accessory.displayName} Command is not supported.`);
+        this.errorLog(`Air Conditioner: ${this.accessory.displayName} Command is not supported.`);
         break;
       case 161:
-        this.platform.log.error(`Air Conditioner: ${this.accessory.displayName} Device is offline.`);
+        this.errorLog(`Air Conditioner: ${this.accessory.displayName} Device is offline.`);
         break;
       case 171:
-        this.platform.log.error(`Air Conditioner: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
+        this.errorLog(`Air Conditioner: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
         break;
       case 190:
-        this.platform.log.error(`Air Conditioner: ${this.accessory.displayName} Device internal error due to device states not synchronized`
+        this.errorLog(`Air Conditioner: ${this.accessory.displayName} Device internal error due to device states not synchronized`
           + ` with server, Or command: ${JSON.stringify(push.data)} format is invalid`);
         break;
       case 100:
-        this.platform.debug(`Air Conditioner: ${this.accessory.displayName} Command successfully sent.`);
+        this.debugLog(`Air Conditioner: ${this.accessory.displayName} Command successfully sent.`);
         break;
       default:
-        this.platform.debug(`Air Conditioner: ${this.accessory.displayName} Unknown statusCode.`);
+        this.debugLog(`Air Conditioner: ${this.accessory.displayName} Unknown statusCode.`);
+    }
+  }
+
+  updateHomeKitCharacteristics() {
+    if (this.Active === undefined) {
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} Active: ${this.Active}`);
+    } else {
+      this.service?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
+    }
+    if (this.RotationSpeed === undefined) {
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} RotationSpeed: ${this.RotationSpeed}`);
+    } else {
+      this.service?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.RotationSpeed);
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} updateCharacteristic RotationSpeed: ${this.RotationSpeed}`);
+    }
+    if (this.CurrentTemperature === undefined) {
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
+    } else {
+      this.service?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
+    }
+    if (this.TargetHeaterCoolerState === undefined) {
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
+    } else {
+      this.service?.updateCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState, this.TargetHeaterCoolerState);
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName}`
+        + ` updateCharacteristic TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
+    }
+    if (this.CurrentHeaterCoolerState === undefined) {
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
+    } else {
+      this.service?.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, this.CurrentHeaterCoolerState);
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName}`
+        + ` updateCharacteristic CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
+    }
+    if (this.HeatingThresholdTemperature === undefined) {
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} HeatingThresholdTemperature: ${this.HeatingThresholdTemperature}`);
+    } else {
+      this.service?.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, this.HeatingThresholdTemperature);
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName}`
+        + ` updateCharacteristic HeatingThresholdTemperature: ${this.HeatingThresholdTemperature}`);
+    }
+    if (this.CoolingThresholdTemperature === undefined) {
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} CoolingThresholdTemperature: ${this.CoolingThresholdTemperature}`);
+    } else {
+      this.service?.updateCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature, this.CoolingThresholdTemperature);
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName}`
+        + ` updateCharacteristic CoolingThresholdTemperature: ${this.CoolingThresholdTemperature}`);
     }
   }
 
@@ -416,5 +373,232 @@ export class AirConditioner {
     this.service.updateCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState, e);
     this.service.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, e);
     this.service.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, e);
+    this.service.updateCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature, e);
+    //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+  }
+
+  CurrentTemperatureGet() {
+    if (this.CurrentTemperature === undefined) {
+      this.CurrentTemperature = 24;
+      this.CurrentTemperatureCached = this.CurrentTemperature;
+    } else {
+      this.CurrentTemperatureCached = this.CurrentTemperature;
+    }
+    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Get CurrentTemperature: ${this.CurrentTemperature}`);
+    this.accessory.context.CurrentTemperature = this.CurrentTemperatureCached;
+    return this.CurrentTemperature;
+  }
+
+  RotationSpeedGet() {
+    if (!this.CurrentFanSpeed) {
+      this.RotationSpeed = 4;
+    } else if (this.CurrentFanSpeed === 1) {
+      this.RotationSpeed = 4;
+    } else {
+      this.RotationSpeed = this.CurrentFanSpeed - 1;
+    }
+    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Get RotationSpeed: ${this.RotationSpeed}`);
+    this.RotationSpeedCached = this.RotationSpeed;
+    this.accessory.context.RotationSpeed = this.RotationSpeedCached;
+    return this.RotationSpeed;
+  }
+
+  RotationSpeedSet(value: CharacteristicValue) {
+    if (value === 4) {
+      this.CurrentFanSpeed = 1;
+    } else {
+      this.CurrentFanSpeed = Number(value) + 1;
+    }
+    this.RotationSpeed = this.CurrentFanSpeed;
+    this.RotationSpeedCached = this.RotationSpeed;
+    this.accessory.context.RotationSpeed = this.RotationSpeedCached;
+    this.pushAirConditionerStatusChanges();
+  }
+
+  ActiveSet(value: CharacteristicValue) {
+    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Set Active: ${value}`);
+
+    this.Active = value;
+    this.ActiveCached = this.Active;
+    this.accessory.context.Active = this.ActiveCached;
+
+    if (value === this.platform.Characteristic.Active.INACTIVE) {
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} pushAirConditionerOffChanges, Active: ${this.Active}`);
+      this.pushAirConditionerOffChanges();
+    } else {
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} pushAirConditionerOnChanges, Active: ${this.Active}`);
+      this.pushAirConditionerStatusChanges();
+    }
+  }
+
+  TargetHeaterCoolerStateGet() {
+    if (this.ValidValues === [0, 1, 2]) {
+      this.TargetHeaterCoolerState = this.platform.Characteristic.TargetHeaterCoolerState.AUTO;
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} Get (AUTO) TargetHeaterCoolerState: ${this.CurrentHeaterCoolerState},`
+        + ` ValidValues: ${this.ValidValues}`);
+    } else if (this.ValidValues === [1, 2]) {
+      this.TargetHeaterCoolerState = this.platform.Characteristic.TargetHeaterCoolerState.COOL
+        || this.platform.Characteristic.TargetHeaterCoolerState.HEAT;
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} Get (COOL/HEAT) TargetHeaterCoolerState: ${this.CurrentHeaterCoolerState},`
+        + ` ValidValues: ${this.ValidValues}`);
+    } else {
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} Get TargetHeaterCoolerState: ${this.CurrentHeaterCoolerState},`
+        + ` ValidValues: ${this.ValidValues}`);
+    }
+    this.TargetHeaterCoolerStateCached = this.TargetHeaterCoolerState;
+    this.accessory.context.TargetHeaterCoolerState = this.TargetHeaterCoolerStateCached;
+    return this.TargetHeaterCoolerState;
+  }
+
+  TargetHeaterCoolerStateSet(value: CharacteristicValue) {
+    if (this.hide_automode) {
+      if (value === this.platform.Characteristic.TargetHeaterCoolerState.HEAT) {
+        this.TargetHeaterCoolerStateHEAT();
+      } else if (value === this.platform.Characteristic.TargetHeaterCoolerState.COOL) {
+        this.TargetHeaterCoolerStateCOOL();
+      } else {
+        this.errorLog(`Air Conditioner: ${this.accessory.displayName} Set TargetHeaterCoolerState: ${this.TargetHeaterCoolerState},`
+          + ` hide_automode: ${this.hide_automode} `);
+      }
+    } else {
+      if (value === this.platform.Characteristic.TargetHeaterCoolerState.AUTO) {
+        this.TargetHeaterCoolerStateAUTO();
+      } else if (value === this.platform.Characteristic.TargetHeaterCoolerState.HEAT) {
+        this.TargetHeaterCoolerStateHEAT();
+      } else if (value === this.platform.Characteristic.TargetHeaterCoolerState.COOL) {
+        this.TargetHeaterCoolerStateCOOL();
+      } else {
+        this.errorLog(`Air Conditioner: ${this.accessory.displayName} Set TargetHeaterCoolerState: ${this.TargetHeaterCoolerState},`
+          + ` hide_automode: ${this.hide_automode} `);
+      }
+    }
+    this.TargetHeaterCoolerStateCached = this.TargetHeaterCoolerState;
+    this.accessory.context.TargetHeaterCoolerState = this.TargetHeaterCoolerStateCached;
+    this.pushAirConditionerStatusChanges();
+  }
+
+  private TargetHeaterCoolerStateAUTO() {
+    this.TargetHeaterCoolerState = this.platform.Characteristic.TargetHeaterCoolerState.AUTO;
+    this.CurrentMode = 1;
+    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Set (AUTO) TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
+    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Switchbot CurrentMode: ${this.CurrentMode}`);
+  }
+
+  private TargetHeaterCoolerStateCOOL() {
+    this.TargetHeaterCoolerState = this.platform.Characteristic.TargetHeaterCoolerState.COOL;
+    this.CurrentMode = 2;
+    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Set (COOL) TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
+    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Switchbot CurrentMode: ${this.CurrentMode}`);
+  }
+
+  private TargetHeaterCoolerStateHEAT() {
+    this.TargetHeaterCoolerState = this.platform.Characteristic.TargetHeaterCoolerState.HEAT;
+    this.CurrentMode = 5;
+    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Set (HEAT) TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
+    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Switchbot CurrentMode: ${this.CurrentMode}`);
+  }
+
+  CurrentHeaterCoolerStateGet() {
+    if (this.Active === this.platform.Characteristic.Active.ACTIVE) {
+      this.CurrentTemperatureUndefined();
+      if (this.CurrentTemperature < this.CurrentTemperatureCached) {
+        this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.COOLING;
+        this.debugLog(`Air Conditioner: ${this.accessory.displayName} Get (COOLLING) CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
+      } else if (this.CurrentTemperature > this.CurrentTemperatureCached) {
+        this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.HEATING;
+        this.debugLog(`Air Conditioner: ${this.accessory.displayName} Get (HEATING) CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
+      }
+    } else {
+      this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.INACTIVE;
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} Get (INACTIVE) CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
+    }
+    this.CurrentHeaterCoolerStateCached = this.CurrentHeaterCoolerState;
+    this.accessory.context.CurrentHeaterCoolerState = this.CurrentHeaterCoolerStateCached;
+    return this.CurrentHeaterCoolerState;
+  }
+
+  private HeatingThresholdTemperatureGet() {
+    this.CurrentTemperatureUndefined;
+    this.CurrentTemperature = this.CurrentTemperatureCached;
+    this.HeatingThresholdTemperature = this.CurrentTemperatureCached;
+    this.HeatingThresholdTemperatureCached = this.HeatingThresholdTemperature;
+    this.accessory.context.HeatingThresholdTemperature = this.HeatingThresholdTemperatureCached;
+    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Get HeatingThresholdTemperature: ${this.HeatingThresholdTemperature}`);
+    return this.HeatingThresholdTemperature;
+  }
+
+  private HeatingThresholdTemperatureSet(value: CharacteristicValue) {
+    this.CurrentTemperatureCached = this.CurrentTemperature;
+    this.CurrentTemperature = value;
+    this.HeatingThresholdTemperatureCached = this.HeatingThresholdTemperature;
+    this.accessory.context.HeatingThresholdTemperature = this.HeatingThresholdTemperatureCached;
+    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Set HeatingThresholdTemperature: ${this.HeatingThresholdTemperature},`
+      + ` CurrentTemperatureCached: ${this.CurrentTemperatureCached}`);
+    this.pushAirConditionerStatusChanges();
+  }
+
+
+  private CoolingThresholdTemperatureGet() {
+    this.CurrentTemperatureUndefined;
+    this.CurrentTemperature = this.CurrentTemperatureCached;
+    this.CoolingThresholdTemperature = this.CurrentTemperatureCached;
+    this.CoolingThresholdTemperatureCached = this.CoolingThresholdTemperature;
+    this.accessory.context.CoolingThresholdTemperature = this.CoolingThresholdTemperatureCached;
+    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Get CoolingThresholdTemperature: ${this.CoolingThresholdTemperature}`);
+    return this.CoolingThresholdTemperature;
+  }
+
+  private CoolingThresholdTemperatureSet(value: CharacteristicValue) {
+    this.CurrentTemperatureCached = this.CurrentTemperature;
+    this.CurrentTemperature = value;
+    this.CoolingThresholdTemperatureCached = this.CoolingThresholdTemperature;
+    this.accessory.context.CoolingThresholdTemperature = this.CoolingThresholdTemperatureCached;
+    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Set CoolingThresholdTemperature: ${this.CoolingThresholdTemperature},`
+      + ` CurrentTemperatureCached: ${this.CurrentTemperatureCached}`);
+    this.pushAirConditionerStatusChanges();
+  }
+
+  private CurrentTemperatureUndefined() {
+    if (this.CurrentTemperature === undefined) {
+      this.CurrentTemperature = 24;
+    }
+    if (this.CurrentTemperatureCached === undefined) {
+      this.CurrentTemperature = 30;
+    }
+  }
+
+  /**
+ * Logging for Device
+ */
+  infoLog(...log: any[]) {
+    if (this.enablingDeviceLogging()) {
+      this.platform.log.info(String(...log));
+    }
+  }
+
+  warnLog(...log: any[]) {
+    if (this.enablingDeviceLogging()) {
+      this.platform.log.warn(String(...log));
+    }
+  }
+
+  errorLog(...log: any[]) {
+    if (this.enablingDeviceLogging()) {
+      this.platform.log.error(String(...log));
+    }
+  }
+
+  debugLog(...log: any[]) {
+    if (this.enablingDeviceLogging()) {
+      if (this.deviceLogging === 'debug') {
+        this.platform.log.info('[DEBUG]', String(...log));
+      } else {
+        this.platform.log.debug(String(...log));
+      }
+    }
+  }
+
+  enablingDeviceLogging(): boolean {
+    return this.deviceLogging === 'debug' || this.deviceLogging === 'standard';
   }
 }

@@ -18,8 +18,8 @@ export class Plug {
   deviceStatus!: deviceStatusResponse;
 
   // Config
-  private readonly deviceDebug = this.platform.config.options?.debug === 'device' || this.platform.debugMode;
-  private readonly debugDebug = this.platform.config.options?.debug === 'debug' || this.platform.debugMode;
+  deviceLogging!: string;
+  deviceRefreshRate!: number;
 
   // Updates
   plugUpdateInProgress!: boolean;
@@ -30,15 +30,17 @@ export class Plug {
     private accessory: PlatformAccessory,
     public device: device & devicesConfig,
   ) {
-    // Bot Config
-    this.platform.device(`Plug: ${this.accessory.displayName} Config: (offline: ${device.offline})`);
-
     // default placeholders
+    this.refreshRate();
+    this.logs();
     if (this.On === undefined) {
       this.On = false;
     } else {
       this.On = this.accessory.context.On;
     }
+
+    // Plug Config
+    this.debugLog(`Plug: ${this.accessory.displayName} Config: (offline: ${device.offline})`);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doPlugUpdate = new Subject();
@@ -78,7 +80,7 @@ export class Plug {
     this.updateHomeKitCharacteristics();
 
     // Start an update interval
-    interval(this.platform.config.options!.refreshRate! * 1000)
+    interval(this.deviceRefreshRate * 1000)
       .pipe(skipWhile(() => this.plugUpdateInProgress))
       .subscribe(() => {
         this.refreshStatus();
@@ -97,19 +99,52 @@ export class Plug {
         try {
           await this.pushChanges();
         } catch (e: any) {
-          this.platform.log.error(`Plug: ${this.accessory.displayName} failed pushChanges`);
-          if (this.deviceDebug) {
-            this.platform.log.error(`Plug: ${this.accessory.displayName} failed pushChanges,`
+          this.errorLog(`Plug: ${this.accessory.displayName} failed pushChanges`);
+          if (this.deviceLogging === 'debug') {
+            this.errorLog(`Plug: ${this.accessory.displayName} failed pushChanges,`
               + ` Error Message: ${JSON.stringify(e.message)}`);
           }
-          if (this.debugDebug) {
-            this.platform.log.error(`Plug: ${this.accessory.displayName} failed pushChanges,`
+          if (this.platform.debugMode) {
+            this.errorLog(`Plug: ${this.accessory.displayName} failed pushChanges,`
               + ` Error: ${JSON.stringify(e)}`);
           }
           this.apiError(e);
         }
         this.plugUpdateInProgress = false;
       });
+  }
+
+  refreshRate() {
+    if (this.device.refreshRate) {
+      this.deviceRefreshRate = this.accessory.context.refreshRate = this.device.refreshRate;
+      if (this.platform.debugMode) {
+        this.warnLog(`Using Device Config refreshRate: ${this.deviceRefreshRate}`);
+      }
+    } else if (this.platform.config.options!.refreshRate) {
+      this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
+      if (this.platform.debugMode) {
+        this.warnLog(`Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
+      }
+    }
+  }
+
+  logs() {
+    if (this.device.logging) {
+      this.deviceLogging = this.accessory.context.logging = this.device.logging;
+      if (this.platform.debugMode) {
+        this.warnLog(`Using Device Config Logging: ${this.deviceLogging}`);
+      }
+    } else if (this.platform.config.options?.logging) {
+      this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
+      if (this.platform.debugMode) {
+        this.warnLog(`Using Platform Config Logging: ${this.deviceLogging}`);
+      }
+    } else {
+      this.deviceLogging = this.accessory.context.logging = 'standard';
+      if (this.platform.debugMode) {
+        this.warnLog('Using Device Standard Logging');
+      }
+    }
   }
 
   parseStatus() {
@@ -120,23 +155,23 @@ export class Plug {
       default:
         this.On = false;
     }
-    this.platform.debug(`Plug ${this.accessory.displayName} On: ${this.On}`);
+    this.debugLog(`Plug ${this.accessory.displayName} On: ${this.On}`);
   }
 
   private async refreshStatus() {
     try {
       this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
-      this.platform.device(`Plug: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+      this.debugLog(`Plug: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
-      this.platform.log.error(`Plug: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
-      if (this.deviceDebug) {
-        this.platform.log.error(`Plug: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
+      this.errorLog(`Plug: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
+      if (this.deviceLogging === 'debug') {
+        this.errorLog(`Plug: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
           + ` Error Message: ${JSON.stringify(e.message)}`);
       }
-      if (this.debugDebug) {
-        this.platform.log.error(`Plug: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
+      if (this.platform.debugMode) {
+        this.errorLog(`Plug: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
           + ` Error: ${JSON.stringify(e)}`);
       }
       this.apiError(e);
@@ -162,12 +197,12 @@ export class Plug {
         payload.command = 'turnOff';
       }
 
-      this.platform.log.info(`Plug: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
+      this.infoLog(`Plug: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
         + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
 
       // Make the API request
       const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload));
-      this.platform.debug(`Plug: ${this.accessory.displayName} pushchanges: ${JSON.stringify(push.data)}`);
+      this.debugLog(`Plug: ${this.accessory.displayName} pushchanges: ${JSON.stringify(push.data)}`);
       this.statusCode(push);
       this.OnCached = this.On;
       this.accessory.context.On = this.OnCached;
@@ -182,45 +217,46 @@ export class Plug {
 
   updateHomeKitCharacteristics() {
     if (this.On === undefined) {
-      this.platform.debug(`Plug: ${this.accessory.displayName} On: ${this.On}`);
+      this.debugLog(`Plug: ${this.accessory.displayName} On: ${this.On}`);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.On, this.On);
-      this.platform.device(`Plug: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+      this.debugLog(`Plug: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
   }
 
   public apiError(e: any) {
     this.service.updateCharacteristic(this.platform.Characteristic.On, e);
+    //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
   private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
     switch (push.data.statusCode) {
       case 151:
-        this.platform.log.error(`Plug: ${this.accessory.displayName} Command not supported by this device type.`);
+        this.errorLog(`Plug: ${this.accessory.displayName} Command not supported by this device type.`);
         break;
       case 152:
-        this.platform.log.error(`Plug: ${this.accessory.displayName} Device not found.`);
+        this.errorLog(`Plug: ${this.accessory.displayName} Device not found.`);
         break;
       case 160:
-        this.platform.log.error(`Plug: ${this.accessory.displayName} Command is not supported.`);
+        this.errorLog(`Plug: ${this.accessory.displayName} Command is not supported.`);
         break;
       case 161:
-        this.platform.log.error(`Plug: ${this.accessory.displayName} Device is offline.`);
+        this.errorLog(`Plug: ${this.accessory.displayName} Device is offline.`);
         this.offlineOff();
         break;
       case 171:
-        this.platform.log.error(`Plug: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
+        this.errorLog(`Plug: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
         this.offlineOff();
         break;
       case 190:
-        this.platform.log.error(`Plug: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,`
+        this.errorLog(`Plug: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,`
           + ` Or command: ${JSON.stringify(push.data)} format is invalid`);
         break;
       case 100:
-        this.platform.debug(`Plug: ${this.accessory.displayName} Command successfully sent.`);
+        this.debugLog(`Plug: ${this.accessory.displayName} Command successfully sent.`);
         break;
       default:
-        this.platform.debug(`Plug: ${this.accessory.displayName} Unknown statusCode.`);
+        this.debugLog(`Plug: ${this.accessory.displayName} Unknown statusCode.`);
     }
   }
 
@@ -235,11 +271,44 @@ export class Plug {
    * Handle requests to set the value of the "On" characteristic
    */
   OnSet(value: CharacteristicValue) {
-    this.platform.debug(`Plug: ${this.accessory.displayName} - Set On: ${value}`);
+    this.debugLog(`Plug: ${this.accessory.displayName} - Set On: ${value}`);
 
     this.On = value;
     this.doPlugUpdate.next();
   }
 
+  /**
+ * Logging for Device
+ */
+  infoLog(...log: any[]) {
+    if (this.enablingDeviceLogging()) {
+      this.platform.log.info(String(...log));
+    }
+  }
 
+  warnLog(...log: any[]) {
+    if (this.enablingDeviceLogging()) {
+      this.platform.log.warn(String(...log));
+    }
+  }
+
+  errorLog(...log: any[]) {
+    if (this.enablingDeviceLogging()) {
+      this.platform.log.error(String(...log));
+    }
+  }
+
+  debugLog(...log: any[]) {
+    if (this.enablingDeviceLogging()) {
+      if (this.deviceLogging === 'debug') {
+        this.platform.log.info('[DEBUG]', String(...log));
+      } else {
+        this.platform.log.debug(String(...log));
+      }
+    }
+  }
+
+  enablingDeviceLogging(): boolean {
+    return this.deviceLogging === 'debug' || this.deviceLogging === 'standard';
+  }
 }

@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 1.5.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.5.0) (2021-12-27)
+
+## What's Changed
+### Major Change To `Logging`:
+* Added the following Logging Options:
+    * `Standard`
+    * `None`
+    * `Debug`
+* Removed Device Logging Option, which was pushed into new logging under debug.
+* Added Device Logging Override for each Device, by using the Device Config.
+
+### Major Changes to `refreshRate`:
+* Added an option to override `refreshRate` for each Device, by using the Device Config.
+
+### Other Changes
+* Fixed Bug: Air conditioner temperature not able to change. [#43](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/43)
+* Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.4.0...v1.5.0
+
 ## [Version 1.4.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.4.0) (2021-12-15)
 
 ## What's Changed
