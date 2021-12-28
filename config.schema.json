@@ -185,6 +185,14 @@
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Bot' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].bot && model.options.devices[arrayIndices].bot.mode);"
                       }
+                    },
+                    "doublePress": {
+                      "title": "Do you want to similate a double press?",
+                      "type": "number",
+                      "placeholder": "2",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Bot' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].bot && model.options.devices[arrayIndices].bot.mode);"
+                      }
                     }
                   }
                 },
@@ -777,6 +785,7 @@
             "options.devices[].configDeviceType",
             "options.devices[].bot.mode",
             "options.devices[].bot.deviceType",
+            "options.devices[].bot.doublePress",
             "options.devices[].meter.hide_temperature",
             "options.devices[].meter.hide_humidity",
             "options.devices[].humidifier.set_minStep",

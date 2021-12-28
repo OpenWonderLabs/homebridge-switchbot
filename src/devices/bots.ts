@@ -39,6 +39,9 @@ export class Bot {
   deviceLogging!: string;
   deviceRefreshRate!: number;
 
+  // Others
+  doublePress!: number;
+
   // Updates
   botUpdateInProgress!: boolean;
   doBotUpdate!: Subject<void>;
@@ -51,8 +54,15 @@ export class Bot {
     // default placeholders
     if (this.On === undefined) {
       this.On = false;
+      this.accessory.context.On = this.On;
     } else {
       this.On = this.accessory.context.On;
+    }
+    if (device.bot?.doublePress) {
+      this.doublePress = device.bot?.doublePress;
+      this.accessory.context.doublePress = this.doublePress;
+    } else {
+      this.doublePress = 1;
     }
     this.refreshRate();
     this.logs();
@@ -61,7 +71,7 @@ export class Bot {
 
     // Bot Config
     this.debugLog(`Bot: ${this.accessory.displayName} Config: (ble: ${device.ble}, offline: ${device.offline}, mode: ${device.bot?.mode},`
-      + ` deviceType: ${device.bot?.deviceType})`);
+      + ` deviceType: ${device.bot?.deviceType}, doublePress: ${this.doublePress})`);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doBotUpdate = new Subject();
@@ -151,7 +161,11 @@ export class Bot {
       )
       .subscribe(async () => {
         try {
-          await this.pushChanges();
+          interval(100)
+            .pipe(take(this.doublePress!))
+            .subscribe(async () => {
+              await this.pushChanges();
+            });
         } catch (e: any) {
           this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges`);
           if (this.deviceLogging === 'debug') {

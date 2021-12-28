@@ -62,6 +62,7 @@ export type meter = {
 export type bot = {
   mode?: string;
   deviceType?: string;
+  doublePress?: number;
 };
 
 export type humidifier = {
