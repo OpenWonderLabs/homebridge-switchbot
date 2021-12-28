@@ -303,14 +303,14 @@
                   "type": "object",
                   "properties": {
                     "hide_lightsensor": {
-                      "title": "Hide Curtains's Light Sensor",
+                      "title": "Hide Contact Sensor's Light Sensor",
                       "type": "boolean",
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Contact Sensor' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "hide_motionsensor": {
-                      "title": "Hide Curtains's Motion Sensor",
+                      "title": "Hide Contact Sensor's Motion Sensor",
                       "type": "boolean",
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Contact Sensor' && model.options.devices[arrayIndices].deviceId);"

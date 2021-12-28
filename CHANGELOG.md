@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Beta - Version 1.5.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.5.1) (2021-12-XX)
+
+## What's Changed
+* Fixed Bug: Contact Sensor talks about Curtain Light + Motion Sensor. [#164](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/164)
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.5.0...v1.5.1
+
 ## [Version 1.5.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.5.0) (2021-12-27)
 
 ## What's Changed
