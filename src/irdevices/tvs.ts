@@ -129,12 +129,26 @@ export class TV {
   }
 
   logs() {
-    if (this.device.logging) {
+    if (this.platform.debugMode) {
+      this.deviceLogging = this.accessory.context.logging = 'debug';
+      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
+        this.warnLog(`Water Heater: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+      }
+    } else if (this.device.logging) {
       this.deviceLogging = this.accessory.context.logging = this.device.logging;
+      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
+        this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
+      }
     } else if (this.platform.config.options?.logging) {
       this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
+      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
+        this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
+      }
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
+      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
+        this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Standard Logging`);
+      }
     }
   }
 
