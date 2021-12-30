@@ -18,6 +18,7 @@ export class Others {
 
   // Config
   deviceLogging!: string;
+  otherDeviceType?: string;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -26,6 +27,7 @@ export class Others {
   ) {
     // default placeholders
     this.logs();
+    this.deviceType();
     if (this.Active === undefined) {
       this.Active = this.platform.Characteristic.Active.INACTIVE;
     } else {
@@ -41,15 +43,15 @@ export class Others {
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
-    if (!this.service && device?.other?.deviceType !== 'Fan') {
+    if (this.otherDeviceType !== 'Fan') {
       this.debugLog(`Other: ${accessory.displayName} Removing Fanv2 Service`);
 
-      if (device?.other?.deviceType === undefined) {
+      if (this.otherDeviceType === undefined) {
         this.errorLog(`Other: ${this.accessory.displayName} No Device Type Set, deviceType: ${device.other?.deviceType}`);
       }
       this.service = this.accessory.getService(this.platform.Service.Fanv2);
       accessory.removeService(this.service!);
-    } else if (!this.service && device?.other?.deviceType === 'Fan') {
+    } else if (!this.service && this.otherDeviceType === 'Fan') {
       this.debugLog(`Other: ${accessory.displayName} Add Fanv2 Service`);
       (this.service =
         this.accessory.getService(this.platform.Service.Fanv2) ||
@@ -60,6 +62,17 @@ export class Others {
       this.service.getCharacteristic(this.platform.Characteristic.Active).onSet(this.ActiveSet.bind(this));
     } else {
       this.debugLog(`Other: ${accessory.displayName} Fanv2 Service Not Added, deviceType: ${device.other?.deviceType}`);
+    }
+  }
+
+  deviceType() {
+    if (this.device?.other?.deviceType) {
+      this.otherDeviceType = this.accessory.context.deviceType = this.device?.other?.deviceType;
+      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
+        this.warnLog(`Other: ${this.accessory.displayName} Using Device Type: ${this.otherDeviceType}`);
+      }
+    } else {
+      this.errorLog(`Other: ${this.accessory.displayName} No Device Type Set, deviceType: ${this.device.other?.deviceType}`);
     }
   }
 
