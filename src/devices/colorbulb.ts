@@ -53,8 +53,8 @@ export class ColorBulb {
     public device: device & devicesConfig,
   ) {
     // default placeholders
-    this.refreshRate();
     this.logs();
+    this.refreshRate();
     if (this.On === undefined) {
       this.On = false;
     } else {

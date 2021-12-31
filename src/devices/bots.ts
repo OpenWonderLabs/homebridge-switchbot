@@ -36,6 +36,7 @@ export class Bot {
   battery!: serviceData['battery'];
 
   // Config
+  botMode!: string;
   scanDuration!: number;
   deviceLogging!: string;
   deviceRefreshRate!: number;
@@ -56,6 +57,8 @@ export class Bot {
     this.logs();
     this.scan();
     this.refreshRate();
+    this.PressOrSwitch();
+
     if (this.On === undefined) {
       this.On = false;
       this.accessory.context.On = this.On;
@@ -211,6 +214,8 @@ export class Bot {
     }
   }
 
+
+
   logs() {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debug';
@@ -227,6 +232,22 @@ export class Bot {
       }
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
+    }
+  }
+
+  PressOrSwitch() {
+    if (!this.device.bot?.mode) {
+      this.botMode = 'switch';
+      this.warnLog(`Bot: ${this.accessory.displayName} does not have bot mode set in the Plugin's SwitchBot Device Settings,`);
+      this.warnLog(`Bot: ${this.accessory.displayName} is defaulting to "${this.botMode}" mode, you may experience issues.`);
+    } else if (this.device.bot?.mode === 'switch') {
+      this.botMode = 'switch';
+      this.infoLog(`Bot: ${this.accessory.displayName} Using Bot Mode: ${this.botMode}`);
+    } else if (this.device.bot?.mode === 'press') {
+      this.botMode = 'press';
+      this.infoLog(`Bot: ${this.accessory.displayName} Using Bot Mode: ${this.botMode}`);
+    } else {
+      throw new Error(`Bot: ${this.accessory.displayName} Bot Mode: ${this.botMode}`);
     }
   }
 
@@ -273,7 +294,7 @@ export class Bot {
   private async openAPIparseStatus() {
     if (this.platform.config.credentials?.openToken) {
       this.debugLog(`Bot: ${this.accessory.displayName} OpenAPI parseStatus`);
-      if (this.device.bot?.mode === 'press') {
+      if (this.botMode === 'press') {
         this.On = false;
         this.OnCached = this.On;
         this.accessory.context.On = this.OnCached;
@@ -418,8 +439,8 @@ export class Bot {
     if (this.On !== this.OnCached) {
       this.debugLog(`Bot: ${this.accessory.displayName} BLE pushChanges`);
       const switchbot = this.connectBLE();
-      if (this.device.bot?.mode === 'press') {
-        this.debugLog(`Bot: ${this.accessory.displayName} Press Mode: ${this.device.bot?.mode}`);
+      if (this.botMode === 'press') {
+        this.debugLog(`Bot: ${this.accessory.displayName} Bot Mode: ${this.botMode}`);
         switchbot.discover({ model: 'H', quick: true, id: this.device.bleMac })
           .then((device_list: { press: (arg0: { id: string | undefined; }) => any; }[]) => {
             this.infoLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
@@ -453,8 +474,8 @@ export class Bot {
             }
             this.apiError(e);
           });
-      } else if (this.device.bot?.mode === 'switch') {
-        this.debugLog(`Bot: ${this.accessory.displayName} Press Mode: ${this.device.bot?.mode}`);
+      } else if (this.botMode === 'switch') {
+        this.debugLog(`Bot: ${this.accessory.displayName} Press Mode: ${this.botMode}`);
         switchbot.discover({ model: 'H', quick: true, id: this.device.bleMac }).then((device_list: any) => {
           this.infoLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
           return this.turnOnOff(device_list);
@@ -479,7 +500,7 @@ export class Bot {
           this.apiError(e);
         });
       } else {
-        this.errorLog(`Bot: ${this.accessory.displayName} Mode Not Set, mode: ${this.device.bot?.mode}`);
+        throw new Error(`Bot: ${this.accessory.displayName} Bot Mode: ${this.botMode}`);
       }
     }
     this.OnCached = this.On;
@@ -504,15 +525,15 @@ export class Bot {
             parameter: 'default',
           } as payload;
 
-          if (this.device.bot?.mode === 'switch' && this.On) {
+          if (this.botMode === 'switch' && this.On) {
             payload.command = 'turnOn';
             this.On = true;
             this.debugLog(`Bot: ${this.accessory.displayName} Switch Mode, Turning ${this.On}`);
-          } else if (this.device.bot?.mode === 'switch' && !this.On) {
+          } else if (this.botMode === 'switch' && !this.On) {
             payload.command = 'turnOff';
             this.On = false;
             this.debugLog(`Bot: ${this.accessory.displayName} Switch Mode, Turning ${this.On}`);
-          } else if (this.device.bot?.mode === 'press') {
+          } else if (this.botMode === 'press') {
             payload.command = 'press';
             this.debugLog(`Bot: ${this.accessory.displayName} Press Mode`);
             this.On = false;

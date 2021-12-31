@@ -144,11 +144,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
             if (!deviceConfig.configDeviceType && deviceConfig.ble) {
               throw new Error('The devices config section is missing the *Device Type* in the config, Check Your Conifg.');
             }
-            if (deviceConfig.bot) {
-              if (!deviceConfig.bot?.mode) {
-                this.errorLog('You must set your Bot to Press or Switch Mode');
-              }
-            }
           }
         }
       }
