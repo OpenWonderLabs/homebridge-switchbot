@@ -4,7 +4,7 @@ import Switchbot from 'node-switchbot';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
-import { Service, PlatformAccessory, CharacteristicValue, HAPStatus } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse, payload } from '../settings';
 
 export class Curtain {
@@ -42,6 +42,7 @@ export class Curtain {
   curtainRefreshRate!: number;
   set_minLux!: number;
   set_maxLux!: number;
+  scanDuration!: number;
   deviceLogging!: string;
   deviceRefreshRate!: number;
   spaceBetweenLevels!: number;
@@ -56,9 +57,10 @@ export class Curtain {
     public device: device & devicesConfig,
   ) {
     // default placeholders
-    this.refreshRate();
     this.logs();
+    this.scan();
     this.setMinMax();
+    this.refreshRate();
     this.CurrentPosition = 0;
     this.TargetPosition = 0;
     this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
@@ -196,45 +198,59 @@ export class Curtain {
     // refreshRate
     if (this.device.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = this.device.refreshRate;
-      if (this.platform.debugMode) {
-        this.warnLog(`Using Device Config refreshRate: ${this.deviceRefreshRate}`);
+      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
+        this.warnLog(`Curtain: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
       }
     } else if (this.platform.config.options!.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
-      if (this.platform.debugMode) {
-        this.warnLog(`Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
+      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
+        this.warnLog(`Curtain: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
       }
     }
     // curtainRefreshRate
     if (this.device?.curtain?.refreshRate) {
       this.curtainRefreshRate = this.device?.curtain?.refreshRate;
-      if (this.platform.debugMode) {
-        this.warnLog(`Using Device Config Curtain refreshRate: ${this.deviceRefreshRate}`);
+      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
+        this.warnLog(`Curtain: ${this.accessory.displayName} Using Device Config Curtain refreshRate: ${this.deviceRefreshRate}`);
       }
     } else {
       this.curtainRefreshRate = 5;
-      if (this.deviceLogging === 'debug') {
+      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
         this.warnLog(`Curtain: ${this.accessory.displayName} Using Default Curtain Refresh Rate.`);
       }
     }
   }
 
+  scan() {
+    if (this.device.scanDuration) {
+      this.scanDuration = this.accessory.context.scanDuration = this.device.scanDuration;
+      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
+        this.warnLog(`Bot: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
+      }
+    } else {
+      this.scanDuration = this.accessory.context.scanDuration = 1;
+      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
+        this.warnLog(`Bot: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
+      }
+    }
+  }
+
   logs() {
-    if (this.device.logging) {
+    if (this.platform.debugMode) {
+      this.deviceLogging = this.accessory.context.logging = 'debug';
+      this.warnLog(`Curtain: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+    } else if (this.device.logging) {
       this.deviceLogging = this.accessory.context.logging = this.device.logging;
-      if (this.platform.debugMode) {
-        this.warnLog(`Using Device Config Logging: ${this.deviceLogging}`);
+      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
+        this.warnLog(`Curtain: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
       }
     } else if (this.platform.config.options?.logging) {
       this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      if (this.platform.debugMode) {
-        this.warnLog(`Using Platform Config Logging: ${this.deviceLogging}`);
+      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
+        this.warnLog(`Curtain: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
       }
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
-      if (this.platform.debugMode) {
-        this.warnLog('Using Device Standard Logging');
-      }
     }
   }
 
@@ -461,8 +477,8 @@ export class Curtain {
           this.debugLog(`Curtain: ${this.accessory.displayName} connected: ${this.connected}`);
         }
       };
-      // Wait 10 seconds
-      return switchbot.wait(10000);
+      // Wait 2 seconds
+      return switchbot.wait(this.scanDuration * 1000);
     }).then(async () => {
       // Stop to monitor
       switchbot.stopScan();

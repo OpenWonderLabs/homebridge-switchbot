@@ -53,8 +53,8 @@ export class ColorBulb {
     public device: device & devicesConfig,
   ) {
     // default placeholders
-    this.refreshRate();
     this.logs();
+    this.refreshRate();
     if (this.On === undefined) {
       this.On = false;
     } else {
@@ -200,33 +200,33 @@ export class ColorBulb {
   refreshRate() {
     if (this.device.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = this.device.refreshRate;
-      if (this.platform.debugMode) {
-        this.warnLog(`Using Device Config refreshRate: ${this.deviceRefreshRate}`);
+      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
+        this.warnLog(`Color Bulb: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
       }
     } else if (this.platform.config.options!.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
-      if (this.platform.debugMode) {
-        this.warnLog(`Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
+      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
+        this.warnLog(`Color Bulb: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
       }
     }
   }
 
   logs() {
-    if (this.device.logging) {
+    if (this.platform.debugMode) {
+      this.deviceLogging = this.accessory.context.logging = 'debug';
+      this.warnLog(`Color Bulb: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+    } else if (this.device.logging) {
       this.deviceLogging = this.accessory.context.logging = this.device.logging;
-      if (this.platform.debugMode) {
-        this.warnLog(`Using Device Config Logging: ${this.deviceLogging}`);
+      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
+        this.warnLog(`Color Bulb: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
       }
     } else if (this.platform.config.options?.logging) {
       this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      if (this.platform.debugMode) {
-        this.warnLog(`Using Platform Config Logging: ${this.deviceLogging}`);
+      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
+        this.warnLog(`Color Bulb: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
       }
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
-      if (this.platform.debugMode) {
-        this.warnLog('Using Device Standard Logging');
-      }
     }
   }
 

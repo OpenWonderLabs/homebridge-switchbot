@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
 import { SwitchBotPlatform } from '../platform';
 import { irDevicesConfig, DeviceURL, irdevice, payload } from '../settings';
-import { CharacteristicValue, HAPStatus, PlatformAccessory, Service } from 'homebridge';
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 
 /**
  * Platform Accessory
@@ -18,6 +18,7 @@ export class Others {
 
   // Config
   deviceLogging!: string;
+  otherDeviceType?: string;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -26,6 +27,7 @@ export class Others {
   ) {
     // default placeholders
     this.logs();
+    this.deviceType();
     if (this.Active === undefined) {
       this.Active = this.platform.Characteristic.Active.INACTIVE;
     } else {
@@ -41,24 +43,53 @@ export class Others {
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
-    this.service = accessory.getService(this.platform.Service.Fanv2);
-    if (!this.service && device?.other?.deviceType === 'Fan') {
-      this.service = accessory.addService(this.platform.Service.Fanv2, `${accessory.displayName} Fan`);
+    if (this.otherDeviceType !== 'Fan') {
+      this.debugLog(`Other: ${accessory.displayName} Removing Fanv2 Service`);
 
-      this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      if (this.otherDeviceType === undefined) {
+        this.errorLog(`Other: ${this.accessory.displayName} No Device Type Set, deviceType: ${device.other?.deviceType}`);
+      }
+      this.service = this.accessory.getService(this.platform.Service.Fanv2);
+      accessory.removeService(this.service!);
+    } else if (!this.service && this.otherDeviceType === 'Fan') {
+      this.debugLog(`Other: ${accessory.displayName} Add Fanv2 Service`);
+      (this.service =
+        this.accessory.getService(this.platform.Service.Fanv2) ||
+        this.accessory.addService(this.platform.Service.Fanv2)), `${accessory.displayName} Fan`;
+
+      this.service.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Fan`);
 
       this.service.getCharacteristic(this.platform.Characteristic.Active).onSet(this.ActiveSet.bind(this));
     } else {
-      accessory.removeService(this.service!);
-      this.errorLog(`Other: ${this.accessory.displayName} No Device Type Set, deviceType: ${device.other?.deviceType}`);
+      this.debugLog(`Other: ${accessory.displayName} Fanv2 Service Not Added, deviceType: ${device.other?.deviceType}`);
+    }
+  }
+
+  deviceType() {
+    if (this.device?.other?.deviceType) {
+      this.otherDeviceType = this.accessory.context.deviceType = this.device?.other?.deviceType;
+      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
+        this.warnLog(`Other: ${this.accessory.displayName} Using Device Type: ${this.otherDeviceType}`);
+      }
+    } else {
+      this.errorLog(`Other: ${this.accessory.displayName} No Device Type Set, deviceType: ${this.device.other?.deviceType}`);
     }
   }
 
   logs() {
-    if (this.device.logging) {
+    if (this.platform.debugMode) {
+      this.deviceLogging = this.accessory.context.logging = 'debug';
+      this.warnLog(`Other: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+    } else if (this.device.logging) {
       this.deviceLogging = this.accessory.context.logging = this.device.logging;
+      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
+        this.warnLog(`Other: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
+      }
     } else if (this.platform.config.options?.logging) {
       this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
+      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
+        this.warnLog(`Other: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
+      }
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
     }

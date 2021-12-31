@@ -50,6 +50,7 @@ export interface devicesConfig extends device {
   contact?: contact;
   colorbulb?: colorbulb;
   ble?: string;
+  scanDuration?: number;
   hide_device?: boolean;
   offline?: boolean;
 }
@@ -62,6 +63,7 @@ export type meter = {
 export type bot = {
   mode?: string;
   deviceType?: string;
+  doublePress?: number;
 };
 
 export type humidifier = {

@@ -140,6 +140,14 @@
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
                   }
                 },
+                "scanDuration": {
+                  "title": "Scan Duration (Default is 1 Second)",
+                  "type": "number",
+                  "placeholder": 1,
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].ble);"
+                  }
+                },
                 "bot": {
                   "type": "object",
                   "properties": {
@@ -182,6 +190,14 @@
                         }
                       ],
                       "placeholder": "outlet",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Bot' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].bot && model.options.devices[arrayIndices].bot.mode);"
+                      }
+                    },
+                    "doublePress": {
+                      "title": "Do you want to similate a double press?",
+                      "type": "number",
+                      "placeholder": "2",
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Bot' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].bot && model.options.devices[arrayIndices].bot.mode);"
                       }
@@ -303,14 +319,14 @@
                   "type": "object",
                   "properties": {
                     "hide_lightsensor": {
-                      "title": "Hide Curtains's Light Sensor",
+                      "title": "Hide Contact Sensor's Light Sensor",
                       "type": "boolean",
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Contact Sensor' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "hide_motionsensor": {
-                      "title": "Hide Curtains's Motion Sensor",
+                      "title": "Hide Contact Sensor's Motion Sensor",
                       "type": "boolean",
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Contact Sensor' && model.options.devices[arrayIndices].deviceId);"
@@ -774,9 +790,11 @@
             "options.devices[].hide_device",
             "options.devices[].offline",
             "options.devices[].ble",
+            "options.devices[].scanDuration",
             "options.devices[].configDeviceType",
             "options.devices[].bot.mode",
             "options.devices[].bot.deviceType",
+            "options.devices[].bot.doublePress",
             "options.devices[].meter.hide_temperature",
             "options.devices[].meter.hide_humidity",
             "options.devices[].humidifier.set_minStep",
