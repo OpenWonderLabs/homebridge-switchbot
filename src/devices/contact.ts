@@ -310,7 +310,7 @@ export class Contact {
         }
       };
       // Wait 2 seconds
-      return switchbot.wait(2000);
+      return switchbot.wait(this.scanDuration * 1000);
     }).then(async () => {
       // Stop to monitor
       switchbot.stopScan();

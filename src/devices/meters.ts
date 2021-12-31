@@ -340,7 +340,7 @@ export class Meter {
         }
       };
       // Wait 10 seconds
-      return switchbot.wait(10000);
+      return switchbot.wait(this.scanDuration * 1000);
     }).then(async () => {
       // Stop to monitor
       switchbot.stopScan();
