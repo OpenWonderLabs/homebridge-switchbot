@@ -50,6 +50,7 @@ export interface devicesConfig extends device {
   contact?: contact;
   colorbulb?: colorbulb;
   ble?: string;
+  scanDuration?: number;
   hide_device?: boolean;
   offline?: boolean;
 }

@@ -34,6 +34,7 @@ export class Motion {
   lightLevel!: serviceData['lightLevel'];
 
   // Config
+  scanDuration!: number;
   deviceLogging!: string;
   deviceRefreshRate!: number;
 
@@ -47,8 +48,9 @@ export class Motion {
     public device: device & devicesConfig,
   ) {
     // default placeholders
-    this.refreshRate();
     this.logs();
+    this.scan();
+    this.refreshRate();
     this.MotionDetected = false;
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
@@ -125,19 +127,33 @@ export class Motion {
     }
   }
 
+  scan() {
+    if (this.device.scanDuration) {
+      this.scanDuration = this.accessory.context.scanDuration = this.device.scanDuration;
+      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
+        this.warnLog(`Bot: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
+      }
+    } else {
+      this.scanDuration = this.accessory.context.scanDuration = 1;
+      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
+        this.warnLog(`Bot: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
+      }
+    }
+  }
+
   logs() {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debug';
-      this.warnLog(`Water Heater: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+      this.warnLog(`Motion Sensor: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
     } else if (this.device.logging) {
       this.deviceLogging = this.accessory.context.logging = this.device.logging;
       if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
-        this.warnLog(`Bot: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
+        this.warnLog(`Motion Sensor: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
       }
     } else if (this.platform.config.options?.logging) {
       this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
       if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
-        this.warnLog(`Bot: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
+        this.warnLog(`Motion Sensor: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
       }
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';

@@ -2,12 +2,16 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [Beta - Version 1.5.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.5.1) (2021-12-XX)
+## [Beta - Version 1.6.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.6.0) (2021-12-XX)
 
 ## What's Changed
+* Added `scanDuration` config option to set how long BLE scans, Scanning Duration is defaulted to 1 second.
 * Fixed Bug: Contact Sensor talks about Curtain Light + Motion Sensor. [#164](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/164)
+* Fixed Bug: Reboot causes No Device Type Set Error. [#172](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/172)
+* Fixed Bug: Bot Status not working Correction with Switch and Press. [#105](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/105), [#132](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/105), [#165](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/165), [#174](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/174)
+* Fixed some issues with the New Logging Options release with v1.5.0, now logging when configured.
 
-**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.5.0...v1.5.1
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.5.0...v1.6.0
 
 ## [Version 1.5.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.5.0) (2021-12-27)
 

@@ -60,16 +60,16 @@ export class Camera {
   logs() {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debug';
-      this.warnLog(`Water Heater: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+      this.warnLog(`Camera: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
     } else if (this.device.logging) {
       this.deviceLogging = this.accessory.context.logging = this.device.logging;
       if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
-        this.warnLog(`Bot: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
+        this.warnLog(`Camera: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
       }
     } else if (this.platform.config.options?.logging) {
       this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
       if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
-        this.warnLog(`Bot: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
+        this.warnLog(`Camera: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
       }
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
