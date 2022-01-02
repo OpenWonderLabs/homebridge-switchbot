@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Beta - Version 1.6.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.6.1) (2022-01-XX)
+
+## What's Changed
+* Fixed an issue where when `Adaptive Lighting Shift` was set to -1, Adaptive Lighting would not be removed.
+* Fixed an issue with motion sensor refreshStatus that would cause plugin to cause Homebridge restart.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.6.0...v1.6.1
+
 ## [Version 1.6.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.6.0) (2021-12-31)
 
 ## What's Changed

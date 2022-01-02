@@ -36,9 +36,10 @@ export class ColorBulb {
   set_minStep?: number;
   deviceLogging!: string;
   deviceRefreshRate!: number;
+  adaptiveLightingShift?: number;
 
   // Adaptive Lighting
-  AdaptiveLightingController: ControllerConstructor | Controller<ControllerServiceMap>;
+  AdaptiveLightingController?: ControllerConstructor | Controller<ControllerServiceMap>;
   minKelvin: number;
   maxKelvin: number;
 
@@ -55,6 +56,7 @@ export class ColorBulb {
     // default placeholders
     this.logs();
     this.refreshRate();
+    this.adaptiveLighting();
     if (this.On === undefined) {
       this.On = false;
     } else {
@@ -68,7 +70,8 @@ export class ColorBulb {
     this.maxKelvin = 9000;
 
     // ColorBulb Config
-    this.debugLog(`Color Bulb: ${this.accessory.displayName} Config: (ble: ${device.ble}, set_minStep: ${device.colorbulb?.set_minStep}`);
+    this.debugLog(`Color Bulb: ${this.accessory.displayName} Config: (ble: ${device.ble}, set_minStep: ${device.colorbulb?.set_minStep},`
+      + ` adaptiveLighting: ${device.colorbulb?.adaptiveLightingShift})`);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doColorBulbUpdate = new Subject();
@@ -85,11 +88,19 @@ export class ColorBulb {
       .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-COLORBULB-W1401400')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
-    // get the Television service if it exists, otherwise create a new Television service
+    // get the Lightbulb service if it exists, otherwise create a new Lightbulb service
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.Lightbulb) ||
       accessory.addService(this.platform.Service.Lightbulb)), `${accessory.displayName} Light Bulb`;
+
+
+    if (this.adaptiveLightingShift === -1 && this.accessory.context.adaptiveLighting) {
+      this.accessory.removeService(this.service);
+      this.service = this.accessory.addService(this.platform.Service.Lightbulb);
+      this.accessory.context.adaptiveLighting = false;
+      this.warnLog(`Color Bulb: ${this.accessory.displayName} adaptiveLighting: ${this.accessory.context.adaptiveLighting}`);
+    }
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -153,11 +164,17 @@ export class ColorBulb {
       })
       .onSet(this.SaturationSet.bind(this));
 
-    const adaptiveLightingShift = device.colorbulb?.adaptiveLightingShift || 0;
-    this.AdaptiveLightingController = new platform.api.hap.AdaptiveLightingController(this.service, {
-      customTemperatureAdjustment: adaptiveLightingShift,
-    });
-    this.accessory.configureController(this.AdaptiveLightingController);
+
+    this.debugLog(`Color Bulb: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
+    if (this.adaptiveLightingShift !== -1) {
+      this.AdaptiveLightingController = new platform.api.hap.AdaptiveLightingController(this.service, {
+        customTemperatureAdjustment: this.adaptiveLightingShift,
+      });
+      this.accessory.configureController(this.AdaptiveLightingController);
+      this.accessory.context.adaptiveLighting = true;
+      this.warnLog(`Color Bulb: ${this.accessory.displayName} adaptiveLighting: ${this.accessory.context.adaptiveLighting},`
+        + ` adaptiveLightingShift: ${this.adaptiveLightingShift}`);
+    }
 
     // Update Homekit
     this.updateHomeKitCharacteristics();
@@ -227,6 +244,16 @@ export class ColorBulb {
       }
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
+    }
+  }
+
+  adaptiveLighting() {
+    if (this.device.colorbulb?.adaptiveLightingShift) {
+      this.adaptiveLightingShift = this.device.colorbulb.adaptiveLightingShift;
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
+    } else {
+      this.adaptiveLightingShift = 0;
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
     }
   }
 

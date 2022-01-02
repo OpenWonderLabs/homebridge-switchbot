@@ -69,8 +69,6 @@
     "typescript-axios-wb": "^1.0.3"
   },
   "optionalDependencies": {
-    "node-switchbot": "^1.1.2",
-    "node-gyp-build": "^2.0.3",
-    "usb": "^2.0.3"
+    "node-switchbot": "^1.1.2"
   }
 }
