@@ -194,10 +194,25 @@ export class Motion {
   }
 
   private async openAPIparseStatus() {
-    if (this.platform.config.credentials?.openToken) {
-      this.debugLog(`Motion Sensor: ${this.accessory.displayName} OpenAPI parseStatus`);
-      this.MotionDetected = Boolean(this.deviceStatus.body.moveDetected);
-      this.debugLog(`Motion Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
+    try {
+      if (this.platform.config.credentials?.openToken) {
+        this.debugLog(`Motion Sensor: ${this.accessory.displayName} OpenAPI parseStatus`);
+        if (typeof this.deviceStatus.body.moveDetected === 'boolean') {
+          this.MotionDetected = this.deviceStatus.body.moveDetected;
+        }
+        this.debugLog(`Motion Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
+      }
+    } catch (e: any) {
+      this.errorLog(`Motion Sensor: ${this.accessory.displayName} failed parseStatus with OpenAPI Connection`);
+      if (this.deviceLogging === 'debug') {
+        this.errorLog(`Motion Sensor: ${this.accessory.displayName} failed parseStatus with OpenAPI Connection,`
+          + ` Error Message: ${JSON.stringify(e.message)}`);
+      }
+      if (this.platform.debugMode) {
+        this.errorLog(`Motion Sensor: ${this.accessory.displayName} failed parseStatus with OpenAPI Connection,`
+          + ` Error: ${JSON.stringify(e)}`);
+      }
+      this.apiError(e);
     }
   }
 
