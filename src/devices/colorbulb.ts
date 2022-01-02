@@ -99,7 +99,7 @@ export class ColorBulb {
       this.accessory.removeService(this.service);
       this.service = this.accessory.addService(this.platform.Service.Lightbulb);
       this.accessory.context.adaptiveLighting = false;
-      this.warnLog(`Color Bulb: ${this.accessory.displayName} adaptiveLighting: ${this.accessory.context.adaptiveLighting}`);
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} adaptiveLighting: ${this.accessory.context.adaptiveLighting}`);
     }
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
@@ -172,7 +172,7 @@ export class ColorBulb {
       });
       this.accessory.configureController(this.AdaptiveLightingController);
       this.accessory.context.adaptiveLighting = true;
-      this.warnLog(`Color Bulb: ${this.accessory.displayName} adaptiveLighting: ${this.accessory.context.adaptiveLighting},`
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} adaptiveLighting: ${this.accessory.context.adaptiveLighting},`
         + ` adaptiveLightingShift: ${this.adaptiveLightingShift}`);
     }
 
