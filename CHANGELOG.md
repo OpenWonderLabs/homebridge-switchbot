@@ -7,6 +7,9 @@ All notable changes to this project will be documented in this file. This projec
 ## What's Changed
 * Fixed an issue where when `Adaptive Lighting Shift` was set to -1, Adaptive Lighting would not be removed.
 * Fixed an issue with motion sensor refreshStatus that would cause plugin to cause Homebridge restart.
+* Fixed Bug: npm ERR! code 1. [#151](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/151)
+    * Made `node-switchbot` an optionalDependencies
+    * So If `node-switchbot` doesn't get installed successfully then BLE will not work.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.6.0...v1.6.1
 
