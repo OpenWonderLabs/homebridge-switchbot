@@ -352,8 +352,7 @@ export class Humidifier {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const switchbot = this.connectBLE();
     // Start to monitor advertisement packets
-    this.debugLog(`Humidifier: ${this.accessory.displayName} platform.Switchbot: ${JSON.stringify(switchbot)}`);
-    if (switchbot) {
+    if (switchbot !== false) {
       switchbot.startScan({
         model: 'e',
         id: this.device.bleMac,
@@ -463,8 +462,7 @@ export class Humidifier {
   private async BLEpushChanges() {
     this.debugLog(`Humidifier: ${this.accessory.displayName} BLE pushChanges`);
     const switchbot = this.connectBLE();
-    this.debugLog(`Humidifier: ${this.accessory.displayName} platform.Switchbot: ${JSON.stringify(switchbot)}`);
-    if (switchbot) {
+    if (switchbot !== false) {
       switchbot.discover({ model: 'e', quick: true, id: this.device.bleMac }).then((device_list) => {
         this.infoLog(`${this.accessory.displayName} Target Position: ${this.Active}`);
         return device_list[0].percentage(this.RelativeHumidityHumidifierThreshold);

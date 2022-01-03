@@ -335,8 +335,7 @@ export class Bot {
     // Convert to BLE Address
     const switchbot = this.connectBLE();
     // Start to monitor advertisement packets
-    this.debugLog(`Bot: ${this.accessory.displayName} platform.Switchbot: ${JSON.stringify(switchbot)}`);
-    if (switchbot) {
+    if (switchbot !== false) {
       switchbot.startScan({
         model: 'H',
         id: this.device.bleMac,
@@ -447,8 +446,7 @@ export class Bot {
     if (this.On !== this.OnCached) {
       this.debugLog(`Bot: ${this.accessory.displayName} BLE pushChanges`);
       const switchbot = this.connectBLE();
-      this.debugLog(`Bot: ${this.accessory.displayName} platform.Switchbot: ${JSON.stringify(switchbot)}`);
-      if (switchbot) {
+      if (switchbot !== false) {
         if (this.botMode === 'press') {
           this.debugLog(`Bot: ${this.accessory.displayName} Bot Mode: ${this.botMode}`);
           switchbot.discover({ model: 'H', quick: true, id: this.device.bleMac })

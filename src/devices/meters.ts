@@ -317,8 +317,7 @@ export class Meter {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const switchbot = this.connectBLE();
     // Start to monitor advertisement packets
-    this.debugLog(`Meter: ${this.accessory.displayName} platform.Switchbot: ${JSON.stringify(switchbot)}`);
-    if (switchbot) {
+    if (switchbot !== false) {
       switchbot.startScan({
         model: 'T',
         id: this.device.bleMac,
