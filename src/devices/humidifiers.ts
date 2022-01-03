@@ -1,5 +1,4 @@
 import { AxiosResponse } from 'axios';
-import Switchbot from 'node-switchbot';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
@@ -341,10 +340,16 @@ export class Humidifier {
   }
 
   private connectBLE() {
-    const switchbot = new Switchbot();
-    this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
-    this.debugLog(`Humidifier: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-    return switchbot;
+    let Switchbot: any;
+    try {
+      Switchbot = require('node-switchbot');
+      const switchbot = new Switchbot();
+      this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
+      this.debugLog(`Bot: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+      return switchbot;
+    } catch (e) {
+      Switchbot = false;
+    }
   }
 
   private async BLERefreshStatus() {

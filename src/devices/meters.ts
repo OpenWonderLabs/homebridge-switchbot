@@ -1,4 +1,3 @@
-import Switchbot from 'node-switchbot';
 import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
 import { SwitchBotPlatform } from '../platform';
@@ -305,11 +304,18 @@ export class Meter {
   }
 
   private connectBLE() {
-    const switchbot = new Switchbot();
-    this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
-    this.debugLog(`Meter: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-    return switchbot;
+    let Switchbot: any;
+    try {
+      Switchbot = require('node-switchbot');
+      const switchbot = new Switchbot();
+      this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
+      this.debugLog(`Bot: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+      return switchbot;
+    } catch (e) {
+      Switchbot = false;
+    }
   }
+
 
   private BLErefreshStatus() {
     this.debugLog(`Meter: ${this.accessory.displayName} BLE RefreshStatus`);
