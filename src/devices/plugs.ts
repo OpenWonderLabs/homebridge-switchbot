@@ -134,12 +134,12 @@ export class Plug {
     if (this.device.scanDuration) {
       this.scanDuration = this.accessory.context.scanDuration = this.device.scanDuration;
       if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Bot: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
+        this.warnLog(`Plug: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
       }
     } else {
       this.scanDuration = this.accessory.context.scanDuration = 1;
       if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Bot: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
+        this.warnLog(`Plug: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
       }
     }
   }

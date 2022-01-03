@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 1.6.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.6.2) (2022-01-03)
+
+## What's Changed
+* Fixed Bug: npm ERR! code 1. [#151](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/151)
+    * Made `node-switchbot` an optionalDependencies
+    * So If `node-switchbot` doesn't get installed successfully then BLE will not work.
+* Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.6.1...v1.6.2
+
 ## [Version 1.6.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.6.1) (2022-01-02)
 
 ## What's Changed

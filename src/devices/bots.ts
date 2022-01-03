@@ -1,6 +1,5 @@
 
 import { AxiosResponse } from 'axios';
-import Switchbot from 'node-switchbot';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
@@ -214,8 +213,6 @@ export class Bot {
     }
   }
 
-
-
   logs() {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debug';
@@ -325,70 +322,81 @@ export class Bot {
   }
 
   private connectBLE() {
-    const switchbot = new Switchbot();
+    // Convert to BLE Address
     this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
     this.debugLog(`Bot: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    const switchbot = this.platform.connectBLE();
     return switchbot;
   }
 
   private async BLERefreshStatus() {
     this.debugLog(`Bot: ${this.accessory.displayName} BLE refreshStatus`);
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+
+    // Convert to BLE Address
     const switchbot = this.connectBLE();
     // Start to monitor advertisement packets
-    switchbot.startScan({
-      model: 'H',
-      id: this.device.bleMac,
-    }).then(() => {
-      // Set an event hander
-      switchbot.onadvertisement = (ad: ad) => {
-        this.serviceData = ad.serviceData;
-        this.mode = ad.serviceData.mode;
-        this.state = ad.serviceData.state;
-        this.battery = ad.serviceData.battery;
-        this.debugLog(`Bot: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-        this.debugLog(`Bot: ${this.accessory.displayName}, model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName},`
-          + ` mode: ${ad.serviceData.mode}, state: ${ad.serviceData.state}, battery: ${ad.serviceData.battery}`);
+    this.debugLog(`Bot: ${this.accessory.displayName} platform.Switchbot: ${JSON.stringify(switchbot)}`);
+    if (switchbot) {
+      switchbot.startScan({
+        model: 'H',
+        id: this.device.bleMac,
+      }).then(() => {
+        // Set an event hander
+        switchbot.onadvertisement = (ad: ad) => {
+          this.serviceData = ad.serviceData;
+          this.mode = ad.serviceData.mode;
+          this.state = ad.serviceData.state;
+          this.battery = ad.serviceData.battery;
+          this.debugLog(`Bot: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+          this.debugLog(`Bot: ${this.accessory.displayName}, model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName},`
+            + ` mode: ${ad.serviceData.mode}, state: ${ad.serviceData.state}, battery: ${ad.serviceData.battery}`);
 
-        if (this.serviceData) {
-          this.connected = true;
-          this.debugLog(`Bot: ${this.accessory.displayName} connected: ${this.connected}`);
+          if (this.serviceData) {
+            this.connected = true;
+            this.debugLog(`Bot: ${this.accessory.displayName} connected: ${this.connected}`);
+          } else {
+            this.connected = false;
+            this.debugLog(`Bot: ${this.accessory.displayName} connected: ${this.connected}`);
+          }
+        };
+        // Wait 2 seconds
+        return switchbot.wait(this.scanDuration * 1000);
+      }).then(async () => {
+        // Stop to monitor
+        switchbot.stopScan();
+        if (this.connected) {
+          this.parseStatus();
+          this.updateHomeKitCharacteristics();
         } else {
-          this.connected = false;
-          this.debugLog(`Bot: ${this.accessory.displayName} connected: ${this.connected}`);
+          await this.BLEconnection();
         }
-      };
-      // Wait 2 seconds
-      return switchbot.wait(this.scanDuration * 1000);
-    }).then(async () => {
-      // Stop to monitor
-      switchbot.stopScan();
-      if (this.connected) {
-        this.parseStatus();
-        this.updateHomeKitCharacteristics();
-      } else {
-        this.errorLog(`Bot: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+      }).catch(async (e: any) => {
+        this.errorLog(`Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
+        if (this.deviceLogging === 'debug') {
+          this.errorLog(`Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
+        }
+        if (this.platform.debugMode) {
+          this.errorLog(`Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+            + ` Error: ${JSON.stringify(e)}`);
+        }
         if (this.platform.config.credentials?.openToken) {
           this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
           await this.openAPIRefreshStatus();
         }
-      }
-    }).catch(async (e: any) => {
-      this.errorLog(`Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
-      if (this.deviceLogging === 'debug') {
-        this.errorLog(`Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
-          + ` Error Message: ${JSON.stringify(e.message)}`);
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
-          + ` Error: ${JSON.stringify(e)}`);
-      }
-      if (this.platform.config.credentials?.openToken) {
-        this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
-        await this.openAPIRefreshStatus();
-      }
-      this.apiError(e);
-    });
+        this.apiError(e);
+      });
+    } else {
+      await this.BLEconnection();
+    }
+  }
+
+  private async BLEconnection() {
+    this.errorLog(`Bot: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+    if (this.platform.config.credentials?.openToken) {
+      this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
+      await this.openAPIRefreshStatus();
+    }
   }
 
   private async openAPIRefreshStatus() {
@@ -439,25 +447,52 @@ export class Bot {
     if (this.On !== this.OnCached) {
       this.debugLog(`Bot: ${this.accessory.displayName} BLE pushChanges`);
       const switchbot = this.connectBLE();
-      if (this.botMode === 'press') {
-        this.debugLog(`Bot: ${this.accessory.displayName} Bot Mode: ${this.botMode}`);
-        switchbot.discover({ model: 'H', quick: true, id: this.device.bleMac })
-          .then((device_list: { press: (arg0: { id: string | undefined; }) => any; }[]) => {
+      this.debugLog(`Bot: ${this.accessory.displayName} platform.Switchbot: ${JSON.stringify(switchbot)}`);
+      if (switchbot) {
+        if (this.botMode === 'press') {
+          this.debugLog(`Bot: ${this.accessory.displayName} Bot Mode: ${this.botMode}`);
+          switchbot.discover({ model: 'H', quick: true, id: this.device.bleMac })
+            .then((device_list: { press: (arg0: { id: string | undefined; }) => any; }[]) => {
+              this.infoLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
+              return device_list[0].press({ id: this.device.bleMac });
+            }).then(() => {
+              this.debugLog(`Bot: ${this.accessory.displayName} Done.`);
+              this.On = false;
+              this.OnCached = this.On;
+              this.accessory.context.On = this.OnCached;
+              setTimeout(() => {
+                if (this.device.bot?.deviceType === 'switch') {
+                  this.switchService?.getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);
+                } else {
+                  this.outletService?.getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);
+                }
+                this.debugLog(`Bot: ${this.accessory.displayName} On: ${this.On}, Switch Timeout`);
+              }, 500);
+            }).catch(async (e: any) => {
+              this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
+              if (this.deviceLogging === 'debug') {
+                this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
+                  + ` Error Message: ${JSON.stringify(e.message)}`);
+              }
+              if (this.platform.debugMode) {
+                this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
+                  + ` Error: ${JSON.stringify(e)}`);
+              }
+              if (this.platform.config.credentials?.openToken) {
+                this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
+                await this.openAPIpushChanges();
+              }
+              this.apiError(e);
+            });
+        } else if (this.botMode === 'switch') {
+          this.debugLog(`Bot: ${this.accessory.displayName} Press Mode: ${this.botMode}`);
+          switchbot.discover({ model: 'H', quick: true, id: this.device.bleMac }).then((device_list: any) => {
             this.infoLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
-            return device_list[0].press({ id: this.device.bleMac });
+            return this.turnOnOff(device_list);
           }).then(() => {
             this.debugLog(`Bot: ${this.accessory.displayName} Done.`);
-            this.On = false;
             this.OnCached = this.On;
             this.accessory.context.On = this.OnCached;
-            setTimeout(() => {
-              if (this.device.bot?.deviceType === 'switch') {
-                this.switchService?.getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);
-              } else {
-                this.outletService?.getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);
-              }
-              this.debugLog(`Bot: ${this.accessory.displayName} On: ${this.On}, Switch Timeout`);
-            }, 500);
           }).catch(async (e: any) => {
             this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
             if (this.deviceLogging === 'debug') {
@@ -474,33 +509,15 @@ export class Bot {
             }
             this.apiError(e);
           });
-      } else if (this.botMode === 'switch') {
-        this.debugLog(`Bot: ${this.accessory.displayName} Press Mode: ${this.botMode}`);
-        switchbot.discover({ model: 'H', quick: true, id: this.device.bleMac }).then((device_list: any) => {
-          this.infoLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
-          return this.turnOnOff(device_list);
-        }).then(() => {
-          this.debugLog(`Bot: ${this.accessory.displayName} Done.`);
-          this.OnCached = this.On;
-          this.accessory.context.On = this.OnCached;
-        }).catch(async (e: any) => {
-          this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
-          if (this.deviceLogging === 'debug') {
-            this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
-              + ` Error Message: ${JSON.stringify(e.message)}`);
-          }
-          if (this.platform.debugMode) {
-            this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
-              + ` Error: ${JSON.stringify(e)}`);
-          }
-          if (this.platform.config.credentials?.openToken) {
-            this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
-            await this.openAPIpushChanges();
-          }
-          this.apiError(e);
-        });
+        } else {
+          throw new Error(`Bot: ${this.accessory.displayName} Bot Mode: ${this.botMode}`);
+        }
       } else {
-        throw new Error(`Bot: ${this.accessory.displayName} Bot Mode: ${this.botMode}`);
+        this.errorLog(`Bot: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+        if (this.platform.config.credentials?.openToken) {
+          this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
+          await this.openAPIpushChanges();
+        }
       }
     }
     this.OnCached = this.On;

@@ -1,4 +1,3 @@
-import Switchbot from 'node-switchbot';
 import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
 import { SwitchBotPlatform } from '../platform';
@@ -200,12 +199,12 @@ export class Meter {
     if (this.device.scanDuration) {
       this.scanDuration = this.accessory.context.scanDuration = this.device.scanDuration;
       if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Bot: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
+        this.warnLog(`Meter: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
       }
     } else {
       this.scanDuration = this.accessory.context.scanDuration = 1;
       if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Bot: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
+        this.warnLog(`Meter: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
       }
     }
   }
@@ -305,77 +304,88 @@ export class Meter {
   }
 
   private connectBLE() {
-    const switchbot = new Switchbot();
+    // Convert to BLE Address
     this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
     this.debugLog(`Meter: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    const switchbot = this.platform.connectBLE();
     return switchbot;
   }
 
-  private BLErefreshStatus() {
+
+  private async BLErefreshStatus() {
     this.debugLog(`Meter: ${this.accessory.displayName} BLE RefreshStatus`);
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const switchbot = this.connectBLE();
     // Start to monitor advertisement packets
-    switchbot.startScan({
-      model: 'T',
-      id: this.device.bleMac,
-    }).then(() => {
-      // Set an event hander
-      switchbot.onadvertisement = (ad: ad) => {
-        this.serviceData = ad.serviceData;
-        this.temperature = ad.serviceData.temperature!.c;
-        this.humidity = ad.serviceData.humidity;
-        this.battery = ad.serviceData.battery;
-        this.debugLog(`Meter: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-        this.debugLog(`Meter: ${this.accessory.displayName} model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName}, `
-          + `temperature: ${JSON.stringify(ad.serviceData.temperature?.c)}, humidity: ${ad.serviceData.humidity}, `
-          + `battery: ${ad.serviceData.battery}`);
+    this.debugLog(`Meter: ${this.accessory.displayName} platform.Switchbot: ${JSON.stringify(switchbot)}`);
+    if (switchbot) {
+      switchbot.startScan({
+        model: 'T',
+        id: this.device.bleMac,
+      }).then(() => {
+        // Set an event hander
+        switchbot.onadvertisement = (ad: ad) => {
+          this.serviceData = ad.serviceData;
+          this.temperature = ad.serviceData.temperature!.c;
+          this.humidity = ad.serviceData.humidity;
+          this.battery = ad.serviceData.battery;
+          this.debugLog(`Meter: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+          this.debugLog(`Meter: ${this.accessory.displayName} model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName}, `
+            + `temperature: ${JSON.stringify(ad.serviceData.temperature?.c)}, humidity: ${ad.serviceData.humidity}, `
+            + `battery: ${ad.serviceData.battery}`);
 
-        if (this.serviceData) {
-          this.connected = true;
-          this.debugLog(`Meter: ${this.accessory.displayName} connected: ${this.connected}`);
+          if (this.serviceData) {
+            this.connected = true;
+            this.debugLog(`Meter: ${this.accessory.displayName} connected: ${this.connected}`);
+          } else {
+            this.connected = false;
+            this.debugLog(`Meter: ${this.accessory.displayName} connected: ${this.connected}`);
+          }
+        };
+        // Wait 10 seconds
+        return switchbot.wait(this.scanDuration * 1000);
+      }).then(async () => {
+        // Stop to monitor
+        switchbot.stopScan();
+        if (this.connected) {
+          this.CurrentTemperatureCached = this.temperature;
+          this.accessory.context.CurrentTemperature = this.CurrentTemperatureCached;
+          this.CurrentRelativeHumidityCached = this.humidity!;
+          this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidityCached;
+          this.BatteryLevelCached = this.battery!;
+          this.accessory.context.BatteryLevel = this.BatteryLevelCached;
+          this.parseStatus();
+          this.updateHomeKitCharacteristics();
         } else {
-          this.connected = false;
-          this.debugLog(`Meter: ${this.accessory.displayName} connected: ${this.connected}`);
+          await this.BLEconnection();
         }
-      };
-      // Wait 10 seconds
-      return switchbot.wait(this.scanDuration * 1000);
-    }).then(async () => {
-      // Stop to monitor
-      switchbot.stopScan();
-      if (this.connected) {
-        this.CurrentTemperatureCached = this.temperature;
-        this.accessory.context.CurrentTemperature = this.CurrentTemperatureCached;
-        this.CurrentRelativeHumidityCached = this.humidity!;
-        this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidityCached;
-        this.BatteryLevelCached = this.battery!;
-        this.accessory.context.BatteryLevel = this.BatteryLevelCached;
-        this.parseStatus();
-        this.updateHomeKitCharacteristics();
-      } else {
-        this.errorLog(`Meter: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+      }).catch(async (e: any) => {
+        this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
+        if (this.deviceLogging === 'debug') {
+          this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
+        }
+        if (this.platform.debugMode) {
+          this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+            + ` Error: ${JSON.stringify(e)}`);
+        }
         if (this.platform.config.credentials?.openToken) {
           this.warnLog(`Meter: ${this.accessory.displayName} Using OpenAPI Connection`);
           this.openAPIRefreshStatus();
         }
-      }
-    }).catch(async (e: any) => {
-      this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
-      if (this.deviceLogging === 'debug') {
-        this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
-          + ` Error Message: ${JSON.stringify(e.message)}`);
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
-          + ` Error: ${JSON.stringify(e)}`);
-      }
-      if (this.platform.config.credentials?.openToken) {
-        this.warnLog(`Meter: ${this.accessory.displayName} Using OpenAPI Connection`);
-        this.openAPIRefreshStatus();
-      }
-      this.apiError(e);
-    });
+        this.apiError(e);
+      });
+    } else {
+      await this.BLEconnection();
+    }
+  }
+
+  private async BLEconnection() {
+    this.errorLog(`Meter: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+    if (this.platform.config.credentials?.openToken) {
+      this.warnLog(`Meter: ${this.accessory.displayName} Using OpenAPI Connection`);
+      await this.openAPIRefreshStatus();
+    }
   }
 
   private async openAPIRefreshStatus() {
