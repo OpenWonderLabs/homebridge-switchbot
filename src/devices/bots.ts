@@ -13,9 +13,11 @@ import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceSta
  */
 export class Bot {
   // Services
-  private outletService?: Service;
   private switchService?: Service;
+  private garageDoorService?: Service;
+  private outletService?: Service;
   private batteryService?: Service;
+
 
   // Characteristic Values
   On!: CharacteristicValue;
@@ -94,29 +96,33 @@ export class Bot {
     // get the LightBulb service if it exists, otherwise create a new LightBulb service
     // you can create multiple services for each accessory
     if (device.bot?.deviceType === 'switch') {
-      // If outletService still pressent, then remove first
-      if (this.outletService) {
-        this.debugLog(`Bot: ${accessory.displayName} Removing Leftover outletService first`);
-      }
-      this.outletService = this.accessory.getService(this.platform.Service.Outlet);
-      accessory.removeService(this.outletService!);
+      this.removeOutletService(accessory);
+      this.removeGarageDoorService(accessory);
 
       // Add switchService
       (this.switchService =
         accessory.getService(this.platform.Service.Switch) ||
         accessory.addService(this.platform.Service.Switch)), `${accessory.displayName} Switch`;
-      if (this.deviceLogging !== 'none') {
-        this.infoLog(`Bot: ${accessory.displayName} Displaying as Switch`);
-      }
+      this.infoLog(`Bot: ${accessory.displayName} Displaying as Switch`);
 
-      this.switchService?.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      this.switchService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      this.switchService.getCharacteristic(this.platform.Characteristic.On).onSet(this.handleOnSet.bind(this));
+    } else if (device.bot?.deviceType === 'garagedoor') {
+      this.removeOutletService(accessory);
+      this.removeSwitchService(accessory);
+
+      // Add switchService
+      (this.garageDoorService =
+        accessory.getService(this.platform.Service.GarageDoorOpener) ||
+        accessory.addService(this.platform.Service.GarageDoorOpener)), `${accessory.displayName} Garage Door Opener`;
+      this.infoLog(`Bot: ${accessory.displayName} Displaying as Garage Door Opener`);
+
+      this.garageDoorService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      this.garageDoorService.getCharacteristic(this.platform.Characteristic.TargetDoorState).onSet(this.handleOnSet.bind(this));
+      this.garageDoorService.setCharacteristic(this.platform.Characteristic.ObstructionDetected, false);
     } else {
-      // If switchService still pressent, then remove first
-      if (this.switchService) {
-        this.debugLog(`Bot: ${accessory.displayName} Removing Leftover switchService first`);
-      }
-      this.switchService = this.accessory.getService(this.platform.Service.Switch);
-      accessory.removeService(this.switchService!);
+      this.removeSwitchService(accessory);
+      this.removeGarageDoorService(accessory);
 
       // Add outletService
       (this.outletService =
@@ -124,7 +130,8 @@ export class Bot {
         accessory.addService(this.platform.Service.Outlet)), `${accessory.displayName} Outlet`;
       this.infoLog(`Bot: ${accessory.displayName} Displaying as Outlet`);
 
-      this.outletService?.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      this.outletService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      this.outletService.getCharacteristic(this.platform.Characteristic.On).onSet(this.handleOnSet.bind(this));
     }
 
     if (device.ble) {
@@ -133,15 +140,6 @@ export class Bot {
         accessory.addService(this.platform.Service.Battery)), `${accessory.displayName} Battery`;
 
       this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
-    }
-
-    // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/Outlet
-
-    if (device.bot?.deviceType === 'switch') {
-      this.switchService!.getCharacteristic(this.platform.Characteristic.On).onSet(this.handleOnSet.bind(this));
-    } else {
-      this.outletService!.getCharacteristic(this.platform.Characteristic.On).onSet(this.handleOnSet.bind(this));
     }
 
     // Retrieve initial values and updateHomekit
@@ -183,6 +181,33 @@ export class Bot {
         }
         this.botUpdateInProgress = false;
       });
+  }
+
+  private removeOutletService(accessory: PlatformAccessory) {
+    // If outletService still pressent, then remove first
+    if (this.outletService) {
+      this.debugLog(`Bot: ${accessory.displayName} Removing Leftover outletService first`);
+    }
+    this.outletService = this.accessory.getService(this.platform.Service.Outlet);
+    accessory.removeService(this.outletService!);
+  }
+
+  private removeGarageDoorService(accessory: PlatformAccessory) {
+    // If outletService still pressent, then remove first
+    if (this.outletService) {
+      this.debugLog(`Bot: ${accessory.displayName} Removing Leftover outletService first`);
+    }
+    this.outletService = this.accessory.getService(this.platform.Service.Outlet);
+    accessory.removeService(this.outletService!);
+  }
+
+  private removeSwitchService(accessory: PlatformAccessory) {
+    // If switchService still pressent, then remove first
+    if (this.switchService) {
+      this.debugLog(`Bot: ${accessory.displayName} Removing Leftover switchService first`);
+    }
+    this.switchService = this.accessory.getService(this.platform.Service.Switch);
+    accessory.removeService(this.switchService!);
   }
 
   refreshRate() {
@@ -585,16 +610,42 @@ export class Bot {
    * Updates the status for each of the HomeKit Characteristics
    */
   updateHomeKitCharacteristics() {
-    if (this.On === undefined) {
-      this.debugLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
-    } else {
-      if (this.device.bot?.deviceType === 'switch') {
-        this.switchService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
+    if (this.device.bot?.deviceType === 'garagedoor') {
+      if (this.On === undefined) {
+        this.debugLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
       } else {
-        this.outletService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
+        if (this.On) {
+          this.garageDoorService?.updateCharacteristic(this.platform.Characteristic.TargetDoorState,
+            this.platform.Characteristic.TargetDoorState.OPEN);
+          this.garageDoorService?.updateCharacteristic(this.platform.Characteristic.CurrentDoorState,
+            this.platform.Characteristic.CurrentDoorState.OPEN);
+          this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic TargetDoorState: Open, CurrentDoorState: Open`);
+        } else {
+          this.garageDoorService?.updateCharacteristic(this.platform.Characteristic.TargetDoorState,
+            this.platform.Characteristic.TargetDoorState.CLOSED);
+          this.garageDoorService?.updateCharacteristic(this.platform.Characteristic.CurrentDoorState,
+            this.platform.Characteristic.CurrentDoorState.CLOSED);
+          this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic TargetDoorState: Open, CurrentDoorState: Open`);
+        }
       }
       this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+    } else if (this.device.bot?.deviceType === 'switch') {
+      if (this.On === undefined) {
+        this.debugLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
+      } else {
+        this.switchService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
+        this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+      }
+    } else {
+      if (this.On === undefined) {
+        this.debugLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
+      } else {
+        this.outletService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
+        this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+      }
     }
+
+
     if (this.device.ble) {
       if (this.BatteryLevel === undefined) {
         this.debugLog(`Bot: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
@@ -670,8 +721,17 @@ export class Bot {
    * Handle requests to set the "On" characteristic
    */
   private handleOnSet(value: CharacteristicValue) {
-    this.debugLog(`Bot: ${this.accessory.displayName} On: ${value}`);
-    this.On = value;
+    if (this.device.bot?.deviceType === 'garagedoor') {
+      this.debugLog(`Bot: ${this.accessory.displayName} TargetDoorState: ${value}`);
+      if (value === this.platform.Characteristic.TargetDoorState.CLOSED) {
+        this.On = false;
+      } else {
+        this.On = true;
+      }
+    } else {
+      this.debugLog(`Bot: ${this.accessory.displayName} On: ${value}`);
+      this.On = value;
+    }
     this.doBotUpdate.next();
   }
 

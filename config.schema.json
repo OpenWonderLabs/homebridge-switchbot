@@ -183,6 +183,12 @@
                           ]
                         },
                         {
+                          "title": "Garage Door",
+                          "enum": [
+                            "garagedoor"
+                          ]
+                        },
+                        {
                           "title": "Switch",
                           "enum": [
                             "switch"
