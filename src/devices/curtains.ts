@@ -224,12 +224,12 @@ export class Curtain {
     if (this.device.scanDuration) {
       this.scanDuration = this.accessory.context.scanDuration = this.device.scanDuration;
       if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Bot: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
+        this.warnLog(`Curtain: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
       }
     } else {
       this.scanDuration = this.accessory.context.scanDuration = 1;
       if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Bot: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
+        this.warnLog(`Curtain: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
       }
     }
   }
@@ -256,7 +256,7 @@ export class Curtain {
   private connectBLE() {
     // Convert to BLE Address
     this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
-    this.debugLog(`Bot: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     const switchbot = this.platform.connectBLE();
     return switchbot;
   }
@@ -454,60 +454,73 @@ export class Curtain {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const switchbot = this.connectBLE();
     // Start to monitor advertisement packets
-    switchbot.startScan({
-      model: 'c',
-      id: this.device.bleMac,
-    }).then(() => {
-      // Set an event hander
-      switchbot.onadvertisement = (ad: any) => {
-        this.serviceData = ad.serviceData;
-        this.calibration = ad.serviceData.calibration;
-        this.battery = ad.serviceData.battery;
-        this.position = ad.serviceData.position;
-        this.lightLevel = ad.serviceData.lightLevel;
-        this.debugLog(`Curtain: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-        this.debugLog(`Curtain: ${this.accessory.displayName} calibration: ${ad.serviceData.calibration}, `
-          + `position: ${ad.serviceData.position}, lightLevel: ${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}`);
+    this.debugLog(`Curtain: ${this.accessory.displayName} platform.Switchbot: ${JSON.stringify(switchbot)}`);
+    if (switchbot) {
+      switchbot.startScan({
+        model: 'c',
+        id: this.device.bleMac,
+      }).then(() => {
+        // Set an event hander
+        switchbot.onadvertisement = (ad: any) => {
+          this.serviceData = ad.serviceData;
+          this.calibration = ad.serviceData.calibration;
+          this.battery = ad.serviceData.battery;
+          this.position = ad.serviceData.position;
+          this.lightLevel = ad.serviceData.lightLevel;
+          this.debugLog(`Curtain: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+          this.debugLog(`Curtain: ${this.accessory.displayName} calibration: ${ad.serviceData.calibration}, `
+            + `position: ${ad.serviceData.position}, lightLevel: ${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}`);
 
-        if (this.serviceData) {
-          this.connected = true;
-          this.debugLog(`Curtain: ${this.accessory.displayName} connected: ${this.connected}`);
+          if (this.serviceData) {
+            this.connected = true;
+            this.debugLog(`Curtain: ${this.accessory.displayName} connected: ${this.connected}`);
+          } else {
+            this.connected = false;
+            this.debugLog(`Curtain: ${this.accessory.displayName} connected: ${this.connected}`);
+          }
+        };
+        // Wait 2 seconds
+        return switchbot.wait(this.scanDuration * 1000);
+      }).then(async () => {
+        // Stop to monitor
+        switchbot.stopScan();
+        if (this.connected) {
+          this.parseStatus();
+          this.updateHomeKitCharacteristics();
         } else {
-          this.connected = false;
-          this.debugLog(`Curtain: ${this.accessory.displayName} connected: ${this.connected}`);
+          this.errorLog(`Curtain: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+          if (this.platform.config.credentials?.openToken) {
+            this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
+            await this.openAPIRefreshStatus();
+          }
         }
-      };
-      // Wait 2 seconds
-      return switchbot.wait(this.scanDuration * 1000);
-    }).then(async () => {
-      // Stop to monitor
-      switchbot.stopScan();
-      if (this.connected) {
-        this.parseStatus();
-        this.updateHomeKitCharacteristics();
-      } else {
-        this.errorLog(`Curtain: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+      }).catch(async (e: any) => {
+        this.errorLog(`Curtain: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
+        if (this.deviceLogging === 'debug') {
+          this.errorLog(`Curtain: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
+        }
+        if (this.platform.debugMode) {
+          this.errorLog(`Curtain: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+            + ` Error: ${JSON.stringify(e)}`);
+        }
         if (this.platform.config.credentials?.openToken) {
           this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
           await this.openAPIRefreshStatus();
         }
-      }
-    }).catch(async (e: any) => {
-      this.errorLog(`Curtain: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
-      if (this.deviceLogging === 'debug') {
-        this.errorLog(`Curtain: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
-          + ` Error Message: ${JSON.stringify(e.message)}`);
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Curtain: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
-          + ` Error: ${JSON.stringify(e)}`);
-      }
-      if (this.platform.config.credentials?.openToken) {
-        this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
-        await this.openAPIRefreshStatus();
-      }
-      this.apiError(e);
-    });
+        this.apiError(e);
+      });
+    } else {
+      await this.BLEconnection();
+    }
+  }
+
+  private async BLEconnection() {
+    this.errorLog(`Curtain: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+    if (this.platform.config.credentials?.openToken) {
+      this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
+      await this.openAPIRefreshStatus();
+    }
   }
 
   private async openAPIRefreshStatus() {
@@ -537,7 +550,7 @@ export class Curtain {
     if (this.device.ble) {
       await this.BLEpushChanges();
     } else {
-      await this.OpenAPIpushChanges();
+      await this.openAPIpushChanges();
     }
     interval(5000)
       .pipe(skipWhile(() => this.curtainUpdateInProgress))
@@ -551,34 +564,43 @@ export class Curtain {
     if (this.TargetPosition !== this.CurrentPosition) {
       this.debugLog(`Curtain: ${this.accessory.displayName} BLE pushChanges`);
       const switchbot = this.connectBLE();
-      switchbot.discover({ model: 'c', quick: true, id: this.device.bleMac }).then((device_list) => {
-        this.infoLog(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
-        return device_list[0].runToPos(100 - Number(this.TargetPosition));
-      }).then(() => {
-        this.debugLog(`Curtain: ${this.accessory.displayName} Done.`);
-      }).catch(async (e: any) => {
-        this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
-        if (this.deviceLogging === 'debug') {
-          this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
-            + ` Error Message: ${JSON.stringify(e.message)}`);
-        }
-        if (this.platform.debugMode) {
-          this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
-            + ` Error: ${JSON.stringify(e)}`);
-        }
+      this.debugLog(`Curtain: ${this.accessory.displayName} platform.Switchbot: ${JSON.stringify(switchbot)}`);
+      if (switchbot) {
+        switchbot.discover({ model: 'c', quick: true, id: this.device.bleMac }).then((device_list) => {
+          this.infoLog(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
+          return device_list[0].runToPos(100 - Number(this.TargetPosition));
+        }).then(() => {
+          this.debugLog(`Curtain: ${this.accessory.displayName} Done.`);
+        }).catch(async (e: any) => {
+          this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
+          if (this.deviceLogging === 'debug') {
+            this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
+              + ` Error Message: ${JSON.stringify(e.message)}`);
+          }
+          if (this.platform.debugMode) {
+            this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
+              + ` Error: ${JSON.stringify(e)}`);
+          }
+          if (this.platform.config.credentials?.openToken) {
+            this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
+            await this.openAPIpushChanges();
+          }
+          this.apiError(e);
+        });
+      } else {
+        this.errorLog(`Curtain: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
         if (this.platform.config.credentials?.openToken) {
           this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
-          await this.OpenAPIpushChanges();
+          await this.openAPIpushChanges();
         }
-        this.apiError(e);
-      });
+      }
     } else {
       this.debugLog(`Curtain: ${this.accessory.displayName} No BLE Changes, CurrentPosition & TargetPosition Are the Same.`
         + `  CurrentPosition: ${this.CurrentPosition}, TargetPosition  ${this.TargetPosition}`);
     }
   }
 
-  private async OpenAPIpushChanges() {
+  private async openAPIpushChanges() {
     if (this.platform.config.credentials?.openToken) {
       try {
         this.debugLog(`Curtain: ${this.accessory.displayName} OpenAPI pushChanges`);

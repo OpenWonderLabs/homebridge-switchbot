@@ -209,12 +209,12 @@ export class Humidifier {
     if (this.device.scanDuration) {
       this.scanDuration = this.accessory.context.scanDuration = this.device.scanDuration;
       if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Bot: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
+        this.warnLog(`Humidifier: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
       }
     } else {
       this.scanDuration = this.accessory.context.scanDuration = 1;
       if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Bot: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
+        this.warnLog(`Humidifier: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
       }
     }
   }
@@ -342,7 +342,7 @@ export class Humidifier {
   private connectBLE() {
     // Convert to BLE Address
     this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
-    this.debugLog(`Bot: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    this.debugLog(`Humidifier: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     const switchbot = this.platform.connectBLE();
     return switchbot;
   }
@@ -352,59 +352,68 @@ export class Humidifier {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const switchbot = this.connectBLE();
     // Start to monitor advertisement packets
-    switchbot.startScan({
-      model: 'e',
-      id: this.device.bleMac,
-    }).then(() => {
-      // Set an event hander
-      switchbot.onadvertisement = (ad: ad) => {
-        this.serviceData = ad.serviceData;
-        this.autoMode = ad.serviceData.autoMode;
-        this.onState = ad.serviceData.onState;
-        this.percentage = ad.serviceData.percentage;
-        this.debugLog(`Humidifier: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-        this.debugLog(`Humidifier: ${this.accessory.displayName} model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName},`
-          + `autoMode: ${ad.serviceData.autoMode}, onState: ${ad.serviceData.onState}, percentage: ${ad.serviceData.percentage}`);
+    this.debugLog(`Humidifier: ${this.accessory.displayName} platform.Switchbot: ${JSON.stringify(switchbot)}`);
+    if (switchbot) {
+      switchbot.startScan({
+        model: 'e',
+        id: this.device.bleMac,
+      }).then(() => {
+        // Set an event hander
+        switchbot.onadvertisement = (ad: ad) => {
+          this.serviceData = ad.serviceData;
+          this.autoMode = ad.serviceData.autoMode;
+          this.onState = ad.serviceData.onState;
+          this.percentage = ad.serviceData.percentage;
+          this.debugLog(`Humidifier: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+          this.debugLog(`Humidifier: ${this.accessory.displayName} model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName},`
+            + `autoMode: ${ad.serviceData.autoMode}, onState: ${ad.serviceData.onState}, percentage: ${ad.serviceData.percentage}`);
 
-        if (this.serviceData) {
-          this.connected = true;
-          this.debugLog(`Humidifier: ${this.accessory.displayName} connected: ${this.connected}`);
+          if (this.serviceData) {
+            this.connected = true;
+            this.debugLog(`Humidifier: ${this.accessory.displayName} connected: ${this.connected}`);
+          } else {
+            this.connected = false;
+            this.debugLog(`Humidifier: ${this.accessory.displayName} connected: ${this.connected}`);
+          }
+        };
+        // Wait 2 seconds
+        return switchbot.wait(this.scanDuration * 1000);
+      }).then(async () => {
+        // Stop to monitor
+        switchbot.stopScan();
+        if (this.connected) {
+          this.parseStatus();
+          this.updateHomeKitCharacteristics();
         } else {
-          this.connected = false;
-          this.debugLog(`Humidifier: ${this.accessory.displayName} connected: ${this.connected}`);
+          await this.BLEconnection();
         }
-      };
-      // Wait 2 seconds
-      return switchbot.wait(this.scanDuration * 1000);
-    }).then(async () => {
-      // Stop to monitor
-      switchbot.stopScan();
-      if (this.connected) {
-        this.parseStatus();
-        this.updateHomeKitCharacteristics();
-      } else {
-        this.errorLog(`Humidifier: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+      }).catch(async (e: any) => {
+        this.errorLog(`Humidifier: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
+        if (this.deviceLogging === 'debug') {
+          this.errorLog(`Humidifier: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
+        }
+        if (this.platform.debugMode) {
+          this.errorLog(`Humidifier: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+            + ` Error: ${JSON.stringify(e)}`);
+        }
         if (this.platform.config.credentials?.openToken) {
           this.warnLog(`Humidifier: ${this.accessory.displayName} Using OpenAPI Connection`);
           await this.openAPIRefreshStatus();
         }
-      }
-    }).catch(async (e: any) => {
-      this.errorLog(`Humidifier: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
-      if (this.deviceLogging === 'debug') {
-        this.errorLog(`Humidifier: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
-          + ` Error Message: ${JSON.stringify(e.message)}`);
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Humidifier: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
-          + ` Error: ${JSON.stringify(e)}`);
-      }
-      if (this.platform.config.credentials?.openToken) {
-        this.warnLog(`Humidifier: ${this.accessory.displayName} Using OpenAPI Connection`);
-        await this.openAPIRefreshStatus();
-      }
-      this.apiError(e);
-    });
+        this.apiError(e);
+      });
+    } else {
+      await this.BLEconnection();
+    }
+  }
+
+  private async BLEconnection() {
+    this.errorLog(`Humidifier: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+    if (this.platform.config.credentials?.openToken) {
+      this.warnLog(`Humidifier: ${this.accessory.displayName} Using OpenAPI Connection`);
+      await this.openAPIRefreshStatus();
+    }
   }
 
   private async openAPIRefreshStatus() {
@@ -441,7 +450,7 @@ export class Humidifier {
     //if (this.device.ble) {
     //  await this.BLEpushChanges();
     //} else {
-    await this.OpenAPIpushChanges();
+    await this.openAPIpushChanges();
     //}
     interval(5000)
       .pipe(skipWhile(() => this.humidifierUpdateInProgress))
@@ -454,30 +463,39 @@ export class Humidifier {
   private async BLEpushChanges() {
     this.debugLog(`Humidifier: ${this.accessory.displayName} BLE pushChanges`);
     const switchbot = this.connectBLE();
-    switchbot.discover({ model: 'e', quick: true, id: this.device.bleMac }).then((device_list) => {
-      this.infoLog(`${this.accessory.displayName} Target Position: ${this.Active}`);
-      return device_list[0].percentage(this.RelativeHumidityHumidifierThreshold);
-    }).then(() => {
-      this.debugLog(`Humidifier: ${this.accessory.displayName} Done.`);
-    }).catch(async (e: any) => {
-      this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
-      if (this.deviceLogging === 'debug') {
-        this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
-          + ` Error Message: ${JSON.stringify(e.message)}`);
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
-          + ` Error: ${JSON.stringify(e)}`);
-      }
+    this.debugLog(`Humidifier: ${this.accessory.displayName} platform.Switchbot: ${JSON.stringify(switchbot)}`);
+    if (switchbot) {
+      switchbot.discover({ model: 'e', quick: true, id: this.device.bleMac }).then((device_list) => {
+        this.infoLog(`${this.accessory.displayName} Target Position: ${this.Active}`);
+        return device_list[0].percentage(this.RelativeHumidityHumidifierThreshold);
+      }).then(() => {
+        this.debugLog(`Humidifier: ${this.accessory.displayName} Done.`);
+      }).catch(async (e: any) => {
+        this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
+        if (this.deviceLogging === 'debug') {
+          this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
+        }
+        if (this.platform.debugMode) {
+          this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
+            + ` Error: ${JSON.stringify(e)}`);
+        }
+        if (this.platform.config.credentials?.openToken) {
+          this.warnLog(`Humidifier: ${this.accessory.displayName} Using OpenAPI Connection`);
+          await this.openAPIpushChanges();
+        }
+        this.apiError(e);
+      });
+    } else {
+      this.errorLog(`Humidifier: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
       if (this.platform.config.credentials?.openToken) {
         this.warnLog(`Humidifier: ${this.accessory.displayName} Using OpenAPI Connection`);
-        await this.OpenAPIpushChanges();
+        await this.openAPIpushChanges();
       }
-      this.apiError(e);
-    });
+    }
   }
 
-  private async OpenAPIpushChanges() {
+  private async openAPIpushChanges() {
     if (this.platform.config.credentials?.openToken) {
       this.debugLog(`Humidifier: ${this.accessory.displayName} OpenAPI pushChanges`);
       if (

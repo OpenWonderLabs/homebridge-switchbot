@@ -162,12 +162,12 @@ export class Contact {
     if (this.device.scanDuration) {
       this.scanDuration = this.accessory.context.scanDuration = this.device.scanDuration;
       if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Bot: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
+        this.warnLog(`Contact Sensor: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
       }
     } else {
       this.scanDuration = this.accessory.context.scanDuration = 1;
       if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Bot: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
+        this.warnLog(`Contact Sensor: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
       }
     }
   }
@@ -276,7 +276,7 @@ export class Contact {
   private connectBLE() {
     // Convert to BLE Address
     this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
-    this.debugLog(`Bot: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    this.debugLog(`Contact Sensor: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     const switchbot = this.platform.connectBLE();
     return switchbot;
   }
@@ -286,60 +286,73 @@ export class Contact {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const switchbot = this.connectBLE();
     // Start to monitor advertisement packets
-    switchbot.startScan({
-      model: 'd',
-      id: this.device.bleMac,
-    }).then(() => {
-      // Set an event hander
-      switchbot.onadvertisement = (ad: any) => {
-        this.serviceData = ad.serviceData;
-        this.movement = ad.serviceData.movement;
-        this.doorState = ad.serviceData.doorState;
-        this.lightLevel = ad.serviceData.lightLevel;
-        this.battery = ad.serviceData.battery;
-        this.debugLog(`Contact Sensor: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-        this.debugLog(`Contact Sensor: ${this.accessory.displayName} movement: ${ad.serviceData.movement}, doorState: `
-          + `${ad.serviceData.doorState}, lightLevel: ${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}`);
+    this.debugLog(`Contact Sensor: ${this.accessory.displayName} platform.Switchbot: ${JSON.stringify(switchbot)}`);
+    if (switchbot) {
+      switchbot.startScan({
+        model: 'd',
+        id: this.device.bleMac,
+      }).then(() => {
+        // Set an event hander
+        switchbot.onadvertisement = (ad: any) => {
+          this.serviceData = ad.serviceData;
+          this.movement = ad.serviceData.movement;
+          this.doorState = ad.serviceData.doorState;
+          this.lightLevel = ad.serviceData.lightLevel;
+          this.battery = ad.serviceData.battery;
+          this.debugLog(`Contact Sensor: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+          this.debugLog(`Contact Sensor: ${this.accessory.displayName} movement: ${ad.serviceData.movement}, doorState: `
+            + `${ad.serviceData.doorState}, lightLevel: ${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}`);
 
-        if (this.serviceData) {
-          this.connected = true;
-          this.debugLog(`Contact Sensor: ${this.accessory.displayName} connected: ${this.connected}`);
+          if (this.serviceData) {
+            this.connected = true;
+            this.debugLog(`Contact Sensor: ${this.accessory.displayName} connected: ${this.connected}`);
+          } else {
+            this.connected = false;
+            this.debugLog(`Contact Sensor: ${this.accessory.displayName} connected: ${this.connected}`);
+          }
+        };
+        // Wait 2 seconds
+        return switchbot.wait(this.scanDuration * 1000);
+      }).then(async () => {
+        // Stop to monitor
+        switchbot.stopScan();
+        if (this.connected) {
+          this.parseStatus();
+          this.updateHomeKitCharacteristics();
         } else {
-          this.connected = false;
-          this.debugLog(`Contact Sensor: ${this.accessory.displayName} connected: ${this.connected}`);
+          this.errorLog(`Contact Sensor: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+          if (this.platform.config.credentials?.openToken) {
+            this.warnLog(`Contact Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
+            await this.openAPIRefreshStatus();
+          }
         }
-      };
-      // Wait 2 seconds
-      return switchbot.wait(this.scanDuration * 1000);
-    }).then(async () => {
-      // Stop to monitor
-      switchbot.stopScan();
-      if (this.connected) {
-        this.parseStatus();
-        this.updateHomeKitCharacteristics();
-      } else {
-        this.errorLog(`Contact Sensor: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+      }).catch(async (e: any) => {
+        this.errorLog(`Contact Sensor: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
+        if (this.deviceLogging === 'debug') {
+          this.errorLog(`Contact Sensor: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
+        }
+        if (this.platform.debugMode) {
+          this.errorLog(`Contact Sensor: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+            + ` Error: ${JSON.stringify(e)}`);
+        }
         if (this.platform.config.credentials?.openToken) {
           this.warnLog(`Contact Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
           await this.openAPIRefreshStatus();
         }
-      }
-    }).catch(async (e: any) => {
-      this.errorLog(`Contact Sensor: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
-      if (this.deviceLogging === 'debug') {
-        this.errorLog(`Contact Sensor: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
-          + ` Error Message: ${JSON.stringify(e.message)}`);
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Contact Sensor: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
-          + ` Error: ${JSON.stringify(e)}`);
-      }
-      if (this.platform.config.credentials?.openToken) {
-        this.warnLog(`Contact Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
-        await this.openAPIRefreshStatus();
-      }
-      this.apiError(e);
-    });
+        this.apiError(e);
+      });
+    } else {
+      await this.BLEconnection();
+    }
+  }
+
+  private async BLEconnection() {
+    this.errorLog(`Contact Sensor: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+    if (this.platform.config.credentials?.openToken) {
+      this.warnLog(`Contact Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
+      await this.openAPIRefreshStatus();
+    }
   }
 
   private async openAPIRefreshStatus() {
