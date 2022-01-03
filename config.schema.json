@@ -189,6 +189,12 @@
                           ]
                         },
                         {
+                          "title": "Door",
+                          "enum": [
+                            "door"
+                          ]
+                        },
+                        {
                           "title": "Switch",
                           "enum": [
                             "switch"
