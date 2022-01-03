@@ -213,8 +213,6 @@ export class Bot {
     }
   }
 
-
-
   logs() {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debug';
@@ -324,23 +322,20 @@ export class Bot {
   }
 
   private connectBLE() {
-    let Switchbot: any;
-    try {
-      Switchbot = require('node-switchbot');
-      const switchbot = new Switchbot();
-      this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
-      this.debugLog(`Bot: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-      return switchbot;
-    } catch (e) {
-      Switchbot = false;
-    }
+    // Convert to BLE Address
+    this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
+    this.debugLog(`Bot: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    const switchbot = this.platform.connectBLE();
+    return switchbot;
   }
 
   private async BLERefreshStatus() {
     this.debugLog(`Bot: ${this.accessory.displayName} BLE refreshStatus`);
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+
+    // Convert to BLE Address
     const switchbot = this.connectBLE();
     // Start to monitor advertisement packets
+    this.warnLog(`Bot: ${this.accessory.displayName} platform.Switchbot: ${JSON.stringify(switchbot)}`);
     switchbot.startScan({
       model: 'H',
       id: this.device.bleMac,

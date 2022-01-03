@@ -274,16 +274,11 @@ export class Contact {
   }
 
   private connectBLE() {
-    let Switchbot: any;
-    try {
-      Switchbot = require('node-switchbot');
-      const switchbot = new Switchbot();
-      this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
-      this.debugLog(`Bot: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-      return switchbot;
-    } catch (e) {
-      Switchbot = false;
-    }
+    // Convert to BLE Address
+    this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
+    this.debugLog(`Bot: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    const switchbot = this.platform.connectBLE();
+    return switchbot;
   }
 
   private async BLERefreshStatus() {
