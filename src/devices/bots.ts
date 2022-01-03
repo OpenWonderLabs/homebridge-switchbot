@@ -667,12 +667,16 @@ export class Bot {
         this.debugLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
       } else {
         if (this.On) {
-          this.garageDoorService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, 100);
-          this.garageDoorService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, 100);
+          this.doorService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, 100);
+          this.doorService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, 100);
+          this.doorService?.updateCharacteristic(this.platform.Characteristic.PositionState,
+            this.platform.Characteristic.PositionState.STOPPED);
           this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic TargetPosition: 100, CurrentPosition: 100`);
         } else {
-          this.garageDoorService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, 0);
-          this.garageDoorService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, 0);
+          this.doorService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, 0);
+          this.doorService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, 0);
+          this.doorService?.updateCharacteristic(this.platform.Characteristic.PositionState,
+            this.platform.Characteristic.PositionState.STOPPED);
           this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic TargetPosition: 0, CurrentPosition: 0`);
         }
       }
@@ -711,7 +715,15 @@ export class Bot {
   }
 
   public apiError(e: any) {
-    if (this.device.bot?.deviceType === 'switch') {
+    if (this.device.bot?.deviceType === 'garagedoor') {
+      this.garageDoorService?.updateCharacteristic(this.platform.Characteristic.TargetDoorState, e);
+      this.garageDoorService?.updateCharacteristic(this.platform.Characteristic.CurrentDoorState, e);
+      this.garageDoorService?.updateCharacteristic(this.platform.Characteristic.ObstructionDetected, e);
+    } else if (this.device.bot?.deviceType === 'door') {
+      this.doorService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, e);
+      this.doorService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, e);
+      this.doorService?.updateCharacteristic(this.platform.Characteristic.PositionState, e);
+    } else if (this.device.bot?.deviceType === 'switch') {
       this.switchService?.updateCharacteristic(this.platform.Characteristic.On, e);
     } else {
       this.outletService?.updateCharacteristic(this.platform.Characteristic.On, e);
