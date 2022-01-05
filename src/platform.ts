@@ -41,7 +41,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   registeringDevice!: boolean;
   debugMode!: boolean;
   platformLogging?: string;
-  switchbot: any;
 
   constructor(public readonly log: Logger, public readonly config: SwitchBotPlatformConfig, public readonly api: API) {
     this.logs();
@@ -191,18 +190,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.warnLog('Cloud Enabled SwitchBot Devices & IR Devices will not work');
       }
     }
-  }
-
-  connectBLE() {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const Switchbot = require('node-switchbot');
-      this.switchbot = new Switchbot();
-    } catch (e) {
-      this.switchbot = false;
-      this.errorLog(`Was 'node-switchbot' found: ${this.switchbot}`);
-    }
-    return this.switchbot;
   }
 
   /**

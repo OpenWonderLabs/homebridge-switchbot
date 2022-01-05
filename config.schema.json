@@ -183,6 +183,48 @@
                           ]
                         },
                         {
+                          "title": "Garage Door",
+                          "enum": [
+                            "garagedoor"
+                          ]
+                        },
+                        {
+                          "title": "Door",
+                          "enum": [
+                            "door"
+                          ]
+                        },
+                        {
+                          "title": "Lock",
+                          "enum": [
+                            "lock"
+                          ]
+                        },
+                        {
+                          "title": "Faucet",
+                          "enum": [
+                            "faucet"
+                          ]
+                        },
+                        {
+                          "title": "Fan",
+                          "enum": [
+                            "fan"
+                          ]
+                        },
+                        {
+                          "title": "Window",
+                          "enum": [
+                            "window"
+                          ]
+                        },
+                        {
+                          "title": "Window Covering",
+                          "enum": [
+                            "windowcovering"
+                          ]
+                        },
+                        {
                           "title": "Switch",
                           "enum": [
                             "switch"

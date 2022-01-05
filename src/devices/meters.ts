@@ -303,19 +303,34 @@ export class Meter {
     }
   }
 
-  private connectBLE() {
-    // Convert to BLE Address
-    this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
-    this.debugLog(`Meter: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-    const switchbot = this.platform.connectBLE();
+  private async connectBLE() {
+    let switchbot: any;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const Switchbot = require('node-switchbot');
+      switchbot = new Switchbot();
+      // Convert to BLE Address
+      this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
+      this.debugLog(`Meter: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    } catch (e: any) {
+      switchbot = false;
+      this.errorLog(`Meter: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot}`);
+      if (this.deviceLogging === 'debug') {
+        this.errorLog(`Meter: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot},`
+          + ` Error Message: ${JSON.stringify(e.message)}`);
+      }
+      if (this.platform.debugMode) {
+        this.errorLog(`Meter: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot},`
+          + ` Error: ${JSON.stringify(e)}`);
+      }
+    }
     return switchbot;
   }
-
 
   private async BLErefreshStatus() {
     this.debugLog(`Meter: ${this.accessory.displayName} BLE RefreshStatus`);
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const switchbot = this.connectBLE();
+    const switchbot = await this.connectBLE();
     // Start to monitor advertisement packets
     if (switchbot !== false) {
       switchbot.startScan({
@@ -356,7 +371,7 @@ export class Meter {
           this.parseStatus();
           this.updateHomeKitCharacteristics();
         } else {
-          await this.BLEconnection();
+          await this.BLEconnection(switchbot);
         }
       }).catch(async (e: any) => {
         this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
@@ -375,12 +390,12 @@ export class Meter {
         this.apiError(e);
       });
     } else {
-      await this.BLEconnection();
+      await this.BLEconnection(switchbot);
     }
   }
 
-  private async BLEconnection() {
-    this.errorLog(`Meter: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+  private async BLEconnection(switchbot: any) {
+    this.errorLog(`Meter: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
     if (this.platform.config.credentials?.openToken) {
       this.warnLog(`Meter: ${this.accessory.displayName} Using OpenAPI Connection`);
       await this.openAPIRefreshStatus();
