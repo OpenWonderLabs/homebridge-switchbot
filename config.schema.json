@@ -195,6 +195,12 @@
                           ]
                         },
                         {
+                          "title": "Lock",
+                          "enum": [
+                            "lock"
+                          ]
+                        },
+                        {
                           "title": "Switch",
                           "enum": [
                             "switch"

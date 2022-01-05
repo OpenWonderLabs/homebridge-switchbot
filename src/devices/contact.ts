@@ -273,11 +273,27 @@ export class Contact {
     }
   }
 
-  private connectBLE() {
-    // Convert to BLE Address
-    this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
-    this.debugLog(`Contact Sensor: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-    const switchbot = this.platform.connectBLE();
+  public connectBLE() {
+    let switchbot: any;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const Switchbot = require('node-switchbot');
+      switchbot = new Switchbot();
+      // Convert to BLE Address
+      this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
+      this.debugLog(`Contact Sensor: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    } catch (e: any) {
+      switchbot = false;
+      this.errorLog(`Contact Sensor: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot}`);
+      if (this.deviceLogging === 'debug') {
+        this.errorLog(`Contact Sensor: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot},`
+          + ` Error Message: ${JSON.stringify(e.message)}`);
+      }
+      if (this.platform.debugMode) {
+        this.errorLog(`Contact Sensor: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot},`
+          + ` Error: ${JSON.stringify(e)}`);
+      }
+    }
     return switchbot;
   }
 
@@ -342,12 +358,12 @@ export class Contact {
         this.apiError(e);
       });
     } else {
-      await this.BLEconnection();
+      await this.BLEconnection(switchbot);
     }
   }
 
-  private async BLEconnection() {
-    this.errorLog(`Contact Sensor: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+  public async BLEconnection(switchbot: any) {
+    this.errorLog(`Contact Sensor: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
     if (this.platform.config.credentials?.openToken) {
       this.warnLog(`Contact Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
       await this.openAPIRefreshStatus();

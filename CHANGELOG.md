@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file. This projec
 ## [Beta - Version 1.7.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.7.0) (2022-01-XX)
 
 ## What's Changed
-* Added option to display Bot a Garage Door Opener? [#179](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/179)
+* Added option to display Bot a Garage Door Opener.  [#179](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/179)
+* Added option to display Bot a Door. [#179](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/179)
+* Added option to display Bot a Lock. [#179](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/179)
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.6.3...v1.7.0
 
