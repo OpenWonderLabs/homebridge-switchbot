@@ -228,46 +228,46 @@ export class Bot {
 
   private removeOutletService(accessory: PlatformAccessory) {
     // If outletService still pressent, then remove first
-    if (this.outletService) {
-      this.debugLog(`Bot: ${accessory.displayName} Removing Leftover outletService first`);
-    }
     this.outletService = this.accessory.getService(this.platform.Service.Outlet);
+    if (this.outletService) {
+      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Outlet Service`);
+    }
     accessory.removeService(this.outletService!);
   }
 
   private removeGarageDoorService(accessory: PlatformAccessory) {
     // If garageDoorService still pressent, then remove first
-    if (this.garageDoorService) {
-      this.debugLog(`Bot: ${accessory.displayName} Removing Leftover garageDoorService first`);
-    }
     this.garageDoorService = this.accessory.getService(this.platform.Service.GarageDoorOpener);
+    if (this.garageDoorService) {
+      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Garage Door Service`);
+    }
     accessory.removeService(this.garageDoorService!);
   }
 
   private removeDoorService(accessory: PlatformAccessory) {
     // If doorService still pressent, then remove first
-    if (this.doorService) {
-      this.debugLog(`Bot: ${accessory.displayName} Removing Leftover doorService first`);
-    }
     this.doorService = this.accessory.getService(this.platform.Service.Door);
+    if (this.doorService) {
+      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Door Service`);
+    }
     accessory.removeService(this.doorService!);
   }
 
   private removeLockService(accessory: PlatformAccessory) {
     // If lockService still pressent, then remove first
+    this.lockService = this.accessory.getService(this.platform.Service.LockMechanism);
     if (this.lockService) {
-      this.debugLog(`Bot: ${accessory.displayName} Removing Leftover lockService first`);
+      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Lock Service`);
     }
-    this.lockService = this.accessory.getService(this.platform.Service.Door);
     accessory.removeService(this.lockService!);
   }
 
   private removeSwitchService(accessory: PlatformAccessory) {
     // If switchService still pressent, then remove first
-    if (this.switchService) {
-      this.debugLog(`Bot: ${accessory.displayName} Removing Leftover switchService first`);
-    }
     this.switchService = this.accessory.getService(this.platform.Service.Switch);
+    if (this.switchService) {
+      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Switch Service`);
+    }
     accessory.removeService(this.switchService!);
   }
 
@@ -850,7 +850,7 @@ export class Bot {
       }
     } else if (this.device.bot?.deviceType === 'door') {
       this.debugLog(`Bot: ${this.accessory.displayName} TargetPosition: ${value}`);
-      if (value === 100) {
+      if (value === 0) {
         this.On = false;
       } else {
         this.On = true;
