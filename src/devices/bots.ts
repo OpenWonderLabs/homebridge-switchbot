@@ -13,12 +13,16 @@ import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceSta
  */
 export class Bot {
   // Services
-  private switchService?: Service;
+  private fanService?: Service;
   private doorService?: Service;
   private lockService?: Service;
-  private garageDoorService?: Service;
+  private faucetService?: Service;
+  private windowService?: Service;
+  private switchService?: Service;
   private outletService?: Service;
   private batteryService?: Service;
+  private garageDoorService?: Service;
+  private windowCoveringService?: Service;
 
 
   // Characteristic Values
@@ -98,10 +102,14 @@ export class Bot {
     // get the LightBulb service if it exists, otherwise create a new LightBulb service
     // you can create multiple services for each accessory
     if (device.bot?.deviceType === 'switch') {
+      this.removeFanService(accessory);
       this.removeLockService(accessory);
       this.removeDoorService(accessory);
+      this.removeFaucetService(accessory);
       this.removeOutletService(accessory);
+      this.removeWindowService(accessory);
       this.removeGarageDoorService(accessory);
+      this.removeWindowCoveringService(accessory);
 
       // Add switchService
       (this.switchService =
@@ -112,10 +120,14 @@ export class Bot {
       this.switchService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
       this.switchService.getCharacteristic(this.platform.Characteristic.On).onSet(this.handleOnSet.bind(this));
     } else if (device.bot?.deviceType === 'garagedoor') {
+      this.removeFanService(accessory);
       this.removeLockService(accessory);
       this.removeDoorService(accessory);
+      this.removeFaucetService(accessory);
       this.removeOutletService(accessory);
       this.removeSwitchService(accessory);
+      this.removeWindowService(accessory);
+      this.removeWindowCoveringService(accessory);
 
       // Add switchService
       (this.garageDoorService =
@@ -127,10 +139,14 @@ export class Bot {
       this.garageDoorService.getCharacteristic(this.platform.Characteristic.TargetDoorState).onSet(this.handleOnSet.bind(this));
       this.garageDoorService.setCharacteristic(this.platform.Characteristic.ObstructionDetected, false);
     } else if (device.bot?.deviceType === 'door') {
+      this.removeFanService(accessory);
       this.removeLockService(accessory);
       this.removeOutletService(accessory);
+      this.removeFaucetService(accessory);
       this.removeSwitchService(accessory);
+      this.removeWindowService(accessory);
       this.removeGarageDoorService(accessory);
+      this.removeWindowCoveringService(accessory);
 
       // Add switchService
       (this.doorService =
@@ -147,11 +163,65 @@ export class Bot {
           minStep: 100,
         }).onSet(this.handleOnSet.bind(this));
       this.doorService.setCharacteristic(this.platform.Characteristic.PositionState, this.platform.Characteristic.PositionState.STOPPED);
+    } else if (device.bot?.deviceType === 'window') {
+      this.removeFanService(accessory);
+      this.removeLockService(accessory);
+      this.removeDoorService(accessory);
+      this.removeOutletService(accessory);
+      this.removeFaucetService(accessory);
+      this.removeSwitchService(accessory);
+      this.removeGarageDoorService(accessory);
+      this.removeWindowCoveringService(accessory);
+
+      // Add switchService
+      (this.windowService =
+        accessory.getService(this.platform.Service.Window) ||
+        accessory.addService(this.platform.Service.Window)), `${accessory.displayName} Window`;
+      this.infoLog(`Bot: ${accessory.displayName} Displaying as Window`);
+
+      this.windowService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      this.windowService.getCharacteristic(this.platform.Characteristic.TargetPosition)
+        .setProps({
+          validValues: [0, 100],
+          minValue: 0,
+          maxValue: 100,
+          minStep: 100,
+        }).onSet(this.handleOnSet.bind(this));
+      this.windowService.setCharacteristic(this.platform.Characteristic.PositionState, this.platform.Characteristic.PositionState.STOPPED);
+    } else if (device.bot?.deviceType === 'windowcovering') {
+      this.removeFanService(accessory);
+      this.removeLockService(accessory);
+      this.removeDoorService(accessory);
+      this.removeOutletService(accessory);
+      this.removeFaucetService(accessory);
+      this.removeSwitchService(accessory);
+      this.removeWindowService(accessory);
+      this.removeGarageDoorService(accessory);
+
+      // Add switchService
+      (this.windowCoveringService =
+        accessory.getService(this.platform.Service.WindowCovering) ||
+        accessory.addService(this.platform.Service.WindowCovering)), `${accessory.displayName} Window Covering`;
+      this.infoLog(`Bot: ${accessory.displayName} Displaying as Window Covering`);
+
+      this.windowCoveringService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      this.windowCoveringService.getCharacteristic(this.platform.Characteristic.TargetPosition)
+        .setProps({
+          validValues: [0, 100],
+          minValue: 0,
+          maxValue: 100,
+          minStep: 100,
+        }).onSet(this.handleOnSet.bind(this));
+      this.windowCoveringService.setCharacteristic(this.platform.Characteristic.PositionState, this.platform.Characteristic.PositionState.STOPPED);
     } else if (device.bot?.deviceType === 'lock') {
+      this.removeFanService(accessory);
       this.removeDoorService(accessory);
       this.removeOutletService(accessory);
       this.removeSwitchService(accessory);
+      this.removeFaucetService(accessory);
+      this.removeWindowService(accessory);
       this.removeGarageDoorService(accessory);
+      this.removeWindowCoveringService(accessory);
 
       // Add switchService
       (this.lockService =
@@ -161,11 +231,51 @@ export class Bot {
 
       this.lockService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
       this.lockService.getCharacteristic(this.platform.Characteristic.LockTargetState).onSet(this.handleOnSet.bind(this));
-    } else {
+    } else if (device.bot?.deviceType === 'faucet') {
+      this.removeFanService(accessory);
       this.removeLockService(accessory);
       this.removeDoorService(accessory);
+      this.removeOutletService(accessory);
       this.removeSwitchService(accessory);
+      this.removeWindowService(accessory);
       this.removeGarageDoorService(accessory);
+      this.removeWindowCoveringService(accessory);
+
+      // Add switchService
+      (this.faucetService =
+        accessory.getService(this.platform.Service.Faucet) ||
+        accessory.addService(this.platform.Service.Faucet)), `${accessory.displayName} Faucet`;
+      this.infoLog(`Bot: ${accessory.displayName} Displaying as Faucet`);
+
+      this.faucetService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      this.faucetService.getCharacteristic(this.platform.Characteristic.Active).onSet(this.handleOnSet.bind(this));
+    } else if (device.bot?.deviceType === 'fan') {
+      this.removeLockService(accessory);
+      this.removeDoorService(accessory);
+      this.removeFaucetService(accessory);
+      this.removeOutletService(accessory);
+      this.removeSwitchService(accessory);
+      this.removeWindowService(accessory);
+      this.removeGarageDoorService(accessory);
+      this.removeWindowCoveringService(accessory);
+
+      // Add switchService
+      (this.fanService =
+        accessory.getService(this.platform.Service.Fan) ||
+        accessory.addService(this.platform.Service.Fan)), `${accessory.displayName} Fan`;
+      this.infoLog(`Bot: ${accessory.displayName} Displaying as Fan`);
+
+      this.fanService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      this.fanService.getCharacteristic(this.platform.Characteristic.On).onSet(this.handleOnSet.bind(this));
+    } else {
+      this.removeFanService(accessory);
+      this.removeLockService(accessory);
+      this.removeDoorService(accessory);
+      this.removeFaucetService(accessory);
+      this.removeSwitchService(accessory);
+      this.removeWindowService(accessory);
+      this.removeGarageDoorService(accessory);
+      this.removeWindowCoveringService(accessory);
 
       // Add outletService
       (this.outletService =
@@ -226,7 +336,7 @@ export class Bot {
       });
   }
 
-  private removeOutletService(accessory: PlatformAccessory) {
+  public removeOutletService(accessory: PlatformAccessory) {
     // If outletService still pressent, then remove first
     this.outletService = this.accessory.getService(this.platform.Service.Outlet);
     if (this.outletService) {
@@ -235,7 +345,7 @@ export class Bot {
     accessory.removeService(this.outletService!);
   }
 
-  private removeGarageDoorService(accessory: PlatformAccessory) {
+  public removeGarageDoorService(accessory: PlatformAccessory) {
     // If garageDoorService still pressent, then remove first
     this.garageDoorService = this.accessory.getService(this.platform.Service.GarageDoorOpener);
     if (this.garageDoorService) {
@@ -244,7 +354,7 @@ export class Bot {
     accessory.removeService(this.garageDoorService!);
   }
 
-  private removeDoorService(accessory: PlatformAccessory) {
+  public removeDoorService(accessory: PlatformAccessory) {
     // If doorService still pressent, then remove first
     this.doorService = this.accessory.getService(this.platform.Service.Door);
     if (this.doorService) {
@@ -253,7 +363,7 @@ export class Bot {
     accessory.removeService(this.doorService!);
   }
 
-  private removeLockService(accessory: PlatformAccessory) {
+  public removeLockService(accessory: PlatformAccessory) {
     // If lockService still pressent, then remove first
     this.lockService = this.accessory.getService(this.platform.Service.LockMechanism);
     if (this.lockService) {
@@ -262,7 +372,43 @@ export class Bot {
     accessory.removeService(this.lockService!);
   }
 
-  private removeSwitchService(accessory: PlatformAccessory) {
+  public removeFaucetService(accessory: PlatformAccessory) {
+    // If faucetService still pressent, then remove first
+    this.faucetService = this.accessory.getService(this.platform.Service.Faucet);
+    if (this.faucetService) {
+      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Faucet Service`);
+    }
+    accessory.removeService(this.faucetService!);
+  }
+
+  public removeFanService(accessory: PlatformAccessory) {
+    // If fanService still pressent, then remove first
+    this.fanService = this.accessory.getService(this.platform.Service.Fan);
+    if (this.fanService) {
+      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Fan Service`);
+    }
+    accessory.removeService(this.fanService!);
+  }
+
+  public removeWindowService(accessory: PlatformAccessory) {
+    // If windowService still pressent, then remove first
+    this.windowService = this.accessory.getService(this.platform.Service.Window);
+    if (this.windowService) {
+      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Window Service`);
+    }
+    accessory.removeService(this.windowService!);
+  }
+
+  public removeWindowCoveringService(accessory: PlatformAccessory) {
+    // If windowCoveringService still pressent, then remove first
+    this.windowCoveringService = this.accessory.getService(this.platform.Service.WindowCovering);
+    if (this.windowCoveringService) {
+      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Window Covering Service`);
+    }
+    accessory.removeService(this.windowCoveringService!);
+  }
+
+  public removeSwitchService(accessory: PlatformAccessory) {
     // If switchService still pressent, then remove first
     this.switchService = this.accessory.getService(this.platform.Service.Switch);
     if (this.switchService) {
@@ -721,6 +867,44 @@ export class Bot {
         }
       }
       this.debugLog(`Bot: ${this.accessory.displayName} Door On: ${this.On}`);
+    } else if (this.device.bot?.deviceType === 'window') {
+      if (this.On === undefined) {
+        this.debugLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
+      } else {
+        if (this.On) {
+          this.windowService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, 100);
+          this.windowService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, 100);
+          this.windowService?.updateCharacteristic(this.platform.Characteristic.PositionState,
+            this.platform.Characteristic.PositionState.STOPPED);
+          this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic TargetPosition: 100, CurrentPosition: 100`);
+        } else {
+          this.windowService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, 0);
+          this.windowService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, 0);
+          this.windowService?.updateCharacteristic(this.platform.Characteristic.PositionState,
+            this.platform.Characteristic.PositionState.STOPPED);
+          this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic TargetPosition: 0, CurrentPosition: 0`);
+        }
+      }
+      this.debugLog(`Bot: ${this.accessory.displayName} Window On: ${this.On}`);
+    } else if (this.device.bot?.deviceType === 'windowcovering') {
+      if (this.On === undefined) {
+        this.debugLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
+      } else {
+        if (this.On) {
+          this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, 100);
+          this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, 100);
+          this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.PositionState,
+            this.platform.Characteristic.PositionState.STOPPED);
+          this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic TargetPosition: 100, CurrentPosition: 100`);
+        } else {
+          this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, 0);
+          this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, 0);
+          this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.PositionState,
+            this.platform.Characteristic.PositionState.STOPPED);
+          this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic TargetPosition: 0, CurrentPosition: 0`);
+        }
+      }
+      this.debugLog(`Bot: ${this.accessory.displayName} Window Covering On: ${this.On}`);
     } else if (this.device.bot?.deviceType === 'lock') {
       if (this.On === undefined) {
         this.debugLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
@@ -740,6 +924,34 @@ export class Bot {
         }
       }
       this.debugLog(`Bot: ${this.accessory.displayName} Lock On: ${this.On}`);
+    } else if (this.device.bot?.deviceType === 'faucet') {
+      if (this.On === undefined) {
+        this.debugLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
+      } else {
+        if (this.On) {
+          this.faucetService?.updateCharacteristic(this.platform.Characteristic.Active,
+            this.platform.Characteristic.Active.ACTIVE);
+          this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic Active: ${this.On}`);
+        } else {
+          this.faucetService?.updateCharacteristic(this.platform.Characteristic.Active,
+            this.platform.Characteristic.Active.INACTIVE);
+          this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic Active: ${this.On}`);
+        }
+      }
+      this.debugLog(`Bot: ${this.accessory.displayName} Faucet On: ${this.On}`);
+    } else if (this.device.bot?.deviceType === 'fan') {
+      if (this.On === undefined) {
+        this.debugLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
+      } else {
+        if (this.On) {
+          this.fanService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
+          this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+        } else {
+          this.fanService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
+          this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+        }
+      }
+      this.debugLog(`Bot: ${this.accessory.displayName} Fan On: ${this.On}`);
     } else if (this.device.bot?.deviceType === 'switch') {
       if (this.On === undefined) {
         this.debugLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
@@ -780,9 +992,21 @@ export class Bot {
       this.doorService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, e);
       this.doorService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, e);
       this.doorService?.updateCharacteristic(this.platform.Characteristic.PositionState, e);
+    } else if (this.device.bot?.deviceType === 'window') {
+      this.windowService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, e);
+      this.windowService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, e);
+      this.windowService?.updateCharacteristic(this.platform.Characteristic.PositionState, e);
+    } else if (this.device.bot?.deviceType === 'windowcovering') {
+      this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, e);
+      this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, e);
+      this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.PositionState, e);
     } else if (this.device.bot?.deviceType === 'lock') {
       this.doorService?.updateCharacteristic(this.platform.Characteristic.LockTargetState, e);
       this.doorService?.updateCharacteristic(this.platform.Characteristic.LockCurrentState, e);
+    } else if (this.device.bot?.deviceType === 'faucet') {
+      this.faucetService?.updateCharacteristic(this.platform.Characteristic.Active, e);
+    } else if (this.device.bot?.deviceType === 'fan') {
+      this.fanService?.updateCharacteristic(this.platform.Characteristic.On, e);
     } else if (this.device.bot?.deviceType === 'switch') {
       this.switchService?.updateCharacteristic(this.platform.Characteristic.On, e);
     } else {
@@ -848,7 +1072,9 @@ export class Bot {
       } else {
         this.On = true;
       }
-    } else if (this.device.bot?.deviceType === 'door') {
+    } else if (this.device.bot?.deviceType === 'door'
+      || this.device.bot?.deviceType === 'window'
+      || this.device.bot?.deviceType === 'windowcovering') {
       this.debugLog(`Bot: ${this.accessory.displayName} TargetPosition: ${value}`);
       if (value === 0) {
         this.On = false;
@@ -858,6 +1084,13 @@ export class Bot {
     } else if (this.device.bot?.deviceType === 'lock') {
       this.debugLog(`Bot: ${this.accessory.displayName} LockTargetState: ${value}`);
       if (value === this.platform.Characteristic.LockTargetState.SECURED) {
+        this.On = false;
+      } else {
+        this.On = true;
+      }
+    } else if (this.device.bot?.deviceType === 'faucet') {
+      this.debugLog(`Bot: ${this.accessory.displayName} Active: ${value}`);
+      if (value === this.platform.Characteristic.Active.INACTIVE) {
         this.On = false;
       } else {
         this.On = true;
