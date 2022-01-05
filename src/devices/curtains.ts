@@ -253,7 +253,7 @@ export class Curtain {
     }
   }
 
-  public connectBLE() {
+  public async connectBLE() {
     let switchbot: any;
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -468,7 +468,7 @@ export class Curtain {
   private async BLERefreshStatus() {
     this.debugLog(`Curtain: ${this.accessory.displayName} BLE refreshStatus`);
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const switchbot = this.connectBLE();
+    const switchbot = await this.connectBLE();
     // Start to monitor advertisement packets
     if (switchbot !== false) {
       switchbot.startScan({
@@ -578,7 +578,7 @@ export class Curtain {
   private async BLEpushChanges() {
     if (this.TargetPosition !== this.CurrentPosition) {
       this.debugLog(`Curtain: ${this.accessory.displayName} BLE pushChanges`);
-      const switchbot = this.connectBLE();
+      const switchbot = await this.connectBLE();
       if (switchbot !== false) {
         switchbot.discover({ model: 'c', quick: true, id: this.device.bleMac }).then((device_list) => {
           this.infoLog(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);

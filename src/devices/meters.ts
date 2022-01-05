@@ -303,7 +303,7 @@ export class Meter {
     }
   }
 
-  private connectBLE() {
+  private async connectBLE() {
     let switchbot: any;
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -330,7 +330,7 @@ export class Meter {
   private async BLErefreshStatus() {
     this.debugLog(`Meter: ${this.accessory.displayName} BLE RefreshStatus`);
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const switchbot = this.connectBLE();
+    const switchbot = await this.connectBLE();
     // Start to monitor advertisement packets
     if (switchbot !== false) {
       switchbot.startScan({

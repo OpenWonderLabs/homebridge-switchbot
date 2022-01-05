@@ -435,9 +435,9 @@ export class Bot {
     this.debugLog(`Bot: ${this.accessory.displayName} BLE refreshStatus`);
 
     // Convert to BLE Address
-    const switchbot: any = this.connectBLE();
+    const switchbot = await this.connectBLE();
     // Start to monitor advertisement packets
-    if (await switchbot !== false) {
+    if (switchbot !== false) {
       switchbot.startScan({
         model: 'H',
         id: this.device.bleMac,
@@ -547,7 +547,7 @@ export class Bot {
   private async BLEpushChanges() {
     if (this.On !== this.OnCached) {
       this.debugLog(`Bot: ${this.accessory.displayName} BLE pushChanges`);
-      const switchbot = this.connectBLE();
+      const switchbot = await this.connectBLE();
       if (switchbot !== false) {
         if (this.botMode === 'press') {
           this.debugLog(`Bot: ${this.accessory.displayName} Bot Mode: ${this.botMode}`);

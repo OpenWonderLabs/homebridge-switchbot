@@ -226,7 +226,7 @@ export class Motion {
     }
   }
 
-  public connectBLE() {
+  public async connectBLE() {
     let switchbot: any;
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -253,7 +253,7 @@ export class Motion {
   private async BLERefreshStatus() {
     this.debugLog(`Motion Sensor: ${this.accessory.displayName} BLE RefreshStatus`);
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const switchbot = this.connectBLE();
+    const switchbot = await this.connectBLE();
     // Start to monitor advertisement packets
     if (switchbot !== false) {
       switchbot.startScan({

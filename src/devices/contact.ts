@@ -273,7 +273,7 @@ export class Contact {
     }
   }
 
-  public connectBLE() {
+  public async connectBLE() {
     let switchbot: any;
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -300,7 +300,7 @@ export class Contact {
   private async BLERefreshStatus() {
     this.debugLog(`Contact Sensor: ${this.accessory.displayName} BLE refreshStatus`);
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const switchbot = this.connectBLE();
+    const switchbot = await this.connectBLE();
     // Start to monitor advertisement packets
     if (switchbot !== false) {
       switchbot.startScan({
