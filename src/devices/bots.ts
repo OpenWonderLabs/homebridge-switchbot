@@ -23,6 +23,7 @@ export class Bot {
   private batteryService?: Service;
   private garageDoorService?: Service;
   private windowCoveringService?: Service;
+  private statefulProgrammableSwitchService?: Service;
 
 
   // Characteristic Values
@@ -110,6 +111,7 @@ export class Bot {
       this.removeWindowService(accessory);
       this.removeGarageDoorService(accessory);
       this.removeWindowCoveringService(accessory);
+      this.removeStatefulProgrammableSwitchService(accessory);
 
       // Add switchService
       (this.switchService =
@@ -128,6 +130,7 @@ export class Bot {
       this.removeSwitchService(accessory);
       this.removeWindowService(accessory);
       this.removeWindowCoveringService(accessory);
+      this.removeStatefulProgrammableSwitchService(accessory);
 
       // Add switchService
       (this.garageDoorService =
@@ -147,6 +150,7 @@ export class Bot {
       this.removeWindowService(accessory);
       this.removeGarageDoorService(accessory);
       this.removeWindowCoveringService(accessory);
+      this.removeStatefulProgrammableSwitchService(accessory);
 
       // Add switchService
       (this.doorService =
@@ -172,6 +176,7 @@ export class Bot {
       this.removeSwitchService(accessory);
       this.removeGarageDoorService(accessory);
       this.removeWindowCoveringService(accessory);
+      this.removeStatefulProgrammableSwitchService(accessory);
 
       // Add switchService
       (this.windowService =
@@ -197,6 +202,7 @@ export class Bot {
       this.removeSwitchService(accessory);
       this.removeWindowService(accessory);
       this.removeGarageDoorService(accessory);
+      this.removeStatefulProgrammableSwitchService(accessory);
 
       // Add switchService
       (this.windowCoveringService =
@@ -222,6 +228,7 @@ export class Bot {
       this.removeWindowService(accessory);
       this.removeGarageDoorService(accessory);
       this.removeWindowCoveringService(accessory);
+      this.removeStatefulProgrammableSwitchService(accessory);
 
       // Add switchService
       (this.lockService =
@@ -240,6 +247,7 @@ export class Bot {
       this.removeWindowService(accessory);
       this.removeGarageDoorService(accessory);
       this.removeWindowCoveringService(accessory);
+      this.removeStatefulProgrammableSwitchService(accessory);
 
       // Add switchService
       (this.faucetService =
@@ -258,6 +266,7 @@ export class Bot {
       this.removeWindowService(accessory);
       this.removeGarageDoorService(accessory);
       this.removeWindowCoveringService(accessory);
+      this.removeStatefulProgrammableSwitchService(accessory);
 
       // Add switchService
       (this.fanService =
@@ -267,6 +276,26 @@ export class Bot {
 
       this.fanService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
       this.fanService.getCharacteristic(this.platform.Characteristic.On).onSet(this.handleOnSet.bind(this));
+    } else if (device.bot?.deviceType === 'stateful') {
+      this.removeFanService(accessory);
+      this.removeLockService(accessory);
+      this.removeDoorService(accessory);
+      this.removeFaucetService(accessory);
+      this.removeOutletService(accessory);
+      this.removeSwitchService(accessory);
+      this.removeWindowService(accessory);
+      this.removeGarageDoorService(accessory);
+      this.removeWindowCoveringService(accessory);
+
+      // Add switchService
+      (this.statefulProgrammableSwitchService =
+        accessory.getService(this.platform.Service.StatefulProgrammableSwitch) ||
+        accessory.addService(this.platform.Service.StatefulProgrammableSwitch)), `${accessory.displayName} Stateful Programmable Switch`;
+      this.infoLog(`Bot: ${accessory.displayName} Displaying as Stateful Programmable Switch`);
+
+      this.statefulProgrammableSwitchService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      this.statefulProgrammableSwitchService.getCharacteristic(this.platform.Characteristic.ProgrammableSwitchOutputState)
+        .onSet(this.handleOnSet.bind(this));
     } else {
       this.removeFanService(accessory);
       this.removeLockService(accessory);
@@ -276,6 +305,7 @@ export class Bot {
       this.removeWindowService(accessory);
       this.removeGarageDoorService(accessory);
       this.removeWindowCoveringService(accessory);
+      this.removeStatefulProgrammableSwitchService(accessory);
 
       // Add outletService
       (this.outletService =
@@ -408,6 +438,15 @@ export class Bot {
     accessory.removeService(this.windowCoveringService!);
   }
 
+  public removeStatefulProgrammableSwitchService(accessory: PlatformAccessory) {
+    // If statefulProgrammableSwitchService still pressent, then remove first
+    this.statefulProgrammableSwitchService = this.accessory.getService(this.platform.Service.StatefulProgrammableSwitch);
+    if (this.statefulProgrammableSwitchService) {
+      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Stateful Programmable Switch Service`);
+    }
+    accessory.removeService(this.statefulProgrammableSwitchService!);
+  }
+
   public removeSwitchService(accessory: PlatformAccessory) {
     // If switchService still pressent, then remove first
     this.switchService = this.accessory.getService(this.platform.Service.Switch);
@@ -528,7 +567,7 @@ export class Bot {
         this.OnCached = this.On;
         this.accessory.context.On = this.OnCached;
       } else {
-        if (this.deviceStatus.body.power === 'on') {
+        /*if (this.deviceStatus.body.power === 'on') {
           this.On = true;
           this.OnCached = this.On;
           this.accessory.context.On = this.OnCached;
@@ -536,6 +575,11 @@ export class Bot {
           this.On = false;
           this.OnCached = this.On;
           this.accessory.context.On = this.OnCached;
+        }*/
+        this.OnCached = this.On;
+        this.accessory.context.On = this.OnCached;
+        if (this.On === undefined) {
+          this.On = false;
         }
       }
       this.debugLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
@@ -952,6 +996,23 @@ export class Bot {
         }
       }
       this.debugLog(`Bot: ${this.accessory.displayName} Fan On: ${this.On}`);
+    } else if (this.device.bot?.deviceType === 'stateful') {
+      if (this.On === undefined) {
+        this.debugLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
+      } else {
+        if (this.On) {
+          this.statefulProgrammableSwitchService?.updateCharacteristic(this.platform.Characteristic.ProgrammableSwitchEvent,
+            this.platform.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS);
+          this.statefulProgrammableSwitchService?.updateCharacteristic(this.platform.Characteristic.ProgrammableSwitchOutputState, 1);
+          this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic ProgrammableSwitchEvent: SINGLE, ProgrammableSwitchOutputState: 1`);
+        } else {
+          this.statefulProgrammableSwitchService?.updateCharacteristic(this.platform.Characteristic.ProgrammableSwitchEvent,
+            this.platform.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS);
+          this.statefulProgrammableSwitchService?.updateCharacteristic(this.platform.Characteristic.ProgrammableSwitchOutputState, 0);
+          this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic ProgrammableSwitchEvent: SINGLE, ProgrammableSwitchOutputState: 0`);
+        }
+      }
+      this.debugLog(`Bot: ${this.accessory.displayName} StatefulProgrammableSwitch On: ${this.On}`);
     } else if (this.device.bot?.deviceType === 'switch') {
       if (this.On === undefined) {
         this.debugLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
@@ -1007,6 +1068,9 @@ export class Bot {
       this.faucetService?.updateCharacteristic(this.platform.Characteristic.Active, e);
     } else if (this.device.bot?.deviceType === 'fan') {
       this.fanService?.updateCharacteristic(this.platform.Characteristic.On, e);
+    } else if (this.device.bot?.deviceType === 'stateful') {
+      this.statefulProgrammableSwitchService?.updateCharacteristic(this.platform.Characteristic.ProgrammableSwitchEvent, e);
+      this.statefulProgrammableSwitchService?.updateCharacteristic(this.platform.Characteristic.ProgrammableSwitchOutputState, e);
     } else if (this.device.bot?.deviceType === 'switch') {
       this.switchService?.updateCharacteristic(this.platform.Characteristic.On, e);
     } else {
@@ -1091,6 +1155,13 @@ export class Bot {
     } else if (this.device.bot?.deviceType === 'faucet') {
       this.debugLog(`Bot: ${this.accessory.displayName} Active: ${value}`);
       if (value === this.platform.Characteristic.Active.INACTIVE) {
+        this.On = false;
+      } else {
+        this.On = true;
+      }
+    } else if (this.device.bot?.deviceType === 'stateful') {
+      this.debugLog(`Bot: ${this.accessory.displayName} ProgrammableSwitchOutputState: ${value}`);
+      if (value === 0) {
         this.On = false;
       } else {
         this.On = true;

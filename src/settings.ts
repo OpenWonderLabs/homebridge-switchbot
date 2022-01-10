@@ -84,6 +84,8 @@ export type curtain = {
 
 export type contact = {
   hide_lightsensor?: boolean;
+  set_minLux?: number;
+  set_maxLux?: number;
   hide_motionsensor?: boolean;
 };
 

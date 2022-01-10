@@ -36,6 +36,9 @@ export class Contact {
   lightLevel!: serviceData['lightLevel'];
 
   // Config
+  set_minLux!: number;
+  set_maxLux!: number;
+  spaceBetweenLevels!: number;
   scanDuration!: number;
   deviceLogging!: string;
   deviceRefreshRate!: number;
@@ -191,6 +194,24 @@ export class Contact {
     }
   }
 
+  private minLux(): number {
+    if (this.device.curtain?.set_minLux) {
+      this.set_minLux = this.device.contact!.set_minLux!;
+    } else {
+      this.set_minLux = 1;
+    }
+    return this.set_minLux;
+  }
+
+  private maxLux(): number {
+    if (this.device.curtain?.set_maxLux) {
+      this.set_maxLux = this.device.contact!.set_maxLux!;
+    } else {
+      this.set_maxLux = 6001;
+    }
+    return this.set_maxLux;
+  }
+
   /**
    * Parse the device status from the SwitchBot api
    */
@@ -204,7 +225,7 @@ export class Contact {
 
   private async BLEparseStatus() {
     this.debugLog(`Contact Sensor: ${this.accessory.displayName} BLE parseStatus`);
-    if (this.device.contact?.hide_motionsensor) {
+    if (!this.device.contact?.hide_motionsensor) {
       // Movement
       this.MotionDetected = Boolean(this.movement);
     }
@@ -221,7 +242,8 @@ export class Contact {
       default:
         this.errorLog(`Contact Sensor: ${this.accessory.displayName} timeout no closed, doorstate: ${this.doorState}`);
     }
-    if (this.device.contact?.hide_lightsensor) {// Light Level
+    // Light Level
+    if (!this.device.contact?.hide_lightsensor) {
       switch (this.lightLevel) {
         case 'dark':
         case 0:
@@ -231,6 +253,63 @@ export class Contact {
           this.CurrentAmbientLightLevel = 100000;
       }
     }
+
+    /*
+    // Light Level
+    if (!this.device.contact?.hide_lightsensor) {
+      this.set_minLux = this.minLux();
+      this.set_maxLux = this.maxLux();
+      this.spaceBetweenLevels = 9;
+
+      //
+      switch (this.lightLevel) {
+        case 1:
+          this.CurrentAmbientLightLevel = this.set_minLux;
+          this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 2:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels);
+          this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel},`
+            + ` Calculation: ${((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels)}`);
+          break;
+        case 3:
+          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 2);
+          this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 4:
+          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 3);
+          this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 5:
+          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 4);
+          this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 6:
+          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 5);
+          this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 7:
+          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 6);
+          this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 8:
+          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 7);
+          this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 9:
+          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 8);
+          this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 10:
+        default:
+          this.CurrentAmbientLightLevel = this.set_maxLux;
+          this.debugLog();
+      }
+      this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel},`
+        + ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+    }*/
+
+
     // Battery
     this.BatteryLevel = Number(this.battery);
     if (this.BatteryLevel < 10) {
@@ -245,6 +324,7 @@ export class Contact {
 
   private async openAPIparseStatus() {
     if (this.platform.config.credentials?.openToken) {
+      // Contact State
       this.debugLog(`Contact Sensor: ${this.accessory.displayName} OpenAPI parseStatus`);
       if (this.deviceStatus.body.openState === 'open') {
         this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
@@ -255,10 +335,26 @@ export class Contact {
       } else {
         this.debugLog(`Contact Sensor: ${this.accessory.displayName} openState: ${this.deviceStatus.body.openState}`);
       }
-      if (this.device.contact?.hide_motionsensor) {
+      // Motion State
+      if (!this.device.contact?.hide_motionsensor) {
         this.MotionDetected = Boolean(this.deviceStatus.body.moveDetected);
       }
       this.debugLog(`Contact Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
+      // Light Level
+      if (!this.device.contact?.hide_lightsensor) {
+        this.set_minLux = this.minLux();
+        this.set_maxLux = this.maxLux();
+        // Brightness
+        switch (this.deviceStatus.body.brightness) {
+          case 'dim':
+            this.CurrentAmbientLightLevel = this.set_minLux;
+            break;
+          case 'bright':
+          default:
+            this.CurrentAmbientLightLevel = this.set_maxLux;
+        }
+        this.debugLog(`Contact Sensor: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+      }
     }
   }
 

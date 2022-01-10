@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Beta - Version 1.7.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.7.1) (2022-01-00)
+
+## What's Changed
+* Added option to display Bot a Stateful Programmable Switch.
+    * This will only Works in 3rd Party Home App, Like [Eve](https://apps.apple.com/us/app/eve-for-homekit/id917695792) or [Home+ 5](https://apps.apple.com/us/app/home-5/id995994352)
+* Fixed Bug: Contact Sensors's Motion Sensor and Light Sensor showing undefined values.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.7.0...v1.7.1
+
 ## [Version 1.7.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.7.0) (2022-01-05)
 
 ## What's Changed
