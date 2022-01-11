@@ -17,9 +17,9 @@ export class Motion {
 
   // Characteristic Values
   MotionDetected!: CharacteristicValue;
+  CurrentAmbientLightLevel!: CharacteristicValue;
   BatteryLevel?: CharacteristicValue;
   StatusLowBattery?: CharacteristicValue;
-  CurrentAmbientLightLevel?: CharacteristicValue;
 
   // OpenAPI Others
   deviceStatus!: deviceStatusResponse;
@@ -33,6 +33,8 @@ export class Motion {
   lightLevel!: serviceData['lightLevel'];
 
   // Config
+  set_minLux!: number;
+  set_maxLux!: number;
   scanDuration!: number;
   deviceLogging!: string;
   deviceRefreshRate!: number;
@@ -51,6 +53,11 @@ export class Motion {
     this.scan();
     this.refreshRate();
     this.MotionDetected = false;
+
+    // Motion Config
+    this.debugLog(`Motion Sensor: ${this.accessory.displayName} Config: (ble: ${device.ble}, offline: ${device.offline},`
+      + ` hide_lightsensor: ${device.motion?.hide_lightsensor},`
+      + ` set_minLux: ${this.device.motion?.set_minLux}, set_maxLux: ${this.device.motion?.set_maxLux})`);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doMotionUpdate = new Subject();
@@ -72,21 +79,6 @@ export class Motion {
       accessory.getService(this.platform.Service.MotionSensor) ||
       accessory.addService(this.platform.Service.MotionSensor)), `${accessory.displayName} Motion Sensor`;
 
-    if (device.ble) {
-      (this.lightSensorService =
-        accessory.getService(this.platform.Service.LightSensor) ||
-        accessory.addService(this.platform.Service.LightSensor)), `${accessory.displayName} Light Sensor`;
-
-      this.lightSensorService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Light Sensor`);
-
-
-      (this.batteryService =
-        accessory.getService(this.platform.Service.Battery) ||
-        accessory.addService(this.platform.Service.Battery)), `${accessory.displayName} Battery`;
-
-      this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
-    }
-
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
     // accessory.getService('NAME') ?? accessory.addService(this.platform.Service.Motion, 'NAME', 'USER_DEFINED_SUBTYPE');
@@ -98,8 +90,31 @@ export class Motion {
     // each service must implement at-minimum the "required characteristics" for the given service type
     // see https://developers.homebridge.io/#/service/MotionSensor
 
-    // create handlers for required characteristics
-    //this.service.setCharacteristic(this.platform.Characteristic.ChargingState, 2);
+    // Light Sensor Service
+    if (device.motion?.hide_lightsensor) {
+      this.debugLog(`Motion Sensor: ${accessory.displayName} Removing Light Sensor Service`);
+      this.lightSensorService = this.accessory.getService(this.platform.Service.LightSensor);
+      accessory.removeService(this.lightSensorService!);
+    } else if (!this.lightSensorService) {
+      this.debugLog(`Motion Sensor: ${accessory.displayName} Add Light Sensor Service`);
+      (this.lightSensorService =
+        this.accessory.getService(this.platform.Service.LightSensor) ||
+        this.accessory.addService(this.platform.Service.LightSensor)), `${accessory.displayName} Light Sensor`;
+
+      this.lightSensorService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Light Sensor`);
+
+    } else {
+      this.debugLog(`Motion Sensor: ${accessory.displayName} Light Sensor Service Not Added`);
+    }
+
+    // Battery Service
+    if (device.ble) {
+      (this.batteryService =
+        accessory.getService(this.platform.Service.Battery) ||
+        accessory.addService(this.platform.Service.Battery)), `${accessory.displayName} Battery`;
+
+      this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
+    }
 
     // Retrieve initial values and updateHomekit
     this.updateHomeKitCharacteristics();
@@ -159,6 +174,24 @@ export class Motion {
     }
   }
 
+  private minLux(): number {
+    if (this.device.motion?.set_minLux) {
+      this.set_minLux = this.device.motion!.set_minLux!;
+    } else {
+      this.set_minLux = 1;
+    }
+    return this.set_minLux;
+  }
+
+  private maxLux(): number {
+    if (this.device.motion?.set_maxLux) {
+      this.set_maxLux = this.device.motion!.set_maxLux!;
+    } else {
+      this.set_maxLux = 6001;
+    }
+    return this.set_maxLux;
+  }
+
   /**
    * Parse the device status from the SwitchBot api
    */
@@ -172,47 +205,90 @@ export class Motion {
 
   private async BLEparseStatus() {
     this.debugLog(`Motion Sensor: ${this.accessory.displayName} BLE parseStatus`);
-    this.MotionDetected = Boolean(this.movement);
-    this.debugLog(`Motion Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
+    // Movement
+    if (this.movement === undefined && this.platform.config.credentials?.openToken) {
+      this.openAPImotion();
+    } else if (this.movement === undefined) {
+      this.movement = false;
+      this.BLEmotion();
+    } else {
+      this.BLEmotion();
+    }
     // Light Level
-    switch (this.lightLevel) {
-      case 'dark':
-      case 0:
-        this.CurrentAmbientLightLevel = 0.0001;
-        break;
-      default:
-        this.CurrentAmbientLightLevel = 100000;
+    if (!this.device.motion?.hide_lightsensor) {
+      this.set_minLux = this.minLux();
+      this.set_maxLux = this.maxLux();
+      if (this.lightLevel === undefined && this.platform.config.credentials?.openToken) {
+        this.openAPIlux();
+      } else if (this.lightLevel === undefined) {
+        this.lightLevel = 100;
+        this.BLElux();
+      } else {
+        this.BLElux();
+      }
     }
     // Battery
+    if (this.battery === undefined) {
+      this.battery = 100;
+    }
     this.BatteryLevel = Number(this.battery);
     if (this.BatteryLevel < 10) {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     }
+    this.debugLog(`Motion Sensor: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
+  }
+
+  private BLEmotion() {
+    this.MotionDetected = Boolean(this.movement);
+    this.debugLog(`Motion Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
+  }
+
+  private BLElux() {
+    switch (this.lightLevel) {
+      case 'dark':
+      case 1:
+        this.CurrentAmbientLightLevel = this.set_minLux;
+        break;
+      default:
+        this.CurrentAmbientLightLevel = this.set_maxLux;
+    }
+    this.debugLog(`Motion Sensor: ${this.accessory.displayName} LightLevel: ${this.lightLevel},`
+      + ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
   }
 
   private async openAPIparseStatus() {
-    try {
-      if (this.platform.config.credentials?.openToken) {
-        this.debugLog(`Motion Sensor: ${this.accessory.displayName} OpenAPI parseStatus`);
-        if (typeof this.deviceStatus.body.moveDetected === 'boolean') {
-          this.MotionDetected = this.deviceStatus.body.moveDetected;
-        }
-        this.debugLog(`Motion Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
+    if (this.platform.config.credentials?.openToken) {
+      this.debugLog(`Motion Sensor: ${this.accessory.displayName} OpenAPI parseStatus`);
+      // Motion State
+      this.openAPImotion();
+      // Light Level
+      if (!this.device.motion?.hide_lightsensor) {
+        this.openAPIlux();
       }
-    } catch (e: any) {
-      this.errorLog(`Motion Sensor: ${this.accessory.displayName} failed parseStatus with OpenAPI Connection`);
-      if (this.deviceLogging === 'debug') {
-        this.errorLog(`Motion Sensor: ${this.accessory.displayName} failed parseStatus with OpenAPI Connection,`
-          + ` Error Message: ${JSON.stringify(e.message)}`);
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Motion Sensor: ${this.accessory.displayName} failed parseStatus with OpenAPI Connection,`
-          + ` Error: ${JSON.stringify(e)}`);
-      }
-      this.apiError(e);
     }
+  }
+
+  private openAPImotion() {
+    if (typeof this.deviceStatus.body.moveDetected === 'boolean') {
+      this.MotionDetected = this.deviceStatus.body.moveDetected;
+    }
+    this.debugLog(`Motion Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
+  }
+
+  private openAPIlux() {
+    this.set_minLux = this.minLux();
+    this.set_maxLux = this.maxLux();
+    switch (this.deviceStatus.body.brightness) {
+      case 'dim':
+        this.CurrentAmbientLightLevel = this.set_minLux;
+        break;
+      case 'bright':
+      default:
+        this.CurrentAmbientLightLevel = this.set_maxLux;
+    }
+    this.debugLog(`Motion Sensor: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
   }
 
   /**
@@ -257,7 +333,7 @@ export class Motion {
     // Start to monitor advertisement packets
     if (switchbot !== false) {
       switchbot.startScan({
-        model: 's',
+        //model: 's',
         id: this.device.bleMac,
       }).then(() => {
         // Set an event hander

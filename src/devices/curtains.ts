@@ -31,6 +31,7 @@ export class Curtain {
   battery: serviceData['battery'];
   position: serviceData['position'];
   lightLevel: serviceData['lightLevel'];
+  spaceBetweenLevels!: number;
 
   // Target
   setNewTarget!: boolean;
@@ -44,7 +45,6 @@ export class Curtain {
   scanDuration!: number;
   deviceLogging!: string;
   deviceRefreshRate!: number;
-  spaceBetweenLevels!: number;
 
   // Updates
   curtainUpdateInProgress!: boolean;

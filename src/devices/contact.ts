@@ -38,7 +38,6 @@ export class Contact {
   // Config
   set_minLux!: number;
   set_maxLux!: number;
-  spaceBetweenLevels!: number;
   scanDuration!: number;
   deviceLogging!: string;
   deviceRefreshRate!: number;
@@ -60,8 +59,8 @@ export class Contact {
 
     // Contact Config
     this.debugLog(`Contact Sensor: ${this.accessory.displayName} Config: (ble: ${device.ble}, offline: ${device.offline},`
-      + ` hide_lightsensor: ${device.contact?.hide_lightsensor}, hide_motionsensor: ${device.contact?.hide_motionsensor})`);
-
+      + ` hide_lightsensor: ${device.contact?.hide_lightsensor}, hide_motionsensor: ${device.contact?.hide_motionsensor},`
+      + ` set_minLux: ${this.device.contact?.set_minLux}, set_maxLux: ${this.device.contact?.set_maxLux})`);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doContactUpdate = new Subject();
@@ -92,7 +91,7 @@ export class Contact {
     this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
 
     // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/MotionSensor
+    // see https://developers.homebridge.io/#/service/ContactSensor
 
     // Motion Sensor Service
     if (device.contact?.hide_motionsensor) {
@@ -128,6 +127,7 @@ export class Contact {
       this.debugLog(`Contact Sensor: ${accessory.displayName} Light Sensor Service Not Added`);
     }
 
+    // Battery Service
     if (device.ble) {
       (this.batteryService =
         accessory.getService(this.platform.Service.Battery) ||
@@ -195,7 +195,7 @@ export class Contact {
   }
 
   private minLux(): number {
-    if (this.device.curtain?.set_minLux) {
+    if (this.device.contact?.set_minLux) {
       this.set_minLux = this.device.contact!.set_minLux!;
     } else {
       this.set_minLux = 1;
@@ -204,7 +204,7 @@ export class Contact {
   }
 
   private maxLux(): number {
-    if (this.device.curtain?.set_maxLux) {
+    if (this.device.contact?.set_maxLux) {
       this.set_maxLux = this.device.contact!.set_maxLux!;
     } else {
       this.set_maxLux = 6001;
@@ -225,10 +225,6 @@ export class Contact {
 
   private async BLEparseStatus() {
     this.debugLog(`Contact Sensor: ${this.accessory.displayName} BLE parseStatus`);
-    if (!this.device.contact?.hide_motionsensor) {
-      // Movement
-      this.MotionDetected = Boolean(this.movement);
-    }
     // Door State
     switch (this.doorState) {
       case 'open':
@@ -242,119 +238,107 @@ export class Contact {
       default:
         this.errorLog(`Contact Sensor: ${this.accessory.displayName} timeout no closed, doorstate: ${this.doorState}`);
     }
-    // Light Level
-    if (!this.device.contact?.hide_lightsensor) {
-      switch (this.lightLevel) {
-        case 'dark':
-        case 0:
-          this.CurrentAmbientLightLevel = 0.0001;
-          break;
-        default:
-          this.CurrentAmbientLightLevel = 100000;
+    // Movement
+    if (!this.device.contact?.hide_motionsensor) {
+      if (this.movement === undefined && this.platform.config.credentials?.openToken) {
+        this.openAPImotion();
+      } else if (this.movement === undefined) {
+        this.movement = false;
+        this.BLEmotion();
+      } else {
+        this.BLEmotion();
       }
     }
-
-    /*
     // Light Level
     if (!this.device.contact?.hide_lightsensor) {
       this.set_minLux = this.minLux();
       this.set_maxLux = this.maxLux();
-      this.spaceBetweenLevels = 9;
-
-      //
-      switch (this.lightLevel) {
-        case 1:
-          this.CurrentAmbientLightLevel = this.set_minLux;
-          this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
-          break;
-        case 2:
-          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels);
-          this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel},`
-            + ` Calculation: ${((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels)}`);
-          break;
-        case 3:
-          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 2);
-          this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
-          break;
-        case 4:
-          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 3);
-          this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
-          break;
-        case 5:
-          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 4);
-          this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
-          break;
-        case 6:
-          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 5);
-          this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
-          break;
-        case 7:
-          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 6);
-          this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
-          break;
-        case 8:
-          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 7);
-          this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
-          break;
-        case 9:
-          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 8);
-          this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
-          break;
-        case 10:
-        default:
-          this.CurrentAmbientLightLevel = this.set_maxLux;
-          this.debugLog();
+      if (this.lightLevel === undefined && this.platform.config.credentials?.openToken) {
+        this.openAPIlux();
+      } else if (this.lightLevel === undefined) {
+        this.lightLevel = 100;
+        this.BLElux();
+      } else {
+        this.BLElux();
       }
-      this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel},`
-        + ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
-    }*/
-
-
+    }
     // Battery
+    if (this.battery === undefined) {
+      this.battery === 100;
+    }
     this.BatteryLevel = Number(this.battery);
     if (this.BatteryLevel < 10) {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     }
+    this.debugLog(`Contact Sensor: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
+  }
 
-    this.debugLog(`Contact Sensor: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}, MotionDetected: `
-      + `${this.MotionDetected}, CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}, BatteryLevel: ${this.BatteryLevel}`);
+  private BLEmotion() {
+    this.MotionDetected = Boolean(this.movement);
+    this.debugLog(`Contact Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
+  }
+
+  private BLElux() {
+    switch (this.lightLevel) {
+      case 'dark':
+      case 0:
+        this.CurrentAmbientLightLevel = this.set_minLux;
+        break;
+      default:
+        this.CurrentAmbientLightLevel = this.set_maxLux;
+    }
+    this.debugLog(`Contact Sensor: ${this.accessory.displayName} LightLevel: ${this.lightLevel},`
+      + ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
   }
 
   private async openAPIparseStatus() {
     if (this.platform.config.credentials?.openToken) {
       // Contact State
-      this.debugLog(`Contact Sensor: ${this.accessory.displayName} OpenAPI parseStatus`);
-      if (this.deviceStatus.body.openState === 'open') {
-        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
-        this.debugLog(`Contact Sensor: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
-      } else if (this.deviceStatus.body.openState === 'close') {
-        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
-        this.debugLog(`Contact Sensor: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
-      } else {
-        this.debugLog(`Contact Sensor: ${this.accessory.displayName} openState: ${this.deviceStatus.body.openState}`);
-      }
+      this.openAPIcontact();
       // Motion State
       if (!this.device.contact?.hide_motionsensor) {
-        this.MotionDetected = Boolean(this.deviceStatus.body.moveDetected);
+        this.openAPImotion();
       }
-      this.debugLog(`Contact Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
       // Light Level
       if (!this.device.contact?.hide_lightsensor) {
-        this.set_minLux = this.minLux();
-        this.set_maxLux = this.maxLux();
-        // Brightness
-        switch (this.deviceStatus.body.brightness) {
-          case 'dim':
-            this.CurrentAmbientLightLevel = this.set_minLux;
-            break;
-          case 'bright':
-          default:
-            this.CurrentAmbientLightLevel = this.set_maxLux;
-        }
-        this.debugLog(`Contact Sensor: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+        this.openAPIlux();
       }
+    }
+  }
+
+  private openAPIlux() {
+    this.set_minLux = this.minLux();
+    this.set_maxLux = this.maxLux();
+    switch (this.deviceStatus.body.brightness) {
+      case 'dim':
+        this.CurrentAmbientLightLevel = this.set_minLux;
+        break;
+      case 'bright':
+      default:
+        this.CurrentAmbientLightLevel = this.set_maxLux;
+    }
+    this.debugLog(`Contact Sensor: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+  }
+
+  private openAPImotion() {
+    if (typeof this.deviceStatus.body.moveDetected === 'boolean') {
+      this.MotionDetected = this.deviceStatus.body.moveDetected;
+    }
+    this.debugLog(`Contact Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
+  }
+
+  private openAPIcontact() {
+    this.debugLog(`Contact Sensor: ${this.accessory.displayName} OpenAPI parseStatus`);
+    if (this.deviceStatus.body.openState === 'open') {
+      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
+      this.debugLog(`Contact Sensor: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
+    } else if (this.deviceStatus.body.openState === 'close') {
+      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+      this.debugLog(`Contact Sensor: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
+    } else {
+      this.debugLog(`Contact Sensor: ${this.accessory.displayName} openState: ${this.deviceStatus.body.openState}`);
     }
   }
 
