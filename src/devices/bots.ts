@@ -38,6 +38,7 @@ export class Bot {
   // BLE Others
   connected?: boolean;
   switchbot!: switchbot;
+  SwitchToOpenAPI?: boolean;
   serviceData!: serviceData;
   mode!: serviceData['mode'];
   state!: serviceData['state'];
@@ -317,12 +318,21 @@ export class Bot {
       this.outletService.getCharacteristic(this.platform.Characteristic.On).onSet(this.handleOnSet.bind(this));
     }
 
-    if (device.ble) {
+    // Battery Service
+    if (!device.ble) {
+      this.debugLog(`Bot: ${accessory.displayName} Removing Battery Service`);
+      this.batteryService = this.accessory.getService(this.platform.Service.Battery);
+      accessory.removeService(this.batteryService!);
+    } else if (!this.batteryService) {
+      this.debugLog(`Bot: ${accessory.displayName} Add Battery Service`);
       (this.batteryService =
-        accessory.getService(this.platform.Service.Battery) ||
-        accessory.addService(this.platform.Service.Battery)), `${accessory.displayName} Battery`;
+        this.accessory.getService(this.platform.Service.Battery) ||
+        this.accessory.addService(this.platform.Service.Battery)), `${accessory.displayName} Battery`;
 
       this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
+
+    } else {
+      this.debugLog(`Bot: ${accessory.displayName} Battery Service Not Added`);
     }
 
     // Retrieve initial values and updateHomekit
@@ -523,10 +533,10 @@ export class Bot {
    * Parse the device status from the SwitchBot api
    */
   async parseStatus() {
-    if (this.device.ble) {
-      await this.BLEparseStatus();
-    } else {
+    if (this.SwitchToOpenAPI || !this.device.ble) {
       await this.openAPIparseStatus();
+    } else {
+      await this.BLEparseStatus();
     }
   }
 
@@ -560,6 +570,9 @@ export class Bot {
   }
 
   private async openAPIparseStatus() {
+    if (this.device.ble) {
+      this.SwitchToOpenAPI = false;
+    }
     if (this.platform.config.credentials?.openToken) {
       this.debugLog(`Bot: ${this.accessory.displayName} OpenAPI parseStatus`);
       if (this.botMode === 'press') {
@@ -664,6 +677,7 @@ export class Bot {
         this.errorLog(`Bot: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
         if (this.platform.config.credentials?.openToken) {
           this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
+          this.SwitchToOpenAPI = true;
           await this.openAPIRefreshStatus();
         }
       }
@@ -679,6 +693,7 @@ export class Bot {
       }
       if (this.platform.config.credentials?.openToken) {
         this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
+        this.SwitchToOpenAPI = true;
         await this.openAPIRefreshStatus();
       }
       this.apiError(e);

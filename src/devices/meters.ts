@@ -33,6 +33,7 @@ export class Meter {
   // BLE Others
   connected?: boolean;
   switchbot!: switchbot;
+  SwitchToOpenAPI?: boolean;
   serviceData!: serviceData;
   temperature!: temperature['c'];
   battery!: serviceData['battery'];
@@ -232,10 +233,10 @@ export class Meter {
    * Parse the device status from the SwitchBot api
    */
   async parseStatus() {
-    if (this.device.ble) {
-      await this.BLEparseStatus();
-    } else {
+    if (this.SwitchToOpenAPI || !this.device.ble) {
       await this.openAPIparseStatus();
+    } else {
+      await this.BLEparseStatus();
     }
   }
 
@@ -266,6 +267,9 @@ export class Meter {
   }
 
   private async openAPIparseStatus() {
+    if (this.device.ble) {
+      this.SwitchToOpenAPI = false;
+    }
     if (this.platform.config.credentials?.openToken) {
       this.debugLog(`Meter: ${this.accessory.displayName} OpenAPI parseStatus`);
       if (this.deviceStatus.body) {
@@ -385,6 +389,7 @@ export class Meter {
         }
         if (this.platform.config.credentials?.openToken) {
           this.warnLog(`Meter: ${this.accessory.displayName} Using OpenAPI Connection`);
+          this.SwitchToOpenAPI = true;
           this.openAPIRefreshStatus();
         }
         this.apiError(e);
@@ -398,6 +403,7 @@ export class Meter {
     this.errorLog(`Meter: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
     if (this.platform.config.credentials?.openToken) {
       this.warnLog(`Meter: ${this.accessory.displayName} Using OpenAPI Connection`);
+      this.SwitchToOpenAPI = true;
       await this.openAPIRefreshStatus();
     }
   }

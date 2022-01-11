@@ -26,6 +26,7 @@ export class Curtain {
   // BLE Others
   connected?: boolean;
   switchbot!: switchbot;
+  SwitchToOpenAPI?: boolean;
   serviceData!: serviceData;
   calibration: serviceData['calibration'];
   battery: serviceData['battery'];
@@ -140,6 +141,23 @@ export class Curtain {
 
     } else {
       this.debugLog(`Curtain: ${accessory.displayName} Light Sensor Service Not Added`);
+    }
+
+    // Battery Service
+    if (!device.ble) {
+      this.debugLog(`Curtain: ${accessory.displayName} Removing Battery Service`);
+      this.batteryService = this.accessory.getService(this.platform.Service.Battery);
+      accessory.removeService(this.batteryService!);
+    } else if (!this.batteryService) {
+      this.debugLog(`Curtain: ${accessory.displayName} Add Battery Service`);
+      (this.batteryService =
+        this.accessory.getService(this.platform.Service.Battery) ||
+        this.accessory.addService(this.platform.Service.Battery)), `${accessory.displayName} Battery`;
+
+      this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
+
+    } else {
+      this.debugLog(`Curtain: ${accessory.displayName} Battery Service Not Added`);
     }
 
 
@@ -304,11 +322,14 @@ export class Curtain {
     return this.set_maxLux;
   }
 
+  /**
+   * Parse the device status from the SwitchBot api
+   */
   async parseStatus() {
-    if (this.device.ble) {
-      await this.BLEparseStatus();
-    } else {
+    if (this.SwitchToOpenAPI || !this.device.ble) {
       await this.openAPIparseStatus();
+    } else {
+      await this.BLEparseStatus();
     }
   }
 
@@ -407,6 +428,9 @@ export class Curtain {
   }
 
   private async openAPIparseStatus() {
+    if (this.device.ble) {
+      this.SwitchToOpenAPI = false;
+    }
     if (this.platform.config.credentials?.openToken) {
       this.debugLog(`Curtain: ${this.accessory.displayName} OpenAPI parseStatus`);
       // CurrentPosition
@@ -506,6 +530,7 @@ export class Curtain {
           this.errorLog(`Curtain: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
           if (this.platform.config.credentials?.openToken) {
             this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
+            this.SwitchToOpenAPI = true;
             await this.openAPIRefreshStatus();
           }
         }
@@ -521,6 +546,7 @@ export class Curtain {
         }
         if (this.platform.config.credentials?.openToken) {
           this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
+          this.SwitchToOpenAPI = true;
           await this.openAPIRefreshStatus();
         }
         this.apiError(e);
@@ -534,6 +560,7 @@ export class Curtain {
     this.errorLog(`Curtain: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
     if (this.platform.config.credentials?.openToken) {
       this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
+      this.SwitchToOpenAPI = true;
       await this.openAPIRefreshStatus();
     }
   }

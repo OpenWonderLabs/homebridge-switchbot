@@ -29,6 +29,7 @@ export class Contact {
   // BLE Others
   connected?: boolean;
   switchbot!: switchbot;
+  SwitchToOpenAPI!: boolean;
   serviceData!: serviceData;
   battery!: serviceData['battery'];
   movement!: serviceData['movement'];
@@ -128,12 +129,20 @@ export class Contact {
     }
 
     // Battery Service
-    if (device.ble) {
+    if (!device.ble) {
+      this.debugLog(`Contact Sensor: ${accessory.displayName} Removing Battery Service`);
+      this.batteryService = this.accessory.getService(this.platform.Service.Battery);
+      accessory.removeService(this.batteryService!);
+    } else if (!this.batteryService) {
+      this.debugLog(`Contact Sensor: ${accessory.displayName} Add Battery Service`);
       (this.batteryService =
-        accessory.getService(this.platform.Service.Battery) ||
-        accessory.addService(this.platform.Service.Battery)), `${accessory.displayName} Battery`;
+        this.accessory.getService(this.platform.Service.Battery) ||
+        this.accessory.addService(this.platform.Service.Battery)), `${accessory.displayName} Battery`;
 
       this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
+
+    } else {
+      this.debugLog(`Contact Sensor: ${accessory.displayName} Battery Service Not Added`);
     }
 
     // Retrieve initial values and updateHomekit
@@ -216,10 +225,10 @@ export class Contact {
    * Parse the device status from the SwitchBot api
    */
   async parseStatus() {
-    if (this.device.ble) {
-      await this.BLEparseStatus();
-    } else {
+    if (this.SwitchToOpenAPI || !this.device.ble) {
       await this.openAPIparseStatus();
+    } else {
+      await this.BLEparseStatus();
     }
   }
 
@@ -240,27 +249,23 @@ export class Contact {
     }
     // Movement
     if (!this.device.contact?.hide_motionsensor) {
-      if (this.movement === undefined && this.platform.config.credentials?.openToken) {
-        this.openAPImotion();
-      } else if (this.movement === undefined) {
-        this.movement = false;
-        this.BLEmotion();
-      } else {
-        this.BLEmotion();
-      }
+      this.MotionDetected = Boolean(this.movement);
+      this.debugLog(`Contact Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
     }
     // Light Level
     if (!this.device.contact?.hide_lightsensor) {
       this.set_minLux = this.minLux();
       this.set_maxLux = this.maxLux();
-      if (this.lightLevel === undefined && this.platform.config.credentials?.openToken) {
-        this.openAPIlux();
-      } else if (this.lightLevel === undefined) {
-        this.lightLevel = 100;
-        this.BLElux();
-      } else {
-        this.BLElux();
+      switch (this.lightLevel) {
+        case 'dark':
+        case 0:
+          this.CurrentAmbientLightLevel = this.set_minLux;
+          break;
+        default:
+          this.CurrentAmbientLightLevel = this.set_maxLux;
       }
+      this.debugLog(`Contact Sensor: ${this.accessory.displayName} LightLevel: ${this.lightLevel},`
+        + ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
     }
     // Battery
     if (this.battery === undefined) {
@@ -275,70 +280,43 @@ export class Contact {
     this.debugLog(`Contact Sensor: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
   }
 
-  private BLEmotion() {
-    this.MotionDetected = Boolean(this.movement);
-    this.debugLog(`Contact Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
-  }
-
-  private BLElux() {
-    switch (this.lightLevel) {
-      case 'dark':
-      case 0:
-        this.CurrentAmbientLightLevel = this.set_minLux;
-        break;
-      default:
-        this.CurrentAmbientLightLevel = this.set_maxLux;
-    }
-    this.debugLog(`Contact Sensor: ${this.accessory.displayName} LightLevel: ${this.lightLevel},`
-      + ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
-  }
-
   private async openAPIparseStatus() {
+    if (this.device.ble) {
+      this.SwitchToOpenAPI = false;
+    }
     if (this.platform.config.credentials?.openToken) {
+      this.debugLog(`Contact Sensor: ${this.accessory.displayName} OpenAPI parseStatus`);
       // Contact State
-      this.openAPIcontact();
+      if (this.deviceStatus.body.openState === 'open') {
+        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
+        this.debugLog(`Contact Sensor: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
+      } else if (this.deviceStatus.body.openState === 'close') {
+        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+        this.debugLog(`Contact Sensor: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
+      } else {
+        this.debugLog(`Contact Sensor: ${this.accessory.displayName} openState: ${this.deviceStatus.body.openState}`);
+      }
       // Motion State
       if (!this.device.contact?.hide_motionsensor) {
-        this.openAPImotion();
+        if (typeof this.deviceStatus.body.moveDetected === 'boolean') {
+          this.MotionDetected = this.deviceStatus.body.moveDetected;
+        }
+        this.debugLog(`Contact Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
       }
       // Light Level
       if (!this.device.contact?.hide_lightsensor) {
-        this.openAPIlux();
+        this.set_minLux = this.minLux();
+        this.set_maxLux = this.maxLux();
+        switch (this.deviceStatus.body.brightness) {
+          case 'dim':
+            this.CurrentAmbientLightLevel = this.set_minLux;
+            break;
+          case 'bright':
+          default:
+            this.CurrentAmbientLightLevel = this.set_maxLux;
+        }
+        this.debugLog(`Contact Sensor: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
       }
-    }
-  }
-
-  private openAPIlux() {
-    this.set_minLux = this.minLux();
-    this.set_maxLux = this.maxLux();
-    switch (this.deviceStatus.body.brightness) {
-      case 'dim':
-        this.CurrentAmbientLightLevel = this.set_minLux;
-        break;
-      case 'bright':
-      default:
-        this.CurrentAmbientLightLevel = this.set_maxLux;
-    }
-    this.debugLog(`Contact Sensor: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
-  }
-
-  private openAPImotion() {
-    if (typeof this.deviceStatus.body.moveDetected === 'boolean') {
-      this.MotionDetected = this.deviceStatus.body.moveDetected;
-    }
-    this.debugLog(`Contact Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
-  }
-
-  private openAPIcontact() {
-    this.debugLog(`Contact Sensor: ${this.accessory.displayName} OpenAPI parseStatus`);
-    if (this.deviceStatus.body.openState === 'open') {
-      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
-      this.debugLog(`Contact Sensor: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
-    } else if (this.deviceStatus.body.openState === 'close') {
-      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
-      this.debugLog(`Contact Sensor: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
-    } else {
-      this.debugLog(`Contact Sensor: ${this.accessory.displayName} openState: ${this.deviceStatus.body.openState}`);
     }
   }
 
@@ -433,6 +411,7 @@ export class Contact {
         }
         if (this.platform.config.credentials?.openToken) {
           this.warnLog(`Contact Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
+          this.SwitchToOpenAPI = true;
           await this.openAPIRefreshStatus();
         }
         this.apiError(e);
@@ -446,6 +425,7 @@ export class Contact {
     this.errorLog(`Contact Sensor: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
     if (this.platform.config.credentials?.openToken) {
       this.warnLog(`Contact Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
+      this.SwitchToOpenAPI = true;
       await this.openAPIRefreshStatus();
     }
   }
