@@ -43,6 +43,8 @@ export class Motion {
   // Updates
   motionUbpdateInProgress!: boolean;
   doMotionUpdate!: Subject<void>;
+  moveDetected: boolean | undefined;
+  brightness: string | number | undefined;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -215,7 +217,7 @@ export class Motion {
   private async BLEparseStatus() {
     this.debugLog(`Motion Sensor: ${this.accessory.displayName} BLE parseStatus`);
     // Movement
-    this.MotionDetected = Boolean(this.movement);
+    this.MotionDetected = this.movement!;
     this.debugLog(`Motion Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
     // Light Level
     if (!this.device.motion?.hide_lightsensor) {
@@ -236,7 +238,7 @@ export class Motion {
     if (this.battery === undefined) {
       this.battery = 100;
     }
-    this.BatteryLevel = Number(this.battery);
+    this.BatteryLevel = this.battery!;
     if (this.BatteryLevel < 10) {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
@@ -252,15 +254,13 @@ export class Motion {
     if (this.platform.config.credentials?.openToken) {
       this.debugLog(`Motion Sensor: ${this.accessory.displayName} OpenAPI parseStatus`);
       // Motion State
-      if (typeof this.deviceStatus.body.moveDetected === 'boolean') {
-        this.MotionDetected = this.deviceStatus.body.moveDetected;
-      }
+      this.MotionDetected = this.moveDetected!;
       this.debugLog(`Motion Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
       // Light Level
       if (!this.device.motion?.hide_lightsensor) {
         this.set_minLux = this.minLux();
         this.set_maxLux = this.maxLux();
-        switch (this.deviceStatus.body.brightness) {
+        switch (this.brightness) {
           case 'dim':
             this.CurrentAmbientLightLevel = this.set_minLux;
             break;
@@ -385,6 +385,11 @@ export class Motion {
       try {
         this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
         this.debugLog(`Motion Sensor: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+        if (this.deviceStatus.body.moveDetected === undefined) {
+          this.errorLog(`Motion Sensor: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+        }
+        this.moveDetected = this.deviceStatus.body.moveDetected;
+        this.brightness = this.deviceStatus.body.brightness;
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       } catch (e: any) {

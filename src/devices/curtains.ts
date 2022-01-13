@@ -271,30 +271,6 @@ export class Curtain {
     }
   }
 
-  public async connectBLE() {
-    let switchbot: any;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const Switchbot = require('node-switchbot');
-      switchbot = new Switchbot();
-      // Convert to BLE Address
-      this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
-      this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-    } catch (e: any) {
-      switchbot = false;
-      this.errorLog(`Curtain: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot}`);
-      if (this.deviceLogging === 'debug') {
-        this.errorLog(`Curtain: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot},`
-          + ` Error Message: ${JSON.stringify(e.message)}`);
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Curtain: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot},`
-          + ` Error: ${JSON.stringify(e)}`);
-      }
-    }
-    return switchbot;
-  }
-
   private minStep(): number {
     if (this.device.curtain?.set_minStep) {
       this.set_minStep = this.device.curtain?.set_minStep;
@@ -492,7 +468,10 @@ export class Curtain {
   private async BLERefreshStatus() {
     this.debugLog(`Curtain: ${this.accessory.displayName} BLE refreshStatus`);
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const switchbot = await this.connectBLE();
+    const switchbot = await this.platform.connectBLE();
+    // Convert to BLE Address
+    this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
+    this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     // Start to monitor advertisement packets
     if (switchbot !== false) {
       switchbot.startScan({
@@ -605,7 +584,10 @@ export class Curtain {
   private async BLEpushChanges() {
     if (this.TargetPosition !== this.CurrentPosition) {
       this.debugLog(`Curtain: ${this.accessory.displayName} BLE pushChanges`);
-      const switchbot = await this.connectBLE();
+      const switchbot = await this.platform.connectBLE();
+      // Convert to BLE Address
+      this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
+      this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
       if (switchbot !== false) {
         switchbot.discover({ model: 'c', quick: true, id: this.device.bleMac }).then((device_list) => {
           this.infoLog(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);

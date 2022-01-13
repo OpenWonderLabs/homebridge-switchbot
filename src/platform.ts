@@ -192,8 +192,21 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
+  connectBLE() {
+    let Switchbot: new () => any;
+    let switchbot: any;
+    try {
+      Switchbot = require('node-switchbot');
+      switchbot = new Switchbot();
+    } catch (e) {
+      switchbot = false;
+      this.errorLog(`Was 'node-switchbot' found: ${switchbot}`);
+    }
+    return switchbot;
+  }
+
   /**
- * this method discovers the Locations
+ * this method discovers devices
  */
   async discoverDevices() {
     try {
