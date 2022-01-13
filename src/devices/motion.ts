@@ -2,7 +2,7 @@ import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
 import { SwitchBotPlatform } from '../platform';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse } from '../settings';
+import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse, deviceStatus } from '../settings';
 
 /**
  * Platform Accessory
@@ -23,6 +23,8 @@ export class Motion {
 
   // OpenAPI Others
   deviceStatus!: deviceStatusResponse;
+  moveDetected: deviceStatus['moveDetected'];
+  brightness: deviceStatus['brightness'];
 
   // BLE Others
   connected?: boolean;
@@ -43,8 +45,6 @@ export class Motion {
   // Updates
   motionUbpdateInProgress!: boolean;
   doMotionUpdate!: Subject<void>;
-  moveDetected: boolean | undefined;
-  brightness: string | number | undefined;
 
   constructor(
     private readonly platform: SwitchBotPlatform,

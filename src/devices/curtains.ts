@@ -4,7 +4,7 @@ import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse, payload } from '../settings';
+import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse, payload, deviceStatus } from '../settings';
 
 export class Curtain {
   // Services
@@ -22,17 +22,20 @@ export class Curtain {
 
   // OpenAPI Others
   deviceStatus!: deviceStatusResponse;
+  slidePosition: deviceStatus['slidePosition'];
+  moving: deviceStatus['moving'];
+  brightness: deviceStatus['brightness'];
 
   // BLE Others
   connected?: boolean;
   switchbot!: switchbot;
   SwitchToOpenAPI?: boolean;
   serviceData!: serviceData;
+  spaceBetweenLevels!: number;
   calibration: serviceData['calibration'];
   battery: serviceData['battery'];
   position: serviceData['position'];
   lightLevel: serviceData['lightLevel'];
-  spaceBetweenLevels!: number;
 
   // Target
   setNewTarget!: boolean;
@@ -311,6 +314,7 @@ export class Curtain {
 
   private async BLEparseStatus() {
     this.debugLog(`Curtain: ${this.accessory.displayName} BLE parseStatus`);
+    // CurrentPosition
     this.setMinMax();
     this.CurrentPosition = 100 - Number(this.position);
     this.debugLog(`Curtain: ${this.accessory.displayName} CurrentPosition ${this.CurrentPosition}`);
@@ -336,6 +340,7 @@ export class Curtain {
         // If Curtain calibration distance is short, there will be an error between the current percentage and the target percentage.
         this.TargetPosition = this.CurrentPosition;
         this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
+        this.infoLog(`Curtain: ${this.accessory.displayName} Stopped`);
       }
     }
     this.debugLog(`Curtain: ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition},`
@@ -411,13 +416,13 @@ export class Curtain {
       this.debugLog(`Curtain: ${this.accessory.displayName} OpenAPI parseStatus`);
       // CurrentPosition
       this.setMinMax();
-      this.CurrentPosition = 100 - this.deviceStatus.body.slidePosition!;
+      this.CurrentPosition = 100 - Number(this.slidePosition);
       this.debugLog(`Curtain ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition}`);
       if (this.setNewTarget) {
-        this.infoLog(`Checking ${this.accessory.displayName} Status ...`);
+        this.infoLog(`Curtain: ${this.accessory.displayName} Checking Status ...`);
       }
 
-      if (this.deviceStatus.body.moving) {
+      if (this.setNewTarget && this.moving) {
         this.setMinMax();
         if (this.TargetPosition > this.CurrentPosition) {
           this.debugLog(`Curtain: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition} `);
@@ -435,6 +440,7 @@ export class Curtain {
           /*If Curtain calibration distance is short, there will be an error between the current percentage and the target percentage.*/
           this.TargetPosition = this.CurrentPosition;
           this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
+          this.infoLog(`Curtain: ${this.accessory.displayName} Stopped`);
         }
       }
       this.debugLog(`Curtain: ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition},`
@@ -444,7 +450,7 @@ export class Curtain {
         this.set_minLux = this.minLux();
         this.set_maxLux = this.maxLux();
         // Brightness
-        switch (this.deviceStatus.body.brightness) {
+        switch (this.brightness) {
           case 'dim':
             this.CurrentAmbientLightLevel = this.set_minLux;
             break;
@@ -550,6 +556,9 @@ export class Curtain {
       try {
         this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
         this.debugLog(`Curtain: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+        this.slidePosition = this.deviceStatus.body.slidePosition;
+        this.moving = this.deviceStatus.body.moving;
+        this.brightness = this.deviceStatus.body.brightness;
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       } catch (e: any) {
