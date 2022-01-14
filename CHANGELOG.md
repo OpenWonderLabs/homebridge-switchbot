@@ -9,10 +9,12 @@ All notable changes to this project will be documented in this file. This projec
     * This will only Works in 3rd Party Home App, Like [Eve](https://apps.apple.com/us/app/eve-for-homekit/id917695792) or [Home+ 5](https://apps.apple.com/us/app/home-5/id995994352)
 * Add option to Hide Motion Sensor's Light Sensor.
 * Add option to Set Motion Sensor's Light Sensor `set_minLux` and `set_maxLux`.
+* Fixed Bug: Where BLE config would show for devices that don't support BLE.
 * Fixed Bug: Contact Sensors's Motion Sensor and Light Sensor showing undefined values.
 * Fixed Bug: Motion Sensors's Light Sensor showing undefined values.
 * Fixed Bug: Battery Service wouldn't be removed from Curtain, Contact Sensor, or Motion Sensor when switching from BLE to OpenAPI.
 * Enhancments: Made some improvemnt on the switch from BLE to OpenAPI when BLE connection fails.
+* Enhancments: Made Optional Switchbot Device Settings and Optional IR Device Settings more managable by using Tabs.
 * Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.7.0...v1.8.0
