@@ -2,7 +2,7 @@ import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
 import { SwitchBotPlatform } from '../platform';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse } from '../settings';
+import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse, deviceStatus } from '../settings';
 
 /**
  * Platform Accessory
@@ -24,6 +24,9 @@ export class Contact {
   StatusLowBattery!: CharacteristicValue;
 
   // OpenAPI others
+  openState: deviceStatus['openState'];
+  moveDetected: deviceStatus['moveDetected'];
+  brightness: deviceStatus['brightness'];
   deviceStatus!: deviceStatusResponse;
 
   // BLE Others
@@ -133,7 +136,7 @@ export class Contact {
       this.debugLog(`Contact Sensor: ${accessory.displayName} Removing Battery Service`);
       this.batteryService = this.accessory.getService(this.platform.Service.Battery);
       accessory.removeService(this.batteryService!);
-    } else if (!this.batteryService) {
+    } else if (device.ble && !this.batteryService) {
       this.debugLog(`Contact Sensor: ${accessory.displayName} Add Battery Service`);
       (this.batteryService =
         this.accessory.getService(this.platform.Service.Battery) ||
@@ -287,27 +290,25 @@ export class Contact {
     if (this.platform.config.credentials?.openToken) {
       this.debugLog(`Contact Sensor: ${this.accessory.displayName} OpenAPI parseStatus`);
       // Contact State
-      if (this.deviceStatus.body.openState === 'open') {
+      if (this.openState === 'open') {
         this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
         this.debugLog(`Contact Sensor: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
-      } else if (this.deviceStatus.body.openState === 'close') {
+      } else if (this.openState === 'close') {
         this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
         this.debugLog(`Contact Sensor: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
       } else {
-        this.debugLog(`Contact Sensor: ${this.accessory.displayName} openState: ${this.deviceStatus.body.openState}`);
+        this.debugLog(`Contact Sensor: ${this.accessory.displayName} openState: ${this.openState}`);
       }
       // Motion State
       if (!this.device.contact?.hide_motionsensor) {
-        if (typeof this.deviceStatus.body.moveDetected === 'boolean') {
-          this.MotionDetected = this.deviceStatus.body.moveDetected;
-        }
+        this.MotionDetected = this.moveDetected!;
         this.debugLog(`Contact Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
       }
       // Light Level
       if (!this.device.contact?.hide_lightsensor) {
         this.set_minLux = this.minLux();
         this.set_maxLux = this.maxLux();
-        switch (this.deviceStatus.body.brightness) {
+        switch (this.brightness) {
           case 'dim':
             this.CurrentAmbientLightLevel = this.set_minLux;
             break;
@@ -331,34 +332,12 @@ export class Contact {
     }
   }
 
-  public async connectBLE() {
-    let switchbot: any;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const Switchbot = require('node-switchbot');
-      switchbot = new Switchbot();
-      // Convert to BLE Address
-      this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
-      this.debugLog(`Contact Sensor: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-    } catch (e: any) {
-      switchbot = false;
-      this.errorLog(`Contact Sensor: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot}`);
-      if (this.deviceLogging === 'debug') {
-        this.errorLog(`Contact Sensor: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot},`
-          + ` Error Message: ${JSON.stringify(e.message)}`);
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Contact Sensor: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot},`
-          + ` Error: ${JSON.stringify(e)}`);
-      }
-    }
-    return switchbot;
-  }
-
   private async BLERefreshStatus() {
     this.debugLog(`Contact Sensor: ${this.accessory.displayName} BLE refreshStatus`);
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const switchbot = await this.connectBLE();
+    const switchbot = await this.platform.connectBLE();
+    // Convert to BLE Address
+    this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
+    this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     // Start to monitor advertisement packets
     if (switchbot !== false) {
       switchbot.startScan({
@@ -436,6 +415,9 @@ export class Contact {
       try {
         this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
         this.debugLog(`Contact Sensor: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+        this.openState = this.deviceStatus.body.openState;
+        this.moveDetected = this.deviceStatus.body.moveDetected;
+        this.brightness = this.deviceStatus.body.brightness;
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       } catch (e: any) {

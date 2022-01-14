@@ -115,7 +115,7 @@ export class Motion {
       this.debugLog(`Motion Sensor: ${accessory.displayName} Removing Battery Service`);
       this.batteryService = this.accessory.getService(this.platform.Service.Battery);
       accessory.removeService(this.batteryService!);
-    } else if (!this.batteryService) {
+    } else if (device.ble && !this.batteryService) {
       this.debugLog(`Motion Sensor: ${accessory.displayName} Add Battery Service`);
       (this.batteryService =
         this.accessory.getService(this.platform.Service.Battery) ||
@@ -285,34 +285,12 @@ export class Motion {
     }
   }
 
-  public async connectBLE() {
-    let switchbot: any;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const Switchbot = require('node-switchbot');
-      switchbot = new Switchbot();
-      // Convert to BLE Address
-      this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
-      this.debugLog(`Motion Sensor: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-    } catch (e: any) {
-      switchbot = false;
-      this.errorLog(`Motion Sensor: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot}`);
-      if (this.deviceLogging === 'debug') {
-        this.errorLog(`Motion Sensor: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot},`
-          + ` Error Message: ${JSON.stringify(e.message)}`);
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Motion Sensor: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot},`
-          + ` Error: ${JSON.stringify(e)}`);
-      }
-    }
-    return switchbot;
-  }
-
   private async BLERefreshStatus() {
     this.debugLog(`Motion Sensor: ${this.accessory.displayName} BLE RefreshStatus`);
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const switchbot = await this.connectBLE();
+    const switchbot = await this.platform.connectBLE();
+    // Convert to BLE Address
+    this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
+    this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     // Start to monitor advertisement packets
     if (switchbot !== false) {
       switchbot.startScan({

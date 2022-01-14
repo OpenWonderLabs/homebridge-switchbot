@@ -4,7 +4,7 @@ import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceStatusResponse, payload } from '../settings';
+import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceStatusResponse, payload, deviceStatus } from '../settings';
 
 /**
  * Platform Accessory
@@ -33,6 +33,7 @@ export class Bot {
   StatusLowBattery!: CharacteristicValue;
 
   // OpenAPI Others
+  power: deviceStatus['power'];
   deviceStatus!: deviceStatusResponse;
 
   // BLE Others
@@ -323,7 +324,7 @@ export class Bot {
       this.debugLog(`Bot: ${accessory.displayName} Removing Battery Service`);
       this.batteryService = this.accessory.getService(this.platform.Service.Battery);
       accessory.removeService(this.batteryService!);
-    } else if (!this.batteryService) {
+    } else if (device.ble && !this.batteryService) {
       this.debugLog(`Bot: ${accessory.displayName} Add Battery Service`);
       (this.batteryService =
         this.accessory.getService(this.platform.Service.Battery) ||
@@ -580,7 +581,7 @@ export class Bot {
         this.OnCached = this.On;
         this.accessory.context.On = this.OnCached;
       } else {
-        /*if (this.deviceStatus.body.power === 'on') {
+        /*if (this.power === 'on') {
           this.On = true;
           this.OnCached = this.On;
           this.accessory.context.On = this.OnCached;
@@ -610,35 +611,12 @@ export class Bot {
     }
   }
 
-  public async connectBLE() {
-    let switchbot: any;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const Switchbot = require('node-switchbot');
-      switchbot = new Switchbot();
-      // Convert to BLE Address
-      this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
-      this.debugLog(`Bot: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-    } catch (e: any) {
-      switchbot = false;
-      this.errorLog(`Bot: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot}`);
-      if (this.deviceLogging === 'debug') {
-        this.errorLog(`Bot: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot},`
-          + ` Error Message: ${JSON.stringify(e.message)}`);
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Bot: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot},`
-          + ` Error: ${JSON.stringify(e)}`);
-      }
-    }
-    return switchbot;
-  }
-
   private async BLERefreshStatus() {
     this.debugLog(`Bot: ${this.accessory.displayName} BLE refreshStatus`);
-
+    const switchbot = await this.platform.connectBLE();
     // Convert to BLE Address
-    const switchbot = await this.connectBLE();
+    this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
+    this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     // Start to monitor advertisement packets
     if (switchbot === false) {
       this.errorLog(`Bot: ${this.accessory.displayName} wasn't able to establish BLE Connection: ${switchbot}`);
@@ -706,6 +684,7 @@ export class Bot {
       try {
         this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
         this.debugLog(`Bot: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+        this.power = this.deviceStatus.body.power;
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       } catch (e: any) {
@@ -748,7 +727,10 @@ export class Bot {
     this.debugLog(`Bot: ${this.accessory.displayName} BLE pushChanges On: ${this.On} OnCached: ${this.OnCached}`);
     if (this.On !== this.OnCached) {
       this.debugLog(`Bot: ${this.accessory.displayName} BLE pushChanges`);
-      const switchbot = await this.connectBLE();
+      const switchbot = await this.platform.connectBLE();
+      // Convert to BLE Address
+      this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
+      this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
       //if (switchbot !== false) {
       if (this.botMode === 'press') {
         this.debugLog(`Bot: ${this.accessory.displayName} Bot Mode: ${this.botMode}`);

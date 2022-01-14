@@ -151,7 +151,7 @@ export class Curtain {
       this.debugLog(`Curtain: ${accessory.displayName} Removing Battery Service`);
       this.batteryService = this.accessory.getService(this.platform.Service.Battery);
       accessory.removeService(this.batteryService!);
-    } else if (!this.batteryService) {
+    } else if (device.ble && !this.batteryService) {
       this.debugLog(`Curtain: ${accessory.displayName} Add Battery Service`);
       (this.batteryService =
         this.accessory.getService(this.platform.Service.Battery) ||
@@ -340,7 +340,7 @@ export class Curtain {
         // If Curtain calibration distance is short, there will be an error between the current percentage and the target percentage.
         this.TargetPosition = this.CurrentPosition;
         this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
-        this.infoLog(`Curtain: ${this.accessory.displayName} Stopped`);
+        this.debugLog(`Curtain: ${this.accessory.displayName} Stopped`);
       }
     }
     this.debugLog(`Curtain: ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition},`
@@ -440,7 +440,7 @@ export class Curtain {
           /*If Curtain calibration distance is short, there will be an error between the current percentage and the target percentage.*/
           this.TargetPosition = this.CurrentPosition;
           this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
-          this.infoLog(`Curtain: ${this.accessory.displayName} Stopped`);
+          this.debugLog(`Curtain: ${this.accessory.displayName} Stopped`);
         }
       }
       this.debugLog(`Curtain: ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition},`
@@ -473,7 +473,6 @@ export class Curtain {
 
   private async BLERefreshStatus() {
     this.debugLog(`Curtain: ${this.accessory.displayName} BLE refreshStatus`);
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const switchbot = await this.platform.connectBLE();
     // Convert to BLE Address
     this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();

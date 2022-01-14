@@ -2,7 +2,7 @@ import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
 import { SwitchBotPlatform } from '../platform';
 import { Service, PlatformAccessory, Units, CharacteristicValue } from 'homebridge';
-import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceStatusResponse, temperature } from '../settings';
+import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceStatusResponse, temperature, deviceStatus } from '../settings';
 
 /**
  * Platform Accessory
@@ -11,23 +11,24 @@ import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceSta
  */
 export class Meter {
   // Services
-  private service: Service;
-  temperatureservice?: Service;
-  humidityservice?: Service;
+  private batteryService?: Service;
+  private temperatureservice?: Service;
+  private humidityservice?: Service;
 
   // Characteristic Values
   CurrentRelativeHumidity!: CharacteristicValue;
   CurrentRelativeHumidityCached!: CharacteristicValue;
-  CurrentTemperature!: CharacteristicValue;
-  CurrentTemperatureCached!: CharacteristicValue;
-  BatteryLevel!: CharacteristicValue;
-  BatteryLevelCached!: CharacteristicValue;
-  ChargingState!: CharacteristicValue;
-  StatusLowBattery!: CharacteristicValue;
+  CurrentTemperature?: CharacteristicValue;
+  CurrentTemperatureCached?: CharacteristicValue;
+  BatteryLevel?: CharacteristicValue;
+  ChargingState?: CharacteristicValue;
+  StatusLowBattery?: CharacteristicValue;
   Active!: CharacteristicValue;
   WaterLevel!: CharacteristicValue;
 
   // OpenAPI Others
+  Temperature: deviceStatus['temperature'];
+  Humidity: deviceStatus['humidity'];
   deviceStatus!: deviceStatusResponse;
 
   // BLE Others
@@ -57,17 +58,6 @@ export class Meter {
     this.logs();
     this.scan();
     this.refreshRate();
-    if (this.BatteryLevel === undefined) {
-      this.BatteryLevel = 100;
-    } else {
-      this.BatteryLevel = this.accessory.context.BatteryLevel;
-    }
-    if (this.BatteryLevel < 15) {
-      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
-    } else {
-      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
-    }
-    this.ChargingState = this.platform.Characteristic.ChargingState.NOT_CHARGEABLE;
     if (this.CurrentRelativeHumidity === undefined) {
       this.CurrentRelativeHumidity = 0;
     } else {
@@ -97,26 +87,6 @@ export class Meter {
       .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-METERTH-S1')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
-    // get the Battery service if it exists, otherwise create a new Battery service
-    // you can create multiple services for each accessory
-    (this.service =
-      accessory.getService(this.platform.Service.Battery) ||
-      accessory.addService(this.platform.Service.Battery)), `${accessory.displayName} Battery`;
-
-    // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
-    // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
-    // accessory.getService('NAME') ?? accessory.addService(this.platform.Service.Battery, 'NAME', 'USER_DEFINED_SUBTYPE');
-
-    // set the service name, this is what is displayed as the default name on the Home app
-    // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
-
-    // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/Battery
-
-    // create handlers for required characteristics
-    this.service.setCharacteristic(this.platform.Characteristic.ChargingState, 2);
-
     // Temperature Sensor Service
     if (device.meter?.hide_temperature) {
       this.debugLog(`Meter: ${accessory.displayName} Removing Temperature Sensor Service`);
@@ -128,7 +98,7 @@ export class Meter {
         this.accessory.getService(this.platform.Service.TemperatureSensor) ||
         this.accessory.addService(this.platform.Service.TemperatureSensor)), `${accessory.displayName} Temperature Sensor`;
 
-      this.service.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
+      this.temperatureservice.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
 
       this.temperatureservice
         .getCharacteristic(this.platform.Characteristic.CurrentTemperature)
@@ -140,7 +110,7 @@ export class Meter {
           minStep: 0.1,
         })
         .onGet(() => {
-          return this.CurrentTemperature;
+          return this.CurrentTemperature!;
         });
     } else {
       this.debugLog(`Meter: ${accessory.displayName} Temperature Sensor Service Not Added`);
@@ -157,7 +127,7 @@ export class Meter {
         this.accessory.getService(this.platform.Service.HumiditySensor) ||
         this.accessory.addService(this.platform.Service.HumiditySensor)), `${accessory.displayName} Humidity Sensor`;
 
-      this.service.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
+      this.humidityservice.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
 
       this.humidityservice
         .getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
@@ -170,6 +140,27 @@ export class Meter {
     } else {
       this.debugLog(`Meter: ${accessory.displayName} Humidity Sensor Service Not Added`);
     }
+
+    // Battery Service
+    if (!device.ble) {
+      this.debugLog(`Meter: ${accessory.displayName} Removing Battery Service`);
+      this.batteryService = this.accessory.getService(this.platform.Service.Battery);
+      accessory.removeService(this.batteryService!);
+    } else if (device.ble && !this.batteryService) {
+      this.debugLog(`Meter: ${accessory.displayName} Add Battery Service`);
+      (this.batteryService =
+        this.accessory.getService(this.platform.Service.Battery) ||
+        this.accessory.addService(this.platform.Service.Battery)), `${accessory.displayName} Battery`;
+
+      this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
+
+      this.batteryService.setCharacteristic(this.platform.Characteristic.ChargingState, this.platform.Characteristic.ChargingState.NOT_CHARGEABLE);
+
+    } else {
+      this.debugLog(`Meter: ${accessory.displayName} Battery Service Not Added`);
+    }
+
+
 
     // Retrieve initial values and updateHomekit
     this.updateHomeKitCharacteristics();
@@ -252,9 +243,9 @@ export class Meter {
     }
     this.debugLog(`${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
 
+    // Humidity
     if (!this.device.meter?.hide_humidity) {
-      // Humidity
-      this.CurrentRelativeHumidity = Number(this.humidity);
+      this.CurrentRelativeHumidity = this.humidity!;
       this.debugLog(`Meter: ${this.accessory.displayName} Humidity: ${this.CurrentRelativeHumidity}%`);
     }
 
@@ -272,25 +263,15 @@ export class Meter {
     }
     if (this.platform.config.credentials?.openToken) {
       this.debugLog(`Meter: ${this.accessory.displayName} OpenAPI parseStatus`);
-      if (this.deviceStatus.body) {
-        this.BatteryLevel = 100;
-      } else {
-        this.BatteryLevel = 10;
-      }
-      if (this.BatteryLevel < 15) {
-        this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
-      } else {
-        this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
-      }
       // Current Relative Humidity
       if (!this.device.meter?.hide_humidity) {
-        this.CurrentRelativeHumidity = this.deviceStatus.body.humidity!;
+        this.CurrentRelativeHumidity = this.Humidity!;
         this.debugLog(`Meter: ${this.accessory.displayName} Humidity: ${this.CurrentRelativeHumidity}%`);
       }
 
       // Current Temperature
       if (!this.device.meter?.hide_temperature) {
-        this.CurrentTemperature = Number(this.deviceStatus.body.temperature);
+        this.CurrentTemperature = this.Temperature!;
         this.debugLog(`Meter: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c`);
       }
     }
@@ -307,34 +288,12 @@ export class Meter {
     }
   }
 
-  private async connectBLE() {
-    let switchbot: any;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const Switchbot = require('node-switchbot');
-      switchbot = new Switchbot();
-      // Convert to BLE Address
-      this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
-      this.debugLog(`Meter: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-    } catch (e: any) {
-      switchbot = false;
-      this.errorLog(`Meter: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot}`);
-      if (this.deviceLogging === 'debug') {
-        this.errorLog(`Meter: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot},`
-          + ` Error Message: ${JSON.stringify(e.message)}`);
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Meter: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot},`
-          + ` Error: ${JSON.stringify(e)}`);
-      }
-    }
-    return switchbot;
-  }
-
   private async BLErefreshStatus() {
     this.debugLog(`Meter: ${this.accessory.displayName} BLE RefreshStatus`);
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const switchbot = await this.connectBLE();
+    const switchbot = await this.platform.connectBLE();
+    // Convert to BLE Address
+    this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
+    this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     // Start to monitor advertisement packets
     if (switchbot !== false) {
       switchbot.startScan({
@@ -366,12 +325,6 @@ export class Meter {
         // Stop to monitor
         switchbot.stopScan();
         if (this.connected) {
-          this.CurrentTemperatureCached = this.temperature;
-          this.accessory.context.CurrentTemperature = this.CurrentTemperatureCached;
-          this.CurrentRelativeHumidityCached = this.humidity!;
-          this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidityCached;
-          this.BatteryLevelCached = this.battery!;
-          this.accessory.context.BatteryLevel = this.BatteryLevelCached;
           this.parseStatus();
           this.updateHomeKitCharacteristics();
         } else {
@@ -414,12 +367,8 @@ export class Meter {
       try {
         this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
         this.debugLog(`Meter: ${this.accessory.displayName} openAPIRefreshStatus: ${JSON.stringify(this.deviceStatus)}`);
-        this.CurrentTemperatureCached = this.deviceStatus.body.humidity!;
-        this.accessory.context.CurrentTemperature = this.CurrentTemperatureCached;
-        this.CurrentRelativeHumidityCached = this.deviceStatus.body.humidity!;
-        this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidityCached;
-        this.BatteryLevelCached = 100;
-        this.accessory.context.BatteryLevel = this.BatteryLevelCached;
+        this.Humidity = this.deviceStatus.body.humidity!;
+        this.Temperature = this.deviceStatus.body.temperature!;
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       } catch (e: any) {
@@ -441,18 +390,6 @@ export class Meter {
    * Updates the status for each of the HomeKit Characteristics
    */
   updateHomeKitCharacteristics() {
-    if (this.StatusLowBattery === undefined) {
-      this.debugLog(`Meter: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
-    } else {
-      this.service.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
-      this.debugLog(`Meter: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
-    }
-    if (this.BatteryLevel === undefined) {
-      this.debugLog(`Meter: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
-    } else {
-      this.service.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
-      this.debugLog(`Meter: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
-    }
     if (!this.device.meter?.hide_humidity) {
       if (this.CurrentRelativeHumidity === undefined) {
         this.debugLog(`Meter: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
@@ -469,16 +406,32 @@ export class Meter {
         this.debugLog(`Meter: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
       }
     }
+    if (this.device.ble) {
+      if (this.BatteryLevel === undefined) {
+        this.debugLog(`Bot: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
+      } else {
+        this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
+        this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
+      }
+      if (this.StatusLowBattery === undefined) {
+        this.debugLog(`Bot: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
+      } else {
+        this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
+        this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
+      }
+    }
   }
 
   public apiError(e: any) {
-    this.service.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
-    this.service.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
     if (!this.device.meter?.hide_humidity) {
       this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, e);
     }
     if (!this.device.meter?.hide_temperature) {
       this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
+    }
+    if (this.device.ble) {
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
     }
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }

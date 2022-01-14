@@ -4,7 +4,7 @@ import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { DeviceURL, device, devicesConfig, deviceStatusResponse, payload } from '../settings';
+import { DeviceURL, device, devicesConfig, deviceStatusResponse, payload, deviceStatus } from '../settings';
 
 export class Plug {
   // Services
@@ -15,6 +15,7 @@ export class Plug {
   OnCached!: CharacteristicValue;
 
   // OpenAPI Others
+  power: deviceStatus['power'];
   deviceStatus!: deviceStatusResponse;
 
   // Config
@@ -164,7 +165,7 @@ export class Plug {
   }
 
   parseStatus() {
-    switch (this.deviceStatus.body.power) {
+    switch (this.power) {
       case 'on':
         this.On = true;
         break;
@@ -178,6 +179,7 @@ export class Plug {
     try {
       this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
       this.debugLog(`Plug: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+      this.power = this.deviceStatus.body.power;
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
