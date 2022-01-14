@@ -31,6 +31,7 @@ export class TV {
   ) {
     // default placeholders
     this.logs();
+    this.config(device);
     if (this.Active === undefined) {
       this.Active = this.platform.Characteristic.Active.INACTIVE;
     } else {
@@ -126,6 +127,12 @@ export class TV {
     this.speakerService
       .getCharacteristic(this.platform.Characteristic.VolumeSelector)
       .onSet(this.VolumeSelectorSet.bind(this));
+  }
+
+  config(device: irdevice & irDevicesConfig) {
+    if (device.irtv !== undefined) {
+      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${JSON.stringify(device.irtv)}`);
+    }
   }
 
   logs() {

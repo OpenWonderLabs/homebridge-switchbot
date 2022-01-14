@@ -26,6 +26,7 @@ export class Camera {
   ) {
     // default placeholders
     this.logs();
+    this.config(device);
     if (this.On === undefined) {
       this.On = false;
     } else {
@@ -55,6 +56,12 @@ export class Camera {
 
     // handle on / off events using the On characteristic
     this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
+  }
+
+  config(device: irdevice & irDevicesConfig) {
+    if (device.ircam !== undefined && (this.deviceLogging === 'debug' || this.deviceLogging === 'standard')) {
+      this.warnLog(`Camera: ${this.accessory.displayName} Config: ${JSON.stringify(device.ircam)}`);
+    }
   }
 
   logs() {

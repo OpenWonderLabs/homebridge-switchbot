@@ -26,6 +26,7 @@ export class VacuumCleaner {
   ) {
     // default placeholders
     this.logs();
+    this.config(device);
     if (this.On === undefined) {
       this.On = false;
     } else {
@@ -55,6 +56,12 @@ export class VacuumCleaner {
 
     // handle on / off events using the On characteristic
     this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
+  }
+
+  config(device: irdevice & irDevicesConfig) {
+    if (device.irvc !== undefined) {
+      this.warnLog(`Vacuum Cleaner: ${this.accessory.displayName} Config: ${JSON.stringify(device.irvc)}`);
+    }
   }
 
   logs() {

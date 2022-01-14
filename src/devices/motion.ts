@@ -55,6 +55,7 @@ export class Motion {
     this.logs();
     this.scan();
     this.refreshRate();
+    this.config(device);
     this.MotionDetected = false;
 
     // Motion Config
@@ -136,6 +137,12 @@ export class Motion {
       .subscribe(() => {
         this.refreshStatus();
       });
+  }
+
+  config(device: device & devicesConfig) {
+    if (device.motion !== undefined) {
+      this.warnLog(`Motion Sensor: ${this.accessory.displayName} Config: ${JSON.stringify(device.motion)}`);
+    }
   }
 
   refreshRate() {

@@ -36,6 +36,7 @@ export class Fan {
   ) {
     // default placeholders
     this.logs();
+    this.config(device);
     if (this.Active === undefined) {
       this.Active = this.platform.Characteristic.Active.INACTIVE;
     } else {
@@ -113,6 +114,12 @@ export class Fan {
       // eslint-disable-next-line max-len
       this.debugLog(`Fan: ${this.accessory.displayName} Swing Mode Characteristic was not removed or not added. To Remove Chracteristic, Clear Cache on this Accessory.`);
 
+    }
+  }
+
+  config(device: irdevice & irDevicesConfig) {
+    if (device.irfan !== undefined && (this.deviceLogging === 'debug' || this.deviceLogging === 'standard')) {
+      this.warnLog(`Fan: ${this.accessory.displayName} Config: ${JSON.stringify(device.irfan)}`);
     }
   }
 

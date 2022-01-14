@@ -36,6 +36,7 @@ export class Plug {
     this.logs();
     this.scan();
     this.refreshRate();
+    this.config(device);
     if (this.On === undefined) {
       this.On = false;
     } else {
@@ -115,6 +116,12 @@ export class Plug {
         }
         this.plugUpdateInProgress = false;
       });
+  }
+
+  config(device: device & devicesConfig) {
+    if (device.plug !== undefined) {
+      this.warnLog(`Plug: ${this.accessory.displayName} Config: ${JSON.stringify(device.plug)}`);
+    }
   }
 
   refreshRate() {

@@ -26,6 +26,7 @@ export class WaterHeater {
   ) {
     // default placeholders
     this.logs();
+    this.config(device);
     if (this.Active === undefined) {
       this.Active = this.platform.Characteristic.Active.INACTIVE;
     } else {
@@ -64,6 +65,12 @@ export class WaterHeater {
 
     // handle on / off events using the Active characteristic
     this.service.getCharacteristic(this.platform.Characteristic.Active).onSet(this.ActiveSet.bind(this));
+  }
+
+  config(device: irdevice & irDevicesConfig) {
+    if (device.irwh !== undefined) {
+      this.warnLog(`Water Heater: ${this.accessory.displayName} Config: ${JSON.stringify(device.irwh)}`);
+    }
   }
 
   logs() {

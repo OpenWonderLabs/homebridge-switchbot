@@ -64,6 +64,7 @@ export class Curtain {
     this.scan();
     this.setMinMax();
     this.refreshRate();
+    this.config(device);
     this.CurrentPosition = 0;
     this.TargetPosition = 0;
     this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
@@ -212,6 +213,12 @@ export class Curtain {
         }
         this.curtainUpdateInProgress = false;
       });
+  }
+
+  config(device: device & devicesConfig) {
+    if (device.curtain !== undefined || device.ble !== undefined) {
+      this.warnLog(`Curtain: ${this.accessory.displayName} Config: ${JSON.stringify(device.curtain)}, BLE: ${device.ble}`);
+    }
   }
 
   refreshRate() {

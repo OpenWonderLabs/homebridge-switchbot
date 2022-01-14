@@ -59,6 +59,7 @@ export class Humidifier {
     this.logs();
     this.scan();
     this.refreshRate();
+    this.config(device);
     this.CurrentRelativeHumidity = 0;
     this.TargetHumidifierDehumidifierState = this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER;
     this.CurrentHumidifierDehumidifierState = this.platform.Characteristic.CurrentHumidifierDehumidifierState.INACTIVE;
@@ -195,6 +196,12 @@ export class Humidifier {
         }
         this.humidifierUpdateInProgress = false;
       });
+  }
+
+  config(device: device & devicesConfig) {
+    if (device.humidifier !== undefined || device.ble !== undefined) {
+      this.warnLog(`Humidifier: ${this.accessory.displayName} Config: ${JSON.stringify(device.humidifier)}, BLE: ${device.ble}`);
+    }
   }
 
   refreshRate() {

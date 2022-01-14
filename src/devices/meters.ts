@@ -58,6 +58,7 @@ export class Meter {
     this.logs();
     this.scan();
     this.refreshRate();
+    this.config(device);
     if (this.CurrentRelativeHumidity === undefined) {
       this.CurrentRelativeHumidity = 0;
     } else {
@@ -171,6 +172,12 @@ export class Meter {
       .subscribe(() => {
         this.refreshStatus();
       });
+  }
+
+  config(device: device & devicesConfig) {
+    if (device.meter !== undefined || device.ble !== undefined) {
+      this.warnLog(`Meter: ${this.accessory.displayName} Config: ${JSON.stringify(device.meter)}, BLE: ${device.ble}`);
+    }
   }
 
   refreshRate() {

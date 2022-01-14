@@ -59,12 +59,8 @@ export class Contact {
     this.logs();
     this.scan();
     this.refreshRate();
+    this.config(device);
     this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
-
-    // Contact Config
-    this.debugLog(`Contact Sensor: ${this.accessory.displayName} Config: (ble: ${device.ble}, offline: ${device.offline},`
-      + ` hide_lightsensor: ${device.contact?.hide_lightsensor}, hide_motionsensor: ${device.contact?.hide_motionsensor},`
-      + ` set_minLux: ${this.device.contact?.set_minLux}, set_maxLux: ${this.device.contact?.set_maxLux})`);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doContactUpdate = new Subject();
@@ -157,6 +153,12 @@ export class Contact {
       .subscribe(() => {
         this.refreshStatus();
       });
+  }
+
+  config(device: device & devicesConfig) {
+    if (device.contact !== undefined) {
+      this.warnLog(`Contact Sensor: ${this.accessory.displayName} Config: ${JSON.stringify(device.contact)}`);
+    }
   }
 
   refreshRate() {

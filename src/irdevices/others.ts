@@ -28,6 +28,7 @@ export class Others {
     // default placeholders
     this.logs();
     this.deviceType();
+    this.config(device);
     if (this.Active === undefined) {
       this.Active = this.platform.Characteristic.Active.INACTIVE;
     } else {
@@ -73,6 +74,12 @@ export class Others {
       }
     } else {
       this.errorLog(`Other: ${this.accessory.displayName} No Device Type Set, deviceType: ${this.device.other?.deviceType}`);
+    }
+  }
+
+  config(device: irdevice & irDevicesConfig) {
+    if (device.other !== undefined) {
+      this.warnLog(`Other: ${this.accessory.displayName} Config: ${JSON.stringify(device.other)}`);
     }
   }
 

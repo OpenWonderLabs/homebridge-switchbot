@@ -50,6 +50,7 @@ export class AirConditioner {
   ) {
     // default placeholders
     this.logs();
+    this.config(device);
     if (this.Active === undefined) {
       this.Active = this.platform.Characteristic.Active.INACTIVE;
     } else {
@@ -164,6 +165,12 @@ export class AirConditioner {
         return this.RotationSpeedGet();
       })
       .onSet(this.RotationSpeedSet.bind(this));
+  }
+
+  config(device: irdevice & irDevicesConfig) {
+    if (device.irair !== undefined) {
+      this.warnLog(`Air Conditioner: ${this.accessory.displayName} Config: ${JSON.stringify(device.irair)}`);
+    }
   }
 
   logs() {

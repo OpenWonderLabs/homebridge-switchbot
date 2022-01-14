@@ -61,6 +61,7 @@ export class ColorBulb {
     this.logs();
     this.refreshRate();
     this.adaptiveLighting();
+    this.config(device);
     if (this.On === undefined) {
       this.On = false;
     } else {
@@ -72,11 +73,6 @@ export class ColorBulb {
     this.ColorTemperature = 140;
     this.minKelvin = 2000;
     this.maxKelvin = 9000;
-
-    // ColorBulb Config
-    this.debugLog(`Color Bulb: ${this.accessory.displayName} Config: (ble: ${device.ble}, set_minStep: ${device.colorbulb?.set_minStep},`
-      + ` adaptiveLighting: ${device.colorbulb?.adaptiveLightingShift})`);
-
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doColorBulbUpdate = new Subject();
     this.colorBulbUpdateInProgress = false;
@@ -216,6 +212,12 @@ export class ColorBulb {
         }
         this.colorBulbUpdateInProgress = false;
       });
+  }
+
+  config(device: device & devicesConfig) {
+    if (device.colorbulb !== undefined) {
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} Config: ${JSON.stringify(device.colorbulb)}`);
+    }
   }
 
   refreshRate() {

@@ -45,6 +45,7 @@ export class AirPurifier {
   ) {
     // default placeholders
     this.logs();
+    this.config(device);
     if (this.Active === undefined) {
       this.Active = this.platform.Characteristic.Active.INACTIVE;
     } else {
@@ -85,6 +86,12 @@ export class AirPurifier {
     });
 
     this.service.getCharacteristic(this.platform.Characteristic.TargetAirPurifierState).onSet(this.TargetAirPurifierStateSet.bind(this));
+  }
+
+  config(device: irdevice & irDevicesConfig) {
+    if (device.irpur !== undefined) {
+      this.warnLog(`Air Purifier: ${this.accessory.displayName} Config: ${JSON.stringify(device.irpur)}`);
+    }
   }
 
   logs() {

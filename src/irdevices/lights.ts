@@ -26,6 +26,7 @@ export class Light {
   ) {
     // default placeholders
     this.logs();
+    this.config(device);
     if (this.On === undefined) {
       this.On = false;
     } else {
@@ -70,6 +71,12 @@ export class Light {
         this.service.updateCharacteristic(this.platform.Characteristic.Active, this.Brightness);
         callback(null);
       });*/
+  }
+
+  config(device: irdevice & irDevicesConfig) {
+    if (device.irlight !== undefined) {
+      this.warnLog(`Light: ${this.accessory.displayName} Config: ${JSON.stringify(device.irlight)}`);
+    }
   }
 
   logs() {

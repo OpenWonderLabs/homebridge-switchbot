@@ -68,7 +68,7 @@ export class Bot {
     this.scan();
     this.refreshRate();
     this.PressOrSwitch();
-
+    this.config(device);
     if (this.On === undefined) {
       this.On = false;
       this.accessory.context.On = this.On;
@@ -83,10 +83,6 @@ export class Bot {
     }
     this.BatteryLevel = 100;
     this.StatusLowBattery = 0;
-
-    // Bot Config
-    this.debugLog(`Bot: ${this.accessory.displayName} Config: (ble: ${device.ble}, offline: ${device.offline}, mode: ${device.bot?.mode},`
-      + ` deviceType: ${device.bot?.deviceType}, doublePress: ${this.doublePress})`);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doBotUpdate = new Subject();
@@ -377,6 +373,12 @@ export class Bot {
       });
   }
 
+  config(device: device & devicesConfig) {
+    if (device.bot !== undefined || device.ble !== undefined) {
+      this.warnLog(`Bot: ${this.accessory.displayName} Config: ${JSON.stringify(device.bot)}, BLE: ${device.ble}`);
+    }
+  }
+
   public removeOutletService(accessory: PlatformAccessory) {
     // If outletService still pressent, then remove first
     this.outletService = this.accessory.getService(this.platform.Service.Outlet);
@@ -470,12 +472,12 @@ export class Bot {
   refreshRate() {
     if (this.device.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = this.device.refreshRate;
-      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
+      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
         this.warnLog(`Bot: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
       }
     } else if (this.platform.config.options!.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
-      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
+      if (this.deviceLogging === 'debug') {
         this.warnLog(`Bot: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
       }
     }
@@ -484,12 +486,12 @@ export class Bot {
   scan() {
     if (this.device.scanDuration) {
       this.scanDuration = this.accessory.context.scanDuration = this.device.scanDuration;
-      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
+      if (this.device.ble && (this.deviceLogging === 'debug' || this.deviceLogging === 'standard')) {
         this.warnLog(`Bot: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
       }
     } else {
       this.scanDuration = this.accessory.context.scanDuration = 1;
-      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
+      if (this.device.ble && this.deviceLogging === 'debug') {
         this.warnLog(`Bot: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
       }
     }
