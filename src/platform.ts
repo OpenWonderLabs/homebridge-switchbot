@@ -97,17 +97,19 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     this.debugMode = process.argv.includes('-D') || process.argv.includes('--debug');
     if (this.config.options?.logging === 'debug' || this.config.options?.logging === 'standard' || this.config.options?.logging === 'none') {
       this.platformLogging = this.config.options!.logging;
-      if (this.debugMode) {
+      if (this.platformLogging.includes('debug')) {
         this.log.warn(`Using Config Logging: ${this.platformLogging}`);
       }
     } else if (this.debugMode) {
-      if (this.debugMode) {
-        this.log.warn('Using debugMode Logging');
-      }
       this.platformLogging = 'debugMode';
+      if (this.platformLogging?.includes('debug')) {
+        this.log.warn(`Using ${this.platformLogging} Logging`);
+      }
     } else {
-      this.log.warn('Using Standard Logging');
       this.platformLogging = 'standard';
+      if (this.platformLogging?.includes('debug')) {
+        this.log.warn(`Using ${this.platformLogging} Logging`);
+      }
     }
   }
 
@@ -126,14 +128,23 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
    * Verify the config passed to the plugin is valid
    */
   verifyConfig() {
-    /**
-     * Hidden Device Discovery Option
-     * This will disable adding any device and will just output info.
-     */
     this.config.options = this.config.options || {};
 
-    if (this.config.options) {
+    const platformConfig = {};
+    if (this.config.options?.logging) {
+      platformConfig['logging'] = this.config.options?.logging;
+    }
+    if (this.config.options?.logging) {
+      platformConfig['refreshRate'] = this.config.options?.refreshRate;
+    }
+    if (this.config.options?.logging) {
+      platformConfig['pushRate'] = this.config.options?.pushRate;
+    }
+    if (Object.entries(platformConfig).length !== 0) {
+      this.warnLog(`Platform Config: ${JSON.stringify(platformConfig)}`);
+    }
 
+    if (this.config.options) {
       // Device Config
       if (this.config.options.devices) {
         for (const deviceConfig of this.config.options.devices) {
@@ -170,39 +181,30 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     if (!this.config.options.refreshRate) {
       // default 120 seconds (2 minutes)
       this.config.options!.refreshRate! = 120;
-      if (this.debugMode) {
-        this.warnLog('Using Default Refresh Rate (2 minutes).');
+      if (this.platformLogging?.includes('debug')) {
+        this.debugLog('Using Default Refresh Rate (2 minutes).');
       }
 
       if (!this.config.options.pushRate) {
         // default 100 milliseconds
         this.config.options!.pushRate! = 0.1;
-        if (this.debugMode) {
+        if (this.platformLogging?.includes('debug')) {
           this.warnLog('Using Default Push Rate.');
         }
       }
 
       if (!this.config.credentials) {
-        this.debugLog('Missing Credentials');
+        if (this.platformLogging?.includes('debug')) {
+          this.debugLog('Missing Credentials');
+        }
       }
       if (!this.config.credentials?.openToken) {
-        this.errorLog('Missing openToken');
-        this.warnLog('Cloud Enabled SwitchBot Devices & IR Devices will not work');
+        if (this.platformLogging?.includes('debug')) {
+          this.errorLog('Missing openToken');
+          this.warnLog('Cloud Enabled SwitchBot Devices & IR Devices will not work');
+        }
       }
     }
-  }
-
-  connectBLE() {
-    let Switchbot: new () => any;
-    let switchbot: any;
-    try {
-      Switchbot = require('node-switchbot');
-      switchbot = new Switchbot();
-    } catch (e) {
-      switchbot = false;
-      this.errorLog(`Was 'node-switchbot' found: ${switchbot}`);
-    }
-    return switchbot;
   }
 
   /**
@@ -1497,6 +1499,20 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.warnLog('Unable to retreive deviceInfoStatus.');
       }
     }
+  }
+
+  // BLE Connection
+  connectBLE() {
+    let Switchbot: new () => any;
+    let switchbot: any;
+    try {
+      Switchbot = require('node-switchbot');
+      switchbot = new Switchbot();
+    } catch (e) {
+      switchbot = false;
+      this.errorLog(`Was 'node-switchbot' found: ${switchbot}`);
+    }
+    return switchbot;
   }
 
   /**
