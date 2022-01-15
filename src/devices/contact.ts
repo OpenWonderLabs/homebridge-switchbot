@@ -157,7 +157,7 @@ export class Contact {
 
   config(device: device & devicesConfig) {
     const config: any = device.contact;
-    if (device.ble !== undefined) {
+    if (device.ble) {
       config['ble'] = device.ble;
     }
     if (device.logging !== undefined) {

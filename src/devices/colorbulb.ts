@@ -216,7 +216,7 @@ export class ColorBulb {
 
   config(device: device & devicesConfig) {
     const config: any = device.colorbulb;
-    if (device.ble !== undefined) {
+    if (device.ble) {
       config['ble'] = device.ble;
     }
     if (device.logging !== undefined) {

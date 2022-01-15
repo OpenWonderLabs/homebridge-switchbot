@@ -465,7 +465,7 @@ export class Bot {
 
   config(device: device & devicesConfig) {
     const config: any = device.bot;
-    if (device.ble !== undefined) {
+    if (device.ble) {
       config['ble'] = device.ble;
     }
     if (device.logging !== undefined) {
