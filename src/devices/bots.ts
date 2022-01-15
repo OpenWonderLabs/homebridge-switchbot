@@ -67,7 +67,7 @@ export class Bot {
     this.logs(device);
     this.scan(device);
     this.refreshRate(device);
-    this.PressOrSwitch();
+    this.PressOrSwitch(device);
     this.config(device);
     if (this.On === undefined) {
       this.On = false;
@@ -371,171 +371,6 @@ export class Bot {
         }
         this.botUpdateInProgress = false;
       });
-  }
-
-  public removeOutletService(accessory: PlatformAccessory) {
-    // If outletService still pressent, then remove first
-    this.outletService = this.accessory.getService(this.platform.Service.Outlet);
-    if (this.outletService) {
-      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Outlet Service`);
-    }
-    accessory.removeService(this.outletService!);
-  }
-
-  public removeGarageDoorService(accessory: PlatformAccessory) {
-    // If garageDoorService still pressent, then remove first
-    this.garageDoorService = this.accessory.getService(this.platform.Service.GarageDoorOpener);
-    if (this.garageDoorService) {
-      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Garage Door Service`);
-    }
-    accessory.removeService(this.garageDoorService!);
-  }
-
-  public removeDoorService(accessory: PlatformAccessory) {
-    // If doorService still pressent, then remove first
-    this.doorService = this.accessory.getService(this.platform.Service.Door);
-    if (this.doorService) {
-      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Door Service`);
-    }
-    accessory.removeService(this.doorService!);
-  }
-
-  public removeLockService(accessory: PlatformAccessory) {
-    // If lockService still pressent, then remove first
-    this.lockService = this.accessory.getService(this.platform.Service.LockMechanism);
-    if (this.lockService) {
-      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Lock Service`);
-    }
-    accessory.removeService(this.lockService!);
-  }
-
-  public removeFaucetService(accessory: PlatformAccessory) {
-    // If faucetService still pressent, then remove first
-    this.faucetService = this.accessory.getService(this.platform.Service.Faucet);
-    if (this.faucetService) {
-      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Faucet Service`);
-    }
-    accessory.removeService(this.faucetService!);
-  }
-
-  public removeFanService(accessory: PlatformAccessory) {
-    // If fanService still pressent, then remove first
-    this.fanService = this.accessory.getService(this.platform.Service.Fan);
-    if (this.fanService) {
-      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Fan Service`);
-    }
-    accessory.removeService(this.fanService!);
-  }
-
-  public removeWindowService(accessory: PlatformAccessory) {
-    // If windowService still pressent, then remove first
-    this.windowService = this.accessory.getService(this.platform.Service.Window);
-    if (this.windowService) {
-      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Window Service`);
-    }
-    accessory.removeService(this.windowService!);
-  }
-
-  public removeWindowCoveringService(accessory: PlatformAccessory) {
-    // If windowCoveringService still pressent, then remove first
-    this.windowCoveringService = this.accessory.getService(this.platform.Service.WindowCovering);
-    if (this.windowCoveringService) {
-      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Window Covering Service`);
-    }
-    accessory.removeService(this.windowCoveringService!);
-  }
-
-  public removeStatefulProgrammableSwitchService(accessory: PlatformAccessory) {
-    // If statefulProgrammableSwitchService still pressent, then remove first
-    this.statefulProgrammableSwitchService = this.accessory.getService(this.platform.Service.StatefulProgrammableSwitch);
-    if (this.statefulProgrammableSwitchService) {
-      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Stateful Programmable Switch Service`);
-    }
-    accessory.removeService(this.statefulProgrammableSwitchService!);
-  }
-
-  public removeSwitchService(accessory: PlatformAccessory) {
-    // If switchService still pressent, then remove first
-    this.switchService = this.accessory.getService(this.platform.Service.Switch);
-    if (this.switchService) {
-      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Switch Service`);
-    }
-    accessory.removeService(this.switchService!);
-  }
-
-  config(device: device & devicesConfig) {
-    const config: any = device.bot;
-    if (device.ble) {
-      config['ble'] = device.ble;
-    }
-    if (device.logging !== undefined) {
-      config['logging'] = device.logging;
-    }
-    if (device.refreshRate !== undefined) {
-      config['refreshRate'] = device.refreshRate;
-    }
-    if (device.scanDuration !== undefined) {
-      config['scanDuration'] = device.scanDuration;
-    }
-    if (config !== undefined) {
-      this.warnLog(`Bot: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
-    }
-  }
-
-  refreshRate(device: device & devicesConfig) {
-    if (device.refreshRate) {
-      this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
-      this.debugLog(`Bot: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
-    } else if (this.platform.config.options!.refreshRate) {
-      this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
-      this.debugLog(`Bot: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
-    }
-  }
-
-  scan(device: device & devicesConfig) {
-    if (device.scanDuration) {
-      this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
-      if (device.ble) {
-        this.debugLog(`Bot: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
-      }
-    } else {
-      this.scanDuration = this.accessory.context.scanDuration = 1;
-      if (this.device.ble) {
-        this.debugLog(`Bot: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
-      }
-    }
-  }
-
-  logs(device: device & devicesConfig) {
-    if (this.platform.debugMode) {
-      this.deviceLogging = this.accessory.context.logging = 'debugMode';
-      this.debugLog(`Bot: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
-    } else if (device.logging) {
-      this.deviceLogging = this.accessory.context.logging = device.logging;
-      this.debugLog(`Bot: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
-    } else if (this.platform.config.options?.logging) {
-      this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      this.debugLog(`Bot: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
-    } else {
-      this.deviceLogging = this.accessory.context.logging = 'standard';
-      this.debugLog(`Bot: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
-    }
-  }
-
-  PressOrSwitch() {
-    if (!this.device.bot?.mode) {
-      this.botMode = 'switch';
-      this.warnLog(`Bot: ${this.accessory.displayName} does not have bot mode set in the Plugin's SwitchBot Device Settings,`);
-      this.warnLog(`Bot: ${this.accessory.displayName} is defaulting to "${this.botMode}" mode, you may experience issues.`);
-    } else if (this.device.bot?.mode === 'switch') {
-      this.botMode = 'switch';
-      this.infoLog(`Bot: ${this.accessory.displayName} Using Bot Mode: ${this.botMode}`);
-    } else if (this.device.bot?.mode === 'press') {
-      this.botMode = 'press';
-      this.infoLog(`Bot: ${this.accessory.displayName} Using Bot Mode: ${this.botMode}`);
-    } else {
-      throw new Error(`Bot: ${this.accessory.displayName} Bot Mode: ${this.botMode}`);
-    }
   }
 
   /**
@@ -1176,6 +1011,171 @@ export class Bot {
       this.On = value;
     }
     this.doBotUpdate.next();
+  }
+
+  config(device: device & devicesConfig) {
+    const config: any = device.bot;
+    if (device.ble) {
+      config['ble'] = device.ble;
+    }
+    if (device.logging !== undefined) {
+      config['logging'] = device.logging;
+    }
+    if (device.refreshRate !== undefined) {
+      config['refreshRate'] = device.refreshRate;
+    }
+    if (device.scanDuration !== undefined) {
+      config['scanDuration'] = device.scanDuration;
+    }
+    if (config !== undefined) {
+      this.warnLog(`Bot: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+    }
+  }
+
+  refreshRate(device: device & devicesConfig) {
+    if (device.refreshRate) {
+      this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
+      this.debugLog(`Bot: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
+    } else if (this.platform.config.options!.refreshRate) {
+      this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
+      this.debugLog(`Bot: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
+    }
+  }
+
+  scan(device: device & devicesConfig) {
+    if (device.scanDuration) {
+      this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
+      if (device.ble) {
+        this.debugLog(`Bot: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
+      }
+    } else {
+      this.scanDuration = this.accessory.context.scanDuration = 1;
+      if (this.device.ble) {
+        this.debugLog(`Bot: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
+      }
+    }
+  }
+
+  logs(device: device & devicesConfig) {
+    if (this.platform.debugMode) {
+      this.deviceLogging = this.accessory.context.logging = 'debugMode';
+      this.debugLog(`Bot: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+    } else if (device.logging) {
+      this.deviceLogging = this.accessory.context.logging = device.logging;
+      this.debugLog(`Bot: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
+    } else if (this.platform.config.options?.logging) {
+      this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
+      this.debugLog(`Bot: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
+    } else {
+      this.deviceLogging = this.accessory.context.logging = 'standard';
+      this.debugLog(`Bot: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
+    }
+  }
+
+  PressOrSwitch(device: device & devicesConfig) {
+    if (!device.bot?.mode) {
+      this.botMode = 'switch';
+      this.warnLog(`Bot: ${this.accessory.displayName} does not have bot mode set in the Plugin's SwitchBot Device Settings,`);
+      this.warnLog(`Bot: ${this.accessory.displayName} is defaulting to "${this.botMode}" mode, you may experience issues.`);
+    } else if (device.bot?.mode === 'switch') {
+      this.botMode = 'switch';
+      this.debugLog(`Bot: ${this.accessory.displayName} Using Bot Mode: ${this.botMode}`);
+    } else if (device.bot?.mode === 'press') {
+      this.botMode = 'press';
+      this.debugLog(`Bot: ${this.accessory.displayName} Using Bot Mode: ${this.botMode}`);
+    } else {
+      throw new Error(`Bot: ${this.accessory.displayName} Bot Mode: ${this.botMode}`);
+    }
+  }
+
+  public removeOutletService(accessory: PlatformAccessory) {
+    // If outletService still pressent, then remove first
+    this.outletService = this.accessory.getService(this.platform.Service.Outlet);
+    if (this.outletService) {
+      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Outlet Service`);
+    }
+    accessory.removeService(this.outletService!);
+  }
+
+  public removeGarageDoorService(accessory: PlatformAccessory) {
+    // If garageDoorService still pressent, then remove first
+    this.garageDoorService = this.accessory.getService(this.platform.Service.GarageDoorOpener);
+    if (this.garageDoorService) {
+      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Garage Door Service`);
+    }
+    accessory.removeService(this.garageDoorService!);
+  }
+
+  public removeDoorService(accessory: PlatformAccessory) {
+    // If doorService still pressent, then remove first
+    this.doorService = this.accessory.getService(this.platform.Service.Door);
+    if (this.doorService) {
+      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Door Service`);
+    }
+    accessory.removeService(this.doorService!);
+  }
+
+  public removeLockService(accessory: PlatformAccessory) {
+    // If lockService still pressent, then remove first
+    this.lockService = this.accessory.getService(this.platform.Service.LockMechanism);
+    if (this.lockService) {
+      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Lock Service`);
+    }
+    accessory.removeService(this.lockService!);
+  }
+
+  public removeFaucetService(accessory: PlatformAccessory) {
+    // If faucetService still pressent, then remove first
+    this.faucetService = this.accessory.getService(this.platform.Service.Faucet);
+    if (this.faucetService) {
+      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Faucet Service`);
+    }
+    accessory.removeService(this.faucetService!);
+  }
+
+  public removeFanService(accessory: PlatformAccessory) {
+    // If fanService still pressent, then remove first
+    this.fanService = this.accessory.getService(this.platform.Service.Fan);
+    if (this.fanService) {
+      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Fan Service`);
+    }
+    accessory.removeService(this.fanService!);
+  }
+
+  public removeWindowService(accessory: PlatformAccessory) {
+    // If windowService still pressent, then remove first
+    this.windowService = this.accessory.getService(this.platform.Service.Window);
+    if (this.windowService) {
+      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Window Service`);
+    }
+    accessory.removeService(this.windowService!);
+  }
+
+  public removeWindowCoveringService(accessory: PlatformAccessory) {
+    // If windowCoveringService still pressent, then remove first
+    this.windowCoveringService = this.accessory.getService(this.platform.Service.WindowCovering);
+    if (this.windowCoveringService) {
+      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Window Covering Service`);
+    }
+    accessory.removeService(this.windowCoveringService!);
+  }
+
+  public removeStatefulProgrammableSwitchService(accessory: PlatformAccessory) {
+    // If statefulProgrammableSwitchService still pressent, then remove first
+    this.statefulProgrammableSwitchService = this.accessory.getService(this.platform.Service.StatefulProgrammableSwitch);
+    if (this.statefulProgrammableSwitchService) {
+      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Stateful Programmable Switch Service`);
+    }
+    accessory.removeService(this.statefulProgrammableSwitchService!);
+  }
+
+  public removeSwitchService(accessory: PlatformAccessory) {
+    // If switchService still pressent, then remove first
+    this.switchService = this.accessory.getService(this.platform.Service.Switch);
+    if (this.switchService) {
+      this.warnLog(`Bot: ${accessory.displayName} Removing Leftover Switch Service`);
+    }
+    accessory.removeService(this.switchService!);
   }
 
   /**
