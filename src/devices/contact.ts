@@ -2,7 +2,7 @@ import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
 import { SwitchBotPlatform } from '../platform';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse } from '../settings';
+import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse, deviceStatus } from '../settings';
 
 /**
  * Platform Accessory
@@ -24,11 +24,15 @@ export class Contact {
   StatusLowBattery!: CharacteristicValue;
 
   // OpenAPI others
+  openState: deviceStatus['openState'];
+  moveDetected: deviceStatus['moveDetected'];
+  brightness: deviceStatus['brightness'];
   deviceStatus!: deviceStatusResponse;
 
   // BLE Others
   connected?: boolean;
   switchbot!: switchbot;
+  SwitchToOpenAPI!: boolean;
   serviceData!: serviceData;
   battery!: serviceData['battery'];
   movement!: serviceData['movement'];
@@ -36,6 +40,8 @@ export class Contact {
   lightLevel!: serviceData['lightLevel'];
 
   // Config
+  set_minLux!: number;
+  set_maxLux!: number;
   scanDuration!: number;
   deviceLogging!: string;
   deviceRefreshRate!: number;
@@ -50,15 +56,11 @@ export class Contact {
     public device: device & devicesConfig,
   ) {
     // default placeholders
-    this.logs();
-    this.scan();
-    this.refreshRate();
+    this.logs(device);
+    this.scan(device);
+    this.refreshRate(device);
+    this.config(device);
     this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
-
-    // Contact Config
-    this.debugLog(`Contact Sensor: ${this.accessory.displayName} Config: (ble: ${device.ble}, offline: ${device.offline},`
-      + ` hide_lightsensor: ${device.contact?.hide_lightsensor}, hide_motionsensor: ${device.contact?.hide_motionsensor})`);
-
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doContactUpdate = new Subject();
@@ -89,7 +91,7 @@ export class Contact {
     this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
 
     // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/MotionSensor
+    // see https://developers.homebridge.io/#/service/ContactSensor
 
     // Motion Sensor Service
     if (device.contact?.hide_motionsensor) {
@@ -125,12 +127,21 @@ export class Contact {
       this.debugLog(`Contact Sensor: ${accessory.displayName} Light Sensor Service Not Added`);
     }
 
-    if (device.ble) {
+    // Battery Service
+    if (!device.ble) {
+      this.debugLog(`Contact Sensor: ${accessory.displayName} Removing Battery Service`);
+      this.batteryService = this.accessory.getService(this.platform.Service.Battery);
+      accessory.removeService(this.batteryService!);
+    } else if (device.ble && !this.batteryService) {
+      this.debugLog(`Contact Sensor: ${accessory.displayName} Add Battery Service`);
       (this.batteryService =
-        accessory.getService(this.platform.Service.Battery) ||
-        accessory.addService(this.platform.Service.Battery)), `${accessory.displayName} Battery`;
+        this.accessory.getService(this.platform.Service.Battery) ||
+        this.accessory.addService(this.platform.Service.Battery)), `${accessory.displayName} Battery`;
 
       this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
+
+    } else {
+      this.debugLog(`Contact Sensor: ${accessory.displayName} Battery Service Not Added`);
     }
 
     // Retrieve initial values and updateHomekit
@@ -144,70 +155,96 @@ export class Contact {
       });
   }
 
-  refreshRate() {
-    if (this.device.refreshRate) {
-      this.deviceRefreshRate = this.accessory.context.refreshRate = this.device.refreshRate;
-      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Contact Sensor: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
-      }
-    } else if (this.platform.config.options!.refreshRate) {
-      this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
-      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Contact Sensor: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
-      }
+  config(device: device & devicesConfig) {
+    const config: any = device.contact;
+    if (device.ble !== undefined) {
+      config['ble'] = device.ble;
+    }
+    if (device.logging !== undefined) {
+      config['logging'] = device.logging;
+    }
+    if (device.refreshRate !== undefined) {
+      config['refreshRate'] = device.refreshRate;
+    }
+    if (device.scanDuration !== undefined) {
+      config['scanDuration'] = device.scanDuration;
+    }
+    if (config !== undefined) {
+      this.warnLog(`Contact Sensor: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
-  scan() {
-    if (this.device.scanDuration) {
-      this.scanDuration = this.accessory.context.scanDuration = this.device.scanDuration;
-      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Contact Sensor: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
+  refreshRate(device: device & devicesConfig) {
+    if (device.refreshRate) {
+      this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
+      this.debugLog(`Contact Sensor: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
+    } else if (this.platform.config.options!.refreshRate) {
+      this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
+      this.debugLog(`Contact Sensor: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
+    }
+  }
+
+  scan(device: device & devicesConfig) {
+    if (device.scanDuration) {
+      this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
+      if (device.ble) {
+        this.debugLog(`Contact Sensor: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
       }
     } else {
       this.scanDuration = this.accessory.context.scanDuration = 1;
-      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Contact Sensor: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
+      if (this.device.ble) {
+        this.debugLog(`Contact Sensor: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
       }
     }
   }
 
-  logs() {
+  logs(device: device & devicesConfig) {
     if (this.platform.debugMode) {
-      this.deviceLogging = this.accessory.context.logging = 'debug';
-      this.warnLog(`Contact Sensor: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
-    } else if (this.device.logging) {
-      this.deviceLogging = this.accessory.context.logging = this.device.logging;
-      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
-        this.warnLog(`Contact Sensor: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
-      }
+      this.deviceLogging = this.accessory.context.logging = 'debugMode';
+      this.debugLog(`Contact Sensor: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+    } else if (device.logging) {
+      this.deviceLogging = this.accessory.context.logging = device.logging;
+      this.debugLog(`Contact Sensor: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
     } else if (this.platform.config.options?.logging) {
       this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
-        this.warnLog(`Contact Sensor: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
-      }
+      this.debugLog(`Contact Sensor: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
+      this.debugLog(`Contact Sensor: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
     }
+  }
+
+  private minLux(): number {
+    if (this.device.contact?.set_minLux) {
+      this.set_minLux = this.device.contact!.set_minLux!;
+    } else {
+      this.set_minLux = 1;
+    }
+    return this.set_minLux;
+  }
+
+  private maxLux(): number {
+    if (this.device.contact?.set_maxLux) {
+      this.set_maxLux = this.device.contact!.set_maxLux!;
+    } else {
+      this.set_maxLux = 6001;
+    }
+    return this.set_maxLux;
   }
 
   /**
    * Parse the device status from the SwitchBot api
    */
   async parseStatus() {
-    if (this.device.ble) {
-      await this.BLEparseStatus();
-    } else {
+    if (this.SwitchToOpenAPI || !this.device.ble) {
       await this.openAPIparseStatus();
+    } else {
+      await this.BLEparseStatus();
     }
   }
 
   private async BLEparseStatus() {
     this.debugLog(`Contact Sensor: ${this.accessory.displayName} BLE parseStatus`);
-    if (this.device.contact?.hide_motionsensor) {
-      // Movement
-      this.MotionDetected = Boolean(this.movement);
-    }
     // Door State
     switch (this.doorState) {
       case 'open':
@@ -221,44 +258,74 @@ export class Contact {
       default:
         this.errorLog(`Contact Sensor: ${this.accessory.displayName} timeout no closed, doorstate: ${this.doorState}`);
     }
-    if (this.device.contact?.hide_lightsensor) {// Light Level
+    // Movement
+    if (!this.device.contact?.hide_motionsensor) {
+      this.MotionDetected = Boolean(this.movement);
+      this.debugLog(`Contact Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
+    }
+    // Light Level
+    if (!this.device.contact?.hide_lightsensor) {
+      this.set_minLux = this.minLux();
+      this.set_maxLux = this.maxLux();
       switch (this.lightLevel) {
         case 'dark':
         case 0:
-          this.CurrentAmbientLightLevel = 0.0001;
+          this.CurrentAmbientLightLevel = this.set_minLux;
           break;
         default:
-          this.CurrentAmbientLightLevel = 100000;
+          this.CurrentAmbientLightLevel = this.set_maxLux;
       }
+      this.debugLog(`Contact Sensor: ${this.accessory.displayName} LightLevel: ${this.lightLevel},`
+        + ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
     }
     // Battery
+    if (this.battery === undefined) {
+      this.battery === 100;
+    }
     this.BatteryLevel = Number(this.battery);
     if (this.BatteryLevel < 10) {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     }
-
-    this.debugLog(`Contact Sensor: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}, MotionDetected: `
-      + `${this.MotionDetected}, CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}, BatteryLevel: ${this.BatteryLevel}`);
+    this.debugLog(`Contact Sensor: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
   }
 
   private async openAPIparseStatus() {
+    if (this.device.ble) {
+      this.SwitchToOpenAPI = false;
+    }
     if (this.platform.config.credentials?.openToken) {
       this.debugLog(`Contact Sensor: ${this.accessory.displayName} OpenAPI parseStatus`);
-      if (this.deviceStatus.body.openState === 'open') {
+      // Contact State
+      if (this.openState === 'open') {
         this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
         this.debugLog(`Contact Sensor: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
-      } else if (this.deviceStatus.body.openState === 'close') {
+      } else if (this.openState === 'close') {
         this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
         this.debugLog(`Contact Sensor: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
       } else {
-        this.debugLog(`Contact Sensor: ${this.accessory.displayName} openState: ${this.deviceStatus.body.openState}`);
+        this.debugLog(`Contact Sensor: ${this.accessory.displayName} openState: ${this.openState}`);
       }
-      if (this.device.contact?.hide_motionsensor) {
-        this.MotionDetected = Boolean(this.deviceStatus.body.moveDetected);
+      // Motion State
+      if (!this.device.contact?.hide_motionsensor) {
+        this.MotionDetected = this.moveDetected!;
+        this.debugLog(`Contact Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
       }
-      this.debugLog(`Contact Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
+      // Light Level
+      if (!this.device.contact?.hide_lightsensor) {
+        this.set_minLux = this.minLux();
+        this.set_maxLux = this.maxLux();
+        switch (this.brightness) {
+          case 'dim':
+            this.CurrentAmbientLightLevel = this.set_minLux;
+            break;
+          case 'bright':
+          default:
+            this.CurrentAmbientLightLevel = this.set_maxLux;
+        }
+        this.debugLog(`Contact Sensor: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+      }
     }
   }
 
@@ -273,34 +340,12 @@ export class Contact {
     }
   }
 
-  public async connectBLE() {
-    let switchbot: any;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const Switchbot = require('node-switchbot');
-      switchbot = new Switchbot();
-      // Convert to BLE Address
-      this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
-      this.debugLog(`Contact Sensor: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-    } catch (e: any) {
-      switchbot = false;
-      this.errorLog(`Contact Sensor: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot}`);
-      if (this.deviceLogging === 'debug') {
-        this.errorLog(`Contact Sensor: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot},`
-          + ` Error Message: ${JSON.stringify(e.message)}`);
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Contact Sensor: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot},`
-          + ` Error: ${JSON.stringify(e)}`);
-      }
-    }
-    return switchbot;
-  }
-
   private async BLERefreshStatus() {
     this.debugLog(`Contact Sensor: ${this.accessory.displayName} BLE refreshStatus`);
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const switchbot = await this.connectBLE();
+    const switchbot = await this.platform.connectBLE();
+    // Convert to BLE Address
+    this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
+    this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     // Start to monitor advertisement packets
     if (switchbot !== false) {
       switchbot.startScan({
@@ -353,6 +398,7 @@ export class Contact {
         }
         if (this.platform.config.credentials?.openToken) {
           this.warnLog(`Contact Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
+          this.SwitchToOpenAPI = true;
           await this.openAPIRefreshStatus();
         }
         this.apiError(e);
@@ -366,6 +412,7 @@ export class Contact {
     this.errorLog(`Contact Sensor: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
     if (this.platform.config.credentials?.openToken) {
       this.warnLog(`Contact Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
+      this.SwitchToOpenAPI = true;
       await this.openAPIRefreshStatus();
     }
   }
@@ -376,6 +423,9 @@ export class Contact {
       try {
         this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
         this.debugLog(`Contact Sensor: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+        this.openState = this.deviceStatus.body.openState;
+        this.moveDetected = this.deviceStatus.body.moveDetected;
+        this.brightness = this.deviceStatus.body.brightness;
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       } catch (e: any) {

@@ -4,7 +4,7 @@ import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse, payload } from '../settings';
+import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse, payload, deviceStatus } from '../settings';
 
 export class Curtain {
   // Services
@@ -22,11 +22,16 @@ export class Curtain {
 
   // OpenAPI Others
   deviceStatus!: deviceStatusResponse;
+  slidePosition: deviceStatus['slidePosition'];
+  moving: deviceStatus['moving'];
+  brightness: deviceStatus['brightness'];
 
   // BLE Others
   connected?: boolean;
   switchbot!: switchbot;
+  SwitchToOpenAPI?: boolean;
   serviceData!: serviceData;
+  spaceBetweenLevels!: number;
   calibration: serviceData['calibration'];
   battery: serviceData['battery'];
   position: serviceData['position'];
@@ -38,13 +43,12 @@ export class Curtain {
 
   // Config
   set_minStep!: number;
-  curtainRefreshRate!: number;
+  updateRate!: number;
   set_minLux!: number;
   set_maxLux!: number;
   scanDuration!: number;
   deviceLogging!: string;
   deviceRefreshRate!: number;
-  spaceBetweenLevels!: number;
 
   // Updates
   curtainUpdateInProgress!: boolean;
@@ -60,15 +64,10 @@ export class Curtain {
     this.scan();
     this.setMinMax();
     this.refreshRate();
+    this.config(device);
     this.CurrentPosition = 0;
     this.TargetPosition = 0;
     this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
-
-    // Curtain Config
-    this.debugLog(`Curtain: ${this.accessory.displayName} Config: (ble: ${device.ble}, disable_group: ${device.curtain?.disable_group},`
-      + ` hide_lightsensor: ${device.curtain?.hide_lightsensor}, set_minLux: ${device.curtain?.set_minLux}, set_maxLux: `
-      + `${device.curtain?.set_maxLux}, refreshRate: ${device.curtain?.refreshRate}, set_max: ${device.curtain?.set_max}, set_min: `
-      + `${device.curtain?.set_min}, set_minStep: ${device.curtain?.set_minStep})`);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doCurtainUpdate = new Subject();
@@ -142,6 +141,23 @@ export class Curtain {
       this.debugLog(`Curtain: ${accessory.displayName} Light Sensor Service Not Added`);
     }
 
+    // Battery Service
+    if (!device.ble) {
+      this.debugLog(`Curtain: ${accessory.displayName} Removing Battery Service`);
+      this.batteryService = this.accessory.getService(this.platform.Service.Battery);
+      accessory.removeService(this.batteryService!);
+    } else if (device.ble && !this.batteryService) {
+      this.debugLog(`Curtain: ${accessory.displayName} Add Battery Service`);
+      (this.batteryService =
+        this.accessory.getService(this.platform.Service.Battery) ||
+        this.accessory.addService(this.platform.Service.Battery)), `${accessory.displayName} Battery`;
+
+      this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
+
+    } else {
+      this.debugLog(`Curtain: ${accessory.displayName} Battery Service Not Added`);
+    }
+
 
     // Update Homekit
     this.updateHomeKitCharacteristics();
@@ -154,7 +170,7 @@ export class Curtain {
       });
 
     // update slide progress
-    interval(this.curtainRefreshRate * 1000)
+    interval(this.updateRate * 1000)
       .pipe(skipWhile(() => this.curtainUpdateInProgress))
       .subscribe(() => {
         if (this.PositionState === this.platform.Characteristic.PositionState.STOPPED) {
@@ -193,6 +209,25 @@ export class Curtain {
       });
   }
 
+  config(device: device & devicesConfig) {
+    const config: any = device.curtain;
+    if (device.ble !== undefined) {
+      config['ble'] = device.ble;
+    }
+    if (device.logging !== undefined) {
+      config['logging'] = device.logging;
+    }
+    if (device.refreshRate !== undefined) {
+      config['refreshRate'] = device.refreshRate;
+    }
+    if (device.scanDuration !== undefined) {
+      config['scanDuration'] = device.scanDuration;
+    }
+    if (config !== undefined) {
+      this.warnLog(`Curtain: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+    }
+  }
+
   refreshRate() {
     // refreshRate
     if (this.device.refreshRate) {
@@ -206,14 +241,14 @@ export class Curtain {
         this.warnLog(`Curtain: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
       }
     }
-    // curtainRefreshRate
-    if (this.device?.curtain?.refreshRate) {
-      this.curtainRefreshRate = this.device?.curtain?.refreshRate;
+    // updateRate
+    if (this.device?.curtain?.updateRate) {
+      this.updateRate = this.device?.curtain?.updateRate;
       if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
         this.warnLog(`Curtain: ${this.accessory.displayName} Using Device Config Curtain refreshRate: ${this.deviceRefreshRate}`);
       }
     } else {
-      this.curtainRefreshRate = 5;
+      this.updateRate = 5;
       if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
         this.warnLog(`Curtain: ${this.accessory.displayName} Using Default Curtain Refresh Rate.`);
       }
@@ -253,30 +288,6 @@ export class Curtain {
     }
   }
 
-  public async connectBLE() {
-    let switchbot: any;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const Switchbot = require('node-switchbot');
-      switchbot = new Switchbot();
-      // Convert to BLE Address
-      this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
-      this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-    } catch (e: any) {
-      switchbot = false;
-      this.errorLog(`Curtain: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot}`);
-      if (this.deviceLogging === 'debug') {
-        this.errorLog(`Curtain: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot},`
-          + ` Error Message: ${JSON.stringify(e.message)}`);
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Curtain: ${this.accessory.displayName} 'node-switchbot' found: ${switchbot},`
-          + ` Error: ${JSON.stringify(e)}`);
-      }
-    }
-    return switchbot;
-  }
-
   private minStep(): number {
     if (this.device.curtain?.set_minStep) {
       this.set_minStep = this.device.curtain?.set_minStep;
@@ -304,16 +315,20 @@ export class Curtain {
     return this.set_maxLux;
   }
 
+  /**
+   * Parse the device status from the SwitchBot api
+   */
   async parseStatus() {
-    if (this.device.ble) {
-      await this.BLEparseStatus();
-    } else {
+    if (this.SwitchToOpenAPI || !this.device.ble) {
       await this.openAPIparseStatus();
+    } else {
+      await this.BLEparseStatus();
     }
   }
 
   private async BLEparseStatus() {
     this.debugLog(`Curtain: ${this.accessory.displayName} BLE parseStatus`);
+    // CurrentPosition
     this.setMinMax();
     this.CurrentPosition = 100 - Number(this.position);
     this.debugLog(`Curtain: ${this.accessory.displayName} CurrentPosition ${this.CurrentPosition}`);
@@ -339,6 +354,7 @@ export class Curtain {
         // If Curtain calibration distance is short, there will be an error between the current percentage and the target percentage.
         this.TargetPosition = this.CurrentPosition;
         this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
+        this.debugLog(`Curtain: ${this.accessory.displayName} Stopped`);
       }
     }
     this.debugLog(`Curtain: ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition},`
@@ -407,17 +423,20 @@ export class Curtain {
   }
 
   private async openAPIparseStatus() {
+    if (this.device.ble) {
+      this.SwitchToOpenAPI = false;
+    }
     if (this.platform.config.credentials?.openToken) {
       this.debugLog(`Curtain: ${this.accessory.displayName} OpenAPI parseStatus`);
       // CurrentPosition
       this.setMinMax();
-      this.CurrentPosition = 100 - this.deviceStatus.body.slidePosition!;
+      this.CurrentPosition = 100 - Number(this.slidePosition);
       this.debugLog(`Curtain ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition}`);
       if (this.setNewTarget) {
-        this.infoLog(`Checking ${this.accessory.displayName} Status ...`);
+        this.infoLog(`Curtain: ${this.accessory.displayName} Checking Status ...`);
       }
 
-      if (this.deviceStatus.body.moving) {
+      if (this.setNewTarget && this.moving) {
         this.setMinMax();
         if (this.TargetPosition > this.CurrentPosition) {
           this.debugLog(`Curtain: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition} `);
@@ -435,6 +454,7 @@ export class Curtain {
           /*If Curtain calibration distance is short, there will be an error between the current percentage and the target percentage.*/
           this.TargetPosition = this.CurrentPosition;
           this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
+          this.debugLog(`Curtain: ${this.accessory.displayName} Stopped`);
         }
       }
       this.debugLog(`Curtain: ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition},`
@@ -444,7 +464,7 @@ export class Curtain {
         this.set_minLux = this.minLux();
         this.set_maxLux = this.maxLux();
         // Brightness
-        switch (this.deviceStatus.body.brightness) {
+        switch (this.brightness) {
           case 'dim':
             this.CurrentAmbientLightLevel = this.set_minLux;
             break;
@@ -467,8 +487,10 @@ export class Curtain {
 
   private async BLERefreshStatus() {
     this.debugLog(`Curtain: ${this.accessory.displayName} BLE refreshStatus`);
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const switchbot = await this.connectBLE();
+    const switchbot = await this.platform.connectBLE();
+    // Convert to BLE Address
+    this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
+    this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     // Start to monitor advertisement packets
     if (switchbot !== false) {
       switchbot.startScan({
@@ -506,6 +528,7 @@ export class Curtain {
           this.errorLog(`Curtain: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
           if (this.platform.config.credentials?.openToken) {
             this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
+            this.SwitchToOpenAPI = true;
             await this.openAPIRefreshStatus();
           }
         }
@@ -521,6 +544,7 @@ export class Curtain {
         }
         if (this.platform.config.credentials?.openToken) {
           this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
+          this.SwitchToOpenAPI = true;
           await this.openAPIRefreshStatus();
         }
         this.apiError(e);
@@ -534,6 +558,7 @@ export class Curtain {
     this.errorLog(`Curtain: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
     if (this.platform.config.credentials?.openToken) {
       this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
+      this.SwitchToOpenAPI = true;
       await this.openAPIRefreshStatus();
     }
   }
@@ -544,6 +569,9 @@ export class Curtain {
       try {
         this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
         this.debugLog(`Curtain: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+        this.slidePosition = this.deviceStatus.body.slidePosition;
+        this.moving = this.deviceStatus.body.moving;
+        this.brightness = this.deviceStatus.body.brightness;
         this.parseStatus();
         this.updateHomeKitCharacteristics();
       } catch (e: any) {
@@ -578,7 +606,10 @@ export class Curtain {
   private async BLEpushChanges() {
     if (this.TargetPosition !== this.CurrentPosition) {
       this.debugLog(`Curtain: ${this.accessory.displayName} BLE pushChanges`);
-      const switchbot = await this.connectBLE();
+      const switchbot = await this.platform.connectBLE();
+      // Convert to BLE Address
+      this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
+      this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
       if (switchbot !== false) {
         switchbot.discover({ model: 'c', quick: true, id: this.device.bleMac }).then((device_list) => {
           this.infoLog(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);

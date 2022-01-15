@@ -30,7 +30,8 @@ export class TV {
     public device: irdevice & irDevicesConfig,
   ) {
     // default placeholders
-    this.logs();
+    this.logs(device);
+    this.config(device);
     if (this.Active === undefined) {
       this.Active = this.platform.Characteristic.Active.INACTIVE;
     } else {
@@ -128,22 +129,29 @@ export class TV {
       .onSet(this.VolumeSelectorSet.bind(this));
   }
 
-  logs() {
+  config(device: irdevice & irDevicesConfig) {
+    const config: any = device.irtv;
+    if (device.logging !== undefined) {
+      config['logging'] = device.logging;
+    }
+    if (config !== undefined) {
+      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+    }
+  }
+
+  logs(device: irdevice & irDevicesConfig) {
     if (this.platform.debugMode) {
-      this.deviceLogging = this.accessory.context.logging = 'debug';
-      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
-    } else if (this.device.logging) {
-      this.deviceLogging = this.accessory.context.logging = this.device.logging;
-      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
-        this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
-      }
+      this.deviceLogging = this.accessory.context.logging = 'debugMode';
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+    } else if (device.logging) {
+      this.deviceLogging = this.accessory.context.logging = device.logging;
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
     } else if (this.platform.config.options?.logging) {
       this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
-        this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
-      }
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
     }
   }
 

@@ -11,8 +11,7 @@
       "name": {
         "type": "string",
         "title": "Name",
-        "default": "SwitchBot",
-        "required": true
+        "default": "SwitchBot"
       },
       "credentials": {
         "type": "object",
@@ -20,7 +19,6 @@
           "openToken": {
             "title": "Token",
             "type": "string",
-            "required": true,
             "x-schema-form": {
               "type": "password"
             }
@@ -28,10 +26,13 @@
           "notice": {
             "title": "Notice",
             "type": "string",
-            "required": true,
             "default": "Keep your token a secret!"
           }
-        }
+        },
+        "required": [
+          "openToken",
+          "notice"
+        ]
       },
       "options": {
         "type": "object",
@@ -52,7 +53,7 @@
                   "type": "string",
                   "placeholder": "SwitchBot",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].ble && !model.options.devices[arrayIndices].hide_device);"
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId);"
                   }
                 },
                 "hide_device": {
@@ -137,11 +138,11 @@
                   "title": "Enable Bluetooth Low Energy (BLE) Connection",
                   "type": "boolean",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Humidifier' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Bot'));"
                   }
                 },
                 "scanDuration": {
-                  "title": "Scan Duration (Default is 1 Second)",
+                  "title": "BLE Scan Duration (Default is 1 Second)",
                   "type": "number",
                   "placeholder": 1,
                   "condition": {
@@ -222,6 +223,12 @@
                           "title": "Window Covering",
                           "enum": [
                             "windowcovering"
+                          ]
+                        },
+                        {
+                          "title": "Stateful Programmable Switch (Only Works in 3rd Party Home Apps)",
+                          "enum": [
+                            "stateful"
                           ]
                         },
                         {
@@ -315,8 +322,8 @@
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
-                    "refreshRate": {
-                      "title": "Curtain Refresh Rate",
+                    "updateRate": {
+                      "title": "Curtain Update Rate",
                       "type": "number",
                       "minimum": 1,
                       "placeholder": 5,
@@ -367,11 +374,55 @@
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Contact Sensor' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
+                    "set_minlux": {
+                      "title": "Set Min Lux",
+                      "type": "number",
+                      "placeholder": "1",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Contact Sensor' && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].contact.hide_lightsensor);"
+                      }
+                    },
+                    "set_maxlux": {
+                      "title": "Set Max Lux",
+                      "type": "number",
+                      "placeholder": "6001",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Contact Sensor' && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].contact.hide_lightsensor);"
+                      }
+                    },
                     "hide_motionsensor": {
                       "title": "Hide Contact Sensor's Motion Sensor",
                       "type": "boolean",
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Contact Sensor' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    }
+                  }
+                },
+                "motion": {
+                  "type": "object",
+                  "properties": {
+                    "hide_lightsensor": {
+                      "title": "Hide Motion Sensor's Light Sensor",
+                      "type": "boolean",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Motion Sensor' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "set_minlux": {
+                      "title": "Set Min Lux",
+                      "type": "number",
+                      "placeholder": "1",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Motion Sensor' && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].motion.hide_lightsensor);"
+                      }
+                    },
+                    "set_maxlux": {
+                      "title": "Set Max Lux",
+                      "type": "number",
+                      "placeholder": "6001",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Motion Sensor' && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].motion.hide_lightsensor);"
                       }
                     }
                   }
@@ -405,7 +456,7 @@
                   "placeholder": 360,
                   "description": "Indicates the number of seconds between polls of SwitchBot API.",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
                   }
                 },
                 "logging": {
@@ -432,11 +483,17 @@
                     }
                   ],
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
                   }
                 }
-              }
-            }
+              },
+              "required": [
+                "deviceId",
+                "configDeviceType",
+                "configDeviceName"
+              ]
+            },
+            "uniqueItems": true
           },
           "irdevices": {
             "type": "array",
@@ -754,11 +811,16 @@
                     }
                   ],
                   "condition": {
-                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device);"
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType);"
                   }
                 }
-              }
-            }
+              },
+              "required": [
+                "deviceId",
+                "configRemoteType"
+              ]
+            },
+            "uniqueItems": true
           },
           "refreshRate": {
             "title": "Refresh Rate",
@@ -799,7 +861,10 @@
           }
         }
       }
-    }
+    },
+    "required": [
+      "name"
+    ]
   },
   "layout": [
     {
@@ -812,28 +877,27 @@
       ]
     },
     {
-      "key": "options.devices",
-      "notitle": false,
-      "add": "Add Another Device",
       "type": "fieldset",
       "title": "Optional SwitchBot Device Settings",
       "expandable": true,
       "expanded": false,
-      "orderable": false,
-      "buttonText": "Add Device",
       "items": [
         {
-          "type": "div",
-          "displayFlex": true,
-          "flex-direction": "column",
+          "key": "options.devices",
+          "notitle": false,
+          "type": "tabarray",
+          "title": "{{ value.configDeviceName || value.deviceId || 'New SwitchBot Device' }}",
+          "expandable": true,
+          "expanded": false,
+          "orderable": false,
           "items": [
             "options.devices[].configDeviceName",
             "options.devices[].deviceId",
             "options.devices[].hide_device",
+            "options.devices[].configDeviceType",
             "options.devices[].offline",
             "options.devices[].ble",
             "options.devices[].scanDuration",
-            "options.devices[].configDeviceType",
             "options.devices[].bot.mode",
             "options.devices[].bot.deviceType",
             "options.devices[].bot.doublePress",
@@ -844,13 +908,18 @@
             "options.devices[].curtain.set_minStep",
             "options.devices[].curtain.set_min",
             "options.devices[].curtain.set_max",
-            "options.devices[].curtain.refreshRate",
+            "options.devices[].curtain.updateRate",
             "options.devices[].curtain.disable_group",
             "options.devices[].curtain.hide_lightsensor",
             "options.devices[].curtain.set_minlux",
             "options.devices[].curtain.set_maxlux",
             "options.devices[].contact.hide_lightsensor",
+            "options.devices[].contact.set_minlux",
+            "options.devices[].contact.set_maxlux",
             "options.devices[].contact.hide_motionsensor",
+            "options.devices[].motion.hide_lightsensor",
+            "options.devices[].motion.set_minlux",
+            "options.devices[].motion.set_maxlux",
             "options.devices[].colorbulb.set_minStep",
             "options.devices[].colorbulb.adaptiveLightingShift",
             "options.devices[].refreshRate",
@@ -860,20 +929,19 @@
       ]
     },
     {
-      "key": "options.irdevices",
-      "notitle": false,
-      "add": "Add Another IR Device",
       "type": "fieldset",
       "title": "Optional IR Device Settings",
       "expandable": true,
       "expanded": false,
-      "orderable": false,
-      "buttonText": "Add IR Device",
       "items": [
         {
-          "type": "div",
-          "displayFlex": true,
-          "flex-direction": "column",
+          "key": "options.irdevices",
+          "notitle": false,
+          "type": "tabarray",
+          "title": "{{ value.configDeviceName || value.deviceId || 'New IR Device' }}",
+          "expandable": true,
+          "expanded": false,
+          "orderable": false,
           "items": [
             "options.irdevices[].deviceId",
             "options.irdevices[].hide_device",

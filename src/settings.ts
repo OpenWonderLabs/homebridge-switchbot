@@ -48,7 +48,9 @@ export interface devicesConfig extends device {
   humidifier?: humidifier;
   curtain?: curtain;
   contact?: contact;
+  motion?: motion;
   colorbulb?: colorbulb;
+  plug?: Record<any, any>;
   ble?: string;
   scanDuration?: number;
   hide_device?: boolean;
@@ -76,7 +78,7 @@ export type curtain = {
   hide_lightsensor?: boolean;
   set_minLux?: number;
   set_maxLux?: number;
-  refreshRate?: number;
+  updateRate?: number;
   set_max?: number;
   set_min?: number;
   set_minStep?: number;
@@ -84,7 +86,15 @@ export type curtain = {
 
 export type contact = {
   hide_lightsensor?: boolean;
+  set_minLux?: number;
+  set_maxLux?: number;
   hide_motionsensor?: boolean;
+};
+
+export type motion = {
+  hide_lightsensor?: boolean;
+  set_minLux?: number;
+  set_maxLux?: number;
 };
 
 export type colorbulb = {
@@ -98,6 +108,11 @@ export interface irDevicesConfig extends irdevice {
   logging?: string;
   irfan?: irfan;
   irair?: irair;
+  irpur?: Record<any, any>;
+  ircam?: Record<any, any>;
+  irlight?: Record<any, any>;
+  irvc?: Record<any, any>;
+  irwh?: Record<any, any>;
   irtv?: irtv;
   other?: other;
   hide_device?: boolean;

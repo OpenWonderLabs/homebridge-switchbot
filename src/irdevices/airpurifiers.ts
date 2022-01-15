@@ -44,7 +44,8 @@ export class AirPurifier {
     public device: irdevice & irDevicesConfig,
   ) {
     // default placeholders
-    this.logs();
+    this.logs(device);
+    this.config(device);
     if (this.Active === undefined) {
       this.Active = this.platform.Characteristic.Active.INACTIVE;
     } else {
@@ -87,31 +88,38 @@ export class AirPurifier {
     this.service.getCharacteristic(this.platform.Characteristic.TargetAirPurifierState).onSet(this.TargetAirPurifierStateSet.bind(this));
   }
 
-  logs() {
+  config(device: irdevice & irDevicesConfig) {
+    const config: any = device.irpur;
+    if (device.logging !== undefined) {
+      config['logging'] = device.logging;
+    }
+    if (config !== undefined) {
+      this.warnLog(`Air Purifier: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+    }
+  }
+
+  logs(device: irdevice & irDevicesConfig) {
     if (this.platform.debugMode) {
-      this.deviceLogging = this.accessory.context.logging = 'debug';
-      this.warnLog(`Air Purifier: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
-    } else if (this.device.logging) {
-      this.deviceLogging = this.accessory.context.logging = this.device.logging;
-      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
-        this.warnLog(`Air Purifier: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
-      }
+      this.deviceLogging = this.accessory.context.logging = 'debugMode';
+      this.debugLog(`Air Purifier: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+    } else if (device.logging) {
+      this.deviceLogging = this.accessory.context.logging = device.logging;
+      this.debugLog(`Air Purifier: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
     } else if (this.platform.config.options?.logging) {
       this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
-        this.warnLog(`Air Purifier: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
-      }
+      this.debugLog(`Air Purifier: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
+      this.debugLog(`Air Purifier: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
     }
   }
 
   private ActiveSet(value: CharacteristicValue) {
     this.debugLog(`Air Purifier: ${this.accessory.displayName} Set Active: ${value}`);
     if (value === this.platform.Characteristic.Active.INACTIVE) {
-      this.pushAirConditionerOffChanges();
+      this.pushAirPurifierOffChanges();
     } else {
-      this.pushAirConditionerOnChanges();
+      this.pushAirPurifierOnChanges();
     }
     this.Active = value;
     this.ActiveCached = this.Active;
@@ -177,7 +185,7 @@ export class AirPurifier {
    * AirPurifier:        "command"       "middleSpeed"    "default"	        =        fan speed to medium
    * AirPurifier:        "command"       "highSpeed"      "default"	        =        fan speed to high
    */
-  async pushAirConditionerOnChanges() {
+  async pushAirPurifierOnChanges() {
     if (this.Active !== 1) {
       const payload = {
         commandType: 'command',
@@ -188,7 +196,7 @@ export class AirPurifier {
     }
   }
 
-  async pushAirConditionerOffChanges() {
+  async pushAirPurifierOffChanges() {
     if (this.Active !== 0) {
       const payload = {
         commandType: 'command',

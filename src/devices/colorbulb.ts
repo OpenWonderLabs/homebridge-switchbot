@@ -3,7 +3,7 @@ import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap } from 'homebridge';
-import { DeviceURL, device, devicesConfig, switchbot, deviceStatusResponse, payload, hs2rgb, rgb2hs, m2hs } from '../settings';
+import { DeviceURL, device, devicesConfig, switchbot, deviceStatusResponse, payload, hs2rgb, rgb2hs, m2hs, deviceStatus } from '../settings';
 
 /**
  * Platform Accessory
@@ -27,6 +27,10 @@ export class ColorBulb {
   ColorTemperatureCached!: CharacteristicValue;
 
   // OpenAPI Others
+  power: deviceStatus['power'];
+  color: deviceStatus['color'];
+  brightness: deviceStatus['brightness'];
+  colorTemperature: deviceStatus['colorTemperature'];
   deviceStatus!: deviceStatusResponse;
 
   // BLE Others
@@ -54,9 +58,10 @@ export class ColorBulb {
     public device: device & devicesConfig,
   ) {
     // default placeholders
-    this.logs();
-    this.refreshRate();
-    this.adaptiveLighting();
+    this.logs(device);
+    this.refreshRate(device);
+    this.adaptiveLighting(device);
+    this.config(device);
     if (this.On === undefined) {
       this.On = false;
     } else {
@@ -68,11 +73,6 @@ export class ColorBulb {
     this.ColorTemperature = 140;
     this.minKelvin = 2000;
     this.maxKelvin = 9000;
-
-    // ColorBulb Config
-    this.debugLog(`Color Bulb: ${this.accessory.displayName} Config: (ble: ${device.ble}, set_minStep: ${device.colorbulb?.set_minStep},`
-      + ` adaptiveLighting: ${device.colorbulb?.adaptiveLightingShift})`);
-
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doColorBulbUpdate = new Subject();
     this.colorBulbUpdateInProgress = false;
@@ -214,42 +214,54 @@ export class ColorBulb {
       });
   }
 
-  refreshRate() {
-    if (this.device.refreshRate) {
-      this.deviceRefreshRate = this.accessory.context.refreshRate = this.device.refreshRate;
-      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Color Bulb: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
-      }
+  config(device: device & devicesConfig) {
+    const config: any = device.colorbulb;
+    if (device.ble !== undefined) {
+      config['ble'] = device.ble;
+    }
+    if (device.logging !== undefined) {
+      config['logging'] = device.logging;
+    }
+    if (device.refreshRate !== undefined) {
+      config['refreshRate'] = device.refreshRate;
+    }
+    if (device.scanDuration !== undefined) {
+      config['scanDuration'] = device.scanDuration;
+    }
+    if (config !== undefined) {
+      this.warnLog(`Color Bulb: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+    }
+  }
+
+  refreshRate(device: device & devicesConfig) {
+    if (device.refreshRate) {
+      this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
     } else if (this.platform.config.options!.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
-      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Color Bulb: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
-      }
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
     }
   }
 
-  logs() {
+  logs(device: device & devicesConfig) {
     if (this.platform.debugMode) {
-      this.deviceLogging = this.accessory.context.logging = 'debug';
-      this.warnLog(`Color Bulb: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
-    } else if (this.device.logging) {
-      this.deviceLogging = this.accessory.context.logging = this.device.logging;
-      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
-        this.warnLog(`Color Bulb: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
-      }
+      this.deviceLogging = this.accessory.context.logging = 'debugMode';
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+    } else if (device.logging) {
+      this.deviceLogging = this.accessory.context.logging = device.logging;
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
     } else if (this.platform.config.options?.logging) {
       this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
-        this.warnLog(`Color Bulb: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
-      }
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
     }
   }
 
-  adaptiveLighting() {
-    if (this.device.colorbulb?.adaptiveLightingShift) {
-      this.adaptiveLightingShift = this.device.colorbulb.adaptiveLightingShift;
+  adaptiveLighting(device: device & devicesConfig) {
+    if (device.colorbulb?.adaptiveLightingShift) {
+      this.adaptiveLightingShift = device.colorbulb.adaptiveLightingShift;
       this.debugLog(`Color Bulb: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
     } else {
       this.adaptiveLightingShift = 0;
@@ -267,7 +279,7 @@ export class ColorBulb {
   }
 
   parseStatus() {
-    switch (this.deviceStatus.body.power) {
+    switch (this.power) {
       case 'on':
         this.On = true;
         break;
@@ -277,13 +289,13 @@ export class ColorBulb {
     this.debugLog(`Color Bulb: ${this.accessory.displayName} On: ${this.On}`);
 
     // Brightness
-    this.Brightness = Number(this.deviceStatus.body.brightness);
+    this.Brightness = Number(this.brightness);
     this.debugLog(`Color Bulb: ${this.accessory.displayName} Brightness: ${this.Brightness}`);
 
     // Color, Hue & Brightness
-    if (this.deviceStatus.body.color) {
-      this.debugLog(`Color Bulb: ${this.accessory.displayName} color: ${JSON.stringify(this.deviceStatus.body.color)}`);
-      const [red, green, blue] = this.deviceStatus.body.color!.split(':');
+    if (this.color) {
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} color: ${JSON.stringify(this.color)}`);
+      const [red, green, blue] = this.color!.split(':');
       this.debugLog(`Color Bulb: ${this.accessory.displayName} red: ${JSON.stringify(red)}`);
       this.debugLog(`Color Bulb: ${this.accessory.displayName} green: ${JSON.stringify(green)}`);
       this.debugLog(`Color Bulb: ${this.accessory.displayName} blue: ${JSON.stringify(blue)}`);
@@ -301,9 +313,9 @@ export class ColorBulb {
     }
 
     // ColorTemperature
-    if (!Number.isNaN(this.deviceStatus.body.colorTemperature)) {
-      this.debugLog(`Color Bulb: ${this.accessory.displayName} OpenAPI ColorTemperature: ${this.deviceStatus.body.colorTemperature}`);
-      const mired = Math.round(1000000 / this.deviceStatus.body.colorTemperature!);
+    if (!Number.isNaN(this.colorTemperature)) {
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} OpenAPI ColorTemperature: ${this.colorTemperature}`);
+      const mired = Math.round(1000000 / this.colorTemperature!);
 
       this.ColorTemperature = Number(mired);
 
@@ -316,6 +328,10 @@ export class ColorBulb {
     try {
       this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
       this.debugLog(`Color Bulb: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+      this.power = this.deviceStatus.body.power;
+      this.color = this.deviceStatus.body.color;
+      this.brightness = this.deviceStatus.body.brightness;
+      this.colorTemperature = this.deviceStatus.body.colorTemperature;
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
