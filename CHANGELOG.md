@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [Beta - Version 1.8.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.8.0) (2022-01-XX)
+## [Version 1.8.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.8.0) (2022-01-14)
 
 ## What's Changed
 * Added option to display Bot a Stateful Programmable Switch.
