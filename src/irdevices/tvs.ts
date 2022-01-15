@@ -410,7 +410,10 @@ export class TV {
   }
 
   config(device: irdevice & irDevicesConfig) {
-    const config: any = device.irtv;
+    let config = {};
+    if (device.irtv) {
+      config = device.irtv;
+    }
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }

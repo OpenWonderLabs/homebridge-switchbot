@@ -170,7 +170,10 @@ export class VacuumCleaner {
   }
 
   config(device: irdevice & irDevicesConfig) {
-    const config: any = device.irvc;
+    let config = {};
+    if (device.irvc) {
+      config = device.irvc;
+    }
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }

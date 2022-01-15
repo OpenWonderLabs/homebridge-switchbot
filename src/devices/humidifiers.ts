@@ -712,7 +712,10 @@ export class Humidifier {
   }
 
   config(device: device & devicesConfig) {
-    const config: any = device.humidifier;
+    let config = {};
+    if (device.humidifier) {
+      config = device.humidifier;
+    }
     if (device.ble !== undefined) {
       config['ble'] = device.ble;
     }

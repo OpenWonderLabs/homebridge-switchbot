@@ -1014,7 +1014,10 @@ export class Bot {
   }
 
   config(device: device & devicesConfig) {
-    const config: any = device.bot;
+    let config = {};
+    if (device.bot) {
+      config = device.bot;
+    }
     if (device.ble) {
       config['ble'] = device.ble;
     }

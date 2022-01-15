@@ -391,7 +391,10 @@ export class Meter {
   }
 
   config(device: device & devicesConfig) {
-    const config: any = device.meter;
+    let config = {};
+    if (device.meter) {
+      config = device.meter;
+    }
     if (device.ble !== undefined) {
       config['ble'] = device.ble;
     }

@@ -559,7 +559,10 @@ export class AirConditioner {
   }
 
   config(device: irdevice & irDevicesConfig) {
-    const config: any = device.irair;
+    let config = {};
+    if (device.irair) {
+      config = device.irair;
+    }
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }

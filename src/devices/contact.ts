@@ -425,7 +425,10 @@ export class Contact {
   }
 
   config(device: device & devicesConfig) {
-    const config: any = device.contact;
+    let config = {};
+    if (device.contact) {
+      config = device.contact;
+    }
     if (device.ble) {
       config['ble'] = device.ble;
     }

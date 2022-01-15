@@ -618,7 +618,10 @@ export class ColorBulb {
   }
 
   config(device: device & devicesConfig) {
-    const config: any = device.colorbulb;
+    let config = {};
+    if (device.colorbulb) {
+      config = device.colorbulb;
+    }
     if (device.ble) {
       config['ble'] = device.ble;
     }

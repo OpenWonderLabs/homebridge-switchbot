@@ -213,7 +213,10 @@ export class Others {
   }
 
   config(device: irdevice & irDevicesConfig) {
-    const config: any = device.other;
+    let config = {};
+    if (device.other) {
+      config = device.other;
+    }
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }

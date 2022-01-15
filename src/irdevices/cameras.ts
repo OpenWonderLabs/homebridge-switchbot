@@ -170,7 +170,10 @@ export class Camera {
   }
 
   config(device: irdevice & irDevicesConfig) {
-    const config: any = device.ircam;
+    let config = {};
+    if (device.ircam) {
+      config = device.ircam;
+    }
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }

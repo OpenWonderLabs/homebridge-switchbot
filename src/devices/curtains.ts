@@ -718,7 +718,10 @@ export class Curtain {
   }
 
   config(device: device & devicesConfig) {
-    const config: any = device.curtain;
+    let config = {};
+    if (device.curtain) {
+      config = device.curtain;
+    }
     if (device.ble) {
       config['ble'] = device.ble;
     }

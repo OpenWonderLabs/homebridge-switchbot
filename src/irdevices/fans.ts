@@ -294,7 +294,10 @@ export class Fan {
   }
 
   config(device: irdevice & irDevicesConfig) {
-    const config: any = device.irfan;
+    let config = {};
+    if (device.irfan) {
+      config = device.irfan;
+    }
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }

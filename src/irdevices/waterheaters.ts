@@ -184,7 +184,10 @@ export class WaterHeater {
   }
 
   config(device: irdevice & irDevicesConfig) {
-    const config: any = device.irwh;
+    let config = {};
+    if (device.irwh) {
+      config = device.irwh;
+    }
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }

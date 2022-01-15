@@ -281,7 +281,10 @@ export class AirPurifier {
   }
 
   config(device: irdevice & irDevicesConfig) {
-    const config: any = device.irpur;
+    let config = {};
+    if (device.irpur) {
+      config = device.irpur;
+    }
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }

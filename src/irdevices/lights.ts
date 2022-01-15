@@ -204,7 +204,10 @@ export class Light {
   }
 
   config(device: irdevice & irDevicesConfig) {
-    const config: any = device.irlight;
+    let config = {};
+    if (device.irlight) {
+      config = device.irlight;
+    }
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }

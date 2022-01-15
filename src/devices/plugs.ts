@@ -250,7 +250,10 @@ export class Plug {
   }
 
   config(device: device & devicesConfig) {
-    const config: any = device.plug;
+    let config = {};
+    if (device.plug) {
+      config = device.plug;
+    }
     if (device.ble !== undefined) {
       config['ble'] = device.ble;
     }

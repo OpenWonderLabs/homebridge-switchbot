@@ -365,7 +365,10 @@ export class Motion {
   }
 
   config(device: device & devicesConfig) {
-    const config: any = device.motion;
+    let config = {};
+    if (device.motion) {
+      config = device.motion;
+    }
     if (device.ble !== undefined) {
       config['ble'] = device.ble;
     }
