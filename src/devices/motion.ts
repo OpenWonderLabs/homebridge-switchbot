@@ -381,7 +381,7 @@ export class Motion {
     if (device.scanDuration !== undefined) {
       config['scanDuration'] = device.scanDuration;
     }
-    if (Object.entries(config).length === 0) {
+    if (Object.entries(config).length !== 0) {
       this.warnLog(`Motion Sensor: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }

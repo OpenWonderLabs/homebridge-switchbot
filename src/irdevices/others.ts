@@ -220,7 +220,7 @@ export class Others {
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }
-    if (Object.entries(config).length === 0) {
+    if (Object.entries(config).length !== 0) {
       this.warnLog(`Other: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
