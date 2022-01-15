@@ -463,32 +463,21 @@ export class Bot {
     accessory.removeService(this.switchService!);
   }
 
-  scan(device: device & devicesConfig) {
-    if (device.scanDuration) {
-      this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
-      if (device.ble) {
-        this.debugLog(`Bot: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
-      }
-    } else {
-      this.scanDuration = this.accessory.context.scanDuration = 1;
-      if (this.device.ble) {
-        this.debugLog(`Bot: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
-      }
-    }
-  }
-
   config(device: device & devicesConfig) {
     const config: any = device.bot;
-    if (device.bot !== undefined) {
-      if (device.ble !== undefined) {
-        config['ble'] = device.ble;
-      }
-      if (device.logging !== undefined) {
-        config['logging'] = device.logging;
-      }
-      if (device.refreshRate !== undefined) {
-        config['refreshRate'] = device.refreshRate;
-      }
+    if (device.ble !== undefined) {
+      config['ble'] = device.ble;
+    }
+    if (device.logging !== undefined) {
+      config['logging'] = device.logging;
+    }
+    if (device.refreshRate !== undefined) {
+      config['refreshRate'] = device.refreshRate;
+    }
+    if (device.scanDuration !== undefined) {
+      config['scanDuration'] = device.scanDuration;
+    }
+    if (config !== undefined) {
       this.warnLog(`Bot: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
@@ -500,6 +489,20 @@ export class Bot {
     } else if (this.platform.config.options!.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
       this.debugLog(`Bot: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
+    }
+  }
+
+  scan(device: device & devicesConfig) {
+    if (device.scanDuration) {
+      this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
+      if (device.ble) {
+        this.debugLog(`Bot: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
+      }
+    } else {
+      this.scanDuration = this.accessory.context.scanDuration = 1;
+      if (this.device.ble) {
+        this.debugLog(`Bot: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
+      }
     }
   }
 

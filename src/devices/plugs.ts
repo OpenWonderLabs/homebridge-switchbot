@@ -33,9 +33,9 @@ export class Plug {
     public device: device & devicesConfig,
   ) {
     // default placeholders
-    this.logs();
-    this.scan();
-    this.refreshRate();
+    this.logs(device);
+    this.scan(device);
+    this.refreshRate(device);
     this.config(device);
     if (this.On === undefined) {
       this.On = false;
@@ -119,55 +119,61 @@ export class Plug {
   }
 
   config(device: device & devicesConfig) {
-    if (device.plug !== undefined) {
-      this.warnLog(`Plug: ${this.accessory.displayName} Config: ${JSON.stringify(device.plug)}`);
+    const config: any = device.plug;
+    if (device.ble !== undefined) {
+      config['ble'] = device.ble;
+    }
+    if (device.logging !== undefined) {
+      config['logging'] = device.logging;
+    }
+    if (device.refreshRate !== undefined) {
+      config['refreshRate'] = device.refreshRate;
+    }
+    if (device.scanDuration !== undefined) {
+      config['scanDuration'] = device.scanDuration;
+    }
+    if (config !== undefined) {
+      this.warnLog(`Plug: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
-  refreshRate() {
-    if (this.device.refreshRate) {
-      this.deviceRefreshRate = this.accessory.context.refreshRate = this.device.refreshRate;
-      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Plug: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
-      }
+  refreshRate(device: device & devicesConfig) {
+    if (device.refreshRate) {
+      this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
+      this.debugLog(`Plug: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
     } else if (this.platform.config.options!.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
-      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Plug: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
-      }
+      this.debugLog(`Plug: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
     }
   }
 
-  scan() {
-    if (this.device.scanDuration) {
-      this.scanDuration = this.accessory.context.scanDuration = this.device.scanDuration;
-      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Plug: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
+  scan(device: device & devicesConfig) {
+    if (device.scanDuration) {
+      this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
+      if (device.ble) {
+        this.debugLog(`Plug: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
       }
     } else {
       this.scanDuration = this.accessory.context.scanDuration = 1;
-      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Plug: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
+      if (this.device.ble) {
+        this.debugLog(`Plug: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
       }
     }
   }
 
-  logs() {
+  logs(device: device & devicesConfig) {
     if (this.platform.debugMode) {
-      this.deviceLogging = this.accessory.context.logging = 'debug';
-      this.warnLog(`Plug: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
-    } else if (this.device.logging) {
-      this.deviceLogging = this.accessory.context.logging = this.device.logging;
-      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
-        this.warnLog(`Plug: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
-      }
+      this.deviceLogging = this.accessory.context.logging = 'debugMode';
+      this.debugLog(`Plug: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+    } else if (device.logging) {
+      this.deviceLogging = this.accessory.context.logging = device.logging;
+      this.debugLog(`Plug: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
     } else if (this.platform.config.options?.logging) {
       this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
-        this.warnLog(`Plug: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
-      }
+      this.debugLog(`Plug: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
+      this.debugLog(`Plug: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
     }
   }
 

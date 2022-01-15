@@ -50,7 +50,7 @@ export interface devicesConfig extends device {
   contact?: contact;
   motion?: motion;
   colorbulb?: colorbulb;
-  plug?: undefined;
+  plug?: Record<any, any>;
   ble?: string;
   scanDuration?: number;
   hide_device?: boolean;
@@ -108,11 +108,11 @@ export interface irDevicesConfig extends irdevice {
   logging?: string;
   irfan?: irfan;
   irair?: irair;
-  irpur?: undefined;
-  ircam?: undefined;
-  irlight?: undefined;
-  irvc?: undefined;
-  irwh?: undefined;
+  irpur?: Record<any, any>;
+  ircam?: Record<any, any>;
+  irlight?: Record<any, any>;
+  irvc?: Record<any, any>;
+  irwh?: Record<any, any>;
   irtv?: irtv;
   other?: other;
   hide_device?: boolean;

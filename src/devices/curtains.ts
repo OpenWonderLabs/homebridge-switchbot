@@ -211,16 +211,19 @@ export class Curtain {
 
   config(device: device & devicesConfig) {
     const config: any = device.curtain;
-    if (device.curtain !== undefined) {
-      if (device.ble !== undefined) {
-        config['ble'] = device.ble;
-      }
-      if (device.logging !== undefined) {
-        config['logging'] = device.logging;
-      }
-      if (device.refreshRate !== undefined) {
-        config['refreshRate'] = device.refreshRate;
-      }
+    if (device.ble !== undefined) {
+      config['ble'] = device.ble;
+    }
+    if (device.logging !== undefined) {
+      config['logging'] = device.logging;
+    }
+    if (device.refreshRate !== undefined) {
+      config['refreshRate'] = device.refreshRate;
+    }
+    if (device.scanDuration !== undefined) {
+      config['scanDuration'] = device.scanDuration;
+    }
+    if (config !== undefined) {
       this.warnLog(`Curtain: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }

@@ -55,9 +55,9 @@ export class Meter {
     public device: device & devicesConfig,
   ) {
     // default placeholders
-    this.logs();
-    this.scan();
-    this.refreshRate();
+    this.logs(device);
+    this.scan(device);
+    this.refreshRate(device);
     this.config(device);
     if (this.CurrentRelativeHumidity === undefined) {
       this.CurrentRelativeHumidity = 0;
@@ -175,55 +175,61 @@ export class Meter {
   }
 
   config(device: device & devicesConfig) {
-    if (device.meter !== undefined || device.ble !== undefined) {
-      this.warnLog(`Meter: ${this.accessory.displayName} Config: ${JSON.stringify(device.meter)}, BLE: ${device.ble}`);
+    const config: any = device.meter;
+    if (device.ble !== undefined) {
+      config['ble'] = device.ble;
+    }
+    if (device.logging !== undefined) {
+      config['logging'] = device.logging;
+    }
+    if (device.refreshRate !== undefined) {
+      config['refreshRate'] = device.refreshRate;
+    }
+    if (device.scanDuration !== undefined) {
+      config['scanDuration'] = device.scanDuration;
+    }
+    if (config !== undefined) {
+      this.warnLog(`Meter: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
-  refreshRate() {
-    if (this.device.refreshRate) {
-      this.deviceRefreshRate = this.accessory.context.refreshRate = this.device.refreshRate;
-      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Meter: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
-      }
+  refreshRate(device: device & devicesConfig) {
+    if (device.refreshRate) {
+      this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
+      this.debugLog(`Meter: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
     } else if (this.platform.config.options!.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
-      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Meter: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
-      }
+      this.debugLog(`Meter: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
     }
   }
 
-  scan() {
-    if (this.device.scanDuration) {
-      this.scanDuration = this.accessory.context.scanDuration = this.device.scanDuration;
-      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Meter: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
+  scan(device: device & devicesConfig) {
+    if (device.scanDuration) {
+      this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
+      if (device.ble) {
+        this.debugLog(`Meter: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
       }
     } else {
       this.scanDuration = this.accessory.context.scanDuration = 1;
-      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Meter: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
+      if (this.device.ble) {
+        this.debugLog(`Meter: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
       }
     }
   }
 
-  logs() {
+  logs(device: device & devicesConfig) {
     if (this.platform.debugMode) {
-      this.deviceLogging = this.accessory.context.logging = 'debug';
-      this.warnLog(`Meter: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
-    } else if (this.device.logging) {
-      this.deviceLogging = this.accessory.context.logging = this.device.logging;
-      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
-        this.warnLog(`Meter: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
-      }
+      this.deviceLogging = this.accessory.context.logging = 'debugMode';
+      this.debugLog(`Meter: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+    } else if (device.logging) {
+      this.deviceLogging = this.accessory.context.logging = device.logging;
+      this.debugLog(`Meter: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
     } else if (this.platform.config.options?.logging) {
       this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
-        this.warnLog(`Meter: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
-      }
+      this.debugLog(`Meter: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
+      this.debugLog(`Meter: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
     }
   }
 
@@ -415,16 +421,16 @@ export class Meter {
     }
     if (this.device.ble) {
       if (this.BatteryLevel === undefined) {
-        this.debugLog(`Bot: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
+        this.debugLog(`Meter: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
       } else {
         this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
-        this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
+        this.debugLog(`Meter: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
       }
       if (this.StatusLowBattery === undefined) {
-        this.debugLog(`Bot: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
+        this.debugLog(`Meter: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
       } else {
         this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
-        this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
+        this.debugLog(`Meter: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
       }
     }
   }
