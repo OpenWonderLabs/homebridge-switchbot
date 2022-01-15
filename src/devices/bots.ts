@@ -478,11 +478,18 @@ export class Bot {
   }
 
   config(device: device & devicesConfig) {
+    const config: any = device.bot;
     if (device.bot !== undefined) {
-      device.bot['ble'] = device.ble;
-      device.bot['logging'] = this.deviceLogging;
-      device.bot['refreshRate'] = this.deviceRefreshRate;
-      this.warnLog(`Bot: ${this.accessory.displayName} Config: ${JSON.stringify(device.bot)}`);
+      if (device.ble !== undefined) {
+        config['ble'] = device.ble;
+      }
+      if (device.logging !== undefined) {
+        config['logging'] = device.logging;
+      }
+      if (device.refreshRate !== undefined) {
+        config['refreshRate'] = device.refreshRate;
+      }
+      this.warnLog(`Bot: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 

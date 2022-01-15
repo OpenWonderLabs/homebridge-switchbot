@@ -154,7 +154,7 @@ export class Humidifier {
           minStep: 0.1,
         })
         .onGet(() => {
-          return Number.isNaN(this.CurrentTemperature);
+          return this.CurrentTemperature;
         });
     } else {
       this.debugLog(`Humidifier: ${accessory.displayName} Temperature Sensor Service Not Added`);
@@ -199,8 +199,18 @@ export class Humidifier {
   }
 
   config(device: device & devicesConfig) {
-    if (device.humidifier !== undefined || device.ble !== undefined) {
-      this.warnLog(`Humidifier: ${this.accessory.displayName} Config: ${JSON.stringify(device.humidifier)}, BLE: ${device.ble}`);
+    const config: any = device.humidifier;
+    if (device.humidifier !== undefined) {
+      if (device.ble !== undefined) {
+        config['ble'] = device.ble;
+      }
+      if (device.logging !== undefined) {
+        config['logging'] = device.logging;
+      }
+      if (device.refreshRate !== undefined) {
+        config['refreshRate'] = device.refreshRate;
+      }
+      this.warnLog(`Humidifier: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 

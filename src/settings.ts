@@ -78,7 +78,7 @@ export type curtain = {
   hide_lightsensor?: boolean;
   set_minLux?: number;
   set_maxLux?: number;
-  refreshRate?: number;
+  updateRate?: number;
   set_max?: number;
   set_min?: number;
   set_minStep?: number;

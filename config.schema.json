@@ -322,8 +322,8 @@
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
-                    "refreshRate": {
-                      "title": "Curtain Refresh Rate",
+                    "updateRate": {
+                      "title": "Curtain Update Rate",
                       "type": "number",
                       "minimum": 1,
                       "placeholder": 5,
@@ -908,7 +908,7 @@
             "options.devices[].curtain.set_minStep",
             "options.devices[].curtain.set_min",
             "options.devices[].curtain.set_max",
-            "options.devices[].curtain.refreshRate",
+            "options.devices[].curtain.updateRate",
             "options.devices[].curtain.disable_group",
             "options.devices[].curtain.hide_lightsensor",
             "options.devices[].curtain.set_minlux",

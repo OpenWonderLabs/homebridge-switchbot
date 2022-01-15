@@ -43,7 +43,7 @@ export class Curtain {
 
   // Config
   set_minStep!: number;
-  curtainRefreshRate!: number;
+  updateRate!: number;
   set_minLux!: number;
   set_maxLux!: number;
   scanDuration!: number;
@@ -68,12 +68,6 @@ export class Curtain {
     this.CurrentPosition = 0;
     this.TargetPosition = 0;
     this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
-
-    // Curtain Config
-    this.debugLog(`Curtain: ${this.accessory.displayName} Config: (ble: ${device.ble}, disable_group: ${device.curtain?.disable_group},`
-      + ` hide_lightsensor: ${device.curtain?.hide_lightsensor}, set_minLux: ${device.curtain?.set_minLux}, set_maxLux: `
-      + `${device.curtain?.set_maxLux}, refreshRate: ${device.curtain?.refreshRate}, set_max: ${device.curtain?.set_max}, set_min: `
-      + `${device.curtain?.set_min}, set_minStep: ${device.curtain?.set_minStep})`);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doCurtainUpdate = new Subject();
@@ -176,7 +170,7 @@ export class Curtain {
       });
 
     // update slide progress
-    interval(this.curtainRefreshRate * 1000)
+    interval(this.updateRate * 1000)
       .pipe(skipWhile(() => this.curtainUpdateInProgress))
       .subscribe(() => {
         if (this.PositionState === this.platform.Characteristic.PositionState.STOPPED) {
@@ -216,8 +210,18 @@ export class Curtain {
   }
 
   config(device: device & devicesConfig) {
-    if (device.curtain !== undefined || device.ble !== undefined) {
-      this.warnLog(`Curtain: ${this.accessory.displayName} Config: ${JSON.stringify(device.curtain)}, BLE: ${device.ble}`);
+    const config: any = device.curtain;
+    if (device.curtain !== undefined) {
+      if (device.ble !== undefined) {
+        config['ble'] = device.ble;
+      }
+      if (device.logging !== undefined) {
+        config['logging'] = device.logging;
+      }
+      if (device.refreshRate !== undefined) {
+        config['refreshRate'] = device.refreshRate;
+      }
+      this.warnLog(`Curtain: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
@@ -234,14 +238,14 @@ export class Curtain {
         this.warnLog(`Curtain: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
       }
     }
-    // curtainRefreshRate
-    if (this.device?.curtain?.refreshRate) {
-      this.curtainRefreshRate = this.device?.curtain?.refreshRate;
+    // updateRate
+    if (this.device?.curtain?.updateRate) {
+      this.updateRate = this.device?.curtain?.updateRate;
       if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
         this.warnLog(`Curtain: ${this.accessory.displayName} Using Device Config Curtain refreshRate: ${this.deviceRefreshRate}`);
       }
     } else {
-      this.curtainRefreshRate = 5;
+      this.updateRate = 5;
       if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
         this.warnLog(`Curtain: ${this.accessory.displayName} Using Default Curtain Refresh Rate.`);
       }

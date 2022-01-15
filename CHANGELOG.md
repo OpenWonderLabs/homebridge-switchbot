@@ -15,6 +15,8 @@ All notable changes to this project will be documented in this file. This projec
 * Fixed Bug: Battery Service wouldn't be removed from Curtain, Contact Sensor, or Motion Sensor when switching from BLE to OpenAPI.
 * Enhancments: Made some improvemnt on the switch from BLE to OpenAPI when BLE connection fails.
 * Enhancments: Made Optional Switchbot Device Settings and Optional IR Device Settings more managable by using Tabs.
+* Change: Changed Curtain `refreshRate` to `updateRate`.
+    * You will have to update your config for it to pickup the new `updateRate`.
 * Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.7.0...v1.8.0
