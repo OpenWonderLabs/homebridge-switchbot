@@ -58,9 +58,9 @@ export class ColorBulb {
     public device: device & devicesConfig,
   ) {
     // default placeholders
-    this.logs();
-    this.refreshRate();
-    this.adaptiveLighting();
+    this.logs(device);
+    this.refreshRate(device);
+    this.adaptiveLighting(device);
     this.config(device);
     if (this.On === undefined) {
       this.On = false;
@@ -215,47 +215,43 @@ export class ColorBulb {
   }
 
   config(device: device & devicesConfig) {
-    if (device.colorbulb !== undefined) {
-      this.debugLog(`Color Bulb: ${this.accessory.displayName} Config: ${JSON.stringify(device.colorbulb)}`);
+    if (device.bot !== undefined) {
+      device.bot['ble'] = device.ble;
+      device.bot['logging'] = this.deviceLogging;
+      device.bot['refreshRate'] = this.deviceRefreshRate;
+      this.warnLog(`Color Bulb: ${this.accessory.displayName} Config: ${JSON.stringify(device.colorbulb)}`);
     }
   }
 
-  refreshRate() {
-    if (this.device.refreshRate) {
-      this.deviceRefreshRate = this.accessory.context.refreshRate = this.device.refreshRate;
-      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Color Bulb: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
-      }
+  refreshRate(device: device & devicesConfig) {
+    if (device.refreshRate) {
+      this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
     } else if (this.platform.config.options!.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
-      if (this.platform.debugMode || (this.deviceLogging === 'debug')) {
-        this.warnLog(`Color Bulb: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
-      }
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
     }
   }
 
-  logs() {
+  logs(device: device & devicesConfig) {
     if (this.platform.debugMode) {
-      this.deviceLogging = this.accessory.context.logging = 'debug';
-      this.warnLog(`Color Bulb: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
-    } else if (this.device.logging) {
-      this.deviceLogging = this.accessory.context.logging = this.device.logging;
-      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
-        this.warnLog(`Color Bulb: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
-      }
+      this.deviceLogging = this.accessory.context.logging = 'debugMode';
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+    } else if (device.logging) {
+      this.deviceLogging = this.accessory.context.logging = device.logging;
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
     } else if (this.platform.config.options?.logging) {
       this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
-        this.warnLog(`Color Bulb: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
-      }
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
     }
   }
 
-  adaptiveLighting() {
-    if (this.device.colorbulb?.adaptiveLightingShift) {
-      this.adaptiveLightingShift = this.device.colorbulb.adaptiveLightingShift;
+  adaptiveLighting(device: device & devicesConfig) {
+    if (device.colorbulb?.adaptiveLightingShift) {
+      this.adaptiveLightingShift = device.colorbulb.adaptiveLightingShift;
       this.debugLog(`Color Bulb: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
     } else {
       this.adaptiveLightingShift = 0;
