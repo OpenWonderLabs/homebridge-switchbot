@@ -67,32 +67,6 @@ export class WaterHeater {
     this.service.getCharacteristic(this.platform.Characteristic.Active).onSet(this.ActiveSet.bind(this));
   }
 
-  config(device: irdevice & irDevicesConfig) {
-    const config: any = device.irwh;
-    if (device.logging !== undefined) {
-      config['logging'] = device.logging;
-    }
-    if (config !== undefined) {
-      this.warnLog(`Water Heater: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
-    }
-  }
-
-  logs(device: irdevice & irDevicesConfig) {
-    if (this.platform.debugMode) {
-      this.deviceLogging = this.accessory.context.logging = 'debugMode';
-      this.debugLog(`Water Heater: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
-    } else if (device.logging) {
-      this.deviceLogging = this.accessory.context.logging = device.logging;
-      this.debugLog(`Water Heater: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
-    } else if (this.platform.config.options?.logging) {
-      this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      this.debugLog(`Water Heater: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
-    } else {
-      this.deviceLogging = this.accessory.context.logging = 'standard';
-      this.debugLog(`Water Heater: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
-    }
-  }
-
   private ActiveSet(value: CharacteristicValue) {
     this.debugLog(`Water Heater: ${this.accessory.displayName} Active: ${value}`);
     if (value === this.platform.Characteristic.Active.INACTIVE) {
@@ -207,6 +181,35 @@ export class WaterHeater {
   public apiError(e: any) {
     this.service.updateCharacteristic(this.platform.Characteristic.Active, e);
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+  }
+
+  config(device: irdevice & irDevicesConfig) {
+    let config = {};
+    if (device.irwh) {
+      config = device.irwh;
+    }
+    if (device.logging !== undefined) {
+      config['logging'] = device.logging;
+    }
+    if (config !== undefined) {
+      this.warnLog(`Water Heater: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+    }
+  }
+
+  logs(device: irdevice & irDevicesConfig) {
+    if (this.platform.debugMode) {
+      this.deviceLogging = this.accessory.context.logging = 'debugMode';
+      this.debugLog(`Water Heater: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+    } else if (device.logging) {
+      this.deviceLogging = this.accessory.context.logging = device.logging;
+      this.debugLog(`Water Heater: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
+    } else if (this.platform.config.options?.logging) {
+      this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
+      this.debugLog(`Water Heater: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
+    } else {
+      this.deviceLogging = this.accessory.context.logging = 'standard';
+      this.debugLog(`Water Heater: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
+    }
   }
 
   /**

@@ -73,32 +73,6 @@ export class Light {
       });*/
   }
 
-  config(device: irdevice & irDevicesConfig) {
-    const config: any = device.irlight;
-    if (device.logging !== undefined) {
-      config['logging'] = device.logging;
-    }
-    if (config !== undefined) {
-      this.warnLog(`Light: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
-    }
-  }
-
-  logs(device: irdevice & irDevicesConfig) {
-    if (this.platform.debugMode) {
-      this.deviceLogging = this.accessory.context.logging = 'debugMode';
-      this.debugLog(`Light: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
-    } else if (device.logging) {
-      this.deviceLogging = this.accessory.context.logging = device.logging;
-      this.debugLog(`Light: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
-    } else if (this.platform.config.options?.logging) {
-      this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      this.debugLog(`Light: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
-    } else {
-      this.deviceLogging = this.accessory.context.logging = 'standard';
-      this.debugLog(`Light: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
-    }
-  }
-
   private OnSet(value: CharacteristicValue) {
     this.debugLog(`Light: ${this.accessory.displayName} On: ${value}`);
     this.On = value;
@@ -227,6 +201,35 @@ export class Light {
   public apiError(e: any) {
     this.service.updateCharacteristic(this.platform.Characteristic.On, e);
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+  }
+
+  config(device: irdevice & irDevicesConfig) {
+    let config = {};
+    if (device.irlight) {
+      config = device.irlight;
+    }
+    if (device.logging !== undefined) {
+      config['logging'] = device.logging;
+    }
+    if (config !== undefined) {
+      this.warnLog(`Light: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+    }
+  }
+
+  logs(device: irdevice & irDevicesConfig) {
+    if (this.platform.debugMode) {
+      this.deviceLogging = this.accessory.context.logging = 'debugMode';
+      this.debugLog(`Light: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+    } else if (device.logging) {
+      this.deviceLogging = this.accessory.context.logging = device.logging;
+      this.debugLog(`Light: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
+    } else if (this.platform.config.options?.logging) {
+      this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
+      this.debugLog(`Light: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
+    } else {
+      this.deviceLogging = this.accessory.context.logging = 'standard';
+      this.debugLog(`Light: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
+    }
   }
 
   /**

@@ -117,7 +117,7 @@ export class ColorBulb {
     // handle Brightness events using the Brightness characteristic
     this.service.getCharacteristic(this.platform.Characteristic.Brightness)
       .setProps({
-        minStep: this.minStep(),
+        minStep: this.minStep(device),
         minValue: 0,
         maxValue: 100,
         validValueRanges: [0, 100],
@@ -212,70 +212,6 @@ export class ColorBulb {
         }
         this.colorBulbUpdateInProgress = false;
       });
-  }
-
-  config(device: device & devicesConfig) {
-    const config: any = device.colorbulb;
-    if (device.ble !== undefined) {
-      config['ble'] = device.ble;
-    }
-    if (device.logging !== undefined) {
-      config['logging'] = device.logging;
-    }
-    if (device.refreshRate !== undefined) {
-      config['refreshRate'] = device.refreshRate;
-    }
-    if (device.scanDuration !== undefined) {
-      config['scanDuration'] = device.scanDuration;
-    }
-    if (config !== undefined) {
-      this.warnLog(`Color Bulb: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
-    }
-  }
-
-  refreshRate(device: device & devicesConfig) {
-    if (device.refreshRate) {
-      this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
-      this.debugLog(`Color Bulb: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
-    } else if (this.platform.config.options!.refreshRate) {
-      this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
-      this.debugLog(`Color Bulb: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
-    }
-  }
-
-  logs(device: device & devicesConfig) {
-    if (this.platform.debugMode) {
-      this.deviceLogging = this.accessory.context.logging = 'debugMode';
-      this.debugLog(`Color Bulb: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
-    } else if (device.logging) {
-      this.deviceLogging = this.accessory.context.logging = device.logging;
-      this.debugLog(`Color Bulb: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
-    } else if (this.platform.config.options?.logging) {
-      this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      this.debugLog(`Color Bulb: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
-    } else {
-      this.deviceLogging = this.accessory.context.logging = 'standard';
-      this.debugLog(`Color Bulb: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
-    }
-  }
-
-  adaptiveLighting(device: device & devicesConfig) {
-    if (device.colorbulb?.adaptiveLightingShift) {
-      this.adaptiveLightingShift = device.colorbulb.adaptiveLightingShift;
-      this.debugLog(`Color Bulb: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
-    } else {
-      this.adaptiveLightingShift = 0;
-      this.debugLog(`Color Bulb: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
-    }
-  }
-
-  private minStep(): number {
-    if (this.device.colorbulb?.set_minStep) {
-      this.set_minStep = this.device.colorbulb?.set_minStep;
-    } else {
-      this.set_minStep = 1;
-    }
-    return this.set_minStep;
   }
 
   parseStatus() {
@@ -679,6 +615,73 @@ export class ColorBulb {
 
     this.Saturation = value;
     this.doColorBulbUpdate.next();
+  }
+
+  config(device: device & devicesConfig) {
+    let config = {};
+    if (device.colorbulb) {
+      config = device.colorbulb;
+    }
+    if (device.ble) {
+      config['ble'] = device.ble;
+    }
+    if (device.logging !== undefined) {
+      config['logging'] = device.logging;
+    }
+    if (device.refreshRate !== undefined) {
+      config['refreshRate'] = device.refreshRate;
+    }
+    if (device.scanDuration !== undefined) {
+      config['scanDuration'] = device.scanDuration;
+    }
+    if (config !== undefined) {
+      this.warnLog(`Color Bulb: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+    }
+  }
+
+  refreshRate(device: device & devicesConfig) {
+    if (device.refreshRate) {
+      this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
+    } else if (this.platform.config.options!.refreshRate) {
+      this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
+    }
+  }
+
+  logs(device: device & devicesConfig) {
+    if (this.platform.debugMode) {
+      this.deviceLogging = this.accessory.context.logging = 'debugMode';
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+    } else if (device.logging) {
+      this.deviceLogging = this.accessory.context.logging = device.logging;
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
+    } else if (this.platform.config.options?.logging) {
+      this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
+    } else {
+      this.deviceLogging = this.accessory.context.logging = 'standard';
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
+    }
+  }
+
+  adaptiveLighting(device: device & devicesConfig) {
+    if (device.colorbulb?.adaptiveLightingShift) {
+      this.adaptiveLightingShift = device.colorbulb.adaptiveLightingShift;
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
+    } else {
+      this.adaptiveLightingShift = 0;
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
+    }
+  }
+
+  minStep(device: device & devicesConfig): number {
+    if (device.colorbulb?.set_minStep) {
+      this.set_minStep = device.colorbulb?.set_minStep;
+    } else {
+      this.set_minStep = 1;
+    }
+    return this.set_minStep;
   }
 
   /**

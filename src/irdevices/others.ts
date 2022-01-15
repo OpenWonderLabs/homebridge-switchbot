@@ -66,43 +66,6 @@ export class Others {
     }
   }
 
-  deviceType(device: irdevice & irDevicesConfig) {
-    if (device.other?.deviceType) {
-      this.otherDeviceType = this.accessory.context.deviceType = device.other.deviceType;
-      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
-        this.warnLog(`Other: ${this.accessory.displayName} Using Device Type: ${this.otherDeviceType}`);
-      }
-    } else {
-      this.errorLog(`Other: ${this.accessory.displayName} No Device Type Set, deviceType: ${this.device.other?.deviceType}`);
-    }
-  }
-
-  config(device: irdevice & irDevicesConfig) {
-    const config: any = device.other;
-    if (device.logging !== undefined) {
-      config['logging'] = device.logging;
-    }
-    if (config !== undefined) {
-      this.warnLog(`Other: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
-    }
-  }
-
-  logs(device: irdevice & irDevicesConfig) {
-    if (this.platform.debugMode) {
-      this.deviceLogging = this.accessory.context.logging = 'debugMode';
-      this.debugLog(`Other: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
-    } else if (device.logging) {
-      this.deviceLogging = this.accessory.context.logging = device.logging;
-      this.debugLog(`Other: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
-    } else if (this.platform.config.options?.logging) {
-      this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      this.debugLog(`Other: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
-    } else {
-      this.deviceLogging = this.accessory.context.logging = 'standard';
-      this.debugLog(`Other: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
-    }
-  }
-
   private ActiveSet(value: CharacteristicValue) {
     this.debugLog(`Other: ${this.accessory.displayName} On: ${value}`);
     if (this.Active) {
@@ -236,6 +199,46 @@ export class Others {
   public apiError(e: any) {
     this.service?.updateCharacteristic(this.platform.Characteristic.Active, e);
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+  }
+
+  deviceType(device: irdevice & irDevicesConfig) {
+    if (device.other?.deviceType) {
+      this.otherDeviceType = this.accessory.context.deviceType = device.other.deviceType;
+      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
+        this.warnLog(`Other: ${this.accessory.displayName} Using Device Type: ${this.otherDeviceType}`);
+      }
+    } else {
+      this.errorLog(`Other: ${this.accessory.displayName} No Device Type Set, deviceType: ${this.device.other?.deviceType}`);
+    }
+  }
+
+  config(device: irdevice & irDevicesConfig) {
+    let config = {};
+    if (device.other) {
+      config = device.other;
+    }
+    if (device.logging !== undefined) {
+      config['logging'] = device.logging;
+    }
+    if (config !== undefined) {
+      this.warnLog(`Other: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+    }
+  }
+
+  logs(device: irdevice & irDevicesConfig) {
+    if (this.platform.debugMode) {
+      this.deviceLogging = this.accessory.context.logging = 'debugMode';
+      this.debugLog(`Other: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+    } else if (device.logging) {
+      this.deviceLogging = this.accessory.context.logging = device.logging;
+      this.debugLog(`Other: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
+    } else if (this.platform.config.options?.logging) {
+      this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
+      this.debugLog(`Other: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
+    } else {
+      this.deviceLogging = this.accessory.context.logging = 'standard';
+      this.debugLog(`Other: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
+    }
   }
 
   /**

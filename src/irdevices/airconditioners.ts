@@ -167,32 +167,6 @@ export class AirConditioner {
       .onSet(this.RotationSpeedSet.bind(this));
   }
 
-  config(device: irdevice & irDevicesConfig) {
-    const config: any = device.irair;
-    if (device.logging !== undefined) {
-      config['logging'] = device.logging;
-    }
-    if (config !== undefined) {
-      this.warnLog(`Air Conditioner: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
-    }
-  }
-
-  logs(device: irdevice & irDevicesConfig) {
-    if (this.platform.debugMode) {
-      this.deviceLogging = this.accessory.context.logging = 'debugMode';
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
-    } else if (device.logging) {
-      this.deviceLogging = this.accessory.context.logging = device.logging;
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
-    } else if (this.platform.config.options?.logging) {
-      this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
-    } else {
-      this.deviceLogging = this.accessory.context.logging = 'standard';
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
-    }
-  }
-
   /**
    * Pushes the requested changes to the SwitchBot API
    * deviceType				commandType     Command	          command parameter	         Description
@@ -581,6 +555,35 @@ export class AirConditioner {
     }
     if (this.CurrentTemperatureCached === undefined) {
       this.CurrentTemperature = 30;
+    }
+  }
+
+  config(device: irdevice & irDevicesConfig) {
+    let config = {};
+    if (device.irair) {
+      config = device.irair;
+    }
+    if (device.logging !== undefined) {
+      config['logging'] = device.logging;
+    }
+    if (config !== undefined) {
+      this.warnLog(`Air Conditioner: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+    }
+  }
+
+  logs(device: irdevice & irDevicesConfig) {
+    if (this.platform.debugMode) {
+      this.deviceLogging = this.accessory.context.logging = 'debugMode';
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+    } else if (device.logging) {
+      this.deviceLogging = this.accessory.context.logging = device.logging;
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
+    } else if (this.platform.config.options?.logging) {
+      this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
+    } else {
+      this.deviceLogging = this.accessory.context.logging = 'standard';
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
     }
   }
 
