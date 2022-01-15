@@ -301,7 +301,7 @@ export class Fan {
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }
-    if (config !== undefined) {
+    if (Object.entries(config).length === 0) {
       this.warnLog(`Fan: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }

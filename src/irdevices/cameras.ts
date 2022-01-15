@@ -177,7 +177,7 @@ export class Camera {
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }
-    if (config !== undefined) {
+    if (Object.entries(config).length === 0) {
       this.warnLog(`Camera: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
