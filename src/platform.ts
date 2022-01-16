@@ -1,4 +1,3 @@
-
 import { Bot } from './devices/bots';
 import { Plug } from './devices/plugs';
 import { Meter } from './devices/meters';
@@ -131,14 +130,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     this.config.options = this.config.options || {};
 
     const platformConfig = {};
-    if (this.config.options?.logging) {
-      platformConfig['logging'] = this.config.options?.logging;
+    if (this.config.options.logging) {
+      platformConfig['logging'] = this.config.options.logging;
     }
-    if (this.config.options?.logging) {
-      platformConfig['refreshRate'] = this.config.options?.refreshRate;
+    if (this.config.options.logging) {
+      platformConfig['refreshRate'] = this.config.options.refreshRate;
     }
-    if (this.config.options?.logging) {
-      platformConfig['pushRate'] = this.config.options?.pushRate;
+    if (this.config.options.logging) {
+      platformConfig['pushRate'] = this.config.options.pushRate;
     }
     if (Object.entries(platformConfig).length !== 0) {
       this.warnLog(`Platform Config: ${JSON.stringify(platformConfig)}`);
