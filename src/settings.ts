@@ -51,7 +51,7 @@ export interface devicesConfig extends device {
   motion?: motion;
   colorbulb?: colorbulb;
   plug?: Record<any, any>;
-  ble?: string;
+  ble?: boolean;
   scanDuration?: number;
   hide_device?: boolean;
   offline?: boolean;

@@ -417,7 +417,7 @@ export class TV {
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }
-    if (config !== undefined) {
+    if (Object.entries(config).length !== 0) {
       this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }

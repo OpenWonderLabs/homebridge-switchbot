@@ -288,7 +288,7 @@ export class AirPurifier {
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }
-    if (config !== undefined) {
+    if (Object.entries(config).length !== 0) {
       this.warnLog(`Air Purifier: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }

@@ -734,7 +734,7 @@ export class Curtain {
     if (device.scanDuration !== undefined) {
       config['scanDuration'] = device.scanDuration;
     }
-    if (config !== undefined) {
+    if (Object.entries(config).length !== 0) {
       this.warnLog(`Curtain: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }

@@ -566,7 +566,7 @@ export class AirConditioner {
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }
-    if (config !== undefined) {
+    if (Object.entries(config).length !== 0) {
       this.warnLog(`Air Conditioner: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
