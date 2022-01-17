@@ -16,7 +16,7 @@
   "rules": {
     "quotes": [
       "warn",
-      "single"
+      "double"
     ],
     "indent": [
       "warn",

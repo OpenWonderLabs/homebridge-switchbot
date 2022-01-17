@@ -1,7 +1,7 @@
-import { AxiosResponse } from 'axios';
-import { SwitchBotPlatform } from '../platform';
-import { irDevicesConfig, DeviceURL, irdevice, payload } from '../settings';
-import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+import { AxiosResponse } from "axios";
+import { SwitchBotPlatform } from "../platform";
+import { irDevicesConfig, DeviceURL, irdevice, payload } from "../settings";
+import { CharacteristicValue, PlatformAccessory, Service } from "homebridge";
 
 /**
  * Platform Accessory
@@ -36,15 +36,19 @@ export class VacuumCleaner {
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
-      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
+      .setCharacteristic(this.platform.Characteristic.Manufacturer, "SwitchBot")
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
+      .setCharacteristic(
+        this.platform.Characteristic.SerialNumber,
+        device.deviceId!,
+      );
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
     (this.service =
       accessory.getService(this.platform.Service.Switch) ||
-      accessory.addService(this.platform.Service.Switch)), `${accessory.displayName} Vacuum`;
+      accessory.addService(this.platform.Service.Switch)),
+    `${accessory.displayName} Vacuum`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -52,10 +56,15 @@ export class VacuumCleaner {
 
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+    this.service.setCharacteristic(
+      this.platform.Characteristic.Name,
+      accessory.displayName,
+    );
 
     // handle on / off events using the On characteristic
-    this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
+    this.service
+      .getCharacteristic(this.platform.Characteristic.On)
+      .onSet(this.OnSet.bind(this));
   }
 
   private OnSet(value: CharacteristicValue) {
@@ -70,10 +79,17 @@ export class VacuumCleaner {
 
   private updateHomeKitCharacteristics() {
     if (this.On === undefined) {
-      this.debugLog(`Vacuum Cleaner: ${this.accessory.displayName} On: ${this.On}`);
+      this.debugLog(
+        `Vacuum Cleaner: ${this.accessory.displayName} On: ${this.On}`,
+      );
     } else {
-      this.service?.updateCharacteristic(this.platform.Characteristic.On, this.On);
-      this.debugLog(`Vacuum Cleaner: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+      this.service?.updateCharacteristic(
+        this.platform.Characteristic.On,
+        this.On,
+      );
+      this.debugLog(
+        `Vacuum Cleaner: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`,
+      );
     }
   }
 
@@ -90,9 +106,9 @@ export class VacuumCleaner {
   async pushOnChanges() {
     if (this.On) {
       const payload = {
-        commandType: 'command',
-        parameter: 'default',
-        command: 'turnOn',
+        commandType: "command",
+        parameter: "default",
+        command: "turnOn",
       } as payload;
       await this.pushChanges(payload);
     }
@@ -101,9 +117,9 @@ export class VacuumCleaner {
   async pushOffChanges() {
     if (!this.On) {
       const payload = {
-        commandType: 'command',
-        parameter: 'default',
-        command: 'turnOff',
+        commandType: "command",
+        parameter: "default",
+        command: "turnOff",
       } as payload;
       await this.pushChanges(payload);
     }
@@ -111,56 +127,87 @@ export class VacuumCleaner {
 
   public async pushChanges(payload: payload) {
     try {
-      this.infoLog(`Vacuum Cleaner: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
-        + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
+      this.infoLog(
+        `Vacuum Cleaner: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
+          ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
+      );
 
       // Make the API request
-      const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.debugLog(`Vacuum Cleaner: ${this.accessory.displayName} pushChanges: ${push.data}`);
+      const push = await this.platform.axios.post(
+        `${DeviceURL}/${this.device.deviceId}/commands`,
+        payload,
+      );
+      this.debugLog(
+        `Vacuum Cleaner: ${this.accessory.displayName} pushChanges: ${push.data}`,
+      );
       this.statusCode(push);
       this.OnCached = this.On;
       this.accessory.context.On = this.OnCached;
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
-      this.errorLog(`Vacuum Cleaner: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-      if (this.deviceLogging === 'debug') {
-        this.errorLog(`Vacuum Cleaner: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
-          + ` Error Message: ${JSON.stringify(e.message)}`);
+      this.errorLog(
+        `Vacuum Cleaner: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`,
+      );
+      if (this.deviceLogging === "debug") {
+        this.errorLog(
+          `Vacuum Cleaner: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` +
+            ` Error Message: ${JSON.stringify(e.message)}`,
+        );
       }
       if (this.platform.debugMode) {
-        this.errorLog(`Vacuum Cleaner: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
-          + ` Error: ${JSON.stringify(e)}`);
+        this.errorLog(
+          `Vacuum Cleaner: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` +
+            ` Error: ${JSON.stringify(e)}`,
+        );
       }
       this.apiError(e);
     }
   }
 
-  private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
+  private statusCode(push: AxiosResponse<{ statusCode: number }>) {
     switch (push.data.statusCode) {
       case 151:
-        this.errorLog(`Vacuum Cleaner: ${this.accessory.displayName} Command not supported by this device type.`);
+        this.errorLog(
+          `Vacuum Cleaner: ${this.accessory.displayName} Command not supported by this device type.`,
+        );
         break;
       case 152:
-        this.errorLog(`Vacuum Cleaner: ${this.accessory.displayName} Device not found.`);
+        this.errorLog(
+          `Vacuum Cleaner: ${this.accessory.displayName} Device not found.`,
+        );
         break;
       case 160:
-        this.errorLog(`Vacuum Cleaner: ${this.accessory.displayName} Command is not supported.`);
+        this.errorLog(
+          `Vacuum Cleaner: ${this.accessory.displayName} Command is not supported.`,
+        );
         break;
       case 161:
-        this.errorLog(`Vacuum Cleaner: ${this.accessory.displayName} Device is offline.`);
+        this.errorLog(
+          `Vacuum Cleaner: ${this.accessory.displayName} Device is offline.`,
+        );
         break;
       case 171:
-        this.errorLog(`Vacuum Cleaner: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
+        this.errorLog(
+          `Vacuum Cleaner: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`,
+        );
         break;
       case 190:
-        this.errorLog(`Vacuum Cleaner: ${this.accessory.displayName} Device internal error due to device states not synchronized`
-          + ` with server, Or command: ${JSON.stringify(push.data)} format is invalid`);
+        this.errorLog(
+          `Vacuum Cleaner: ${this.accessory.displayName} Device internal error due to device states not synchronized` +
+            ` with server, Or command: ${JSON.stringify(
+              push.data,
+            )} format is invalid`,
+        );
         break;
       case 100:
-        this.debugLog(`Vacuum Cleaner: ${this.accessory.displayName} Command successfully sent.`);
+        this.debugLog(
+          `Vacuum Cleaner: ${this.accessory.displayName} Command successfully sent.`,
+        );
         break;
       default:
-        this.debugLog(`Vacuum Cleaner: ${this.accessory.displayName} Unknown statusCode.`);
+        this.debugLog(
+          `Vacuum Cleaner: ${this.accessory.displayName} Unknown statusCode.`,
+        );
     }
   }
 
@@ -175,32 +222,45 @@ export class VacuumCleaner {
       config = device.irvc;
     }
     if (device.logging !== undefined) {
-      config['logging'] = device.logging;
+      config["logging"] = device.logging;
     }
     if (Object.entries(config).length !== 0) {
-      this.warnLog(`Vacuum Cleaner: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.warnLog(
+        `Vacuum Cleaner: ${this.accessory.displayName} Config: ${JSON.stringify(
+          config,
+        )}`,
+      );
     }
   }
 
   logs(device: irdevice & irDevicesConfig) {
     if (this.platform.debugMode) {
-      this.deviceLogging = this.accessory.context.logging = 'debugMode';
-      this.debugLog(`Vacuum Cleaner: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+      this.deviceLogging = this.accessory.context.logging = "debugMode";
+      this.debugLog(
+        `Vacuum Cleaner: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`,
+      );
     } else if (device.logging) {
       this.deviceLogging = this.accessory.context.logging = device.logging;
-      this.debugLog(`Vacuum Cleaner: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
+      this.debugLog(
+        `Vacuum Cleaner: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`,
+      );
     } else if (this.platform.config.options?.logging) {
-      this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      this.debugLog(`Vacuum Cleaner: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
+      this.deviceLogging = this.accessory.context.logging =
+        this.platform.config.options?.logging;
+      this.debugLog(
+        `Vacuum Cleaner: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`,
+      );
     } else {
-      this.deviceLogging = this.accessory.context.logging = 'standard';
-      this.debugLog(`Vacuum Cleaner: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
+      this.deviceLogging = this.accessory.context.logging = "standard";
+      this.debugLog(
+        `Vacuum Cleaner: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`,
+      );
     }
   }
 
   /**
-  * Logging for Device
-  */
+   * Logging for Device
+   */
   infoLog(...log: any[]) {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));
@@ -221,8 +281,8 @@ export class VacuumCleaner {
 
   debugLog(...log: any[]) {
     if (this.enablingDeviceLogging()) {
-      if (this.deviceLogging === 'debug') {
-        this.platform.log.info('[DEBUG]', String(...log));
+      if (this.deviceLogging === "debug") {
+        this.platform.log.info("[DEBUG]", String(...log));
       } else {
         this.platform.log.debug(String(...log));
       }
@@ -230,6 +290,6 @@ export class VacuumCleaner {
   }
 
   enablingDeviceLogging(): boolean {
-    return this.deviceLogging === 'debug' || this.deviceLogging === 'standard';
+    return this.deviceLogging.includes("debug") || this.deviceLogging === "standard";
   }
 }
