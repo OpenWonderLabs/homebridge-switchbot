@@ -66,6 +66,7 @@ export type bot = {
   mode?: string;
   deviceType?: string;
   doublePress?: number;
+  allowPush?: boolean
 };
 
 export type humidifier = {

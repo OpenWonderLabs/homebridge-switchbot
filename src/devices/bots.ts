@@ -47,6 +47,7 @@ export class Bot {
 
   // Config
   botMode!: string;
+  allowPush?: boolean;
   scanDuration!: number;
   deviceLogging!: string;
   deviceRefreshRate!: number;
@@ -68,6 +69,7 @@ export class Bot {
     this.scan(device);
     this.refreshRate(device);
     this.PressOrSwitch(device);
+    this.allowPushChanges(device);
     this.config(device);
     if (this.On === undefined) {
       this.On = false;
@@ -568,7 +570,7 @@ export class Bot {
 
   private async BLEpushChanges() {
     this.debugLog(`Bot: ${this.accessory.displayName} BLE pushChanges On: ${this.On} OnCached: ${this.OnCached}`);
-    if (this.On !== this.OnCached) {
+    if ((this.On !== this.OnCached) || this.allowPush) {
       this.debugLog(`Bot: ${this.accessory.displayName} BLE pushChanges`);
       const switchbot = await this.platform.connectBLE();
       // Convert to BLE Address
@@ -661,7 +663,7 @@ export class Bot {
   private async openAPIpushChanges() {
     if (this.platform.config.credentials?.openToken) {
       try {
-        if (this.On !== this.OnCached) {
+        if ((this.On !== this.OnCached) || this.allowPush) {
           this.debugLog(`Bot: ${this.accessory.displayName} OpenAPI pushChanges`);
           const payload = {
             commandType: 'command',
@@ -1089,6 +1091,15 @@ export class Bot {
     } else {
       throw new Error(`Bot: ${this.accessory.displayName} Bot Mode: ${this.botMode}`);
     }
+  }
+
+  allowPushChanges(device: device & devicesConfig) {
+    if (device.bot?.allowPush) {
+      this.allowPush = true;
+    } else {
+      this.allowPush = false;
+    }
+    this.debugLog(`Bot: ${this.accessory.displayName} Allowing Push Changes: ${this.allowPush}`);
   }
 
   public removeOutletService(accessory: PlatformAccessory) {

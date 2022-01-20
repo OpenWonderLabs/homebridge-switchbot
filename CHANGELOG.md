@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 1.9.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.9.0) (2022-01-20)
+
+## What's Changed
+* Add option `allowPush`, this will allow commands to be sent even if device state is already in state that is being pushed.
+* Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.8.2...v1.9.0
+
 ## [Version 1.8.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.8.2) (2022-01-15)
 
 ## What's Changed
