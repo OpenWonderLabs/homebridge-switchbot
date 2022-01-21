@@ -1,6 +1,6 @@
 name: Bug-Report
 description: Report a Bug to help us improve
-title: "Bug: "
+title: 'Bug: '
 labels: [bug]
 assignees: 'donavanbecker'
 body:
@@ -64,7 +64,7 @@ body:
       label: Node.js Version
       placeholder: v14.17.6
     validations:
-      required: true  
+      required: true
   - type: input
     attributes:
       label: NPM Version
@@ -88,7 +88,7 @@ body:
       label: Homebridge Config UI X Plugin Version
       placeholder: v4.41.2
     validations:
-      required: false 
+      required: false
   - type: input
     attributes:
       label: Operating System

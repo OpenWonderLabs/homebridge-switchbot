@@ -1,4 +1,3 @@
-
 import { AxiosResponse } from 'axios';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
@@ -24,7 +23,6 @@ export class Bot {
   private garageDoorService?: Service;
   private windowCoveringService?: Service;
   private statefulProgrammableSwitchService?: Service;
-
 
   // Characteristic Values
   On!: CharacteristicValue;
@@ -59,11 +57,7 @@ export class Bot {
   botUpdateInProgress!: boolean;
   doBotUpdate!: Subject<void>;
 
-  constructor(
-    private readonly platform: SwitchBotPlatform,
-    private accessory: PlatformAccessory,
-    public device: device & devicesConfig,
-  ) {
+  constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
     this.logs(device);
     this.scan(device);
@@ -114,9 +108,8 @@ export class Bot {
       this.removeStatefulProgrammableSwitchService(accessory);
 
       // Add switchService
-      (this.switchService =
-        accessory.getService(this.platform.Service.Switch) ||
-        accessory.addService(this.platform.Service.Switch)), `${accessory.displayName} Switch`;
+      (this.switchService = accessory.getService(this.platform.Service.Switch) || accessory.addService(this.platform.Service.Switch)),
+      `${accessory.displayName} Switch`;
       this.infoLog(`Bot: ${accessory.displayName} Displaying as Switch`);
 
       this.switchService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -134,8 +127,8 @@ export class Bot {
 
       // Add switchService
       (this.garageDoorService =
-        accessory.getService(this.platform.Service.GarageDoorOpener) ||
-        accessory.addService(this.platform.Service.GarageDoorOpener)), `${accessory.displayName} Garage Door Opener`;
+        accessory.getService(this.platform.Service.GarageDoorOpener) || accessory.addService(this.platform.Service.GarageDoorOpener)),
+      `${accessory.displayName} Garage Door Opener`;
       this.infoLog(`Bot: ${accessory.displayName} Displaying as Garage Door Opener`);
 
       this.garageDoorService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -153,19 +146,20 @@ export class Bot {
       this.removeStatefulProgrammableSwitchService(accessory);
 
       // Add switchService
-      (this.doorService =
-        accessory.getService(this.platform.Service.Door) ||
-        accessory.addService(this.platform.Service.Door)), `${accessory.displayName} Door`;
+      (this.doorService = accessory.getService(this.platform.Service.Door) || accessory.addService(this.platform.Service.Door)),
+      `${accessory.displayName} Door`;
       this.infoLog(`Bot: ${accessory.displayName} Displaying as Door`);
 
       this.doorService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
-      this.doorService.getCharacteristic(this.platform.Characteristic.TargetPosition)
+      this.doorService
+        .getCharacteristic(this.platform.Characteristic.TargetPosition)
         .setProps({
           validValues: [0, 100],
           minValue: 0,
           maxValue: 100,
           minStep: 100,
-        }).onSet(this.handleOnSet.bind(this));
+        })
+        .onSet(this.handleOnSet.bind(this));
       this.doorService.setCharacteristic(this.platform.Characteristic.PositionState, this.platform.Characteristic.PositionState.STOPPED);
     } else if (device.bot?.deviceType === 'window') {
       this.removeFanService(accessory);
@@ -179,19 +173,20 @@ export class Bot {
       this.removeStatefulProgrammableSwitchService(accessory);
 
       // Add switchService
-      (this.windowService =
-        accessory.getService(this.platform.Service.Window) ||
-        accessory.addService(this.platform.Service.Window)), `${accessory.displayName} Window`;
+      (this.windowService = accessory.getService(this.platform.Service.Window) || accessory.addService(this.platform.Service.Window)),
+      `${accessory.displayName} Window`;
       this.infoLog(`Bot: ${accessory.displayName} Displaying as Window`);
 
       this.windowService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
-      this.windowService.getCharacteristic(this.platform.Characteristic.TargetPosition)
+      this.windowService
+        .getCharacteristic(this.platform.Characteristic.TargetPosition)
         .setProps({
           validValues: [0, 100],
           minValue: 0,
           maxValue: 100,
           minStep: 100,
-        }).onSet(this.handleOnSet.bind(this));
+        })
+        .onSet(this.handleOnSet.bind(this));
       this.windowService.setCharacteristic(this.platform.Characteristic.PositionState, this.platform.Characteristic.PositionState.STOPPED);
     } else if (device.bot?.deviceType === 'windowcovering') {
       this.removeFanService(accessory);
@@ -206,18 +201,20 @@ export class Bot {
 
       // Add switchService
       (this.windowCoveringService =
-        accessory.getService(this.platform.Service.WindowCovering) ||
-        accessory.addService(this.platform.Service.WindowCovering)), `${accessory.displayName} Window Covering`;
+        accessory.getService(this.platform.Service.WindowCovering) || accessory.addService(this.platform.Service.WindowCovering)),
+      `${accessory.displayName} Window Covering`;
       this.infoLog(`Bot: ${accessory.displayName} Displaying as Window Covering`);
 
       this.windowCoveringService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
-      this.windowCoveringService.getCharacteristic(this.platform.Characteristic.TargetPosition)
+      this.windowCoveringService
+        .getCharacteristic(this.platform.Characteristic.TargetPosition)
         .setProps({
           validValues: [0, 100],
           minValue: 0,
           maxValue: 100,
           minStep: 100,
-        }).onSet(this.handleOnSet.bind(this));
+        })
+        .onSet(this.handleOnSet.bind(this));
       this.windowCoveringService.setCharacteristic(this.platform.Characteristic.PositionState, this.platform.Characteristic.PositionState.STOPPED);
     } else if (device.bot?.deviceType === 'lock') {
       this.removeFanService(accessory);
@@ -231,9 +228,8 @@ export class Bot {
       this.removeStatefulProgrammableSwitchService(accessory);
 
       // Add switchService
-      (this.lockService =
-        accessory.getService(this.platform.Service.LockMechanism) ||
-        accessory.addService(this.platform.Service.LockMechanism)), `${accessory.displayName} Lock`;
+      (this.lockService = accessory.getService(this.platform.Service.LockMechanism) || accessory.addService(this.platform.Service.LockMechanism)),
+      `${accessory.displayName} Lock`;
       this.infoLog(`Bot: ${accessory.displayName} Displaying as Lock`);
 
       this.lockService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -250,9 +246,8 @@ export class Bot {
       this.removeStatefulProgrammableSwitchService(accessory);
 
       // Add switchService
-      (this.faucetService =
-        accessory.getService(this.platform.Service.Faucet) ||
-        accessory.addService(this.platform.Service.Faucet)), `${accessory.displayName} Faucet`;
+      (this.faucetService = accessory.getService(this.platform.Service.Faucet) || accessory.addService(this.platform.Service.Faucet)),
+      `${accessory.displayName} Faucet`;
       this.infoLog(`Bot: ${accessory.displayName} Displaying as Faucet`);
 
       this.faucetService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -269,9 +264,8 @@ export class Bot {
       this.removeStatefulProgrammableSwitchService(accessory);
 
       // Add switchService
-      (this.fanService =
-        accessory.getService(this.platform.Service.Fan) ||
-        accessory.addService(this.platform.Service.Fan)), `${accessory.displayName} Fan`;
+      (this.fanService = accessory.getService(this.platform.Service.Fan) || accessory.addService(this.platform.Service.Fan)),
+      `${accessory.displayName} Fan`;
       this.infoLog(`Bot: ${accessory.displayName} Displaying as Fan`);
 
       this.fanService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -290,11 +284,13 @@ export class Bot {
       // Add switchService
       (this.statefulProgrammableSwitchService =
         accessory.getService(this.platform.Service.StatefulProgrammableSwitch) ||
-        accessory.addService(this.platform.Service.StatefulProgrammableSwitch)), `${accessory.displayName} Stateful Programmable Switch`;
+        accessory.addService(this.platform.Service.StatefulProgrammableSwitch)),
+      `${accessory.displayName} Stateful Programmable Switch`;
       this.infoLog(`Bot: ${accessory.displayName} Displaying as Stateful Programmable Switch`);
 
       this.statefulProgrammableSwitchService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
-      this.statefulProgrammableSwitchService.getCharacteristic(this.platform.Characteristic.ProgrammableSwitchOutputState)
+      this.statefulProgrammableSwitchService
+        .getCharacteristic(this.platform.Characteristic.ProgrammableSwitchOutputState)
         .onSet(this.handleOnSet.bind(this));
     } else {
       this.removeFanService(accessory);
@@ -308,9 +304,8 @@ export class Bot {
       this.removeStatefulProgrammableSwitchService(accessory);
 
       // Add outletService
-      (this.outletService =
-        accessory.getService(this.platform.Service.Outlet) ||
-        accessory.addService(this.platform.Service.Outlet)), `${accessory.displayName} Outlet`;
+      (this.outletService = accessory.getService(this.platform.Service.Outlet) || accessory.addService(this.platform.Service.Outlet)),
+      `${accessory.displayName} Outlet`;
       this.infoLog(`Bot: ${accessory.displayName} Displaying as Outlet`);
 
       this.outletService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -324,12 +319,10 @@ export class Bot {
       accessory.removeService(this.batteryService!);
     } else if (device.ble && !this.batteryService) {
       this.debugLog(`Bot: ${accessory.displayName} Add Battery Service`);
-      (this.batteryService =
-        this.accessory.getService(this.platform.Service.Battery) ||
-        this.accessory.addService(this.platform.Service.Battery)), `${accessory.displayName} Battery`;
+      (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || this.accessory.addService(this.platform.Service.Battery)),
+      `${accessory.displayName} Battery`;
 
       this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
-
     } else {
       this.debugLog(`Bot: ${accessory.displayName} Battery Service Not Added`);
     }
@@ -363,12 +356,10 @@ export class Bot {
         } catch (e: any) {
           this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges`);
           if (this.deviceLogging === 'debug') {
-            this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges,`
-              + ` Error Message: ${JSON.stringify(e.message)}`);
+            this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${JSON.stringify(e.message)}`);
           }
           if (this.platform.debugMode) {
-            this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges,`
-              + ` Error: ${JSON.stringify(e)}`);
+            this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges,` + ` Error: ${JSON.stringify(e)}`);
           }
         }
         this.botUpdateInProgress = false;
@@ -460,67 +451,76 @@ export class Bot {
     this.debugLog(`Bot: ${this.accessory.displayName} BLE refreshStatus`);
     const switchbot = await this.platform.connectBLE();
     // Convert to BLE Address
-    this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
+    this.device.bleMac = this.device
+      .deviceId!.match(/.{1,2}/g)!
+      .join(':')
+      .toLowerCase();
     this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     // Start to monitor advertisement packets
     if (switchbot === false) {
       this.errorLog(`Bot: ${this.accessory.displayName} wasn't able to establish BLE Connection: ${switchbot}`);
     }
-    switchbot.startScan({
-      model: 'H',
-      id: this.device.bleMac,
-    }).then(() => {
-      // Set an event hander
-      switchbot.onadvertisement = (ad: ad) => {
-        this.serviceData = ad.serviceData;
-        this.mode = ad.serviceData.mode;
-        this.state = ad.serviceData.state;
-        this.battery = ad.serviceData.battery;
-        this.debugLog(`Bot: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-        this.debugLog(`Bot: ${this.accessory.displayName}, model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName},`
-          + ` mode: ${ad.serviceData.mode}, state: ${ad.serviceData.state}, battery: ${ad.serviceData.battery}`);
+    switchbot
+      .startScan({
+        model: 'H',
+        id: this.device.bleMac,
+      })
+      .then(() => {
+        // Set an event hander
+        switchbot.onadvertisement = (ad: ad) => {
+          this.serviceData = ad.serviceData;
+          this.mode = ad.serviceData.mode;
+          this.state = ad.serviceData.state;
+          this.battery = ad.serviceData.battery;
+          this.debugLog(`Bot: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+          this.debugLog(
+            `Bot: ${this.accessory.displayName}, model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName},` +
+              ` mode: ${ad.serviceData.mode}, state: ${ad.serviceData.state}, battery: ${ad.serviceData.battery}`,
+          );
 
-        if (this.serviceData) {
-          this.connected = true;
-          this.debugLog(`Bot: ${this.accessory.displayName} connected: ${this.connected}`);
+          if (this.serviceData) {
+            this.connected = true;
+            this.debugLog(`Bot: ${this.accessory.displayName} connected: ${this.connected}`);
+          } else {
+            this.connected = false;
+            this.debugLog(`Bot: ${this.accessory.displayName} connected: ${this.connected}`);
+          }
+        };
+        // Wait 2 seconds
+        return switchbot.wait(this.scanDuration * 1000);
+      })
+      .then(async () => {
+        // Stop to monitor
+        switchbot.stopScan();
+        if (this.connected) {
+          this.parseStatus();
+          this.updateHomeKitCharacteristics();
         } else {
-          this.connected = false;
-          this.debugLog(`Bot: ${this.accessory.displayName} connected: ${this.connected}`);
+          this.errorLog(`Bot: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+          if (this.platform.config.credentials?.openToken) {
+            this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
+            this.SwitchToOpenAPI = true;
+            await this.openAPIRefreshStatus();
+          }
         }
-      };
-      // Wait 2 seconds
-      return switchbot.wait(this.scanDuration * 1000);
-    }).then(async () => {
-      // Stop to monitor
-      switchbot.stopScan();
-      if (this.connected) {
-        this.parseStatus();
-        this.updateHomeKitCharacteristics();
-      } else {
-        this.errorLog(`Bot: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+      })
+      .catch(async (e: any) => {
+        this.errorLog(`Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
+        if (this.deviceLogging === 'debug') {
+          this.errorLog(
+            `Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+          );
+        }
+        if (this.platform.debugMode) {
+          this.errorLog(`Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error: ${JSON.stringify(e)}`);
+        }
         if (this.platform.config.credentials?.openToken) {
           this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
           this.SwitchToOpenAPI = true;
           await this.openAPIRefreshStatus();
         }
-      }
-    }).catch(async (e: any) => {
-      this.errorLog(`Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
-      if (this.deviceLogging === 'debug') {
-        this.errorLog(`Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
-          + ` Error Message: ${JSON.stringify(e.message)}`);
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
-          + ` Error: ${JSON.stringify(e)}`);
-      }
-      if (this.platform.config.credentials?.openToken) {
-        this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
-        this.SwitchToOpenAPI = true;
-        await this.openAPIRefreshStatus();
-      }
-      this.apiError(e);
-    });
+        this.apiError(e);
+      });
   }
 
   private async openAPIRefreshStatus() {
@@ -535,12 +535,12 @@ export class Bot {
       } catch (e: any) {
         this.errorLog(`Bot: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
         if (this.deviceLogging === 'debug') {
-          this.errorLog(`Bot: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
-            + ` Error Message: ${JSON.stringify(e.message)}`);
+          this.errorLog(
+            `Bot: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+          );
         }
         if (this.platform.debugMode) {
-          this.errorLog(`Bot: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
-            + ` Error: ${JSON.stringify(e)}`);
+          this.errorLog(`Bot: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`);
         }
         this.apiError(e);
       }
@@ -570,20 +570,25 @@ export class Bot {
 
   private async BLEpushChanges() {
     this.debugLog(`Bot: ${this.accessory.displayName} BLE pushChanges On: ${this.On} OnCached: ${this.OnCached}`);
-    if ((this.On !== this.OnCached) || this.allowPush) {
+    if (this.On !== this.OnCached || this.allowPush) {
       this.debugLog(`Bot: ${this.accessory.displayName} BLE pushChanges`);
       const switchbot = await this.platform.connectBLE();
       // Convert to BLE Address
-      this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
+      this.device.bleMac = this.device
+        .deviceId!.match(/.{1,2}/g)!
+        .join(':')
+        .toLowerCase();
       this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
       //if (switchbot !== false) {
       if (this.botMode === 'press') {
         this.debugLog(`Bot: ${this.accessory.displayName} Bot Mode: ${this.botMode}`);
-        switchbot.discover({ model: 'H', quick: true, id: this.device.bleMac })
-          .then((device_list: { press: (arg0: { id: string | undefined; }) => any; }[]) => {
+        switchbot
+          .discover({ model: 'H', quick: true, id: this.device.bleMac })
+          .then((device_list: { press: (arg0: { id: string | undefined }) => any }[]) => {
             this.infoLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
             return device_list[0].press({ id: this.device.bleMac });
-          }).then(() => {
+          })
+          .then(() => {
             this.debugLog(`Bot: ${this.accessory.displayName} Done.`);
             this.On = false;
             this.OnCached = this.On;
@@ -596,15 +601,16 @@ export class Bot {
               }
               this.debugLog(`Bot: ${this.accessory.displayName} On: ${this.On}, Switch Timeout`);
             }, 500);
-          }).catch(async (e: any) => {
+          })
+          .catch(async (e: any) => {
             this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
             if (this.deviceLogging === 'debug') {
-              this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
-                + ` Error Message: ${JSON.stringify(e.message)}`);
+              this.errorLog(
+                `Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+              );
             }
             if (this.platform.debugMode) {
-              this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
-                + ` Error: ${JSON.stringify(e)}`);
+              this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection,` + ` Error: ${JSON.stringify(e)}`);
             }
             if (this.platform.config.credentials?.openToken) {
               this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
@@ -614,29 +620,33 @@ export class Bot {
           });
       } else if (this.botMode === 'switch') {
         this.debugLog(`Bot: ${this.accessory.displayName} Press Mode: ${this.botMode}`);
-        switchbot.discover({ model: 'H', quick: true, id: this.device.bleMac }).then((device_list: any) => {
-          this.infoLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
-          return this.turnOnOff(device_list);
-        }).then(() => {
-          this.debugLog(`Bot: ${this.accessory.displayName} Done.`);
-          this.OnCached = this.On;
-          this.accessory.context.On = this.OnCached;
-        }).catch(async (e: any) => {
-          this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
-          if (this.deviceLogging === 'debug') {
-            this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
-              + ` Error Message: ${JSON.stringify(e.message)}`);
-          }
-          if (this.platform.debugMode) {
-            this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
-              + ` Error: ${JSON.stringify(e)}`);
-          }
-          if (this.platform.config.credentials?.openToken) {
-            this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
-            await this.openAPIpushChanges();
-          }
-          this.apiError(e);
-        });
+        switchbot
+          .discover({ model: 'H', quick: true, id: this.device.bleMac })
+          .then((device_list: any) => {
+            this.infoLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
+            return this.turnOnOff(device_list);
+          })
+          .then(() => {
+            this.debugLog(`Bot: ${this.accessory.displayName} Done.`);
+            this.OnCached = this.On;
+            this.accessory.context.On = this.OnCached;
+          })
+          .catch(async (e: any) => {
+            this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
+            if (this.deviceLogging === 'debug') {
+              this.errorLog(
+                `Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+              );
+            }
+            if (this.platform.debugMode) {
+              this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection,` + ` Error: ${JSON.stringify(e)}`);
+            }
+            if (this.platform.config.credentials?.openToken) {
+              this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
+              await this.openAPIpushChanges();
+            }
+            this.apiError(e);
+          });
       } else {
         throw new Error(`Bot: ${this.accessory.displayName} Bot Mode: ${this.botMode}`);
       }
@@ -663,7 +673,7 @@ export class Bot {
   private async openAPIpushChanges() {
     if (this.platform.config.credentials?.openToken) {
       try {
-        if ((this.On !== this.OnCached) || this.allowPush) {
+        if (this.On !== this.OnCached || this.allowPush) {
           this.debugLog(`Bot: ${this.accessory.displayName} OpenAPI pushChanges`);
           const payload = {
             commandType: 'command',
@@ -686,11 +696,13 @@ export class Bot {
             throw new Error(`Bot: ${this.accessory.displayName} Device Paramters not set for this Bot.`);
           }
 
-          this.infoLog(`Bot: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
-            + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
+          this.infoLog(
+            `Bot: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
+              ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
+          );
 
           // Make the API request
-          const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload));
+          const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
           this.debugLog(`Bot: ${this.accessory.displayName} pushchanges: ${JSON.stringify(push.data)}`);
           this.statusCode(push);
           this.OnCached = this.On;
@@ -699,12 +711,12 @@ export class Bot {
       } catch (e: any) {
         this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
         if (this.deviceLogging === 'debug') {
-          this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
-            + ` Error Message: ${JSON.stringify(e.message)}`);
+          this.errorLog(
+            `Bot: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+          );
         }
         if (this.platform.debugMode) {
-          this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
-            + ` Error: ${JSON.stringify(e)}`);
+          this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`);
         }
         this.apiError(e);
       }
@@ -720,16 +732,24 @@ export class Bot {
         this.debugLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
       } else {
         if (this.On) {
-          this.garageDoorService?.updateCharacteristic(this.platform.Characteristic.TargetDoorState,
-            this.platform.Characteristic.TargetDoorState.OPEN);
-          this.garageDoorService?.updateCharacteristic(this.platform.Characteristic.CurrentDoorState,
-            this.platform.Characteristic.CurrentDoorState.OPEN);
+          this.garageDoorService?.updateCharacteristic(
+            this.platform.Characteristic.TargetDoorState,
+            this.platform.Characteristic.TargetDoorState.OPEN,
+          );
+          this.garageDoorService?.updateCharacteristic(
+            this.platform.Characteristic.CurrentDoorState,
+            this.platform.Characteristic.CurrentDoorState.OPEN,
+          );
           this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic TargetDoorState: Open, CurrentDoorState: Open`);
         } else {
-          this.garageDoorService?.updateCharacteristic(this.platform.Characteristic.TargetDoorState,
-            this.platform.Characteristic.TargetDoorState.CLOSED);
-          this.garageDoorService?.updateCharacteristic(this.platform.Characteristic.CurrentDoorState,
-            this.platform.Characteristic.CurrentDoorState.CLOSED);
+          this.garageDoorService?.updateCharacteristic(
+            this.platform.Characteristic.TargetDoorState,
+            this.platform.Characteristic.TargetDoorState.CLOSED,
+          );
+          this.garageDoorService?.updateCharacteristic(
+            this.platform.Characteristic.CurrentDoorState,
+            this.platform.Characteristic.CurrentDoorState.CLOSED,
+          );
           this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic TargetDoorState: Open, CurrentDoorState: Open`);
         }
       }
@@ -741,14 +761,12 @@ export class Bot {
         if (this.On) {
           this.doorService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, 100);
           this.doorService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, 100);
-          this.doorService?.updateCharacteristic(this.platform.Characteristic.PositionState,
-            this.platform.Characteristic.PositionState.STOPPED);
+          this.doorService?.updateCharacteristic(this.platform.Characteristic.PositionState, this.platform.Characteristic.PositionState.STOPPED);
           this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic TargetPosition: 100, CurrentPosition: 100`);
         } else {
           this.doorService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, 0);
           this.doorService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, 0);
-          this.doorService?.updateCharacteristic(this.platform.Characteristic.PositionState,
-            this.platform.Characteristic.PositionState.STOPPED);
+          this.doorService?.updateCharacteristic(this.platform.Characteristic.PositionState, this.platform.Characteristic.PositionState.STOPPED);
           this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic TargetPosition: 0, CurrentPosition: 0`);
         }
       }
@@ -760,14 +778,12 @@ export class Bot {
         if (this.On) {
           this.windowService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, 100);
           this.windowService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, 100);
-          this.windowService?.updateCharacteristic(this.platform.Characteristic.PositionState,
-            this.platform.Characteristic.PositionState.STOPPED);
+          this.windowService?.updateCharacteristic(this.platform.Characteristic.PositionState, this.platform.Characteristic.PositionState.STOPPED);
           this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic TargetPosition: 100, CurrentPosition: 100`);
         } else {
           this.windowService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, 0);
           this.windowService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, 0);
-          this.windowService?.updateCharacteristic(this.platform.Characteristic.PositionState,
-            this.platform.Characteristic.PositionState.STOPPED);
+          this.windowService?.updateCharacteristic(this.platform.Characteristic.PositionState, this.platform.Characteristic.PositionState.STOPPED);
           this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic TargetPosition: 0, CurrentPosition: 0`);
         }
       }
@@ -779,14 +795,18 @@ export class Bot {
         if (this.On) {
           this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, 100);
           this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, 100);
-          this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.PositionState,
-            this.platform.Characteristic.PositionState.STOPPED);
+          this.windowCoveringService?.updateCharacteristic(
+            this.platform.Characteristic.PositionState,
+            this.platform.Characteristic.PositionState.STOPPED,
+          );
           this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic TargetPosition: 100, CurrentPosition: 100`);
         } else {
           this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, 0);
           this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, 0);
-          this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.PositionState,
-            this.platform.Characteristic.PositionState.STOPPED);
+          this.windowCoveringService?.updateCharacteristic(
+            this.platform.Characteristic.PositionState,
+            this.platform.Characteristic.PositionState.STOPPED,
+          );
           this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic TargetPosition: 0, CurrentPosition: 0`);
         }
       }
@@ -796,16 +816,21 @@ export class Bot {
         this.debugLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
       } else {
         if (this.On) {
-          this.lockService?.updateCharacteristic(this.platform.Characteristic.LockTargetState,
-            this.platform.Characteristic.LockTargetState.UNSECURED);
-          this.lockService?.updateCharacteristic(this.platform.Characteristic.LockCurrentState,
-            this.platform.Characteristic.LockCurrentState.UNSECURED);
+          this.lockService?.updateCharacteristic(
+            this.platform.Characteristic.LockTargetState,
+            this.platform.Characteristic.LockTargetState.UNSECURED,
+          );
+          this.lockService?.updateCharacteristic(
+            this.platform.Characteristic.LockCurrentState,
+            this.platform.Characteristic.LockCurrentState.UNSECURED,
+          );
           this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic LockTargetState: UNSECURED, LockCurrentState: UNSECURED`);
         } else {
-          this.lockService?.updateCharacteristic(this.platform.Characteristic.LockTargetState,
-            this.platform.Characteristic.LockTargetState.SECURED);
-          this.lockService?.updateCharacteristic(this.platform.Characteristic.LockCurrentState,
-            this.platform.Characteristic.LockCurrentState.SECURED);
+          this.lockService?.updateCharacteristic(this.platform.Characteristic.LockTargetState, this.platform.Characteristic.LockTargetState.SECURED);
+          this.lockService?.updateCharacteristic(
+            this.platform.Characteristic.LockCurrentState,
+            this.platform.Characteristic.LockCurrentState.SECURED,
+          );
           this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic LockTargetState: SECURED, LockCurrentState: SECURED`);
         }
       }
@@ -815,12 +840,10 @@ export class Bot {
         this.debugLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
       } else {
         if (this.On) {
-          this.faucetService?.updateCharacteristic(this.platform.Characteristic.Active,
-            this.platform.Characteristic.Active.ACTIVE);
+          this.faucetService?.updateCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.ACTIVE);
           this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic Active: ${this.On}`);
         } else {
-          this.faucetService?.updateCharacteristic(this.platform.Characteristic.Active,
-            this.platform.Characteristic.Active.INACTIVE);
+          this.faucetService?.updateCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.INACTIVE);
           this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic Active: ${this.On}`);
         }
       }
@@ -843,13 +866,17 @@ export class Bot {
         this.debugLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
       } else {
         if (this.On) {
-          this.statefulProgrammableSwitchService?.updateCharacteristic(this.platform.Characteristic.ProgrammableSwitchEvent,
-            this.platform.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS);
+          this.statefulProgrammableSwitchService?.updateCharacteristic(
+            this.platform.Characteristic.ProgrammableSwitchEvent,
+            this.platform.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
+          );
           this.statefulProgrammableSwitchService?.updateCharacteristic(this.platform.Characteristic.ProgrammableSwitchOutputState, 1);
           this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic ProgrammableSwitchEvent: SINGLE, ProgrammableSwitchOutputState: 1`);
         } else {
-          this.statefulProgrammableSwitchService?.updateCharacteristic(this.platform.Characteristic.ProgrammableSwitchEvent,
-            this.platform.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS);
+          this.statefulProgrammableSwitchService?.updateCharacteristic(
+            this.platform.Characteristic.ProgrammableSwitchEvent,
+            this.platform.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
+          );
           this.statefulProgrammableSwitchService?.updateCharacteristic(this.platform.Characteristic.ProgrammableSwitchOutputState, 0);
           this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic ProgrammableSwitchEvent: SINGLE, ProgrammableSwitchOutputState: 0`);
         }
@@ -925,7 +952,7 @@ export class Bot {
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
-  private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
+  private statusCode(push: AxiosResponse<{ statusCode: number }>) {
     switch (push.data.statusCode) {
       case 151:
         this.errorLog(`Bot: ${this.accessory.displayName} Command not supported by this device type.`);
@@ -945,8 +972,10 @@ export class Bot {
         this.offlineOff();
         break;
       case 190:
-        this.errorLog(`Bot: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,`
-          + ` Or command: ${JSON.stringify(push.data)} format is invalid`);
+        this.errorLog(
+          `Bot: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
+            ` Or command: ${JSON.stringify(push.data)} format is invalid`,
+        );
         break;
       case 100:
         this.debugLog(`Bot: ${this.accessory.displayName} Command successfully sent.`);
@@ -978,9 +1007,11 @@ export class Bot {
       } else {
         this.On = true;
       }
-    } else if (this.device.bot?.deviceType === 'door'
-      || this.device.bot?.deviceType === 'window'
-      || this.device.bot?.deviceType === 'windowcovering') {
+    } else if (
+      this.device.bot?.deviceType === 'door' ||
+      this.device.bot?.deviceType === 'window' ||
+      this.device.bot?.deviceType === 'windowcovering'
+    ) {
       this.debugLog(`Bot: ${this.accessory.displayName} TargetPosition: ${value}`);
       if (value === 0) {
         this.On = false;
@@ -1193,8 +1224,8 @@ export class Bot {
   }
 
   /**
- * Logging for Device
- */
+   * Logging for Device
+   */
   infoLog(...log: any[]) {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));

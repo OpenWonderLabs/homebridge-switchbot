@@ -51,8 +51,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     // HOOBS notice
     if (__dirname.includes('hoobs')) {
-      this.log.warn('This plugin has not been tested under HOOBS, it is highly recommended that ' +
-        'you switch to Homebridge: https://git.io/Jtxb0');
+      this.log.warn('This plugin has not been tested under HOOBS, it is highly recommended that you switch to Homebridge: https://git.io/Jtxb0');
     }
 
     // verify the config
@@ -207,8 +206,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   /**
- * this method discovers devices
- */
+   * this method discovers devices
+   */
   async discoverDevices() {
     try {
       if (this.config.credentials?.openToken) {
@@ -234,10 +233,12 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           this.debugLog(`SwitchBot Device Config Set: ${JSON.stringify(this.config.options?.devices)}`);
           const deviceConfigs = this.config.options?.devices;
 
-          const mergeBydeviceId = (a1: { deviceId: string; }[], a2: any[]) =>
-            a1.map((itm: { deviceId: string; }) => ({
-              ...a2.find((item: { deviceId: string; }) => (
-                item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '')) && item),
+          const mergeBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
+            a1.map((itm: { deviceId: string }) => ({
+              ...a2.find(
+                (item: { deviceId: string }) =>
+                  item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
+              ),
               ...itm,
             }));
 
@@ -269,10 +270,12 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           this.debugLog(`IR Device Config Set: ${JSON.stringify(this.config.options?.irdevices)}`);
           const irDeviceConfig = this.config.options?.irdevices;
 
-          const mergeIRBydeviceId = (a1: { deviceId: string; }[], a2: any[]) =>
-            a1.map((itm: { deviceId: string; }) => ({
-              ...a2.find((item: { deviceId: string; }) => (
-                item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '')) && item),
+          const mergeIRBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
+            a1.map((itm: { deviceId: string }) => ({
+              ...a2.find(
+                (item: { deviceId: string }) =>
+                  item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
+              ),
               ...itm,
             }));
 
@@ -324,8 +327,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.debugLog('The client has defined a contentType header that is not supported by the server.');
     } else if (e.message.includes('422')) {
       this.errorLog('Failed to Discover Devices: Unprocessable Entity');
-      this.debugLog('The client has made a valid request, but the server cannot process it.'
-        + ' This is often used for APIs for which certain limits have been exceeded.');
+      this.debugLog(
+        'The client has made a valid request, but the server cannot process it.' +
+          ' This is often used for APIs for which certain limits have been exceeded.',
+      );
     } else if (e.message.includes('429')) {
       this.errorLog('Failed to Discover Devices: Too Many Requests');
       this.debugLog('The client has exceeded the number of requests allowed for a given time window.');
@@ -826,8 +831,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   private isCurtainGrouped(device: device & devicesConfig) {
-    this.debugLog(`deviceId: ${device.deviceId}, curtainDevicesIds: ${device.curtainDevicesIds},`
-      + ` master: ${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group}`);
+    this.debugLog(
+      `deviceId: ${device.deviceId}, curtainDevicesIds: ${device.curtainDevicesIds},` +
+        ` master: ${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group}`,
+    );
 
     if (device.group && !device.curtain?.disable_group) {
       this.debugLog(`[Curtain Config] disable_group: ${device.curtain?.disable_group}`);
@@ -991,10 +998,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
       /**
-     * Publish as external accessory
-     * Only one TV can exist per bridge, to bypass this limitation, you should
-     * publish your TV as an external accessory.
-     */
+       * Publish as external accessory
+       * Only one TV can exist per bridge, to bypass this limitation, you should
+       * publish your TV as an external accessory.
+       */
       this.api.publishExternalAccessories(PLUGIN_NAME, [accessory]);
       this.accessories.push(accessory);
     } else {
@@ -1443,9 +1450,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  public async connectionTypeNewAccessory(
-    device: device & devicesConfig,
-    accessory: PlatformAccessory) {
+  public async connectionTypeNewAccessory(device: device & devicesConfig, accessory: PlatformAccessory) {
     if (device.ble) {
       accessory.context.connectionType = 'BLE';
     } else {
@@ -1453,10 +1458,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  public async connectionTypeExistingAccessory(
-    device: device & devicesConfig,
-    existingAccessory: PlatformAccessory,
-  ) {
+  public async connectionTypeExistingAccessory(device: device & devicesConfig, existingAccessory: PlatformAccessory) {
     if (device.ble) {
       existingAccessory.context.connectionType = 'BLE';
     } else {
@@ -1464,14 +1466,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  public async connectionTypeNewIRAccessory(
-    accessory: PlatformAccessory) {
+  public async connectionTypeNewIRAccessory(accessory: PlatformAccessory) {
     accessory.context.connectionType = 'IR wirth OpenAPI';
   }
 
-  public async connectionTypeExistingIRAccessory(
-    existingAccessory: PlatformAccessory,
-  ) {
+  public async connectionTypeExistingIRAccessory(existingAccessory: PlatformAccessory) {
     existingAccessory.context.connectionType = 'IR with OpenAPI';
   }
 
@@ -1487,7 +1486,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  public async deviceInfo(device: irdevice & devicesConfig | device & devicesConfig) {
+  public async deviceInfo(device: (irdevice & devicesConfig) | (device & devicesConfig)) {
     if (this.platformLogging === 'debug') {
       this.warnLog(JSON.stringify(device));
       this.deviceStatus = (await this.axios.get(`${DeviceURL}/${device.deviceId}/status`)).data;

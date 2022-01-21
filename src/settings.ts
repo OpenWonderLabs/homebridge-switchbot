@@ -66,7 +66,7 @@ export type bot = {
   mode?: string;
   deviceType?: string;
   doublePress?: number;
-  allowPush?: boolean
+  allowPush?: boolean;
 };
 
 export type humidifier = {
@@ -285,9 +285,9 @@ export type ad = {
 
 export type serviceData = {
   //Model of BLE SwitchBot Device
-  model: string,
+  model: string;
   //Model Name of BLE SwitchBot Device
-  modelName: string
+  modelName: string;
   //Mode for Bot either Press or Switch
   mode?: boolean;
   //Bot State
@@ -305,9 +305,9 @@ export type serviceData = {
   // Fahrenheit enabled for Meter
   fahrenheit: boolean;
   // Humidity level for Meter
-  humidity?: number,
+  humidity?: number;
   //Motion Detected for Contact or Motion Sensors
-  movement?: boolean,
+  movement?: boolean;
   //Motion ((lightLevel == 1) ? 'dark' : ((lightLevel == 2) ? 'bright' : 'unknown'))
   //Contact ((lightLevel == 0) ? 'dark' : 'bright')
   //Curtain (light sensor level (1-10))
@@ -327,18 +327,8 @@ export type temperature = {
 };
 
 export type switchbot = {
-  discover: (
-    arg0:
-      {
-        duration?: any;
-        model: string;
-        quick: boolean;
-        id?: MacAddress;
-      }
-  ) => Promise<any>;
-  wait: (
-    arg0: number
-  ) => any;
+  discover: (arg0: { duration?: any; model: string; quick: boolean; id?: MacAddress }) => Promise<any>;
+  wait: (arg0: number) => any;
 };
 
 export function rgb2hs(r, g, b) {
@@ -894,5 +884,4 @@ export function m2hs(m) {
   const input = Math.min(Math.max(Math.round(m), 140), 500);
   const toReturn = table[input];
   return [Math.round(toReturn[1]), Math.round(toReturn[0])];
-
 }

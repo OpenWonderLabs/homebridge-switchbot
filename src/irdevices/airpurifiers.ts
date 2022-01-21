@@ -38,11 +38,7 @@ export class AirPurifier {
   // Config
   deviceLogging!: string;
 
-  constructor(
-    private readonly platform: SwitchBotPlatform,
-    private accessory: PlatformAccessory,
-    public device: irdevice & irDevicesConfig,
-  ) {
+  constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
     // default placeholders
     this.logs(device);
     this.config(device);
@@ -66,9 +62,8 @@ export class AirPurifier {
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
-    (this.service =
-      accessory.getService(this.platform.Service.AirPurifier) ||
-      accessory.addService(this.platform.Service.AirPurifier)), `${accessory.displayName} Air Purifier`;
+    (this.service = accessory.getService(this.platform.Service.AirPurifier) || accessory.addService(this.platform.Service.AirPurifier)),
+    `${accessory.displayName} Air Purifier`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -111,15 +106,15 @@ export class AirPurifier {
       this.debugLog(`Air Purifier: ${this.accessory.displayName} CurrentAirPurifierState: ${this.CurrentAirPurifierState}`);
     } else {
       this.service?.updateCharacteristic(this.platform.Characteristic.CurrentAirPurifierState, this.CurrentAirPurifierState);
-      this.debugLog(`Air Purifier: ${this.accessory.displayName}`
-        + ` updateCharacteristic CurrentAirPurifierState: ${this.CurrentAirPurifierState}`);
+      this.debugLog(`Air Purifier: ${this.accessory.displayName}` + ` updateCharacteristic CurrentAirPurifierState: ${this.CurrentAirPurifierState}`);
     }
     if (this.CurrentHeaterCoolerState === undefined) {
       this.debugLog(`Air Purifier: ${this.accessory.displayName} CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
     } else {
       this.service?.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, this.CurrentHeaterCoolerState);
-      this.debugLog(`Air Purifier: ${this.accessory.displayName}`
-        + ` updateCharacteristic CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
+      this.debugLog(
+        `Air Purifier: ${this.accessory.displayName}` + ` updateCharacteristic CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`,
+      );
     }
   }
 
@@ -219,8 +214,10 @@ export class AirPurifier {
 
   public async pushChanges(payload: payload) {
     try {
-      this.infoLog(`Air Purifier: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
-        + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
+      this.infoLog(
+        `Air Purifier: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
+          ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
+      );
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
@@ -232,18 +229,18 @@ export class AirPurifier {
     } catch (e: any) {
       this.errorLog(`Air Purifier: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
       if (this.deviceLogging === 'debug') {
-        this.errorLog(`Air Purifier: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
-          + ` Error Message: ${JSON.stringify(e.message)}`);
+        this.errorLog(
+          `Air Purifier: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+        );
       }
       if (this.platform.debugMode) {
-        this.errorLog(`Air Purifier: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
-          + ` Error: ${JSON.stringify(e)}`);
+        this.errorLog(`Air Purifier: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`);
       }
       this.apiError(e);
     }
   }
 
-  private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
+  private statusCode(push: AxiosResponse<{ statusCode: number }>) {
     switch (push.data.statusCode) {
       case 151:
         this.errorLog(`Air Purifier: ${this.accessory.displayName} Command not supported by this device type.`);
@@ -261,8 +258,10 @@ export class AirPurifier {
         this.errorLog(`Air Purifier: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
         break;
       case 190:
-        this.errorLog(`Air Purifier: ${this.accessory.displayName} Device internal error due to device states not synchronized`
-          + ` with server, Or command: ${JSON.stringify(push.data)} format is invalid`);
+        this.errorLog(
+          `Air Purifier: ${this.accessory.displayName} Device internal error due to device states not synchronized` +
+            ` with server, Or command: ${JSON.stringify(push.data)} format is invalid`,
+        );
         break;
       case 100:
         this.debugLog(`Air Purifier: ${this.accessory.displayName} Command successfully sent.`);
@@ -310,8 +309,8 @@ export class AirPurifier {
   }
 
   /**
- * Logging for Device
- */
+   * Logging for Device
+   */
   infoLog(...log: any[]) {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));

@@ -1,4 +1,3 @@
-
 import { AxiosResponse } from 'axios';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
@@ -54,11 +53,7 @@ export class Curtain {
   curtainUpdateInProgress!: boolean;
   doCurtainUpdate!: Subject<void>;
 
-  constructor(
-    private readonly platform: SwitchBotPlatform,
-    private accessory: PlatformAccessory,
-    public device: device & devicesConfig,
-  ) {
+  constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
     this.logs(device);
     this.scan(device);
@@ -86,9 +81,8 @@ export class Curtain {
 
     // get the WindowCovering service if it exists, otherwise create a new WindowCovering service
     // you can create multiple services for each accessory
-    (this.service =
-      accessory.getService(this.platform.Service.WindowCovering) ||
-      accessory.addService(this.platform.Service.WindowCovering)), `${device.deviceName} ${device.deviceType}`;
+    (this.service = accessory.getService(this.platform.Service.WindowCovering) || accessory.addService(this.platform.Service.WindowCovering)),
+    `${device.deviceName} ${device.deviceType}`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -132,11 +126,10 @@ export class Curtain {
     } else if (!this.lightSensorService) {
       this.debugLog(`Curtain: ${accessory.displayName} Add Light Sensor Service`);
       (this.lightSensorService =
-        this.accessory.getService(this.platform.Service.LightSensor) ||
-        this.accessory.addService(this.platform.Service.LightSensor)), `${accessory.displayName} Light Sensor`;
+        this.accessory.getService(this.platform.Service.LightSensor) || this.accessory.addService(this.platform.Service.LightSensor)),
+      `${accessory.displayName} Light Sensor`;
 
       this.lightSensorService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Light Sensor`);
-
     } else {
       this.debugLog(`Curtain: ${accessory.displayName} Light Sensor Service Not Added`);
     }
@@ -148,16 +141,13 @@ export class Curtain {
       accessory.removeService(this.batteryService!);
     } else if (device.ble && !this.batteryService) {
       this.debugLog(`Curtain: ${accessory.displayName} Add Battery Service`);
-      (this.batteryService =
-        this.accessory.getService(this.platform.Service.Battery) ||
-        this.accessory.addService(this.platform.Service.Battery)), `${accessory.displayName} Battery`;
+      (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || this.accessory.addService(this.platform.Service.Battery)),
+      `${accessory.displayName} Battery`;
 
       this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
-
     } else {
       this.debugLog(`Curtain: ${accessory.displayName} Battery Service Not Added`);
     }
-
 
     // Update Homekit
     this.updateHomeKitCharacteristics();
@@ -180,7 +170,6 @@ export class Curtain {
         this.refreshStatus();
       });
 
-
     // Watch for Curtain change events
     // We put in a debounce of 100ms so we don't make duplicate calls
     this.doCurtainUpdate
@@ -196,12 +185,10 @@ export class Curtain {
         } catch (e: any) {
           this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges`);
           if (this.deviceLogging === 'debug') {
-            this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges,`
-              + ` Error Message: ${JSON.stringify(e.message)}`);
+            this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${JSON.stringify(e.message)}`);
           }
           if (this.platform.debugMode) {
-            this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges,`
-              + ` Error: ${JSON.stringify(e)}`);
+            this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges,` + ` Error: ${JSON.stringify(e)}`);
           }
           this.apiError(e);
         }
@@ -251,8 +238,10 @@ export class Curtain {
         this.debugLog(`Curtain: ${this.accessory.displayName} Stopped`);
       }
     }
-    this.debugLog(`Curtain: ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition},`
-      + ` TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState},`);
+    this.debugLog(
+      `Curtain: ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition},` +
+        ` TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState},`,
+    );
 
     if (!this.device.curtain?.hide_lightsensor) {
       this.set_minLux = this.minLux();
@@ -266,36 +255,38 @@ export class Curtain {
           this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
           break;
         case 2:
-          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels);
-          this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel},`
-            + ` Calculation: ${((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels)}`);
+          this.CurrentAmbientLightLevel = (this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels;
+          this.debugLog(
+            `Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel},` +
+              ` Calculation: ${(this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels}`,
+          );
           break;
         case 3:
-          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 2);
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 2;
           this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
           break;
         case 4:
-          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 3);
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 3;
           this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
           break;
         case 5:
-          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 4);
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 4;
           this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
           break;
         case 6:
-          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 5);
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 5;
           this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
           break;
         case 7:
-          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 6);
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 6;
           this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
           break;
         case 8:
-          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 7);
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 7;
           this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
           break;
         case 9:
-          this.CurrentAmbientLightLevel = (((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 8);
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 8;
           this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
           break;
         case 10:
@@ -303,8 +294,9 @@ export class Curtain {
           this.CurrentAmbientLightLevel = this.set_maxLux;
           this.debugLog();
       }
-      this.debugLog(`Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel},`
-        + ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+      this.debugLog(
+        `Curtain: ${this.accessory.displayName} LightLevel: ${this.lightLevel},` + ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
+      );
     }
     // Battery
     this.BatteryLevel = Number(this.battery);
@@ -351,8 +343,10 @@ export class Curtain {
           this.debugLog(`Curtain: ${this.accessory.displayName} Stopped`);
         }
       }
-      this.debugLog(`Curtain: ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition},`
-        + ` TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState},`);
+      this.debugLog(
+        `Curtain: ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition},` +
+          ` TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState},`,
+      );
 
       if (!this.device.curtain?.hide_lightsensor) {
         this.set_minLux = this.minLux();
@@ -383,66 +377,75 @@ export class Curtain {
     this.debugLog(`Curtain: ${this.accessory.displayName} BLE refreshStatus`);
     const switchbot = await this.platform.connectBLE();
     // Convert to BLE Address
-    this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
+    this.device.bleMac = this.device
+      .deviceId!.match(/.{1,2}/g)!
+      .join(':')
+      .toLowerCase();
     this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     // Start to monitor advertisement packets
     if (switchbot !== false) {
-      switchbot.startScan({
-        model: 'c',
-        id: this.device.bleMac,
-      }).then(() => {
-        // Set an event hander
-        switchbot.onadvertisement = (ad: any) => {
-          this.serviceData = ad.serviceData;
-          this.calibration = ad.serviceData.calibration;
-          this.battery = ad.serviceData.battery;
-          this.position = ad.serviceData.position;
-          this.lightLevel = ad.serviceData.lightLevel;
-          this.debugLog(`Curtain: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-          this.debugLog(`Curtain: ${this.accessory.displayName} calibration: ${ad.serviceData.calibration}, `
-            + `position: ${ad.serviceData.position}, lightLevel: ${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}`);
+      switchbot
+        .startScan({
+          model: 'c',
+          id: this.device.bleMac,
+        })
+        .then(() => {
+          // Set an event hander
+          switchbot.onadvertisement = (ad: any) => {
+            this.serviceData = ad.serviceData;
+            this.calibration = ad.serviceData.calibration;
+            this.battery = ad.serviceData.battery;
+            this.position = ad.serviceData.position;
+            this.lightLevel = ad.serviceData.lightLevel;
+            this.debugLog(`Curtain: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+            this.debugLog(
+              `Curtain: ${this.accessory.displayName} calibration: ${ad.serviceData.calibration}, ` +
+                `position: ${ad.serviceData.position}, lightLevel: ${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}`,
+            );
 
-          if (this.serviceData) {
-            this.connected = true;
-            this.debugLog(`Curtain: ${this.accessory.displayName} connected: ${this.connected}`);
+            if (this.serviceData) {
+              this.connected = true;
+              this.debugLog(`Curtain: ${this.accessory.displayName} connected: ${this.connected}`);
+            } else {
+              this.connected = false;
+              this.debugLog(`Curtain: ${this.accessory.displayName} connected: ${this.connected}`);
+            }
+          };
+          // Wait 2 seconds
+          return switchbot.wait(this.scanDuration * 1000);
+        })
+        .then(async () => {
+          // Stop to monitor
+          switchbot.stopScan();
+          if (this.connected) {
+            this.parseStatus();
+            this.updateHomeKitCharacteristics();
           } else {
-            this.connected = false;
-            this.debugLog(`Curtain: ${this.accessory.displayName} connected: ${this.connected}`);
+            this.errorLog(`Curtain: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+            if (this.platform.config.credentials?.openToken) {
+              this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
+              this.SwitchToOpenAPI = true;
+              await this.openAPIRefreshStatus();
+            }
           }
-        };
-        // Wait 2 seconds
-        return switchbot.wait(this.scanDuration * 1000);
-      }).then(async () => {
-        // Stop to monitor
-        switchbot.stopScan();
-        if (this.connected) {
-          this.parseStatus();
-          this.updateHomeKitCharacteristics();
-        } else {
-          this.errorLog(`Curtain: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+        })
+        .catch(async (e: any) => {
+          this.errorLog(`Curtain: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
+          if (this.deviceLogging === 'debug') {
+            this.errorLog(
+              `Curtain: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+            );
+          }
+          if (this.platform.debugMode) {
+            this.errorLog(`Curtain: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error: ${JSON.stringify(e)}`);
+          }
           if (this.platform.config.credentials?.openToken) {
             this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
             this.SwitchToOpenAPI = true;
             await this.openAPIRefreshStatus();
           }
-        }
-      }).catch(async (e: any) => {
-        this.errorLog(`Curtain: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
-        if (this.deviceLogging === 'debug') {
-          this.errorLog(`Curtain: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
-            + ` Error Message: ${JSON.stringify(e.message)}`);
-        }
-        if (this.platform.debugMode) {
-          this.errorLog(`Curtain: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
-            + ` Error: ${JSON.stringify(e)}`);
-        }
-        if (this.platform.config.credentials?.openToken) {
-          this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
-          this.SwitchToOpenAPI = true;
-          await this.openAPIRefreshStatus();
-        }
-        this.apiError(e);
-      });
+          this.apiError(e);
+        });
     } else {
       await this.BLEconnection(switchbot);
     }
@@ -471,12 +474,12 @@ export class Curtain {
       } catch (e: any) {
         this.errorLog(`Curtain: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
         if (this.deviceLogging === 'debug') {
-          this.errorLog(`Curtain: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
-            + ` Error Message: ${JSON.stringify(e.message)}`);
+          this.errorLog(
+            `Curtain: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+          );
         }
         if (this.platform.debugMode) {
-          this.errorLog(`Curtain: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
-            + ` Error: ${JSON.stringify(e)}`);
+          this.errorLog(`Curtain: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`);
         }
         this.apiError(e);
       }
@@ -502,30 +505,37 @@ export class Curtain {
       this.debugLog(`Curtain: ${this.accessory.displayName} BLE pushChanges`);
       const switchbot = await this.platform.connectBLE();
       // Convert to BLE Address
-      this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
+      this.device.bleMac = this.device
+        .deviceId!.match(/.{1,2}/g)!
+        .join(':')
+        .toLowerCase();
       this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
       if (switchbot !== false) {
-        switchbot.discover({ model: 'c', quick: true, id: this.device.bleMac }).then((device_list) => {
-          this.infoLog(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
-          return device_list[0].runToPos(100 - Number(this.TargetPosition));
-        }).then(() => {
-          this.debugLog(`Curtain: ${this.accessory.displayName} Done.`);
-        }).catch(async (e: any) => {
-          this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
-          if (this.deviceLogging === 'debug') {
-            this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
-              + ` Error Message: ${JSON.stringify(e.message)}`);
-          }
-          if (this.platform.debugMode) {
-            this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
-              + ` Error: ${JSON.stringify(e)}`);
-          }
-          if (this.platform.config.credentials?.openToken) {
-            this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
-            await this.openAPIpushChanges();
-          }
-          this.apiError(e);
-        });
+        switchbot
+          .discover({ model: 'c', quick: true, id: this.device.bleMac })
+          .then((device_list) => {
+            this.infoLog(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
+            return device_list[0].runToPos(100 - Number(this.TargetPosition));
+          })
+          .then(() => {
+            this.debugLog(`Curtain: ${this.accessory.displayName} Done.`);
+          })
+          .catch(async (e: any) => {
+            this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
+            if (this.deviceLogging === 'debug') {
+              this.errorLog(
+                `Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+              );
+            }
+            if (this.platform.debugMode) {
+              this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection,` + ` Error: ${JSON.stringify(e)}`);
+            }
+            if (this.platform.config.credentials?.openToken) {
+              this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
+              await this.openAPIpushChanges();
+            }
+            this.apiError(e);
+          });
       } else {
         this.errorLog(`Curtain: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
         if (this.platform.config.credentials?.openToken) {
@@ -534,8 +544,10 @@ export class Curtain {
         }
       }
     } else {
-      this.debugLog(`Curtain: ${this.accessory.displayName} No BLE Changes, CurrentPosition & TargetPosition Are the Same.`
-        + `  CurrentPosition: ${this.CurrentPosition}, TargetPosition  ${this.TargetPosition}`);
+      this.debugLog(
+        `Curtain: ${this.accessory.displayName} No BLE Changes, CurrentPosition & TargetPosition Are the Same.` +
+          `  CurrentPosition: ${this.CurrentPosition}, TargetPosition  ${this.TargetPosition}`,
+      );
     }
   }
 
@@ -552,26 +564,30 @@ export class Curtain {
             parameter: `0,ff,${adjustedTargetPosition}`,
           } as payload;
 
-          this.infoLog(`Curtain: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
-            + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
+          this.infoLog(
+            `Curtain: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
+              ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
+          );
 
           // Make the API request
-          const push: any = (await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId!}/commands`, payload));
+          const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId!}/commands`, payload);
           this.debugLog(`Curtain: ${this.accessory.displayName} pushchanges: ${JSON.stringify(push.data)}`);
           this.statusCode(push);
         } else {
-          this.debugLog(`Curtain: ${this.accessory.displayName} No OpenAPI Changes, CurrentPosition & TargetPosition Are the Same.`
-            + `  CurrentPosition: ${this.CurrentPosition}, TargetPosition  ${this.TargetPosition}`);
+          this.debugLog(
+            `Curtain: ${this.accessory.displayName} No OpenAPI Changes, CurrentPosition & TargetPosition Are the Same.` +
+              `  CurrentPosition: ${this.CurrentPosition}, TargetPosition  ${this.TargetPosition}`,
+          );
         }
       } catch (e: any) {
         this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
         if (this.deviceLogging === 'debug') {
-          this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
-            + ` Error Message: ${JSON.stringify(e.message)}`);
+          this.errorLog(
+            `Curtain: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+          );
         }
         if (this.platform.debugMode) {
-          this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
-            + ` Error: ${JSON.stringify(e)}`);
+          this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`);
         }
         this.apiError(e);
       }
@@ -602,8 +618,7 @@ export class Curtain {
         this.debugLog(`Curtain: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
       } else {
         this.lightSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
-        this.debugLog(`Curtain: ${this.accessory.displayName}`
-          + ` updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+        this.debugLog(`Curtain: ${this.accessory.displayName}` + ` updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
       }
     }
     if (this.device.ble) {
@@ -636,7 +651,7 @@ export class Curtain {
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
-  private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
+  private statusCode(push: AxiosResponse<{ statusCode: number }>) {
     switch (push.data.statusCode) {
       case 151:
         this.errorLog(`Curtain: ${this.accessory.displayName} Command not supported by this device type.`);
@@ -654,8 +669,10 @@ export class Curtain {
         this.errorLog(`Curtain: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
         break;
       case 190:
-        this.errorLog(`Curtain: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,`
-          + ` Or command: ${JSON.stringify(push.data)} format is invalid`);
+        this.errorLog(
+          `Curtain: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
+            ` Or command: ${JSON.stringify(push.data)} format is invalid`,
+        );
         break;
       case 100:
         this.debugLog(`Curtain: ${this.accessory.displayName} Command successfully sent.`);
@@ -691,9 +708,9 @@ export class Curtain {
     this.service.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
 
     /**
-   * If Curtain movement time is short, the moving flag from backend is always false.
-   * The minimum time depends on the network control latency.
-   */
+     * If Curtain movement time is short, the moving flag from backend is always false.
+     * The minimum time depends on the network control latency.
+     */
     clearTimeout(this.setNewTargetTimer);
     if (this.setNewTarget) {
       this.setNewTargetTimer = setTimeout(() => {
@@ -816,8 +833,8 @@ export class Curtain {
   }
 
   /**
- * Logging for Device
- */
+   * Logging for Device
+   */
   infoLog(...log: any[]) {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));
