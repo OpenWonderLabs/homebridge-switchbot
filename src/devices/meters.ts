@@ -49,11 +49,7 @@ export class Meter {
   meterUpdateInProgress!: boolean;
   doMeterUpdate: Subject<void>;
 
-  constructor(
-    private readonly platform: SwitchBotPlatform,
-    private accessory: PlatformAccessory,
-    public device: device & devicesConfig,
-  ) {
+  constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
     this.logs(device);
     this.scan(device);
@@ -71,8 +67,10 @@ export class Meter {
     }
 
     // Meter Config
-    this.debugLog(`Meter: ${this.accessory.displayName} Config: (ble: ${device.ble}, hide_temperature: ${device.meter?.hide_temperature},`
-      + ` hide_humidity: ${device.meter?.hide_humidity})`);
+    this.debugLog(
+      `Meter: ${this.accessory.displayName} Config: (ble: ${device.ble}, hide_temperature: ${device.meter?.hide_temperature},` +
+        ` hide_humidity: ${device.meter?.hide_humidity})`,
+    );
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doMeterUpdate = new Subject();
@@ -96,8 +94,8 @@ export class Meter {
     } else if (!this.temperatureservice) {
       this.debugLog(`Meter: ${accessory.displayName} Add Temperature Sensor Service`);
       (this.temperatureservice =
-        this.accessory.getService(this.platform.Service.TemperatureSensor) ||
-        this.accessory.addService(this.platform.Service.TemperatureSensor)), `${accessory.displayName} Temperature Sensor`;
+        this.accessory.getService(this.platform.Service.TemperatureSensor) || this.accessory.addService(this.platform.Service.TemperatureSensor)),
+      `${accessory.displayName} Temperature Sensor`;
 
       this.temperatureservice.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
 
@@ -125,8 +123,8 @@ export class Meter {
     } else if (!this.humidityservice) {
       this.debugLog(`Meter: ${accessory.displayName} Add Humidity Sensor Service`);
       (this.humidityservice =
-        this.accessory.getService(this.platform.Service.HumiditySensor) ||
-        this.accessory.addService(this.platform.Service.HumiditySensor)), `${accessory.displayName} Humidity Sensor`;
+        this.accessory.getService(this.platform.Service.HumiditySensor) || this.accessory.addService(this.platform.Service.HumiditySensor)),
+      `${accessory.displayName} Humidity Sensor`;
 
       this.humidityservice.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
 
@@ -149,19 +147,15 @@ export class Meter {
       accessory.removeService(this.batteryService!);
     } else if (device.ble && !this.batteryService) {
       this.debugLog(`Meter: ${accessory.displayName} Add Battery Service`);
-      (this.batteryService =
-        this.accessory.getService(this.platform.Service.Battery) ||
-        this.accessory.addService(this.platform.Service.Battery)), `${accessory.displayName} Battery`;
+      (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || this.accessory.addService(this.platform.Service.Battery)),
+      `${accessory.displayName} Battery`;
 
       this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
 
       this.batteryService.setCharacteristic(this.platform.Characteristic.ChargingState, this.platform.Characteristic.ChargingState.NOT_CHARGEABLE);
-
     } else {
       this.debugLog(`Meter: ${accessory.displayName} Battery Service Not Added`);
     }
-
-
 
     // Retrieve initial values and updateHomekit
     this.updateHomeKitCharacteristics();
@@ -246,61 +240,70 @@ export class Meter {
     this.debugLog(`Meter: ${this.accessory.displayName} BLE RefreshStatus`);
     const switchbot = await this.platform.connectBLE();
     // Convert to BLE Address
-    this.device.bleMac = ((this.device.deviceId!.match(/.{1,2}/g))!.join(':')).toLowerCase();
+    this.device.bleMac = this.device
+      .deviceId!.match(/.{1,2}/g)!
+      .join(':')
+      .toLowerCase();
     this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     // Start to monitor advertisement packets
     if (switchbot !== false) {
-      switchbot.startScan({
-        model: 'T',
-        id: this.device.bleMac,
-      }).then(() => {
-        // Set an event hander
-        switchbot.onadvertisement = (ad: ad) => {
-          this.serviceData = ad.serviceData;
-          this.temperature = ad.serviceData.temperature!.c;
-          this.humidity = ad.serviceData.humidity;
-          this.battery = ad.serviceData.battery;
-          this.debugLog(`Meter: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-          this.debugLog(`Meter: ${this.accessory.displayName} model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName}, `
-            + `temperature: ${JSON.stringify(ad.serviceData.temperature?.c)}, humidity: ${ad.serviceData.humidity}, `
-            + `battery: ${ad.serviceData.battery}`);
+      switchbot
+        .startScan({
+          model: 'T',
+          id: this.device.bleMac,
+        })
+        .then(() => {
+          // Set an event hander
+          switchbot.onadvertisement = (ad: ad) => {
+            this.serviceData = ad.serviceData;
+            this.temperature = ad.serviceData.temperature!.c;
+            this.humidity = ad.serviceData.humidity;
+            this.battery = ad.serviceData.battery;
+            this.debugLog(`Meter: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+            this.debugLog(
+              `Meter: ${this.accessory.displayName} model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName}, ` +
+                `temperature: ${JSON.stringify(ad.serviceData.temperature?.c)}, humidity: ${ad.serviceData.humidity}, ` +
+                `battery: ${ad.serviceData.battery}`,
+            );
 
-          if (this.serviceData) {
-            this.connected = true;
-            this.debugLog(`Meter: ${this.accessory.displayName} connected: ${this.connected}`);
+            if (this.serviceData) {
+              this.connected = true;
+              this.debugLog(`Meter: ${this.accessory.displayName} connected: ${this.connected}`);
+            } else {
+              this.connected = false;
+              this.debugLog(`Meter: ${this.accessory.displayName} connected: ${this.connected}`);
+            }
+          };
+          // Wait 10 seconds
+          return switchbot.wait(this.scanDuration * 1000);
+        })
+        .then(async () => {
+          // Stop to monitor
+          switchbot.stopScan();
+          if (this.connected) {
+            this.parseStatus();
+            this.updateHomeKitCharacteristics();
           } else {
-            this.connected = false;
-            this.debugLog(`Meter: ${this.accessory.displayName} connected: ${this.connected}`);
+            await this.BLEconnection(switchbot);
           }
-        };
-        // Wait 10 seconds
-        return switchbot.wait(this.scanDuration * 1000);
-      }).then(async () => {
-        // Stop to monitor
-        switchbot.stopScan();
-        if (this.connected) {
-          this.parseStatus();
-          this.updateHomeKitCharacteristics();
-        } else {
-          await this.BLEconnection(switchbot);
-        }
-      }).catch(async (e: any) => {
-        this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
-        if (this.deviceLogging === 'debug') {
-          this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
-            + ` Error Message: ${JSON.stringify(e.message)}`);
-        }
-        if (this.platform.debugMode) {
-          this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
-            + ` Error: ${JSON.stringify(e)}`);
-        }
-        if (this.platform.config.credentials?.openToken) {
-          this.warnLog(`Meter: ${this.accessory.displayName} Using OpenAPI Connection`);
-          this.SwitchToOpenAPI = true;
-          this.openAPIRefreshStatus();
-        }
-        this.apiError(e);
-      });
+        })
+        .catch(async (e: any) => {
+          this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
+          if (this.deviceLogging === 'debug') {
+            this.errorLog(
+              `Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+            );
+          }
+          if (this.platform.debugMode) {
+            this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error: ${JSON.stringify(e)}`);
+          }
+          if (this.platform.config.credentials?.openToken) {
+            this.warnLog(`Meter: ${this.accessory.displayName} Using OpenAPI Connection`);
+            this.SwitchToOpenAPI = true;
+            this.openAPIRefreshStatus();
+          }
+          this.apiError(e);
+        });
     } else {
       await this.BLEconnection(switchbot);
     }
@@ -328,12 +331,12 @@ export class Meter {
       } catch (e: any) {
         this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
         if (this.deviceLogging === 'debug') {
-          this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
-            + ` Error Message: ${JSON.stringify(e.message)}`);
+          this.errorLog(
+            `Meter: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+          );
         }
         if (this.platform.debugMode) {
-          this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
-            + ` Error: ${JSON.stringify(e)}`);
+          this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`);
         }
         this.apiError(e);
       }
@@ -453,8 +456,8 @@ export class Meter {
   }
 
   /**
- * Logging for Device
- */
+   * Logging for Device
+   */
   infoLog(...log: any[]) {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));

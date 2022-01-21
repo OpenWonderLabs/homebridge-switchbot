@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 1.10.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.10.0) (2022-01-21)
+
+## What's Changed
+* Add option `pushOn`, this will allow the `On` commands to be sent along side `Status` change commands.
+* Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.9.0...v1.10.0
+
 ## [Version 1.9.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.9.0) (2022-01-20)
 
 ## What's Changed

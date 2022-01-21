@@ -19,11 +19,7 @@ export class Light {
   // Config
   deviceLogging!: string;
 
-  constructor(
-    private readonly platform: SwitchBotPlatform,
-    private accessory: PlatformAccessory,
-    public device: irdevice & irDevicesConfig,
-  ) {
+  constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
     // default placeholders
     this.logs(device);
     this.config(device);
@@ -42,9 +38,8 @@ export class Light {
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
-    (this.service =
-      accessory.getService(this.platform.Service.Lightbulb) ||
-      accessory.addService(this.platform.Service.Lightbulb)), `${accessory.displayName} Light Bulb`;
+    (this.service = accessory.getService(this.platform.Service.Lightbulb) || accessory.addService(this.platform.Service.Lightbulb)),
+    `${accessory.displayName} Light Bulb`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -144,8 +139,10 @@ export class Light {
 
   public async pushChanges(payload: payload) {
     try {
-      this.infoLog(`Light: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
-        + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
+      this.infoLog(
+        `Light: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
+          ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
+      );
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
@@ -157,19 +154,18 @@ export class Light {
     } catch (e: any) {
       this.errorLog(`Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
       if (this.deviceLogging === 'debug') {
-        this.errorLog(`Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
-          + ` Error Message: ${JSON.stringify(e.message)}`);
+        this.errorLog(
+          `Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+        );
       }
       if (this.platform.debugMode) {
-        this.errorLog(`Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
-          + ` Error: ${JSON.stringify(e)}`);
+        this.errorLog(`Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`);
       }
       this.apiError(e);
     }
   }
 
-
-  private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
+  private statusCode(push: AxiosResponse<{ statusCode: number }>) {
     switch (push.data.statusCode) {
       case 151:
         this.errorLog(`Light: ${this.accessory.displayName} Command not supported by this device type.`);
@@ -187,8 +183,10 @@ export class Light {
         this.errorLog(`Light: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
         break;
       case 190:
-        this.errorLog(`Light: ${this.accessory.displayName} Device internal error due to device states not synchronized`
-          + ` with server, Or command: ${JSON.stringify(push.data)} format is invalid`);
+        this.errorLog(
+          `Light: ${this.accessory.displayName} Device internal error due to device states not synchronized` +
+            ` with server, Or command: ${JSON.stringify(push.data)} format is invalid`,
+        );
         break;
       case 100:
         this.debugLog(`Light: ${this.accessory.displayName} Command successfully sent.`);
@@ -233,8 +231,8 @@ export class Light {
   }
 
   /**
- * Logging for Device
- */
+   * Logging for Device
+   */
   infoLog(...log: any[]) {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));

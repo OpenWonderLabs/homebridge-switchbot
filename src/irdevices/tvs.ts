@@ -24,11 +24,7 @@ export class TV {
   // Config
   deviceLogging!: string;
 
-  constructor(
-    private readonly platform: SwitchBotPlatform,
-    private accessory: PlatformAccessory,
-    public device: irdevice & irDevicesConfig,
-  ) {
+  constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
     // default placeholders
     this.logs(device);
     this.config(device);
@@ -51,34 +47,30 @@ export class TV {
       case 'Speaker':
       case 'DIY Speaker':
         accessory.category = this.platform.api.hap.Categories.SPEAKER;
-        (this.service =
-          accessory.getService(this.platform.Service.Television) ||
-          accessory.addService(this.platform.Service.Television)), `${accessory.displayName} Speaker`;
+        (this.service = accessory.getService(this.platform.Service.Television) || accessory.addService(this.platform.Service.Television)),
+        `${accessory.displayName} Speaker`;
         break;
       case 'IPTV':
       case 'DIY IPTV':
         accessory.category = this.platform.api.hap.Categories.TV_STREAMING_STICK;
-        (this.service =
-          accessory.getService(this.platform.Service.Television) ||
-          accessory.addService(this.platform.Service.Television)), `${accessory.displayName} Streaming Stick`;
+        (this.service = accessory.getService(this.platform.Service.Television) || accessory.addService(this.platform.Service.Television)),
+        `${accessory.displayName} Streaming Stick`;
         break;
       case 'DVD':
       case 'DIY DVD':
       case 'Set Top Box':
       case 'DIY Set Top Box':
         accessory.category = this.platform.api.hap.Categories.TV_SET_TOP_BOX;
-        (this.service =
-          accessory.getService(this.platform.Service.Television) ||
-          accessory.addService(this.platform.Service.Television)), `${accessory.displayName} Set Top Box`;
+        (this.service = accessory.getService(this.platform.Service.Television) || accessory.addService(this.platform.Service.Television)),
+        `${accessory.displayName} Set Top Box`;
         break;
       default:
         accessory.category = this.platform.api.hap.Categories.TELEVISION;
 
         // get the Television service if it exists, otherwise create a new Television service
         // you can create multiple services for each accessory
-        (this.service =
-          accessory.getService(this.platform.Service.Television) ||
-          accessory.addService(this.platform.Service.Television)), `${accessory.displayName} TV`;
+        (this.service = accessory.getService(this.platform.Service.Television) || accessory.addService(this.platform.Service.Television)),
+        `${accessory.displayName} TV`;
     }
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
@@ -111,22 +103,17 @@ export class TV {
      */
     // create a new Television Speaker service
     (this.speakerService =
-      accessory.getService(this.platform.Service.TelevisionSpeaker) ||
-      accessory.addService(this.platform.Service.TelevisionSpeaker)), `${accessory.displayName} Speaker`;
+      accessory.getService(this.platform.Service.TelevisionSpeaker) || accessory.addService(this.platform.Service.TelevisionSpeaker)),
+    `${accessory.displayName} Speaker`;
 
     this.speakerService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Speaker`);
 
     this.speakerService
       .setCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.ACTIVE)
-      .setCharacteristic(
-        this.platform.Characteristic.VolumeControlType,
-        this.platform.Characteristic.VolumeControlType.ABSOLUTE,
-      );
+      .setCharacteristic(this.platform.Characteristic.VolumeControlType, this.platform.Characteristic.VolumeControlType.ABSOLUTE);
 
     // handle volume control
-    this.speakerService
-      .getCharacteristic(this.platform.Characteristic.VolumeSelector)
-      .onSet(this.VolumeSelectorSet.bind(this));
+    this.speakerService.getCharacteristic(this.platform.Characteristic.VolumeSelector).onSet(this.VolumeSelectorSet.bind(this));
   }
 
   private VolumeSelectorSet(value: CharacteristicValue) {
@@ -232,8 +219,7 @@ export class TV {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} ActiveIdentifier: ${this.ActiveIdentifier}`);
     } else {
       this.service?.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, this.ActiveIdentifier);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-        + ` updateCharacteristic ActiveIdentifier: ${this.ActiveIdentifier}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}` + ` updateCharacteristic ActiveIdentifier: ${this.ActiveIdentifier}`);
     }
   }
 
@@ -350,8 +336,10 @@ export class TV {
 
   public async pushTVChanges(payload: payload) {
     try {
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
-        + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
+      this.infoLog(
+        `${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
+          ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
+      );
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
@@ -361,19 +349,21 @@ export class TV {
     } catch (e: any) {
       this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
       if (this.deviceLogging === 'debug') {
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
-          + ` Error Message: ${JSON.stringify(e.message)}`);
+        this.errorLog(
+          `${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` +
+            ` Error Message: ${JSON.stringify(e.message)}`,
+        );
       }
       if (this.platform.debugMode) {
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
-          + ` Error: ${JSON.stringify(e)}`);
+        this.errorLog(
+          `${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`,
+        );
       }
       this.apiError(e);
     }
   }
 
-
-  private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
+  private statusCode(push: AxiosResponse<{ statusCode: number }>) {
     switch (push.data.statusCode) {
       case 151:
         this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Command not supported by this device type.`);
@@ -391,9 +381,11 @@ export class TV {
         this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
         break;
       case 190:
-        this.errorLog(`${this.device.remoteType}: `
-          + `${this.accessory.displayName} Device internal error due to device states not synchronized with server,`
-          + ` Or command: ${JSON.stringify(push.data)} format is invalid`);
+        this.errorLog(
+          `${this.device.remoteType}: ` +
+            `${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
+            ` Or command: ${JSON.stringify(push.data)} format is invalid`,
+        );
         break;
       case 100:
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Command successfully sent.`);
@@ -439,8 +431,8 @@ export class TV {
   }
 
   /**
- * Logging for Device
- */
+   * Logging for Device
+   */
   infoLog(...log: any[]) {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));

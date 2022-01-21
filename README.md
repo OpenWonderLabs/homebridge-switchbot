@@ -19,29 +19,29 @@ plugin allows you to access your SwitchBot Device(s) from HomeKit with
 
 1. Search for "SwitchBot" on the plugin screen of [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x)
 2. Find: `@switchbot/homebridge-switchbot`
-    - See noble [prerequisites](https://github.com/homebridge/noble#prerequisites) for your OS. (This is used for BLE connection.)
+   - See noble [prerequisites](https://github.com/homebridge/noble#prerequisites) for your OS. (This is used for BLE connection.)
 3. Click **Install**
 
 ## Configuration
-* ### If using OpenAPI Connection
-    1. Download SwitchBot App on App Store or Google Play Store
-    2. Register a SwitchBot account and log in into your account
-    3. Generate an Open Token within the App
-        - Click Bottom Profile Tab
-        - Click Preference
-        - Click App version 10 Times, this will enable Developer Options
-        - Click Developer Options
-        - Click Copy to Clipboard
-    4. Input your `openToken` into the config paramter
-* ### If using BLE Connection
-    1. Download SwitchBot App on App Store or Google Play Store
-    2. Register a SwitchBot account and log in into your account
-    3. Click on Device wanting to connect too plugin
-        - Click the Settings Gear
-        - Click Device Info
-        - Copy BLE Mac aka `deviceId`
-    4. Input your `deviceId` into the Device Config
 
+- ### If using OpenAPI Connection
+  1. Download SwitchBot App on App Store or Google Play Store
+  2. Register a SwitchBot account and log in into your account
+  3. Generate an Open Token within the App
+     - Click Bottom Profile Tab
+     - Click Preference
+     - Click App version 10 Times, this will enable Developer Options
+     - Click Developer Options
+     - Click Copy to Clipboard
+  4. Input your `openToken` into the config paramter
+- ### If using BLE Connection
+  1. Download SwitchBot App on App Store or Google Play Store
+  2. Register a SwitchBot account and log in into your account
+  3. Click on Device wanting to connect too plugin
+     - Click the Settings Gear
+     - Click Device Info
+     - Copy BLE Mac aka `deviceId`
+  4. Input your `deviceId` into the Device Config
 
 <p align="center">
 
@@ -52,99 +52,100 @@ plugin allows you to access your SwitchBot Device(s) from HomeKit with
 ## Supported SwitchBot Devices
 
 - [SwitchBot Humidifier](https://www.switch-bot.com/products/switchbot-smart-humidifier)
-    - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
-        - Can Push Updates over OpenAPI
-        - Can Receive Udpates over BLE and OpenAPI
+  - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
+    - Can Push Updates over OpenAPI
+    - Can Receive Udpates over BLE and OpenAPI
 - [SwitchBot Meter](https://www.switch-bot.com/products/switchbot-meter)
-    - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
-    - If using OpenAPI:
-        - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
-        - Enable Cloud Services for Device on SwitchBot App
-    - If using Bluetooth Low Energy (BLE) only:
-        - Must supply `deviceId` & `deviceName` to Device Config
-        - Check `Enable Bluetooth Low Energy (BLE) Connection` on Device Config  
+  - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
+  - If using OpenAPI:
+    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
+    - Enable Cloud Services for Device on SwitchBot App
+  - If using Bluetooth Low Energy (BLE) only:
+    - Must supply `deviceId` & `deviceName` to Device Config
+    - Check `Enable Bluetooth Low Energy (BLE) Connection` on Device Config
 - [SwitchBot Motion Sensor](https://www.switch-bot.com/products/motion-sensor)
-    - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
-    - If using OpenAPI:
-        - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
-        - Enable Cloud Services for Device on SwitchBot App
-    - If using Bluetooth Low Energy (BLE) only:
-        - Must supply `deviceId` & `deviceName` to Device Config
-        - Check `Enable Bluetooth Low Energy (BLE) Connection` on Device Config        
+  - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
+  - If using OpenAPI:
+    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
+    - Enable Cloud Services for Device on SwitchBot App
+  - If using Bluetooth Low Energy (BLE) only:
+    - Must supply `deviceId` & `deviceName` to Device Config
+    - Check `Enable Bluetooth Low Energy (BLE) Connection` on Device Config
 - [SwitchBot Contact Sensor](https://www.switch-bot.com/products/contact-sensor)
-    - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
-    - If using OpenAPI:
-        - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
-        - Enable Cloud Services for Device on SwitchBot App
-    - If using Bluetooth Low Energy (BLE) only:
-        - Must supply `deviceId` & `deviceName` to Device Config
-        - Check `Enable Bluetooth Low Energy (BLE) Connection` on Device Config        
+  - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
+  - If using OpenAPI:
+    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
+    - Enable Cloud Services for Device on SwitchBot App
+  - If using Bluetooth Low Energy (BLE) only:
+    - Must supply `deviceId` & `deviceName` to Device Config
+    - Check `Enable Bluetooth Low Energy (BLE) Connection` on Device Config
 - [SwitchBot Curtain](https://www.switch-bot.com/products/switchbot-curtain)
-    - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
-    - If using OpenAPI:
-        - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
-        - Enable Cloud Services for Device on SwitchBot App
-    - If using Bluetooth Low Energy (BLE) only:
-        - Must supply `deviceId` & `deviceName` to Device Config
-        - Check `Enable Bluetooth Low Energy (BLE) Connection` on Device Config        
+  - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
+  - If using OpenAPI:
+    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
+    - Enable Cloud Services for Device on SwitchBot App
+  - If using Bluetooth Low Energy (BLE) only:
+    - Must supply `deviceId` & `deviceName` to Device Config
+    - Check `Enable Bluetooth Low Energy (BLE) Connection` on Device Config
 - [SwitchBot Bulb](https://www.switch-bot.com/products/switchbot-color-bulb)
-    - Supports OpenAPI Connection Only
-    - If using OpenAPI:
-        - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
-        - Enable Cloud Services for Device on SwitchBot App      
+  - Supports OpenAPI Connection Only
+  - If using OpenAPI:
+    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
+    - Enable Cloud Services for Device on SwitchBot App
 - [SwitchBot Bot](https://www.switch-bot.com/products/switchbot-bot)
-    - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
-    - If using OpenAPI:
-        - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
-        - Enable Cloud Services for Device on SwitchBot App
-        - You must set your Bot's Device ID in the Press Mode or Switch Mode Bot Settings (Advanced Settings > Device Settings > Bot Settings)
-            - Press Mode - Turns on then instantly turn it off
-            - Switch Mode - Turns on and keep it on until it is turned off
-                - This can get out of sync, since API doesn't give me a status
-                - To Correct you must go into the SwitchBot App and correct the status of either `On` or `Off`
-    - If using Bluetooth Low Energy (BLE) only:
-        - Must supply `deviceId` & `deviceName` to Device Config
-        - Check `Enable Bluetooth Low Energy (BLE) Connection` on Device Config
+  - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
+  - If using OpenAPI:
+    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
+    - Enable Cloud Services for Device on SwitchBot App
+    - You must set your Bot's Device ID in the Press Mode or Switch Mode Bot Settings (Advanced Settings > Device Settings > Bot Settings)
+      - Press Mode - Turns on then instantly turn it off
+      - Switch Mode - Turns on and keep it on until it is turned off
+        - This can get out of sync, since API doesn't give me a status
+        - To Correct you must go into the SwitchBot App and correct the status of either `On` or `Off`
+  - If using Bluetooth Low Energy (BLE) only:
+    - Must supply `deviceId` & `deviceName` to Device Config
+    - Check `Enable Bluetooth Low Energy (BLE) Connection` on Device Config
 - SwitchBot Plug
-    - Supports OpenAPI Connection Only
+  - Supports OpenAPI Connection Only
 
 ## Supported IR Devices
+
 ### _(All IR Devices require [Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) or [Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini))_
 
 - TV
-    - Allows for On/Off and Volume Controls
-    - Optional Disable Sending Power Command
+  - Allows for On/Off and Volume Controls
+  - Optional Disable Sending Power Command
 - Projector (Displayed as TV)
-    - Allows for On/Off and Volume Controls
-- Set Top Box  (Displayed as Set Top Box)
-    - Allows for On/Off and Volume Controls
-- DVD  (Displayed as Set Top Box)
-    - Allows for On/Off and Volume Controls
-- Streamer  (Displayed as Streaming Stick)
-    - Allows for On/Off and Volume Controls
-- Speaker  (Displayed as Speaker)
-    - Allows for On/Off and Volume Controls
+  - Allows for On/Off and Volume Controls
+- Set Top Box (Displayed as Set Top Box)
+  - Allows for On/Off and Volume Controls
+- DVD (Displayed as Set Top Box)
+  - Allows for On/Off and Volume Controls
+- Streamer (Displayed as Streaming Stick)
+  - Allows for On/Off and Volume Controls
+- Speaker (Displayed as Speaker)
+  - Allows for On/Off and Volume Controls
 - Fans
-    - Allows for On/Off Controls
-    - Optional Rotation Speed
-    - Optional Swing Mode
-- Lights    
-    - Allows for On/Off Controls
+  - Allows for On/Off Controls
+  - Optional Rotation Speed
+  - Optional Swing Mode
+- Lights
+  - Allows for On/Off Controls
 - Air Purifiers
-    - Allows for On/Off Controls
+  - Allows for On/Off Controls
 - Air Conditioners
-    - Allows for On/Off, Tempeture, and Mode Controls
-    - Optional Disable Auto Mode
-- Cameras    
-    - Allows for On/Off Controls
-- Vacuum Cleaners    
-    - Allows for On/Off Controls
-- Water Heaters    
-    - Allows for On/Off Controls  
-- Others 
-    - Option to Dispaly as differenet Device Type
-        - Supports Fan Device Type
-    - Allows for On/Off Controls           
+  - Allows for On/Off, Tempeture, and Mode Controls
+  - Optional Disable Auto Mode
+- Cameras
+  - Allows for On/Off Controls
+- Vacuum Cleaners
+  - Allows for On/Off Controls
+- Water Heaters
+  - Allows for On/Off Controls
+- Others
+  - Option to Dispaly as differenet Device Type
+    - Supports Fan Device Type
+  - Allows for On/Off Controls
 
 ## SwitchBotAPI
 
@@ -153,6 +154,6 @@ plugin allows you to access your SwitchBot Device(s) from HomeKit with
 
 ## Community
 
-* [SwitchBot (Official website)](https://www.switch-bot.com/)
-* [Facebook @SwitchBotRobot](https://www.facebook.com/SwitchBotRobot/) 
-* [Twitter @SwitchBot](https://twitter.com/switchbot) 
+- [SwitchBot (Official website)](https://www.switch-bot.com/)
+- [Facebook @SwitchBotRobot](https://www.facebook.com/SwitchBotRobot/)
+- [Twitter @SwitchBot](https://twitter.com/switchbot)

@@ -19,11 +19,7 @@ export class WaterHeater {
   // Config
   deviceLogging!: string;
 
-  constructor(
-    private readonly platform: SwitchBotPlatform,
-    private accessory: PlatformAccessory,
-    public device: irdevice & irDevicesConfig,
-  ) {
+  constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
     // default placeholders
     this.logs(device);
     this.config(device);
@@ -42,9 +38,8 @@ export class WaterHeater {
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
-    (this.service =
-      accessory.getService(this.platform.Service.Valve) ||
-      accessory.addService(this.platform.Service.Valve)), `${accessory.displayName} Water Heater`;
+    (this.service = accessory.getService(this.platform.Service.Valve) || accessory.addService(this.platform.Service.Valve)),
+    `${accessory.displayName} Water Heater`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -52,16 +47,10 @@ export class WaterHeater {
 
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    this.service.setCharacteristic(
-      this.platform.Characteristic.Name,
-      `${device.deviceName} ${device.remoteType}`,
-    );
+    this.service.setCharacteristic(this.platform.Characteristic.Name, `${device.deviceName} ${device.remoteType}`);
 
     // set sleep discovery characteristic
-    this.service.setCharacteristic(
-      this.platform.Characteristic.ValveType,
-      this.platform.Characteristic.ValveType.GENERIC_VALVE,
-    );
+    this.service.setCharacteristic(this.platform.Characteristic.ValveType, this.platform.Characteristic.ValveType.GENERIC_VALVE);
 
     // handle on / off events using the Active characteristic
     this.service.getCharacteristic(this.platform.Characteristic.Active).onSet(this.ActiveSet.bind(this));
@@ -71,10 +60,7 @@ export class WaterHeater {
     this.debugLog(`Water Heater: ${this.accessory.displayName} Active: ${value}`);
     if (value === this.platform.Characteristic.Active.INACTIVE) {
       this.pushWaterHeaterOffChanges();
-      this.service.setCharacteristic(
-        this.platform.Characteristic.InUse,
-        this.platform.Characteristic.InUse.NOT_IN_USE,
-      );
+      this.service.setCharacteristic(this.platform.Characteristic.InUse, this.platform.Characteristic.InUse.NOT_IN_USE);
     } else {
       this.pushWaterHeaterOnChanges();
       this.service.setCharacteristic(this.platform.Characteristic.InUse, this.platform.Characteristic.InUse.IN_USE);
@@ -127,8 +113,10 @@ export class WaterHeater {
 
   public async pushChanges(payload: payload) {
     try {
-      this.infoLog(`Water Heater: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
-        + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
+      this.infoLog(
+        `Water Heater: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
+          ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
+      );
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
@@ -138,18 +126,18 @@ export class WaterHeater {
     } catch (e: any) {
       this.errorLog(`Water Heater: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
       if (this.deviceLogging === 'debug') {
-        this.errorLog(`Water Heater: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
-          + ` Error Message: ${JSON.stringify(e.message)}`);
+        this.errorLog(
+          `Water Heater: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+        );
       }
       if (this.platform.debugMode) {
-        this.errorLog(`Water Heater: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
-          + ` Error: ${JSON.stringify(e)}`);
+        this.errorLog(`Water Heater: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`);
       }
       this.apiError(e);
     }
   }
 
-  private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
+  private statusCode(push: AxiosResponse<{ statusCode: number }>) {
     switch (push.data.statusCode) {
       case 151:
         this.errorLog(`Water Heater: ${this.accessory.displayName} Command not supported by this device type.`);
@@ -167,8 +155,10 @@ export class WaterHeater {
         this.errorLog(`Water Heater: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
         break;
       case 190:
-        this.errorLog(`Water Heater: ${this.accessory.displayName} Device internal error due to device states not synchronized`
-          + ` with server, Or command: ${JSON.stringify(push.data)} format is invalid`);
+        this.errorLog(
+          `Water Heater: ${this.accessory.displayName} Device internal error due to device states not synchronized` +
+            ` with server, Or command: ${JSON.stringify(push.data)} format is invalid`,
+        );
         break;
       case 100:
         this.debugLog(`Water Heater: ${this.accessory.displayName} Command successfully sent.`);
@@ -213,8 +203,8 @@ export class WaterHeater {
   }
 
   /**
- * Logging for Device
- */
+   * Logging for Device
+   */
   infoLog(...log: any[]) {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));

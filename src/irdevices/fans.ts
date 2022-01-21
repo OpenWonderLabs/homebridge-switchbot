@@ -29,11 +29,7 @@ export class Fan {
   maxValue?: number;
   deviceLogging!: string;
 
-  constructor(
-    private readonly platform: SwitchBotPlatform,
-    private accessory: PlatformAccessory,
-    public device: irdevice & irDevicesConfig,
-  ) {
+  constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
     // default placeholders
     this.logs(device);
     this.config(device);
@@ -52,9 +48,8 @@ export class Fan {
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
-    (this.service =
-      accessory.getService(this.platform.Service.Fanv2) ||
-      accessory.addService(this.platform.Service.Fanv2)), `${accessory.displayName} Fan`;
+    (this.service = accessory.getService(this.platform.Service.Fanv2) || accessory.addService(this.platform.Service.Fanv2)),
+    `${accessory.displayName} Fan`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -92,15 +87,16 @@ export class Fan {
           maxValue: this.maxValue,
         })
         .onSet(this.RotationSpeedSet.bind(this));
-    } else if (
-      this.service.testCharacteristic(this.platform.Characteristic.RotationSpeed) &&
-      !device.irfan?.swing_mode) {
+    } else if (this.service.testCharacteristic(this.platform.Characteristic.RotationSpeed) && !device.irfan?.swing_mode) {
       const characteristic = this.service.getCharacteristic(this.platform.Characteristic.RotationSpeed);
       this.service.removeCharacteristic(characteristic);
       this.debugLog(`Fan: ${this.accessory.displayName} Rotation Speed Characteristic was removed.`);
     } else {
       // eslint-disable-next-line max-len
-      this.debugLog(`Fan: ${this.accessory.displayName} Rotation Speed Characteristic was not removed or not added. To Remove Chracteristic, Clear Cache on this Accessory.`);
+      this.debugLog(
+        `Fan: ${this.accessory.displayName} RotationSpeed Characteristic was not removed/added, ` +
+          `Clear Cache on ${this.accessory.displayName} to remove Chracteristic`,
+      );
     }
 
     if (device.irfan?.swing_mode) {
@@ -112,8 +108,10 @@ export class Fan {
       this.debugLog(`Fan: ${this.accessory.displayName} Swing Mode Characteristic was removed.`);
     } else {
       // eslint-disable-next-line max-len
-      this.debugLog(`Fan: ${this.accessory.displayName} Swing Mode Characteristic was not removed or not added. To Remove Chracteristic, Clear Cache on this Accessory.`);
-
+      this.debugLog(
+        `Fan: ${this.accessory.displayName} Swing Mode Characteristic was not removed/added, ` +
+          `Clear Cache on ${this.accessory.displayName} To Remove Chracteristic`,
+      );
     }
   }
 
@@ -235,8 +233,10 @@ export class Fan {
 
   public async pushTVChanges(payload: payload) {
     try {
-      this.infoLog(`Fan: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},`
-        + ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`);
+      this.infoLog(
+        `Fan: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
+          ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
+      );
 
       // Make the API request
       const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
@@ -246,18 +246,18 @@ export class Fan {
     } catch (e: any) {
       this.errorLog(`Fan: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
       if (this.deviceLogging === 'debug') {
-        this.errorLog(`Fan: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
-          + ` Error Message: ${JSON.stringify(e.message)}`);
+        this.errorLog(
+          `Fan: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+        );
       }
       if (this.platform.debugMode) {
-        this.errorLog(`Fan: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
-          + ` Error: ${JSON.stringify(e)}`);
+        this.errorLog(`Fan: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`);
       }
       this.apiError(e);
     }
   }
 
-  private statusCode(push: AxiosResponse<{ statusCode: number; }>) {
+  private statusCode(push: AxiosResponse<{ statusCode: number }>) {
     switch (push.data.statusCode) {
       case 151:
         this.errorLog(`Fan: ${this.accessory.displayName} Command not supported by this device type.`);
@@ -275,8 +275,10 @@ export class Fan {
         this.errorLog(`Fan: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
         break;
       case 190:
-        this.errorLog(`Fan: ${this.accessory.displayName} Device internal error due to device states not synchronized`
-          + ` with server, Or command: ${JSON.stringify(push.data)} format is invalid`);
+        this.errorLog(
+          `Fan: ${this.accessory.displayName} Device internal error due to device states not synchronized` +
+            ` with server, Or command: ${JSON.stringify(push.data)} format is invalid`,
+        );
         break;
       case 100:
         this.debugLog(`Fan: ${this.accessory.displayName} Command successfully sent.`);
@@ -323,8 +325,8 @@ export class Fan {
   }
 
   /**
- * Logging for Device
- */
+   * Logging for Device
+   */
   infoLog(...log: any[]) {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));

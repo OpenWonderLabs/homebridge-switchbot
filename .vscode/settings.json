@@ -1,8 +1,17 @@
 {
   "files.eol": "\n",
+  "prettier.requireConfig": true,
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": true
   },
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "typescript.format.enable": true,
   "editor.rulers": [
     150
   ],
@@ -11,5 +20,8 @@
     {
       "mode": "auto"
     }
-  ]
+  ],
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
 }

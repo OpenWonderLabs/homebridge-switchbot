@@ -8,7 +8,7 @@ const { HomebridgePluginUiServer } = require('@homebridge/plugin-ui-utils');
 const fs = require('fs');
 
 class PluginUiServer extends HomebridgePluginUiServer {
-  constructor () {
+  constructor() {
     super();
 
     /*
@@ -33,9 +33,7 @@ class PluginUiServer extends HomebridgePluginUiServer {
           cachedAccessories = JSON.parse(cachedAccessories);
 
           // We only want the accessories for this plugin
-          cachedAccessories
-            .filter(accessory => accessory.plugin === plugin)
-            .forEach(accessory => devicesToReturn.push(accessory));
+          cachedAccessories.filter((accessory) => accessory.plugin === plugin).forEach((accessory) => devicesToReturn.push(accessory));
         }
 
         // Return the array

@@ -68,7 +68,9 @@
         "ignoreEOLComments": true
       }
     ],
-    "no-trailing-spaces": ["warn"],
+    "no-trailing-spaces": [
+      "warn"
+    ],
     "lines-between-class-members": [
       "warn",
       "always",
