@@ -42,11 +42,13 @@ export class AirConditioner {
   // Config
   deviceLogging!: string;
   hide_automode?: boolean;
+  pushOn?: boolean;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
     // default placeholders
     this.logs(device);
     this.config(device);
+    this.pushOnChanges(device);
     if (this.Active === undefined) {
       this.Active = this.platform.Characteristic.Active.INACTIVE;
     } else {
@@ -174,8 +176,8 @@ export class AirConditioner {
    * AirConditioner:        "command"       "middleSpeed"    "default"	        =        fan speed to medium
    * AirConditioner:        "command"       "highSpeed"      "default"	        =        fan speed to high
    */
-  /*async pushAirConditionerOnChanges() {
-    if (this.Active !== this.platform.Characteristic.Active.ACTIVE) {
+  async pushAirConditionerOnChanges() {
+    if (this.Active !== this.platform.Characteristic.Active.ACTIVE && this.pushOn) {
       const payload = {
         commandType: 'command',
         parameter: 'default',
@@ -183,7 +185,7 @@ export class AirConditioner {
       } as any;
       await this.pushChanges(payload);
     }
-  }*/
+  }
 
   async pushAirConditionerOffChanges() {
     const payload = {
@@ -422,7 +424,11 @@ export class AirConditioner {
       this.pushAirConditionerOffChanges();
     } else {
       this.debugLog(`Air Conditioner: ${this.accessory.displayName} pushAirConditionerOnChanges, Active: ${this.Active}`);
-      this.pushAirConditionerStatusChanges();
+      if (this.pushOn) {
+        this.pushAirConditionerOnChanges();
+      } else {
+        this.pushAirConditionerStatusChanges();
+      }
     }
   }
 
@@ -601,6 +607,15 @@ export class AirConditioner {
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
       this.debugLog(`Air Conditioner: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
+    }
+  }
+
+
+  pushOnChanges(device: irdevice & irDevicesConfig) {
+    if (device.irair?.pushOn) {
+      this.pushOn = true;
+    } else {
+      this.pushOn = false;
     }
   }
 

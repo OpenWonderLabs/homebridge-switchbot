@@ -701,6 +701,13 @@
                       "condition": {
                         "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Air Conditioner' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Air Conditioner') && model.options.irdevices[arrayIndices].deviceId);"
                       }
+                    },
+                    "pushOn": {
+                      "title": "Push On Changes",
+                      "type": "boolean",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Air Conditioner' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Air Conditioner') && model.options.irdevices[arrayIndices].deviceId);"
+                      }
                     }
                   }
                 },
@@ -956,6 +963,7 @@
             "options.irdevices[].hide_device",
             "options.irdevices[].configRemoteType",
             "options.irdevices[].irair.hide_automode",
+            "options.irdevices[].irair.pushOn",
             "options.irdevices[].irfan.rotation_speed",
             "options.irdevices[].irfan.swing_mode",
             "options.irdevices[].irfan.set_minStep",

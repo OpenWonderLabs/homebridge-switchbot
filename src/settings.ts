@@ -147,6 +147,7 @@ export type set_min = {
 
 export type irair = {
   hide_automode?: boolean;
+  pushOn?: boolean
 };
 
 export type irtv = {
