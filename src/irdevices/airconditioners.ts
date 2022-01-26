@@ -177,7 +177,7 @@ export class AirConditioner {
    * AirConditioner:        "command"       "highSpeed"      "default"	        =        fan speed to high
    */
   async pushAirConditionerOnChanges() {
-    if (this.Active !== this.platform.Characteristic.Active.ACTIVE && this.pushOn) {
+    if (this.Active !== this.platform.Characteristic.Active.ACTIVE || this.pushOn) {
       const payload = {
         commandType: 'command',
         parameter: 'default',
