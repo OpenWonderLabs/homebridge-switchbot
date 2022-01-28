@@ -705,11 +705,12 @@ export class Curtain {
      * The minimum time depends on the network control latency.
      */
     clearTimeout(this.setNewTargetTimer);
+    this.debugLog(`Curtain: ${this.accessory.displayName} updateRate: ${this.updateRate}`);
     if (this.setNewTarget) {
       this.setNewTargetTimer = setTimeout(() => {
         this.debugLog(`Curtain: ${this.accessory.displayName} setNewTarget ${this.setNewTarget} timeout`);
         this.setNewTarget = false;
-      }, 10000);
+      }, this.updateRate * 10000);
     }
     this.doCurtainUpdate.next();
   }
