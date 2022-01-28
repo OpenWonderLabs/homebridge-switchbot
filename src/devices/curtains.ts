@@ -209,8 +209,8 @@ export class Curtain {
   private async BLEparseStatus() {
     this.debugLog(`Curtain: ${this.accessory.displayName} BLE parseStatus`);
     // CurrentPosition
-    this.setMinMax();
     this.CurrentPosition = 100 - Number(this.position);
+    this.setMinMax();
     this.debugLog(`Curtain: ${this.accessory.displayName} CurrentPosition ${this.CurrentPosition}`);
     if (this.setNewTarget) {
       this.infoLog(`Curtain: ${this.accessory.displayName} Checking Status ...`);
@@ -312,8 +312,8 @@ export class Curtain {
     if (this.platform.config.credentials?.openToken) {
       this.debugLog(`Curtain: ${this.accessory.displayName} OpenAPI parseStatus`);
       // CurrentPosition
-      this.setMinMax();
       this.CurrentPosition = 100 - Number(this.slidePosition);
+      this.setMinMax();
       this.debugLog(`Curtain ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition}`);
       if (this.setNewTarget) {
         this.infoLog(`Curtain: ${this.accessory.displayName} Checking Status ...`);
