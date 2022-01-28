@@ -230,12 +230,10 @@ export class Curtain {
       }
     } else {
       this.debugLog(`Curtain: ${this.accessory.displayName} Standby, CurrentPosition: ${this.CurrentPosition}`);
-      if (!this.setNewTarget) {
-        // If Curtain calibration distance is short, there will be an error between the current percentage and the target percentage.
-        this.TargetPosition = this.CurrentPosition;
-        this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
-        this.debugLog(`Curtain: ${this.accessory.displayName} Stopped`);
-      }
+      // If Curtain calibration distance is short, there will be an error between the current percentage and the target percentage.
+      this.TargetPosition = this.CurrentPosition;
+      this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
+      this.debugLog(`Curtain: ${this.accessory.displayName} Stopped`);
     }
     this.debugLog(
       `Curtain: ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition},` +
