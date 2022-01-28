@@ -57,7 +57,6 @@ export class Curtain {
     // default placeholders
     this.logs(device);
     this.scan(device);
-    this.setMinMax();
     this.refreshRate(device);
     this.config(device);
     this.CurrentPosition = 0;
@@ -210,8 +209,8 @@ export class Curtain {
   private async BLEparseStatus() {
     this.debugLog(`Curtain: ${this.accessory.displayName} BLE parseStatus`);
     // CurrentPosition
-    this.setMinMax();
     this.CurrentPosition = 100 - Number(this.position);
+    this.setMinMax();
     this.debugLog(`Curtain: ${this.accessory.displayName} CurrentPosition ${this.CurrentPosition}`);
     if (this.setNewTarget) {
       this.infoLog(`Curtain: ${this.accessory.displayName} Checking Status ...`);
@@ -231,12 +230,10 @@ export class Curtain {
       }
     } else {
       this.debugLog(`Curtain: ${this.accessory.displayName} Standby, CurrentPosition: ${this.CurrentPosition}`);
-      if (!this.setNewTarget) {
-        // If Curtain calibration distance is short, there will be an error between the current percentage and the target percentage.
-        this.TargetPosition = this.CurrentPosition;
-        this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
-        this.debugLog(`Curtain: ${this.accessory.displayName} Stopped`);
-      }
+      // If Curtain calibration distance is short, there will be an error between the current percentage and the target percentage.
+      this.TargetPosition = this.CurrentPosition;
+      this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
+      this.debugLog(`Curtain: ${this.accessory.displayName} Stopped`);
     }
     this.debugLog(
       `Curtain: ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition},` +
@@ -315,8 +312,8 @@ export class Curtain {
     if (this.platform.config.credentials?.openToken) {
       this.debugLog(`Curtain: ${this.accessory.displayName} OpenAPI parseStatus`);
       // CurrentPosition
-      this.setMinMax();
       this.CurrentPosition = 100 - Number(this.slidePosition);
+      this.setMinMax();
       this.debugLog(`Curtain ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition}`);
       if (this.setNewTarget) {
         this.infoLog(`Curtain: ${this.accessory.displayName} Checking Status ...`);
