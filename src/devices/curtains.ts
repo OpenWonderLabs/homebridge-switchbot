@@ -57,7 +57,6 @@ export class Curtain {
     // default placeholders
     this.logs(device);
     this.scan(device);
-    this.setMinMax();
     this.refreshRate(device);
     this.config(device);
     this.CurrentPosition = 0;
