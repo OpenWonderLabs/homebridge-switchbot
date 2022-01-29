@@ -710,7 +710,7 @@ export class Curtain {
       this.setNewTargetTimer = setTimeout(() => {
         this.debugLog(`Curtain: ${this.accessory.displayName} setNewTarget ${this.setNewTarget} timeout`);
         this.setNewTarget = false;
-      }, this.updateRate * 10000);
+      }, this.updateRate * 1000);
     }
     this.doCurtainUpdate.next();
   }
