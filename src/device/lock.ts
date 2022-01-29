@@ -126,9 +126,9 @@ export class Lock {
       this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
       this.debugLog(`Lock: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
       this.lockState = this.deviceStatus.body.lockState;
-      this.warnLog(this.lockState);
+      this.warnLog(`Lock: ${this.accessory.displayName} lockState: ${JSON.stringify(this.lockState)} (COPY THIS LOG)`);
       this.doorState = this.deviceStatus.body.doorState;
-      this.warnLog(this.doorState);
+      this.debugLog(`Lock: ${this.accessory.displayName} doorState: ${JSON.stringify(this.doorState)} (COPY THIS LOG)`);
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
