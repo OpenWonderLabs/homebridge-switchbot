@@ -64,12 +64,6 @@ export class Humidifier {
     this.CurrentTemperature = 0;
     this.WaterLevel = 0;
 
-    // Humidifiers Config
-    this.debugLog(
-      `Humidifier: ${this.accessory.displayName} Config: (ble: ${device.ble}, offline: ${device.offline}, hide_temperature: ` +
-        `${device.humidifier?.hide_temperature}, set_minStep: ${device.humidifier?.set_minStep})`,
-    );
-
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doHumidifierUpdate = new Subject();
     this.humidifierUpdateInProgress = false;
@@ -696,7 +690,7 @@ export class Humidifier {
     }
   }
 
-  private offlineOff() {
+  offlineOff() {
     if (this.device.offline) {
       this.Active = this.platform.Characteristic.Active.INACTIVE;
       this.service.getCharacteristic(this.platform.Characteristic.Active).updateValue(this.Active);
@@ -706,7 +700,7 @@ export class Humidifier {
   /**
    * Handle requests to set the "Target Humidifier Dehumidifier State" characteristic
    */
-  private handleTargetHumidifierDehumidifierStateSet(value: CharacteristicValue) {
+  handleTargetHumidifierDehumidifierStateSet(value: CharacteristicValue) {
     this.debugLog(`Humidifier: ${this.accessory.displayName} TargetHumidifierDehumidifierState: ${value}`);
 
     this.TargetHumidifierDehumidifierState = value;
@@ -716,7 +710,7 @@ export class Humidifier {
   /**
    * Handle requests to set the "Active" characteristic
    */
-  private handleActiveSet(value: CharacteristicValue) {
+  handleActiveSet(value: CharacteristicValue) {
     this.debugLog(`Humidifier: ${this.accessory.displayName} Active: ${value}`);
     this.Active = value;
     this.doHumidifierUpdate.next();
@@ -725,7 +719,7 @@ export class Humidifier {
   /**
    * Handle requests to set the "Relative Humidity Humidifier Threshold" characteristic
    */
-  private handleRelativeHumidityHumidifierThresholdSet(value: CharacteristicValue) {
+  handleRelativeHumidityHumidifierThresholdSet(value: CharacteristicValue) {
     this.debugLog(`Humidifier: ${this.accessory.displayName} RelativeHumidityHumidifierThreshold: ${value}`);
 
     this.RelativeHumidityHumidifierThreshold = value;
@@ -752,6 +746,9 @@ export class Humidifier {
     }
     if (device.scanDuration !== undefined) {
       config['scanDuration'] = device.scanDuration;
+    }
+    if (device.offline !== undefined) {
+      config['offline'] = device.offline;
     }
     if (Object.entries(config).length !== 0) {
       this.warnLog(`Humidifier: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);

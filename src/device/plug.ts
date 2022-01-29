@@ -38,9 +38,6 @@ export class Plug {
       this.On = this.accessory.context.On;
     }
 
-    // Plug Config
-    this.debugLog(`Plug: ${this.accessory.displayName} Config: (offline: ${device.offline})`);
-
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doPlugUpdate = new Subject();
     this.plugUpdateInProgress = false;
@@ -276,6 +273,9 @@ export class Plug {
     }
     if (device.scanDuration !== undefined) {
       config['scanDuration'] = device.scanDuration;
+    }
+    if (device.offline !== undefined) {
+      config['offline'] = device.offline;
     }
     if (Object.entries(config).length !== 0) {
       this.warnLog(`Plug: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);

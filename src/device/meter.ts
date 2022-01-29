@@ -66,12 +66,6 @@ export class Meter {
       this.CurrentTemperature = this.accessory.context.CurrentTemperature;
     }
 
-    // Meter Config
-    this.debugLog(
-      `Meter: ${this.accessory.displayName} Config: (ble: ${device.ble}, hide_temperature: ${device.meter?.hide_temperature},` +
-        ` hide_humidity: ${device.meter?.hide_humidity})`,
-    );
-
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doMeterUpdate = new Subject();
     this.meterUpdateInProgress = false;

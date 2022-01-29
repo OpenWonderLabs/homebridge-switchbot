@@ -985,7 +985,7 @@ export class Bot {
     }
   }
 
-  private offlineOff() {
+  offlineOff() {
     if (this.device.offline) {
       this.On = false;
       if (this.device.bot?.deviceType === 'switch') {
@@ -999,7 +999,7 @@ export class Bot {
   /**
    * Handle requests to set the "On" characteristic
    */
-  private handleOnSet(value: CharacteristicValue) {
+  handleOnSet(value: CharacteristicValue) {
     if (this.device.bot?.deviceType === 'garagedoor') {
       this.debugLog(`Bot: ${this.accessory.displayName} TargetDoorState: ${value}`);
       if (value === this.platform.Characteristic.TargetDoorState.CLOSED) {
@@ -1062,6 +1062,9 @@ export class Bot {
     }
     if (device.scanDuration !== undefined) {
       config['scanDuration'] = device.scanDuration;
+    }
+    if (device.offline !== undefined) {
+      config['offline'] = device.offline;
     }
     if (Object.entries(config).length !== 0) {
       this.warnLog(`Bot: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);

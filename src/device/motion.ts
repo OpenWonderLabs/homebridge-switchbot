@@ -54,13 +54,6 @@ export class Motion {
     this.config(device);
     this.MotionDetected = false;
 
-    // Motion Config
-    this.debugLog(
-      `Motion Sensor: ${this.accessory.displayName} Config: (ble: ${device.ble}, offline: ${device.offline},` +
-        ` hide_lightsensor: ${device.motion?.hide_lightsensor},` +
-        ` set_minLux: ${this.device.motion?.set_minLux}, set_maxLux: ${this.device.motion?.set_maxLux})`,
-    );
-
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doMotionUpdate = new Subject();
     this.motionUbpdateInProgress = false;
@@ -390,6 +383,9 @@ export class Motion {
     if (device.scanDuration !== undefined) {
       config['scanDuration'] = device.scanDuration;
     }
+    if (device.offline !== undefined) {
+      config['offline'] = device.offline;
+    }
     if (Object.entries(config).length !== 0) {
       this.warnLog(`Motion Sensor: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
@@ -435,7 +431,7 @@ export class Motion {
     }
   }
 
-  private minLux(): number {
+  minLux(): number {
     if (this.device.motion?.set_minLux) {
       this.set_minLux = this.device.motion!.set_minLux!;
     } else {
@@ -444,7 +440,7 @@ export class Motion {
     return this.set_minLux;
   }
 
-  private maxLux(): number {
+  maxLux(): number {
     if (this.device.motion?.set_maxLux) {
       this.set_maxLux = this.device.motion!.set_maxLux!;
     } else {

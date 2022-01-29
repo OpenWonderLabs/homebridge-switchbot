@@ -41,9 +41,6 @@ export class Lock {
       this.LockTargetState = this.accessory.context.On;
     }
 
-    // Lock Config
-    this.debugLog(`Lock: ${this.accessory.displayName} Config: (offline: ${device.offline})`);
-
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doLockUpdate = new Subject();
     this.lockUpdateInProgress = false;
@@ -121,7 +118,7 @@ export class Lock {
       default:
         this.LockCurrentState = this.platform.Characteristic.LockCurrentState.SECURED;
     }
-    this.debugLog(`Lock ${this.accessory.displayName} On: ${this.LockTargetState}`);
+    this.debugLog(`Lock: ${this.accessory.displayName} On: ${this.LockTargetState}`);
   }
 
   private async refreshStatus() {
