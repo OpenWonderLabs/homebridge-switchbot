@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file. This projec
 ## [Beta - Version 1.10.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.10.1) (2022-01-28)
 
 ## What's Changed
+* Add Support for SwitchBot Lock
+* Add Support for SwitchBot Strip Light
+* Add Support for SwitchBot Meter Plus (US)
+* Add Support for SwitchBot Meter Plus (JP)
+* Add Support for SwitchBot Plug Mini (US)
+* Add Support for SwitchBot Plug Mini (US)
 * Fixed: Curtain `set_min` and `set_max` options not work correctly with minimum and maximum curtain state. [#123](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/123)
 * Housekeeping and updated dependencies.
 

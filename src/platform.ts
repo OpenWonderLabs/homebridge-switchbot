@@ -389,7 +389,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createPlug(device);
         break;
-      case 'Lock':
+      case 'Smart Lock':
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createLock(device);
         break;

@@ -7,7 +7,8 @@ import { DeviceURL, device, devicesConfig, deviceStatusResponse, payload, device
 
 export class Lock {
   // Services
-  private service: Service;
+  private lockService: Service;
+  private doorService?: Service;
 
   // Characteristic Values
   LockCurrentState!: CharacteristicValue;
@@ -59,7 +60,7 @@ export class Lock {
 
     // get the WindowCovering service if it exists, otherwise create a new WindowCovering service
     // you can create multiple services for each accessory
-    (this.service = accessory.getService(this.platform.Service.Outlet) || accessory.addService(this.platform.Service.Outlet)),
+    (this.lockService = accessory.getService(this.platform.Service.Outlet) || accessory.addService(this.platform.Service.Outlet)),
     `${device.deviceName} ${device.deviceType}`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
@@ -68,13 +69,13 @@ export class Lock {
 
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+    this.lockService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
 
     // each service must implement at-minimum the "required characteristics" for the given service type
     // see https://developers.homebridge.io/#/service/WindowCovering
 
     // create handlers for required characteristics
-    this.service.getCharacteristic(this.platform.Characteristic.LockCurrentState).onSet(this.LockTargetStateSet.bind(this));
+    this.lockService.getCharacteristic(this.platform.Characteristic.LockCurrentState).onSet(this.LockTargetStateSet.bind(this));
 
     // Update Homekit
     this.updateHomeKitCharacteristics();
@@ -115,10 +116,10 @@ export class Lock {
   parseStatus() {
     switch (this.lockState) {
       case 'on':
-        this.LockTargetState = this.platform.Characteristic.LockTargetState.UNSECURED;
+        this.LockCurrentState = this.platform.Characteristic.LockCurrentState.UNSECURED;
         break;
       default:
-        this.LockTargetState = this.platform.Characteristic.LockTargetState.SECURED;
+        this.LockCurrentState = this.platform.Characteristic.LockCurrentState.SECURED;
     }
     this.debugLog(`Lock ${this.accessory.displayName} On: ${this.LockTargetState}`);
   }
@@ -190,19 +191,20 @@ export class Lock {
     if (this.LockTargetState === undefined) {
       this.debugLog(`Lock: ${this.accessory.displayName} LockTargetState: ${this.LockTargetState}`);
     } else {
-      this.service.updateCharacteristic(this.platform.Characteristic.LockTargetState, this.LockTargetState);
+      this.lockService.updateCharacteristic(this.platform.Characteristic.LockTargetState, this.LockTargetState);
       this.debugLog(`Lock: ${this.accessory.displayName} updateCharacteristic LockTargetState: ${this.LockTargetState}`);
     }
     if (this.LockCurrentState === undefined) {
       this.debugLog(`Lock: ${this.accessory.displayName} LockCurrentState: ${this.LockCurrentState}`);
     } else {
-      this.service.updateCharacteristic(this.platform.Characteristic.LockCurrentState, this.LockCurrentState);
+      this.lockService.updateCharacteristic(this.platform.Characteristic.LockCurrentState, this.LockCurrentState);
       this.debugLog(`Lock: ${this.accessory.displayName} updateCharacteristic LockTargetState: ${this.LockCurrentState}`);
     }
   }
 
   public apiError(e: any) {
-    this.service.updateCharacteristic(this.platform.Characteristic.On, e);
+    this.lockService.updateCharacteristic(this.platform.Characteristic.LockTargetState, e);
+    this.lockService.updateCharacteristic(this.platform.Characteristic.LockCurrentState, e);
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 

@@ -56,6 +56,8 @@ plugin allows you to access your SwitchBot Device(s) from HomeKit with
     - Can Push Updates over OpenAPI
     - Can Receive Udpates over BLE and OpenAPI
 - [SwitchBot Meter](https://www.switch-bot.com/products/switchbot-meter)
+- [SwitchBot Meter Plus (US)](https://www.switch-bot.com/products/switchbot-meter-plus)
+- [SwitchBot Meter Plus (JP)](https://www.switchbot.jp/products/switchbot-meter-plus)
   - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
   - If using OpenAPI:
     - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
@@ -88,6 +90,14 @@ plugin allows you to access your SwitchBot Device(s) from HomeKit with
     - Must supply `deviceId` & `deviceName` to Device Config
     - Check `Enable Bluetooth Low Energy (BLE) Connection` on Device Config
 - [SwitchBot Bulb](https://www.switch-bot.com/products/switchbot-color-bulb)
+- [SwitchBot Light Strip](https://www.switch-bot.com/products/switchbot-light-strip)
+  - Supports OpenAPI Connection Only
+  - If using OpenAPI:
+    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
+    - Enable Cloud Services for Device on SwitchBot App
+- [SwitchBot Plug](https://www.switch-bot.com/products/switchbot-plug)
+- [SwitchBot Plug Mini (US)](https://www.switch-bot.com/products/switchbot-plug-mini)
+- [SwitchBot Plug Mini (JP)](https://www.switchbot.jp/products/switchbot-plug-mini)
   - Supports OpenAPI Connection Only
   - If using OpenAPI:
     - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
