@@ -51,6 +51,7 @@ export interface devicesConfig extends device {
   motion?: motion;
   colorbulb?: colorbulb;
   plug?: Record<any, any>;
+  lock?: lock;
   ble?: boolean;
   scanDuration?: number;
   hide_device?: boolean;
@@ -103,6 +104,10 @@ export type colorbulb = {
   adaptiveLightingShift?: number;
 };
 
+export type lock = {
+  hide_contactsensor?: boolean;
+};
+
 export interface irDevicesConfig extends irdevice {
   configRemoteType?: string;
   deviceId: string;
@@ -147,7 +152,7 @@ export type set_min = {
 
 export type irair = {
   hide_automode?: boolean;
-  pushOn?: boolean
+  pushOn?: boolean;
 };
 
 export type irtv = {
@@ -195,7 +200,7 @@ export type device = {
   hubDeviceId: string;
   //only available for Curtain devices. a list of Curtain device IDs such that the Curtain devices are being paired or grouped.
   curtainDevicesIds?: Array<string>;
-  //only available for Curtain devices. determines if the open position and the close position of a Curtain have been properly calibrated or not.
+  //only available for Curtain/Lock devices. determines if the open position and the close position of a device have been properly calibrated or not
   calibrate?: boolean;
   //only available for Curtain devices. determines if a Curtain is paired with or grouped with another Curtain or not.
   group?: boolean;
@@ -232,11 +237,11 @@ export type deviceStatus = {
   deviceType: string;
   //device's parent Hub ID.
   hubDeviceId?: string;
-  //only available for Bot/Plug/Humidifier devices. ON/OFF state.
+  //only available for Bot/Plug/Humidifier/Color Bulb/Strip Light/Plug Mini (US)/Plug Mini (JP) devices. ON/OFF state
   power?: string;
-  //only available for Meter/Humidifier/Color Bulb devices. humidity percentage.
+  //only available for Meter/Meter Plus (US)/Meter Plus (JP)/Humidifier devices. humidity percentage
   humidity?: number;
-  //only available for Meter/Humidifier devices. temperature in celsius.
+  //only available for Meter/Meter Plus (US)/Meter Plus (JP)/Humidifier devices. temperature in celsius.
   temperature?: number;
   //only available for Humidifier devices. atomization efficiency %.
   nebulizationEfficiency?: number;
@@ -246,7 +251,7 @@ export type deviceStatus = {
   childLock?: boolean;
   //only available for Humidifier devices. determines if a Humidifier is muted or not.
   sound?: boolean;
-  //only available for Curtain devices. determines if a Curtain has been calibrated or not.
+  //only available for Curtain/Lock devices. determines if a device has been calibrated or not
   calibrate?: boolean;
   //only available for Curtain devices. determines if a Curtain is paired with or grouped with another Curtain or not.
   group?: boolean;
@@ -267,17 +272,29 @@ export type deviceStatus = {
   shakeRange?: string;
   //only available for Motion Sensor, Contact Sensor devices. determines if motion is detected
   moveDetected?: boolean;
-  //only available for Motion Sensor, Contact Sensor devices. tell the ambient environment is bright or dim |
-  //only available for Color Bulb devices. the brightness value, range from 1 to 100 |
+  //only available for Motion Sensor, Contact Sensor devices. tell the ambient environment is bright or dim
+  //only available for Color Bulb/Strip Light devices. the brightness value, range from 1 to 100
   brightness?: string | number;
-  //only available for Contact Sensor devices. open/close/timeOutNotClose |
+  //only available for Contact Sensor devices. open/close/timeOutNotClose
   openState?: string;
-  //only available for Color Bulb devices. the color value, RGB "255:255:255" |
+  //only available for Color Bulb/Strip Light devices. the color value, RGB "255:255:255"
   color?: string;
-  //only available for Color Bulb devices. the color temperature value, range from 2700 to 6500 |
+  //only available for Color Bulb devices. the color temperature value, range from 2700 to 6500
   colorTemperature?: number;
   //only available for Humidifier devices. determines if the water tank empty or not
   lackWater?: boolean;
+  //only available for Plug Mini (US)/Plug Mini (JP). Current voltage of the device (Unit: V).
+  voltage: number;
+  //only available for Plug Mini (US)/Plug Mini (JP). The power consumption of the device for the day (Unit: W/min).
+  weight: number;
+  //only available for Plug Mini (US)/Plug Mini (JP). How long the device has been used for the day (Unit: min).
+  electricityOfDay: number;
+  //only available for Plug Mini (US)/Plug Mini (JP). Current current of the device (Unit: A).
+  electricCurrent: number;
+  //only available for Lock devices. determines if the lock is locked or not.
+  lockState: string;
+  //only available for Lock devices. determines if the door is closed or not.
+  doorState: string;
 };
 
 export type ad = {

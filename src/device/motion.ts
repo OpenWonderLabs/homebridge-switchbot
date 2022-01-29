@@ -11,9 +11,9 @@ import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusR
  */
 export class Motion {
   // Services
-  private service: Service;
-  private lightSensorService?: Service;
-  private batteryService?: Service;
+  motionSensorService: Service;
+  lightSensorService?: Service;
+  batteryService?: Service;
 
   // Characteristic Values
   MotionDetected!: CharacteristicValue;
@@ -54,13 +54,6 @@ export class Motion {
     this.config(device);
     this.MotionDetected = false;
 
-    // Motion Config
-    this.debugLog(
-      `Motion Sensor: ${this.accessory.displayName} Config: (ble: ${device.ble}, offline: ${device.offline},` +
-        ` hide_lightsensor: ${device.motion?.hide_lightsensor},` +
-        ` set_minLux: ${this.device.motion?.set_minLux}, set_maxLux: ${this.device.motion?.set_maxLux})`,
-    );
-
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doMotionUpdate = new Subject();
     this.motionUbpdateInProgress = false;
@@ -72,12 +65,12 @@ export class Motion {
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-WOMOTION-W1101500')
+      .setCharacteristic(this.platform.Characteristic.Model, 'W1101500')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
     // get the Battery service if it exists, otherwise create a new Motion service
     // you can create multiple services for each accessory
-    (this.service = accessory.getService(this.platform.Service.MotionSensor) || accessory.addService(this.platform.Service.MotionSensor)),
+    (this.motionSensorService = accessory.getService(this.platform.Service.MotionSensor) || accessory.addService(this.platform.Service.MotionSensor)),
     `${accessory.displayName} Motion Sensor`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
@@ -86,7 +79,7 @@ export class Motion {
 
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+    this.motionSensorService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
 
     // each service must implement at-minimum the "required characteristics" for the given service type
     // see https://developers.homebridge.io/#/service/MotionSensor
@@ -128,15 +121,15 @@ export class Motion {
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
       .pipe(skipWhile(() => this.motionUbpdateInProgress))
-      .subscribe(() => {
-        this.refreshStatus();
+      .subscribe(async () => {
+        await this.refreshStatus();
       });
   }
 
   /**
    * Parse the device status from the SwitchBot api
    */
-  async parseStatus() {
+  async parseStatus(): Promise<void> {
     if (this.SwitchToOpenAPI || !this.device.ble) {
       await this.openAPIparseStatus();
     } else {
@@ -144,7 +137,7 @@ export class Motion {
     }
   }
 
-  private async BLEparseStatus() {
+  async BLEparseStatus(): Promise<void> {
     this.debugLog(`Motion Sensor: ${this.accessory.displayName} BLE parseStatus`);
     // Movement
     this.MotionDetected = this.movement!;
@@ -179,7 +172,7 @@ export class Motion {
     this.debugLog(`Motion Sensor: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
   }
 
-  private async openAPIparseStatus() {
+  async openAPIparseStatus(): Promise<void> {
     if (this.device.ble) {
       this.SwitchToOpenAPI = false;
     }
@@ -208,7 +201,7 @@ export class Motion {
   /**
    * Asks the SwitchBot API for the latest device information
    */
-  async refreshStatus() {
+  async refreshStatus(): Promise<void> {
     if (this.device.ble) {
       await this.BLERefreshStatus();
     } else {
@@ -216,7 +209,7 @@ export class Motion {
     }
   }
 
-  private async BLERefreshStatus() {
+  async BLERefreshStatus(): Promise<void> {
     this.debugLog(`Motion Sensor: ${this.accessory.displayName} BLE RefreshStatus`);
     const switchbot = await this.platform.connectBLE();
     // Convert to BLE Address
@@ -289,7 +282,7 @@ export class Motion {
     }
   }
 
-  public async BLEconnection(switchbot: any) {
+  async BLEconnection(switchbot: any): Promise<void> {
     this.errorLog(`Motion Sensor: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
     if (this.platform.config.credentials?.openToken) {
       this.warnLog(`Motion Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
@@ -298,7 +291,7 @@ export class Motion {
     }
   }
 
-  private async openAPIRefreshStatus() {
+  async openAPIRefreshStatus(): Promise<void> {
     if (this.platform.config.credentials?.openToken) {
       this.debugLog(`Motion Sensor: ${this.accessory.displayName} OpenAPI RefreshStatus`);
       try {
@@ -332,11 +325,11 @@ export class Motion {
   /**
    * Updates the status for each of the HomeKit Characteristics
    */
-  updateHomeKitCharacteristics() {
+  async updateHomeKitCharacteristics(): Promise<void> {
     if (this.MotionDetected === undefined) {
       this.debugLog(`Motion Sensor: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
     } else {
-      this.service.updateCharacteristic(this.platform.Characteristic.MotionDetected, this.MotionDetected);
+      this.motionSensorService.updateCharacteristic(this.platform.Characteristic.MotionDetected, this.MotionDetected);
       this.debugLog(`Motion Sensor: ${this.accessory.displayName} updateCharacteristic MotionDetected: ${this.MotionDetected}`);
     }
     if (this.device.ble) {
@@ -363,8 +356,8 @@ export class Motion {
     }
   }
 
-  public apiError(e: any) {
-    this.service.updateCharacteristic(this.platform.Characteristic.MotionDetected, e);
+  async apiError(e: any): Promise<void> {
+    this.motionSensorService.updateCharacteristic(this.platform.Characteristic.MotionDetected, e);
     if (this.device.ble) {
       this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
       this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
@@ -373,7 +366,7 @@ export class Motion {
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
-  config(device: device & devicesConfig) {
+  async config(device: device & devicesConfig): Promise<void> {
     let config = {};
     if (device.motion) {
       config = device.motion;
@@ -390,12 +383,15 @@ export class Motion {
     if (device.scanDuration !== undefined) {
       config['scanDuration'] = device.scanDuration;
     }
+    if (device.offline !== undefined) {
+      config['offline'] = device.offline;
+    }
     if (Object.entries(config).length !== 0) {
       this.warnLog(`Motion Sensor: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
-  refreshRate(device: device & devicesConfig) {
+  async refreshRate(device: device & devicesConfig): Promise<void> {
     if (device.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
       this.debugLog(`Motion Sensor: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
@@ -405,7 +401,7 @@ export class Motion {
     }
   }
 
-  scan(device: device & devicesConfig) {
+  async scan(device: device & devicesConfig): Promise<void> {
     if (device.scanDuration) {
       this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
       if (device.ble) {
@@ -419,7 +415,7 @@ export class Motion {
     }
   }
 
-  logs(device: device & devicesConfig) {
+  async logs(device: device & devicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
       this.debugLog(`Motion Sensor: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
@@ -435,7 +431,7 @@ export class Motion {
     }
   }
 
-  private minLux(): number {
+  minLux(): number {
     if (this.device.motion?.set_minLux) {
       this.set_minLux = this.device.motion!.set_minLux!;
     } else {
@@ -444,7 +440,7 @@ export class Motion {
     return this.set_minLux;
   }
 
-  private maxLux(): number {
+  maxLux(): number {
     if (this.device.motion?.set_maxLux) {
       this.set_maxLux = this.device.motion!.set_maxLux!;
     } else {
@@ -456,25 +452,25 @@ export class Motion {
   /**
    * Logging for Device
    */
-  infoLog(...log: any[]) {
+  infoLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));
     }
   }
 
-  warnLog(...log: any[]) {
+  warnLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.warn(String(...log));
     }
   }
 
-  errorLog(...log: any[]) {
+  errorLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.error(String(...log));
     }
   }
 
-  debugLog(...log: any[]) {
+  debugLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       if (this.deviceLogging === 'debug') {
         this.platform.log.info('[DEBUG]', String(...log));
