@@ -55,9 +55,9 @@ export class Lock {
       .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-LOCK-W1601700')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
-    // get the WindowCovering service if it exists, otherwise create a new WindowCovering service
+    // get the LockMechanism service if it exists, otherwise create a new LockMechanism service
     // you can create multiple services for each accessory
-    (this.lockService = accessory.getService(this.platform.Service.Outlet) || accessory.addService(this.platform.Service.Outlet)),
+    (this.lockService = accessory.getService(this.platform.Service.LockMechanism) || accessory.addService(this.platform.Service.LockMechanism)),
     `${device.deviceName} ${device.deviceType}`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
@@ -69,7 +69,7 @@ export class Lock {
     this.lockService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
 
     // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/WindowCovering
+    // see https://developers.homebridge.io/#/service/LockMechanism
 
     // create handlers for required characteristics
     this.lockService.getCharacteristic(this.platform.Characteristic.LockCurrentState).onSet(this.LockTargetStateSet.bind(this));

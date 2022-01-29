@@ -52,7 +52,7 @@ export class Plug {
       .setCharacteristic(this.platform.Characteristic.Model, this.model(device))
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
-    // get the WindowCovering service if it exists, otherwise create a new WindowCovering service
+    // get the Outlet service if it exists, otherwise create a new Outlet service
     // you can create multiple services for each accessory
     (this.service = accessory.getService(this.platform.Service.Outlet) || accessory.addService(this.platform.Service.Outlet)),
     `${device.deviceName} ${device.deviceType}`;
@@ -66,7 +66,7 @@ export class Plug {
     this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
 
     // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/WindowCovering
+    // see https://developers.homebridge.io/#/service/Outlet
 
     // create handlers for required characteristics
     this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
