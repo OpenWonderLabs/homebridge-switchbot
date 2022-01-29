@@ -5,16 +5,18 @@ import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { DeviceURL, device, devicesConfig, deviceStatusResponse, payload, deviceStatus } from '../settings';
 
-export class Plug {
+export class Lock {
   // Services
   private service: Service;
 
   // Characteristic Values
-  On!: CharacteristicValue;
-  OnCached!: CharacteristicValue;
+  LockCurrentState!: CharacteristicValue;
+  LockTargetState!: CharacteristicValue;
+  LockTargetStateCached!: CharacteristicValue;
 
   // OpenAPI Others
-  power: deviceStatus['power'];
+  doorState!: deviceStatus['doorState'];
+  lockState!: deviceStatus['lockState'];
   deviceStatus!: deviceStatusResponse;
 
   // Config
@@ -23,8 +25,8 @@ export class Plug {
   deviceRefreshRate!: number;
 
   // Updates
-  plugUpdateInProgress!: boolean;
-  doPlugUpdate!: Subject<void>;
+  lockUpdateInProgress!: boolean;
+  doLockUpdate!: Subject<void>;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
@@ -32,18 +34,18 @@ export class Plug {
     this.scan(device);
     this.refreshRate(device);
     this.config(device);
-    if (this.On === undefined) {
-      this.On = false;
+    if (this.LockTargetState === undefined) {
+      this.LockTargetState = false;
     } else {
-      this.On = this.accessory.context.On;
+      this.LockTargetState = this.accessory.context.On;
     }
 
-    // Plug Config
-    this.debugLog(`Plug: ${this.accessory.displayName} Config: (offline: ${device.offline})`);
+    // Lock Config
+    this.debugLog(`Lock: ${this.accessory.displayName} Config: (offline: ${device.offline})`);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
-    this.doPlugUpdate = new Subject();
-    this.plugUpdateInProgress = false;
+    this.doLockUpdate = new Subject();
+    this.lockUpdateInProgress = false;
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();
@@ -52,7 +54,7 @@ export class Plug {
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-PLUG-SP11')
+      .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-LOCK-W1601700')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
     // get the WindowCovering service if it exists, otherwise create a new WindowCovering service
@@ -72,24 +74,24 @@ export class Plug {
     // see https://developers.homebridge.io/#/service/WindowCovering
 
     // create handlers for required characteristics
-    this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
+    this.service.getCharacteristic(this.platform.Characteristic.LockCurrentState).onSet(this.LockTargetStateSet.bind(this));
 
     // Update Homekit
     this.updateHomeKitCharacteristics();
 
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
-      .pipe(skipWhile(() => this.plugUpdateInProgress))
+      .pipe(skipWhile(() => this.lockUpdateInProgress))
       .subscribe(() => {
         this.refreshStatus();
       });
 
-    // Watch for Plug change events
+    // Watch for Lock change events
     // We put in a debounce of 100ms so we don't make duplicate calls
-    this.doPlugUpdate
+    this.doLockUpdate
       .pipe(
         tap(() => {
-          this.plugUpdateInProgress = true;
+          this.lockUpdateInProgress = true;
         }),
         debounceTime(this.platform.config.options!.pushRate! * 1000),
       )
@@ -97,46 +99,49 @@ export class Plug {
         try {
           await this.pushChanges();
         } catch (e: any) {
-          this.errorLog(`Plug: ${this.accessory.displayName} failed pushChanges`);
+          this.errorLog(`Lock: ${this.accessory.displayName} failed pushChanges`);
           if (this.deviceLogging === 'debug') {
-            this.errorLog(`Plug: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${JSON.stringify(e.message)}`);
+            this.errorLog(`Lock: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${JSON.stringify(e.message)}`);
           }
           if (this.platform.debugMode) {
-            this.errorLog(`Plug: ${this.accessory.displayName} failed pushChanges,` + ` Error: ${JSON.stringify(e)}`);
+            this.errorLog(`Lock: ${this.accessory.displayName} failed pushChanges,` + ` Error: ${JSON.stringify(e)}`);
           }
           this.apiError(e);
         }
-        this.plugUpdateInProgress = false;
+        this.lockUpdateInProgress = false;
       });
   }
 
   parseStatus() {
-    switch (this.power) {
+    switch (this.lockState) {
       case 'on':
-        this.On = true;
+        this.LockTargetState = this.platform.Characteristic.LockTargetState.UNSECURED;
         break;
       default:
-        this.On = false;
+        this.LockTargetState = this.platform.Characteristic.LockTargetState.SECURED;
     }
-    this.debugLog(`Plug ${this.accessory.displayName} On: ${this.On}`);
+    this.debugLog(`Lock ${this.accessory.displayName} On: ${this.LockTargetState}`);
   }
 
   private async refreshStatus() {
     try {
       this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
-      this.debugLog(`Plug: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
-      this.power = this.deviceStatus.body.power;
+      this.debugLog(`Lock: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+      this.lockState = this.deviceStatus.body.lockState;
+      this.warnLog(this.lockState);
+      this.doorState = this.deviceStatus.body.doorState;
+      this.warnLog(this.doorState);
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
-      this.errorLog(`Plug: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
+      this.errorLog(`Lock: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
       if (this.deviceLogging === 'debug') {
         this.errorLog(
-          `Plug: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+          `Lock: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
         );
       }
       if (this.platform.debugMode) {
-        this.errorLog(`Plug: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`);
+        this.errorLog(`Lock: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`);
       }
       this.apiError(e);
     }
@@ -145,36 +150,36 @@ export class Plug {
   /**
    * Pushes the requested changes to the SwitchBot API
    * deviceType	commandType	  Command	    command parameter	  Description
-   * Plug   -    "command"     "turnOff"   "default"	  =        set to OFF state
-   * Plug   -    "command"     "turnOn"    "default"	  =        set to ON state
+   * Lock   -    "command"     "????"   "????"	  =        set to ???? state
+   * Lock   -    "command"     "????"    "????"	  =        set to ???? state - LockCurrentState
    */
   async pushChanges() {
-    if (this.On !== this.OnCached) {
+    if (this.LockTargetState !== this.LockTargetStateCached) {
       const payload = {
         commandType: 'command',
         parameter: 'default',
       } as payload;
 
-      if (this.On) {
+      if (this.LockTargetState) {
         payload.command = 'turnOn';
       } else {
         payload.command = 'turnOff';
       }
 
       this.infoLog(
-        `Plug: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
+        `Lock: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
           ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
       );
 
       // Make the API request
       const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.debugLog(`Plug: ${this.accessory.displayName} pushchanges: ${JSON.stringify(push.data)}`);
+      this.debugLog(`Lock: ${this.accessory.displayName} pushchanges: ${JSON.stringify(push.data)}`);
       this.statusCode(push);
-      this.OnCached = this.On;
-      this.accessory.context.On = this.OnCached;
+      this.LockTargetStateCached = this.LockTargetState;
+      this.accessory.context.On = this.LockTargetStateCached;
     }
     interval(5000)
-      .pipe(skipWhile(() => this.plugUpdateInProgress))
+      .pipe(skipWhile(() => this.lockUpdateInProgress))
       .pipe(take(1))
       .subscribe(() => {
         this.refreshStatus();
@@ -182,11 +187,17 @@ export class Plug {
   }
 
   updateHomeKitCharacteristics() {
-    if (this.On === undefined) {
-      this.debugLog(`Plug: ${this.accessory.displayName} On: ${this.On}`);
+    if (this.LockTargetState === undefined) {
+      this.debugLog(`Lock: ${this.accessory.displayName} LockTargetState: ${this.LockTargetState}`);
     } else {
-      this.service.updateCharacteristic(this.platform.Characteristic.On, this.On);
-      this.debugLog(`Plug: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+      this.service.updateCharacteristic(this.platform.Characteristic.LockTargetState, this.LockTargetState);
+      this.debugLog(`Lock: ${this.accessory.displayName} updateCharacteristic LockTargetState: ${this.LockTargetState}`);
+    }
+    if (this.LockCurrentState === undefined) {
+      this.debugLog(`Lock: ${this.accessory.displayName} LockCurrentState: ${this.LockCurrentState}`);
+    } else {
+      this.service.updateCharacteristic(this.platform.Characteristic.LockCurrentState, this.LockCurrentState);
+      this.debugLog(`Lock: ${this.accessory.displayName} updateCharacteristic LockTargetState: ${this.LockCurrentState}`);
     }
   }
 
@@ -198,57 +209,48 @@ export class Plug {
   private statusCode(push: AxiosResponse<{ statusCode: number }>) {
     switch (push.data.statusCode) {
       case 151:
-        this.errorLog(`Plug: ${this.accessory.displayName} Command not supported by this device type.`);
+        this.errorLog(`Lock: ${this.accessory.displayName} Command not supported by this device type.`);
         break;
       case 152:
-        this.errorLog(`Plug: ${this.accessory.displayName} Device not found.`);
+        this.errorLog(`Lock: ${this.accessory.displayName} Device not found.`);
         break;
       case 160:
-        this.errorLog(`Plug: ${this.accessory.displayName} Command is not supported.`);
+        this.errorLog(`Lock: ${this.accessory.displayName} Command is not supported.`);
         break;
       case 161:
-        this.errorLog(`Plug: ${this.accessory.displayName} Device is offline.`);
-        this.offlineOff();
+        this.errorLog(`Lock: ${this.accessory.displayName} Device is offline.`);
         break;
       case 171:
-        this.errorLog(`Plug: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
-        this.offlineOff();
+        this.errorLog(`Lock: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
         break;
       case 190:
         this.errorLog(
-          `Plug: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
+          `Lock: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
             ` Or command: ${JSON.stringify(push.data)} format is invalid`,
         );
         break;
       case 100:
-        this.debugLog(`Plug: ${this.accessory.displayName} Command successfully sent.`);
+        this.debugLog(`Lock: ${this.accessory.displayName} Command successfully sent.`);
         break;
       default:
-        this.debugLog(`Plug: ${this.accessory.displayName} Unknown statusCode.`);
-    }
-  }
-
-  private offlineOff() {
-    if (this.device.offline) {
-      this.On = false;
-      this.service.getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);
+        this.debugLog(`Lock: ${this.accessory.displayName} Unknown statusCode.`);
     }
   }
 
   /**
    * Handle requests to set the value of the "On" characteristic
    */
-  OnSet(value: CharacteristicValue) {
-    this.debugLog(`Plug: ${this.accessory.displayName} - Set On: ${value}`);
+  LockTargetStateSet(value: CharacteristicValue) {
+    this.debugLog(`Lock: ${this.accessory.displayName} Set LockTargetState: ${value}`);
 
-    this.On = value;
-    this.doPlugUpdate.next();
+    this.LockTargetState = value;
+    this.doLockUpdate.next();
   }
 
   config(device: device & devicesConfig) {
     let config = {};
-    if (device.plug) {
-      config = device.plug;
+    if (device.lock) {
+      config = device.lock;
     }
     if (device.ble !== undefined) {
       config['ble'] = device.ble;
@@ -263,17 +265,17 @@ export class Plug {
       config['scanDuration'] = device.scanDuration;
     }
     if (Object.entries(config).length !== 0) {
-      this.warnLog(`Plug: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.warnLog(`Lock: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
   refreshRate(device: device & devicesConfig) {
     if (device.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
-      this.debugLog(`Plug: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
+      this.debugLog(`Lock: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
     } else if (this.platform.config.options!.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
-      this.debugLog(`Plug: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
+      this.debugLog(`Lock: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
     }
   }
 
@@ -281,12 +283,12 @@ export class Plug {
     if (device.scanDuration) {
       this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
       if (device.ble) {
-        this.debugLog(`Plug: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
+        this.debugLog(`Lock: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
       }
     } else {
       this.scanDuration = this.accessory.context.scanDuration = 1;
       if (this.device.ble) {
-        this.debugLog(`Plug: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
+        this.debugLog(`Lock: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
       }
     }
   }
@@ -294,16 +296,16 @@ export class Plug {
   logs(device: device & devicesConfig) {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
-      this.debugLog(`Plug: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+      this.debugLog(`Lock: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
     } else if (device.logging) {
       this.deviceLogging = this.accessory.context.logging = device.logging;
-      this.debugLog(`Plug: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
+      this.debugLog(`Lock: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
     } else if (this.platform.config.options?.logging) {
       this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      this.debugLog(`Plug: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
+      this.debugLog(`Lock: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
-      this.debugLog(`Plug: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
+      this.debugLog(`Lock: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
     }
   }
 

@@ -83,7 +83,7 @@ export class Meter {
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-METERTH-S1')
+      .setCharacteristic(this.platform.Characteristic.Model, this.model(device))
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
     // Temperature Sensor Service
@@ -391,6 +391,18 @@ export class Meter {
       this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
     }
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+  }
+
+  model(device: device & devicesConfig): CharacteristicValue {
+    let model: string;
+    if (device.deviceType === 'Meter Plus (US)') {
+      model = 'SWITCHBOT-METERTH-W2301500';
+    } else if (device.deviceType === 'Meter Plus (JP)') {
+      model = 'SWITCHBOT-METERTH-W2201500';
+    } else {
+      model = 'SWITCHBOT-METERTH-S1';
+    }
+    return model;
   }
 
   config(device: device & devicesConfig) {

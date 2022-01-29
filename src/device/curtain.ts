@@ -764,7 +764,7 @@ export class Curtain {
       this.updateRate = device?.curtain?.updateRate;
       this.debugLog(`Curtain: ${this.accessory.displayName} Using Device Config Curtain refreshRate: ${this.deviceRefreshRate}`);
     } else {
-      this.updateRate = 5;
+      this.updateRate = 7;
       this.debugLog(`Curtain: ${this.accessory.displayName} Using Default Curtain Refresh Rate.`);
     }
   }

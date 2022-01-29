@@ -287,6 +287,12 @@ export class ColorBulb {
    * Color Bulb   -    "command"         "setBrightness"	             "{1-100}"	              =        set brightness
    * Color Bulb   -    "command"           "setColor"	         "{0-255}:{0-255}:{0-255}"	      =        set RGB color value
    * Color Bulb   -    "command"     "setColorTemperature"	         "{2700-6500}"	            =        set color temperature
+   * Strip Light  -    "command"            "turnOn"                   "default"                =        set to ON state |
+   * Strip Light  -    "command"           "turnOff"                   "default"                =        set to OFF state |
+   * Strip Light  -    "command"            "toggle"                   "default"                =        toggle state |
+   * Strip Light  -    "command"        "setBrightness"               "`{1-100}`"               =        set brightness |
+   * Strip Light  -    "command"          "setColor"           "`"{0-255}:{0-255}:{0-255}"`"    =        set RGB color value |
+   *
    */
   async pushChanges() {
     try {
