@@ -10,7 +10,7 @@ import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
  */
 export class Others {
   // Services
-  private service?: Service;
+  fanService?: Service;
 
   // Characteristic Values
   Active!: CharacteristicValue;
@@ -46,38 +46,38 @@ export class Others {
       if (this.otherDeviceType === undefined) {
         this.errorLog(`Other: ${this.accessory.displayName} No Device Type Set, deviceType: ${device.other?.deviceType}`);
       }
-      this.service = this.accessory.getService(this.platform.Service.Fanv2);
-      accessory.removeService(this.service!);
-    } else if (!this.service && this.otherDeviceType === 'Fan') {
+      this.fanService = this.accessory.getService(this.platform.Service.Fanv2);
+      accessory.removeService(this.fanService!);
+    } else if (!this.fanService && this.otherDeviceType === 'Fan') {
       this.debugLog(`Other: ${accessory.displayName} Add Fanv2 Service`);
-      (this.service = this.accessory.getService(this.platform.Service.Fanv2) || this.accessory.addService(this.platform.Service.Fanv2)),
+      (this.fanService = this.accessory.getService(this.platform.Service.Fanv2) || this.accessory.addService(this.platform.Service.Fanv2)),
       `${accessory.displayName} Fan`;
 
-      this.service.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Fan`);
+      this.fanService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Fan`);
 
-      this.service.getCharacteristic(this.platform.Characteristic.Active).onSet(this.ActiveSet.bind(this));
+      this.fanService.getCharacteristic(this.platform.Characteristic.Active).onSet(this.ActiveSet.bind(this));
     } else {
       this.debugLog(`Other: ${accessory.displayName} Fanv2 Service Not Added, deviceType: ${device.other?.deviceType}`);
     }
   }
 
-  private ActiveSet(value: CharacteristicValue) {
+  async ActiveSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`Other: ${this.accessory.displayName} On: ${value}`);
     if (this.Active) {
-      this.pushOnChanges();
+      await this.pushOnChanges();
     } else {
-      this.pushOffChanges();
+      await this.pushOffChanges();
     }
     this.Active = value;
     this.ActiveCached = this.Active;
     this.accessory.context.Active = this.ActiveCached;
   }
 
-  private updateHomeKitCharacteristics() {
+  async updateHomeKitCharacteristics(): Promise<void> {
     if (this.Active === undefined) {
       this.debugLog(`Other: ${this.accessory.displayName} Active: ${this.Active}`);
     } else {
-      this.service?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
+      this.fanService?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
       this.debugLog(`Other: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
     }
   }
@@ -92,7 +92,7 @@ export class Others {
    * Light:        "command"       "channelAdd"      "default"	        =        next channel
    * Light:        "command"       "channelSub"      "default"	        =        previous channel
    */
-  async pushOnChanges() {
+  async pushOnChanges(): Promise<void> {
     if (this.platform.config.options) {
       if (this.device.other) {
         if (this.device.other.commandOn) {
@@ -115,7 +115,7 @@ export class Others {
     }
   }
 
-  async pushOffChanges() {
+  async pushOffChanges(): Promise<void> {
     if (this.platform.config.options) {
       if (this.device.other) {
         if (this.device.other.commandOff) {
@@ -138,7 +138,7 @@ export class Others {
     }
   }
 
-  public async pushChanges(payload: payload) {
+  async pushChanges(payload: payload): Promise<void> {
     try {
       this.infoLog(
         `Other: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
@@ -164,7 +164,7 @@ export class Others {
     }
   }
 
-  private statusCode(push: AxiosResponse<{ statusCode: number }>) {
+  async statusCode(push: AxiosResponse<{ statusCode: number }>): Promise<void>{
     switch (push.data.statusCode) {
       case 151:
         this.errorLog(`Other: ${this.accessory.displayName} Command not supported by this device type.`);
@@ -195,12 +195,12 @@ export class Others {
     }
   }
 
-  public apiError(e: any) {
-    this.service?.updateCharacteristic(this.platform.Characteristic.Active, e);
+  async apiError(e: any): Promise<void> {
+    this.fanService?.updateCharacteristic(this.platform.Characteristic.Active, e);
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
-  deviceType(device: irdevice & irDevicesConfig) {
+  async deviceType(device: irdevice & irDevicesConfig): Promise<void> {
     if (device.other?.deviceType) {
       this.otherDeviceType = this.accessory.context.deviceType = device.other.deviceType;
       if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
@@ -211,7 +211,7 @@ export class Others {
     }
   }
 
-  config(device: irdevice & irDevicesConfig) {
+  async config(device: irdevice & irDevicesConfig): Promise<void> {
     let config = {};
     if (device.other) {
       config = device.other;
@@ -224,7 +224,7 @@ export class Others {
     }
   }
 
-  logs(device: irdevice & irDevicesConfig) {
+  async logs(device: irdevice & irDevicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
       this.debugLog(`Other: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
@@ -243,25 +243,25 @@ export class Others {
   /**
    * Logging for Device
    */
-  infoLog(...log: any[]) {
+  infoLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));
     }
   }
 
-  warnLog(...log: any[]) {
+  warnLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.warn(String(...log));
     }
   }
 
-  errorLog(...log: any[]) {
+  errorLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.error(String(...log));
     }
   }
 
-  debugLog(...log: any[]) {
+  debugLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       if (this.deviceLogging === 'debug') {
         this.platform.log.info('[DEBUG]', String(...log));

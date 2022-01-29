@@ -10,7 +10,7 @@ import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
  */
 export class WaterHeater {
   // Services
-  service!: Service;
+  valveService!: Service;
 
   // Characteristic Values
   Active!: CharacteristicValue;
@@ -38,7 +38,7 @@ export class WaterHeater {
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
-    (this.service = accessory.getService(this.platform.Service.Valve) || accessory.addService(this.platform.Service.Valve)),
+    (this.valveService = accessory.getService(this.platform.Service.Valve) || accessory.addService(this.platform.Service.Valve)),
     `${accessory.displayName} Water Heater`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
@@ -47,34 +47,34 @@ export class WaterHeater {
 
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    this.service.setCharacteristic(this.platform.Characteristic.Name, `${device.deviceName} ${device.remoteType}`);
+    this.valveService.setCharacteristic(this.platform.Characteristic.Name, `${device.deviceName} ${device.remoteType}`);
 
     // set sleep discovery characteristic
-    this.service.setCharacteristic(this.platform.Characteristic.ValveType, this.platform.Characteristic.ValveType.GENERIC_VALVE);
+    this.valveService.setCharacteristic(this.platform.Characteristic.ValveType, this.platform.Characteristic.ValveType.GENERIC_VALVE);
 
     // handle on / off events using the Active characteristic
-    this.service.getCharacteristic(this.platform.Characteristic.Active).onSet(this.ActiveSet.bind(this));
+    this.valveService.getCharacteristic(this.platform.Characteristic.Active).onSet(this.ActiveSet.bind(this));
   }
 
-  private ActiveSet(value: CharacteristicValue) {
+  async ActiveSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`Water Heater: ${this.accessory.displayName} Active: ${value}`);
     if (value === this.platform.Characteristic.Active.INACTIVE) {
-      this.pushWaterHeaterOffChanges();
-      this.service.setCharacteristic(this.platform.Characteristic.InUse, this.platform.Characteristic.InUse.NOT_IN_USE);
+      await this.pushWaterHeaterOffChanges();
+      this.valveService.setCharacteristic(this.platform.Characteristic.InUse, this.platform.Characteristic.InUse.NOT_IN_USE);
     } else {
-      this.pushWaterHeaterOnChanges();
-      this.service.setCharacteristic(this.platform.Characteristic.InUse, this.platform.Characteristic.InUse.IN_USE);
+      await this.pushWaterHeaterOnChanges();
+      this.valveService.setCharacteristic(this.platform.Characteristic.InUse, this.platform.Characteristic.InUse.IN_USE);
     }
     this.Active = value;
     this.ActiveCached = this.Active;
     this.accessory.context.Active = this.ActiveCached;
   }
 
-  private updateHomeKitCharacteristics() {
+  async updateHomeKitCharacteristics(): Promise<void> {
     if (this.Active === undefined) {
       this.debugLog(`Water Heater: ${this.accessory.displayName} Active: ${this.Active}`);
     } else {
-      this.service?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
+      this.valveService?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
       this.debugLog(`Water Heater: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
     }
   }
@@ -89,7 +89,7 @@ export class WaterHeater {
    * WaterHeater:        "command"       "channelAdd"      "default"	        =        next channel
    * WaterHeater:        "command"       "channelSub"      "default"	        =        previous channel
    */
-  async pushWaterHeaterOnChanges() {
+  async pushWaterHeaterOnChanges(): Promise<void> {
     if (this.Active !== 1) {
       const payload = {
         commandType: 'command',
@@ -100,7 +100,7 @@ export class WaterHeater {
     }
   }
 
-  async pushWaterHeaterOffChanges() {
+  async pushWaterHeaterOffChanges(): Promise<void> {
     if (this.Active !== 0) {
       const payload = {
         commandType: 'command',
@@ -111,7 +111,7 @@ export class WaterHeater {
     }
   }
 
-  public async pushChanges(payload: payload) {
+  async pushChanges(payload: payload): Promise<void> {
     try {
       this.infoLog(
         `Water Heater: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
@@ -137,7 +137,7 @@ export class WaterHeater {
     }
   }
 
-  private statusCode(push: AxiosResponse<{ statusCode: number }>) {
+  async statusCode(push: AxiosResponse<{ statusCode: number }>): Promise<void>{
     switch (push.data.statusCode) {
       case 151:
         this.errorLog(`Water Heater: ${this.accessory.displayName} Command not supported by this device type.`);
@@ -168,12 +168,12 @@ export class WaterHeater {
     }
   }
 
-  public apiError(e: any) {
-    this.service.updateCharacteristic(this.platform.Characteristic.Active, e);
+  async apiError(e: any): Promise<void> {
+    this.valveService.updateCharacteristic(this.platform.Characteristic.Active, e);
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
-  config(device: irdevice & irDevicesConfig) {
+  async config(device: irdevice & irDevicesConfig): Promise<void> {
     let config = {};
     if (device.irwh) {
       config = device.irwh;
@@ -186,7 +186,7 @@ export class WaterHeater {
     }
   }
 
-  logs(device: irdevice & irDevicesConfig) {
+  async logs(device: irdevice & irDevicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
       this.debugLog(`Water Heater: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
@@ -205,25 +205,25 @@ export class WaterHeater {
   /**
    * Logging for Device
    */
-  infoLog(...log: any[]) {
+  infoLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));
     }
   }
 
-  warnLog(...log: any[]) {
+  warnLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.warn(String(...log));
     }
   }
 
-  errorLog(...log: any[]) {
+  errorLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.error(String(...log));
     }
   }
 
-  debugLog(...log: any[]) {
+  debugLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       if (this.deviceLogging === 'debug') {
         this.platform.log.info('[DEBUG]', String(...log));

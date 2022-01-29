@@ -65,6 +65,14 @@ export class ColorBulb {
     } else {
       this.On = this.accessory.context.On;
     }
+    this.Hue = 0;
+    this.Brightness = 0;
+    this.Saturation = 0;
+    if (device.deviceType === 'Color Bulb') {
+      this.ColorTemperature = 140;
+    }
+    this.minKelvin = 2000;
+    this.maxKelvin = 9000;
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doColorBulbUpdate = new Subject();
     this.colorBulbUpdateInProgress = false;
@@ -82,13 +90,13 @@ export class ColorBulb {
     // get the Lightbulb service if it exists, otherwise create a new Lightbulb service
     // you can create multiple services for each accessory
     (this.lightBulbService = accessory.getService(this.platform.Service.Lightbulb) || accessory.addService(this.platform.Service.Lightbulb)),
-    `${accessory.displayName} ${this.device.deviceType}`;
+    `${accessory.displayName} ${device.deviceType}`;
 
     if (this.adaptiveLightingShift === -1 && this.accessory.context.adaptiveLighting) {
       this.accessory.removeService(this.lightBulbService);
       this.lightBulbService = this.accessory.addService(this.platform.Service.Lightbulb);
       this.accessory.context.adaptiveLighting = false;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} adaptiveLighting: ${this.accessory.context.adaptiveLighting}`);
+      this.debugLog(`${device.deviceType}: ${this.accessory.displayName} adaptiveLighting: ${this.accessory.context.adaptiveLighting}`);
     }
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
@@ -160,7 +168,7 @@ export class ColorBulb {
       })
       .onSet(this.SaturationSet.bind(this));
 
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
+    this.debugLog(`${device.deviceType}: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
     if (this.adaptiveLightingShift !== -1) {
       this.AdaptiveLightingController = new platform.api.hap.AdaptiveLightingController(this.lightBulbService, {
         customTemperatureAdjustment: this.adaptiveLightingShift,
@@ -168,7 +176,7 @@ export class ColorBulb {
       this.accessory.configureController(this.AdaptiveLightingController);
       this.accessory.context.adaptiveLighting = true;
       this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} adaptiveLighting: ${this.accessory.context.adaptiveLighting},` +
+        `${device.deviceType}: ${this.accessory.displayName} adaptiveLighting: ${this.accessory.context.adaptiveLighting},` +
           ` adaptiveLightingShift: ${this.adaptiveLightingShift}`,
       );
     }
@@ -196,14 +204,12 @@ export class ColorBulb {
         try {
           await this.pushChanges();
         } catch (e: any) {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges`);
+          this.errorLog(`${device.deviceType}: ${this.accessory.displayName} failed pushChanges`);
           if (this.deviceLogging === 'debug') {
-            this.errorLog(
-              `${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${JSON.stringify(e.message)}`,
-            );
+            this.errorLog(`${device.deviceType}: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${JSON.stringify(e.message)}`);
           }
           if (this.platform.debugMode) {
-            this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges,` + ` Error: ${JSON.stringify(e)}`);
+            this.errorLog(`${device.deviceType}: ${this.accessory.displayName} failed pushChanges,` + ` Error: ${JSON.stringify(e)}`);
           }
           this.apiError(e);
         }

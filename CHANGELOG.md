@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 1.11.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.11.1) (2022-01-29)
+
+## What's Changed
+* Fix: `This plugin generated a warning from the characteristic 'Brightness': characteristic value expected valid finite number and received "undefined" (undefined)`.
+* Fix: `This plugin generated a warning from the characteristic 'Color Temperature': characteristic value expected valid finite number and received "undefined" (undefined)`.
+* Fix: `This plugin generated a warning from the characteristic 'Hue': characteristic value expected valid finite number and received "undefined" (undefined)`.
+* Fix: `This plugin generated a warning from the characteristic 'Saturation': characteristic value expected valid finite number and received "undefined" (undefined)`.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.11.0...v1.11.1
+
 ## [Version 1.11.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.11.0) (2022-01-29)
 
 ## What's Changed

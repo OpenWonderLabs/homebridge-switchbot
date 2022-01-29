@@ -10,7 +10,7 @@ import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
  */
 export class Light {
   // Services
-  service!: Service;
+  lightBulbService!: Service;
 
   // Characteristic Values
   On!: CharacteristicValue;
@@ -38,7 +38,7 @@ export class Light {
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
-    (this.service = accessory.getService(this.platform.Service.Lightbulb) || accessory.addService(this.platform.Service.Lightbulb)),
+    (this.lightBulbService = accessory.getService(this.platform.Service.Lightbulb) || accessory.addService(this.platform.Service.Lightbulb)),
     `${accessory.displayName} Light Bulb`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
@@ -47,10 +47,10 @@ export class Light {
 
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+    this.lightBulbService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
 
     // handle on / off events using the On characteristic
-    this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
+    this.lightBulbService.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
 
     // handle Brightness events using the Brightness characteristic
     /* this.service
@@ -68,21 +68,21 @@ export class Light {
       });*/
   }
 
-  private OnSet(value: CharacteristicValue) {
+  async OnSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`Light: ${this.accessory.displayName} On: ${value}`);
     this.On = value;
     if (this.On) {
-      this.pushLightOnChanges();
+      await this.pushLightOnChanges();
     } else {
-      this.pushLightOffChanges();
+      await this.pushLightOffChanges();
     }
   }
 
-  private updateHomeKitCharacteristics() {
+  async updateHomeKitCharacteristics(): Promise<void> {
     if (this.On === undefined) {
       this.debugLog(`Light: ${this.accessory.displayName} On: ${this.On}`);
     } else {
-      this.service?.updateCharacteristic(this.platform.Characteristic.On, this.On);
+      this.lightBulbService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
       this.debugLog(`Light: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
   }
@@ -97,7 +97,7 @@ export class Light {
    * Light:        "command"       "channelAdd"      "default"	        =        next channel
    * Light:        "command"       "channelSub"      "default"	        =        previous channel
    */
-  async pushLightOnChanges() {
+  async pushLightOnChanges(): Promise<void> {
     if (this.On) {
       const payload = {
         commandType: 'command',
@@ -108,7 +108,7 @@ export class Light {
     }
   }
 
-  async pushLightOffChanges() {
+  async pushLightOffChanges(): Promise<void> {
     if (!this.On) {
       const payload = {
         commandType: 'command',
@@ -119,7 +119,7 @@ export class Light {
     }
   }
 
-  async pushLightBrightnessUpChanges() {
+  async pushLightBrightnessUpChanges(): Promise<void> {
     const payload = {
       commandType: 'command',
       parameter: 'default',
@@ -128,7 +128,7 @@ export class Light {
     await this.pushChanges(payload);
   }
 
-  async pushLightBrightnessDownChanges() {
+  async pushLightBrightnessDownChanges(): Promise<void> {
     const payload = {
       commandType: 'command',
       parameter: 'default',
@@ -137,7 +137,7 @@ export class Light {
     await this.pushChanges(payload);
   }
 
-  public async pushChanges(payload: payload) {
+  async pushChanges(payload: payload): Promise<void> {
     try {
       this.infoLog(
         `Light: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
@@ -165,7 +165,7 @@ export class Light {
     }
   }
 
-  private statusCode(push: AxiosResponse<{ statusCode: number }>) {
+  async statusCode(push: AxiosResponse<{ statusCode: number }>): Promise<void>{
     switch (push.data.statusCode) {
       case 151:
         this.errorLog(`Light: ${this.accessory.displayName} Command not supported by this device type.`);
@@ -196,12 +196,12 @@ export class Light {
     }
   }
 
-  public apiError(e: any) {
-    this.service.updateCharacteristic(this.platform.Characteristic.On, e);
+  async apiError(e: any): Promise<void> {
+    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.On, e);
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
-  config(device: irdevice & irDevicesConfig) {
+  async config(device: irdevice & irDevicesConfig): Promise<void> {
     let config = {};
     if (device.irlight) {
       config = device.irlight;
@@ -214,7 +214,7 @@ export class Light {
     }
   }
 
-  logs(device: irdevice & irDevicesConfig) {
+  async logs(device: irdevice & irDevicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
       this.debugLog(`Light: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
@@ -233,25 +233,25 @@ export class Light {
   /**
    * Logging for Device
    */
-  infoLog(...log: any[]) {
+  infoLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));
     }
   }
 
-  warnLog(...log: any[]) {
+  warnLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.warn(String(...log));
     }
   }
 
-  errorLog(...log: any[]) {
+  errorLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.error(String(...log));
     }
   }
 
-  debugLog(...log: any[]) {
+  debugLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       if (this.deviceLogging === 'debug') {
         this.platform.log.info('[DEBUG]', String(...log));

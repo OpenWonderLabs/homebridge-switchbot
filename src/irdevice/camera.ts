@@ -10,7 +10,7 @@ import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
  */
 export class Camera {
   // Services
-  service!: Service;
+  switchService!: Service;
 
   // Characteristic Values
   On!: CharacteristicValue;
@@ -38,7 +38,7 @@ export class Camera {
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
-    (this.service = accessory.getService(this.platform.Service.Switch) || accessory.addService(this.platform.Service.Switch)),
+    (this.switchService = accessory.getService(this.platform.Service.Switch) || accessory.addService(this.platform.Service.Switch)),
     `${accessory.displayName} Camera`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
@@ -47,13 +47,13 @@ export class Camera {
 
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+    this.switchService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
 
     // handle on / off events using the On characteristic
-    this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
+    this.switchService.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
   }
 
-  private OnSet(value: CharacteristicValue) {
+  async OnSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`Camera: ${this.accessory.displayName} On: ${value}`);
     this.On = value;
     if (this.On) {
@@ -63,11 +63,11 @@ export class Camera {
     }
   }
 
-  private updateHomeKitCharacteristics() {
+  async updateHomeKitCharacteristics(): Promise<void> {
     if (this.On === undefined) {
       this.debugLog(`Camera: ${this.accessory.displayName} On: ${this.On}`);
     } else {
-      this.service?.updateCharacteristic(this.platform.Characteristic.On, this.On);
+      this.switchService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
       this.debugLog(`Camera: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
   }
@@ -82,7 +82,7 @@ export class Camera {
    * Light:        "command"       "channelAdd"      "default"	        =        next channel
    * Light:        "command"       "channelSub"      "default"	        =        previous channel
    */
-  async pushOnChanges() {
+  async pushOnChanges(): Promise<void> {
     if (this.On) {
       const payload = {
         commandType: 'command',
@@ -93,7 +93,7 @@ export class Camera {
     }
   }
 
-  async pushOffChanges() {
+  async pushOffChanges(): Promise<void> {
     if (!this.On) {
       const payload = {
         commandType: 'command',
@@ -104,7 +104,7 @@ export class Camera {
     }
   }
 
-  public async pushChanges(payload: payload) {
+  async pushChanges(payload: payload): Promise<void> {
     try {
       this.infoLog(
         `Camera: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
@@ -132,7 +132,7 @@ export class Camera {
     }
   }
 
-  private statusCode(push: AxiosResponse<{ statusCode: number }>) {
+  async statusCode(push: AxiosResponse<{ statusCode: number }>): Promise<void> {
     switch (push.data.statusCode) {
       case 151:
         this.errorLog(`Camera: ${this.accessory.displayName} Command not supported by this device type.`);
@@ -163,12 +163,12 @@ export class Camera {
     }
   }
 
-  public apiError(e: any) {
-    this.service.updateCharacteristic(this.platform.Characteristic.On, e);
+  async apiError(e: any): Promise<void> {
+    this.switchService.updateCharacteristic(this.platform.Characteristic.On, e);
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
-  config(device: irdevice & irDevicesConfig) {
+  async config(device: irdevice & irDevicesConfig): Promise<void> {
     let config = {};
     if (device.ircam) {
       config = device.ircam;
@@ -181,7 +181,7 @@ export class Camera {
     }
   }
 
-  logs(device: irdevice & irDevicesConfig) {
+  async logs(device: irdevice & irDevicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
       this.debugLog(`Camera: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
@@ -200,25 +200,25 @@ export class Camera {
   /**
    * Logging for Device
    */
-  infoLog(...log: any[]) {
+  infoLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));
     }
   }
 
-  warnLog(...log: any[]) {
+  warnLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.warn(String(...log));
     }
   }
 
-  errorLog(...log: any[]) {
+  errorLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.error(String(...log));
     }
   }
 
-  debugLog(...log: any[]) {
+  debugLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       if (this.deviceLogging === 'debug') {
         this.platform.log.info('[DEBUG]', String(...log));
