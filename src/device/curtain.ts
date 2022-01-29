@@ -772,9 +772,9 @@ export class Curtain {
 
   async scan(device: device & devicesConfig): Promise<void> {
     if (device.scanDuration) {
-      if (this.deviceRefreshRate > device.scanDuration) {
-        this.scanDuration = this.deviceRefreshRate;
-        this.warnLog(`Curtain: ${this.accessory.displayName} scanDuration is less then refreshRate, overriding scanDuration with refreshRate`);
+      if (this.updateRate > device.scanDuration) {
+        this.scanDuration = this.updateRate;
+        this.warnLog(`Curtain: ${this.accessory.displayName} scanDuration is less then updateRate, overriding scanDuration with updateRate`);
       } else {
         this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
       }
@@ -782,9 +782,9 @@ export class Curtain {
         this.debugLog(`Curtain: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
       }
     } else {
-      if (this.deviceRefreshRate > 1) {
-        this.scanDuration = this.deviceRefreshRate;
-        this.warnLog(`Curtain: ${this.accessory.displayName} scanDuration is less then refreshRate, overriding scanDuration with refreshRate`);
+      if (this.updateRate > 1) {
+        this.scanDuration = this.updateRate;
+        this.warnLog(`Curtain: ${this.accessory.displayName} scanDuration is less then updateRate, overriding scanDuration with updateRate`);
       } else {
         this.scanDuration = this.accessory.context.scanDuration = 1;
       }

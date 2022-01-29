@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 1.11.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.11.2) (2022-01-29)
+
+## What's Changed
+* Fix: Use `updateRate` instead of `refreshRate` when overriding `scanDuration`.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.11.1...v1.11.2
+
 ## [Version 1.11.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.11.1) (2022-01-29)
 
 ## What's Changed
