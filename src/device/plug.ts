@@ -7,7 +7,7 @@ import { DeviceURL, device, devicesConfig, deviceStatusResponse, payload, device
 
 export class Plug {
   // Services
-  private service: Service;
+  outletService: Service;
 
   // Characteristic Values
   On!: CharacteristicValue;
@@ -54,7 +54,7 @@ export class Plug {
 
     // get the Outlet service if it exists, otherwise create a new Outlet service
     // you can create multiple services for each accessory
-    (this.service = accessory.getService(this.platform.Service.Outlet) || accessory.addService(this.platform.Service.Outlet)),
+    (this.outletService = accessory.getService(this.platform.Service.Outlet) || accessory.addService(this.platform.Service.Outlet)),
     `${device.deviceName} ${device.deviceType}`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
@@ -63,13 +63,13 @@ export class Plug {
 
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+    this.outletService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
 
     // each service must implement at-minimum the "required characteristics" for the given service type
     // see https://developers.homebridge.io/#/service/Outlet
 
     // create handlers for required characteristics
-    this.service.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
+    this.outletService.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
 
     // Update Homekit
     this.updateHomeKitCharacteristics();
@@ -77,8 +77,8 @@ export class Plug {
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
       .pipe(skipWhile(() => this.plugUpdateInProgress))
-      .subscribe(() => {
-        this.refreshStatus();
+      .subscribe(async () => {
+        await this.refreshStatus();
       });
 
     // Watch for Plug change events
@@ -107,7 +107,7 @@ export class Plug {
       });
   }
 
-  parseStatus() {
+  async parseStatus(): Promise<void> {
     switch (this.power) {
       case 'on':
         this.On = true;
@@ -118,7 +118,7 @@ export class Plug {
     this.debugLog(`Plug ${this.accessory.displayName} On: ${this.On}`);
   }
 
-  private async refreshStatus() {
+  async refreshStatus(): Promise<void> {
     try {
       this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
       this.debugLog(`Plug: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
@@ -148,7 +148,7 @@ export class Plug {
    * Plug Mini (US/JP)  -    "command"      turnOff     default     =        set to OFF state
    * Plug Mini (US/JP)  -    "command"      toggle      default     =        toggle state
    */
-  async pushChanges() {
+  async pushChanges(): Promise<void> {
     if (this.On !== this.OnCached) {
       const payload = {
         commandType: 'command',
@@ -176,26 +176,26 @@ export class Plug {
     interval(5000)
       .pipe(skipWhile(() => this.plugUpdateInProgress))
       .pipe(take(1))
-      .subscribe(() => {
-        this.refreshStatus();
+      .subscribe(async () => {
+        await this.refreshStatus();
       });
   }
 
-  updateHomeKitCharacteristics() {
+  async updateHomeKitCharacteristics(): Promise<void> {
     if (this.On === undefined) {
       this.debugLog(`Plug: ${this.accessory.displayName} On: ${this.On}`);
     } else {
-      this.service.updateCharacteristic(this.platform.Characteristic.On, this.On);
+      this.outletService.updateCharacteristic(this.platform.Characteristic.On, this.On);
       this.debugLog(`Plug: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
   }
 
-  public apiError(e: any) {
-    this.service.updateCharacteristic(this.platform.Characteristic.On, e);
+  async apiError(e: any): Promise<void> {
+    this.outletService.updateCharacteristic(this.platform.Characteristic.On, e);
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
-  private statusCode(push: AxiosResponse<{ statusCode: number }>) {
+  async statusCode(push: AxiosResponse<{ statusCode: number }>): Promise<void> {
     switch (push.data.statusCode) {
       case 151:
         this.errorLog(`Plug: ${this.accessory.displayName} Command not supported by this device type.`);
@@ -231,7 +231,7 @@ export class Plug {
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
       this.On = false;
-      this.service.getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);
+      this.outletService.getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);
     }
   }
 
@@ -248,11 +248,11 @@ export class Plug {
   model(device: device & devicesConfig): string {
     let model: string;
     if (device.deviceType === 'Plug Mini (US)') {
-      model = 'SWITCHBOT-PLUG-W1901400';
+      model = 'W1901400';
     } else if (device.deviceType === 'Plug Mini (JP)') {
-      model = 'SWITCHBOT-PLUG-W2001400';
+      model = 'W2001400';
     } else {
-      model = 'SWITCHBOT-PLUG-SP11';
+      model = 'SP11';
     }
     return model;
   }

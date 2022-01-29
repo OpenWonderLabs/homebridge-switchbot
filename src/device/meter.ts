@@ -11,9 +11,9 @@ import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceSta
  */
 export class Meter {
   // Services
-  private batteryService?: Service;
-  private temperatureservice?: Service;
-  private humidityservice?: Service;
+  batteryService?: Service;
+  temperatureservice?: Service;
+  humidityservice?: Service;
 
   // Characteristic Values
   CurrentRelativeHumidity!: CharacteristicValue;
@@ -157,15 +157,15 @@ export class Meter {
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
       .pipe(skipWhile(() => this.meterUpdateInProgress))
-      .subscribe(() => {
-        this.refreshStatus();
+      .subscribe(async () => {
+        await this.refreshStatus();
       });
   }
 
   /**
    * Parse the device status from the SwitchBot api
    */
-  async parseStatus() {
+  async parseStatus(): Promise<void> {
     if (this.SwitchToOpenAPI || !this.device.ble) {
       await this.openAPIparseStatus();
     } else {
@@ -173,7 +173,7 @@ export class Meter {
     }
   }
 
-  private async BLEparseStatus() {
+  async BLEparseStatus(): Promise<void> {
     this.debugLog(`Meter: ${this.accessory.displayName} BLE parseStatus`);
 
     // Battery
@@ -199,7 +199,7 @@ export class Meter {
     }
   }
 
-  private async openAPIparseStatus() {
+  async openAPIparseStatus(): Promise<void> {
     if (this.device.ble) {
       this.SwitchToOpenAPI = false;
     }
@@ -222,7 +222,7 @@ export class Meter {
   /**
    * Asks the SwitchBot API for the latest device information
    */
-  async refreshStatus() {
+  async refreshStatus(): Promise<void> {
     if (this.device.ble) {
       this.BLErefreshStatus();
     } else {
@@ -230,7 +230,7 @@ export class Meter {
     }
   }
 
-  private async BLErefreshStatus() {
+  async BLErefreshStatus(): Promise<void> {
     this.debugLog(`Meter: ${this.accessory.displayName} BLE RefreshStatus`);
     const switchbot = await this.platform.connectBLE();
     // Convert to BLE Address
@@ -303,7 +303,7 @@ export class Meter {
     }
   }
 
-  private async BLEconnection(switchbot: any) {
+  async BLEconnection(switchbot: any): Promise<void> {
     this.errorLog(`Meter: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
     if (this.platform.config.credentials?.openToken) {
       this.warnLog(`Meter: ${this.accessory.displayName} Using OpenAPI Connection`);
@@ -312,7 +312,7 @@ export class Meter {
     }
   }
 
-  private async openAPIRefreshStatus() {
+  async openAPIRefreshStatus(): Promise<void> {
     if (this.platform.config.credentials?.openToken) {
       this.debugLog(`Meter: ${this.accessory.displayName} OpenAPI RefreshStatus`);
       try {
@@ -340,7 +340,7 @@ export class Meter {
   /**
    * Updates the status for each of the HomeKit Characteristics
    */
-  updateHomeKitCharacteristics() {
+  async updateHomeKitCharacteristics(): Promise<void> {
     if (!this.device.meter?.hide_humidity) {
       if (this.CurrentRelativeHumidity === undefined) {
         this.debugLog(`Meter: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
@@ -373,7 +373,7 @@ export class Meter {
     }
   }
 
-  public apiError(e: any) {
+  async apiError(e: any): Promise<void> {
     if (!this.device.meter?.hide_humidity) {
       this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, e);
     }
@@ -390,16 +390,16 @@ export class Meter {
   model(device: device & devicesConfig): CharacteristicValue {
     let model: string;
     if (device.deviceType === 'Meter Plus (US)') {
-      model = 'SWITCHBOT-METERTH-W2301500';
+      model = 'W2301500';
     } else if (device.deviceType === 'Meter Plus (JP)') {
-      model = 'SWITCHBOT-METERTH-W2201500';
+      model = 'W2201500';
     } else {
-      model = 'SWITCHBOT-METERTH-S1';
+      model = 'S1';
     }
     return model;
   }
 
-  config(device: device & devicesConfig) {
+  async config(device: device & devicesConfig): Promise<void> {
     let config = {};
     if (device.meter) {
       config = device.meter;
@@ -421,7 +421,7 @@ export class Meter {
     }
   }
 
-  refreshRate(device: device & devicesConfig) {
+  async refreshRate(device: device & devicesConfig): Promise<void> {
     if (device.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
       this.debugLog(`Meter: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
@@ -431,7 +431,7 @@ export class Meter {
     }
   }
 
-  scan(device: device & devicesConfig) {
+  async scan(device: device & devicesConfig): Promise<void> {
     if (device.scanDuration) {
       this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
       if (device.ble) {
@@ -445,7 +445,7 @@ export class Meter {
     }
   }
 
-  logs(device: device & devicesConfig) {
+  async logs(device: device & devicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
       this.debugLog(`Meter: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
@@ -464,25 +464,25 @@ export class Meter {
   /**
    * Logging for Device
    */
-  infoLog(...log: any[]) {
+  infoLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));
     }
   }
 
-  warnLog(...log: any[]) {
+  warnLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.warn(String(...log));
     }
   }
 
-  errorLog(...log: any[]) {
+  errorLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.error(String(...log));
     }
   }
 
-  debugLog(...log: any[]) {
+  debugLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       if (this.deviceLogging === 'debug') {
         this.platform.log.info('[DEBUG]', String(...log));

@@ -7,9 +7,9 @@ import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusR
 
 export class Curtain {
   // Services
-  private service: Service;
-  private lightSensorService?: Service;
-  private batteryService?: Service;
+  windowCoveringService: Service;
+  lightSensorService?: Service;
+  batteryService?: Service;
 
   // Characteristic Values
   CurrentPosition!: CharacteristicValue;
@@ -56,8 +56,8 @@ export class Curtain {
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
     this.logs(device);
-    this.scan(device);
     this.refreshRate(device);
+    this.scan(device);
     this.config(device);
     this.CurrentPosition = 0;
     this.TargetPosition = 0;
@@ -75,12 +75,13 @@ export class Curtain {
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-CURTAIN-W0701600')
+      .setCharacteristic(this.platform.Characteristic.Model, 'W0701600')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId);
 
     // get the WindowCovering service if it exists, otherwise create a new WindowCovering service
     // you can create multiple services for each accessory
-    (this.service = accessory.getService(this.platform.Service.WindowCovering) || accessory.addService(this.platform.Service.WindowCovering)),
+    (this.windowCoveringService =
+      accessory.getService(this.platform.Service.WindowCovering) || accessory.addService(this.platform.Service.WindowCovering)),
     `${device.deviceName} ${device.deviceType}`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
@@ -89,15 +90,15 @@ export class Curtain {
 
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+    this.windowCoveringService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
 
     // each service must implement at-minimum the "required characteristics" for the given service type
     // see https://developers.homebridge.io/#/service/WindowCovering
 
     // create handlers for required characteristics
-    this.service.setCharacteristic(this.platform.Characteristic.PositionState, this.PositionState);
+    this.windowCoveringService.setCharacteristic(this.platform.Characteristic.PositionState, this.PositionState);
 
-    this.service
+    this.windowCoveringService
       .getCharacteristic(this.platform.Characteristic.CurrentPosition)
       .setProps({
         minStep: this.minStep(device),
@@ -109,7 +110,7 @@ export class Curtain {
         return this.CurrentPosition;
       });
 
-    this.service
+    this.windowCoveringService
       .getCharacteristic(this.platform.Characteristic.TargetPosition)
       .setProps({
         minStep: this.minStep(device),
@@ -154,19 +155,19 @@ export class Curtain {
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
       .pipe(skipWhile(() => this.curtainUpdateInProgress))
-      .subscribe(() => {
-        this.refreshStatus();
+      .subscribe(async () => {
+        await this.refreshStatus();
       });
 
     // update slide progress
     interval(this.updateRate * 1000)
       .pipe(skipWhile(() => this.curtainUpdateInProgress))
-      .subscribe(() => {
+      .subscribe(async () => {
         if (this.PositionState === this.platform.Characteristic.PositionState.STOPPED) {
           return;
         }
         this.debugLog(`Curtain: ${accessory.displayName} Refresh Status When Moving, PositionState: ${this.PositionState}`);
-        this.refreshStatus();
+        await this.refreshStatus();
       });
 
     // Watch for Curtain change events
@@ -198,7 +199,7 @@ export class Curtain {
   /**
    * Parse the device status from the SwitchBot api
    */
-  async parseStatus() {
+  async parseStatus(): Promise<void> {
     if (this.SwitchToOpenAPI || !this.device.ble) {
       await this.openAPIparseStatus();
     } else {
@@ -206,18 +207,18 @@ export class Curtain {
     }
   }
 
-  private async BLEparseStatus() {
+  async BLEparseStatus(): Promise<void> {
     this.debugLog(`Curtain: ${this.accessory.displayName} BLE parseStatus`);
     // CurrentPosition
     this.CurrentPosition = 100 - Number(this.position);
-    this.setMinMax();
+    await this.setMinMax();
     this.debugLog(`Curtain: ${this.accessory.displayName} CurrentPosition ${this.CurrentPosition}`);
     if (this.setNewTarget) {
       this.infoLog(`Curtain: ${this.accessory.displayName} Checking Status ...`);
     }
 
     if (this.setNewTarget) {
-      this.setMinMax();
+      await this.setMinMax();
       if (this.TargetPosition > this.CurrentPosition) {
         this.debugLog(`Curtain: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition}`);
         this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
@@ -304,7 +305,7 @@ export class Curtain {
     this.debugLog(`Curtain: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
   }
 
-  private async openAPIparseStatus() {
+  async openAPIparseStatus(): Promise<void> {
     if (this.device.ble) {
       this.SwitchToOpenAPI = false;
     }
@@ -312,14 +313,14 @@ export class Curtain {
       this.debugLog(`Curtain: ${this.accessory.displayName} OpenAPI parseStatus`);
       // CurrentPosition
       this.CurrentPosition = 100 - Number(this.slidePosition);
-      this.setMinMax();
+      await this.setMinMax();
       this.debugLog(`Curtain ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition}`);
       if (this.setNewTarget) {
         this.infoLog(`Curtain: ${this.accessory.displayName} Checking Status ...`);
       }
 
       if (this.setNewTarget && this.moving) {
-        this.setMinMax();
+        await this.setMinMax();
         if (this.TargetPosition > this.CurrentPosition) {
           this.debugLog(`Curtain: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition} `);
           this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
@@ -358,7 +359,7 @@ export class Curtain {
     }
   }
 
-  async refreshStatus() {
+  async refreshStatus(): Promise<void> {
     if (this.device.ble) {
       await this.BLERefreshStatus();
     } else {
@@ -366,7 +367,7 @@ export class Curtain {
     }
   }
 
-  private async BLERefreshStatus() {
+  async BLERefreshStatus(): Promise<void> {
     this.debugLog(`Curtain: ${this.accessory.displayName} BLE refreshStatus`);
     const switchbot = await this.platform.connectBLE();
     // Convert to BLE Address
@@ -444,7 +445,7 @@ export class Curtain {
     }
   }
 
-  public async BLEconnection(switchbot: any) {
+  async BLEconnection(switchbot: any): Promise<void> {
     this.errorLog(`Curtain: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
     if (this.platform.config.credentials?.openToken) {
       this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
@@ -453,7 +454,7 @@ export class Curtain {
     }
   }
 
-  private async openAPIRefreshStatus() {
+  async openAPIRefreshStatus(): Promise<void> {
     if (this.platform.config.credentials?.openToken) {
       this.debugLog(`Curtain: ${this.accessory.displayName} OpenAPI refreshStatus`);
       try {
@@ -479,7 +480,7 @@ export class Curtain {
     }
   }
 
-  async pushChanges() {
+  async pushChanges(): Promise<void> {
     if (this.device.ble) {
       await this.BLEpushChanges();
     } else {
@@ -488,12 +489,12 @@ export class Curtain {
     interval(5000)
       .pipe(skipWhile(() => this.curtainUpdateInProgress))
       .pipe(take(1))
-      .subscribe(() => {
-        this.refreshStatus();
+      .subscribe(async () => {
+        await this.refreshStatus();
       });
   }
 
-  private async BLEpushChanges() {
+  async BLEpushChanges(): Promise<void> {
     if (this.TargetPosition !== this.CurrentPosition) {
       this.debugLog(`Curtain: ${this.accessory.displayName} BLE pushChanges`);
       const switchbot = await this.platform.connectBLE();
@@ -544,7 +545,7 @@ export class Curtain {
     }
   }
 
-  private async openAPIpushChanges() {
+  async openAPIpushChanges(): Promise<void> {
     if (this.platform.config.credentials?.openToken) {
       try {
         this.debugLog(`Curtain: ${this.accessory.displayName} OpenAPI pushChanges`);
@@ -587,12 +588,12 @@ export class Curtain {
     }
   }
 
-  updateHomeKitCharacteristics() {
-    this.setMinMax();
+  async updateHomeKitCharacteristics(): Promise<void> {
+    await this.setMinMax();
     if (this.CurrentPosition === undefined || Number.isNaN(this.CurrentPosition)) {
       this.debugLog(`Curtain: ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition}`);
     } else {
-      this.service.updateCharacteristic(this.platform.Characteristic.CurrentPosition, Number(this.CurrentPosition));
+      this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.CurrentPosition, Number(this.CurrentPosition));
       this.debugLog(`Curtain: ${this.accessory.displayName} updateCharacteristic CurrentPosition: ${this.CurrentPosition}`);
     }
     if (this.PositionState === undefined) {
@@ -603,7 +604,7 @@ export class Curtain {
     if (this.TargetPosition === undefined || Number.isNaN(this.TargetPosition)) {
       this.debugLog(`Curtain: ${this.accessory.displayName} TargetPosition: ${this.TargetPosition}`);
     } else {
-      this.service.updateCharacteristic(this.platform.Characteristic.TargetPosition, Number(this.TargetPosition));
+      this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.TargetPosition, Number(this.TargetPosition));
       this.debugLog(`Curtain: ${this.accessory.displayName} updateCharacteristic TargetPosition: ${this.TargetPosition}`);
     }
     if (!this.device.curtain?.hide_lightsensor) {
@@ -630,10 +631,10 @@ export class Curtain {
     }
   }
 
-  public apiError(e: any) {
-    this.service.updateCharacteristic(this.platform.Characteristic.CurrentPosition, e);
-    this.service.updateCharacteristic(this.platform.Characteristic.PositionState, e);
-    this.service.updateCharacteristic(this.platform.Characteristic.TargetPosition, e);
+  async apiError(e: any): Promise<void> {
+    this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.CurrentPosition, e);
+    this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.PositionState, e);
+    this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.TargetPosition, e);
     if (!this.device.curtain?.hide_lightsensor) {
       this.lightSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, e);
     }
@@ -644,7 +645,7 @@ export class Curtain {
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
-  private statusCode(push: AxiosResponse<{ statusCode: number }>) {
+  async statusCode(push: AxiosResponse<{ statusCode: number }>): Promise<void> {
     switch (push.data.statusCode) {
       case 151:
         this.errorLog(`Curtain: ${this.accessory.displayName} Command not supported by this device type.`);
@@ -678,12 +679,12 @@ export class Curtain {
   /**
    * Handle requests to set the value of the "Target Position" characteristic
    */
-  TargetPositionSet(value: CharacteristicValue) {
+  async TargetPositionSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`Curtain: ${this.accessory.displayName} TargetPosition: ${value}`);
 
     this.TargetPosition = value;
 
-    this.setMinMax();
+    await this.setMinMax();
     if (value > this.CurrentPosition) {
       this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
       this.setNewTarget = true;
@@ -697,8 +698,8 @@ export class Curtain {
       this.setNewTarget = false;
       this.debugLog(`Curtain: ${this.accessory.displayName} value: ${value}, CurrentPosition: ${this.CurrentPosition}`);
     }
-    this.service.setCharacteristic(this.platform.Characteristic.PositionState, this.PositionState);
-    this.service.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
+    this.windowCoveringService.setCharacteristic(this.platform.Characteristic.PositionState, this.PositionState);
+    this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
 
     /**
      * If Curtain movement time is short, the moving flag from backend is always false.
@@ -715,7 +716,7 @@ export class Curtain {
     this.doCurtainUpdate.next();
   }
 
-  public setMinMax() {
+  async setMinMax(): Promise<void> {
     if (this.device.curtain?.set_min) {
       if (this.CurrentPosition <= this.device.curtain?.set_min) {
         this.CurrentPosition = 0;
@@ -728,7 +729,7 @@ export class Curtain {
     }
   }
 
-  config(device: device & devicesConfig) {
+  async config(device: device & devicesConfig): Promise<void> {
     let config = {};
     if (device.curtain) {
       config = device.curtain;
@@ -750,7 +751,7 @@ export class Curtain {
     }
   }
 
-  refreshRate(device: device & devicesConfig) {
+  async refreshRate(device: device & devicesConfig): Promise<void> {
     // refreshRate
     if (device.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
@@ -769,21 +770,31 @@ export class Curtain {
     }
   }
 
-  scan(device: device & devicesConfig) {
+  async scan(device: device & devicesConfig): Promise<void> {
     if (device.scanDuration) {
-      this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
+      if (this.deviceRefreshRate > device.scanDuration) {
+        this.scanDuration = this.deviceRefreshRate;
+        this.warnLog(`Curtain: ${this.accessory.displayName} scanDuration is less then refreshRate, overriding scanDuration with refreshRate`);
+      } else {
+        this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
+      }
       if (device.ble) {
         this.debugLog(`Curtain: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
       }
     } else {
-      this.scanDuration = this.accessory.context.scanDuration = 1;
+      if (this.deviceRefreshRate > 1) {
+        this.scanDuration = this.deviceRefreshRate;
+        this.warnLog(`Curtain: ${this.accessory.displayName} scanDuration is less then refreshRate, overriding scanDuration with refreshRate`);
+      } else {
+        this.scanDuration = this.accessory.context.scanDuration = 1;
+      }
       if (this.device.ble) {
         this.debugLog(`Curtain: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
       }
     }
   }
 
-  logs(device: device & devicesConfig) {
+  async logs(device: device & devicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
       this.debugLog(`Curtain: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
@@ -799,7 +810,7 @@ export class Curtain {
     }
   }
 
-  private minStep(device: device & devicesConfig): number {
+  minStep(device: device & devicesConfig): number {
     if (device.curtain?.set_minStep) {
       this.set_minStep = device.curtain?.set_minStep;
     } else {
@@ -808,7 +819,7 @@ export class Curtain {
     return this.set_minStep;
   }
 
-  private minLux(): number {
+  minLux(): number {
     if (this.device.curtain?.set_minLux) {
       this.set_minLux = this.device.curtain?.set_minLux;
     } else {
@@ -817,7 +828,7 @@ export class Curtain {
     return this.set_minLux;
   }
 
-  private maxLux(): number {
+  maxLux(): number {
     if (this.device.curtain?.set_maxLux) {
       this.set_maxLux = this.device.curtain?.set_maxLux;
     } else {
@@ -829,25 +840,25 @@ export class Curtain {
   /**
    * Logging for Device
    */
-  infoLog(...log: any[]) {
+  infoLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));
     }
   }
 
-  warnLog(...log: any[]) {
+  warnLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.warn(String(...log));
     }
   }
 
-  errorLog(...log: any[]) {
+  errorLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.error(String(...log));
     }
   }
 
-  debugLog(...log: any[]) {
+  debugLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       if (this.deviceLogging === 'debug') {
         this.platform.log.info('[DEBUG]', String(...log));

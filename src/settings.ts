@@ -51,7 +51,7 @@ export interface devicesConfig extends device {
   motion?: motion;
   colorbulb?: colorbulb;
   plug?: Record<any, any>;
-  lock?: Record<any, any>;
+  lock?: lock;
   ble?: boolean;
   scanDuration?: number;
   hide_device?: boolean;
@@ -102,6 +102,10 @@ export type motion = {
 export type colorbulb = {
   set_minStep?: number;
   adaptiveLightingShift?: number;
+};
+
+export type lock = {
+  hide_contactsensor?: boolean;
 };
 
 export interface irDevicesConfig extends irdevice {

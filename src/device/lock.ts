@@ -7,8 +7,8 @@ import { DeviceURL, device, devicesConfig, deviceStatusResponse, payload, device
 
 export class Lock {
   // Services
-  private lockService: Service;
-  private doorService?: Service;
+  lockService: Service;
+  contactSensorService?: Service;
 
   // Characteristic Values
   LockCurrentState!: CharacteristicValue;
@@ -52,7 +52,7 @@ export class Lock {
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-LOCK-W1601700')
+      .setCharacteristic(this.platform.Characteristic.Model, 'W1601700')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
     // get the LockMechanism service if it exists, otherwise create a new LockMechanism service
@@ -80,8 +80,8 @@ export class Lock {
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
       .pipe(skipWhile(() => this.lockUpdateInProgress))
-      .subscribe(() => {
-        this.refreshStatus();
+      .subscribe(async () => {
+        await this.refreshStatus();
       });
 
     // Watch for Lock change events
@@ -110,7 +110,7 @@ export class Lock {
       });
   }
 
-  parseStatus() {
+  async parseStatus(): Promise<void> {
     switch (this.lockState) {
       case 'on':
         this.LockCurrentState = this.platform.Characteristic.LockCurrentState.UNSECURED;
@@ -121,7 +121,7 @@ export class Lock {
     this.debugLog(`Lock: ${this.accessory.displayName} On: ${this.LockTargetState}`);
   }
 
-  private async refreshStatus() {
+  async refreshStatus(): Promise<void> {
     try {
       this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
       this.debugLog(`Lock: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
@@ -151,7 +151,7 @@ export class Lock {
    * Lock   -    "command"     "????"   "????"	  =        set to ???? state
    * Lock   -    "command"     "????"    "????"	  =        set to ???? state - LockCurrentState
    */
-  async pushChanges() {
+  async pushChanges(): Promise<void> {
     if (this.LockTargetState !== this.LockTargetStateCached) {
       const payload = {
         commandType: 'command',
@@ -179,12 +179,12 @@ export class Lock {
     interval(5000)
       .pipe(skipWhile(() => this.lockUpdateInProgress))
       .pipe(take(1))
-      .subscribe(() => {
-        this.refreshStatus();
+      .subscribe(async () => {
+        await this.refreshStatus();
       });
   }
 
-  updateHomeKitCharacteristics() {
+  async updateHomeKitCharacteristics(): Promise<void> {
     if (this.LockTargetState === undefined) {
       this.debugLog(`Lock: ${this.accessory.displayName} LockTargetState: ${this.LockTargetState}`);
     } else {
@@ -199,13 +199,13 @@ export class Lock {
     }
   }
 
-  public apiError(e: any) {
+  async apiError(e: any): Promise<void> {
     this.lockService.updateCharacteristic(this.platform.Characteristic.LockTargetState, e);
     this.lockService.updateCharacteristic(this.platform.Characteristic.LockCurrentState, e);
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
-  private statusCode(push: AxiosResponse<{ statusCode: number }>) {
+  async statusCode(push: AxiosResponse<{ statusCode: number }>): Promise<void> {
     switch (push.data.statusCode) {
       case 151:
         this.errorLog(`Lock: ${this.accessory.displayName} Command not supported by this device type.`);
@@ -239,14 +239,14 @@ export class Lock {
   /**
    * Handle requests to set the value of the "On" characteristic
    */
-  LockTargetStateSet(value: CharacteristicValue) {
+  async LockTargetStateSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`Lock: ${this.accessory.displayName} Set LockTargetState: ${value}`);
 
     this.LockTargetState = value;
     this.doLockUpdate.next();
   }
 
-  config(device: device & devicesConfig) {
+  async config(device: device & devicesConfig): Promise<void> {
     let config = {};
     if (device.lock) {
       config = device.lock;
@@ -268,7 +268,7 @@ export class Lock {
     }
   }
 
-  refreshRate(device: device & devicesConfig) {
+  async refreshRate(device: device & devicesConfig): Promise<void> {
     if (device.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
       this.debugLog(`Lock: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
@@ -278,7 +278,7 @@ export class Lock {
     }
   }
 
-  scan(device: device & devicesConfig) {
+  async scan(device: device & devicesConfig): Promise<void> {
     if (device.scanDuration) {
       this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
       if (device.ble) {
@@ -292,7 +292,7 @@ export class Lock {
     }
   }
 
-  logs(device: device & devicesConfig) {
+  async logs(device: device & devicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
       this.debugLog(`Lock: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
@@ -311,25 +311,25 @@ export class Lock {
   /**
    * Logging for Device
    */
-  infoLog(...log: any[]) {
+  infoLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));
     }
   }
 
-  warnLog(...log: any[]) {
+  warnLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.warn(String(...log));
     }
   }
 
-  errorLog(...log: any[]) {
+  errorLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.error(String(...log));
     }
   }
 
-  debugLog(...log: any[]) {
+  debugLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       if (this.deviceLogging === 'debug') {
         this.platform.log.info('[DEBUG]', String(...log));

@@ -12,17 +12,17 @@ import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceSta
  */
 export class Bot {
   // Services
-  private fanService?: Service;
-  private doorService?: Service;
-  private lockService?: Service;
-  private faucetService?: Service;
-  private windowService?: Service;
-  private switchService?: Service;
-  private outletService?: Service;
-  private batteryService?: Service;
-  private garageDoorService?: Service;
-  private windowCoveringService?: Service;
-  private statefulProgrammableSwitchService?: Service;
+  fanService?: Service;
+  doorService?: Service;
+  lockService?: Service;
+  faucetService?: Service;
+  windowService?: Service;
+  switchService?: Service;
+  outletService?: Service;
+  batteryService?: Service;
+  garageDoorService?: Service;
+  windowCoveringService?: Service;
+  statefulProgrammableSwitchService?: Service;
 
   // Characteristic Values
   On!: CharacteristicValue;
@@ -333,8 +333,8 @@ export class Bot {
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
       .pipe(skipWhile(() => this.botUpdateInProgress))
-      .subscribe(() => {
-        this.refreshStatus();
+      .subscribe(async () => {
+        await this.refreshStatus();
       });
 
     // Watch for Bot change events
@@ -369,7 +369,7 @@ export class Bot {
   /**
    * Parse the device status from the SwitchBot api
    */
-  async parseStatus() {
+  async parseStatus(): Promise<void> {
     if (this.SwitchToOpenAPI || !this.device.ble) {
       await this.openAPIparseStatus();
     } else {
@@ -377,7 +377,7 @@ export class Bot {
     }
   }
 
-  private async BLEparseStatus() {
+  async BLEparseStatus(): Promise<void> {
     this.debugLog(`Bot: ${this.accessory.displayName} BLE parseStatus`);
     // BLEmode (true if Switch Mode) | (false if Press Mode)
     if (this.mode) {
@@ -406,7 +406,7 @@ export class Bot {
     this.debugLog(`Bot: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
   }
 
-  private async openAPIparseStatus() {
+  async openAPIparseStatus(): Promise<void> {
     if (this.device.ble) {
       this.SwitchToOpenAPI = false;
     }
@@ -439,7 +439,7 @@ export class Bot {
   /**
    * Asks the SwitchBot API for the latest device information
    */
-  async refreshStatus() {
+  async refreshStatus(): Promise<void> {
     if (this.device.ble) {
       await this.BLERefreshStatus();
     } else {
@@ -447,7 +447,7 @@ export class Bot {
     }
   }
 
-  private async BLERefreshStatus() {
+  async BLERefreshStatus(): Promise<void> {
     this.debugLog(`Bot: ${this.accessory.displayName} BLE refreshStatus`);
     const switchbot = await this.platform.connectBLE();
     // Convert to BLE Address
@@ -523,7 +523,7 @@ export class Bot {
       });
   }
 
-  private async openAPIRefreshStatus() {
+  async openAPIRefreshStatus(): Promise<void> {
     if (this.platform.config.credentials?.openToken) {
       this.debugLog(`Bot: ${this.accessory.displayName} OpenAPI refreshStatus`);
       try {
@@ -554,7 +554,7 @@ export class Bot {
    * Bot   -    "command"     "turnOn"    "default"	  =        set to ON state
    * Bot   -    "command"     "press"     "default"	  =        trigger press
    */
-  async pushChanges() {
+  async pushChanges(): Promise<void> {
     if (this.device.ble) {
       await this.BLEpushChanges();
     } else {
@@ -563,12 +563,12 @@ export class Bot {
     interval(5000)
       .pipe(skipWhile(() => this.botUpdateInProgress))
       .pipe(take(1))
-      .subscribe(() => {
-        this.refreshStatus();
+      .subscribe(async () => {
+        await this.refreshStatus();
       });
   }
 
-  private async BLEpushChanges() {
+  async BLEpushChanges(): Promise<void> {
     this.debugLog(`Bot: ${this.accessory.displayName} BLE pushChanges On: ${this.On} OnCached: ${this.OnCached}`);
     if (this.On !== this.OnCached || this.allowPush) {
       this.debugLog(`Bot: ${this.accessory.displayName} BLE pushChanges`);
@@ -662,7 +662,7 @@ export class Bot {
     this.accessory.context.On = this.OnCached;
   }
 
-  private turnOnOff(device_list: any) {
+  async turnOnOff(device_list: any): Promise<any> {
     if (this.On) {
       return device_list[0].turnOn({ id: this.device.bleMac });
     } else {
@@ -670,7 +670,7 @@ export class Bot {
     }
   }
 
-  private async openAPIpushChanges() {
+  async openAPIpushChanges(): Promise<void> {
     if (this.platform.config.credentials?.openToken) {
       try {
         if (this.On !== this.OnCached || this.allowPush) {
@@ -726,7 +726,7 @@ export class Bot {
   /**
    * Updates the status for each of the HomeKit Characteristics
    */
-  updateHomeKitCharacteristics() {
+  async updateHomeKitCharacteristics(): Promise<void> {
     if (this.device.bot?.deviceType === 'garagedoor') {
       if (this.On === undefined) {
         this.debugLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
@@ -913,7 +913,7 @@ export class Bot {
     }
   }
 
-  public apiError(e: any) {
+  async apiError(e: any): Promise<void> {
     if (this.device.bot?.deviceType === 'garagedoor') {
       this.garageDoorService?.updateCharacteristic(this.platform.Characteristic.TargetDoorState, e);
       this.garageDoorService?.updateCharacteristic(this.platform.Characteristic.CurrentDoorState, e);
@@ -952,7 +952,7 @@ export class Bot {
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
-  private statusCode(push: AxiosResponse<{ statusCode: number }>) {
+  async statusCode(push: AxiosResponse<{ statusCode: number }>): Promise<void> {
     switch (push.data.statusCode) {
       case 151:
         this.errorLog(`Bot: ${this.accessory.displayName} Command not supported by this device type.`);
@@ -985,7 +985,7 @@ export class Bot {
     }
   }
 
-  offlineOff() {
+  async offlineOff(): Promise<void> {
     if (this.device.offline) {
       this.On = false;
       if (this.device.bot?.deviceType === 'switch') {
@@ -999,7 +999,7 @@ export class Bot {
   /**
    * Handle requests to set the "On" characteristic
    */
-  handleOnSet(value: CharacteristicValue) {
+  async handleOnSet(value: CharacteristicValue): Promise<void> {
     if (this.device.bot?.deviceType === 'garagedoor') {
       this.debugLog(`Bot: ${this.accessory.displayName} TargetDoorState: ${value}`);
       if (value === this.platform.Characteristic.TargetDoorState.CLOSED) {
@@ -1046,7 +1046,7 @@ export class Bot {
     this.doBotUpdate.next();
   }
 
-  config(device: device & devicesConfig) {
+  async config(device: device & devicesConfig): Promise<void> {
     let config = {};
     if (device.bot) {
       config = device.bot;
@@ -1071,7 +1071,7 @@ export class Bot {
     }
   }
 
-  refreshRate(device: device & devicesConfig) {
+  async refreshRate(device: device & devicesConfig): Promise<void> {
     if (device.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
       this.debugLog(`Bot: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
@@ -1081,7 +1081,7 @@ export class Bot {
     }
   }
 
-  scan(device: device & devicesConfig) {
+  async scan(device: device & devicesConfig): Promise<void> {
     if (device.scanDuration) {
       this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
       if (device.ble) {
@@ -1095,7 +1095,7 @@ export class Bot {
     }
   }
 
-  logs(device: device & devicesConfig) {
+  async logs(device: device & devicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
       this.debugLog(`Bot: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
@@ -1111,7 +1111,7 @@ export class Bot {
     }
   }
 
-  PressOrSwitch(device: device & devicesConfig) {
+  async PressOrSwitch(device: device & devicesConfig): Promise<void> {
     if (!device.bot?.mode) {
       this.botMode = 'switch';
       this.warnLog(`Bot: ${this.accessory.displayName} does not have bot mode set in the Plugin's SwitchBot Device Settings,`);
@@ -1127,7 +1127,7 @@ export class Bot {
     }
   }
 
-  allowPushChanges(device: device & devicesConfig) {
+  async allowPushChanges(device: device & devicesConfig): Promise<void> {
     if (device.bot?.allowPush) {
       this.allowPush = true;
     } else {
@@ -1136,7 +1136,7 @@ export class Bot {
     this.debugLog(`Bot: ${this.accessory.displayName} Allowing Push Changes: ${this.allowPush}`);
   }
 
-  public removeOutletService(accessory: PlatformAccessory) {
+  async removeOutletService(accessory: PlatformAccessory): Promise<void> {
     // If outletService still pressent, then remove first
     this.outletService = this.accessory.getService(this.platform.Service.Outlet);
     if (this.outletService) {
@@ -1145,7 +1145,7 @@ export class Bot {
     accessory.removeService(this.outletService!);
   }
 
-  public removeGarageDoorService(accessory: PlatformAccessory) {
+  async removeGarageDoorService(accessory: PlatformAccessory): Promise<void> {
     // If garageDoorService still pressent, then remove first
     this.garageDoorService = this.accessory.getService(this.platform.Service.GarageDoorOpener);
     if (this.garageDoorService) {
@@ -1154,7 +1154,7 @@ export class Bot {
     accessory.removeService(this.garageDoorService!);
   }
 
-  public removeDoorService(accessory: PlatformAccessory) {
+  async removeDoorService(accessory: PlatformAccessory): Promise<void> {
     // If doorService still pressent, then remove first
     this.doorService = this.accessory.getService(this.platform.Service.Door);
     if (this.doorService) {
@@ -1163,7 +1163,7 @@ export class Bot {
     accessory.removeService(this.doorService!);
   }
 
-  public removeLockService(accessory: PlatformAccessory) {
+  async removeLockService(accessory: PlatformAccessory): Promise<void> {
     // If lockService still pressent, then remove first
     this.lockService = this.accessory.getService(this.platform.Service.LockMechanism);
     if (this.lockService) {
@@ -1172,7 +1172,7 @@ export class Bot {
     accessory.removeService(this.lockService!);
   }
 
-  public removeFaucetService(accessory: PlatformAccessory) {
+  async removeFaucetService(accessory: PlatformAccessory): Promise<void> {
     // If faucetService still pressent, then remove first
     this.faucetService = this.accessory.getService(this.platform.Service.Faucet);
     if (this.faucetService) {
@@ -1181,7 +1181,7 @@ export class Bot {
     accessory.removeService(this.faucetService!);
   }
 
-  public removeFanService(accessory: PlatformAccessory) {
+  async removeFanService(accessory: PlatformAccessory): Promise<void> {
     // If fanService still pressent, then remove first
     this.fanService = this.accessory.getService(this.platform.Service.Fan);
     if (this.fanService) {
@@ -1190,7 +1190,7 @@ export class Bot {
     accessory.removeService(this.fanService!);
   }
 
-  public removeWindowService(accessory: PlatformAccessory) {
+  async removeWindowService(accessory: PlatformAccessory): Promise<void> {
     // If windowService still pressent, then remove first
     this.windowService = this.accessory.getService(this.platform.Service.Window);
     if (this.windowService) {
@@ -1199,7 +1199,7 @@ export class Bot {
     accessory.removeService(this.windowService!);
   }
 
-  public removeWindowCoveringService(accessory: PlatformAccessory) {
+  async removeWindowCoveringService(accessory: PlatformAccessory): Promise<void> {
     // If windowCoveringService still pressent, then remove first
     this.windowCoveringService = this.accessory.getService(this.platform.Service.WindowCovering);
     if (this.windowCoveringService) {
@@ -1208,7 +1208,7 @@ export class Bot {
     accessory.removeService(this.windowCoveringService!);
   }
 
-  public removeStatefulProgrammableSwitchService(accessory: PlatformAccessory) {
+  async removeStatefulProgrammableSwitchService(accessory: PlatformAccessory): Promise<void> {
     // If statefulProgrammableSwitchService still pressent, then remove first
     this.statefulProgrammableSwitchService = this.accessory.getService(this.platform.Service.StatefulProgrammableSwitch);
     if (this.statefulProgrammableSwitchService) {
@@ -1217,7 +1217,7 @@ export class Bot {
     accessory.removeService(this.statefulProgrammableSwitchService!);
   }
 
-  public removeSwitchService(accessory: PlatformAccessory) {
+  async removeSwitchService(accessory: PlatformAccessory): Promise<void> {
     // If switchService still pressent, then remove first
     this.switchService = this.accessory.getService(this.platform.Service.Switch);
     if (this.switchService) {
@@ -1229,25 +1229,25 @@ export class Bot {
   /**
    * Logging for Device
    */
-  infoLog(...log: any[]) {
+  infoLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));
     }
   }
 
-  warnLog(...log: any[]) {
+  warnLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.warn(String(...log));
     }
   }
 
-  errorLog(...log: any[]) {
+  errorLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.error(String(...log));
     }
   }
 
-  debugLog(...log: any[]) {
+  debugLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       if (this.deviceLogging === 'debug') {
         this.platform.log.info('[DEBUG]', String(...log));
