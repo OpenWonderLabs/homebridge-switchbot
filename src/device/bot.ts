@@ -663,11 +663,16 @@ export class Bot {
   }
 
   async turnOnOff(device_list: any): Promise<any> {
-    if (this.On) {
-      return device_list[0].turnOn({ id: this.device.bleMac });
-    } else {
-      return device_list[0].turnOff({ id: this.device.bleMac });
-    }
+    return await this.retry({
+      max: await this.maxRetry(),
+      fn: () => {
+        if (this.On) {
+          return device_list[0].turnOn({ id: this.device.bleMac });
+        } else {
+          return device_list[0].turnOff({ id: this.device.bleMac });
+        }
+      },
+    });
   }
 
   async openAPIpushChanges(): Promise<void> {
@@ -1044,6 +1049,28 @@ export class Bot {
       this.On = value;
     }
     this.doBotUpdate.next();
+  }
+
+  async retry({ max, fn }: { max: number; fn: { (): any; (): Promise<any> } }): Promise<null> {
+    return fn().catch(async (err: any) => {
+      if (max === 0) {
+        throw err;
+      }
+      this.infoLog(err);
+      this.infoLog('Retrying');
+      await this.switchbot.wait(1000);
+      return this.retry({ max: max - 1, fn });
+    });
+  }
+
+  async maxRetry(): Promise<number> {
+    let maxRetry: number;
+    if (this.device.bot?.maxRetry) {
+      maxRetry = this.device.bot?.maxRetry;
+    } else {
+      maxRetry = 5;
+    }
+    return maxRetry;
   }
 
   async config(device: device & devicesConfig): Promise<void> {
