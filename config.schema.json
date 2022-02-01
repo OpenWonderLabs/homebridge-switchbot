@@ -526,6 +526,7 @@
                 "logging": {
                   "title": "Device Logging Override Setting",
                   "type": "string",
+		  "default": "standard",
                   "oneOf": [
                     {
                       "title": "Standard Logging",
@@ -546,6 +547,7 @@
                       ]
                     }
                   ],
+		  "required": true,
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
                   }
@@ -861,6 +863,7 @@
                 "logging": {
                   "title": "Device Logging Override Setting",
                   "type": "string",
+		  "default": "standard",
                   "oneOf": [
                     {
                       "title": "Standard Logging",
@@ -881,6 +884,7 @@
                       ]
                     }
                   ],
+		  "required": true,
                   "condition": {
                     "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType);"
                   }
@@ -909,6 +913,7 @@
           "logging": {
             "title": "Logging Setting",
             "type": "string",
+	    "default": "standard",
             "oneOf": [
               {
                 "title": "Standard Logging",
@@ -928,7 +933,8 @@
                   "debug"
                 ]
               }
-            ]
+            ],
+	    "required": true
           }
         }
       }
