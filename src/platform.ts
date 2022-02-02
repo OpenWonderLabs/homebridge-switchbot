@@ -117,7 +117,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
    * It should be used to setup event handlers for characteristics and update respective values.
    */
   configureAccessory(accessory: PlatformAccessory) {
-    this.infoLog(`Loading accessory from cache: ${accessory.displayName}`);
+    this.debugLog(`Loading accessory from cache: ${accessory.displayName}`);
 
     // add the restored accessory to the accessories cache so we can track if it has already been registered
     this.accessories.push(accessory);
@@ -217,7 +217,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.debugLog(JSON.stringify(devicesAPI));
 
         // SwitchBot Devices
-        this.infoLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
+        if (devicesAPI.body.deviceList.length !== 0) {
+          this.infoLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
+        } else {
+          this.debugLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
+        }
         const deviceLists = devicesAPI.body.deviceList;
         if (!this.config.options?.devices) {
           this.debugLog(`SwitchBot Device Config Not Set: ${JSON.stringify(this.config.options?.devices)}`);
@@ -257,7 +261,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           this.errorLog('Neither SwitchBot OpenToken or Device Config are not set.');
         }
         // IR Devices
-        this.infoLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
+        if (devicesAPI.body.infraredRemoteList.length !== 0) {
+          this.infoLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
+        } else {
+          this.debugLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
+        }
         const irDeviceLists = devicesAPI.body.infraredRemoteList;
         if (!this.config.options?.irdevices) {
           this.debugLog(`IR Device Config Not Set: ${JSON.stringify(this.config.options?.irdevices)}`);

@@ -584,6 +584,7 @@ export class Curtain {
     if (this.PositionState === undefined) {
       this.debugLog(`Curtain: ${this.accessory.displayName} PositionState: ${this.PositionState}`);
     } else {
+      this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.PositionState, Number(this.PositionState));
       this.debugLog(`Curtain: ${this.accessory.displayName} updateCharacteristic PositionState: ${this.PositionState}`);
     }
     if (this.TargetPosition === undefined || Number.isNaN(this.TargetPosition)) {
