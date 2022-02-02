@@ -269,11 +269,8 @@ export class AirConditioner {
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.errorLog(`Air Conditioner: ${this.accessory.displayName} failed pushChanges`);
-      if (this.deviceLogging === 'debug') {
+      if (this.deviceLogging.includes('debug')) {
         this.errorLog(`Air Conditioner: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${JSON.stringify(e.message)}`);
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Air Conditioner: ${this.accessory.displayName} failed pushChanges,` + ` Error: ${JSON.stringify(e)}`);
       }
       this.apiError(e);
     }
@@ -590,7 +587,7 @@ export class AirConditioner {
       config['logging'] = device.logging;
     }
     if (Object.entries(config).length !== 0) {
-      this.warnLog(`Air Conditioner: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Air Conditioner: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
@@ -651,6 +648,6 @@ export class AirConditioner {
   }
 
   enablingDeviceLogging(): boolean {
-    return this.deviceLogging === 'debug' || this.deviceLogging === 'standard';
+    return this.deviceLogging.includes('debug') || this.deviceLogging === 'standard';
   }
 }

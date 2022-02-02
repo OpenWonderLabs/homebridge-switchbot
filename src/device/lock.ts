@@ -98,11 +98,8 @@ export class Lock {
           await this.pushChanges();
         } catch (e: any) {
           this.errorLog(`Lock: ${this.accessory.displayName} failed pushChanges`);
-          if (this.deviceLogging === 'debug') {
+          if (this.deviceLogging.includes('debug')) {
             this.errorLog(`Lock: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${JSON.stringify(e.message)}`);
-          }
-          if (this.platform.debugMode) {
-            this.errorLog(`Lock: ${this.accessory.displayName} failed pushChanges,` + ` Error: ${JSON.stringify(e)}`);
           }
           this.apiError(e);
         }
@@ -133,13 +130,10 @@ export class Lock {
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.errorLog(`Lock: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
-      if (this.deviceLogging === 'debug') {
+      if (this.deviceLogging.includes('debug')) {
         this.errorLog(
           `Lock: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
         );
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Lock: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`);
       }
       this.apiError(e);
     }
@@ -264,7 +258,7 @@ export class Lock {
       config['scanDuration'] = device.scanDuration;
     }
     if (Object.entries(config).length !== 0) {
-      this.warnLog(`Lock: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Lock: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
@@ -340,6 +334,6 @@ export class Lock {
   }
 
   enablingDeviceLogging(): boolean {
-    return this.deviceLogging === 'debug' || this.deviceLogging === 'standard';
+    return this.deviceLogging.includes('debug') || this.deviceLogging === 'standard';
   }
 }

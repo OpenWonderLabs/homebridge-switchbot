@@ -355,7 +355,7 @@ export class Bot {
             });
         } catch (e: any) {
           this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges`);
-          if (this.deviceLogging === 'debug') {
+          if (this.deviceLogging.includes('debug')) {
             this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${JSON.stringify(e.message)}`);
           }
           if (this.platform.debugMode) {
@@ -506,7 +506,7 @@ export class Bot {
       })
       .catch(async (e: any) => {
         this.errorLog(`Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
-        if (this.deviceLogging === 'debug') {
+        if (this.deviceLogging.includes('debug')) {
           this.errorLog(
             `Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
           );
@@ -534,7 +534,7 @@ export class Bot {
         this.updateHomeKitCharacteristics();
       } catch (e: any) {
         this.errorLog(`Bot: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
-        if (this.deviceLogging === 'debug') {
+        if (this.deviceLogging.includes('debug')) {
           this.errorLog(
             `Bot: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
           );
@@ -604,7 +604,7 @@ export class Bot {
           })
           .catch(async (e: any) => {
             this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
-            if (this.deviceLogging === 'debug') {
+            if (this.deviceLogging.includes('debug')) {
               this.errorLog(
                 `Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
               );
@@ -633,7 +633,7 @@ export class Bot {
           })
           .catch(async (e: any) => {
             this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
-            if (this.deviceLogging === 'debug') {
+            if (this.deviceLogging.includes('debug')) {
               this.errorLog(
                 `Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
               );
@@ -650,13 +650,6 @@ export class Bot {
       } else {
         throw new Error(`Bot: ${this.accessory.displayName} Bot Mode: ${this.botMode}`);
       }
-      /* } else {
-         this.errorLog(`Bot: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
-         if (this.platform.config.credentials?.openToken) {
-           this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
-           await this.openAPIpushChanges();
-         }
-       }*/
     }
     this.OnCached = this.On;
     this.accessory.context.On = this.OnCached;
@@ -715,7 +708,7 @@ export class Bot {
         }
       } catch (e: any) {
         this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-        if (this.deviceLogging === 'debug') {
+        if (this.deviceLogging.includes('debug')) {
           this.errorLog(
             `Bot: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
           );
@@ -1094,7 +1087,7 @@ export class Bot {
       config['offline'] = device.offline;
     }
     if (Object.entries(config).length !== 0) {
-      this.warnLog(`Bot: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Bot: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
@@ -1285,6 +1278,6 @@ export class Bot {
   }
 
   enablingDeviceLogging(): boolean {
-    return this.deviceLogging === 'debug' || this.deviceLogging === 'standard';
+    return this.deviceLogging.includes('debug') || this.deviceLogging === 'standard';
   }
 }

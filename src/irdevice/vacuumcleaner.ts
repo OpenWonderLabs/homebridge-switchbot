@@ -120,14 +120,11 @@ export class VacuumCleaner {
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.errorLog(`Vacuum Cleaner: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-      if (this.deviceLogging === 'debug') {
+      if (this.deviceLogging.includes('debug')) {
         this.errorLog(
           `Vacuum Cleaner: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` +
             ` Error Message: ${JSON.stringify(e.message)}`,
         );
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Vacuum Cleaner: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`);
       }
       this.apiError(e);
     }
@@ -178,7 +175,7 @@ export class VacuumCleaner {
       config['logging'] = device.logging;
     }
     if (Object.entries(config).length !== 0) {
-      this.warnLog(`Vacuum Cleaner: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Vacuum Cleaner: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
@@ -230,6 +227,6 @@ export class VacuumCleaner {
   }
 
   enablingDeviceLogging(): boolean {
-    return this.deviceLogging === 'debug' || this.deviceLogging === 'standard';
+    return this.deviceLogging.includes('debug') || this.deviceLogging === 'standard';
   }
 }

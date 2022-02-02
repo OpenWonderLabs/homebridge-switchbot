@@ -228,13 +228,10 @@ export class AirPurifier {
       this.accessory.context.CurrentTemperature = this.CurrentTemperatureCached;
     } catch (e: any) {
       this.errorLog(`Air Purifier: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-      if (this.deviceLogging === 'debug') {
+      if (this.deviceLogging.includes('debug')) {
         this.errorLog(
           `Air Purifier: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
         );
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Air Purifier: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`);
       }
       this.apiError(e);
     }
@@ -288,7 +285,7 @@ export class AirPurifier {
       config['logging'] = device.logging;
     }
     if (Object.entries(config).length !== 0) {
-      this.warnLog(`Air Purifier: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Air Purifier: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
@@ -340,6 +337,6 @@ export class AirPurifier {
   }
 
   enablingDeviceLogging(): boolean {
-    return this.deviceLogging === 'debug' || this.deviceLogging === 'standard';
+    return this.deviceLogging.includes('debug') || this.deviceLogging === 'standard';
   }
 }

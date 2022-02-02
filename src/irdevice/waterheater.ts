@@ -125,13 +125,10 @@ export class WaterHeater {
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.errorLog(`Water Heater: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-      if (this.deviceLogging === 'debug') {
+      if (this.deviceLogging.includes('debug')) {
         this.errorLog(
           `Water Heater: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
         );
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Water Heater: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`);
       }
       this.apiError(e);
     }
@@ -182,7 +179,7 @@ export class WaterHeater {
       config['logging'] = device.logging;
     }
     if (Object.entries(config).length !== 0) {
-      this.warnLog(`Water Heater: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Water Heater: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
@@ -234,6 +231,6 @@ export class WaterHeater {
   }
 
   enablingDeviceLogging(): boolean {
-    return this.deviceLogging === 'debug' || this.deviceLogging === 'standard';
+    return this.deviceLogging.includes('debug') || this.deviceLogging === 'standard';
   }
 }

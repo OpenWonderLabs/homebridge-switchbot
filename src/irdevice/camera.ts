@@ -120,13 +120,10 @@ export class Camera {
       this.accessory.context.On = this.OnCached;
     } catch (e: any) {
       this.errorLog(`Camera: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-      if (this.deviceLogging === 'debug') {
+      if (this.deviceLogging.includes('debug')) {
         this.errorLog(
           `Camera: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
         );
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Camera: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`);
       }
       this.apiError(e);
     }
@@ -177,7 +174,7 @@ export class Camera {
       config['logging'] = device.logging;
     }
     if (Object.entries(config).length !== 0) {
-      this.warnLog(`Camera: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Camera: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
@@ -229,6 +226,6 @@ export class Camera {
   }
 
   enablingDeviceLogging(): boolean {
-    return this.deviceLogging === 'debug' || this.deviceLogging === 'standard';
+    return this.deviceLogging.includes('debug') || this.deviceLogging === 'standard';
   }
 }

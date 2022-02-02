@@ -152,13 +152,10 @@ export class Others {
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.errorLog(`Other: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-      if (this.deviceLogging === 'debug') {
+      if (this.deviceLogging.includes('debug')) {
         this.errorLog(
           `Other: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
         );
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Other: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`);
       }
       this.apiError(e);
     }
@@ -203,7 +200,7 @@ export class Others {
   async deviceType(device: irdevice & irDevicesConfig): Promise<void> {
     if (device.other?.deviceType) {
       this.otherDeviceType = this.accessory.context.deviceType = device.other.deviceType;
-      if (this.deviceLogging === 'debug' || this.deviceLogging === 'standard') {
+      if (this.deviceLogging.includes('debug') || this.deviceLogging === 'standard') {
         this.warnLog(`Other: ${this.accessory.displayName} Using Device Type: ${this.otherDeviceType}`);
       }
     } else {
@@ -220,7 +217,7 @@ export class Others {
       config['logging'] = device.logging;
     }
     if (Object.entries(config).length !== 0) {
-      this.warnLog(`Other: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Other: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
@@ -272,6 +269,6 @@ export class Others {
   }
 
   enablingDeviceLogging(): boolean {
-    return this.deviceLogging === 'debug' || this.deviceLogging === 'standard';
+    return this.deviceLogging.includes('debug') || this.deviceLogging === 'standard';
   }
 }
