@@ -245,13 +245,10 @@ export class Fan {
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.errorLog(`Fan: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-      if (this.deviceLogging === 'debug') {
+      if (this.deviceLogging.includes('debug')) {
         this.errorLog(
           `Fan: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
         );
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Fan: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`);
       }
       this.apiError(e);
     }
@@ -304,7 +301,7 @@ export class Fan {
       config['logging'] = device.logging;
     }
     if (Object.entries(config).length !== 0) {
-      this.warnLog(`Fan: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Fan: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
@@ -356,6 +353,6 @@ export class Fan {
   }
 
   enablingDeviceLogging(): boolean {
-    return this.deviceLogging === 'debug' || this.deviceLogging === 'standard';
+    return this.deviceLogging.includes('debug') || this.deviceLogging === 'standard';
   }
 }

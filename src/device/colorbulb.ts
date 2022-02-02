@@ -205,11 +205,8 @@ export class ColorBulb {
           await this.pushChanges();
         } catch (e: any) {
           this.errorLog(`${device.deviceType}: ${this.accessory.displayName} failed pushChanges`);
-          if (this.deviceLogging === 'debug') {
+          if (this.deviceLogging.includes('debug')) {
             this.errorLog(`${device.deviceType}: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${JSON.stringify(e.message)}`);
-          }
-          if (this.platform.debugMode) {
-            this.errorLog(`${device.deviceType}: ${this.accessory.displayName} failed pushChanges,` + ` Error: ${JSON.stringify(e)}`);
           }
           this.apiError(e);
         }
@@ -281,15 +278,10 @@ export class ColorBulb {
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
-      if (this.deviceLogging === 'debug') {
+      if (this.deviceLogging.includes('debug')) {
         this.errorLog(
           `${this.device.deviceType}: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` +
             ` Error Message: ${JSON.stringify(e.message)}`,
-        );
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`,
         );
       }
       this.apiError(e);
@@ -355,15 +347,10 @@ export class ColorBulb {
       }
     } catch (e: any) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-      if (this.deviceLogging === 'debug') {
+      if (this.deviceLogging.includes('debug')) {
         this.errorLog(
           `${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` +
             ` Error Message: ${JSON.stringify(e.message)}`,
-        );
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`,
         );
       }
       this.apiError(e);
@@ -404,15 +391,10 @@ export class ColorBulb {
       }
     } catch (e: any) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-      if (this.deviceLogging === 'debug') {
+      if (this.deviceLogging.includes('debug')) {
         this.errorLog(
           `${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` +
             ` Error Message: ${JSON.stringify(e.message)}`,
-        );
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`,
         );
       }
       this.apiError(e);
@@ -449,15 +431,10 @@ export class ColorBulb {
       }
     } catch (e: any) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-      if (this.deviceLogging === 'debug') {
+      if (this.deviceLogging.includes('debug')) {
         this.errorLog(
           `${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` +
             ` Error Message: ${JSON.stringify(e.message)}`,
-        );
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`,
         );
       }
       this.apiError(e);
@@ -491,15 +468,10 @@ export class ColorBulb {
       }
     } catch (e: any) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-      if (this.deviceLogging === 'debug') {
+      if (this.deviceLogging.includes('debug')) {
         this.errorLog(
           `${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` +
             ` Error Message: ${JSON.stringify(e.message)}`,
-        );
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`,
         );
       }
       this.apiError(e);
@@ -700,7 +672,7 @@ export class ColorBulb {
       config['offline'] = device.offline;
     }
     if (Object.entries(config).length !== 0) {
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
@@ -781,6 +753,6 @@ export class ColorBulb {
   }
 
   enablingDeviceLogging(): boolean {
-    return this.deviceLogging === 'debug' || this.deviceLogging === 'standard';
+    return this.deviceLogging.includes('debug') || this.deviceLogging === 'standard';
   }
 }

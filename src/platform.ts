@@ -61,7 +61,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.debugLog('Config OK');
     } catch (e: any) {
       this.errorLog(JSON.stringify(e.message));
-      if (this.platformLogging === 'debugMode') {
+      if (this.platformLogging?.includes('debug')) {
         this.errorLog(JSON.stringify(e));
       }
       return;
@@ -85,7 +85,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.discoverDevices();
       } catch (e: any) {
         this.errorLog('Failed to Discover Devices.', JSON.stringify(e.message));
-        if (this.platformLogging === 'debugMode') {
+        if (this.platformLogging?.includes('debug')) {
           this.errorLog(JSON.stringify(e));
         }
       }
@@ -140,7 +140,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       platformConfig['pushRate'] = this.config.options.pushRate;
     }
     if (Object.entries(platformConfig).length !== 0) {
-      this.warnLog(`Platform Config: ${JSON.stringify(platformConfig)}`);
+      this.infoLog(`Platform Config: ${JSON.stringify(platformConfig)}`);
     }
 
     if (this.config.options) {
@@ -1546,13 +1546,13 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   public deviceListInfo(devices: deviceResponses) {
-    if (this.platformLogging === 'debug') {
+    if (this.platformLogging?.includes('debug')) {
       this.warnLog(`deviceListInfoStatus: ${JSON.stringify(devices)}`);
     }
   }
 
   public async deviceInfo(device: (irdevice & devicesConfig) | (device & devicesConfig)) {
-    if (this.platformLogging === 'debug') {
+    if (this.platformLogging?.includes('debug')) {
       this.warnLog(JSON.stringify(device));
       this.deviceStatus = (await this.axios.get(`${DeviceURL}/${device.deviceId}/status`)).data;
       if (this.deviceStatus.message === 'success') {

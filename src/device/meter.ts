@@ -283,13 +283,10 @@ export class Meter {
         })
         .catch(async (e: any) => {
           this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
-          if (this.deviceLogging === 'debug') {
+          if (this.deviceLogging.includes('debug')) {
             this.errorLog(
               `Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
             );
-          }
-          if (this.platform.debugMode) {
-            this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error: ${JSON.stringify(e)}`);
           }
           if (this.platform.config.credentials?.openToken) {
             this.warnLog(`Meter: ${this.accessory.displayName} Using OpenAPI Connection`);
@@ -324,13 +321,10 @@ export class Meter {
         this.updateHomeKitCharacteristics();
       } catch (e: any) {
         this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
-        if (this.deviceLogging === 'debug') {
+        if (this.deviceLogging.includes('debug')) {
           this.errorLog(
             `Meter: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
           );
-        }
-        if (this.platform.debugMode) {
-          this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`);
         }
         this.apiError(e);
       }
@@ -417,7 +411,7 @@ export class Meter {
       config['scanDuration'] = device.scanDuration;
     }
     if (Object.entries(config).length !== 0) {
-      this.warnLog(`Meter: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Meter: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
@@ -493,6 +487,6 @@ export class Meter {
   }
 
   enablingDeviceLogging(): boolean {
-    return this.deviceLogging === 'debug' || this.deviceLogging === 'standard';
+    return this.deviceLogging.includes('debug') || this.deviceLogging === 'standard';
   }
 }

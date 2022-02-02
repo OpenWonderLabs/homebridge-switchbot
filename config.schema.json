@@ -526,6 +526,7 @@
                 "logging": {
                   "title": "Device Logging Override Setting",
                   "type": "string",
+                  "default": "standard",
                   "oneOf": [
                     {
                       "title": "Standard Logging",
@@ -554,7 +555,8 @@
               "required": [
                 "deviceId",
                 "configDeviceType",
-                "configDeviceName"
+                "configDeviceName",
+                "logging"
               ]
             },
             "uniqueItems": true
@@ -861,6 +863,7 @@
                 "logging": {
                   "title": "Device Logging Override Setting",
                   "type": "string",
+                  "default": "standard",
                   "oneOf": [
                     {
                       "title": "Standard Logging",
@@ -888,7 +891,8 @@
               },
               "required": [
                 "deviceId",
-                "configRemoteType"
+                "configRemoteType",
+                "logging"
               ]
             },
             "uniqueItems": true
@@ -909,6 +913,7 @@
           "logging": {
             "title": "Logging Setting",
             "type": "string",
+            "default": "standard",
             "oneOf": [
               {
                 "title": "Standard Logging",
@@ -934,7 +939,8 @@
       }
     },
     "required": [
-      "name"
+      "name",
+      "logging"
     ]
   },
   "layout": [

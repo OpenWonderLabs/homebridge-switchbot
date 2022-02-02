@@ -95,11 +95,8 @@ export class Plug {
           await this.pushChanges();
         } catch (e: any) {
           this.errorLog(`Plug: ${this.accessory.displayName} failed pushChanges`);
-          if (this.deviceLogging === 'debug') {
+          if (this.deviceLogging.includes('debug')) {
             this.errorLog(`Plug: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${JSON.stringify(e.message)}`);
-          }
-          if (this.platform.debugMode) {
-            this.errorLog(`Plug: ${this.accessory.displayName} failed pushChanges,` + ` Error: ${JSON.stringify(e)}`);
           }
           this.apiError(e);
         }
@@ -127,13 +124,10 @@ export class Plug {
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.errorLog(`Plug: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
-      if (this.deviceLogging === 'debug') {
+      if (this.deviceLogging.includes('debug')) {
         this.errorLog(
           `Plug: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
         );
-      }
-      if (this.platform.debugMode) {
-        this.errorLog(`Plug: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error: ${JSON.stringify(e)}`);
       }
       this.apiError(e);
     }
@@ -278,7 +272,7 @@ export class Plug {
       config['offline'] = device.offline;
     }
     if (Object.entries(config).length !== 0) {
-      this.warnLog(`Plug: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Plug: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
@@ -354,6 +348,6 @@ export class Plug {
   }
 
   enablingDeviceLogging(): boolean {
-    return this.deviceLogging === 'debug' || this.deviceLogging === 'standard';
+    return this.deviceLogging.includes('debug') || this.deviceLogging === 'standard';
   }
 }
