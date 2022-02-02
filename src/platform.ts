@@ -219,6 +219,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         // SwitchBot Devices
         if (devicesAPI.body.deviceList.length !== 0) {
           this.infoLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
+        } else {
+          this.debugLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
         }
         const deviceLists = devicesAPI.body.deviceList;
         if (!this.config.options?.devices) {
@@ -261,6 +263,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         // IR Devices
         if (devicesAPI.body.infraredRemoteList.length !== 0) {
           this.infoLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
+        } else {
+          this.debugLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
         }
         const irDeviceLists = devicesAPI.body.infraredRemoteList;
         if (!this.config.options?.irdevices) {
