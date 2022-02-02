@@ -217,7 +217,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.debugLog(JSON.stringify(devicesAPI));
 
         // SwitchBot Devices
-        this.infoLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
+        if (devicesAPI.body.deviceList.length !== 0) {
+          this.infoLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
+        }
         const deviceLists = devicesAPI.body.deviceList;
         if (!this.config.options?.devices) {
           this.debugLog(`SwitchBot Device Config Not Set: ${JSON.stringify(this.config.options?.devices)}`);
@@ -257,7 +259,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           this.errorLog('Neither SwitchBot OpenToken or Device Config are not set.');
         }
         // IR Devices
-        this.infoLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
+        if (devicesAPI.body.infraredRemoteList.length !== 0) {
+          this.infoLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
+        }
         const irDeviceLists = devicesAPI.body.infraredRemoteList;
         if (!this.config.options?.irdevices) {
           this.debugLog(`IR Device Config Not Set: ${JSON.stringify(this.config.options?.irdevices)}`);
