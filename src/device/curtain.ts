@@ -118,7 +118,7 @@ export class Curtain {
       })
       .onSet(this.TargetPositionSet.bind(this));
 
-    /* Light Sensor Service
+    // Light Sensor Service
     if (device.curtain?.hide_lightsensor) {
       this.debugLog(`Curtain: ${accessory.displayName} Removing Light Sensor Service`);
       this.lightSensorService = this.accessory.getService(this.platform.Service.LightSensor);
@@ -132,7 +132,7 @@ export class Curtain {
       this.lightSensorService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Light Sensor`);
     } else {
       this.debugLog(`Curtain: ${accessory.displayName} Light Sensor Service Not Added`);
-    }*/
+    }
 
     // Battery Service
     if (!device.ble) {

@@ -288,7 +288,7 @@
                       }
                     },
                     "doublePress": {
-                      "title": "Do you want to similate a double press?",
+                      "title": "How many presses do you want to simulate?",
                       "type": "number",
                       "placeholder": "2",
                       "condition": {
@@ -379,7 +379,7 @@
                       "type": "number",
                       "minimum": 1,
                       "placeholder": 5,
-                      "description": "Indicates the number of seconds between before refreshing Curtain status while updating slide progress.",
+                      "description": "Indicates the number of seconds before refreshing Curtain status while updating slide progress.",
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
                       }
