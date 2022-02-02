@@ -592,6 +592,7 @@ export class Curtain {
           .pipe(take(1))
           .subscribe(async () => {
             await this.refreshStatus();
+            this.warnLog('updateHomeKitCharacteristics refreshStatus');
           });
       }
     }
