@@ -561,7 +561,6 @@ export class Bot {
       await this.openAPIpushChanges();
     }
     interval(5000)
-      .pipe(skipWhile(() => this.botUpdateInProgress))
       .pipe(take(1))
       .subscribe(async () => {
         await this.refreshStatus();

@@ -395,7 +395,6 @@ export class Humidifier {
     await this.openAPIpushChanges();
     //}
     interval(5000)
-      .pipe(skipWhile(() => this.humidifierUpdateInProgress))
       .pipe(take(1))
       .subscribe(async () => {
         await this.refreshStatus();
