@@ -477,12 +477,12 @@ export class Curtain {
     } else {
       await this.openAPIpushChanges();
     }
-    interval(this.updateRate * 1000)
+    /*interval(this.updateRate * 1000)
       .pipe(skipWhile(() => this.curtainUpdateInProgress))
       .pipe(take(2))
       .subscribe(async () => {
         await this.refreshStatus();
-      });
+      });*/
   }
 
   async BLEpushChanges(): Promise<void> {
