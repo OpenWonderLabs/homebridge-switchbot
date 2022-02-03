@@ -477,9 +477,9 @@ export class Curtain {
     } else {
       await this.openAPIpushChanges();
     }
-    interval(5000)
+    interval(this.updateRate * 1000)
       .pipe(skipWhile(() => this.curtainUpdateInProgress))
-      .pipe(take(1))
+      .pipe(take(2))
       .subscribe(async () => {
         await this.refreshStatus();
       });
@@ -586,15 +586,6 @@ export class Curtain {
     } else {
       this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.PositionState, Number(this.PositionState));
       this.debugLog(`Curtain: ${this.accessory.displayName} updateCharacteristic PositionState: ${this.PositionState}`);
-      if (this.device.ble) {
-        interval(5000)
-          .pipe(skipWhile(() => this.curtainUpdateInProgress))
-          .pipe(take(1))
-          .subscribe(async () => {
-            await this.refreshStatus();
-            this.warnLog('updateHomeKitCharacteristics refreshStatus');
-          });
-      }
     }
     if (this.TargetPosition === undefined || Number.isNaN(this.TargetPosition)) {
       this.debugLog(`Curtain: ${this.accessory.displayName} TargetPosition: ${this.TargetPosition}`);
