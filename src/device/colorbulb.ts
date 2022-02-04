@@ -68,9 +68,7 @@ export class ColorBulb {
     this.Hue = 0;
     this.Brightness = 0;
     this.Saturation = 0;
-    if (device.deviceType === 'Color Bulb') {
-      this.ColorTemperature = 140;
-    }
+    this.ColorTemperature = 140;
     this.minKelvin = 2000;
     this.maxKelvin = 9000;
     // this is subject we use to track when we need to POST changes to the SwitchBot API
@@ -125,22 +123,18 @@ export class ColorBulb {
       .onSet(this.BrightnessSet.bind(this));
 
     // handle ColorTemperature events using the ColorTemperature characteristic
-    if (device.deviceType === 'Color Bulb') {
-      this.debugLog(`Color Bulb: ${accessory.displayName} Add ColorTemperature Characteristic`);
-      this.lightBulbService
-        .getCharacteristic(this.platform.Characteristic.ColorTemperature)
-        .setProps({
-          minValue: 140,
-          maxValue: 500,
-          validValueRanges: [140, 500],
-        })
-        .onGet(() => {
-          return this.ColorTemperature!;
-        })
-        .onSet(this.ColorTemperatureSet.bind(this));
-    } else {
-      this.debugLog(`Color Bulb: ${accessory.displayName} ColorTemperature Characteristic Not Added`);
-    }
+    this.debugLog(`Color Bulb: ${accessory.displayName} Add ColorTemperature Characteristic`);
+    this.lightBulbService
+      .getCharacteristic(this.platform.Characteristic.ColorTemperature)
+      .setProps({
+        minValue: 140,
+        maxValue: 500,
+        validValueRanges: [140, 500],
+      })
+      .onGet(() => {
+        return this.ColorTemperature!;
+      })
+      .onSet(this.ColorTemperatureSet.bind(this));
 
     // handle Hue events using the Hue characteristic
     this.lightBulbService
@@ -251,17 +245,16 @@ export class ColorBulb {
     }
 
     // ColorTemperature
-    if (this.device.deviceType === 'Color Bulb') {
-      if (!Number.isNaN(this.colorTemperature)) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} OpenAPI ColorTemperature: ${this.colorTemperature}`);
-        const mired = Math.round(1000000 / this.colorTemperature!);
+    if (!Number.isNaN(this.colorTemperature)) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} OpenAPI ColorTemperature: ${this.colorTemperature}`);
+      const mired = Math.round(1000000 / this.colorTemperature!);
 
-        this.ColorTemperature = Number(mired);
+      this.ColorTemperature = Number(mired);
 
-        this.ColorTemperature = Math.max(Math.min(this.ColorTemperature, 500), 140);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
-      }
+      this.ColorTemperature = Math.max(Math.min(this.ColorTemperature, 500), 140);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
     }
+
   }
 
   async refreshStatus(): Promise<void> {
@@ -271,9 +264,8 @@ export class ColorBulb {
       this.power = this.deviceStatus.body.power;
       this.color = this.deviceStatus.body.color;
       this.brightness = this.deviceStatus.body.brightness;
-      if (this.device.deviceType === 'Color Bulb') {
-        this.colorTemperature = this.deviceStatus.body.colorTemperature;
-      }
+      this.colorTemperature = this.deviceStatus.body.colorTemperature;
+
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
@@ -337,7 +329,7 @@ export class ColorBulb {
       }
 
       // Push ColorTemperature Update
-      if (this.On && this.device.deviceType === 'Color Bulb') {
+      if (this.On) {
         await this.pushColorTemperatureChanges();
       }
 
@@ -491,13 +483,11 @@ export class ColorBulb {
       this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Brightness, this.Brightness);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic Brightness: ${this.Brightness}`);
     }
-    if (this.device.deviceType === 'Color Bulb') {
-      if (this.ColorTemperature === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
-      } else {
-        this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, this.ColorTemperature);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic ColorTemperature: ${this.ColorTemperature}`);
-      }
+    if (this.ColorTemperature === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
+    } else {
+      this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, this.ColorTemperature);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic ColorTemperature: ${this.ColorTemperature}`);
     }
     if (this.Hue === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${this.Hue}`);
@@ -518,9 +508,7 @@ export class ColorBulb {
     this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Hue, e);
     this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Brightness, e);
     this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Saturation, e);
-    if (this.device.deviceType === 'Color Bulb') {
-      this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, e);
-    }
+    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, e);
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
@@ -619,9 +607,7 @@ export class ColorBulb {
   async HueSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${value}`);
 
-    if (this.device.deviceType === 'Color Bulb') {
-      this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, 140);
-    }
+    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, 140);
 
     this.Hue = value;
     this.doColorBulbUpdate.next();
@@ -633,9 +619,7 @@ export class ColorBulb {
   async SaturationSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${value}`);
 
-    if (this.device.deviceType === 'Color Bulb') {
-      this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, 140);
-    }
+    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, 140);
 
     this.Saturation = value;
     this.doColorBulbUpdate.next();
