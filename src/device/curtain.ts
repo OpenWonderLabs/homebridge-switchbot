@@ -477,9 +477,8 @@ export class Curtain {
     } else {
       await this.openAPIpushChanges();
     }
-    interval(5000)
-      .pipe(skipWhile(() => this.curtainUpdateInProgress))
-      .pipe(take(1))
+    interval(this.updateRate * 1000)
+      .pipe(take(2))
       .subscribe(async () => {
         await this.refreshStatus();
       });

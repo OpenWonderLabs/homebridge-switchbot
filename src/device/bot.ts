@@ -455,7 +455,7 @@ export class Bot {
       .deviceId!.match(/.{1,2}/g)!
       .join(':')
       .toLowerCase();
-    this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    this.debugLog(`Bot: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     // Start to monitor advertisement packets
     if (switchbot === false) {
       this.errorLog(`Bot: ${this.accessory.displayName} wasn't able to establish BLE Connection: ${switchbot}`);
@@ -561,7 +561,6 @@ export class Bot {
       await this.openAPIpushChanges();
     }
     interval(5000)
-      .pipe(skipWhile(() => this.botUpdateInProgress))
       .pipe(take(1))
       .subscribe(async () => {
         await this.refreshStatus();

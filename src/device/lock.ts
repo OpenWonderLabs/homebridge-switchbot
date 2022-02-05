@@ -171,7 +171,6 @@ export class Lock {
       this.accessory.context.On = this.LockTargetStateCached;
     }
     interval(5000)
-      .pipe(skipWhile(() => this.lockUpdateInProgress))
       .pipe(take(1))
       .subscribe(async () => {
         await this.refreshStatus();

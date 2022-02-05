@@ -265,7 +265,7 @@ export class Contact {
       .deviceId!.match(/.{1,2}/g)!
       .join(':')
       .toLowerCase();
-    this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    this.debugLog(`Contact Sensor: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     // Start to monitor advertisement packets
     if (switchbot !== false) {
       switchbot

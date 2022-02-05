@@ -286,7 +286,7 @@ export class Humidifier {
       .deviceId!.match(/.{1,2}/g)!
       .join(':')
       .toLowerCase();
-    this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    this.debugLog(`Humidifier: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     // Start to monitor advertisement packets
     if (switchbot !== false) {
       switchbot
@@ -395,7 +395,6 @@ export class Humidifier {
     await this.openAPIpushChanges();
     //}
     interval(5000)
-      .pipe(skipWhile(() => this.humidifierUpdateInProgress))
       .pipe(take(1))
       .subscribe(async () => {
         await this.refreshStatus();
@@ -410,7 +409,7 @@ export class Humidifier {
       .deviceId!.match(/.{1,2}/g)!
       .join(':')
       .toLowerCase();
-    this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    this.debugLog(`Humidifier: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     if (switchbot !== false) {
       switchbot
         .discover({ model: 'e', quick: true, id: this.device.bleMac })

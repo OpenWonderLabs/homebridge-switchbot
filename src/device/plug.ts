@@ -168,7 +168,6 @@ export class Plug {
       this.accessory.context.On = this.OnCached;
     }
     interval(5000)
-      .pipe(skipWhile(() => this.plugUpdateInProgress))
       .pipe(take(1))
       .subscribe(async () => {
         await this.refreshStatus();
