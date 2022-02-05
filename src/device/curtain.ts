@@ -329,6 +329,7 @@ export class Curtain {
           this.debugLog(`Curtain: ${this.CurrentPosition} Standby, CurrentPosition: ${this.CurrentPosition}`);
           this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
         }
+        this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
       } else {
         this.debugLog(`Curtain: ${this.accessory.displayName} Standby, CurrentPosition: ${this.CurrentPosition}`);
         this.TargetPosition = this.CurrentPosition;
