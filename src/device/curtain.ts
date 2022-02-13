@@ -219,12 +219,18 @@ export class Curtain {
       if (this.TargetPosition > this.CurrentPosition) {
         this.debugLog(`Curtain: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition}`);
         this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
+        this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
+        this.warnLog(`Curtain: ${this.CurrentPosition} INCREASING PositionState: ${this.PositionState}`);
       } else if (this.TargetPosition < this.CurrentPosition) {
         this.debugLog(`Curtain: ${this.accessory.displayName} Opening, CurrentPosition: ${this.CurrentPosition}`);
         this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
+        this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
+        this.warnLog(`Curtain: ${this.CurrentPosition} DECREASING PositionState: ${this.PositionState}`);
       } else {
         this.debugLog(`Curtain: ${this.CurrentPosition} Standby, CurrentPosition: ${this.CurrentPosition}`);
         this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
+        this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
+        this.warnLog(`Curtain: ${this.CurrentPosition} STOPPED PositionState: ${this.PositionState}`);
       }
     } else {
       this.debugLog(`Curtain: ${this.accessory.displayName} Standby, CurrentPosition: ${this.CurrentPosition}`);
@@ -321,12 +327,18 @@ export class Curtain {
         if (this.TargetPosition > this.CurrentPosition) {
           this.debugLog(`Curtain: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition} `);
           this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
+          this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
+          this.warnLog(`Curtain: ${this.CurrentPosition} INCREASING PositionState: ${this.PositionState}`);
         } else if (this.TargetPosition < this.CurrentPosition) {
           this.debugLog(`Curtain: ${this.accessory.displayName} Opening, CurrentPosition: ${this.CurrentPosition} `);
           this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
+          this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
+          this.warnLog(`Curtain: ${this.CurrentPosition} DECREASING PositionState: ${this.PositionState}`);
         } else {
           this.debugLog(`Curtain: ${this.CurrentPosition} Standby, CurrentPosition: ${this.CurrentPosition}`);
           this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
+          this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
+          this.warnLog(`Curtain: ${this.CurrentPosition} STOPPED PositionState: ${this.PositionState}`);
         }
       } else {
         this.debugLog(`Curtain: ${this.accessory.displayName} Standby, CurrentPosition: ${this.CurrentPosition}`);

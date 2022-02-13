@@ -526,7 +526,6 @@
                 "logging": {
                   "title": "Device Logging Override Setting",
                   "type": "string",
-                  "default": "standard",
                   "oneOf": [
                     {
                       "title": "Standard Logging",
@@ -863,7 +862,6 @@
                 "logging": {
                   "title": "Device Logging Override Setting",
                   "type": "string",
-                  "default": "standard",
                   "oneOf": [
                     {
                       "title": "Standard Logging",
@@ -913,7 +911,6 @@
           "logging": {
             "title": "Logging Setting",
             "type": "string",
-            "default": "standard",
             "oneOf": [
               {
                 "title": "Standard Logging",
