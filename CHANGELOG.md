@@ -2,10 +2,11 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [Beta - Version 1.12.6](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.6) (2022-02-XX)
+## [Version 1.12.6](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.6) (2022-03-04)
 
 ## What's Changed
 
+- Fix for Curtain v3.3 and above, from v1.2.0 node-swtichbot update.
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.5...v1.12.6
