@@ -268,12 +268,12 @@ export class Contact {
     this.debugLog(`Contact Sensor: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     // Start to monitor advertisement packets
     if (switchbot !== false) {
-      switchbot
+      await switchbot
         .startScan({
-          model: 'd',
+          //model: 'd',
           id: this.device.bleMac,
         })
-        .then(() => {
+        .then(async () => {
           // Set an event hander
           switchbot.onadvertisement = (ad: any) => {
             this.serviceData = ad.serviceData;
@@ -296,7 +296,7 @@ export class Contact {
             }
           };
           // Wait 2 seconds
-          return switchbot.wait(this.scanDuration * 1000);
+          return await switchbot.wait(this.scanDuration * 1000);
         })
         .then(async () => {
           // Stop to monitor

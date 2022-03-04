@@ -220,12 +220,12 @@ export class Motion {
     this.debugLog(`Motion Sensor: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     // Start to monitor advertisement packets
     if (switchbot !== false) {
-      switchbot
+      await switchbot
         .startScan({
-          model: 's',
+          //model: 's',
           id: this.device.bleMac,
         })
-        .then(() => {
+        .then(async () => {
           // Set an event hander
           switchbot.onadvertisement = (ad: any) => {
             this.serviceData = ad.serviceData;
@@ -247,7 +247,7 @@ export class Motion {
             }
           };
           // Wait 10 seconds
-          return switchbot.wait(this.scanDuration * 1000);
+          return await switchbot.wait(this.scanDuration * 1000);
         })
         .then(async () => {
           // Stop to monitor
