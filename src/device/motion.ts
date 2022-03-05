@@ -244,8 +244,12 @@ export class Motion {
           // Set an event hander
           switchbot.onadvertisement = (ad: any) => {
             this.address = ad.address;
-            this.infoLog(this.address);
-            this.infoLog(this.device.bleMac);
+            if (this.deviceLogging.includes('debug')) {
+              this.infoLog(this.address);
+              this.infoLog(this.device.bleMac);
+              this.infoLog(`Motion Sensor: ${this.accessory.displayName} BLE Address Found: ${this.address}`);
+              this.infoLog(`Motion Sensor: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac}`);
+            }
             this.serviceData = ad.serviceData;
             this.movement = ad.serviceData.movement;
             this.battery = ad.serviceData.battery;

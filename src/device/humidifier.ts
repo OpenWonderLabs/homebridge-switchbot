@@ -299,7 +299,12 @@ export class Humidifier {
           // Set an event hander
           switchbot.onadvertisement = (ad: ad) => {
             this.address = ad.address;
-            this.debugLog(this.address);
+            if (this.deviceLogging.includes('debug')) {
+              this.infoLog(this.address);
+              this.infoLog(this.device.bleMac);
+              this.infoLog(`Humidifier: ${this.accessory.displayName} BLE Address Found: ${this.address}`);
+              this.infoLog(`Humidifier: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac}`);
+            }
             this.serviceData = ad.serviceData;
             this.autoMode = ad.serviceData.autoMode;
             this.onState = ad.serviceData.onState;

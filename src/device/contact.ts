@@ -278,8 +278,12 @@ export class Contact {
           // Set an event hander
           switchbot.onadvertisement = (ad: any) => {
             this.address = ad.address;
-            this.infoLog(this.address);
-            this.infoLog(`Contact Sensor: ${this.accessory.displayName} bleMac: ${this.device.bleMac}`);
+            if (this.deviceLogging.includes('debug')) {
+              this.infoLog(this.address);
+              this.infoLog(this.device.bleMac);
+              this.infoLog(`Contact Sensor: ${this.accessory.displayName} BLE Address Found: ${this.address}`);
+              this.infoLog(`Contact Sensor: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac}`);
+            }
             this.serviceData = ad.serviceData;
             this.movement = ad.serviceData.movement;
             this.doorState = ad.serviceData.doorState;

@@ -3,7 +3,7 @@ import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse, payload, deviceStatus } from '../settings';
+import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse, payload, deviceStatus, ad } from '../settings';
 
 export class Curtain {
   // Services
@@ -31,6 +31,7 @@ export class Curtain {
   SwitchToOpenAPI?: boolean;
   serviceData!: serviceData;
   spaceBetweenLevels!: number;
+  address!: ad['address'];
   calibration: serviceData['calibration'];
   battery: serviceData['battery'];
   position: serviceData['position'];
@@ -395,6 +396,13 @@ export class Curtain {
         .then(() => {
           // Set an event hander
           switchbot.onadvertisement = (ad: any) => {
+            this.address = ad.address;
+            if (this.deviceLogging.includes('debug')) {
+              this.infoLog(this.address);
+              this.infoLog(this.device.bleMac);
+              this.infoLog(`Curtain: ${this.accessory.displayName} BLE Address Found: ${this.address}`);
+              this.infoLog(`Curtain: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac}`);
+            }
             this.serviceData = ad.serviceData;
             this.calibration = ad.serviceData.calibration;
             this.battery = ad.serviceData.battery;
