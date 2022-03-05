@@ -119,6 +119,26 @@ export class Lock {
   }
 
   async refreshStatus(): Promise<void> {
+    const switchbot = await this.platform.connectBLE();
+    // Convert to BLE Address
+    this.device.bleMac = this.device
+      .deviceId!.match(/.{1,2}/g)!
+      .join(':')
+      .toLowerCase();
+    this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    (async () => {
+      // Start to monitor advertisement packets
+      await switchbot.startScan({
+        model: 'o',
+      });
+      // Set an event handler
+      switchbot.onadvertisement = (ad: any) => {
+        this.warnLog(JSON.stringify(ad, null, '  '));
+      };
+      await switchbot.wait(10000);
+      // Stop to monitor
+      switchbot.stopScan();
+    })();
     try {
       this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
       this.debugLog(`Lock: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);

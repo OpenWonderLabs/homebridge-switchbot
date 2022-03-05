@@ -926,7 +926,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       // the accessory already exists
-      if (!device.hide_device && device.enableCloudService) {
+      if (!device.hide_device || device.enableCloudService) {
         this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
 
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
@@ -944,7 +944,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } else {
         this.unregisterPlatformAccessories(existingAccessory);
       }
-    } else if (!device.hide_device && device.enableCloudService) {
+    } else if (!device.hide_device || device.enableCloudService) {
       // the accessory does not yet exist, so we need to create it
       this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
 

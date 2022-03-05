@@ -75,6 +75,6 @@
     "typescript-axios-wb": "^1.0.3"
   },
   "optionalDependencies": {
-    "node-switchbot": "^1.2.0"
+    "node-switchbot": "^1.2.1-beta.0"
   }
 }
