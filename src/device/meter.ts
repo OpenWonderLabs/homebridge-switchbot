@@ -240,6 +240,7 @@ export class Meter {
       .join(':')
       .toLowerCase();
     this.debugLog(`Meter: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    this.getCustomBLEAddress(switchbot);
     // Start to monitor advertisement packets
     if (switchbot !== false) {
       switchbot
@@ -305,6 +306,24 @@ export class Meter {
         });
     } else {
       await this.BLEconnection(switchbot);
+    }
+  }
+
+  async getCustomBLEAddress(switchbot: any) {
+    if (this.device.customBLEaddress && this.deviceLogging.includes('debug')) {
+      (async () => {
+        // Start to monitor advertisement packets
+        await switchbot.startScan({
+          model: 'T',
+        });
+        // Set an event handler
+        switchbot.onadvertisement = (ad: any) => {
+          this.warnLog(JSON.stringify(ad, null, '  '));
+        };
+        await switchbot.wait(10000);
+        // Stop to monitor
+        switchbot.stopScan();
+      })();
     }
   }
 

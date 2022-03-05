@@ -267,6 +267,7 @@ export class Contact {
       .join(':')
       .toLowerCase();
     this.debugLog(`Contact Sensor: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    this.getCustomBLEAddress(switchbot);
     // Start to monitor advertisement packets
     if (switchbot !== false) {
       await switchbot
@@ -333,6 +334,24 @@ export class Contact {
         });
     } else {
       await this.BLEconnection(switchbot);
+    }
+  }
+
+  async getCustomBLEAddress(switchbot: any) {
+    if (this.device.customBLEaddress && this.deviceLogging.includes('debug')) {
+      (async () => {
+        // Start to monitor advertisement packets
+        await switchbot.startScan({
+          model: 'd',
+        });
+        // Set an event handler
+        switchbot.onadvertisement = (ad: any) => {
+          this.warnLog(JSON.stringify(ad, null, '  '));
+        };
+        await switchbot.wait(10000);
+        // Stop to monitor
+        switchbot.stopScan();
+      })();
     }
   }
 

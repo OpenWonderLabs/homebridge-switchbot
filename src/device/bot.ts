@@ -457,6 +457,7 @@ export class Bot {
       .join(':')
       .toLowerCase();
     this.debugLog(`Bot: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    this.getCustomBLEAddress(switchbot);
     // Start to monitor advertisement packets
     if (switchbot === false) {
       this.errorLog(`Bot: ${this.accessory.displayName} wasn't able to establish BLE Connection: ${switchbot}`);
@@ -527,6 +528,24 @@ export class Bot {
         }
         this.apiError(e);
       });
+  }
+
+  async getCustomBLEAddress(switchbot: any) {
+    if (this.device.customBLEaddress && this.deviceLogging.includes('debug')) {
+      (async () => {
+        // Start to monitor advertisement packets
+        await switchbot.startScan({
+          model: 'H',
+        });
+        // Set an event handler
+        switchbot.onadvertisement = (ad: any) => {
+          this.warnLog(JSON.stringify(ad, null, '  '));
+        };
+        await switchbot.wait(10000);
+        // Stop to monitor
+        switchbot.stopScan();
+      })();
+    }
   }
 
   async openAPIRefreshStatus(): Promise<void> {

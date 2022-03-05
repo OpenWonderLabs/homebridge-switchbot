@@ -214,25 +214,15 @@ export class Motion {
     this.debugLog(`Motion Sensor: ${this.accessory.displayName} BLE RefreshStatus`);
     const switchbot = await this.platform.connectBLE();
     // Convert to BLE Address
-    this.device.bleMac = this.device.customBLEaddress || this.device
-      .deviceId!.match(/.{1,2}/g)!
-      .join(':')
-      .toLowerCase();
+    this.device.bleMac =
+      this.device.customBLEaddress ||
+      this.device
+        .deviceId!.match(/.{1,2}/g)!
+        .join(':')
+        .toLowerCase();
     this.debugLog(`Motion Sensor: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-    (async () => {
-      // Start to monitor advertisement packets
-      await switchbot.startScan({
-        model: 's',
-        //id: this.device.bleMac,
-      });
-      // Set an event handler
-      switchbot.onadvertisement = (ad: any) => {
-        this.warnLog(JSON.stringify(ad, null, '  '));
-      };
-      await switchbot.wait(10000);
-      // Stop to monitor
-      switchbot.stopScan();
-    })();
+
+    this.getCustomBLEAddress(switchbot);
     // Start to monitor advertisement packets
     if (switchbot !== false) {
       await switchbot
@@ -257,7 +247,7 @@ export class Motion {
             this.debugLog(`Motion Sensor: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
             this.debugLog(
               `Motion Sensor: ${this.accessory.displayName} movement: ${ad.serviceData.movement}, lightLevel: ` +
-                  `${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}`,
+                `${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}`,
             );
 
             if (this.serviceData) {
@@ -298,6 +288,24 @@ export class Motion {
         });
     } else {
       await this.BLEconnection(switchbot);
+    }
+  }
+
+  async getCustomBLEAddress(switchbot: any) {
+    if (this.device.customBLEaddress && this.deviceLogging.includes('debug')) {
+      (async () => {
+        // Start to monitor advertisement packets
+        await switchbot.startScan({
+          model: 's',
+        });
+        // Set an event handler
+        switchbot.onadvertisement = (ad: any) => {
+          this.warnLog(JSON.stringify(ad, null, '  '));
+        };
+        await switchbot.wait(10000);
+        // Stop to monitor
+        switchbot.stopScan();
+      })();
     }
   }
 
