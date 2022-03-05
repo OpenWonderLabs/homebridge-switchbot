@@ -424,12 +424,7 @@ export class Curtain {
             this.parseStatus();
             this.updateHomeKitCharacteristics();
           } else {
-            this.errorLog(`Curtain: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
-            if (this.platform.config.credentials?.openToken) {
-              this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
-              this.SwitchToOpenAPI = true;
-              await this.openAPIRefreshStatus();
-            }
+            await this.BLEconnection(switchbot);
           }
         })
         .catch(async (e: any) => {

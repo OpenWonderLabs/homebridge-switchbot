@@ -36,6 +36,7 @@ export class Humidifier {
   // BLE Others
   connected?: boolean;
   serviceData!: serviceData;
+  address!: ad['address'];
   onState!: serviceData['onState'];
   autoMode!: serviceData['autoMode'];
   percentage!: serviceData['percentage'];
@@ -297,6 +298,8 @@ export class Humidifier {
         .then(() => {
           // Set an event hander
           switchbot.onadvertisement = (ad: ad) => {
+            this.address = ad.address;
+            this.debugLog(this.address);
             this.serviceData = ad.serviceData;
             this.autoMode = ad.serviceData.autoMode;
             this.onState = ad.serviceData.onState;

@@ -36,6 +36,7 @@ export class Meter {
   switchbot!: switchbot;
   SwitchToOpenAPI?: boolean;
   serviceData!: serviceData;
+  address!: ad['address'];
   temperature!: temperature['c'];
   battery!: serviceData['battery'];
   humidity!: serviceData['humidity'];
@@ -249,6 +250,8 @@ export class Meter {
         .then(() => {
           // Set an event hander
           switchbot.onadvertisement = (ad: ad) => {
+            this.address = ad.address;
+            this.debugLog(this.address);
             this.serviceData = ad.serviceData;
             this.temperature = ad.serviceData.temperature!.c;
             this.humidity = ad.serviceData.humidity;

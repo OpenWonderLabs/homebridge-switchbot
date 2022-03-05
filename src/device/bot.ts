@@ -39,6 +39,7 @@ export class Bot {
   switchbot!: switchbot;
   SwitchToOpenAPI?: boolean;
   serviceData!: serviceData;
+  address!: ad['address'];
   mode!: serviceData['mode'];
   state!: serviceData['state'];
   battery!: serviceData['battery'];
@@ -468,6 +469,8 @@ export class Bot {
       .then(() => {
         // Set an event hander
         switchbot.onadvertisement = (ad: ad) => {
+          this.address = ad.address;
+          this.debugLog(this.address);
           this.serviceData = ad.serviceData;
           this.mode = ad.serviceData.mode;
           this.state = ad.serviceData.state;
@@ -508,11 +511,9 @@ export class Bot {
         this.errorLog(`Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
         if (this.deviceLogging.includes('debug')) {
           this.errorLog(
-            `Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+            `Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` +
+                ` Error Message: ${JSON.stringify(e.message)}`,
           );
-        }
-        if (this.platform.debugMode) {
-          this.errorLog(`Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error: ${JSON.stringify(e)}`);
         }
         if (this.platform.config.credentials?.openToken) {
           this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
