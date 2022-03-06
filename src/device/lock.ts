@@ -62,7 +62,7 @@ export class Lock {
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
-    // accessory.getService('NAME') ?? accessory.addService(this.platform.Service.Lightbulb, 'NAME', 'USER_DEFINED_SUBTYPE');
+    // accessory.getService('NAME') ?? accessory.addService(this.platform.Service.LockMechanism, 'NAME', 'USER_DEFINED_SUBTYPE');
 
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
@@ -119,26 +119,6 @@ export class Lock {
   }
 
   async refreshStatus(): Promise<void> {
-    const switchbot = await this.platform.connectBLE();
-    // Convert to BLE Address
-    this.device.bleMac = this.device
-      .deviceId!.match(/.{1,2}/g)!
-      .join(':')
-      .toLowerCase();
-    this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-    (async () => {
-      // Start to monitor advertisement packets
-      await switchbot.startScan({
-        model: 'o',
-      });
-      // Set an event handler
-      switchbot.onadvertisement = (ad: any) => {
-        this.warnLog(JSON.stringify(ad, null, '  '));
-      };
-      await switchbot.wait(10000);
-      // Stop to monitor
-      switchbot.stopScan();
-    })();
     try {
       this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
       this.debugLog(`Lock: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);

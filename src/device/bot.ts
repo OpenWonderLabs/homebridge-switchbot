@@ -95,7 +95,7 @@ export class Bot {
       .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-BOT-S1')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
-    // get the LightBulb service if it exists, otherwise create a new LightBulb service
+    // get the service if it exists, otherwise create a new service
     // you can create multiple services for each accessory
     if (device.bot?.deviceType === 'switch') {
       this.removeFanService(accessory);
@@ -602,7 +602,7 @@ export class Bot {
         .deviceId!.match(/.{1,2}/g)!
         .join(':')
         .toLowerCase();
-      this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+      this.debugLog(`Bot: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
       //if (switchbot !== false) {
       if (this.botMode === 'press') {
         this.debugLog(`Bot: ${this.accessory.displayName} Bot Mode: ${this.botMode}`);

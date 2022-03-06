@@ -495,7 +495,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.debugLog(`Device: ${device.deviceName} OpenAPI Connection Enabled`);
     } else {
       this.registeringDevice = false;
-      this.debugLog(`Device: ${device.deviceName} Neither OpenAPI and BLE Enabled`);
+      this.debugLog(`Device: ${device.deviceName} OpenAPI and BLE Are Not Enabled`);
     }
     return this.registeringDevice;
   }
@@ -871,7 +871,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       // the accessory already exists
-      if (!device.hide_device && device.enableCloudService) {
+      if (this.registerDevice(device)) {
         this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
 
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
@@ -889,7 +889,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } else {
         this.unregisterPlatformAccessories(existingAccessory);
       }
-    } else if (!device.hide_device && device.enableCloudService) {
+    } else if (this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
       this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
 
@@ -926,7 +926,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       // the accessory already exists
-      if (!device.hide_device || device.enableCloudService) {
+      if (this.registerDevice(device)) {
         this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
 
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
@@ -944,7 +944,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } else {
         this.unregisterPlatformAccessories(existingAccessory);
       }
-    } else if (!device.hide_device || device.enableCloudService) {
+    } else if (this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
       this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
 
@@ -981,7 +981,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       // the accessory already exists
-      if (!device.hide_device && device.enableCloudService) {
+      if (this.registerDevice(device)) {
         this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
 
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
@@ -999,7 +999,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } else {
         this.unregisterPlatformAccessories(existingAccessory);
       }
-    } else if (!device.hide_device && device.enableCloudService) {
+    } else if (this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
       this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
 
