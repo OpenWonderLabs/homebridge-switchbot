@@ -56,7 +56,7 @@
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^0.0.19",
     "axios": "^0.26.0",
-    "rxjs": "^7.5.4"
+    "rxjs": "^7.5.5"
   },
   "devDependencies": {
     "@types/node": "^17.0.21",
