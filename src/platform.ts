@@ -1549,7 +1549,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   public unregisterPlatformAccessories(existingAccessory: PlatformAccessory) {
     // remove platform accessories when no longer present
     this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
-    this.infoLog('Removing existing accessory from cache:', existingAccessory.displayName);
+    this.warnLog(`Removing existing accessory from cache: ${existingAccessory.displayName}`);
   }
 
   public deviceListInfo(devices: deviceResponses) {
