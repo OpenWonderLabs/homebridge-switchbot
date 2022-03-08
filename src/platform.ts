@@ -5,7 +5,9 @@ import { Meter } from './device/meter';
 import { Motion } from './device/motion';
 import { Contact } from './device/contact';
 import { Curtain } from './device/curtain';
+import { MeterPlus } from './device/meterplus';
 import { ColorBulb } from './device/colorbulb';
+import { StripLight } from './device/striplight';
 import { Humidifier } from './device/humidifier';
 import { TV } from './irdevice/tv';
 import { Fan } from './irdevice/fan';
@@ -374,9 +376,12 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.createBot(device);
         break;
       case 'Meter':
-      case 'MeterPlus':
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createMeter(device);
+        break;
+      case 'MeterPlus':
+        this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
+        this.createMeterPlus(device);
         break;
       case 'Motion Sensor':
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
@@ -401,9 +406,12 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.createLock(device);
         break;
       case 'Color Bulb':
-      case 'Strip Light':
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createColorBulb(device);
+        break;
+      case 'Strip Light':
+        this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
+        this.createStripLight(device);
         break;
       case 'Indoor Cam':
         this.deviceInfo(device);
@@ -661,6 +669,61 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new Meter(this, accessory, device);
+      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
+
+      // link the accessory to your platform
+      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      this.accessories.push(accessory);
+    } else {
+      this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
+    }
+  }
+
+  private async createMeterPlus(device: device & devicesConfig) {
+    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`);
+
+    // see if an accessory with the same uuid has already been registered and restored from
+    // the cached devices we stored in the `configureAccessory` method above
+    const existingAccessory = this.accessories.find((accessory) => accessory.UUID === uuid);
+
+    if (existingAccessory) {
+      // the accessory already exists
+      if (this.registerDevice(device)) {
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+
+        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
+        existingAccessory.context.model = device.deviceType;
+        existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.displayName = device.deviceName;
+        existingAccessory.context.firmwareRevision = this.version;
+        existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
+        await this.connectionTypeExistingAccessory(device, existingAccessory);
+        this.api.updatePlatformAccessories([existingAccessory]);
+        // create the accessory handler for the restored accessory
+        // this is imported from `platformAccessory.ts`
+        new MeterPlus(this, existingAccessory, device);
+        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`);
+      } else {
+        this.unregisterPlatformAccessories(existingAccessory);
+      }
+    } else if (this.registerDevice(device)) {
+      // the accessory does not yet exist, so we need to create it
+      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+
+      // create a new accessory
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+
+      // store a copy of the device object in the `accessory.context`
+      // the `context` property can be used to store any data about the accessory you may need
+      accessory.context.device = device;
+      accessory.context.model = device.deviceType;
+      accessory.context.deviceID = device.deviceId;
+      accessory.context.firmwareRevision = this.version;
+      accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
+      await this.connectionTypeNewAccessory(device, accessory);
+      // create the accessory handler for the newly create accessory
+      // this is imported from `platformAccessory.ts`
+      new MeterPlus(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
       // link the accessory to your platform
@@ -1017,6 +1080,61 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new ColorBulb(this, accessory, device);
+      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
+
+      // link the accessory to your platform
+      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      this.accessories.push(accessory);
+    } else {
+      this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
+    }
+  }
+
+  private async createStripLight(device: device & devicesConfig) {
+    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`);
+
+    // see if an accessory with the same uuid has already been registered and restored from
+    // the cached devices we stored in the `configureAccessory` method above
+    const existingAccessory = this.accessories.find((accessory) => accessory.UUID === uuid);
+
+    if (existingAccessory) {
+      // the accessory already exists
+      if (this.registerDevice(device)) {
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+
+        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
+        existingAccessory.context.model = device.deviceType;
+        existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.displayName = device.deviceName;
+        existingAccessory.context.firmwareRevision = this.version;
+        existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
+        await this.connectionTypeExistingAccessory(device, existingAccessory);
+        this.api.updatePlatformAccessories([existingAccessory]);
+        // create the accessory handler for the restored accessory
+        // this is imported from `platformAccessory.ts`
+        new StripLight(this, existingAccessory, device);
+        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`);
+      } else {
+        this.unregisterPlatformAccessories(existingAccessory);
+      }
+    } else if (this.registerDevice(device)) {
+      // the accessory does not yet exist, so we need to create it
+      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+
+      // create a new accessory
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+
+      // store a copy of the device object in the `accessory.context`
+      // the `context` property can be used to store any data about the accessory you may need
+      accessory.context.device = device;
+      accessory.context.model = device.deviceType;
+      accessory.context.deviceID = device.deviceId;
+      accessory.context.firmwareRevision = this.version;
+      accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
+      await this.connectionTypeNewAccessory(device, accessory);
+      // create the accessory handler for the newly create accessory
+      // this is imported from `platformAccessory.ts`
+      new StripLight(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
       // link the accessory to your platform
