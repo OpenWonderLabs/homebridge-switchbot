@@ -36,6 +36,7 @@ export class Humidifier {
   // BLE Others
   connected?: boolean;
   serviceData!: serviceData;
+  address!: ad['address'];
   onState!: serviceData['onState'];
   autoMode!: serviceData['autoMode'];
   percentage!: serviceData['percentage'];
@@ -78,7 +79,7 @@ export class Humidifier {
       .setCharacteristic(this.platform.Characteristic.Model, 'W0801800')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
-    // get the LightBulb service if it exists, otherwise create a new LightBulb service
+    // get the service if it exists, otherwise create a new service
     // you can create multiple services for each accessory
     (this.humidifierService =
       accessory.getService(this.platform.Service.HumidifierDehumidifier) || accessory.addService(this.platform.Service.HumidifierDehumidifier)),
@@ -86,7 +87,7 @@ export class Humidifier {
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
-    // accessory.getService('NAME') ?? accessory.addService(this.platform.Service.Lightbulb, 'NAME', 'USER_DEFINED_SUBTYPE');
+    // accessory.getService('NAME') ?? accessory.addService(this.platform.Service.HumidifierDehumidifier, 'NAME', 'USER_DEFINED_SUBTYPE');
 
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
@@ -287,6 +288,7 @@ export class Humidifier {
       .join(':')
       .toLowerCase();
     this.debugLog(`Humidifier: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    this.getCustomBLEAddress(switchbot);
     // Start to monitor advertisement packets
     if (switchbot !== false) {
       switchbot
@@ -297,6 +299,13 @@ export class Humidifier {
         .then(() => {
           // Set an event hander
           switchbot.onadvertisement = (ad: ad) => {
+            this.address = ad.address;
+            if (this.deviceLogging.includes('debug')) {
+              this.infoLog(this.address);
+              this.infoLog(this.device.bleMac);
+              this.infoLog(`Humidifier: ${this.accessory.displayName} BLE Address Found: ${this.address}`);
+              this.infoLog(`Humidifier: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac}`);
+            }
             this.serviceData = ad.serviceData;
             this.autoMode = ad.serviceData.autoMode;
             this.onState = ad.serviceData.onState;
@@ -343,6 +352,24 @@ export class Humidifier {
         });
     } else {
       await this.BLEconnection(switchbot);
+    }
+  }
+
+  async getCustomBLEAddress(switchbot: any) {
+    if (this.device.customBLEaddress && this.deviceLogging.includes('debug')) {
+      (async () => {
+        // Start to monitor advertisement packets
+        await switchbot.startScan({
+          model: 'e',
+        });
+        // Set an event handler
+        switchbot.onadvertisement = (ad: any) => {
+          this.warnLog(JSON.stringify(ad, null, '  '));
+        };
+        await switchbot.wait(10000);
+        // Stop to monitor
+        switchbot.stopScan();
+      })();
     }
   }
 

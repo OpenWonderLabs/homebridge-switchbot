@@ -39,6 +39,7 @@ export class Bot {
   switchbot!: switchbot;
   SwitchToOpenAPI?: boolean;
   serviceData!: serviceData;
+  address!: ad['address'];
   mode!: serviceData['mode'];
   state!: serviceData['state'];
   battery!: serviceData['battery'];
@@ -94,7 +95,7 @@ export class Bot {
       .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-BOT-S1')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
-    // get the LightBulb service if it exists, otherwise create a new LightBulb service
+    // get the service if it exists, otherwise create a new service
     // you can create multiple services for each accessory
     if (device.bot?.deviceType === 'switch') {
       this.removeFanService(accessory);
@@ -456,6 +457,7 @@ export class Bot {
       .join(':')
       .toLowerCase();
     this.debugLog(`Bot: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    this.getCustomBLEAddress(switchbot);
     // Start to monitor advertisement packets
     if (switchbot === false) {
       this.errorLog(`Bot: ${this.accessory.displayName} wasn't able to establish BLE Connection: ${switchbot}`);
@@ -468,6 +470,13 @@ export class Bot {
       .then(() => {
         // Set an event hander
         switchbot.onadvertisement = (ad: ad) => {
+          this.address = ad.address;
+          if (this.deviceLogging.includes('debug')) {
+            this.infoLog(this.address);
+            this.infoLog(this.device.bleMac);
+            this.infoLog(`Bot: ${this.accessory.displayName} BLE Address Found: ${this.address}`);
+            this.infoLog(`Bot: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac}`);
+          }
           this.serviceData = ad.serviceData;
           this.mode = ad.serviceData.mode;
           this.state = ad.serviceData.state;
@@ -508,11 +517,9 @@ export class Bot {
         this.errorLog(`Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
         if (this.deviceLogging.includes('debug')) {
           this.errorLog(
-            `Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+            `Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` +
+                ` Error Message: ${JSON.stringify(e.message)}`,
           );
-        }
-        if (this.platform.debugMode) {
-          this.errorLog(`Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error: ${JSON.stringify(e)}`);
         }
         if (this.platform.config.credentials?.openToken) {
           this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
@@ -521,6 +528,24 @@ export class Bot {
         }
         this.apiError(e);
       });
+  }
+
+  async getCustomBLEAddress(switchbot: any) {
+    if (this.device.customBLEaddress && this.deviceLogging.includes('debug')) {
+      (async () => {
+        // Start to monitor advertisement packets
+        await switchbot.startScan({
+          model: 'H',
+        });
+        // Set an event handler
+        switchbot.onadvertisement = (ad: any) => {
+          this.warnLog(JSON.stringify(ad, null, '  '));
+        };
+        await switchbot.wait(10000);
+        // Stop to monitor
+        switchbot.stopScan();
+      })();
+    }
   }
 
   async openAPIRefreshStatus(): Promise<void> {
@@ -577,7 +602,7 @@ export class Bot {
         .deviceId!.match(/.{1,2}/g)!
         .join(':')
         .toLowerCase();
-      this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+      this.debugLog(`Bot: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
       //if (switchbot !== false) {
       if (this.botMode === 'press') {
         this.debugLog(`Bot: ${this.accessory.displayName} Bot Mode: ${this.botMode}`);

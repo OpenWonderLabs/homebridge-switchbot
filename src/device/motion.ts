@@ -2,7 +2,7 @@ import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
 import { SwitchBotPlatform } from '../platform';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse, deviceStatus } from '../settings';
+import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse, deviceStatus, ad } from '../settings';
 
 /**
  * Platform Accessory
@@ -31,6 +31,7 @@ export class Motion {
   switchbot!: switchbot;
   SwitchToOpenAPI?: boolean;
   serviceData!: serviceData;
+  address!: ad['address'];
   battery!: serviceData['battery'];
   movement!: serviceData['movement'];
   lightLevel!: serviceData['lightLevel'];
@@ -213,21 +214,32 @@ export class Motion {
     this.debugLog(`Motion Sensor: ${this.accessory.displayName} BLE RefreshStatus`);
     const switchbot = await this.platform.connectBLE();
     // Convert to BLE Address
-    this.device.bleMac = this.device
-      .deviceId!.match(/.{1,2}/g)!
-      .join(':')
-      .toLowerCase();
+    this.device.bleMac =
+      this.device.customBLEaddress ||
+      this.device
+        .deviceId!.match(/.{1,2}/g)!
+        .join(':')
+        .toLowerCase();
     this.debugLog(`Motion Sensor: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+
+    this.getCustomBLEAddress(switchbot);
     // Start to monitor advertisement packets
     if (switchbot !== false) {
-      switchbot
+      await switchbot
         .startScan({
           model: 's',
           id: this.device.bleMac,
         })
-        .then(() => {
+        .then(async () => {
           // Set an event hander
           switchbot.onadvertisement = (ad: any) => {
+            this.address = ad.address;
+            if (this.deviceLogging.includes('debug')) {
+              this.infoLog(this.address);
+              this.infoLog(this.device.bleMac);
+              this.infoLog(`Motion Sensor: ${this.accessory.displayName} BLE Address Found: ${this.address}`);
+              this.infoLog(`Motion Sensor: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac}`);
+            }
             this.serviceData = ad.serviceData;
             this.movement = ad.serviceData.movement;
             this.battery = ad.serviceData.battery;
@@ -247,7 +259,7 @@ export class Motion {
             }
           };
           // Wait 10 seconds
-          return switchbot.wait(this.scanDuration * 1000);
+          return await switchbot.wait(this.scanDuration * 1000);
         })
         .then(async () => {
           // Stop to monitor
@@ -276,6 +288,24 @@ export class Motion {
         });
     } else {
       await this.BLEconnection(switchbot);
+    }
+  }
+
+  async getCustomBLEAddress(switchbot: any) {
+    if (this.device.customBLEaddress && this.deviceLogging.includes('debug')) {
+      (async () => {
+        // Start to monitor advertisement packets
+        await switchbot.startScan({
+          model: 's',
+        });
+        // Set an event handler
+        switchbot.onadvertisement = (ad: any) => {
+          this.warnLog(JSON.stringify(ad, null, '  '));
+        };
+        await switchbot.wait(10000);
+        // Stop to monitor
+        switchbot.stopScan();
+      })();
     }
   }
 
