@@ -3,7 +3,7 @@ import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse, payload, deviceStatus } from '../settings';
+import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse, payload, deviceStatus, ad } from '../settings';
 
 export class Curtain {
   // Services
@@ -31,6 +31,7 @@ export class Curtain {
   SwitchToOpenAPI?: boolean;
   serviceData!: serviceData;
   spaceBetweenLevels!: number;
+  address!: ad['address'];
   calibration: serviceData['calibration'];
   battery: serviceData['battery'];
   position: serviceData['position'];
@@ -86,7 +87,7 @@ export class Curtain {
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
-    // accessory.getService('NAME') ?? accessory.addService(this.platform.Service.Lightbulb, 'NAME', 'USER_DEFINED_SUBTYPE');
+    // accessory.getService('NAME') ?? accessory.addService(this.platform.Service.WindowCovering, 'NAME', 'USER_DEFINED_SUBTYPE');
 
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
@@ -385,6 +386,7 @@ export class Curtain {
       .join(':')
       .toLowerCase();
     this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    this.getCustomBLEAddress(switchbot);
     // Start to monitor advertisement packets
     if (switchbot !== false) {
       switchbot
@@ -395,6 +397,13 @@ export class Curtain {
         .then(() => {
           // Set an event hander
           switchbot.onadvertisement = (ad: any) => {
+            this.address = ad.address;
+            if (this.deviceLogging.includes('debug')) {
+              this.infoLog(this.address);
+              this.infoLog(this.device.bleMac);
+              this.infoLog(`Curtain: ${this.accessory.displayName} BLE Address Found: ${this.address}`);
+              this.infoLog(`Curtain: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac}`);
+            }
             this.serviceData = ad.serviceData;
             this.calibration = ad.serviceData.calibration;
             this.battery = ad.serviceData.battery;
@@ -424,12 +433,7 @@ export class Curtain {
             this.parseStatus();
             this.updateHomeKitCharacteristics();
           } else {
-            this.errorLog(`Curtain: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
-            if (this.platform.config.credentials?.openToken) {
-              this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
-              this.SwitchToOpenAPI = true;
-              await this.openAPIRefreshStatus();
-            }
+            await this.BLEconnection(switchbot);
           }
         })
         .catch(async (e: any) => {
@@ -448,6 +452,24 @@ export class Curtain {
         });
     } else {
       await this.BLEconnection(switchbot);
+    }
+  }
+
+  async getCustomBLEAddress(switchbot: any) {
+    if (this.device.customBLEaddress && this.deviceLogging.includes('debug')) {
+      (async () => {
+        // Start to monitor advertisement packets
+        await switchbot.startScan({
+          model: 'c',
+        });
+        // Set an event handler
+        switchbot.onadvertisement = (ad: any) => {
+          this.warnLog(JSON.stringify(ad, null, '  '));
+        };
+        await switchbot.wait(10000);
+        // Stop to monitor
+        switchbot.stopScan();
+      })();
     }
   }
 

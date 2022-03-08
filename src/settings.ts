@@ -53,6 +53,7 @@ export interface devicesConfig extends device {
   plug?: Record<any, any>;
   lock?: lock;
   ble?: boolean;
+  customBLEaddress?: string;
   scanDuration?: number;
   hide_device?: boolean;
   offline?: boolean;
@@ -299,6 +300,9 @@ export type deviceStatus = {
 };
 
 export type ad = {
+  id: string;
+  address: string;
+  rssi: number;
   serviceData: serviceData;
 };
 
