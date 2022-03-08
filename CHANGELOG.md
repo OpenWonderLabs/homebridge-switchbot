@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 1.12.7](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.7) (2022-03-07)
+
+## What's Changed
+
+- Seperated Color Bulb and Strip Lights
+  - Strip Lights no longer support Adaptive Lighting.
+    - Adaptive Lighting requires Color Temperature, which Strip Lights do not support.
+- Seperated Meter and Meter Plus for BLE purposes.
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.6...v1.12.7
+
 ## [Version 1.12.6](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.6) (2022-03-04)
 
 ## What's Changed
