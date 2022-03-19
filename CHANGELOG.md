@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 1.12.8](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.8) (2022-03-19)
+
+## What's Changed
+
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.7...v1.12.8
+
 ## [Version 1.12.7](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.7) (2022-03-07)
 
 ## What's Changed
