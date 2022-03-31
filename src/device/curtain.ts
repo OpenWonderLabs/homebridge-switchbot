@@ -24,7 +24,7 @@ export class Curtain {
   slidePosition: deviceStatus['slidePosition'];
   moving: deviceStatus['moving'];
   brightness: deviceStatus['brightness'];
-  setPositionMode?: string;
+  setPositionMode?: string | number;
 
   // BLE Others
   connected?: boolean;
@@ -532,9 +532,17 @@ export class Curtain {
         .toLowerCase();
       this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
       if (this.TargetPosition > 50) {
-        this.setPositionMode = this.device.curtain?.setOpenMode;
+        if (this.device.curtain?.setOpenMode === '1') {
+          this.setPositionMode = 1;
+        } else {
+          this.setPositionMode = 0;
+        }
       } else {
-        this.setPositionMode = this.device.curtain?.setCloseMode;
+        if (this.device.curtain?.setCloseMode === '1') {
+          this.setPositionMode = 1;
+        } else {
+          this.setPositionMode = 0;
+        }
       }
       const adjustedMode = this.setPositionMode || null;
       if (switchbot !== false) {
