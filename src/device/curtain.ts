@@ -24,6 +24,7 @@ export class Curtain {
   slidePosition: deviceStatus['slidePosition'];
   moving: deviceStatus['moving'];
   brightness: deviceStatus['brightness'];
+  setPositionMode?: string;
 
   // BLE Others
   connected?: boolean;
@@ -49,6 +50,8 @@ export class Curtain {
   scanDuration!: number;
   deviceLogging!: string;
   deviceRefreshRate!: number;
+  setCloseMode!: string;
+  setOpenMode!: string;
 
   // Updates
   curtainUpdateInProgress!: boolean;
@@ -528,12 +531,18 @@ export class Curtain {
         .join(':')
         .toLowerCase();
       this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+      if (this.TargetPosition > 50) {
+        this.setPositionMode = this.device.curtain?.setOpenMode;
+      } else {
+        this.setPositionMode = this.device.curtain?.setCloseMode;
+      }
+      const adjustedMode = this.setPositionMode || null;
       if (switchbot !== false) {
         switchbot
           .discover({ model: 'c', quick: true, id: this.device.bleMac })
           .then((device_list) => {
             this.infoLog(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
-            return device_list[0].runToPos(100 - Number(this.TargetPosition));
+            return device_list[0].runToPos(100 - Number(this.TargetPosition), adjustedMode);
           })
           .then(() => {
             this.debugLog(`Curtain: ${this.accessory.displayName} Done.`);
@@ -573,10 +582,16 @@ export class Curtain {
         if (this.TargetPosition !== this.CurrentPosition) {
           this.debugLog(`Pushing ${this.TargetPosition}`);
           const adjustedTargetPosition = 100 - Number(this.TargetPosition);
+          if (this.TargetPosition > 50) {
+            this.setPositionMode = this.device.curtain?.setOpenMode;
+          } else {
+            this.setPositionMode = this.device.curtain?.setCloseMode;
+          }
+          const adjustedMode = this.setPositionMode || 'ff';
           const payload = {
             commandType: 'command',
             command: 'setPosition',
-            parameter: `0,ff,${adjustedTargetPosition}`,
+            parameter: `0,${adjustedMode},${adjustedTargetPosition}`,
           } as payload;
 
           this.infoLog(

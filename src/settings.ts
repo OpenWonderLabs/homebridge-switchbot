@@ -86,6 +86,8 @@ export type curtain = {
   set_max?: number;
   set_min?: number;
   set_minStep?: number;
+  setCloseMode?: string;
+  setOpenMode?: string;
 };
 
 export type contact = {
