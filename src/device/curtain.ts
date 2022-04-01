@@ -25,6 +25,7 @@ export class Curtain {
   moving: deviceStatus['moving'];
   brightness: deviceStatus['brightness'];
   setPositionMode?: string | number;
+  Mode!: string;
 
   // BLE Others
   connected?: boolean;
@@ -534,22 +535,31 @@ export class Curtain {
       if (this.TargetPosition > 50) {
         if (this.device.curtain?.setOpenMode === '1') {
           this.setPositionMode = 1;
+          this.Mode = 'Silent Mode';
         } else {
           this.setPositionMode = 0;
+          this.Mode = 'Performance Mode';
         }
       } else {
         if (this.device.curtain?.setCloseMode === '1') {
           this.setPositionMode = 1;
+          this.Mode = 'Silent Mode';
         } else {
           this.setPositionMode = 0;
+          this.Mode = 'Performance Mode';
         }
       }
+      const adjustedMode = this.setPositionMode || null;
+      if (adjustedMode === null) {
+        this.Mode = 'Default Mode';
+      }
+      this.debugLog(`${this.accessory.displayName} Mode: ${this.Mode}`);
       if (switchbot !== false) {
         switchbot
           .discover({ model: 'c', quick: true, id: this.device.bleMac })
           .then((device_list) => {
             this.infoLog(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
-            return device_list[0].runToPos(100 - Number(this.TargetPosition), this.setPositionMode);
+            return device_list[0].runToPos(100 - Number(this.TargetPosition), adjustedMode);
           })
           .then(() => {
             this.debugLog(`Curtain: ${this.accessory.displayName} Done.`);
@@ -594,6 +604,14 @@ export class Curtain {
           } else {
             this.setPositionMode = this.device.curtain?.setCloseMode;
           }
+          if (this.setPositionMode === '1') {
+            this.Mode = 'Silent Mode';
+          } else if (this.setPositionMode === '0') {
+            this.Mode = 'Performance Mode';
+          } else {
+            this.Mode = 'Default Mode';
+          }
+          this.debugLog(`${this.accessory.displayName} Mode: ${this.Mode}`);
           const adjustedMode = this.setPositionMode || 'ff';
           const payload = {
             commandType: 'command',
