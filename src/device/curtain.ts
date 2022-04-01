@@ -544,13 +544,12 @@ export class Curtain {
           this.setPositionMode = 0;
         }
       }
-      const adjustedMode = this.setPositionMode || null;
       if (switchbot !== false) {
         switchbot
           .discover({ model: 'c', quick: true, id: this.device.bleMac })
           .then((device_list) => {
             this.infoLog(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
-            return device_list[0].runToPos(100 - Number(this.TargetPosition), adjustedMode);
+            return device_list[0].runToPos(100 - Number(this.TargetPosition), this.setPositionMode);
           })
           .then(() => {
             this.debugLog(`Curtain: ${this.accessory.displayName} Done.`);

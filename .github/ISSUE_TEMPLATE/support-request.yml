@@ -2,7 +2,12 @@ name: Support Request
 description: Need help?
 title: 'Support Request: '
 labels: [question]
-assignees: 'donavanbecker'
+assignees:
+  - donavanbecker
+  - SwitchBot
+  - SwitchBot-Wonderlabs
+  - Minsheng
+  - Devin-Wonderlabs
 body:
   - type: markdown
     attributes:
