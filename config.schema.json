@@ -621,6 +621,14 @@
                   "type": "string",
                   "placeholder": "81F3UT59513F"
                 },
+                "configDeviceName": {
+                  "title": "Device Name",
+                  "type": "string",
+                  "placeholder": "SwitchBot",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId);"
+                  }
+                },
                 "hide_device": {
                   "title": "Hide Device",
                   "type": "boolean",
@@ -1073,6 +1081,7 @@
           "expanded": false,
           "orderable": false,
           "items": [
+            "options.irdevices[].configDeviceName",
             "options.irdevices[].deviceId",
             "options.irdevices[].hide_device",
             "options.irdevices[].configRemoteType",
