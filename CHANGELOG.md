@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file. This projec
 ## What's Changed
 
 - Added Config `setOpenMode` and `setCloseMode` so that you can set mode to be Performance or Silent.
+- Fixed Smart Lock Display state status.
+  - Still unable to control Locks because of API limitations.
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.8...v1.13.0

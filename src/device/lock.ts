@@ -130,9 +130,11 @@ export class Lock {
     switch (this.lockState) {
       case 'locked':
         this.LockCurrentState = this.platform.Characteristic.LockCurrentState.SECURED;
+        this.LockTargetState = this.platform.Characteristic.LockTargetState.SECURED;
         break;
       default:
         this.LockCurrentState = this.platform.Characteristic.LockCurrentState.UNSECURED;
+        this.LockTargetState = this.platform.Characteristic.LockTargetState.UNSECURED;
     }
     switch (this.doorState) {
       case 'opened':
@@ -220,7 +222,7 @@ export class Lock {
       this.debugLog(`Lock: ${this.accessory.displayName} LockCurrentState: ${this.LockCurrentState}`);
     } else {
       this.lockService.updateCharacteristic(this.platform.Characteristic.LockCurrentState, this.LockCurrentState);
-      this.debugLog(`Lock: ${this.accessory.displayName} updateCharacteristic LockTargetState: ${this.LockCurrentState}`);
+      this.debugLog(`Lock: ${this.accessory.displayName} updateCharacteristic LockCurrentState: ${this.LockCurrentState}`);
     }
   }
 
