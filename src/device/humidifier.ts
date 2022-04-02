@@ -124,7 +124,6 @@ export class Humidifier {
       })
       .onSet(this.handleRelativeHumidityHumidifierThresholdSet.bind(this));
 
-    // create a new Temperature Sensor service
     // Temperature Sensor Service
     if (device.humidifier?.hide_temperature || device.ble) {
       this.debugLog(`Humidifier: ${accessory.displayName} Removing Temperature Sensor Service`);

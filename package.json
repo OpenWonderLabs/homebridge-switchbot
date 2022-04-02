@@ -67,7 +67,7 @@
     "eslint-plugin-prettier": "4.0.0",
     "homebridge": "^1.4.0",
     "nodemon": "^2.0.15",
-    "npm-check-updates": "^12.5.4",
+    "npm-check-updates": "^12.5.5",
     "prettier": "2.6.1",
     "rimraf": "^3.0.2",
     "ts-node": "^10.7.0",

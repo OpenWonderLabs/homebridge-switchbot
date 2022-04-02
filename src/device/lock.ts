@@ -11,6 +11,7 @@ export class Lock {
   contactSensorService?: Service;
 
   // Characteristic Values
+  ContactSensorState!: CharacteristicValue;
   LockCurrentState!: CharacteristicValue;
   LockTargetState!: CharacteristicValue;
   LockTargetStateCached!: CharacteristicValue;
@@ -74,6 +75,22 @@ export class Lock {
     // create handlers for required characteristics
     this.lockService.getCharacteristic(this.platform.Characteristic.LockCurrentState).onSet(this.LockTargetStateSet.bind(this));
 
+    // Contact Sensor Service
+    if (device.lock?.hide_contactsensor) {
+      this.debugLog(`Lock: ${accessory.displayName} Removing Contact Sensor Service`);
+      this.contactSensorService = this.accessory.getService(this.platform.Service.ContactSensor);
+      accessory.removeService(this.contactSensorService!);
+    } else if (!this.contactSensorService) {
+      this.debugLog(`Lock: ${accessory.displayName} Add Contact Sensor Service`);
+      (this.contactSensorService =
+        this.accessory.getService(this.platform.Service.ContactSensor) || this.accessory.addService(this.platform.Service.ContactSensor)),
+      `${accessory.displayName} Contact Sensor`;
+
+      this.contactSensorService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Contact Sensor`);
+    } else {
+      this.debugLog(`Lock: ${accessory.displayName} Contact Sensor Service Not Added`);
+    }
+
     // Update Homekit
     this.updateHomeKitCharacteristics();
 
@@ -107,13 +124,22 @@ export class Lock {
       });
   }
 
+  //{"deviceId":"DBDC23B53139","deviceType":"Smart Lock","hubDeviceId":"E68B14109DA2","lockState":"locked","doorState":"opened","calibrate":true}
+
   async parseStatus(): Promise<void> {
     switch (this.lockState) {
-      case 'on':
-        this.LockCurrentState = this.platform.Characteristic.LockCurrentState.UNSECURED;
+      case 'locked':
+        this.LockCurrentState = this.platform.Characteristic.LockCurrentState.SECURED;
         break;
       default:
-        this.LockCurrentState = this.platform.Characteristic.LockCurrentState.SECURED;
+        this.LockCurrentState = this.platform.Characteristic.LockCurrentState.UNSECURED;
+    }
+    switch (this.doorState) {
+      case 'opened':
+        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
+        break;
+      default:
+        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
     this.debugLog(`Lock: ${this.accessory.displayName} On: ${this.LockTargetState}`);
   }
@@ -123,9 +149,7 @@ export class Lock {
       this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
       this.debugLog(`Lock: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
       this.lockState = this.deviceStatus.body.lockState;
-      this.warnLog(`Lock: ${this.accessory.displayName} lockState: ${JSON.stringify(this.lockState)} (COPY THIS LOG)`);
       this.doorState = this.deviceStatus.body.doorState;
-      this.debugLog(`Lock: ${this.accessory.displayName} doorState: ${JSON.stringify(this.doorState)} (COPY THIS LOG)`);
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
@@ -178,6 +202,14 @@ export class Lock {
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
+    if (!this.device.lock?.hide_contactsensor) {
+      if (this.ContactSensorState === undefined) {
+        this.debugLog(`Lock: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
+      } else {
+        this.contactSensorService?.updateCharacteristic(this.platform.Characteristic.ContactSensorState, this.ContactSensorState);
+        this.debugLog(`Lock: ${this.accessory.displayName} updateCharacteristic ContactSensorState: ${this.ContactSensorState}`);
+      }
+    }
     if (this.LockTargetState === undefined) {
       this.debugLog(`Lock: ${this.accessory.displayName} LockTargetState: ${this.LockTargetState}`);
     } else {
@@ -193,6 +225,9 @@ export class Lock {
   }
 
   async apiError(e: any): Promise<void> {
+    if (!this.device.lock?.hide_contactsensor) {
+      this.contactSensorService?.updateCharacteristic(this.platform.Characteristic.ContactSensorState, e);
+    }
     this.lockService.updateCharacteristic(this.platform.Characteristic.LockTargetState, e);
     this.lockService.updateCharacteristic(this.platform.Characteristic.LockCurrentState, e);
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
