@@ -43,6 +43,7 @@ export interface devicesConfig extends device {
   deviceId: string;
   logging?: string;
   refreshRate?: number;
+  firmware?: string;
   bot?: bot;
   meter?: meter;
   humidifier?: humidifier;

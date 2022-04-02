@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file. This projec
 ## What's Changed
 
 - Added Config `setOpenMode` and `setCloseMode` so that you can set mode to be Performance or Silent.
+- Added Config to allow manually setting firmware version.
 - Fixed Smart Lock Display state status.
   - Still unable to control Locks because of API limitations.
 - Housekeeping and updated dependencies.
