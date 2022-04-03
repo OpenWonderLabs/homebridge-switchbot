@@ -38,7 +38,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     responseType: 'json',
   });
 
-  version = require('../package.json').version; // eslint-disable-line @typescript-eslint/no-var-requires
+  version = require('../package.json').version || '1.12.8'; // eslint-disable-line @typescript-eslint/no-var-requires
   deviceStatus!: deviceResponses;
   registeringDevice!: boolean;
   debugMode!: boolean;
