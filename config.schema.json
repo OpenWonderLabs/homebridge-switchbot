@@ -568,7 +568,7 @@
                   "type": "string",
                   "placeholder": "1.2.8",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId);"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId);"
                   }
                 },
                 "refreshRate": {
