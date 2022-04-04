@@ -89,6 +89,8 @@ export class ColorBulb {
       .getCharacteristic(this.platform.Characteristic.FirmwareRevision).updateValue(accessory.context.firmwareRevision
         || device.firmware || this.platform.version);
 
+    this.infoLog(device.firmware);
+
     // get the Lightbulb service if it exists, otherwise create a new Lightbulb service
     // you can create multiple services for each accessory
     (this.lightBulbService = accessory.getService(this.platform.Service.Lightbulb) || accessory.addService(this.platform.Service.Lightbulb)),
