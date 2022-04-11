@@ -7,21 +7,11 @@ on:
   pull requests:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 14
-      - name: npm install
-        run: |
-          npm install
-        env:
-          CI: true
-
   depdendabot:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
     steps:
       - uses: fastify/github-action-merge-dependabot@v3
         with:
