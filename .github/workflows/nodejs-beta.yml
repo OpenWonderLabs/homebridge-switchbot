@@ -25,6 +25,7 @@ jobs:
           CI: true
 
   depdendabot:
+    runs-on: ubuntu-latest
     steps:
       - uses: fastify/github-action-merge-dependabot@v3
         with:
@@ -32,11 +33,8 @@ jobs:
 
   publish-npm:
     if: github.repository == 'openwonderlabs/homebridge-switchbot'
-
     needs: build
-
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
