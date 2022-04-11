@@ -1,13 +1,14 @@
 name: Dependabot
-on: [push, pull_request]
-  branches:
-    - beta
+
+on:
+  push:
+    branches: beta
+  pull_request:
+    branches: beta
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      # ...
 
   automerge:
     needs: build
