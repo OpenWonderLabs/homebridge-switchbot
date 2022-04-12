@@ -4,6 +4,7 @@ import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse, payload, deviceStatus, ad } from '../settings';
+import { Context } from 'vm';
 
 export class Curtain {
   // Services
@@ -24,6 +25,8 @@ export class Curtain {
   slidePosition: deviceStatus['slidePosition'];
   moving: deviceStatus['moving'];
   brightness: deviceStatus['brightness'];
+  setPositionMode?: string | number;
+  Mode!: string;
 
   // BLE Others
   connected?: boolean;
@@ -49,6 +52,8 @@ export class Curtain {
   scanDuration!: number;
   deviceLogging!: string;
   deviceRefreshRate!: number;
+  setCloseMode!: string;
+  setOpenMode!: string;
 
   // Updates
   curtainUpdateInProgress!: boolean;
@@ -77,7 +82,9 @@ export class Curtain {
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, 'W0701600')
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId);
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId)
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
+      .getCharacteristic(this.platform.Characteristic.FirmwareRevision).updateValue(this.FirmwareRevision(accessory, device));
 
     // get the WindowCovering service if it exists, otherwise create a new WindowCovering service
     // you can create multiple services for each accessory
@@ -528,12 +535,34 @@ export class Curtain {
         .join(':')
         .toLowerCase();
       this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+      if (this.TargetPosition > 50) {
+        if (this.device.curtain?.setOpenMode === '1') {
+          this.setPositionMode = 1;
+          this.Mode = 'Silent Mode';
+        } else {
+          this.setPositionMode = 0;
+          this.Mode = 'Performance Mode';
+        }
+      } else {
+        if (this.device.curtain?.setCloseMode === '1') {
+          this.setPositionMode = 1;
+          this.Mode = 'Silent Mode';
+        } else {
+          this.setPositionMode = 0;
+          this.Mode = 'Performance Mode';
+        }
+      }
+      const adjustedMode = this.setPositionMode || null;
+      if (adjustedMode === null) {
+        this.Mode = 'Default Mode';
+      }
+      this.debugLog(`${this.accessory.displayName} Mode: ${this.Mode}`);
       if (switchbot !== false) {
         switchbot
           .discover({ model: 'c', quick: true, id: this.device.bleMac })
           .then((device_list) => {
             this.infoLog(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
-            return device_list[0].runToPos(100 - Number(this.TargetPosition));
+            return device_list[0].runToPos(100 - Number(this.TargetPosition), adjustedMode);
           })
           .then(() => {
             this.debugLog(`Curtain: ${this.accessory.displayName} Done.`);
@@ -573,10 +602,24 @@ export class Curtain {
         if (this.TargetPosition !== this.CurrentPosition) {
           this.debugLog(`Pushing ${this.TargetPosition}`);
           const adjustedTargetPosition = 100 - Number(this.TargetPosition);
+          if (this.TargetPosition > 50) {
+            this.setPositionMode = this.device.curtain?.setOpenMode;
+          } else {
+            this.setPositionMode = this.device.curtain?.setCloseMode;
+          }
+          if (this.setPositionMode === '1') {
+            this.Mode = 'Silent Mode';
+          } else if (this.setPositionMode === '0') {
+            this.Mode = 'Performance Mode';
+          } else {
+            this.Mode = 'Default Mode';
+          }
+          this.debugLog(`${this.accessory.displayName} Mode: ${this.Mode}`);
+          const adjustedMode = this.setPositionMode || 'ff';
           const payload = {
             commandType: 'command',
             command: 'setPosition',
-            parameter: `0,ff,${adjustedTargetPosition}`,
+            parameter: `0,${adjustedMode},${adjustedTargetPosition}`,
           } as payload;
 
           this.infoLog(
@@ -827,6 +870,21 @@ export class Curtain {
       this.deviceLogging = this.accessory.context.logging = 'standard';
       this.debugLog(`Curtain: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
     }
+  }
+
+  FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
+    let FirmwareRevision: string;
+    this.debugLog(`Color Bulb: ${this.accessory.displayName} accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+    this.debugLog(`Color Bulb: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
+    this.debugLog(`Color Bulb: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
+    if (accessory.context.FirmwareRevision) {
+      FirmwareRevision = accessory.context.FirmwareRevision;
+    } else if (device.firmware) {
+      FirmwareRevision = device.firmware;
+    } else {
+      FirmwareRevision = this.platform.version;
+    }
+    return FirmwareRevision;
   }
 
   minStep(device: device & devicesConfig): number {

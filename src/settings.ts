@@ -43,6 +43,7 @@ export interface devicesConfig extends device {
   deviceId: string;
   logging?: string;
   refreshRate?: number;
+  firmware?: string;
   bot?: bot;
   meter?: meter;
   humidifier?: humidifier;
@@ -86,6 +87,8 @@ export type curtain = {
   set_max?: number;
   set_min?: number;
   set_minStep?: number;
+  setCloseMode?: string;
+  setOpenMode?: string;
 };
 
 export type contact = {

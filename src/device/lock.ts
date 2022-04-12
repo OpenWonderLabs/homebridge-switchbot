@@ -4,6 +4,7 @@ import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { DeviceURL, device, devicesConfig, deviceStatusResponse, payload, deviceStatus } from '../settings';
+import { Context } from 'vm';
 
 export class Lock {
   // Services
@@ -11,6 +12,7 @@ export class Lock {
   contactSensorService?: Service;
 
   // Characteristic Values
+  ContactSensorState!: CharacteristicValue;
   LockCurrentState!: CharacteristicValue;
   LockTargetState!: CharacteristicValue;
   LockTargetStateCached!: CharacteristicValue;
@@ -53,7 +55,9 @@ export class Lock {
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, 'W1601700')
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
+      .getCharacteristic(this.platform.Characteristic.FirmwareRevision).updateValue(this.FirmwareRevision(accessory, device));
 
     // get the LockMechanism service if it exists, otherwise create a new LockMechanism service
     // you can create multiple services for each accessory
@@ -73,6 +77,22 @@ export class Lock {
 
     // create handlers for required characteristics
     this.lockService.getCharacteristic(this.platform.Characteristic.LockCurrentState).onSet(this.LockTargetStateSet.bind(this));
+
+    // Contact Sensor Service
+    if (device.lock?.hide_contactsensor) {
+      this.debugLog(`Lock: ${accessory.displayName} Removing Contact Sensor Service`);
+      this.contactSensorService = this.accessory.getService(this.platform.Service.ContactSensor);
+      accessory.removeService(this.contactSensorService!);
+    } else if (!this.contactSensorService) {
+      this.debugLog(`Lock: ${accessory.displayName} Add Contact Sensor Service`);
+      (this.contactSensorService =
+        this.accessory.getService(this.platform.Service.ContactSensor) || this.accessory.addService(this.platform.Service.ContactSensor)),
+      `${accessory.displayName} Contact Sensor`;
+
+      this.contactSensorService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Contact Sensor`);
+    } else {
+      this.debugLog(`Lock: ${accessory.displayName} Contact Sensor Service Not Added`);
+    }
 
     // Update Homekit
     this.updateHomeKitCharacteristics();
@@ -107,13 +127,24 @@ export class Lock {
       });
   }
 
+  //{"deviceId":"DBDC23B53139","deviceType":"Smart Lock","hubDeviceId":"E68B14109DA2","lockState":"locked","doorState":"opened","calibrate":true}
+
   async parseStatus(): Promise<void> {
     switch (this.lockState) {
-      case 'on':
-        this.LockCurrentState = this.platform.Characteristic.LockCurrentState.UNSECURED;
+      case 'locked':
+        this.LockCurrentState = this.platform.Characteristic.LockCurrentState.SECURED;
+        this.LockTargetState = this.platform.Characteristic.LockTargetState.SECURED;
         break;
       default:
-        this.LockCurrentState = this.platform.Characteristic.LockCurrentState.SECURED;
+        this.LockCurrentState = this.platform.Characteristic.LockCurrentState.UNSECURED;
+        this.LockTargetState = this.platform.Characteristic.LockTargetState.UNSECURED;
+    }
+    switch (this.doorState) {
+      case 'opened':
+        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
+        break;
+      default:
+        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
     this.debugLog(`Lock: ${this.accessory.displayName} On: ${this.LockTargetState}`);
   }
@@ -123,9 +154,7 @@ export class Lock {
       this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
       this.debugLog(`Lock: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
       this.lockState = this.deviceStatus.body.lockState;
-      this.warnLog(`Lock: ${this.accessory.displayName} lockState: ${JSON.stringify(this.lockState)} (COPY THIS LOG)`);
       this.doorState = this.deviceStatus.body.doorState;
-      this.debugLog(`Lock: ${this.accessory.displayName} doorState: ${JSON.stringify(this.doorState)} (COPY THIS LOG)`);
       this.parseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
@@ -178,6 +207,14 @@ export class Lock {
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
+    if (!this.device.lock?.hide_contactsensor) {
+      if (this.ContactSensorState === undefined) {
+        this.debugLog(`Lock: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
+      } else {
+        this.contactSensorService?.updateCharacteristic(this.platform.Characteristic.ContactSensorState, this.ContactSensorState);
+        this.debugLog(`Lock: ${this.accessory.displayName} updateCharacteristic ContactSensorState: ${this.ContactSensorState}`);
+      }
+    }
     if (this.LockTargetState === undefined) {
       this.debugLog(`Lock: ${this.accessory.displayName} LockTargetState: ${this.LockTargetState}`);
     } else {
@@ -188,11 +225,14 @@ export class Lock {
       this.debugLog(`Lock: ${this.accessory.displayName} LockCurrentState: ${this.LockCurrentState}`);
     } else {
       this.lockService.updateCharacteristic(this.platform.Characteristic.LockCurrentState, this.LockCurrentState);
-      this.debugLog(`Lock: ${this.accessory.displayName} updateCharacteristic LockTargetState: ${this.LockCurrentState}`);
+      this.debugLog(`Lock: ${this.accessory.displayName} updateCharacteristic LockCurrentState: ${this.LockCurrentState}`);
     }
   }
 
   async apiError(e: any): Promise<void> {
+    if (!this.device.lock?.hide_contactsensor) {
+      this.contactSensorService?.updateCharacteristic(this.platform.Characteristic.ContactSensorState, e);
+    }
     this.lockService.updateCharacteristic(this.platform.Characteristic.LockTargetState, e);
     this.lockService.updateCharacteristic(this.platform.Characteristic.LockCurrentState, e);
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
@@ -299,6 +339,21 @@ export class Lock {
       this.deviceLogging = this.accessory.context.logging = 'standard';
       this.debugLog(`Lock: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
     }
+  }
+
+  FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
+    let FirmwareRevision: string;
+    this.debugLog(`Color Bulb: ${this.accessory.displayName} accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+    this.debugLog(`Color Bulb: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
+    this.debugLog(`Color Bulb: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
+    if (accessory.context.FirmwareRevision) {
+      FirmwareRevision = accessory.context.FirmwareRevision;
+    } else if (device.firmware) {
+      FirmwareRevision = device.firmware;
+    } else {
+      FirmwareRevision = this.platform.version;
+    }
+    return FirmwareRevision;
   }
 
   /**

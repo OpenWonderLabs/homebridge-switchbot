@@ -399,6 +399,48 @@
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
+                    "setOpenMode": {
+                      "title": "Curtain's Opening Mode",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "Performance Mode",
+                          "enum": [
+                            "0"
+                          ]
+                        },
+                        {
+                          "title": "Silent Mode",
+                          "enum": [
+                            "1"
+                          ]
+                        }
+                      ],
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "setCloseMode": {
+                      "title": "Curtain's Closing Mode",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "Performance Mode",
+                          "enum": [
+                            "0"
+                          ]
+                        },
+                        {
+                          "title": "Silent Mode",
+                          "enum": [
+                            "1"
+                          ]
+                        }
+                      ],
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
                     "hide_lightsensor": {
                       "title": "Hide Curtain's Light Sensor",
                       "type": "boolean",
@@ -521,6 +563,14 @@
                     }
                   }
                 },
+                "firmware": {
+                  "title": "Firmware Override",
+                  "type": "string",
+                  "placeholder": "1.2.8",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId);"
+                  }
+                },
                 "refreshRate": {
                   "title": "Device Refresh Rate",
                   "type": "number",
@@ -578,6 +628,14 @@
                   "title": "Device ID",
                   "type": "string",
                   "placeholder": "81F3UT59513F"
+                },
+                "configDeviceName": {
+                  "title": "Device Name",
+                  "type": "string",
+                  "placeholder": "SwitchBot",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId);"
+                  }
                 },
                 "hide_device": {
                   "title": "Hide Device",
@@ -993,6 +1051,8 @@
             "options.devices[].curtain.set_minStep",
             "options.devices[].curtain.set_min",
             "options.devices[].curtain.set_max",
+            "options.devices[].curtain.setOpenMode",
+            "options.devices[].curtain.setCloseMode",
             "options.devices[].curtain.updateRate",
             "options.devices[].curtain.disable_group",
             "options.devices[].curtain.hide_lightsensor",
@@ -1008,6 +1068,7 @@
             "options.devices[].colorbulb.set_minStep",
             "options.devices[].colorbulb.adaptiveLightingShift",
             "options.devices[].lock.hide_contactsensor",
+            "options.devices[].firmware",
             "options.devices[].refreshRate",
             "options.devices[].logging"
           ]
@@ -1029,6 +1090,7 @@
           "expanded": false,
           "orderable": false,
           "items": [
+            "options.irdevices[].configDeviceName",
             "options.irdevices[].deviceId",
             "options.irdevices[].hide_device",
             "options.irdevices[].configRemoteType",

@@ -2,7 +2,12 @@ name: Feature Request
 description: Suggest an idea for this project
 title: 'Feature Request: '
 labels: [enhancement]
-assignees: 'donavanbecker'
+assignees:
+  - donavanbecker
+  - SwitchBot
+  - SwitchBot-Wonderlabs
+  - Minsheng
+  - Devin-Wonderlabs
 body:
   - type: markdown
     attributes:

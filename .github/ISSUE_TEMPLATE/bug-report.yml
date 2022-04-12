@@ -2,7 +2,12 @@ name: Bug-Report
 description: Report a Bug to help us improve
 title: 'Bug: '
 labels: [bug]
-assignees: 'donavanbecker'
+assignees:
+  - donavanbecker
+  - SwitchBot
+  - SwitchBot-Wonderlabs
+  - Minsheng
+  - Devin-Wonderlabs
 body:
   - type: markdown
     attributes:
