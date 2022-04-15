@@ -64,9 +64,9 @@ export class Others {
   async ActiveSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`Other: ${this.accessory.displayName} On: ${value}`);
     if (value) {
-      await this.pushOffChanges();
-    } else {
       await this.pushOnChanges();
+    } else {
+      await this.pushOffChanges();
     }
     this.Active = value;
     this.ActiveCached = this.Active;
