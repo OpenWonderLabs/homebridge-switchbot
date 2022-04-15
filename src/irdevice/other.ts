@@ -63,7 +63,7 @@ export class Others {
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`Other: ${this.accessory.displayName} On: ${value}`);
-    if (this.Active) {
+    if (value) {
       await this.pushOffChanges();
     } else {
       await this.pushOnChanges();
@@ -96,14 +96,12 @@ export class Others {
     if (this.platform.config.options) {
       if (this.device.other) {
         if (this.device.other.commandOn) {
-          if (!this.Active) {
-            const payload = {
-              commandType: 'customize',
-              parameter: 'default',
-              command: `${this.device.other.commandOn}`,
-            } as payload;
-            await this.pushChanges(payload);
-          }
+          const payload = {
+            commandType: 'customize',
+            parameter: 'default',
+            command: `${this.device.other.commandOn}`,
+          } as payload;
+          await this.pushChanges(payload);
         } else {
           this.errorLog(`Other: ${this.accessory.displayName} On Command not set, commandOn: ${this.device.other.commandOn}`);
         }
@@ -119,14 +117,12 @@ export class Others {
     if (this.platform.config.options) {
       if (this.device.other) {
         if (this.device.other.commandOff) {
-          if (this.Active) {
-            const payload = {
-              commandType: 'customize',
-              parameter: 'default',
-              command: `${this.device.other.commandOff}`,
-            } as payload;
-            await this.pushChanges(payload);
-          }
+          const payload = {
+            commandType: 'customize',
+            parameter: 'default',
+            command: `${this.device.other.commandOff}`,
+          } as payload;
+          await this.pushChanges(payload);
         } else {
           this.errorLog(`Other: ${this.accessory.displayName} Off Command not set, commandOff: ${this.device.other.commandOff}`);
         }
