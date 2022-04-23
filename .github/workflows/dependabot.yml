@@ -1,12 +1,15 @@
-name: Dependabot
+name: automerge-dependabot
 
 on:
-  pull_request:
+  schedule:
+    - cron: '0 7 * * *'
 
 jobs:
-  comment:
-    runs-on: ubuntu-18.04
+  automerge:
+    name: Auto-merge dependabot updates
+    runs-on: ubuntu-latest
     steps:
-      - uses: ahmadnassri/action-dependabot-auto-merge@v2
+      - uses: mitto98/dependabot-automerge-action@master
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ github.token }}
+          merge: true
