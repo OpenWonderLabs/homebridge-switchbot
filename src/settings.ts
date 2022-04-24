@@ -1,4 +1,5 @@
 import { MacAddress, PlatformConfig } from 'homebridge';
+import { IClientOptions } from 'async-mqtt';
 /**
  * This is the name of the platform that users will use to register the plugin in the Homebridge config.json
  */
@@ -58,6 +59,9 @@ export interface devicesConfig extends device {
   scanDuration?: number;
   hide_device?: boolean;
   offline?: boolean;
+  mqttURL?: string;
+  mqttOptions?: IClientOptions;
+  mqttPubOptions?: IClientOptions;
 }
 
 export type meter = {
@@ -273,7 +277,7 @@ export type deviceStatus = {
   shaking?: boolean;
   //only available for Smart Fan devices. the fan's swing direciton.
   shakeCenter?: string;
-  //only available for Smart Fan devices. the fan's swing range, 0~120¬∞.
+  //only available for Smart Fan devices. the fan's swing range, 0~120Åã.
   shakeRange?: string;
   //only available for Motion Sensor, Contact Sensor devices. determines if motion is detected
   moveDetected?: boolean;

@@ -56,7 +56,8 @@
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^0.0.19",
     "axios": "^0.26.1",
-    "rxjs": "^7.5.5"
+    "rxjs": "^7.5.5",
+    "async-mqtt": "^2.6.2"
   },
   "devDependencies": {
     "@types/node": "^17.0.23",
