@@ -277,7 +277,7 @@ export type deviceStatus = {
   shaking?: boolean;
   //only available for Smart Fan devices. the fan's swing direciton.
   shakeCenter?: string;
-  //only available for Smart Fan devices. the fan's swing range, 0~120Åã.
+  //only available for Smart Fan devices. the fan's swing range, 0~120¬∞.
   shakeRange?: string;
   //only available for Motion Sensor, Contact Sensor devices. determines if motion is detected
   moveDetected?: boolean;
