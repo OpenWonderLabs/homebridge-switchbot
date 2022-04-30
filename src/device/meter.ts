@@ -4,6 +4,7 @@ import { SwitchBotPlatform } from '../platform';
 import { Service, PlatformAccessory, Units, CharacteristicValue } from 'homebridge';
 import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceStatusResponse, temperature, deviceStatus } from '../settings';
 import { Context } from 'vm';
+import { hostname } from "os";
 
 /**
  * Platform Accessory
@@ -51,10 +52,14 @@ export class Meter {
   meterUpdateInProgress!: boolean;
   doMeterUpdate: Subject<void>;
 
+  // EVE history service handler
+  historyService: any;
+
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
     this.logs(device);
     this.scan(device);
+    this.setupHistoryService(device);
     this.refreshRate(device);
     this.config(device);
     if (this.CurrentRelativeHumidity === undefined) {
@@ -166,6 +171,19 @@ export class Meter {
       });
   }
 
+  /*
+   * Setup EVE history graph feature if enabled.
+   */
+  async setupHistoryService(device: device & devicesConfig): Promise<void> {
+    let mac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase();
+    this.historyService = device.history ?
+	  new this.platform.fakegatoAPI('room', this.accessory,
+	    {log: this.platform.log, storage: 'fs',
+	     filename: `${hostname().split(".")[0]}_${mac}_persist.json`
+	    }) :
+	  null;
+  }
+    
   /**
    * Parse the device status from the SwitchBot api
    */
@@ -199,7 +217,7 @@ export class Meter {
     if (!this.device.meter?.hide_temperature) {
       this.temperature < 0 ? 0 : this.temperature > 100 ? 100 : this.temperature;
       this.CurrentTemperature = this.temperature;
-      this.debugLog(`Meter: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}¬∞c`);
+      this.debugLog(`Meter: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}Åãc`);
     }
   }
 
@@ -218,7 +236,7 @@ export class Meter {
       // Current Temperature
       if (!this.device.meter?.hide_temperature) {
         this.CurrentTemperature = this.Temperature!;
-        this.debugLog(`Meter: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}¬∞c`);
+        this.debugLog(`Meter: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}Åãc`);
       }
     }
   }
@@ -365,12 +383,14 @@ export class Meter {
    * Updates the status for each of the HomeKit Characteristics
    */
   async updateHomeKitCharacteristics(): Promise<void> {
+    let entry = {time: Math.round(new Date().valueOf()/1000)};
     if (!this.device.meter?.hide_humidity) {
       if (this.CurrentRelativeHumidity === undefined) {
         this.debugLog(`Meter: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
       } else {
         this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
         this.debugLog(`Meter: ${this.accessory.displayName} updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+	entry["humidity"] = this.CurrentRelativeHumidity;
       }
     }
     if (!this.device.meter?.hide_temperature) {
@@ -379,6 +399,7 @@ export class Meter {
       } else {
         this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
         this.debugLog(`Meter: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
+	entry["temp"] = this.CurrentTemperature;
       }
     }
     if (this.device.ble) {
@@ -394,6 +415,9 @@ export class Meter {
         this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
         this.debugLog(`Meter: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
       }
+    }
+    if (this.CurrentRelativeHumidity > 0) { // reject unreliable data
+      this.historyService?.addEntry(entry);
     }
   }
 

@@ -21,6 +21,7 @@ import { AirConditioner } from './irdevice/airconditioner';
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, Service, Characteristic } from 'homebridge';
 import { PLATFORM_NAME, PLUGIN_NAME, DeviceURL, irdevice, device, SwitchBotPlatformConfig, deviceResponses, devicesConfig } from './settings';
+import fakegato from 'fakegato-history';
 
 /**
  * HomebridgePlatform
@@ -43,6 +44,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   registeringDevice!: boolean;
   debugMode!: boolean;
   platformLogging?: string;
+
+  public readonly fakegatoAPI: any;
 
   constructor(public readonly log: Logger, public readonly config: SwitchBotPlatformConfig, public readonly api: API) {
     this.logs();
@@ -75,6 +78,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       request.headers!['Content-Type'] = 'application/json; charset=utf8';
       return request;
     });
+
+    // import fakegato-history module
+    this.fakegatoAPI = fakegato(api);
 
     // When this event is fired it means Homebridge has restored all cached accessories from disk.
     // Dynamic Platform plugins should only register new accessories after this event was fired,
