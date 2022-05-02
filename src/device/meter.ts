@@ -175,7 +175,7 @@ export class Meter {
    * Setup EVE history graph feature if enabled.
    */
   async setupHistoryService(device: device & devicesConfig): Promise<void> {
-    let mac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase();
+    const mac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase();
     this.historyService = device.history ?
 	  new this.platform.fakegatoAPI('room', this.accessory,
 	    {log: this.platform.log, storage: 'fs',
