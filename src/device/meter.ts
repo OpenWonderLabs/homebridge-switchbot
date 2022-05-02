@@ -174,7 +174,7 @@ export class Meter {
 
   /*
    * Publish MQTT message for topics of
-   * 'homebridge-switchbot/meter/xx:xx:xx:xx:xx:xx}'
+   * 'homebridge-switchbot/meter/xx:xx:xx:xx:xx:xx'
    */
   mqttPublish(message: any) {
     const mac = this.device.deviceId?.toLowerCase().match(/[\s\S]{1,2}/g)?.join(':');
