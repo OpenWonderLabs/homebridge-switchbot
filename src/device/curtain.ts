@@ -209,7 +209,7 @@ export class Curtain {
 
   /*
    * Publish MQTT message for topics of
-   * 'homebridge-switchbot/curtain/xx:xx:xx:xx:xx:xx}'
+   * 'homebridge-switchbot/curtain/xx:xx:xx:xx:xx:xx'
    */
   mqttPublish(topic: string, message: any) {
     const mac = this.device.deviceId?.toLowerCase().match(/[\s\S]{1,2}/g)?.join(':');
