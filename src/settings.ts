@@ -58,6 +58,7 @@ export interface devicesConfig extends device {
   scanDuration?: number;
   hide_device?: boolean;
   offline?: boolean;
+  history?: boolean;
 }
 
 export type meter = {

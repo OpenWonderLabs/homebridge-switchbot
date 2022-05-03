@@ -56,7 +56,8 @@
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^0.0.19",
     "axios": "^0.26.1",
-    "rxjs": "^7.5.5"
+    "rxjs": "^7.5.5",
+    "fakegato-history": "^0.6.3"
   },
   "devDependencies": {
     "@types/node": "^17.0.23",
