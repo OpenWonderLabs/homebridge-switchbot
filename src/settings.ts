@@ -62,6 +62,7 @@ export interface devicesConfig extends device {
   mqttURL?: string;
   mqttOptions?: IClientOptions;
   mqttPubOptions?: IClientOptions;
+  history?: boolean;
 }
 
 export type meter = {

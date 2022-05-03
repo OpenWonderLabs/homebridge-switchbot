@@ -6,6 +6,7 @@ import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceSta
 import { Context } from 'vm';
 import { MqttClient } from 'mqtt';
 import { connectAsync } from 'async-mqtt';
+import { hostname } from "os";
 
 /**
  * Platform Accessory
@@ -56,10 +57,14 @@ export class Meter {
   //MQTT stuff
   mqttClient: MqttClient | null = null;
   
+  // EVE history service handler
+  historyService: any;
+
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
     this.logs(device);
     this.scan(device);
+    this.setupHistoryService(device);
     this.refreshRate(device);
     this.config(device);
     this.setupMqtt(device);
@@ -201,6 +206,19 @@ export class Meter {
     }
   }
 
+  /*
+   * Setup EVE history graph feature if enabled.
+   */
+  async setupHistoryService(device: device & devicesConfig): Promise<void> {
+    const mac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase();
+    this.historyService = device.history ?
+	  new this.platform.fakegatoAPI('room', this.accessory,
+	    {log: this.platform.log, storage: 'fs',
+	     filename: `${hostname().split(".")[0]}_${mac}_persist.json`
+	    }) :
+	  null;
+  }
+    
   /**
    * Parse the device status from the SwitchBot api
    */
@@ -403,6 +421,7 @@ export class Meter {
    */
   async updateHomeKitCharacteristics(): Promise<void> {
     let mqttmessage: string[] = [];
+    let entry = {time: Math.round(new Date().valueOf()/1000)};
     if (!this.device.meter?.hide_humidity) {
       if (this.CurrentRelativeHumidity === undefined) {
         this.debugLog(`Meter: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
@@ -410,6 +429,7 @@ export class Meter {
         this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
         this.debugLog(`Meter: ${this.accessory.displayName} updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
 	mqttmessage.push(`"humidity": ${this.CurrentRelativeHumidity}`);
+	entry["humidity"] = this.CurrentRelativeHumidity;
       }
     }
     if (!this.device.meter?.hide_temperature) {
@@ -419,6 +439,7 @@ export class Meter {
         this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
         this.debugLog(`Meter: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
 	mqttmessage.push(`"temperature": ${this.CurrentTemperature}`);
+	entry["temp"] = this.CurrentTemperature;
       }
     }
     if (this.device.ble) {
@@ -438,6 +459,9 @@ export class Meter {
       }
     }
     this.mqttPublish(`{${mqttmessage.join(',')}}`)
+    if (this.CurrentRelativeHumidity > 0) { // reject unreliable data
+      this.historyService?.addEntry(entry);
+    }
   }
 
   async apiError(e: any): Promise<void> {
