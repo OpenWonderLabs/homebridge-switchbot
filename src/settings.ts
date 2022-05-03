@@ -1,4 +1,5 @@
 import { MacAddress, PlatformConfig } from 'homebridge';
+import { IClientOptions } from 'async-mqtt';
 /**
  * This is the name of the platform that users will use to register the plugin in the Homebridge config.json
  */
@@ -58,6 +59,9 @@ export interface devicesConfig extends device {
   scanDuration?: number;
   hide_device?: boolean;
   offline?: boolean;
+  mqttURL?: string;
+  mqttOptions?: IClientOptions;
+  mqttPubOptions?: IClientOptions;
   history?: boolean;
 }
 
