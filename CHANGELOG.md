@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file. This projec
 
 ## What's Changed
 
+- Added MQTT support for Meter and Curtain devices. Thanks [banboobee](https://github.com/banboobee)[#337](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/337)
+- Added Eve history features for meter devices. Thanks [banboobee](https://github.com/banboobee) [#338](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/338)
 - Added Config `setOpenMode` and `setCloseMode` so that you can set mode to be Performance or Silent.
 - Added Config to allow manually setting firmware version.
 - Fixed Smart Lock Display state status.
