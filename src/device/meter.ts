@@ -3,6 +3,10 @@ import { skipWhile } from 'rxjs/operators';
 import { SwitchBotPlatform } from '../platform';
 import { Service, PlatformAccessory, Units, CharacteristicValue } from 'homebridge';
 import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceStatusResponse, temperature, deviceStatus } from '../settings';
+import { Context } from 'vm';
+import { MqttClient } from 'mqtt';
+import { connectAsync } from 'async-mqtt';
+import { hostname } from "os";
 
 /**
  * Platform Accessory
@@ -50,12 +54,20 @@ export class Meter {
   meterUpdateInProgress!: boolean;
   doMeterUpdate: Subject<void>;
 
+  //MQTT stuff
+  mqttClient: MqttClient | null = null;
+  
+  // EVE history service handler
+  historyService: any;
+
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
     this.logs(device);
     this.scan(device);
+    this.setupHistoryService(device);
     this.refreshRate(device);
     this.config(device);
+    this.setupMqtt(device);
     if (this.CurrentRelativeHumidity === undefined) {
       this.CurrentRelativeHumidity = 0;
     } else {
@@ -79,7 +91,9 @@ export class Meter {
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, 'METERTH-S1')
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
+      .getCharacteristic(this.platform.Characteristic.FirmwareRevision).updateValue(this.FirmwareRevision(accessory, device));
 
     // Temperature Sensor Service
     if (device.meter?.hide_temperature) {
@@ -163,6 +177,48 @@ export class Meter {
       });
   }
 
+  /*
+   * Publish MQTT message for topics of
+   * 'homebridge-switchbot/meter/xx:xx:xx:xx:xx:xx'
+   */
+  mqttPublish(message: any) {
+    const mac = this.device.deviceId?.toLowerCase().match(/[\s\S]{1,2}/g)?.join(':');
+    const options = this.device.mqttPubOptions || {};
+    this.mqttClient?.publish(`homebridge-switchbot/meter/${mac}`, `${message}`, options);
+    this.debugLog(`Meter: ${this.accessory.displayName} MQTT message: ${message} options:${JSON.stringify(options)}`);
+  }
+
+  /*
+   * Setup MQTT hadler if URL is specifed.
+   */
+  async setupMqtt(device: device & devicesConfig): Promise<void> {
+    if (device.mqttURL) {
+      try {
+	this.mqttClient = await connectAsync(device.mqttURL, device.mqttOptions || {});
+	this.debugLog(`Meter: ${this.accessory.displayName} MQTT connection has been established successfully.`)
+	this.mqttClient.on('error', (e: Error) => {
+	  this.errorLog(`Meter: ${this.accessory.displayName} Failed to publish MQTT messages. ${e}`)
+	});
+      } catch (e) {
+	this.mqttClient = null;
+	this.errorLog(`Meter: ${this.accessory.displayName} Failed to establish MQTT connection. ${e}`)
+      }
+    }
+  }
+
+  /*
+   * Setup EVE history graph feature if enabled.
+   */
+  async setupHistoryService(device: device & devicesConfig): Promise<void> {
+    const mac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase();
+    this.historyService = device.history ?
+	  new this.platform.fakegatoAPI('room', this.accessory,
+	    {log: this.platform.log, storage: 'fs',
+	     filename: `${hostname().split(".")[0]}_${mac}_persist.json`
+	    }) :
+	  null;
+  }
+    
   /**
    * Parse the device status from the SwitchBot api
    */
@@ -184,7 +240,7 @@ export class Meter {
     } else {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     }
-    this.debugLog(`${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
+      this.debugLog(`Meter: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
 
     // Humidity
     if (!this.device.meter?.hide_humidity) {
@@ -258,10 +314,12 @@ export class Meter {
               this.infoLog(`Meter: ${this.accessory.displayName} BLE Address Found: ${this.address}`);
               this.infoLog(`Meter: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac}`);
             }
-            this.serviceData = ad.serviceData;
-            this.temperature = ad.serviceData.temperature!.c;
-            this.humidity = ad.serviceData.humidity;
-            this.battery = ad.serviceData.battery;
+	    if (ad.serviceData.humidity! > 0) {	// reject unreliable data
+              this.serviceData = ad.serviceData;
+              this.temperature = ad.serviceData.temperature!.c;
+              this.humidity = ad.serviceData.humidity;
+              this.battery = ad.serviceData.battery;
+	    }
             this.debugLog(`Meter: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
             this.debugLog(
               `Meter: ${this.accessory.displayName} model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName}, ` +
@@ -362,12 +420,16 @@ export class Meter {
    * Updates the status for each of the HomeKit Characteristics
    */
   async updateHomeKitCharacteristics(): Promise<void> {
+    let mqttmessage: string[] = [];
+    let entry = {time: Math.round(new Date().valueOf()/1000)};
     if (!this.device.meter?.hide_humidity) {
       if (this.CurrentRelativeHumidity === undefined) {
         this.debugLog(`Meter: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
       } else {
         this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
         this.debugLog(`Meter: ${this.accessory.displayName} updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+	mqttmessage.push(`"humidity": ${this.CurrentRelativeHumidity}`);
+	entry["humidity"] = this.CurrentRelativeHumidity;
       }
     }
     if (!this.device.meter?.hide_temperature) {
@@ -376,6 +438,8 @@ export class Meter {
       } else {
         this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
         this.debugLog(`Meter: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
+	mqttmessage.push(`"temperature": ${this.CurrentTemperature}`);
+	entry["temp"] = this.CurrentTemperature;
       }
     }
     if (this.device.ble) {
@@ -384,13 +448,19 @@ export class Meter {
       } else {
         this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
         this.debugLog(`Meter: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
+	mqttmessage.push(`"battery": ${this.BatteryLevel}`);
       }
       if (this.StatusLowBattery === undefined) {
         this.debugLog(`Meter: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
       } else {
         this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
         this.debugLog(`Meter: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
+	mqttmessage.push(`"lowBattery": ${this.StatusLowBattery}`);
       }
+    }
+    this.mqttPublish(`{${mqttmessage.join(',')}}`)
+    if (this.CurrentRelativeHumidity > 0) { // reject unreliable data
+      this.historyService?.addEntry(entry);
     }
   }
 
@@ -468,6 +538,21 @@ export class Meter {
       this.deviceLogging = this.accessory.context.logging = 'standard';
       this.debugLog(`Meter: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
     }
+  }
+
+  FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
+    let FirmwareRevision: string;
+    this.debugLog(`Color Bulb: ${this.accessory.displayName} accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+    this.debugLog(`Color Bulb: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
+    this.debugLog(`Color Bulb: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
+    if (accessory.context.FirmwareRevision) {
+      FirmwareRevision = accessory.context.FirmwareRevision;
+    } else if (device.firmware) {
+      FirmwareRevision = device.firmware;
+    } else {
+      FirmwareRevision = this.platform.version;
+    }
+    return FirmwareRevision;
   }
 
   /**

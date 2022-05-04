@@ -63,7 +63,7 @@ export class Others {
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`Other: ${this.accessory.displayName} On: ${value}`);
-    if (this.Active) {
+    if (value) {
       await this.pushOnChanges();
     } else {
       await this.pushOffChanges();
@@ -96,7 +96,7 @@ export class Others {
     if (this.platform.config.options) {
       if (this.device.other) {
         if (this.device.other.commandOn) {
-          if (this.Active) {
+          if (!this.Active) {
             const payload = {
               commandType: 'customize',
               parameter: 'default',
@@ -119,7 +119,7 @@ export class Others {
     if (this.platform.config.options) {
       if (this.device.other) {
         if (this.device.other.commandOff) {
-          if (!this.Active) {
+          if (this.Active) {
             const payload = {
               commandType: 'customize',
               parameter: 'default',

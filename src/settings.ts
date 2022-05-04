@@ -1,4 +1,5 @@
 import { MacAddress, PlatformConfig } from 'homebridge';
+import { IClientOptions } from 'async-mqtt';
 /**
  * This is the name of the platform that users will use to register the plugin in the Homebridge config.json
  */
@@ -43,6 +44,7 @@ export interface devicesConfig extends device {
   deviceId: string;
   logging?: string;
   refreshRate?: number;
+  firmware?: string;
   bot?: bot;
   meter?: meter;
   humidifier?: humidifier;
@@ -57,6 +59,10 @@ export interface devicesConfig extends device {
   scanDuration?: number;
   hide_device?: boolean;
   offline?: boolean;
+  mqttURL?: string;
+  mqttOptions?: IClientOptions;
+  mqttPubOptions?: IClientOptions;
+  history?: boolean;
 }
 
 export type meter = {
@@ -86,6 +92,8 @@ export type curtain = {
   set_max?: number;
   set_min?: number;
   set_minStep?: number;
+  setCloseMode?: string;
+  setOpenMode?: string;
 };
 
 export type contact = {
