@@ -1037,7 +1037,6 @@
             "options.devices[].configDeviceType",
             "options.devices[].offline",
             "options.devices[].ble",
-            "options.devices[].customBLEaddress",
             "options.devices[].scanDuration",
             "options.devices[].bot.mode",
             "options.devices[].bot.deviceType",
