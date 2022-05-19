@@ -157,10 +157,11 @@ plugin allows you to access your SwitchBot Device(s) from HomeKit with
     - Supports Fan Device Type
   - Allows for On/Off Controls
 
-## SwitchBotAPI
+## SwitchBot APIs
 
 - [OpenWonderLabs/SwitchBotAPI](https://github.com/OpenWonderLabs/SwitchBotAPI)
-- [OpenWonderLabs/node-switchbot](https://github.com/OpenWonderLabs/node-switchbot)
+- [OpenWonderLabs/SwitchBotAPI-BLE](https://github.com/OpenWonderLabs/SwitchBotAPI-BLE)
+  - [OpenWonderLabs/node-switchbot](https://github.com/OpenWonderLabs/node-switchbot)
 
 ## Community
 
