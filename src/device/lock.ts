@@ -171,8 +171,8 @@ export class Lock {
   /**
    * Pushes the requested changes to the SwitchBot API
    * deviceType	commandType	  Command	    command parameter	  Description
-   * Lock   -    "command"     "????"   "????"	  =        set to ???? state
-   * Lock   -    "command"     "????"    "????"	  =        set to ???? state - LockCurrentState
+   * Lock   -    "command"     "lock"     "default"	 =        set to ???? state
+   * Lock   -    "command"     "unlock"   "default"	 =        set to ???? state - LockCurrentState
    */
   async pushChanges(): Promise<void> {
     if (this.LockTargetState !== this.LockTargetStateCached) {
@@ -182,9 +182,9 @@ export class Lock {
       } as payload;
 
       if (this.LockTargetState) {
-        payload.command = 'turnOn';
+        payload.command = 'lock';
       } else {
-        payload.command = 'turnOff';
+        payload.command = 'unlock';
       }
 
       this.infoLog(
