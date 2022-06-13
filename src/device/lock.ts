@@ -15,7 +15,6 @@ export class Lock {
   ContactSensorState!: CharacteristicValue;
   LockCurrentState!: CharacteristicValue;
   LockTargetState!: CharacteristicValue;
-  LockTargetStateCached!: CharacteristicValue;
 
   // OpenAPI Others
   doorState!: deviceStatus['doorState'];
@@ -76,7 +75,7 @@ export class Lock {
     // see https://developers.homebridge.io/#/service/LockMechanism
 
     // create handlers for required characteristics
-    this.lockService.getCharacteristic(this.platform.Characteristic.LockCurrentState).onSet(this.LockTargetStateSet.bind(this));
+    this.lockService.getCharacteristic(this.platform.Characteristic.LockTargetState).onSet(this.LockTargetStateSet.bind(this));
 
     // Contact Sensor Service
     if (device.lock?.hide_contactsensor) {
@@ -175,30 +174,27 @@ export class Lock {
    * Lock   -    "command"     "unlock"   "default"	 =        set to ???? state - LockCurrentState
    */
   async pushChanges(): Promise<void> {
-    if (this.LockTargetState !== this.LockTargetStateCached) {
-      const payload = {
-        commandType: 'command',
-        parameter: 'default',
-      } as payload;
+    const payload = {
+      commandType: 'command',
+      parameter: 'default',
+    } as payload;
 
-      if (this.LockTargetState) {
-        payload.command = 'lock';
-      } else {
-        payload.command = 'unlock';
-      }
-
-      this.infoLog(
-        `Lock: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-          ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
-      );
-
-      // Make the API request
-      const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.debugLog(`Lock: ${this.accessory.displayName} pushchanges: ${JSON.stringify(push.data)}`);
-      this.statusCode(push);
-      this.LockTargetStateCached = this.LockTargetState;
-      this.accessory.context.On = this.LockTargetStateCached;
+    if (this.LockTargetState) {
+      payload.command = 'lock';
+    } else {
+      payload.command = 'unlock';
     }
+
+    this.infoLog(
+      `Lock: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
+      ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
+    );
+
+    // Make the API request
+    const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
+    this.debugLog(`Lock: ${this.accessory.displayName} pushchanges: ${JSON.stringify(push.data)}`);
+    this.statusCode(push);
+    this.accessory.context.On = this.LockTargetState;
     interval(5000)
       .pipe(take(1))
       .subscribe(async () => {
@@ -258,7 +254,7 @@ export class Lock {
       case 190:
         this.errorLog(
           `Lock: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-            ` Or command: ${JSON.stringify(push.data)} format is invalid`,
+          ` Or command: ${JSON.stringify(push.data)} format is invalid`,
         );
         break;
       case 100:
