@@ -76,7 +76,7 @@ export class Lock {
     // see https://developers.homebridge.io/#/service/LockMechanism
 
     // create handlers for required characteristics
-    this.lockService.getCharacteristic(this.platform.Characteristic.LockCurrentState).onSet(this.LockTargetStateSet.bind(this));
+    this.lockService.getCharacteristic(this.platform.Characteristic.LockTargetState).onSet(this.LockTargetStateSet.bind(this));
 
     // Contact Sensor Service
     if (device.lock?.hide_contactsensor) {
