@@ -61,7 +61,7 @@
     "fakegato-history": "^0.6.3"
   },
   "devDependencies": {
-    "@types/node": "^17.0.42",
+    "@types/node": "^18.0.0",
     "@typescript-eslint/eslint-plugin": "^5.27.1",
     "@typescript-eslint/parser": "^5.27.1",
     "eslint": "^8.17.0",
