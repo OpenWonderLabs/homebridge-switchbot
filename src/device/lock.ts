@@ -187,7 +187,7 @@ export class Lock {
 
     this.infoLog(
       `Lock: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-        ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
+      ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
     );
 
     // Make the API request
@@ -195,7 +195,6 @@ export class Lock {
     this.debugLog(`Lock: ${this.accessory.displayName} pushchanges: ${JSON.stringify(push.data)}`);
     this.statusCode(push);
     this.accessory.context.On = this.LockTargetState;
-
     interval(5000)
       .pipe(take(1))
       .subscribe(async () => {
@@ -255,7 +254,7 @@ export class Lock {
       case 190:
         this.errorLog(
           `Lock: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-            ` Or command: ${JSON.stringify(push.data)} format is invalid`,
+          ` Or command: ${JSON.stringify(push.data)} format is invalid`,
         );
         break;
       case 100:
