@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 1.14.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.14.0) (2022-06-25)
+
+## What's Changed
+
+- Add support for Smart Lock commands over OpenAPI. Thanks [tom-todd](https://github.com/tom-todd) [#382](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/337) & [#387](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/337)
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.13.0...v1.14.0
+
 ## [Version 1.13.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.13.0) (2022-05-04)
 
 ## What's Changed
