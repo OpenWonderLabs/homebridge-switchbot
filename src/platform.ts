@@ -157,10 +157,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         for (const deviceConfig of this.config.options.devices) {
           if (!deviceConfig.hide_device) {
             if (!deviceConfig.deviceId) {
-              throw new Error('The devices config section is missing the *Device ID* in the config, Check Your Conifg.');
+              throw new Error('The devices config section is missing the *Device ID* in the config. Please check your config.');
             }
             if (!deviceConfig.configDeviceType && deviceConfig.ble) {
-              throw new Error('The devices config section is missing the *Device Type* in the config, Check Your Conifg.');
+              throw new Error('The devices config section is missing the *Device Type* in the config. Please check your config.');
             }
           }
         }
@@ -171,10 +171,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         for (const irDeviceConfig of this.config.options.irdevices) {
           if (!irDeviceConfig.hide_device) {
             if (!irDeviceConfig.deviceId) {
-              this.errorLog('The devices config section is missing the *Device ID* in the config, Check Your Conifg.');
+              this.errorLog('The devices config section is missing the *Device ID* in the config. Please check your config.');
             }
             if (!irDeviceConfig.deviceId && !irDeviceConfig.configRemoteType) {
-              this.errorLog('The devices config section is missing the *Device Type* in the config, Check Your Conifg.');
+              this.errorLog('The devices config section is missing the *Device Type* in the config. Please check your config.');
             }
           }
         }
