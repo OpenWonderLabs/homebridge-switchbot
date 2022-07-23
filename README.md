@@ -19,7 +19,7 @@ plugin allows you to access your SwitchBot Device(s) from HomeKit with
 
 1. Search for "SwitchBot" on the plugin screen of [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x)
 2. Find: `@switchbot/homebridge-switchbot`
-   - See noble [prerequisites](https://github.com/homebridge/noble#prerequisites) for your OS. (This is used for BLE connection.)
+   - See noble [prerequisites](https://github.com/abandonware/noble#prerequisites) for your OS. (This is used for BLE connection.)
 3. Click **Install**
 
 ## Configuration
