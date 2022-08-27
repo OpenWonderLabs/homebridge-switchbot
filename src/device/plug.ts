@@ -87,7 +87,7 @@ export class Plug {
     // see https://developers.homebridge.io/#/service/Outlet
 
     // create handlers for required characteristics
-    this.outletService.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
+    this.outletService.getCharacteristic(this.platform.Characteristic.On).onSet(this.handleOnSet.bind(this));
 
     // Update Homekit
     this.updateHomeKitCharacteristics();
@@ -326,7 +326,10 @@ export class Plug {
       .toLowerCase();
     this.debugLog(`Plug: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     switchbot
-      .discover({ model: this.BLEmodel, quick: true, id: this.device.bleMac })
+      .discover({
+        model: this.BLEmodel(),
+        id: this.device.bleMac,
+      })
       .then((device_list: any) => {
         this.infoLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
         return this.turnOnOff(device_list);
@@ -336,10 +339,6 @@ export class Plug {
         this.On = false;
         this.OnCached = this.On;
         this.accessory.context.On = this.OnCached;
-        setTimeout(() => {
-          this.outletService?.getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);
-          this.debugLog(`Plug: ${this.accessory.displayName} On: ${this.On}, Switch Timeout`);
-        }, 500);
       })
       .catch(async (e: any) => {
         this.errorLog(`Plug: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
@@ -374,36 +373,39 @@ export class Plug {
     });
   }
 
-  private async openAPIpushChanges() {
-    if (this.On !== this.OnCached) {
-      const payload = {
-        commandType: 'command',
-        parameter: 'default',
-      } as payload;
+  async openAPIpushChanges() {
+    if (this.platform.config.credentials?.openToken) {
+      if (this.On !== this.OnCached) {
+        this.debugLog(`Bot: ${this.accessory.displayName} OpenAPI pushChanges`);
+        const payload = {
+          commandType: 'command',
+          parameter: 'default',
+        } as payload;
 
-      if (this.On) {
-        payload.command = 'turnOn';
-      } else {
-        payload.command = 'turnOff';
+        if (this.On) {
+          payload.command = 'turnOn';
+        } else {
+          payload.command = 'turnOff';
+        }
+
+        this.infoLog(
+          `Plug: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
+            ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
+        );
+
+        // Make the API request
+        const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
+        this.debugLog(`Plug: ${this.accessory.displayName} pushchanges: ${JSON.stringify(push.data)}`);
+        this.statusCode(push);
+        this.OnCached = this.On;
+        this.accessory.context.On = this.OnCached;
       }
-
-      this.infoLog(
-        `Plug: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-        ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
-      );
-
-      // Make the API request
-      const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.debugLog(`Plug: ${this.accessory.displayName} pushchanges: ${JSON.stringify(push.data)}`);
-      this.statusCode(push);
-      this.OnCached = this.On;
-      this.accessory.context.On = this.OnCached;
+      interval(5000)
+        .pipe(take(1))
+        .subscribe(async () => {
+          await this.refreshStatus();
+        });
     }
-    interval(5000)
-      .pipe(take(1))
-      .subscribe(async () => {
-        await this.refreshStatus();
-      });
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
@@ -463,7 +465,7 @@ export class Plug {
   /**
    * Handle requests to set the value of the "On" characteristic
    */
-  async OnSet(value: CharacteristicValue): Promise<void> {
+  async handleOnSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`Plug: ${this.accessory.displayName} - Set On: ${value}`);
 
     this.On = value;
