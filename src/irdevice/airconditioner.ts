@@ -44,6 +44,9 @@ export class AirConditioner {
   hide_automode?: boolean;
   pushOn?: boolean;
 
+  private readonly valid12 = [1, 2];
+  private readonly valid012 = [0, 1, 2];
+
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
     // default placeholders
     this.logs(device);
@@ -430,13 +433,13 @@ export class AirConditioner {
   }
 
   async TargetHeaterCoolerStateGet(): Promise<CharacteristicValue> {
-    if (this.ValidValues === [0, 1, 2]) {
+    if (this.ValidValues === this.valid012) {
       this.TargetHeaterCoolerState = this.platform.Characteristic.TargetHeaterCoolerState.AUTO;
       this.debugLog(
         `Air Conditioner: ${this.accessory.displayName} Get (AUTO) TargetHeaterCoolerState: ${this.CurrentHeaterCoolerState},` +
           ` ValidValues: ${this.ValidValues}`,
       );
-    } else if (this.ValidValues === [1, 2]) {
+    } else if (this.ValidValues === this.valid12) {
       this.TargetHeaterCoolerState =
         this.platform.Characteristic.TargetHeaterCoolerState.COOL || this.platform.Characteristic.TargetHeaterCoolerState.HEAT;
       this.debugLog(
