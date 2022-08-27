@@ -331,7 +331,7 @@ export class Plug {
         id: this.device.bleMac,
       })
       .then((device_list: any) => {
-        this.infoLog(`Bot: ${this.accessory.displayName} On: ${this.On}`);
+        this.infoLog(`Plug: ${this.accessory.displayName} On: ${this.On}`);
         return this.turnOnOff(device_list);
       })
       .then(() => {
@@ -376,7 +376,7 @@ export class Plug {
   async openAPIpushChanges() {
     if (this.platform.config.credentials?.openToken) {
       if (this.On !== this.OnCached) {
-        this.debugLog(`Bot: ${this.accessory.displayName} OpenAPI pushChanges`);
+        this.debugLog(`Plug: ${this.accessory.displayName} OpenAPI pushChanges`);
         const payload = {
           commandType: 'command',
           parameter: 'default',
