@@ -323,7 +323,7 @@ export type serviceData = {
   mode?: boolean;
   //Bot State
   state?: string;
-  //Battery percentage left on Bot, Meter, Motion, Contact, and Curtain
+  //Battery percentage left on Bot, Meter, Motion, Contact, PlugMini, and Curtain
   battery?: number;
   //Humidifier's humidity level percentage
   percentage?: boolean | string;
@@ -350,6 +350,18 @@ export type serviceData = {
   calibration?: boolean;
   //Current Curtain Positon %
   position?: number;
+  //PlugMini - Is there a delay?
+  delay?: boolean;
+  //PlugMini - Is there a Timer?
+  timer?: boolean;
+  //PlugMini - Is the UTC time has been synchronized?
+  syncUtcTime?: boolean;
+  //PlugMini - The Wifi RSSI Signal
+  wifiRssi?: number;
+  //PlugMini - Whether the Plug Mini is overloaded, more than 15A current overload
+  overload?: boolean;
+  //PlugMini - Plug Mini current power value of the load
+  currentPower?: number;
 };
 
 export type temperature = {
