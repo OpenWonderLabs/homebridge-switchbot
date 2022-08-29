@@ -96,7 +96,8 @@ export class Bot {
       .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-BOT-S1')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
       .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
-      .getCharacteristic(this.platform.Characteristic.FirmwareRevision).updateValue(this.FirmwareRevision(accessory, device));
+      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
+      .updateValue(this.FirmwareRevision(accessory, device));
 
     // get the service if it exists, otherwise create a new service
     // you can create multiple services for each accessory
@@ -520,8 +521,7 @@ export class Bot {
         this.errorLog(`Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
         if (this.deviceLogging.includes('debug')) {
           this.errorLog(
-            `Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` +
-                ` Error Message: ${JSON.stringify(e.message)}`,
+            `Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
           );
         }
         if (this.platform.config.credentials?.openToken) {

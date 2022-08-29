@@ -82,7 +82,8 @@ export class MeterPlus {
       .setCharacteristic(this.platform.Characteristic.Model, this.model(device))
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
       .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
-      .getCharacteristic(this.platform.Characteristic.FirmwareRevision).updateValue(this.FirmwareRevision(accessory, device));
+      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
+      .updateValue(this.FirmwareRevision(accessory, device));
 
     // Temperature Sensor Service
     if (device.meter?.hide_temperature) {

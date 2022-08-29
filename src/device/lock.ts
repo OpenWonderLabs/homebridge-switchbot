@@ -56,7 +56,8 @@ export class Lock {
       .setCharacteristic(this.platform.Characteristic.Model, 'W1601700')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
       .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
-      .getCharacteristic(this.platform.Characteristic.FirmwareRevision).updateValue(this.FirmwareRevision(accessory, device));
+      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
+      .updateValue(this.FirmwareRevision(accessory, device));
 
     // get the LockMechanism service if it exists, otherwise create a new LockMechanism service
     // you can create multiple services for each accessory
@@ -187,7 +188,7 @@ export class Lock {
 
     this.infoLog(
       `Lock: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-      ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
+        ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
     );
 
     // Make the API request
@@ -254,7 +255,7 @@ export class Lock {
       case 190:
         this.errorLog(
           `Lock: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-          ` Or command: ${JSON.stringify(push.data)} format is invalid`,
+            ` Or command: ${JSON.stringify(push.data)} format is invalid`,
         );
         break;
       case 100:

@@ -81,7 +81,8 @@ export class StripLight {
       .setCharacteristic(this.platform.Characteristic.Model, 'W1701100')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
       .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
-      .getCharacteristic(this.platform.Characteristic.FirmwareRevision).updateValue(this.FirmwareRevision(accessory, device));
+      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
+      .updateValue(this.FirmwareRevision(accessory, device));
 
     // get the Lightbulb service if it exists, otherwise create a new Lightbulb service
     // you can create multiple services for each accessory
@@ -195,9 +196,7 @@ export class StripLight {
       this.debugLog(`Strip Light: ${this.accessory.displayName} blue: ${JSON.stringify(blue)}`);
 
       const [hue, saturation] = rgb2hs(Number(red), Number(green), Number(blue));
-      this.debugLog(
-        `Strip Light: ${this.accessory.displayName} hs: ${JSON.stringify(rgb2hs(Number(red), Number(green), Number(blue)))}`,
-      );
+      this.debugLog(`Strip Light: ${this.accessory.displayName} hs: ${JSON.stringify(rgb2hs(Number(red), Number(green), Number(blue)))}`);
 
       // Hue
       this.Hue = hue;
@@ -223,8 +222,7 @@ export class StripLight {
       this.errorLog(`Strip Light: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
       if (this.deviceLogging.includes('debug')) {
         this.errorLog(
-          `Strip Light: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` +
-            ` Error Message: ${JSON.stringify(e.message)}`,
+          `Strip Light: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
         );
       }
       this.apiError(e);
@@ -281,8 +279,7 @@ export class StripLight {
       this.errorLog(`Strip Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
       if (this.deviceLogging.includes('debug')) {
         this.errorLog(
-          `Strip Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` +
-            ` Error Message: ${JSON.stringify(e.message)}`,
+          `Strip Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
         );
       }
       this.apiError(e);
@@ -325,8 +322,7 @@ export class StripLight {
       this.errorLog(`Strip Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
       if (this.deviceLogging.includes('debug')) {
         this.errorLog(
-          `Strip Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` +
-            ` Error Message: ${JSON.stringify(e.message)}`,
+          `Strip Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
         );
       }
       this.apiError(e);
@@ -354,16 +350,14 @@ export class StripLight {
         this.BrightnessCached = this.Brightness;
       } else {
         this.debugLog(
-          `Strip Light: ${this.accessory.displayName} No Changes.` +
-            `Brightness: ${this.Brightness}, BrightnessCached: ${this.BrightnessCached}`,
+          `Strip Light: ${this.accessory.displayName} No Changes.` + `Brightness: ${this.Brightness}, BrightnessCached: ${this.BrightnessCached}`,
         );
       }
     } catch (e: any) {
       this.errorLog(`Strip Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
       if (this.deviceLogging.includes('debug')) {
         this.errorLog(
-          `Strip Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` +
-            ` Error Message: ${JSON.stringify(e.message)}`,
+          `Strip Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
         );
       }
       this.apiError(e);

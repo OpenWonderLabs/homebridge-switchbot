@@ -90,7 +90,8 @@ export class Curtain {
       .setCharacteristic(this.platform.Characteristic.Model, 'W0701600')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId)
       .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
-      .getCharacteristic(this.platform.Characteristic.FirmwareRevision).updateValue(this.FirmwareRevision(accessory, device));
+      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
+      .updateValue(this.FirmwareRevision(accessory, device));
 
     // get the WindowCovering service if it exists, otherwise create a new WindowCovering service
     // you can create multiple services for each accessory
@@ -212,7 +213,10 @@ export class Curtain {
    * 'homebridge-switchbot/curtain/xx:xx:xx:xx:xx:xx'
    */
   mqttPublish(topic: string, message: any) {
-    const mac = this.device.deviceId?.toLowerCase().match(/[\s\S]{1,2}/g)?.join(':');
+    const mac = this.device.deviceId
+      ?.toLowerCase()
+      .match(/[\s\S]{1,2}/g)
+      ?.join(':');
     const options = this.device.mqttPubOptions || {};
     this.mqttClient?.publish(`homebridge-switchbot/curtain/${mac}/${topic}`, `${message}`, options);
     this.debugLog(`Meter: ${this.accessory.displayName} MQTT message: ${topic}/${message} options:${JSON.stringify(options)}`);

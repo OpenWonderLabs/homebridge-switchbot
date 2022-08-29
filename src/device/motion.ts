@@ -70,7 +70,8 @@ export class Motion {
       .setCharacteristic(this.platform.Characteristic.Model, 'W1101500')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
       .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
-      .getCharacteristic(this.platform.Characteristic.FirmwareRevision).updateValue(this.FirmwareRevision(accessory, device));
+      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
+      .updateValue(this.FirmwareRevision(accessory, device));
 
     // get the Battery service if it exists, otherwise create a new Motion service
     // you can create multiple services for each accessory

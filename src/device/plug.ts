@@ -21,9 +21,16 @@ export class Plug {
   // BLE Others
   connected?: boolean;
   switchbot!: switchbot;
+  address!: ad['address'];
   SwitchToOpenAPI?: boolean;
   serviceData!: serviceData;
-  address!: ad['address'];
+  state: serviceData['state'];
+  delay: serviceData['delay'];
+  timer: serviceData['timer'];
+  wifiRssi: serviceData['wifiRssi'];
+  overload: serviceData['overload'];
+  syncUtcTime: serviceData['syncUtcTime'];
+  currentPower: serviceData['currentPower'];
 
   // Config
   scanDuration!: number;
@@ -33,13 +40,6 @@ export class Plug {
   // Updates
   plugUpdateInProgress!: boolean;
   doPlugUpdate!: Subject<void>;
-  state: serviceData['state'];
-  delay: serviceData['delay'];
-  timer: serviceData['timer'];
-  syncUtcTime: serviceData['syncUtcTime'];
-  wifiRssi: serviceData['wifiRssi'];
-  overload: serviceData['overload'];
-  currentPower: serviceData['currentPower'];
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
@@ -271,7 +271,7 @@ export class Plug {
   }
 
   async BLEconnection(switchbot: any): Promise<void> {
-    this.errorLog(`Plug: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchPlug: ${switchbot}`);
+    this.errorLog(`Plug: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
     if (this.platform.config.credentials?.openToken) {
       this.warnLog(`Plug: ${this.accessory.displayName} Using OpenAPI Connection`);
       this.SwitchToOpenAPI = true;
