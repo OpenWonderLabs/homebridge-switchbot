@@ -18,7 +18,8 @@ import { AirPurifier } from './irdevice/airpurifier';
 import { WaterHeater } from './irdevice/waterheater';
 import { VacuumCleaner } from './irdevice/vacuumcleaner';
 import { AirConditioner } from './irdevice/airconditioner';
-import HmacSHA256 from 'crypto-js/sha256';
+import { Buffer } from 'buffer';
+import CryptoJS from 'crypto-js';
 import fakegato from 'fakegato-history';
 import { readFileSync, writeFileSync } from 'fs';
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
@@ -51,7 +52,12 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
   constructor(public readonly log: Logger, public readonly config: SwitchBotPlatformConfig, public readonly api: API) {
     this.logs();
-    const time = Date.now();
+    const t = (new Date().getTime())?.toString();
+    const nonce = '';
+    const data = this.config.credentials?.token + t + nonce;
+    const Hmac_SHA256 = CryptoJS.HmacSHA256(this.config.credentials?.secret, data).toString();
+    const sign = Buffer.from(Hmac_SHA256, 'binary').toString('base64');
+
     this.debugLog('Finished initializing platform:', this.config.name);
     // only load if configured
     if (!this.config) {
@@ -78,9 +84,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     // setup axios interceptor to add headers / api key to each request
     this.axios.interceptors.request.use((request: AxiosRequestConfig) => {
       request.headers!.Authorization = this.config.credentials?.token;
-      request.headers!.sign = String(HmacSHA256(this.config.credentials!.secret, this.config.credentials!.token + time));
-      request.headers!.t = time;
-      request.headers!.nonce = '';
+      request.headers!.sign = sign;
+      request.headers!.t = t;
+      request.headers!.nonce = nonce;
       request.headers!['Content-Type'] = 'application/json; charset=utf8';
       return request;
     });
