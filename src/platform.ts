@@ -46,6 +46,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   registeringDevice!: boolean;
   debugMode!: boolean;
   platformLogging?: string;
+  time = String(Date.now());
 
   public readonly fakegatoAPI: any;
 
@@ -77,8 +78,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     // setup axios interceptor to add headers / api key to each request
     this.axios.interceptors.request.use((request: AxiosRequestConfig) => {
       request.headers!.Authorization = this.config.credentials?.token;
-      request.headers!.sign = String(sha256(this.config.credentials!.token + Date.now(), this.config.credentials!.secret)).toUpperCase();
-      request.headers!.t = String(Date.now());
+      request.headers!.sign = String(sha256(this.config.credentials!.token + this.time, this.config.credentials!.secret)).toUpperCase();
+      request.headers!.t = this.time;
       request.headers!.nonce = '';
       request.headers!['Content-Type'] = 'application/json; charset=utf8';
       return request;
