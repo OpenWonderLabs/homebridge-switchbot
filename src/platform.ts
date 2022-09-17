@@ -18,7 +18,7 @@ import { AirPurifier } from './irdevice/airpurifier';
 import { WaterHeater } from './irdevice/waterheater';
 import { VacuumCleaner } from './irdevice/vacuumcleaner';
 import { AirConditioner } from './irdevice/airconditioner';
-import sha256 from 'crypto-js/sha256';
+import HmacSHA256 from 'crypto-js/sha256';
 import fakegato from 'fakegato-history';
 import { readFileSync, writeFileSync } from 'fs';
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
@@ -46,12 +46,12 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   registeringDevice!: boolean;
   debugMode!: boolean;
   platformLogging?: string;
-  time = String(Date.now());
 
   public readonly fakegatoAPI: any;
 
   constructor(public readonly log: Logger, public readonly config: SwitchBotPlatformConfig, public readonly api: API) {
     this.logs();
+    const time = Date.now();
     this.debugLog('Finished initializing platform:', this.config.name);
     // only load if configured
     if (!this.config) {
@@ -78,8 +78,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     // setup axios interceptor to add headers / api key to each request
     this.axios.interceptors.request.use((request: AxiosRequestConfig) => {
       request.headers!.Authorization = this.config.credentials?.token;
-      request.headers!.sign = String(sha256(this.config.credentials!.token + this.time, this.config.credentials!.secret)).toUpperCase();
-      request.headers!.t = this.time;
+      request.headers!.sign = String(HmacSHA256(this.config.credentials!.secret, this.config.credentials!.token + time));
+      request.headers!.t = time;
       request.headers!.nonce = '';
       request.headers!['Content-Type'] = 'application/json; charset=utf8';
       return request;
