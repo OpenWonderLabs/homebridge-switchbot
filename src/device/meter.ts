@@ -268,7 +268,7 @@ export class Meter {
     if (this.device.ble) {
       this.SwitchToOpenAPI = false;
     }
-    if (this.platform.config.credentials?.openToken) {
+    if (this.platform.config.credentials?.token) {
       this.debugLog(`Meter: ${this.accessory.displayName} OpenAPI parseStatus`);
       // Current Relative Humidity
       if (!this.device.meter?.hide_humidity) {
@@ -364,7 +364,7 @@ export class Meter {
               `Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
             );
           }
-          if (this.platform.config.credentials?.openToken) {
+          if (this.platform.config.credentials?.token) {
             this.warnLog(`Meter: ${this.accessory.displayName} Using OpenAPI Connection`);
             this.SwitchToOpenAPI = true;
             this.openAPIRefreshStatus();
@@ -396,7 +396,7 @@ export class Meter {
 
   async BLEconnection(switchbot: any): Promise<void> {
     this.errorLog(`Meter: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
-    if (this.platform.config.credentials?.openToken) {
+    if (this.platform.config.credentials?.token) {
       this.warnLog(`Meter: ${this.accessory.displayName} Using OpenAPI Connection`);
       this.SwitchToOpenAPI = true;
       await this.openAPIRefreshStatus();
@@ -404,7 +404,7 @@ export class Meter {
   }
 
   async openAPIRefreshStatus(): Promise<void> {
-    if (this.platform.config.credentials?.openToken) {
+    if (this.platform.config.credentials?.token) {
       this.debugLog(`Meter: ${this.accessory.displayName} OpenAPI RefreshStatus`);
       try {
         this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;

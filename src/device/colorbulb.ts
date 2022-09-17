@@ -378,7 +378,7 @@ export class ColorBulb {
               `Color Bulb: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
             );
           }
-          if (this.platform.config.credentials?.openToken) {
+          if (this.platform.config.credentials?.token) {
             this.warnLog(`Color Bulb: ${this.accessory.displayName} Using OpenAPI Connection`);
             this.SwitchToOpenAPI = true;
             await this.openAPIRefreshStatus();
@@ -410,7 +410,7 @@ export class ColorBulb {
 
   async BLEconnection(switchbot: any): Promise<void> {
     this.errorLog(`Color Bulb: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
-    if (this.platform.config.credentials?.openToken) {
+    if (this.platform.config.credentials?.token) {
       this.warnLog(`Color Bulb: ${this.accessory.displayName} Using OpenAPI Connection`);
       this.SwitchToOpenAPI = true;
       await this.openAPIRefreshStatus();

@@ -415,7 +415,7 @@ export class Bot {
     if (this.device.ble) {
       this.SwitchToOpenAPI = false;
     }
-    if (this.platform.config.credentials?.openToken) {
+    if (this.platform.config.credentials?.token) {
       this.debugLog(`Bot: ${this.accessory.displayName} OpenAPI parseStatus`);
       if (this.botMode === 'press') {
         this.On = false;
@@ -510,7 +510,7 @@ export class Bot {
           this.updateHomeKitCharacteristics();
         } else {
           this.errorLog(`Bot: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
-          if (this.platform.config.credentials?.openToken) {
+          if (this.platform.config.credentials?.token) {
             this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
             this.SwitchToOpenAPI = true;
             await this.openAPIRefreshStatus();
@@ -524,7 +524,7 @@ export class Bot {
             `Bot: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
           );
         }
-        if (this.platform.config.credentials?.openToken) {
+        if (this.platform.config.credentials?.token) {
           this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
           this.SwitchToOpenAPI = true;
           await this.openAPIRefreshStatus();
@@ -552,7 +552,7 @@ export class Bot {
   }
 
   async openAPIRefreshStatus(): Promise<void> {
-    if (this.platform.config.credentials?.openToken) {
+    if (this.platform.config.credentials?.token) {
       this.debugLog(`Bot: ${this.accessory.displayName} OpenAPI refreshStatus`);
       try {
         this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
@@ -639,7 +639,7 @@ export class Bot {
             if (this.platform.debugMode) {
               this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection,` + ` Error: ${JSON.stringify(e)}`);
             }
-            if (this.platform.config.credentials?.openToken) {
+            if (this.platform.config.credentials?.token) {
               this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
               await this.openAPIpushChanges();
             }
@@ -668,7 +668,7 @@ export class Bot {
             if (this.platform.debugMode) {
               this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection,` + ` Error: ${JSON.stringify(e)}`);
             }
-            if (this.platform.config.credentials?.openToken) {
+            if (this.platform.config.credentials?.token) {
               this.warnLog(`Bot: ${this.accessory.displayName} Using OpenAPI Connection`);
               await this.openAPIpushChanges();
             }
@@ -696,7 +696,7 @@ export class Bot {
   }
 
   async openAPIpushChanges(): Promise<void> {
-    if (this.platform.config.credentials?.openToken) {
+    if (this.platform.config.credentials?.token) {
       try {
         if (this.On !== this.OnCached || this.allowPush) {
           this.debugLog(`Bot: ${this.accessory.displayName} OpenAPI pushChanges`);

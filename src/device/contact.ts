@@ -217,7 +217,7 @@ export class Contact {
     if (this.device.ble) {
       this.SwitchToOpenAPI = false;
     }
-    if (this.platform.config.credentials?.openToken) {
+    if (this.platform.config.credentials?.token) {
       this.debugLog(`Contact Sensor: ${this.accessory.displayName} OpenAPI parseStatus`);
       // Contact State
       if (this.openState === 'open') {
@@ -331,7 +331,7 @@ export class Contact {
                 ` Error Message: ${JSON.stringify(e.message)}`,
             );
           }
-          if (this.platform.config.credentials?.openToken) {
+          if (this.platform.config.credentials?.token) {
             this.warnLog(`Contact Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
             this.SwitchToOpenAPI = true;
             await this.openAPIRefreshStatus();
@@ -363,7 +363,7 @@ export class Contact {
 
   async BLEconnection(switchbot: any): Promise<void> {
     this.errorLog(`Contact Sensor: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
-    if (this.platform.config.credentials?.openToken) {
+    if (this.platform.config.credentials?.token) {
       this.warnLog(`Contact Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
       this.SwitchToOpenAPI = true;
       await this.openAPIRefreshStatus();
@@ -371,7 +371,7 @@ export class Contact {
   }
 
   async openAPIRefreshStatus(): Promise<void> {
-    if (this.platform.config.credentials?.openToken) {
+    if (this.platform.config.credentials?.token) {
       this.debugLog(`Contact Sensor: ${this.accessory.displayName} OpenAPI refreshStatus`);
       try {
         this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;

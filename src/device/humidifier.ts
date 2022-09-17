@@ -215,7 +215,7 @@ export class Humidifier {
   }
 
   async openAPIparseStatus(): Promise<void> {
-    if (this.platform.config.credentials?.openToken) {
+    if (this.platform.config.credentials?.token) {
       this.debugLog(`Humidifier: ${this.accessory.displayName} OpenAPI parseStatus`);
       // Current Relative Humidity
       this.CurrentRelativeHumidity = this.humidity!;
@@ -347,7 +347,7 @@ export class Humidifier {
               `Humidifier: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
             );
           }
-          if (this.platform.config.credentials?.openToken) {
+          if (this.platform.config.credentials?.token) {
             this.warnLog(`Humidifier: ${this.accessory.displayName} Using OpenAPI Connection`);
             await this.openAPIRefreshStatus();
           }
@@ -378,14 +378,14 @@ export class Humidifier {
 
   async BLEconnection(switchbot: any): Promise<void> {
     this.errorLog(`Humidifier: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
-    if (this.platform.config.credentials?.openToken) {
+    if (this.platform.config.credentials?.token) {
       this.warnLog(`Humidifier: ${this.accessory.displayName} Using OpenAPI Connection`);
       await this.openAPIRefreshStatus();
     }
   }
 
   async openAPIRefreshStatus(): Promise<void> {
-    if (this.platform.config.credentials?.openToken) {
+    if (this.platform.config.credentials?.token) {
       this.debugLog(`Humidifier: ${this.accessory.displayName} OpenAPI refreshStatus`);
       try {
         this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
@@ -457,7 +457,7 @@ export class Humidifier {
               `Humidifier: ${this.accessory.displayName} failed pushChanges with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
             );
           }
-          if (this.platform.config.credentials?.openToken) {
+          if (this.platform.config.credentials?.token) {
             this.warnLog(`Humidifier: ${this.accessory.displayName} Using OpenAPI Connection`);
             await this.openAPIpushChanges();
           }
@@ -465,7 +465,7 @@ export class Humidifier {
         });
     } else {
       this.errorLog(`Humidifier: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
-      if (this.platform.config.credentials?.openToken) {
+      if (this.platform.config.credentials?.token) {
         this.warnLog(`Humidifier: ${this.accessory.displayName} Using OpenAPI Connection`);
         await this.openAPIpushChanges();
       }
@@ -473,7 +473,7 @@ export class Humidifier {
   }
 
   async openAPIpushChanges(): Promise<void> {
-    if (this.platform.config.credentials?.openToken) {
+    if (this.platform.config.credentials?.token) {
       this.debugLog(`Humidifier: ${this.accessory.displayName} OpenAPI pushChanges`);
       if (
         this.TargetHumidifierDehumidifierState === this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER &&

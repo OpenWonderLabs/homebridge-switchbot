@@ -16,8 +16,15 @@
       "credentials": {
         "type": "object",
         "properties": {
-          "openToken": {
+          "token": {
             "title": "Token",
+            "type": "string",
+            "x-schema-form": {
+              "type": "password"
+            }
+          },
+          "secret": {
+            "title": "Secret",
             "type": "string",
             "x-schema-form": {
               "type": "password"
@@ -26,10 +33,10 @@
           "notice": {
             "title": "Notice",
             "type": "string",
-            "default": "Keep your token a secret!"
+            "default": "Keep your Token & Secret a secret!"
           }
         },
-        "required": ["openToken", "notice"]
+        "required": ["token", "secret", "notice"]
       },
       "options": {
         "type": "object",
@@ -861,7 +868,7 @@
       "title": "SwitchBot Account Info",
       "expandable": true,
       "expanded": false,
-      "items": ["credentials.openToken"]
+      "items": ["credentials.token","credentials.secret"]
     },
     {
       "type": "fieldset",

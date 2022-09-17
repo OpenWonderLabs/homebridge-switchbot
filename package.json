@@ -57,10 +57,12 @@
     "@homebridge/plugin-ui-utils": "^0.0.19",
     "async-mqtt": "^2.6.2",
     "axios": "^0.27.2",
+    "crypto-js": "^4.1.1",
     "fakegato-history": "^0.6.3",
     "rxjs": "^7.5.6"
   },
   "devDependencies": {
+    "@types/crypto-js": "^4.1.1",
     "@types/node": "^18.7.13",
     "@typescript-eslint/eslint-plugin": "^5.35.1",
     "@typescript-eslint/parser": "^5.35.1",

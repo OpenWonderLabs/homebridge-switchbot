@@ -232,7 +232,7 @@ export class Plug {
               `Plug: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
             );
           }
-          if (this.platform.config.credentials?.openToken) {
+          if (this.platform.config.credentials?.token) {
             this.warnLog(`Plug: ${this.accessory.displayName} Using OpenAPI Connection`);
             this.SwitchToOpenAPI = true;
             await this.openAPIRefreshStatus();
@@ -272,7 +272,7 @@ export class Plug {
 
   async BLEconnection(switchbot: any): Promise<void> {
     this.errorLog(`Plug: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
-    if (this.platform.config.credentials?.openToken) {
+    if (this.platform.config.credentials?.token) {
       this.warnLog(`Plug: ${this.accessory.displayName} Using OpenAPI Connection`);
       this.SwitchToOpenAPI = true;
       await this.openAPIRefreshStatus();
@@ -350,7 +350,7 @@ export class Plug {
         if (this.platform.debugMode) {
           this.errorLog(`Plug: ${this.accessory.displayName} failed pushChanges with BLE Connection,` + ` Error: ${JSON.stringify(e)}`);
         }
-        if (this.platform.config.credentials?.openToken) {
+        if (this.platform.config.credentials?.token) {
           this.warnLog(`Plug: ${this.accessory.displayName} Using OpenAPI Connection`);
           await this.openAPIpushChanges();
         }
@@ -374,7 +374,7 @@ export class Plug {
   }
 
   async openAPIpushChanges() {
-    if (this.platform.config.credentials?.openToken) {
+    if (this.platform.config.credentials?.token) {
       if (this.On !== this.OnCached) {
         this.debugLog(`Plug: ${this.accessory.displayName} OpenAPI pushChanges`);
         const payload = {

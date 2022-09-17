@@ -18,10 +18,12 @@ import { AirPurifier } from './irdevice/airpurifier';
 import { WaterHeater } from './irdevice/waterheater';
 import { VacuumCleaner } from './irdevice/vacuumcleaner';
 import { AirConditioner } from './irdevice/airconditioner';
+import sha256 from 'crypto-js/sha256';
+import fakegato from 'fakegato-history';
+import { readFileSync, writeFileSync } from 'fs';
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, Service, Characteristic } from 'homebridge';
 import { PLATFORM_NAME, PLUGIN_NAME, DeviceURL, irdevice, device, SwitchBotPlatformConfig, deviceResponses, devicesConfig } from './settings';
-import fakegato from 'fakegato-history';
 
 /**
  * HomebridgePlatform
@@ -74,7 +76,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     // setup axios interceptor to add headers / api key to each request
     this.axios.interceptors.request.use((request: AxiosRequestConfig) => {
-      request.headers!.Authorization = this.config.credentials?.openToken;
+      request.headers!.Authorization = this.config.credentials?.token;
+      request.headers!.sign = String(sha256(this.config.credentials!.token + Date.now(), this.config.credentials!.secret)).toUpperCase();
+      request.headers!.t = String(Date.now());
+      request.headers!.nonce = '';
       request.headers!['Content-Type'] = 'application/json; charset=utf8';
       return request;
     });
@@ -90,7 +95,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.debugLog('Executed didFinishLaunching callback');
       // run the method to discover / register your devices as accessories
       try {
-        this.discoverDevices();
+        if (this.config.credentials?.openToken && !this.config.credentials.token) {
+          await this.updateToken();
+        } else {
+          this.discoverDevices();
+        }
       } catch (e: any) {
         this.errorLog('Failed to Discover Devices.', JSON.stringify(e.message));
         if (this.platformLogging?.includes('debug')) {
@@ -134,7 +143,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   /**
    * Verify the config passed to the plugin is valid
    */
-  verifyConfig() {
+  async verifyConfig() {
     this.config.options = this.config.options || {};
 
     const platformConfig = {};
@@ -181,8 +190,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     }
 
-    if (this.config.options!.refreshRate! < 30) {
-      throw new Error('Refresh Rate must be above 30 (30 seconds).');
+    if (this.config.options!.refreshRate! < 5) {
+      throw new Error('Refresh Rate must be above 5 (5 seconds).');
     }
 
     if (!this.config.options.refreshRate) {
@@ -205,12 +214,71 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           this.debugLog('Missing Credentials');
         }
       }
-      if (!this.config.credentials?.openToken) {
+      if (!this.config.credentials?.token) {
         if (this.platformLogging?.includes('debug')) {
-          this.errorLog('Missing openToken');
+          this.errorLog('Missing token');
           this.warnLog('Cloud Enabled SwitchBot Devices & IR Devices will not work');
         }
       }
+      if (this.config.credentials?.token) {
+        if (!this.config.credentials?.secret) {
+          if (this.platformLogging?.includes('debug')) {
+            this.errorLog('Missing secret');
+            this.warnLog('Cloud Enabled SwitchBot Devices & IR Devices will not work');
+          }
+          throw Error('Missing secret');
+        }
+      }
+    }
+  }
+
+  /**
+   * The openToken was old config.
+   * This method saves the openToken as the token in the config.json file
+   * @param this.config.credentials.openToken
+   */
+  async updateToken() {
+    try {
+      // check the new token was provided
+      if (!this.config.credentials?.openToken) {
+        throw new Error('New token not provided');
+      }
+
+      // load in the current config
+      const currentConfig = JSON.parse(readFileSync(this.api.user.configPath(), 'utf8'));
+
+      // check the platforms section is an array before we do array things on it
+      if (!Array.isArray(currentConfig.platforms)) {
+        throw new Error('Cannot find platforms array in config');
+      }
+
+      // find this plugins current config
+      const pluginConfig = currentConfig.platforms.find((x: { platform: string }) => x.platform === PLATFORM_NAME);
+
+      if (!pluginConfig) {
+        throw new Error(`Cannot find config for ${PLATFORM_NAME} in platforms array`);
+      }
+
+      // check the .credentials is an object before doing object things with it
+      if (typeof pluginConfig.credentials !== 'object') {
+        throw new Error('pluginConfig.credentials is not an object');
+      }
+      // Move openToken to token
+      this.warnLog('This plugin has been updated to use OpenAPI v1.1, config is set with openToken.');
+      this.warnLog('`openToken` config has been moved to the `token` config, Please restart Homebridge.');
+
+      // set the refresh token
+      pluginConfig.credentials.token = this.config.credentials?.openToken;
+      pluginConfig.credentials.openToken = 'Delete';
+
+      if (this.platformLogging?.includes('debug')) {
+        this.warnLog(`Token: ${pluginConfig.credentials.token}`);
+      }
+      // save the config, ensuring we maintain pretty json
+      writeFileSync(this.api.user.configPath(), JSON.stringify(currentConfig, null, 4));
+      this.verifyConfig();
+    } catch (e: any) {
+      this.errorLog(e);
     }
   }
 
@@ -219,7 +287,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
    */
   async discoverDevices() {
     try {
-      if (this.config.credentials?.openToken) {
+      if (this.config.credentials?.token) {
         const devicesAPI: any = (await this.axios.get(DeviceURL)).data;
         this.deviceListInfo(devicesAPI);
         this.debugLog(JSON.stringify(devicesAPI));
@@ -242,7 +310,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
               this.createDevice(device);
             }
           }
-        } else if (this.config.credentials?.openToken && this.config.options.devices) {
+        } else if (this.config.credentials.token && this.config.options.devices) {
           this.debugLog(`SwitchBot Device Config Set: ${JSON.stringify(this.config.options?.devices)}`);
           const deviceConfigs = this.config.options?.devices;
 
@@ -266,7 +334,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
             }
           }
         } else {
-          this.errorLog('Neither SwitchBot OpenToken or Device Config are not set.');
+          this.errorLog('Neither SwitchBot Token or Device Config are not set.');
         }
         // IR Devices
         if (devicesAPI.body.infraredRemoteList.length !== 0) {
@@ -304,7 +372,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
             }
           }
         }
-      } else if (!this.config.credentials?.openToken && this.config.options?.devices) {
+      } else if (!this.config.credentials?.token && this.config.options?.devices) {
         this.debugLog(`SwitchBot Device Manual Config Set: ${JSON.stringify(this.config.options?.devices)}`);
         const deviceConfigs = this.config.options?.devices;
         const devices = deviceConfigs.map((v: any) => v);
@@ -316,7 +384,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           }
         }
       } else {
-        this.errorLog('Neither SwitchBot OpenToken or Device Config are not set.');
+        this.errorLog('Neither SwitchBot Token or Device Config are not set.');
       }
     } catch (e: any) {
       this.deviceError(e);

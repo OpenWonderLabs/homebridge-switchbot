@@ -181,7 +181,7 @@ export class Motion {
     if (this.device.ble) {
       this.SwitchToOpenAPI = false;
     }
-    if (this.platform.config.credentials?.openToken) {
+    if (this.platform.config.credentials?.token) {
       this.debugLog(`Motion Sensor: ${this.accessory.displayName} OpenAPI parseStatus`);
       // Motion State
       this.MotionDetected = this.moveDetected!;
@@ -283,7 +283,7 @@ export class Motion {
                 ` Error Message: ${JSON.stringify(e.message)}`,
             );
           }
-          if (this.platform.config.credentials?.openToken) {
+          if (this.platform.config.credentials?.token) {
             this.warnLog(`Motion Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
             this.SwitchToOpenAPI = true;
             await this.openAPIRefreshStatus();
@@ -315,7 +315,7 @@ export class Motion {
 
   async BLEconnection(switchbot: any): Promise<void> {
     this.errorLog(`Motion Sensor: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
-    if (this.platform.config.credentials?.openToken) {
+    if (this.platform.config.credentials?.token) {
       this.warnLog(`Motion Sensor: ${this.accessory.displayName} Using OpenAPI Connection`);
       this.SwitchToOpenAPI = true;
       await this.openAPIRefreshStatus();
@@ -323,7 +323,7 @@ export class Motion {
   }
 
   async openAPIRefreshStatus(): Promise<void> {
-    if (this.platform.config.credentials?.openToken) {
+    if (this.platform.config.credentials?.token) {
       this.debugLog(`Motion Sensor: ${this.accessory.displayName} OpenAPI RefreshStatus`);
       try {
         this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;

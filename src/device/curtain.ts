@@ -359,7 +359,7 @@ export class Curtain {
     if (this.device.ble) {
       this.SwitchToOpenAPI = false;
     }
-    if (this.platform.config.credentials?.openToken) {
+    if (this.platform.config.credentials?.token) {
       this.debugLog(`Curtain: ${this.accessory.displayName} OpenAPI parseStatus`);
       // CurrentPosition
       this.CurrentPosition = 100 - Number(this.slidePosition);
@@ -489,7 +489,7 @@ export class Curtain {
               `Curtain: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
             );
           }
-          if (this.platform.config.credentials?.openToken) {
+          if (this.platform.config.credentials?.token) {
             this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
             this.SwitchToOpenAPI = true;
             await this.openAPIRefreshStatus();
@@ -521,7 +521,7 @@ export class Curtain {
 
   async BLEconnection(switchbot: any): Promise<void> {
     this.errorLog(`Curtain: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
-    if (this.platform.config.credentials?.openToken) {
+    if (this.platform.config.credentials?.token) {
       this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
       this.SwitchToOpenAPI = true;
       await this.openAPIRefreshStatus();
@@ -529,7 +529,7 @@ export class Curtain {
   }
 
   async openAPIRefreshStatus(): Promise<void> {
-    if (this.platform.config.credentials?.openToken) {
+    if (this.platform.config.credentials?.token) {
       this.debugLog(`Curtain: ${this.accessory.displayName} OpenAPI refreshStatus`);
       try {
         this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
@@ -613,7 +613,7 @@ export class Curtain {
                 `Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
               );
             }
-            if (this.platform.config.credentials?.openToken) {
+            if (this.platform.config.credentials?.token) {
               this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
               await this.openAPIpushChanges();
             }
@@ -621,7 +621,7 @@ export class Curtain {
           });
       } else {
         this.errorLog(`Curtain: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
-        if (this.platform.config.credentials?.openToken) {
+        if (this.platform.config.credentials?.token) {
           this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
           await this.openAPIpushChanges();
         }
@@ -635,7 +635,7 @@ export class Curtain {
   }
 
   async openAPIpushChanges(): Promise<void> {
-    if (this.platform.config.credentials?.openToken) {
+    if (this.platform.config.credentials?.token) {
       try {
         this.debugLog(`Curtain: ${this.accessory.displayName} OpenAPI pushChanges`);
         if (this.TargetPosition !== this.CurrentPosition) {

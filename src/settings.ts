@@ -18,7 +18,7 @@ export const AuthURL = 'https://api.switch-bot.com';
 /**
  * This is the main url used to access SwitchBot API
  */
-export const DeviceURL = 'https://api.switch-bot.com/v1.0/devices';
+export const DeviceURL = 'https://api.switch-bot.com/v1.1/devices';
 
 //Config
 export interface SwitchBotPlatformConfig extends PlatformConfig {
@@ -27,6 +27,8 @@ export interface SwitchBotPlatformConfig extends PlatformConfig {
 }
 
 export type credentials = {
+  token?: any;
+  secret?: any;
   openToken?: any;
 };
 
