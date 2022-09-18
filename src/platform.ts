@@ -18,8 +18,8 @@ import { AirPurifier } from './irdevice/airpurifier';
 import { WaterHeater } from './irdevice/waterheater';
 import { VacuumCleaner } from './irdevice/vacuumcleaner';
 import { AirConditioner } from './irdevice/airconditioner';
+import crypto from 'crypto';
 import { Buffer } from 'buffer';
-import CryptoJS from 'crypto-js';
 import fakegato from 'fakegato-history';
 import { readFileSync, writeFileSync } from 'fs';
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
@@ -52,11 +52,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
   constructor(public readonly log: Logger, public readonly config: SwitchBotPlatformConfig, public readonly api: API) {
     this.logs();
-    const t = (new Date().getTime())?.toString();
+    const token = this.config.credentials?.token;
+    const secret = this.config.credentials?.secret;
+    const t = Date.now().toString();
     const nonce = '';
-    const data = this.config.credentials?.token + t + nonce;
-    const Hmac_SHA256 = CryptoJS.HmacSHA256(this.config.credentials?.secret, data).toString();
-    const sign = Buffer.from(Hmac_SHA256, 'binary').toString('base64');
+    const data = token + t + nonce;
+    const signTerm = crypto.createHmac('sha256', secret)
+      .update(Buffer.from(data, 'utf-8'))
+      .digest();
+    const sign = Buffer.from(String(signTerm), 'binary').toString('base64');
 
     this.debugLog('Finished initializing platform:', this.config.name);
     // only load if configured
@@ -83,7 +87,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     // setup axios interceptor to add headers / api key to each request
     this.axios.interceptors.request.use((request: AxiosRequestConfig) => {
-      request.headers!.Authorization = this.config.credentials?.token;
+      request.headers!.Authorization = token;
       request.headers!.sign = sign;
       request.headers!.t = t;
       request.headers!.nonce = nonce;
@@ -341,7 +345,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
             }
           }
         } else {
-          this.errorLog('Neither SwitchBot Token or Device Config are not set.');
+          this.errorLog('SwitchBot Token Supplied, Issue with Auth.');
         }
         // IR Devices
         if (devicesAPI.body.infraredRemoteList.length !== 0) {
