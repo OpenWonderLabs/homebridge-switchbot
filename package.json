@@ -61,6 +61,7 @@
     "rxjs": "^7.5.6"
   },
   "devDependencies": {
+    "@types/node": "^18.7.18",
     "@types/crypto-js": "^4.1.1",
     "@typescript-eslint/eslint-plugin": "^5.38.0",
     "@typescript-eslint/parser": "^5.38.0",
