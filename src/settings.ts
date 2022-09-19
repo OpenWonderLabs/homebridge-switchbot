@@ -13,12 +13,12 @@ export const PLUGIN_NAME = '@switchbot/homebridge-switchbot';
 /**
  * This is the main url used to access SwitchBot API
  */
-export const AuthURL = 'https://api.switch-bot.com';
+export const HostDomain = 'api.switch-bot.com';
 
 /**
  * This is the main url used to access SwitchBot API
  */
-export const DeviceURL = 'https://api.switch-bot.com/v1.1/devices';
+export const DevicePath = '/v1.1/devices';
 
 //Config
 export interface SwitchBotPlatformConfig extends PlatformConfig {
@@ -183,16 +183,12 @@ export type payload = {
   command: string;
 };
 
-export interface AxiosRequestConfig {
-  params?: Record<string, unknown>;
-  headers?: any;
-}
-
+/*
 export type deviceResponses = {
   statusCode: number | string;
   message: string;
   body: deviceList | infraredRemoteList;
-};
+};*/
 
 //a list of physical devices.
 export type deviceList = {
@@ -236,11 +232,11 @@ export type irdevice = {
   hubDeviceId: string; //remote device's parent Hub ID
 };
 
-export type deviceStatusResponse = {
+/*export type deviceStatusResponse = {
   statusCode: number;
   message: string;
   body: deviceStatus;
-};
+};*/
 
 export type deviceStatus = {
   //device ID.

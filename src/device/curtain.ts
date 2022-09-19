@@ -1,12 +1,14 @@
-import { AxiosResponse } from 'axios';
+import https from 'https';
+import crypto from 'crypto';
+import { Context } from 'vm';
+import { MqttClient } from 'mqtt';
+import { IncomingMessage } from 'http';
 import { interval, Subject } from 'rxjs';
+import { connectAsync } from 'async-mqtt';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse, payload, deviceStatus, ad } from '../settings';
-import { Context } from 'vm';
-import { MqttClient } from 'mqtt';
-import { connectAsync } from 'async-mqtt';
+import { device, devicesConfig, serviceData, switchbot, payload, deviceStatus, ad, HostDomain, DevicePath } from '../settings';
 
 export class Curtain {
   // Services
@@ -23,7 +25,7 @@ export class Curtain {
   StatusLowBattery?: CharacteristicValue;
 
   // OpenAPI Others
-  deviceStatus!: deviceStatusResponse;
+  deviceStatus!: any; //deviceStatusResponse;
   slidePosition: deviceStatus['slidePosition'];
   moving: deviceStatus['moving'];
   brightness: deviceStatus['brightness'];
@@ -532,13 +534,51 @@ export class Curtain {
     if (this.platform.config.credentials?.token) {
       this.debugLog(`Curtain: ${this.accessory.displayName} OpenAPI refreshStatus`);
       try {
-        this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
-        this.debugLog(`Curtain: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
-        this.slidePosition = this.deviceStatus.body.slidePosition;
-        this.moving = this.deviceStatus.body.moving;
-        this.brightness = this.deviceStatus.body.brightness;
-        this.parseStatus();
-        this.updateHomeKitCharacteristics();
+        const t = Date.now();
+        const nonce = 'requestID';
+        const data = this.platform.config.credentials?.token + t + nonce;
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+        const sign = signTerm.toString('base64');
+        this.debugLog(`Curtain: ${this.accessory.displayName} sign: ${sign}`);
+        const options = {
+          hostname: HostDomain,
+          port: 443,
+          path: `${DevicePath}/${this.device.deviceId}/status`,
+          method: 'GET',
+          headers: {
+            Authorization: this.platform.config.credentials?.token,
+            sign: sign,
+            nonce: nonce,
+            t: t,
+            'Content-Type': 'application/json',
+          },
+        };
+        const req = https.request(options, (res) => {
+          this.debugLog(`Curtain: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+          let rawData = '';
+          res.on('data', (d) => {
+            rawData += d;
+            this.debugLog(`Curtain: ${this.accessory.displayName} d: ${d}`);
+          });
+
+          res.on('end', () => {
+            try {
+              this.deviceStatus = JSON.parse(rawData);
+              this.debugLog(`Curtain: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+              this.slidePosition = this.deviceStatus.body.slidePosition;
+              this.moving = this.deviceStatus.body.moving;
+              this.brightness = this.deviceStatus.body.brightness;
+              this.parseStatus();
+              this.updateHomeKitCharacteristics();
+            } catch (e: any) {
+              this.errorLog(`Curtain: ${this.accessory.displayName} error message: ${e.message}`);
+            }
+          });
+        });
+        req.on('error', (e: any) => {
+          this.errorLog(`Curtain: ${this.accessory.displayName} error message: ${e.message}`);
+        });
+        req.end();
       } catch (e: any) {
         this.errorLog(`Curtain: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
         if (this.deviceLogging.includes('debug')) {
@@ -667,9 +707,42 @@ export class Curtain {
           );
 
           // Make the API request
-          const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId!}/commands`, payload);
-          this.debugLog(`Curtain: ${this.accessory.displayName} pushchanges: ${JSON.stringify(push.data)}`);
-          this.statusCode(push);
+          const t = Date.now();
+          const nonce = 'requestID';
+          const data = this.platform.config.credentials?.token + t + nonce;
+          const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+          const sign = signTerm.toString('base64');
+          this.debugLog(`Curtain: ${this.accessory.displayName} sign: ${sign}`);
+          const options = {
+            hostname: HostDomain,
+            port: 443,
+            path: `${DevicePath}/${this.device.deviceId}/commands`,
+            method: 'POST',
+            headers: {
+              Authorization: this.platform.config.credentials?.token,
+              sign: sign,
+              nonce: nonce,
+              t: t,
+              'Content-Type': 'application/json',
+            },
+          };
+
+          const req = https.request(options, (res) => {
+            this.debugLog(`Curtain: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+            this.statusCode({ res });
+            res.on('data', (d) => {
+              this.debugLog(`Curtain: ${this.accessory.displayName} d: ${d}`);
+            });
+          });
+
+          req.on('error', (error) => {
+            this.errorLog(`Curtain: ${this.accessory.displayName} error: ${error}`);
+          });
+
+          req.write(payload);
+          req.end();
+
+          this.debugLog(`Curtain: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
         } else {
           this.debugLog(
             `Curtain: ${this.accessory.displayName} No OpenAPI Changes, CurrentPosition & TargetPosition Are the Same.` +
@@ -752,8 +825,8 @@ export class Curtain {
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
-  async statusCode(push: AxiosResponse<{ statusCode: number }>): Promise<void> {
-    switch (push.data.statusCode) {
+  async statusCode({ res }: { res: IncomingMessage }): Promise<void> {
+    switch (res.statusCode) {
       case 151:
         this.errorLog(`Curtain: ${this.accessory.displayName} Command not supported by this device type.`);
         break;
@@ -772,7 +845,7 @@ export class Curtain {
       case 190:
         this.errorLog(
           `Curtain: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-            ` Or command: ${JSON.stringify(push.data)} format is invalid`,
+            ` Or command: ${JSON.stringify(res)} format is invalid`,
         );
         break;
       case 100:

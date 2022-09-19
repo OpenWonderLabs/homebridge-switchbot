@@ -1,7 +1,9 @@
-import { AxiosResponse } from 'axios';
+import https from 'https';
+import crypto from 'crypto';
+import { IncomingMessage } from 'http';
 import { SwitchBotPlatform } from '../platform';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
-import { DeviceURL, irdevice, deviceStatusResponse, irDevicesConfig, payload } from '../settings';
+import { irdevice, irDevicesConfig, payload, HostDomain, DevicePath } from '../settings';
 
 /**
  * Platform Accessory
@@ -19,7 +21,7 @@ export class TV {
   ActiveIdentifier!: CharacteristicValue;
 
   // Others
-  deviceStatus!: deviceStatusResponse;
+  deviceStatus!: any;
 
   // Config
   deviceLogging!: string;
@@ -342,9 +344,42 @@ export class TV {
       );
 
       // Make the API request
-      const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushChanges: ${push.data}`);
-      this.statusCode(push);
+      const t = Date.now();
+      const nonce = 'requestID';
+      const data = this.platform.config.credentials?.token + t + nonce;
+      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+      const sign = signTerm.toString('base64');
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} sign: ${sign}`);
+      const options = {
+        hostname: HostDomain,
+        port: 443,
+        path: `${DevicePath}/${this.device.deviceId}/commands`,
+        method: 'POST',
+        headers: {
+          Authorization: this.platform.config.credentials?.token,
+          sign: sign,
+          nonce: nonce,
+          t: t,
+          'Content-Type': 'application/json',
+        },
+      };
+
+      const req = https.request(options, (res) => {
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+        this.statusCode({ res });
+        res.on('data', (d) => {
+          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} d: ${d}`);
+        });
+      });
+
+      req.on('error', (error) => {
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} error: ${error}`);
+      });
+
+      req.write(payload);
+      req.end();
+
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
@@ -358,8 +393,8 @@ export class TV {
     }
   }
 
-  async statusCode(push: AxiosResponse<{ statusCode: number }>): Promise<void>{
-    switch (push.data.statusCode) {
+  async statusCode({ res }: { res: IncomingMessage }): Promise<void> {
+    switch (res.statusCode) {
       case 151:
         this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Command not supported by this device type.`);
         break;
@@ -379,7 +414,7 @@ export class TV {
         this.errorLog(
           `${this.device.remoteType}: ` +
             `${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-            ` Or command: ${JSON.stringify(push.data)} format is invalid`,
+            ` Or command: ${JSON.stringify(res)} format is invalid`,
         );
         break;
       case 100:

@@ -1,10 +1,12 @@
-import { AxiosResponse } from 'axios';
+import https from 'https';
+import crypto from 'crypto';
+import { Context } from 'vm';
+import { IncomingMessage } from 'http';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { DeviceURL, device, devicesConfig, serviceData, ad, deviceStatusResponse, payload, deviceStatus } from '../settings';
-import { Context } from 'vm';
+import { device, devicesConfig, serviceData, ad, payload, deviceStatus, HostDomain, DevicePath } from '../settings';
 
 /**
  * Platform Accessory
@@ -32,7 +34,7 @@ export class Humidifier {
   lackWater: deviceStatus['lackWater'];
   temperature: deviceStatus['temperature'];
   nebulizationEfficiency: deviceStatus['nebulizationEfficiency'];
-  deviceStatus!: deviceStatusResponse;
+  deviceStatus!: any; //deviceStatusResponse;
 
   // BLE Others
   connected?: boolean;
@@ -388,20 +390,53 @@ export class Humidifier {
     if (this.platform.config.credentials?.token) {
       this.debugLog(`Humidifier: ${this.accessory.displayName} OpenAPI refreshStatus`);
       try {
-        this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
-        if (this.deviceStatus.message === 'success') {
-          this.debugLog(`Humidifier: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
-          this.auto = this.deviceStatus.body.auto;
-          this.power = this.deviceStatus.body.power;
-          this.lackWater = this.deviceStatus.body.lackWater;
-          this.humidity = this.deviceStatus.body.humidity;
-          this.temperature = this.deviceStatus.body.temperature;
-          this.nebulizationEfficiency = this.deviceStatus.body.nebulizationEfficiency;
-          this.parseStatus();
-          this.updateHomeKitCharacteristics();
-        } else {
-          this.errorLog(`Humidifier: ${this.accessory.displayName} message: ${JSON.stringify(this.deviceStatus.message)}`);
-        }
+        const t = Date.now();
+        const nonce = 'requestID';
+        const data = this.platform.config.credentials?.token + t + nonce;
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+        const sign = signTerm.toString('base64');
+        this.debugLog(`Humidifier: ${this.accessory.displayName} sign: ${sign}`);
+        const options = {
+          hostname: HostDomain,
+          port: 443,
+          path: `${DevicePath}/${this.device.deviceId}/status`,
+          method: 'GET',
+          headers: {
+            Authorization: this.platform.config.credentials?.token,
+            sign: sign,
+            nonce: nonce,
+            t: t,
+            'Content-Type': 'application/json',
+          },
+        };
+        const req = https.request(options, (res) => {
+          this.debugLog(`Humidifier: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+          let rawData = '';
+          res.on('data', (d) => {
+            rawData += d;
+            this.debugLog(`Humidifier: ${this.accessory.displayName} d: ${d}`);
+          });
+          res.on('end', () => {
+            try {
+              this.deviceStatus = JSON.parse(rawData);
+              this.debugLog(`Humidifier: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+              this.auto = this.deviceStatus.body.auto;
+              this.power = this.deviceStatus.body.power;
+              this.lackWater = this.deviceStatus.body.lackWater;
+              this.humidity = this.deviceStatus.body.humidity;
+              this.temperature = this.deviceStatus.body.temperature;
+              this.nebulizationEfficiency = this.deviceStatus.body.nebulizationEfficiency;
+              this.parseStatus();
+              this.updateHomeKitCharacteristics();
+            } catch (e: any) {
+              this.errorLog(`Humidifier: ${this.accessory.displayName} error message: ${e.message}`);
+            }
+          });
+        });
+        req.on('error', (e: any) => {
+          this.errorLog(`Humidifier: ${this.accessory.displayName} error message: ${e.message}`);
+        });
+        req.end();
       } catch (e: any) {
         this.errorLog(`Humidifier: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
         if (this.deviceLogging.includes('debug')) {
@@ -493,9 +528,42 @@ export class Humidifier {
           );
 
           // Make the API request
-          const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-          this.debugLog(`Humidifier: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
-          this.statusCode(push);
+          const t = Date.now();
+          const nonce = 'requestID';
+          const data = this.platform.config.credentials?.token + t + nonce;
+          const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+          const sign = signTerm.toString('base64');
+          this.debugLog(`Humidifier: ${this.accessory.displayName} sign: ${sign}`);
+          const options = {
+            hostname: 'api.switch-bot.com',
+            port: 443,
+            path: `/v1.1/devices/${this.device.deviceId}/commands`,
+            method: 'POST',
+            headers: {
+              Authorization: this.platform.config.credentials?.token,
+              sign: sign,
+              nonce: nonce,
+              t: t,
+              'Content-Type': 'application/json',
+            },
+          };
+
+          const req = https.request(options, (res) => {
+            this.debugLog(`Humidifier: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+            this.statusCode({ res });
+            res.on('data', (d) => {
+              this.debugLog(`Humidifier: ${this.accessory.displayName} d: ${d}`);
+            });
+          });
+
+          req.on('error', (error) => {
+            this.errorLog(`Humidifier: ${this.accessory.displayName} error: ${error}`);
+          });
+
+          req.write(payload);
+          req.end();
+
+          this.debugLog(`Humidifier: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
         } catch (e: any) {
           this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
           if (this.deviceLogging.includes('debug')) {
@@ -539,9 +607,42 @@ export class Humidifier {
         );
 
         // Make the API request
-        const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-        this.debugLog(`Humidifier: ${this.accessory.displayName} pushAutoChanges: ${JSON.stringify(push.data)}`);
-        this.statusCode(push);
+        const t = Date.now();
+        const nonce = 'requestID';
+        const data = this.platform.config.credentials?.token + t + nonce;
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+        const sign = signTerm.toString('base64');
+        this.debugLog(`Humidifier: ${this.accessory.displayName} sign: ${sign}`);
+        const options = {
+          hostname: 'api.switch-bot.com',
+          port: 443,
+          path: `/v1.1/devices/${this.device.deviceId}/commands`,
+          method: 'POST',
+          headers: {
+            Authorization: this.platform.config.credentials?.token,
+            sign: sign,
+            nonce: nonce,
+            t: t,
+            'Content-Type': 'application/json',
+          },
+        };
+
+        const req = https.request(options, (res) => {
+          this.debugLog(`Humidifier: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+          this.statusCode({ res });
+          res.on('data', (d) => {
+            this.debugLog(`Humidifier: ${this.accessory.displayName} d: ${d}`);
+          });
+        });
+
+        req.on('error', (error) => {
+          this.errorLog(`Humidifier: ${this.accessory.displayName} error: ${error}`);
+        });
+
+        req.write(payload);
+        req.end();
+
+        this.debugLog(`Humidifier: ${this.accessory.displayName} pushAutoChanges: ${JSON.stringify(req)}`);
       }
     } catch (e: any) {
       this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushAutoChanges with OpenAPI Connection`);
@@ -574,9 +675,42 @@ export class Humidifier {
         );
 
         // Make the API request
-        const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-        this.debugLog(`Humidifier: ${this.accessory.displayName} pushActiveChanges: ${JSON.stringify(push.data)}`);
-        this.statusCode(push);
+        const t = Date.now();
+        const nonce = 'requestID';
+        const data = this.platform.config.credentials?.token + t + nonce;
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+        const sign = signTerm.toString('base64');
+        this.debugLog(`Humidifier: ${this.accessory.displayName} sign: ${sign}`);
+        const options = {
+          hostname: 'api.switch-bot.com',
+          port: 443,
+          path: `/v1.1/devices/${this.device.deviceId}/commands`,
+          method: 'POST',
+          headers: {
+            Authorization: this.platform.config.credentials?.token,
+            sign: sign,
+            nonce: nonce,
+            t: t,
+            'Content-Type': 'application/json',
+          },
+        };
+
+        const req = https.request(options, (res) => {
+          this.debugLog(`Humidifier: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+          this.statusCode({ res });
+          res.on('data', (d) => {
+            this.debugLog(`Humidifier: ${this.accessory.displayName} d: ${d}`);
+          });
+        });
+
+        req.on('error', (error) => {
+          this.errorLog(`Humidifier: ${this.accessory.displayName} error: ${error}`);
+        });
+
+        req.write(payload);
+        req.end();
+
+        this.debugLog(`Humidifier: ${this.accessory.displayName} pushActiveChanges: ${JSON.stringify(req)}`);
       }
     } catch (e: any) {
       this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushActiveChanges with OpenAPI Connection`);
@@ -677,8 +811,8 @@ export class Humidifier {
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
-  async statusCode(push: AxiosResponse<{ statusCode: number }>): Promise<void> {
-    switch (push.data.statusCode) {
+  async statusCode({ res }: { res: IncomingMessage }): Promise<void> {
+    switch (res.statusCode) {
       case 151:
         this.errorLog(`Humidifier: ${this.accessory.displayName} Command not supported by this device type.`);
         break;
@@ -699,7 +833,7 @@ export class Humidifier {
       case 190:
         this.errorLog(
           `Humidifier: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-            ` Or command: ${JSON.stringify(push.data)} format is invalid`,
+            ` Or command: ${JSON.stringify(res)} format is invalid`,
         );
         break;
       case 100:

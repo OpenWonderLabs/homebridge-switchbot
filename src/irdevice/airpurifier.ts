@@ -1,6 +1,8 @@
-import { AxiosResponse } from 'axios';
+import https from 'https';
+import crypto from 'crypto';
+import { IncomingMessage } from 'http';
 import { SwitchBotPlatform } from '../platform';
-import { irDevicesConfig, DeviceURL, irdevice, payload } from '../settings';
+import { irDevicesConfig, irdevice, payload, HostDomain, DevicePath } from '../settings';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 
 /**
@@ -220,9 +222,42 @@ export class AirPurifier {
       );
 
       // Make the API request
-      const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.debugLog(`Air Purifier: ${this.accessory.displayName} pushChanges: ${push.data}`);
-      this.statusCode(push);
+      const t = Date.now();
+      const nonce = 'requestID';
+      const data = this.platform.config.credentials?.token + t + nonce;
+      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+      const sign = signTerm.toString('base64');
+      this.debugLog(`Air Purifier: ${this.accessory.displayName} sign: ${sign}`);
+      const options = {
+        hostname: HostDomain,
+        port: 443,
+        path: `${DevicePath}/${this.device.deviceId}/commands`,
+        method: 'POST',
+        headers: {
+          Authorization: this.platform.config.credentials?.token,
+          sign: sign,
+          nonce: nonce,
+          t: t,
+          'Content-Type': 'application/json',
+        },
+      };
+
+      const req = https.request(options, (res) => {
+        this.debugLog(`Air Purifier: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+        this.statusCode({ res });
+        res.on('data', (d) => {
+          this.debugLog(`Air Purifier: ${this.accessory.displayName} d: ${d}`);
+        });
+      });
+
+      req.on('error', (error) => {
+        this.errorLog(`Air Purifier: ${this.accessory.displayName} error: ${error}`);
+      });
+
+      req.write(payload);
+      req.end();
+
+      this.debugLog(`Air Purifier: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
       this.updateHomeKitCharacteristics();
       this.CurrentTemperatureCached = this.CurrentTemperature;
       this.accessory.context.CurrentTemperature = this.CurrentTemperatureCached;
@@ -237,8 +272,8 @@ export class AirPurifier {
     }
   }
 
-  async statusCode(push: AxiosResponse<{ statusCode: number }>): Promise<void> {
-    switch (push.data.statusCode) {
+  async statusCode({ res }: { res: IncomingMessage }): Promise<void> {
+    switch (res.statusCode) {
       case 151:
         this.errorLog(`Air Purifier: ${this.accessory.displayName} Command not supported by this device type.`);
         break;
@@ -257,7 +292,7 @@ export class AirPurifier {
       case 190:
         this.errorLog(
           `Air Purifier: ${this.accessory.displayName} Device internal error due to device states not synchronized` +
-            ` with server, Or command: ${JSON.stringify(push.data)} format is invalid`,
+            ` with server, Or command: ${JSON.stringify(res)} format is invalid`,
         );
         break;
       case 100:

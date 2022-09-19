@@ -1,9 +1,11 @@
+import https from 'https';
+import crypto from 'crypto';
+import { Context } from 'vm';
 import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
 import { SwitchBotPlatform } from '../platform';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { DeviceURL, device, devicesConfig, serviceData, switchbot, deviceStatusResponse, deviceStatus, ad } from '../settings';
-import { Context } from 'vm';
+import { device, devicesConfig, serviceData, switchbot, deviceStatus, ad, HostDomain, DevicePath } from '../settings';
 
 /**
  * Platform Accessory
@@ -23,7 +25,7 @@ export class Motion {
   StatusLowBattery?: CharacteristicValue;
 
   // OpenAPI Others
-  deviceStatus!: deviceStatusResponse;
+  deviceStatus!: any; //deviceStatusResponse;
   moveDetected: deviceStatus['moveDetected'];
   brightness: deviceStatus['brightness'];
 
@@ -326,15 +328,49 @@ export class Motion {
     if (this.platform.config.credentials?.token) {
       this.debugLog(`Motion Sensor: ${this.accessory.displayName} OpenAPI RefreshStatus`);
       try {
-        this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
-        this.debugLog(`Motion Sensor: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
-        if (this.deviceStatus.body.moveDetected === undefined) {
-          this.errorLog(`Motion Sensor: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
-        }
-        this.moveDetected = this.deviceStatus.body.moveDetected;
-        this.brightness = this.deviceStatus.body.brightness;
-        this.parseStatus();
-        this.updateHomeKitCharacteristics();
+        const t = Date.now();
+        const nonce = 'requestID';
+        const data = this.platform.config.credentials?.token + t + nonce;
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+        const sign = signTerm.toString('base64');
+        this.debugLog(`Motion Sensor: ${this.accessory.displayName} sign: ${sign}`);
+        const options = {
+          hostname: HostDomain,
+          port: 443,
+          path: `${DevicePath}/${this.device.deviceId}/status`,
+          method: 'GET',
+          headers: {
+            Authorization: this.platform.config.credentials?.token,
+            sign: sign,
+            nonce: nonce,
+            t: t,
+            'Content-Type': 'application/json',
+          },
+        };
+        const req = https.request(options, (res) => {
+          this.debugLog(`Motion Sensor: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+          let rawData = '';
+          res.on('data', (d) => {
+            rawData += d;
+            this.debugLog(`Motion Sensor: ${this.accessory.displayName} d: ${d}`);
+          });
+          res.on('end', () => {
+            try {
+              this.deviceStatus = JSON.parse(rawData);
+              this.debugLog(`Motion Sensor: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+              this.moveDetected = this.deviceStatus.body.moveDetected;
+              this.brightness = this.deviceStatus.body.brightness;
+              this.parseStatus();
+              this.updateHomeKitCharacteristics();
+            } catch (e: any) {
+              this.errorLog(`Motion Sensor: ${this.accessory.displayName} error message: ${e.message}`);
+            }
+          });
+        });
+        req.on('error', (e: any) => {
+          this.errorLog(`Motion Sensor: ${this.accessory.displayName} error message: ${e.message}`);
+        });
+        req.end();
       } catch (e: any) {
         this.errorLog(`Motion Sensor: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
         if (this.deviceLogging.includes('debug')) {

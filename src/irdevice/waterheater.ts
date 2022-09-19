@@ -1,6 +1,8 @@
-import { AxiosResponse } from 'axios';
+import https from 'https';
+import crypto from 'crypto';
+import { IncomingMessage } from 'http';
 import { SwitchBotPlatform } from '../platform';
-import { irDevicesConfig, DeviceURL, irdevice, payload } from '../settings';
+import { irDevicesConfig, irdevice, payload, HostDomain, DevicePath } from '../settings';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 
 /**
@@ -119,9 +121,42 @@ export class WaterHeater {
       );
 
       // Make the API request
-      const push = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-      this.debugLog(`Water Heater: ${this.accessory.displayName} pushChanges: ${push.data}`);
-      this.statusCode(push);
+      const t = Date.now();
+      const nonce = 'requestID';
+      const data = this.platform.config.credentials?.token + t + nonce;
+      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+      const sign = signTerm.toString('base64');
+      this.debugLog(`Water Heater: ${this.accessory.displayName} sign: ${sign}`);
+      const options = {
+        hostname: HostDomain,
+        port: 443,
+        path: `${DevicePath}/${this.device.deviceId}/commands`,
+        method: 'POST',
+        headers: {
+          Authorization: this.platform.config.credentials?.token,
+          sign: sign,
+          nonce: nonce,
+          t: t,
+          'Content-Type': 'application/json',
+        },
+      };
+
+      const req = https.request(options, (res) => {
+        this.debugLog(`Water Heater: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+        this.statusCode({ res });
+        res.on('data', (d) => {
+          this.debugLog(`Water Heater: ${this.accessory.displayName} d: ${d}`);
+        });
+      });
+
+      req.on('error', (error) => {
+        this.errorLog(`Water Heater: ${this.accessory.displayName} error: ${error}`);
+      });
+
+      req.write(payload);
+      req.end();
+
+      this.debugLog(`Water Heater: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.errorLog(`Water Heater: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
@@ -134,8 +169,8 @@ export class WaterHeater {
     }
   }
 
-  async statusCode(push: AxiosResponse<{ statusCode: number }>): Promise<void>{
-    switch (push.data.statusCode) {
+  async statusCode({ res }: { res: IncomingMessage }): Promise<void> {
+    switch (res.statusCode) {
       case 151:
         this.errorLog(`Water Heater: ${this.accessory.displayName} Command not supported by this device type.`);
         break;
@@ -154,7 +189,7 @@ export class WaterHeater {
       case 190:
         this.errorLog(
           `Water Heater: ${this.accessory.displayName} Device internal error due to device states not synchronized` +
-            ` with server, Or command: ${JSON.stringify(push.data)} format is invalid`,
+            ` with server, Or command: ${JSON.stringify(res)} format is invalid`,
         );
         break;
       case 100:

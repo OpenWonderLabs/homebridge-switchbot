@@ -1,10 +1,12 @@
-import { AxiosResponse } from 'axios';
+import https from 'https';
+import crypto from 'crypto';
+import { Context } from 'vm';
+import { IncomingMessage } from 'http';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap } from 'homebridge';
-import { DeviceURL, device, devicesConfig, switchbot, deviceStatusResponse, payload, hs2rgb, rgb2hs, deviceStatus } from '../settings';
-import { Context } from 'vm';
+import { device, devicesConfig, switchbot, payload, hs2rgb, rgb2hs, deviceStatus, HostDomain, DevicePath } from '../settings';
 
 /**
  * Platform Accessory
@@ -29,7 +31,7 @@ export class StripLight {
   power: deviceStatus['power'];
   color: deviceStatus['color'];
   brightness: deviceStatus['brightness'];
-  deviceStatus!: deviceStatusResponse;
+  deviceStatus!: any; //deviceStatusResponse;
 
   // BLE Others
   switchbot!: switchbot;
@@ -210,14 +212,50 @@ export class StripLight {
 
   async refreshStatus(): Promise<void> {
     try {
-      this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
-      this.debugLog(`Strip Light: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
-      this.power = this.deviceStatus.body.power;
-      this.color = this.deviceStatus.body.color;
-      this.brightness = this.deviceStatus.body.brightness;
-
-      this.parseStatus();
-      this.updateHomeKitCharacteristics();
+      const t = Date.now();
+      const nonce = 'requestID';
+      const data = this.platform.config.credentials?.token + t + nonce;
+      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+      const sign = signTerm.toString('base64');
+      this.debugLog(`Strip Light: ${this.accessory.displayName} sign: ${sign}`);
+      const options = {
+        hostname: HostDomain,
+        port: 443,
+        path: `${DevicePath}/${this.device.deviceId}/status`,
+        method: 'GET',
+        headers: {
+          Authorization: this.platform.config.credentials?.token,
+          sign: sign,
+          nonce: nonce,
+          t: t,
+          'Content-Type': 'application/json',
+        },
+      };
+      const req = https.request(options, (res) => {
+        this.debugLog(`Strip Light: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+        let rawData = '';
+        res.on('data', (d) => {
+          rawData += d;
+          this.debugLog(`Strip Light: ${this.accessory.displayName} d: ${d}`);
+        });
+        res.on('end', () => {
+          try {
+            this.deviceStatus = JSON.parse(rawData);
+            this.debugLog(`Strip Light: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+            this.power = this.deviceStatus.body.power;
+            this.color = this.deviceStatus.body.color;
+            this.brightness = this.deviceStatus.body.brightness;
+            this.parseStatus();
+            this.updateHomeKitCharacteristics();
+          } catch (e: any) {
+            this.errorLog(`Strip Light: ${this.accessory.displayName} error message: ${e.message}`);
+          }
+        });
+      });
+      req.on('error', (e: any) => {
+        this.errorLog(`Strip Light: ${this.accessory.displayName} error message: ${e.message}`);
+      });
+      req.end();
     } catch (e: any) {
       this.errorLog(`Strip Light: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
       if (this.deviceLogging.includes('debug')) {
@@ -260,9 +298,42 @@ export class StripLight {
         );
 
         // Make the API request
-        const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-        this.debugLog(`Strip Light: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
-        this.statusCode(push);
+        const t = Date.now();
+        const nonce = 'requestID';
+        const data = this.platform.config.credentials?.token + t + nonce;
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+        const sign = signTerm.toString('base64');
+        this.debugLog(`Strip Light: ${this.accessory.displayName} sign: ${sign}`);
+        const options = {
+          hostname: 'api.switch-bot.com',
+          port: 443,
+          path: `/v1.1/devices/${this.device.deviceId}/commands`,
+          method: 'POST',
+          headers: {
+            Authorization: this.platform.config.credentials?.token,
+            sign: sign,
+            nonce: nonce,
+            t: t,
+            'Content-Type': 'application/json',
+          },
+        };
+
+        const req = https.request(options, (res) => {
+          this.debugLog(`Strip Light: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+          this.statusCode({ res });
+          res.on('data', (d) => {
+            this.debugLog(`Strip Light: ${this.accessory.displayName} d: ${d}`);
+          });
+        });
+
+        req.on('error', (error) => {
+          this.errorLog(`Strip Light: ${this.accessory.displayName} error: ${error}`);
+        });
+
+        req.write(payload);
+        req.end();
+
+        this.debugLog(`Strip Light: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
         this.OnCached = this.On;
         this.accessory.context.On = this.OnCached;
       }
@@ -307,9 +378,42 @@ export class StripLight {
         );
 
         // Make the API request
-        const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-        this.debugLog(`Strip Light: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
-        this.statusCode(push);
+        const t = Date.now();
+        const nonce = 'requestID';
+        const data = this.platform.config.credentials?.token + t + nonce;
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+        const sign = signTerm.toString('base64');
+        this.debugLog(`Strip Light: ${this.accessory.displayName} sign: ${sign}`);
+        const options = {
+          hostname: 'api.switch-bot.com',
+          port: 443,
+          path: `/v1.1/devices/${this.device.deviceId}/commands`,
+          method: 'POST',
+          headers: {
+            Authorization: this.platform.config.credentials?.token,
+            sign: sign,
+            nonce: nonce,
+            t: t,
+            'Content-Type': 'application/json',
+          },
+        };
+
+        const req = https.request(options, (res) => {
+          this.debugLog(`Strip Light: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+          this.statusCode({ res });
+          res.on('data', (d) => {
+            this.debugLog(`Strip Light: ${this.accessory.displayName} d: ${d}`);
+          });
+        });
+
+        req.on('error', (error) => {
+          this.errorLog(`Strip Light: ${this.accessory.displayName} error: ${error}`);
+        });
+
+        req.write(payload);
+        req.end();
+
+        this.debugLog(`Strip Light: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
         this.HueCached = this.Hue;
         this.SaturationCached = this.Saturation;
       } else {
@@ -344,9 +448,42 @@ export class StripLight {
         );
 
         // Make the API request
-        const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-        this.debugLog(`Strip Light: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
-        this.statusCode(push);
+        const t = Date.now();
+        const nonce = 'requestID';
+        const data = this.platform.config.credentials?.token + t + nonce;
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+        const sign = signTerm.toString('base64');
+        this.debugLog(`Strip Light: ${this.accessory.displayName} sign: ${sign}`);
+        const options = {
+          hostname: 'api.switch-bot.com',
+          port: 443,
+          path: `/v1.1/devices/${this.device.deviceId}/commands`,
+          method: 'POST',
+          headers: {
+            Authorization: this.platform.config.credentials?.token,
+            sign: sign,
+            nonce: nonce,
+            t: t,
+            'Content-Type': 'application/json',
+          },
+        };
+
+        const req = https.request(options, (res) => {
+          this.debugLog(`Strip Light: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+          this.statusCode({ res });
+          res.on('data', (d) => {
+            this.debugLog(`Strip Light: ${this.accessory.displayName} d: ${d}`);
+          });
+        });
+
+        req.on('error', (error) => {
+          this.errorLog(`Strip Light: ${this.accessory.displayName} error: ${error}`);
+        });
+
+        req.write(payload);
+        req.end();
+
+        this.debugLog(`Strip Light: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
         this.BrightnessCached = this.Brightness;
       } else {
         this.debugLog(
@@ -399,8 +536,8 @@ export class StripLight {
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
-  statusCode(push: AxiosResponse<{ statusCode: number }>): void {
-    switch (push.data.statusCode) {
+  async statusCode({ res }: { res: IncomingMessage }): Promise<void> {
+    switch (res.statusCode) {
       case 151:
         this.errorLog(`Strip Light: ${this.accessory.displayName} Command not supported by this device type.`);
         break;
@@ -421,7 +558,7 @@ export class StripLight {
       case 190:
         this.errorLog(
           `Strip Light: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-            ` Or command: ${JSON.stringify(push.data)} format is invalid`,
+            ` Or command: ${JSON.stringify(res)} format is invalid`,
         );
         break;
       case 100:

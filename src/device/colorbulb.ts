@@ -1,23 +1,12 @@
-import { AxiosResponse } from 'axios';
+import https from 'https';
+import crypto from 'crypto';
+import { Context } from 'vm';
+import { IncomingMessage } from 'http';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap } from 'homebridge';
-import {
-  DeviceURL,
-  device,
-  devicesConfig,
-  switchbot,
-  deviceStatusResponse,
-  payload,
-  hs2rgb,
-  rgb2hs,
-  m2hs,
-  deviceStatus,
-  serviceData,
-  ad,
-} from '../settings';
-import { Context } from 'vm';
+import { device, devicesConfig, deviceStatus, switchbot, payload, hs2rgb, rgb2hs, m2hs, serviceData, ad, HostDomain, DevicePath } from '../settings';
 
 /**
  * Platform Accessory
@@ -45,7 +34,7 @@ export class ColorBulb {
   color: deviceStatus['color'];
   brightness: deviceStatus['brightness'];
   colorTemperature?: deviceStatus['colorTemperature'];
-  deviceStatus!: deviceStatusResponse;
+  deviceStatus!: any; //deviceStatusResponse;
 
   // BLE Others
   connected?: boolean;
@@ -419,15 +408,51 @@ export class ColorBulb {
 
   private async openAPIRefreshStatus() {
     try {
-      this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
-      this.debugLog(`Color Bulb: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
-      this.power = this.deviceStatus.body.power;
-      this.color = this.deviceStatus.body.color;
-      this.brightness = this.deviceStatus.body.brightness;
-      this.colorTemperature = this.deviceStatus.body.colorTemperature;
-
-      this.parseStatus();
-      this.updateHomeKitCharacteristics();
+      const t = Date.now();
+      const nonce = 'requestID';
+      const data = this.platform.config.credentials?.token + t + nonce;
+      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+      const sign = signTerm.toString('base64');
+      this.debugLog(`Color Bulb: ${this.accessory.displayName} sign: ${sign}`);
+      const options = {
+        hostname: HostDomain,
+        port: 443,
+        path: `${DevicePath}/${this.device.deviceId}/status`,
+        method: 'GET',
+        headers: {
+          Authorization: this.platform.config.credentials?.token,
+          sign: sign,
+          nonce: nonce,
+          t: t,
+          'Content-Type': 'application/json',
+        },
+      };
+      const req = https.request(options, (res) => {
+        this.debugLog(`Color Bulb: ${this.accessory.displayName} Refresh statusCode: ${res.statusCode}`);
+        let rawData = '';
+        res.on('data', (d) => {
+          rawData += d;
+          this.debugLog(`Color Bulb: ${this.accessory.displayName} d: ${d}`);
+        });
+        res.on('end', () => {
+          try {
+            this.deviceStatus = JSON.parse(rawData);
+            this.debugLog(`Color Bulb: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+            this.power = this.deviceStatus.body.power;
+            this.color = this.deviceStatus.body.color;
+            this.brightness = this.deviceStatus.body.brightness;
+            this.colorTemperature = this.deviceStatus.body.colorTemperature;
+            this.parseStatus();
+            this.updateHomeKitCharacteristics();
+          } catch (e: any) {
+            this.errorLog(`Color Bulb: ${this.accessory.displayName} error message: ${e.message}`);
+          }
+        });
+      });
+      req.on('error', (e: any) => {
+        this.errorLog(`Color Bulb: ${this.accessory.displayName} error message: ${e.message}`);
+      });
+      req.end();
     } catch (e: any) {
       this.errorLog(`Color Bulb: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
       if (this.deviceLogging.includes('debug')) {
@@ -471,9 +496,39 @@ export class ColorBulb {
         );
 
         // Make the API request
-        const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
-        this.statusCode(push);
+        const t = Date.now();
+        const nonce = 'requestID';
+        const data = this.platform.config.credentials?.token + t + nonce;
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+        const sign = signTerm.toString('base64');
+        this.debugLog(`Color Bulb: ${this.accessory.displayName} sign: ${sign}`);
+        const options = {
+          hostname: HostDomain,
+          port: 443,
+          path: `${DevicePath}/${this.device.deviceId}/commands`,
+          method: 'POST',
+          headers: {
+            Authorization: this.platform.config.credentials?.token,
+            sign: sign,
+            nonce: nonce,
+            t: t,
+            'Content-Type': 'application/json',
+          },
+        };
+        const req = https.request(options, (res) => {
+          this.debugLog(`Color Bulb: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+          this.statusCode({ res });
+          res.on('data', (d) => {
+            this.debugLog(`d: ${d}`);
+          });
+        });
+        req.on('error', (error) => {
+          this.errorLog(`Color Bulb: ${this.accessory.displayName} error: ${error}`);
+        });
+        req.write(payload);
+        req.end();
+
+        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushChanges: ${JSON.stringify(req)}`);
         this.OnCached = this.On;
         this.accessory.context.On = this.OnCached;
       }
@@ -523,9 +578,39 @@ export class ColorBulb {
         );
 
         // Make the API request
-        const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
-        this.statusCode(push);
+        const t = Date.now();
+        const nonce = 'requestID';
+        const data = this.platform.config.credentials?.token + t + nonce;
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+        const sign = signTerm.toString('base64');
+        this.debugLog(`Color Bulb: ${this.accessory.displayName} sign: ${sign}`);
+        const options = {
+          hostname: HostDomain,
+          port: 443,
+          path: `${DevicePath}/${this.device.deviceId}/commands`,
+          method: 'POST',
+          headers: {
+            Authorization: this.platform.config.credentials?.token,
+            sign: sign,
+            nonce: nonce,
+            t: t,
+            'Content-Type': 'application/json',
+          },
+        };
+        const req = https.request(options, (res) => {
+          this.debugLog(`Color Bulb: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+          this.statusCode({ res });
+          res.on('data', (d) => {
+            this.debugLog(`d: ${d}`);
+          });
+        });
+        req.on('error', (error) => {
+          this.errorLog(`Color Bulb: ${this.accessory.displayName} error: ${error}`);
+        });
+        req.write(payload);
+        req.end();
+
+        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushChanges: ${JSON.stringify(req)}`);
         this.HueCached = this.Hue;
         this.SaturationCached = this.Saturation;
       } else {
@@ -563,9 +648,39 @@ export class ColorBulb {
         );
 
         // Make the API request
-        const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
-        this.statusCode(push);
+        const t = Date.now();
+        const nonce = 'requestID';
+        const data = this.platform.config.credentials?.token + t + nonce;
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+        const sign = signTerm.toString('base64');
+        this.debugLog(`Color Bulb: ${this.accessory.displayName} sign: ${sign}`);
+        const options = {
+          hostname: HostDomain,
+          port: 443,
+          path: `${DevicePath}/${this.device.deviceId}/commands`,
+          method: 'POST',
+          headers: {
+            Authorization: this.platform.config.credentials?.token,
+            sign: sign,
+            nonce: nonce,
+            t: t,
+            'Content-Type': 'application/json',
+          },
+        };
+        const req = https.request(options, (res) => {
+          this.debugLog(`Color Bulb: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+          this.statusCode({ res });
+          res.on('data', (d) => {
+            this.debugLog(`d: ${d}`);
+          });
+        });
+        req.on('error', (error) => {
+          this.errorLog(`Color Bulb: ${this.accessory.displayName} error: ${error}`);
+        });
+        req.write(payload);
+        req.end();
+
+        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushChanges: ${JSON.stringify(req)}`);
         this.ColorTemperatureCached = this.ColorTemperature;
       } else {
         this.debugLog(
@@ -599,9 +714,39 @@ export class ColorBulb {
         );
 
         // Make the API request
-        const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
-        this.statusCode(push);
+        const t = Date.now();
+        const nonce = 'requestID';
+        const data = this.platform.config.credentials?.token + t + nonce;
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+        const sign = signTerm.toString('base64');
+        this.debugLog(`Color Bulb: ${this.accessory.displayName} sign: ${sign}`);
+        const options = {
+          hostname: HostDomain,
+          port: 443,
+          path: `${DevicePath}/${this.device.deviceId}/commands`,
+          method: 'POST',
+          headers: {
+            Authorization: this.platform.config.credentials?.token,
+            sign: sign,
+            nonce: nonce,
+            t: t,
+            'Content-Type': 'application/json',
+          },
+        };
+        const req = https.request(options, (res) => {
+          this.debugLog(`Color Bulb: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+          this.statusCode({ res });
+          res.on('data', (d) => {
+            this.debugLog(`d: ${d}`);
+          });
+        });
+        req.on('error', (error) => {
+          this.errorLog(`Color Bulb: ${this.accessory.displayName} error: ${error}`);
+        });
+        req.write(payload);
+        req.end();
+
+        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushChanges: ${JSON.stringify(req)}`);
         this.BrightnessCached = this.Brightness;
       } else {
         this.debugLog(
@@ -661,8 +806,8 @@ export class ColorBulb {
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
-  statusCode(push: AxiosResponse<{ statusCode: number }>): void {
-    switch (push.data.statusCode) {
+  async statusCode({ res }: { res: IncomingMessage }): Promise<void> {
+    switch (res.statusCode) {
       case 151:
         this.errorLog(`Color Bulb: ${this.accessory.displayName} Command not supported by this device type.`);
         break;
@@ -683,7 +828,7 @@ export class ColorBulb {
       case 190:
         this.errorLog(
           `Color Bulb: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-            ` Or command: ${JSON.stringify(push.data)} format is invalid`,
+            ` Or command: ${JSON.stringify(res)} format is invalid`,
         );
         break;
       case 100:

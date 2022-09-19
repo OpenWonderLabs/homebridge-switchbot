@@ -1,9 +1,11 @@
+import https from 'https';
+import crypto from 'crypto';
+import { Context } from 'vm';
 import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
 import { SwitchBotPlatform } from '../platform';
 import { Service, PlatformAccessory, Units, CharacteristicValue } from 'homebridge';
-import { DeviceURL, device, devicesConfig, serviceData, ad, switchbot, deviceStatusResponse, temperature, deviceStatus } from '../settings';
-import { Context } from 'vm';
+import { device, devicesConfig, serviceData, ad, switchbot, temperature, deviceStatus, HostDomain, DevicePath } from '../settings';
 
 /**
  * Platform Accessory
@@ -30,7 +32,7 @@ export class MeterPlus {
   // OpenAPI Others
   Temperature: deviceStatus['temperature'];
   Humidity: deviceStatus['humidity'];
-  deviceStatus!: deviceStatusResponse;
+  deviceStatus!: any; //deviceStatusResponse;
 
   // BLE Others
   connected?: boolean;
@@ -344,12 +346,49 @@ export class MeterPlus {
     if (this.platform.config.credentials?.token) {
       this.debugLog(`Meter Plus: ${this.accessory.displayName} OpenAPI RefreshStatus`);
       try {
-        this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
-        this.debugLog(`Meter Plus: ${this.accessory.displayName} openAPIRefreshStatus: ${JSON.stringify(this.deviceStatus)}`);
-        this.Humidity = this.deviceStatus.body.humidity!;
-        this.Temperature = this.deviceStatus.body.temperature!;
-        this.parseStatus();
-        this.updateHomeKitCharacteristics();
+        const t = Date.now();
+        const nonce = 'requestID';
+        const data = this.platform.config.credentials?.token + t + nonce;
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+        const sign = signTerm.toString('base64');
+        this.debugLog(`Meter Plus: ${this.accessory.displayName} sign: ${sign}`);
+        const options = {
+          hostname: HostDomain,
+          port: 443,
+          path: `${DevicePath}/${this.device.deviceId}/status`,
+          method: 'GET',
+          headers: {
+            Authorization: this.platform.config.credentials?.token,
+            sign: sign,
+            nonce: nonce,
+            t: t,
+            'Content-Type': 'application/json',
+          },
+        };
+        const req = https.request(options, (res) => {
+          this.debugLog(`Meter Plus: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+          let rawData = '';
+          res.on('data', (d) => {
+            rawData += d;
+            this.debugLog(`Meter Plus: ${this.accessory.displayName} d: ${d}`);
+          });
+          res.on('end', () => {
+            try {
+              this.deviceStatus = JSON.parse(rawData);
+              this.debugLog(`Meter Plus: ${this.accessory.displayName} openAPIRefreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+              this.Humidity = this.deviceStatus.body.humidity!;
+              this.Temperature = this.deviceStatus.body.temperature!;
+              this.parseStatus();
+              this.updateHomeKitCharacteristics();
+            } catch (e: any) {
+              this.errorLog(`Meter Plus: ${this.accessory.displayName} error message: ${e.message}`);
+            }
+          });
+        });
+        req.on('error', (e: any) => {
+          this.errorLog(`Meter Plus: ${this.accessory.displayName} error message: ${e.message}`);
+        });
+        req.end();
       } catch (e: any) {
         this.errorLog(`Meter Plus: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
         if (this.deviceLogging.includes('debug')) {
