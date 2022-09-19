@@ -67,7 +67,6 @@
     "eslint": "^8.23.1",
     "eslint-config-prettier": "8.5.0",
     "eslint-plugin-prettier": "4.2.1",
-    "homebridge": "^1.5.0",
     "nodemon": "^2.0.20",
     "npm-check-updates": "^16.2.1",
     "prettier": "2.7.1",
