@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { IncomingMessage } from 'http';
 import { SwitchBotPlatform } from '../platform';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
-import { irdevice, irDevicesConfig, payload, HostDomain, DevicePath } from '../settings';
+import { irdevice, irDevicesConfig, HostDomain, DevicePath } from '../settings';
 
 /**
  * Platform Accessory
@@ -192,7 +192,7 @@ export class Fan {
         commandType: 'command',
         parameter: 'default',
         command: 'turnOn',
-      } as payload;
+      };
       await this.pushTVChanges(payload);
     }
   }
@@ -202,7 +202,7 @@ export class Fan {
       commandType: 'command',
       parameter: 'default',
       command: 'turnOff',
-    } as payload;
+    };
     await this.pushTVChanges(payload);
   }
 
@@ -211,7 +211,7 @@ export class Fan {
       commandType: 'command',
       parameter: 'default',
       command: 'highSpeed',
-    } as payload;
+    };
     await this.pushTVChanges(payload);
   }
 
@@ -220,7 +220,7 @@ export class Fan {
       commandType: 'command',
       parameter: 'default',
       command: 'lowSpeed',
-    } as payload;
+    };
     await this.pushTVChanges(payload);
   }
 
@@ -229,11 +229,11 @@ export class Fan {
       commandType: 'command',
       parameter: 'default',
       command: 'swing',
-    } as payload;
+    };
     await this.pushTVChanges(payload);
   }
 
-  async pushTVChanges(payload: payload): Promise<void> {
+  async pushTVChanges(payload): Promise<void> {
     try {
       this.infoLog(
         `Fan: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +

@@ -6,7 +6,7 @@ import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, deviceStatus, ad, serviceData, switchbot, payload, HostDomain, DevicePath } from '../settings';
+import { device, devicesConfig, deviceStatus, ad, serviceData, switchbot, HostDomain, DevicePath } from '../settings';
 
 /**
  * Platform Accessory
@@ -739,69 +739,64 @@ export class Bot {
       try {
         if (this.On !== this.OnCached || this.allowPush) {
           this.debugLog(`Bot: ${this.accessory.displayName} OpenAPI pushChanges`);
-          const payload = {
-            commandType: 'command',
-            parameter: 'default',
-          } as payload;
-
+          // Make Push On request to the API
+          const t = Date.now();
+          const nonce = 'requestID';
+          const data = this.platform.config.credentials?.token + t + nonce;
+          const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+            .update(Buffer.from(data, 'utf-8'))
+            .digest();
+          const sign = signTerm.toString('base64');
+          this.debugLog(`Bot: ${this.accessory.displayName} sign: ${sign}`);
+          let command = '';
           if (this.botMode === 'switch' && this.On) {
-            payload.command = 'turnOn';
+            command = 'turnOn';
             this.On = true;
             this.debugLog(`Bot: ${this.accessory.displayName} Switch Mode, Turning ${this.On}`);
           } else if (this.botMode === 'switch' && !this.On) {
-            payload.command = 'turnOff';
+            command = 'turnOff';
             this.On = false;
             this.debugLog(`Bot: ${this.accessory.displayName} Switch Mode, Turning ${this.On}`);
           } else if (this.botMode === 'press') {
-            payload.command = 'press';
+            command = 'press';
             this.debugLog(`Bot: ${this.accessory.displayName} Press Mode`);
             this.On = false;
           } else {
             throw new Error(`Bot: ${this.accessory.displayName} Device Paramters not set for this Bot.`);
           }
-
-          this.infoLog(
-            `Bot: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-              ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
-          );
-
-          // Make the API request
-          const t = Date.now();
-          const nonce = 'requestID';
-          const data = this.platform.config.credentials?.token + t + nonce;
-          const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
-          const sign = signTerm.toString('base64');
-          this.debugLog(`Bot: ${this.accessory.displayName} sign: ${sign}`);
+          const body = JSON.stringify({
+            'command': `${command}`,
+            'parameter': 'default',
+            'commandType': 'command',
+          });
+          this.infoLog(`Bot: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
           const options = {
             hostname: HostDomain,
             port: 443,
             path: `${DevicePath}/${this.device.deviceId}/commands`,
             method: 'POST',
             headers: {
-              Authorization: this.platform.config.credentials?.token,
-              sign: sign,
-              nonce: nonce,
-              t: t,
+              'Authorization': this.platform.config.credentials?.token,
+              'sign': sign,
+              'nonce': nonce,
+              't': t,
               'Content-Type': 'application/json',
+              'Content-Length': body.length,
             },
           };
-
-          const req = https.request(options, (res) => {
-            this.debugLog(`Bot: ${this.accessory.displayName} Push statusCode: ${res.statusCode}`);
+          const req = https.request(options, res => {
+            this.debugLog(`Bot: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
             this.statusCode({ res });
-            res.on('data', (d) => {
-              this.debugLog(`d: ${d}`);
+            res.on('data', d => {
+              this.debugLog(`Bot: ${this.accessory.displayName} d: ${d}`);
             });
           });
-
-          req.on('error', (error) => {
-            this.errorLog(`Bot: ${this.accessory.displayName} error: ${error}`);
+          req.on('error', (e: any) => {
+            this.errorLog(`Bot: ${this.accessory.displayName} error message: ${e.message}`);
           });
-
-          req.write(payload);
+          req.write(body);
           req.end();
-
-          this.debugLog(`Bot: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
+          this.debugLog(`Bot: ${this.accessory.displayName} openAPIpushChanges: ${JSON.stringify(req)}`);
           this.OnCached = this.On;
           this.accessory.context.On = this.OnCached;
         }

@@ -6,7 +6,7 @@ import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, payload, deviceStatus, ad, serviceData, switchbot, HostDomain, DevicePath } from '../settings';
+import { device, devicesConfig, deviceStatus, ad, serviceData, switchbot, HostDomain, DevicePath } from '../settings';
 
 export class Plug {
   // Services
@@ -415,60 +415,56 @@ export class Plug {
   async openAPIpushChanges() {
     if (this.platform.config.credentials?.token) {
       if (this.On !== this.OnCached) {
+        // Make Push On request to the API
         this.debugLog(`Plug: ${this.accessory.displayName} OpenAPI pushChanges`);
-        const payload = {
-          commandType: 'command',
-          parameter: 'default',
-        } as payload;
-
-        if (this.On) {
-          payload.command = 'turnOn';
-        } else {
-          payload.command = 'turnOff';
-        }
-
-        this.infoLog(
-          `Plug: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-            ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
-        );
-
-        // Make the API request
         const t = Date.now();
         const nonce = 'requestID';
         const data = this.platform.config.credentials?.token + t + nonce;
-        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+          .update(Buffer.from(data, 'utf-8'))
+          .digest();
         const sign = signTerm.toString('base64');
         this.debugLog(`Plug: ${this.accessory.displayName} sign: ${sign}`);
+
+        let command = '';
+        if (this.On) {
+          command = 'turnOn';
+        } else {
+          command = 'turnOff';
+        }
+        const body = JSON.stringify({
+          'command': `${command}`,
+          'parameter': 'default',
+          'commandType': 'command',
+        });
+        this.infoLog(`Plug: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
         const options = {
-          hostname: 'api.switch-bot.com',
+          hostname: HostDomain,
           port: 443,
-          path: `/v1.1/devices/${this.device.deviceId}/commands`,
+          path: `${DevicePath}/${this.device.deviceId}/commands`,
           method: 'POST',
           headers: {
-            Authorization: this.platform.config.credentials?.token,
-            sign: sign,
-            nonce: nonce,
-            t: t,
+            'Authorization': this.platform.config.credentials?.token,
+            'sign': sign,
+            'nonce': nonce,
+            't': t,
             'Content-Type': 'application/json',
+            'Content-Length': body.length,
           },
         };
-
-        const req = https.request(options, (res) => {
+        const req = https.request(options, res => {
           this.debugLog(`Plug: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
           this.statusCode({ res });
-          res.on('data', (d) => {
+          res.on('data', d => {
             this.debugLog(`Plug: ${this.accessory.displayName} d: ${d}`);
           });
         });
-
-        req.on('error', (error) => {
-          this.errorLog(`Plug: ${this.accessory.displayName} error: ${error}`);
+        req.on('error', (e: any) => {
+          this.errorLog(`Plug: ${this.accessory.displayName} error message: ${e.message}`);
         });
-
-        req.write(payload);
+        req.write(body);
         req.end();
-
-        this.debugLog(`Plug: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
+        this.debugLog(`Plug: ${this.accessory.displayName} openAPIpushChanges: ${JSON.stringify(req)}`);
         this.OnCached = this.On;
         this.accessory.context.On = this.OnCached;
       }

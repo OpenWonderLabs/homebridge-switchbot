@@ -8,7 +8,7 @@ import { connectAsync } from 'async-mqtt';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, serviceData, switchbot, payload, deviceStatus, ad, HostDomain, DevicePath } from '../settings';
+import { device, devicesConfig, serviceData, switchbot, deviceStatus, ad, HostDomain, DevicePath } from '../settings';
 
 export class Curtain {
   // Services
@@ -679,6 +679,15 @@ export class Curtain {
       try {
         this.debugLog(`Curtain: ${this.accessory.displayName} OpenAPI pushChanges`);
         if (this.TargetPosition !== this.CurrentPosition) {
+          // Make Push On request to the API
+          const t = Date.now();
+          const nonce = 'requestID';
+          const data = this.platform.config.credentials?.token + t + nonce;
+          const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+            .update(Buffer.from(data, 'utf-8'))
+            .digest();
+          const sign = signTerm.toString('base64');
+          this.debugLog(`Curtain: ${this.accessory.displayName} sign: ${sign}`);
           this.debugLog(`Pushing ${this.TargetPosition}`);
           const adjustedTargetPosition = 100 - Number(this.TargetPosition);
           if (this.TargetPosition > 50) {
@@ -695,54 +704,39 @@ export class Curtain {
           }
           this.debugLog(`${this.accessory.displayName} Mode: ${this.Mode}`);
           const adjustedMode = this.setPositionMode || 'ff';
-          const payload = {
-            commandType: 'command',
-            command: 'setPosition',
-            parameter: `0,${adjustedMode},${adjustedTargetPosition}`,
-          } as payload;
-
-          this.infoLog(
-            `Curtain: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-              ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
-          );
-
-          // Make the API request
-          const t = Date.now();
-          const nonce = 'requestID';
-          const data = this.platform.config.credentials?.token + t + nonce;
-          const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
-          const sign = signTerm.toString('base64');
-          this.debugLog(`Curtain: ${this.accessory.displayName} sign: ${sign}`);
+          const body = JSON.stringify({
+            'command': 'setPosition',
+            'parameter': `0,${adjustedMode},${adjustedTargetPosition}`,
+            'commandType': 'command',
+          });
+          this.infoLog(`Curtain: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
           const options = {
             hostname: HostDomain,
             port: 443,
             path: `${DevicePath}/${this.device.deviceId}/commands`,
             method: 'POST',
             headers: {
-              Authorization: this.platform.config.credentials?.token,
-              sign: sign,
-              nonce: nonce,
-              t: t,
+              'Authorization': this.platform.config.credentials?.token,
+              'sign': sign,
+              'nonce': nonce,
+              't': t,
               'Content-Type': 'application/json',
+              'Content-Length': body.length,
             },
           };
-
-          const req = https.request(options, (res) => {
+          const req = https.request(options, res => {
             this.debugLog(`Curtain: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
             this.statusCode({ res });
-            res.on('data', (d) => {
+            res.on('data', d => {
               this.debugLog(`Curtain: ${this.accessory.displayName} d: ${d}`);
             });
           });
-
-          req.on('error', (error) => {
-            this.errorLog(`Curtain: ${this.accessory.displayName} error: ${error}`);
+          req.on('error', (e: any) => {
+            this.errorLog(`Curtain: ${this.accessory.displayName} error message: ${e.message}`);
           });
-
-          req.write(payload);
+          req.write(body);
           req.end();
-
-          this.debugLog(`Curtain: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
+          this.debugLog(`Curtain: ${this.accessory.displayName} openAPIpushChanges: ${JSON.stringify(req)}`);
         } else {
           this.debugLog(
             `Curtain: ${this.accessory.displayName} No OpenAPI Changes, CurrentPosition & TargetPosition Are the Same.` +

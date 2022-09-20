@@ -6,7 +6,7 @@ import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap } from 'homebridge';
-import { device, devicesConfig, switchbot, payload, hs2rgb, rgb2hs, deviceStatus, HostDomain, DevicePath } from '../settings';
+import { device, devicesConfig, switchbot, hs2rgb, rgb2hs, deviceStatus, HostDomain, DevicePath } from '../settings';
 
 /**
  * Platform Accessory
@@ -280,59 +280,54 @@ export class StripLight {
   async pushChanges(): Promise<void> {
     try {
       if (this.On !== this.OnCached) {
-        // Push On Update
-        const payload = {
-          commandType: 'command',
-          parameter: 'default',
-        } as payload;
-
-        if (this.On) {
-          payload.command = 'turnOn';
-        } else {
-          payload.command = 'turnOff';
-        }
-
-        this.infoLog(
-          `Strip Light: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-            ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
-        );
-
-        // Make the API request
+        // Make Push On request to the API
         const t = Date.now();
         const nonce = 'requestID';
         const data = this.platform.config.credentials?.token + t + nonce;
-        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+          .update(Buffer.from(data, 'utf-8'))
+          .digest();
         const sign = signTerm.toString('base64');
         this.debugLog(`Strip Light: ${this.accessory.displayName} sign: ${sign}`);
+
+        let command = '';
+        if (this.On) {
+          command = 'turnOn';
+        } else {
+          command = 'turnOff';
+        }
+        const body = JSON.stringify({
+          'command': `${command}`,
+          'parameter': 'default',
+          'commandType': 'command',
+        });
+        this.infoLog(`Strip Light: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
         const options = {
-          hostname: 'api.switch-bot.com',
+          hostname: HostDomain,
           port: 443,
-          path: `/v1.1/devices/${this.device.deviceId}/commands`,
+          path: `${DevicePath}/${this.device.deviceId}/commands`,
           method: 'POST',
           headers: {
-            Authorization: this.platform.config.credentials?.token,
-            sign: sign,
-            nonce: nonce,
-            t: t,
+            'Authorization': this.platform.config.credentials?.token,
+            'sign': sign,
+            'nonce': nonce,
+            't': t,
             'Content-Type': 'application/json',
+            'Content-Length': body.length,
           },
         };
-
-        const req = https.request(options, (res) => {
+        const req = https.request(options, res => {
           this.debugLog(`Strip Light: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
           this.statusCode({ res });
-          res.on('data', (d) => {
+          res.on('data', d => {
             this.debugLog(`Strip Light: ${this.accessory.displayName} d: ${d}`);
           });
         });
-
-        req.on('error', (error) => {
-          this.errorLog(`Strip Light: ${this.accessory.displayName} error: ${error}`);
+        req.on('error', (e: any) => {
+          this.errorLog(`Strip Light: ${this.accessory.displayName} error message: ${e.message}`);
         });
-
-        req.write(payload);
+        req.write(body);
         req.end();
-
         this.debugLog(`Strip Light: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
         this.OnCached = this.On;
         this.accessory.context.On = this.OnCached;
@@ -365,55 +360,48 @@ export class StripLight {
 
         const [red, green, blue] = hs2rgb(Number(this.Hue), Number(this.Saturation));
         this.debugLog(`Strip Light: ${this.accessory.displayName} rgb: ${JSON.stringify([red, green, blue])}`);
-
-        const payload = {
-          commandType: 'command',
-          command: 'setColor',
-          parameter: `${red}:${green}:${blue}`,
-        } as payload;
-
-        this.infoLog(
-          `Strip Light: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-            ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
-        );
-
-        // Make the API request
+        // Make Push On request to the API
         const t = Date.now();
         const nonce = 'requestID';
         const data = this.platform.config.credentials?.token + t + nonce;
-        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+          .update(Buffer.from(data, 'utf-8'))
+          .digest();
         const sign = signTerm.toString('base64');
         this.debugLog(`Strip Light: ${this.accessory.displayName} sign: ${sign}`);
+        const body = JSON.stringify({
+          'command': 'setColor',
+          'parameter': `${red}:${green}:${blue}`,
+          'commandType': 'command',
+        });
+        this.infoLog(`Strip Light: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
         const options = {
-          hostname: 'api.switch-bot.com',
+          hostname: HostDomain,
           port: 443,
-          path: `/v1.1/devices/${this.device.deviceId}/commands`,
+          path: `${DevicePath}/${this.device.deviceId}/commands`,
           method: 'POST',
           headers: {
-            Authorization: this.platform.config.credentials?.token,
-            sign: sign,
-            nonce: nonce,
-            t: t,
+            'Authorization': this.platform.config.credentials?.token,
+            'sign': sign,
+            'nonce': nonce,
+            't': t,
             'Content-Type': 'application/json',
+            'Content-Length': body.length,
           },
         };
-
-        const req = https.request(options, (res) => {
+        const req = https.request(options, res => {
           this.debugLog(`Strip Light: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
           this.statusCode({ res });
-          res.on('data', (d) => {
+          res.on('data', d => {
             this.debugLog(`Strip Light: ${this.accessory.displayName} d: ${d}`);
           });
         });
-
-        req.on('error', (error) => {
-          this.errorLog(`Strip Light: ${this.accessory.displayName} error: ${error}`);
+        req.on('error', (e: any) => {
+          this.errorLog(`Strip Light: ${this.accessory.displayName} error message: ${e.message}`);
         });
-
-        req.write(payload);
+        req.write(body);
         req.end();
-
-        this.debugLog(`Strip Light: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
+        this.debugLog(`Strip Light: ${this.accessory.displayName} pushHueSaturationChanges: ${JSON.stringify(req)}`);
         this.HueCached = this.Hue;
         this.SaturationCached = this.Saturation;
       } else {
@@ -423,10 +411,11 @@ export class StripLight {
         );
       }
     } catch (e: any) {
-      this.errorLog(`Strip Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
+      this.errorLog(`Strip Light: ${this.accessory.displayName} failed pushHueSaturationChanges with OpenAPI Connection`);
       if (this.deviceLogging.includes('debug')) {
         this.errorLog(
-          `Strip Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+          `Strip Light: ${this.accessory.displayName} failed pushHueSaturationChanges with OpenAPI Connection,`
+          + ` Error Message: ${JSON.stringify(e.message)}`,
         );
       }
       this.apiError(e);
@@ -436,54 +425,48 @@ export class StripLight {
   async pushBrightnessChanges(): Promise<void> {
     try {
       if (this.Brightness !== this.BrightnessCached) {
-        const payload = {
-          commandType: 'command',
-          command: 'setBrightness',
-          parameter: `${this.Brightness}`,
-        } as payload;
-
-        this.infoLog(
-          `Strip Light: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-            ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
-        );
-
-        // Make the API request
+        // Make Push On request to the API
         const t = Date.now();
         const nonce = 'requestID';
         const data = this.platform.config.credentials?.token + t + nonce;
-        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+          .update(Buffer.from(data, 'utf-8'))
+          .digest();
         const sign = signTerm.toString('base64');
         this.debugLog(`Strip Light: ${this.accessory.displayName} sign: ${sign}`);
+        const body = JSON.stringify({
+          'command': 'setBrightness',
+          'parameter': `${this.Brightness}`,
+          'commandType': 'command',
+        });
+        this.infoLog(`Strip Light: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
         const options = {
-          hostname: 'api.switch-bot.com',
+          hostname: HostDomain,
           port: 443,
-          path: `/v1.1/devices/${this.device.deviceId}/commands`,
+          path: `${DevicePath}/${this.device.deviceId}/commands`,
           method: 'POST',
           headers: {
-            Authorization: this.platform.config.credentials?.token,
-            sign: sign,
-            nonce: nonce,
-            t: t,
+            'Authorization': this.platform.config.credentials?.token,
+            'sign': sign,
+            'nonce': nonce,
+            't': t,
             'Content-Type': 'application/json',
+            'Content-Length': body.length,
           },
         };
-
-        const req = https.request(options, (res) => {
+        const req = https.request(options, res => {
           this.debugLog(`Strip Light: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
           this.statusCode({ res });
-          res.on('data', (d) => {
+          res.on('data', d => {
             this.debugLog(`Strip Light: ${this.accessory.displayName} d: ${d}`);
           });
         });
-
-        req.on('error', (error) => {
-          this.errorLog(`Strip Light: ${this.accessory.displayName} error: ${error}`);
+        req.on('error', (e: any) => {
+          this.errorLog(`Strip Light: ${this.accessory.displayName} error message: ${e.message}`);
         });
-
-        req.write(payload);
+        req.write(body);
         req.end();
-
-        this.debugLog(`Strip Light: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
+        this.debugLog(`Strip Light: ${this.accessory.displayName} pushBrightnessChanges: ${JSON.stringify(req)}`);
         this.BrightnessCached = this.Brightness;
       } else {
         this.debugLog(
@@ -491,10 +474,11 @@ export class StripLight {
         );
       }
     } catch (e: any) {
-      this.errorLog(`Strip Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
+      this.errorLog(`Strip Light: ${this.accessory.displayName} failed pushBrightnessChanges with OpenAPI Connection`);
       if (this.deviceLogging.includes('debug')) {
         this.errorLog(
-          `Strip Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+          `Strip Light: ${this.accessory.displayName} failed pushBrightnessChanges with OpenAPI Connection,`
+          + ` Error Message: ${JSON.stringify(e.message)}`,
         );
       }
       this.apiError(e);

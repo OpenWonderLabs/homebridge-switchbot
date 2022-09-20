@@ -6,7 +6,7 @@ import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap } from 'homebridge';
-import { device, devicesConfig, deviceStatus, switchbot, payload, hs2rgb, rgb2hs, m2hs, serviceData, ad, HostDomain, DevicePath } from '../settings';
+import { device, devicesConfig, deviceStatus, switchbot, hs2rgb, rgb2hs, m2hs, serviceData, ad, HostDomain, DevicePath } from '../settings';
 
 /**
  * Platform Accessory
@@ -478,68 +478,66 @@ export class ColorBulb {
   async pushChanges(): Promise<void> {
     try {
       if (this.On !== this.OnCached) {
-        // Push On Update
-        const payload = {
-          commandType: 'command',
-          parameter: 'default',
-        } as payload;
-
-        if (this.On) {
-          payload.command = 'turnOn';
-        } else {
-          payload.command = 'turnOff';
-        }
-
-        this.infoLog(
-          `Color Bulb: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-            ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
-        );
-
-        // Make the API request
+        // Make Push On request to the API
         const t = Date.now();
         const nonce = 'requestID';
         const data = this.platform.config.credentials?.token + t + nonce;
-        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+          .update(Buffer.from(data, 'utf-8'))
+          .digest();
         const sign = signTerm.toString('base64');
         this.debugLog(`Color Bulb: ${this.accessory.displayName} sign: ${sign}`);
+
+        let command = '';
+        if (this.On) {
+          command = 'turnOn';
+        } else {
+          command = 'turnOff';
+        }
+        const body = JSON.stringify({
+          'command': `${command}`,
+          'parameter': 'default',
+          'commandType': 'command',
+        });
+        this.infoLog(`Color Bulb: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
         const options = {
           hostname: HostDomain,
           port: 443,
           path: `${DevicePath}/${this.device.deviceId}/commands`,
           method: 'POST',
           headers: {
-            Authorization: this.platform.config.credentials?.token,
-            sign: sign,
-            nonce: nonce,
-            t: t,
+            'Authorization': this.platform.config.credentials?.token,
+            'sign': sign,
+            'nonce': nonce,
+            't': t,
             'Content-Type': 'application/json',
+            'Content-Length': body.length,
           },
         };
-        const req = https.request(options, (res) => {
+        const req = https.request(options, res => {
           this.debugLog(`Color Bulb: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
           this.statusCode({ res });
-          res.on('data', (d) => {
-            this.debugLog(`d: ${d}`);
+          res.on('data', d => {
+            this.debugLog(`Color Bulb: ${this.accessory.displayName} d: ${d}`);
           });
         });
-        req.on('error', (error) => {
-          this.errorLog(`Color Bulb: ${this.accessory.displayName} error: ${error}`);
+        req.on('error', (e: any) => {
+          this.errorLog(`Color Bulb: ${this.accessory.displayName} error message: ${e.message}`);
         });
-        req.write(payload);
+        req.write(body);
         req.end();
-
         this.debugLog(`Color Bulb: ${this.accessory.displayName} pushChanges: ${JSON.stringify(req)}`);
         this.OnCached = this.On;
         this.accessory.context.On = this.OnCached;
       }
       // Push Brightness Update
       if (this.On) {
-        await this.pushBrightnessChanges();
+        //await this.pushBrightnessChanges();
       }
 
       // Push ColorTemperature Update
       if (this.On) {
-        await this.pushColorTemperatureChanges();
+        //await this.pushColorTemperatureChanges();
       }
 
       // Push Hue & Saturation Update
@@ -566,51 +564,47 @@ export class ColorBulb {
         const [red, green, blue] = hs2rgb(Number(this.Hue), Number(this.Saturation));
         this.debugLog(`Color Bulb: ${this.accessory.displayName} rgb: ${JSON.stringify([red, green, blue])}`);
 
-        const payload = {
-          commandType: 'command',
-          command: 'setColor',
-          parameter: `${red}:${green}:${blue}`,
-        } as payload;
-
-        this.infoLog(
-          `Color Bulb: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-            ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
-        );
-
-        // Make the API request
+        // Make Push Hue/Saturation request to the API
         const t = Date.now();
         const nonce = 'requestID';
         const data = this.platform.config.credentials?.token + t + nonce;
-        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+          .update(Buffer.from(data, 'utf-8'))
+          .digest();
         const sign = signTerm.toString('base64');
         this.debugLog(`Color Bulb: ${this.accessory.displayName} sign: ${sign}`);
+        const body = JSON.stringify({
+          'command': 'setColor',
+          'parameter': `${red}:${green}:${blue}`,
+          'commandType': 'command',
+        });
+        this.infoLog(`Color Bulb: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
         const options = {
           hostname: HostDomain,
           port: 443,
           path: `${DevicePath}/${this.device.deviceId}/commands`,
           method: 'POST',
           headers: {
-            Authorization: this.platform.config.credentials?.token,
-            sign: sign,
-            nonce: nonce,
-            t: t,
+            'Authorization': this.platform.config.credentials?.token,
+            'sign': sign,
+            'nonce': nonce,
+            't': t,
             'Content-Type': 'application/json',
+            'Content-Length': body.length,
           },
         };
-        const req = https.request(options, (res) => {
+        const req = https.request(options, res => {
           this.debugLog(`Color Bulb: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
-          this.statusCode({ res });
-          res.on('data', (d) => {
-            this.debugLog(`d: ${d}`);
+          res.on('data', d => {
+            this.debugLog(`Color Bulb: ${this.accessory.displayName} d: ${d}`);
           });
         });
-        req.on('error', (error) => {
-          this.errorLog(`Color Bulb: ${this.accessory.displayName} error: ${error}`);
+        req.on('error', (e: any) => {
+          this.errorLog(`Color Bulb: ${this.accessory.displayName} error message: ${e.message}`);
         });
-        req.write(payload);
+        req.write(body);
         req.end();
-
-        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushChanges: ${JSON.stringify(req)}`);
+        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushHueSaturationChanges: ${JSON.stringify(req)}`);
         this.HueCached = this.Hue;
         this.SaturationCached = this.Saturation;
       } else {
@@ -636,51 +630,48 @@ export class ColorBulb {
         const kelvin = Math.round(1000000 / Number(this.ColorTemperature));
         this.cacheKelvin = kelvin;
 
-        const payload = {
-          commandType: 'command',
-          command: 'setColorTemperature',
-          parameter: `${kelvin}`,
-        } as payload;
-
-        this.infoLog(
-          `Color Bulb: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-            ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
-        );
-
-        // Make the API request
+        // Make Push On request to the API
         const t = Date.now();
         const nonce = 'requestID';
         const data = this.platform.config.credentials?.token + t + nonce;
-        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+          .update(Buffer.from(data, 'utf-8'))
+          .digest();
         const sign = signTerm.toString('base64');
         this.debugLog(`Color Bulb: ${this.accessory.displayName} sign: ${sign}`);
+        const body = JSON.stringify({
+          'command': 'setColorTemperature',
+          'parameter': `${kelvin}`,
+          'commandType': 'command',
+        });
+        this.infoLog(`Color Bulb: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
         const options = {
           hostname: HostDomain,
           port: 443,
           path: `${DevicePath}/${this.device.deviceId}/commands`,
           method: 'POST',
           headers: {
-            Authorization: this.platform.config.credentials?.token,
-            sign: sign,
-            nonce: nonce,
-            t: t,
+            'Authorization': this.platform.config.credentials?.token,
+            'sign': sign,
+            'nonce': nonce,
+            't': t,
             'Content-Type': 'application/json',
+            'Content-Length': body.length,
           },
         };
-        const req = https.request(options, (res) => {
+        const req = https.request(options, res => {
           this.debugLog(`Color Bulb: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
-          this.statusCode({ res });
-          res.on('data', (d) => {
-            this.debugLog(`d: ${d}`);
+          res.on('data', d => {
+            this.debugLog(`Color Bulb: ${this.accessory.displayName} d: ${d}`);
           });
         });
-        req.on('error', (error) => {
-          this.errorLog(`Color Bulb: ${this.accessory.displayName} error: ${error}`);
+        req.on('error', (e: any) => {
+          this.errorLog(`Color Bulb: ${this.accessory.displayName} error message: ${e.message}`);
         });
-        req.write(payload);
+        req.write(body);
         req.end();
 
-        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushChanges: ${JSON.stringify(req)}`);
+        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushColorTemperatureChanges: ${JSON.stringify(req)}`);
         this.ColorTemperatureCached = this.ColorTemperature;
       } else {
         this.debugLog(
@@ -702,51 +693,47 @@ export class ColorBulb {
   async pushBrightnessChanges(): Promise<void> {
     try {
       if (this.Brightness !== this.BrightnessCached) {
-        const payload = {
-          commandType: 'command',
-          command: 'setBrightness',
-          parameter: `${this.Brightness}`,
-        } as payload;
-
-        this.infoLog(
-          `Color Bulb: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-            ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
-        );
-
-        // Make the API request
+        // Make Push On request to the API
         const t = Date.now();
         const nonce = 'requestID';
         const data = this.platform.config.credentials?.token + t + nonce;
-        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+          .update(Buffer.from(data, 'utf-8'))
+          .digest();
         const sign = signTerm.toString('base64');
         this.debugLog(`Color Bulb: ${this.accessory.displayName} sign: ${sign}`);
+        const body = JSON.stringify({
+          'command': 'setBrightness',
+          'parameter': `${this.Brightness}`,
+          'commandType': 'command',
+        });
+        this.infoLog(`Color Bulb: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
         const options = {
           hostname: HostDomain,
           port: 443,
           path: `${DevicePath}/${this.device.deviceId}/commands`,
           method: 'POST',
           headers: {
-            Authorization: this.platform.config.credentials?.token,
-            sign: sign,
-            nonce: nonce,
-            t: t,
+            'Authorization': this.platform.config.credentials?.token,
+            'sign': sign,
+            'nonce': nonce,
+            't': t,
             'Content-Type': 'application/json',
+            'Content-Length': body.length,
           },
         };
-        const req = https.request(options, (res) => {
+        const req = https.request(options, res => {
           this.debugLog(`Color Bulb: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
-          this.statusCode({ res });
-          res.on('data', (d) => {
-            this.debugLog(`d: ${d}`);
+          res.on('data', d => {
+            this.debugLog(`Color Bulb: ${this.accessory.displayName} d: ${d}`);
           });
         });
-        req.on('error', (error) => {
-          this.errorLog(`Color Bulb: ${this.accessory.displayName} error: ${error}`);
+        req.on('error', (e: any) => {
+          this.errorLog(`Color Bulb: ${this.accessory.displayName} error message: ${e.message}`);
         });
-        req.write(payload);
+        req.write(body);
         req.end();
-
-        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushChanges: ${JSON.stringify(req)}`);
+        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushBrightnessChanges: ${JSON.stringify(req)}`);
         this.BrightnessCached = this.Brightness;
       } else {
         this.debugLog(

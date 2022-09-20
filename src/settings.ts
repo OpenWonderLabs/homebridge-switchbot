@@ -177,19 +177,6 @@ export type other = {
   commandOff?: string;
 };
 
-export type payload = {
-  commandType: string;
-  parameter: string;
-  command: string;
-};
-
-/*
-export type deviceResponses = {
-  statusCode: number | string;
-  message: string;
-  body: deviceList | infraredRemoteList;
-};*/
-
 //a list of physical devices.
 export type deviceList = {
   device: Array<device>;
@@ -231,12 +218,6 @@ export type irdevice = {
   remoteType: string; //device type
   hubDeviceId: string; //remote device's parent Hub ID
 };
-
-/*export type deviceStatusResponse = {
-  statusCode: number;
-  message: string;
-  body: deviceStatus;
-};*/
 
 export type deviceStatus = {
   //device ID.

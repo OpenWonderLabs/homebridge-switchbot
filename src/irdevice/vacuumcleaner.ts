@@ -2,7 +2,7 @@ import https from 'https';
 import crypto from 'crypto';
 import { IncomingMessage } from 'http';
 import { SwitchBotPlatform } from '../platform';
-import { irDevicesConfig, irdevice, payload, HostDomain, DevicePath } from '../settings';
+import { irDevicesConfig, irdevice, HostDomain, DevicePath } from '../settings';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 
 /**
@@ -90,7 +90,7 @@ export class VacuumCleaner {
         commandType: 'command',
         parameter: 'default',
         command: 'turnOn',
-      } as payload;
+      };
       await this.pushChanges(payload);
     }
   }
@@ -101,12 +101,12 @@ export class VacuumCleaner {
         commandType: 'command',
         parameter: 'default',
         command: 'turnOff',
-      } as payload;
+      };
       await this.pushChanges(payload);
     }
   }
 
-  async pushChanges(payload: payload): Promise<void> {
+  async pushChanges(payload): Promise<void> {
     try {
       this.infoLog(
         `Vacuum Cleaner: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +

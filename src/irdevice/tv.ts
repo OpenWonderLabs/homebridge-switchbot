@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { IncomingMessage } from 'http';
 import { SwitchBotPlatform } from '../platform';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
-import { irdevice, irDevicesConfig, payload, HostDomain, DevicePath } from '../settings';
+import { irdevice, irDevicesConfig, HostDomain, DevicePath } from '../settings';
 
 /**
  * Platform Accessory
@@ -241,7 +241,7 @@ export class TV {
         commandType: 'command',
         parameter: 'default',
         command: 'turnOn',
-      } as payload;
+      };
       await this.pushTVChanges(payload);
     }
   }
@@ -251,7 +251,7 @@ export class TV {
       commandType: 'command',
       parameter: 'default',
       command: 'turnOff',
-    } as payload;
+    };
     await this.pushTVChanges(payload);
   }
 
@@ -260,7 +260,7 @@ export class TV {
       commandType: 'command',
       parameter: 'default',
       command: 'Ok',
-    } as payload;
+    };
     await this.pushTVChanges(payload);
   }
 
@@ -269,7 +269,7 @@ export class TV {
       commandType: 'command',
       parameter: 'default',
       command: 'Back',
-    } as payload;
+    };
     await this.pushTVChanges(payload);
   }
 
@@ -278,7 +278,7 @@ export class TV {
       commandType: 'command',
       parameter: 'default',
       command: 'Menu',
-    } as payload;
+    };
     await this.pushTVChanges(payload);
   }
 
@@ -287,7 +287,7 @@ export class TV {
       commandType: 'command',
       parameter: 'default',
       command: 'Up',
-    } as payload;
+    };
     await this.pushTVChanges(payload);
   }
 
@@ -296,7 +296,7 @@ export class TV {
       commandType: 'command',
       parameter: 'default',
       command: 'Down',
-    } as payload;
+    };
     await this.pushTVChanges(payload);
   }
 
@@ -305,7 +305,7 @@ export class TV {
       commandType: 'command',
       parameter: 'default',
       command: 'Right',
-    } as payload;
+    };
     await this.pushTVChanges(payload);
   }
 
@@ -314,7 +314,7 @@ export class TV {
       commandType: 'command',
       parameter: 'default',
       command: 'Left',
-    } as payload;
+    };
     await this.pushTVChanges(payload);
   }
 
@@ -323,7 +323,7 @@ export class TV {
       commandType: 'command',
       parameter: 'default',
       command: 'volumeAdd',
-    } as payload;
+    };
     await this.pushTVChanges(payload);
   }
 
@@ -332,11 +332,11 @@ export class TV {
       commandType: 'command',
       parameter: 'default',
       command: 'volumeSub',
-    } as payload;
+    };
     await this.pushTVChanges(payload);
   }
 
-  async pushTVChanges(payload: payload): Promise<void> {
+  async pushTVChanges(payload): Promise<void> {
     try {
       this.infoLog(
         `${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +

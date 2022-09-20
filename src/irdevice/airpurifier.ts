@@ -2,7 +2,7 @@ import https from 'https';
 import crypto from 'crypto';
 import { IncomingMessage } from 'http';
 import { SwitchBotPlatform } from '../platform';
-import { irDevicesConfig, irdevice, payload, HostDomain, DevicePath } from '../settings';
+import { irDevicesConfig, irdevice, HostDomain, DevicePath } from '../settings';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 
 /**
@@ -162,7 +162,7 @@ export class AirPurifier {
         commandType: 'command',
         parameter: 'default',
         command: 'turnOn',
-      } as payload;
+      };
       await this.pushChanges(payload);
     }
   }
@@ -173,7 +173,7 @@ export class AirPurifier {
         commandType: 'command',
         parameter: 'default',
         command: 'turnOff',
-      } as payload;
+      };
       await this.pushChanges(payload);
     }
   }
@@ -190,16 +190,16 @@ export class AirPurifier {
   }
 
   async pushAirConditionerDetailsChanges(): Promise<void> {
-    const payload = {
-      commandType: 'command',
-      command: 'setAll',
-    } as payload;
-
     this.CurrentAPTemp = this.CurrentTemperature || 24;
     this.CurrentAPMode = this.CurrentMode || 1;
     this.CurrentAPFanSpeed = this.CurrentFanSpeed || 1;
     this.APActive = this.Active === 1 ? 'on' : 'off';
-    payload.parameter = `${this.CurrentAPTemp},${this.CurrentAPMode},${this.CurrentAPFanSpeed},${this.APActive}`;
+    const parameter = `${this.CurrentAPTemp},${this.CurrentAPMode},${this.CurrentAPFanSpeed},${this.APActive}`;
+    const payload = JSON.stringify({
+      'command': 'setAll',
+      'parameter': `${parameter}`,
+      'commandType': 'command',
+    });
 
     if (this.Active === 1) {
       if ((this.CurrentTemperature || 24) < (this.LastTemperature || 30)) {
@@ -214,7 +214,7 @@ export class AirPurifier {
     await this.pushChanges(payload);
   }
 
-  async pushChanges(payload: payload): Promise<void> {
+  async pushChanges(payload): Promise<void> {
     try {
       this.infoLog(
         `Air Purifier: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +

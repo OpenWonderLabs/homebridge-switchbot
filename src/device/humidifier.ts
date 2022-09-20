@@ -6,7 +6,7 @@ import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, serviceData, ad, payload, deviceStatus, HostDomain, DevicePath } from '../settings';
+import { device, devicesConfig, serviceData, ad, deviceStatus, HostDomain, DevicePath } from '../settings';
 
 /**
  * Platform Accessory
@@ -514,66 +514,49 @@ export class Humidifier {
         this.TargetHumidifierDehumidifierState === this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER &&
         this.Active === this.platform.Characteristic.Active.ACTIVE
       ) {
-        try {
-          this.debugLog(`Pushing Manual: ${this.RelativeHumidityHumidifierThreshold}!`);
-          const payload = {
-            commandType: 'command',
-            command: 'setMode',
-            parameter: `${this.RelativeHumidityHumidifierThreshold}`,
-          } as payload;
-
-          this.infoLog(
-            `Humidifier: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-              ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
-          );
-
-          // Make the API request
-          const t = Date.now();
-          const nonce = 'requestID';
-          const data = this.platform.config.credentials?.token + t + nonce;
-          const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
-          const sign = signTerm.toString('base64');
-          this.debugLog(`Humidifier: ${this.accessory.displayName} sign: ${sign}`);
-          const options = {
-            hostname: 'api.switch-bot.com',
-            port: 443,
-            path: `/v1.1/devices/${this.device.deviceId}/commands`,
-            method: 'POST',
-            headers: {
-              Authorization: this.platform.config.credentials?.token,
-              sign: sign,
-              nonce: nonce,
-              t: t,
-              'Content-Type': 'application/json',
-            },
-          };
-
-          const req = https.request(options, (res) => {
-            this.debugLog(`Humidifier: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
-            this.statusCode({ res });
-            res.on('data', (d) => {
-              this.debugLog(`Humidifier: ${this.accessory.displayName} d: ${d}`);
-            });
+        // Make Push On request to the API
+        const t = Date.now();
+        const nonce = 'requestID';
+        const data = this.platform.config.credentials?.token + t + nonce;
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+          .update(Buffer.from(data, 'utf-8'))
+          .digest();
+        const sign = signTerm.toString('base64');
+        this.debugLog(`Humidifier: ${this.accessory.displayName} sign: ${sign}`);
+        this.debugLog(`Pushing Manual: ${this.RelativeHumidityHumidifierThreshold}!`);
+        const body = JSON.stringify({
+          'command': 'setMode',
+          'parameter': `${this.RelativeHumidityHumidifierThreshold}`,
+          'commandType': 'command',
+        });
+        this.infoLog(`Humidifier: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
+        const options = {
+          hostname: HostDomain,
+          port: 443,
+          path: `${DevicePath}/${this.device.deviceId}/commands`,
+          method: 'POST',
+          headers: {
+            'Authorization': this.platform.config.credentials?.token,
+            'sign': sign,
+            'nonce': nonce,
+            't': t,
+            'Content-Type': 'application/json',
+            'Content-Length': body.length,
+          },
+        };
+        const req = https.request(options, res => {
+          this.debugLog(`Humidifier: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+          res.on('data', d => {
+            this.debugLog(`Humidifier: ${this.accessory.displayName} d: ${d}`);
           });
-
-          req.on('error', (error) => {
-            this.errorLog(`Humidifier: ${this.accessory.displayName} error: ${error}`);
-          });
-
-          req.write(payload);
-          req.end();
-
-          this.debugLog(`Humidifier: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
-        } catch (e: any) {
-          this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-          if (this.deviceLogging.includes('debug')) {
-            this.errorLog(
-              `Humidifier: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` +
-                ` Error Message: ${JSON.stringify(e.message)}`,
-            );
-          }
+        });
+        req.on('error', (e: any) => {
+          this.errorLog(`Humidifier: ${this.accessory.displayName} error message: ${e.message}`);
           this.apiError(e);
-        }
+        });
+        req.write(body);
+        req.end();
+        this.debugLog(`Humidifier: ${this.accessory.displayName} openAPIpushChanges: ${JSON.stringify(req)}`);
       } else if (
         this.TargetHumidifierDehumidifierState === this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER_OR_DEHUMIDIFIER &&
         this.Active === this.platform.Characteristic.Active.ACTIVE
@@ -594,54 +577,48 @@ export class Humidifier {
         this.TargetHumidifierDehumidifierState === this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER_OR_DEHUMIDIFIER &&
         this.Active === this.platform.Characteristic.Active.ACTIVE
       ) {
-        this.debugLog('Pushing Auto!');
-        const payload = {
-          commandType: 'command',
-          command: 'setMode',
-          parameter: 'auto',
-        } as payload;
-
-        this.infoLog(
-          `Humidifier: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-            ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
-        );
-
-        // Make the API request
+        // Make Push On request to the API
         const t = Date.now();
         const nonce = 'requestID';
         const data = this.platform.config.credentials?.token + t + nonce;
-        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+          .update(Buffer.from(data, 'utf-8'))
+          .digest();
         const sign = signTerm.toString('base64');
         this.debugLog(`Humidifier: ${this.accessory.displayName} sign: ${sign}`);
+        this.debugLog('Pushing Auto!');
+        const body = JSON.stringify({
+          'command': 'setMode',
+          'parameter': 'auto',
+          'commandType': 'command',
+        });
+        this.infoLog(`Humidifier: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
         const options = {
-          hostname: 'api.switch-bot.com',
+          hostname: HostDomain,
           port: 443,
-          path: `/v1.1/devices/${this.device.deviceId}/commands`,
+          path: `${DevicePath}/${this.device.deviceId}/commands`,
           method: 'POST',
           headers: {
-            Authorization: this.platform.config.credentials?.token,
-            sign: sign,
-            nonce: nonce,
-            t: t,
+            'Authorization': this.platform.config.credentials?.token,
+            'sign': sign,
+            'nonce': nonce,
+            't': t,
             'Content-Type': 'application/json',
+            'Content-Length': body.length,
           },
         };
-
-        const req = https.request(options, (res) => {
+        const req = https.request(options, res => {
           this.debugLog(`Humidifier: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
           this.statusCode({ res });
-          res.on('data', (d) => {
+          res.on('data', d => {
             this.debugLog(`Humidifier: ${this.accessory.displayName} d: ${d}`);
           });
         });
-
-        req.on('error', (error) => {
-          this.errorLog(`Humidifier: ${this.accessory.displayName} error: ${error}`);
+        req.on('error', (e: any) => {
+          this.errorLog(`Humidifier: ${this.accessory.displayName} error message: ${e.message}`);
         });
-
-        req.write(payload);
+        req.write(body);
         req.end();
-
         this.debugLog(`Humidifier: ${this.accessory.displayName} pushAutoChanges: ${JSON.stringify(req)}`);
       }
     } catch (e: any) {
@@ -662,54 +639,48 @@ export class Humidifier {
   async pushActiveChanges(): Promise<void> {
     try {
       if (this.Active === this.platform.Characteristic.Active.INACTIVE) {
-        this.debugLog('Pushing Off!');
-        const payload = {
-          commandType: 'command',
-          command: 'turnOff',
-          parameter: 'default',
-        } as payload;
-
-        this.infoLog(
-          `Humidifier: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-            ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
-        );
-
-        // Make the API request
+        // Make Push On request to the API
         const t = Date.now();
         const nonce = 'requestID';
         const data = this.platform.config.credentials?.token + t + nonce;
-        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+          .update(Buffer.from(data, 'utf-8'))
+          .digest();
         const sign = signTerm.toString('base64');
         this.debugLog(`Humidifier: ${this.accessory.displayName} sign: ${sign}`);
+        this.debugLog('Pushing Off!');
+        const body = JSON.stringify({
+          'command': 'turnOff',
+          'parameter': 'default',
+          'commandType': 'command',
+        });
+        this.infoLog(`Humidifier: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
         const options = {
-          hostname: 'api.switch-bot.com',
+          hostname: HostDomain,
           port: 443,
-          path: `/v1.1/devices/${this.device.deviceId}/commands`,
+          path: `${DevicePath}/${this.device.deviceId}/commands`,
           method: 'POST',
           headers: {
-            Authorization: this.platform.config.credentials?.token,
-            sign: sign,
-            nonce: nonce,
-            t: t,
+            'Authorization': this.platform.config.credentials?.token,
+            'sign': sign,
+            'nonce': nonce,
+            't': t,
             'Content-Type': 'application/json',
+            'Content-Length': body.length,
           },
         };
-
-        const req = https.request(options, (res) => {
+        const req = https.request(options, res => {
           this.debugLog(`Humidifier: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
           this.statusCode({ res });
-          res.on('data', (d) => {
+          res.on('data', d => {
             this.debugLog(`Humidifier: ${this.accessory.displayName} d: ${d}`);
           });
         });
-
-        req.on('error', (error) => {
-          this.errorLog(`Humidifier: ${this.accessory.displayName} error: ${error}`);
+        req.on('error', (e: any) => {
+          this.errorLog(`Humidifier: ${this.accessory.displayName} error message: ${e.message}`);
         });
-
-        req.write(payload);
+        req.write(body);
         req.end();
-
         this.debugLog(`Humidifier: ${this.accessory.displayName} pushActiveChanges: ${JSON.stringify(req)}`);
       }
     } catch (e: any) {
