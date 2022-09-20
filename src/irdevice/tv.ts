@@ -237,148 +237,143 @@ export class TV {
    */
   async pushTvOnChanges(): Promise<void> {
     if (this.Active !== 1) {
-      const payload = {
-        commandType: 'command',
-        parameter: 'default',
-        command: 'turnOn',
-      };
-      await this.pushTVChanges(payload);
+      const body = JSON.stringify({
+        'command': 'turnOn',
+        'parameter': 'default',
+        'commandType': 'command',
+      });
+      await this.pushTVChanges(body);
     }
   }
 
   async pushTvOffChanges(): Promise<void> {
-    const payload = {
-      commandType: 'command',
-      parameter: 'default',
-      command: 'turnOff',
-    };
-    await this.pushTVChanges(payload);
+    const body = JSON.stringify({
+      'command': 'turnOff',
+      'parameter': 'default',
+      'commandType': 'command',
+    });
+    await this.pushTVChanges(body);
   }
 
   async pushOkChanges(): Promise<void> {
-    const payload = {
-      commandType: 'command',
-      parameter: 'default',
-      command: 'Ok',
-    };
-    await this.pushTVChanges(payload);
+    const body = JSON.stringify({
+      'command': 'Ok',
+      'parameter': 'default',
+      'commandType': 'command',
+    });
+    await this.pushTVChanges(body);
   }
 
   async pushBackChanges(): Promise<void> {
-    const payload = {
-      commandType: 'command',
-      parameter: 'default',
-      command: 'Back',
-    };
-    await this.pushTVChanges(payload);
+    const body = JSON.stringify({
+      'command': 'Back',
+      'parameter': 'default',
+      'commandType': 'command',
+    });
+    await this.pushTVChanges(body);
   }
 
   async pushMenuChanges(): Promise<void> {
-    const payload = {
-      commandType: 'command',
-      parameter: 'default',
-      command: 'Menu',
-    };
-    await this.pushTVChanges(payload);
+    const body = JSON.stringify({
+      'command': 'Menu',
+      'parameter': 'default',
+      'commandType': 'command',
+    });
+    await this.pushTVChanges(body);
   }
 
   async pushUpChanges(): Promise<void> {
-    const payload = {
-      commandType: 'command',
-      parameter: 'default',
-      command: 'Up',
-    };
-    await this.pushTVChanges(payload);
+    const body = JSON.stringify({
+      'command': 'Up',
+      'parameter': 'default',
+      'commandType': 'command',
+    });
+    await this.pushTVChanges(body);
   }
 
   async pushDownChanges(): Promise<void> {
-    const payload = {
-      commandType: 'command',
-      parameter: 'default',
-      command: 'Down',
-    };
-    await this.pushTVChanges(payload);
+    const body = JSON.stringify({
+      'command': 'Down',
+      'parameter': 'default',
+      'commandType': 'command',
+    });
+    await this.pushTVChanges(body);
   }
 
   async pushRightChanges(): Promise<void> {
-    const payload = {
-      commandType: 'command',
-      parameter: 'default',
-      command: 'Right',
-    };
-    await this.pushTVChanges(payload);
+    const body = JSON.stringify({
+      'command': 'Right',
+      'parameter': 'default',
+      'commandType': 'command',
+    });
+    await this.pushTVChanges(body);
   }
 
   async pushLeftChanges(): Promise<void> {
-    const payload = {
-      commandType: 'command',
-      parameter: 'default',
-      command: 'Left',
-    };
-    await this.pushTVChanges(payload);
+    const body = JSON.stringify({
+      'command': 'Left',
+      'parameter': 'default',
+      'commandType': 'command',
+    });
+    await this.pushTVChanges(body);
   }
 
   async pushVolumeUpChanges(): Promise<void> {
-    const payload = {
-      commandType: 'command',
-      parameter: 'default',
-      command: 'volumeAdd',
-    };
-    await this.pushTVChanges(payload);
+    const body = JSON.stringify({
+      'command': 'volumeAdd',
+      'parameter': 'default',
+      'commandType': 'command',
+    });
+    await this.pushTVChanges(body);
   }
 
   async pushVolumeDownChanges(): Promise<void> {
-    const payload = {
-      commandType: 'command',
-      parameter: 'default',
-      command: 'volumeSub',
-    };
-    await this.pushTVChanges(payload);
+    const body = JSON.stringify({
+      'command': 'volumeSub',
+      'parameter': 'default',
+      'commandType': 'command',
+    });
+    await this.pushTVChanges(body);
   }
 
-  async pushTVChanges(payload): Promise<void> {
+  async pushTVChanges(body): Promise<void> {
     try {
-      this.infoLog(
-        `${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-          ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
-      );
-
-      // Make the API request
+      // Make Push On request to the API
       const t = Date.now();
       const nonce = 'requestID';
       const data = this.platform.config.credentials?.token + t + nonce;
-      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+        .update(Buffer.from(data, 'utf-8'))
+        .digest();
       const sign = signTerm.toString('base64');
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} sign: ${sign}`);
+      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
       const options = {
         hostname: HostDomain,
         port: 443,
         path: `${DevicePath}/${this.device.deviceId}/commands`,
         method: 'POST',
         headers: {
-          Authorization: this.platform.config.credentials?.token,
-          sign: sign,
-          nonce: nonce,
-          t: t,
+          'Authorization': this.platform.config.credentials?.token,
+          'sign': sign,
+          'nonce': nonce,
+          't': t,
           'Content-Type': 'application/json',
+          'Content-Length': body.length,
         },
       };
-
-      const req = https.request(options, (res) => {
+      const req = https.request(options, res => {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
         this.statusCode({ res });
-        res.on('data', (d) => {
+        res.on('data', d => {
           this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} d: ${d}`);
         });
       });
-
-      req.on('error', (error) => {
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} error: ${error}`);
+      req.on('error', (e: any) => {
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} error message: ${e.message}`);
       });
-
-      req.write(payload);
+      req.write(body);
       req.end();
-
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
       this.updateHomeKitCharacteristics();
     } catch (e: any) {

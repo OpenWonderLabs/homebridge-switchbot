@@ -183,22 +183,22 @@ export class AirConditioner {
    */
   async pushAirConditionerOnChanges(): Promise<void> {
     if (this.Active !== this.platform.Characteristic.Active.ACTIVE || this.pushOn) {
-      const payload = {
-        commandType: 'command',
-        parameter: 'default',
-        command: 'turnOn',
-      } as any;
-      await this.pushChanges(payload);
+      const body = JSON.stringify({
+        'command': 'turnOn',
+        'parameter': 'default',
+        'commandType': 'command',
+      });
+      await this.pushChanges(body);
     }
   }
 
   async pushAirConditionerOffChanges(): Promise<void> {
-    const payload = {
-      commandType: 'command',
-      parameter: 'default',
-      command: 'turnOff',
-    } as any;
-    await this.pushChanges(payload);
+    const body = JSON.stringify({
+      'command': 'turnOff',
+      'parameter': 'default',
+      'commandType': 'command',
+    });
+    await this.pushChanges(body);
   }
 
   async pushAirConditionerStatusChanges(): Promise<void> {
@@ -213,11 +213,6 @@ export class AirConditioner {
   }
 
   async pushAirConditionerDetailsChanges(): Promise<void> {
-    const payload = {
-      commandType: 'command',
-      command: 'setAll',
-    } as any;
-
     this.CurrentTemperatureUndefined();
     if (this.CurrentMode === undefined) {
       this.CurrentMode = 1;
@@ -236,7 +231,7 @@ export class AirConditioner {
         `Air Conditioner: ${this.accessory.displayName} CurrentMode: ${this.CurrentMode},` + ` CurrentTemperature: ${this.CurrentTemperature}`,
       );
     }
-    payload.parameter = `${this.CurrentTemperature},${this.CurrentMode},${this.CurrentFanSpeed},${this.state}`;
+    const parameter = `${this.CurrentTemperature},${this.CurrentMode},${this.CurrentFanSpeed},${this.state}`;
 
     if (this.Active === this.platform.Characteristic.Active.ACTIVE) {
       this.CurrentTemperatureUndefined();
@@ -248,53 +243,53 @@ export class AirConditioner {
     } else {
       this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.INACTIVE;
     }
+    const body = JSON.stringify({
+      'command': 'setAll',
+      'parameter': `${parameter}`,
+      'commandType': 'command',
+    });
 
-    await this.pushChanges(payload);
+    await this.pushChanges(body);
   }
 
-  async pushChanges(payload): Promise<void> {
+  async pushChanges(body): Promise<void> {
     try {
-      this.infoLog(
-        `Air Conditioner: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-          ` parameter: [${payload.parameter}], commandType: ${payload.commandType}`,
-      );
-
-      // Make the API request
+      // Make Push On request to the API
       const t = Date.now();
       const nonce = 'requestID';
       const data = this.platform.config.credentials?.token + t + nonce;
-      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+        .update(Buffer.from(data, 'utf-8'))
+        .digest();
       const sign = signTerm.toString('base64');
       this.debugLog(`Air Conditioner: ${this.accessory.displayName} sign: ${sign}`);
+      this.infoLog(`Air Conditioner: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
       const options = {
         hostname: HostDomain,
         port: 443,
         path: `${DevicePath}/${this.device.deviceId}/commands`,
         method: 'POST',
         headers: {
-          Authorization: this.platform.config.credentials?.token,
-          sign: sign,
-          nonce: nonce,
-          t: t,
+          'Authorization': this.platform.config.credentials?.token,
+          'sign': sign,
+          'nonce': nonce,
+          't': t,
           'Content-Type': 'application/json',
+          'Content-Length': body.length,
         },
       };
-
-      const req = https.request(options, (res) => {
+      const req = https.request(options, res => {
         this.debugLog(`Air Conditioner: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
         this.statusCode({ res });
-        res.on('data', (d) => {
+        res.on('data', d => {
           this.debugLog(`Air Conditioner: ${this.accessory.displayName} d: ${d}`);
         });
       });
-
-      req.on('error', (error) => {
-        this.errorLog(`Air Conditioner: ${this.accessory.displayName} error: ${error}`);
+      req.on('error', (e: any) => {
+        this.errorLog(`Air Conditioner: ${this.accessory.displayName} error message: ${e.message}`);
       });
-
-      req.write(payload);
+      req.write(body);
       req.end();
-
       this.debugLog(`Air Conditioner: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
       this.CurrentTemperatureCached = this.CurrentTemperature;
       this.accessory.context.CurrentTemperature = this.CurrentTemperatureCached;

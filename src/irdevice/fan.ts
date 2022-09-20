@@ -188,94 +188,89 @@ export class Fan {
    */
   async pushFanOnChanges(): Promise<void> {
     if (this.Active !== 1) {
-      const payload = {
-        commandType: 'command',
-        parameter: 'default',
-        command: 'turnOn',
-      };
-      await this.pushTVChanges(payload);
+      const body = JSON.stringify({
+        'command': 'turnOn',
+        'parameter': 'default',
+        'commandType': 'command',
+      });
+      await this.pushTVChanges(body);
     }
   }
 
   async pushFanOffChanges(): Promise<void> {
-    const payload = {
-      commandType: 'command',
-      parameter: 'default',
-      command: 'turnOff',
-    };
-    await this.pushTVChanges(payload);
+    const body = JSON.stringify({
+      'command': 'turnOff',
+      'parameter': 'default',
+      'commandType': 'command',
+    });
+    await this.pushTVChanges(body);
   }
 
   async pushFanSpeedUpChanges(): Promise<void> {
-    const payload = {
-      commandType: 'command',
-      parameter: 'default',
-      command: 'highSpeed',
-    };
-    await this.pushTVChanges(payload);
+    const body = JSON.stringify({
+      'command': 'highSpeed',
+      'parameter': 'default',
+      'commandType': 'command',
+    });
+    await this.pushTVChanges(body);
   }
 
   async pushFanSpeedDownChanges(): Promise<void> {
-    const payload = {
-      commandType: 'command',
-      parameter: 'default',
-      command: 'lowSpeed',
-    };
-    await this.pushTVChanges(payload);
+    const body = JSON.stringify({
+      'command': 'lowSpeed',
+      'parameter': 'default',
+      'commandType': 'command',
+    });
+    await this.pushTVChanges(body);
   }
 
   async pushFanSwingChanges(): Promise<void> {
-    const payload = {
-      commandType: 'command',
-      parameter: 'default',
-      command: 'swing',
-    };
-    await this.pushTVChanges(payload);
+    const body = JSON.stringify({
+      'command': 'swing',
+      'parameter': 'default',
+      'commandType': 'command',
+    });
+    await this.pushTVChanges(body);
   }
 
-  async pushTVChanges(payload): Promise<void> {
+  async pushTVChanges(body): Promise<void> {
     try {
-      this.infoLog(
-        `Fan: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-          ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
-      );
-
-      // Make the API request
+      // Make Push On request to the API
       const t = Date.now();
       const nonce = 'requestID';
       const data = this.platform.config.credentials?.token + t + nonce;
-      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+        .update(Buffer.from(data, 'utf-8'))
+        .digest();
       const sign = signTerm.toString('base64');
       this.debugLog(`Fan: ${this.accessory.displayName} sign: ${sign}`);
+      this.infoLog(`Fan: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
       const options = {
         hostname: HostDomain,
         port: 443,
         path: `${DevicePath}/${this.device.deviceId}/commands`,
         method: 'POST',
         headers: {
-          Authorization: this.platform.config.credentials?.token,
-          sign: sign,
-          nonce: nonce,
-          t: t,
+          'Authorization': this.platform.config.credentials?.token,
+          'sign': sign,
+          'nonce': nonce,
+          't': t,
           'Content-Type': 'application/json',
+          'Content-Length': body.length,
         },
       };
-
-      const req = https.request(options, (res) => {
+      const req = https.request(options, res => {
         this.debugLog(`Fan: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
         this.statusCode({ res });
-        res.on('data', (d) => {
-          this.debugLog(`an: ${this.accessory.displayName} d: ${d}`);
+        res.on('data', d => {
+          this.debugLog(`Fan: ${this.accessory.displayName} d: ${d}`);
         });
       });
-
-      req.on('error', (error) => {
-        this.errorLog(`Fan: ${this.accessory.displayName} error: ${error}`);
+      req.on('error', (e: any) => {
+        this.errorLog(`Fan: ${this.accessory.displayName} error message: ${e.message}`);
       });
-
-      req.write(payload);
+      req.write(body);
       req.end();
-
       this.debugLog(`Fan: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
       this.updateHomeKitCharacteristics();
     } catch (e: any) {

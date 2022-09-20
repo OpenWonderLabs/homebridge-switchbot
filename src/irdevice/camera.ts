@@ -86,69 +86,64 @@ export class Camera {
    */
   async pushOnChanges(): Promise<void> {
     if (this.On) {
-      const payload = {
-        commandType: 'command',
-        parameter: 'default',
-        command: 'turnOn',
-      };
-      await this.pushChanges(payload);
+      const body = JSON.stringify({
+        'command': 'turnOn',
+        'parameter': 'default',
+        'commandType': 'command',
+      });
+      await this.pushChanges(body);
     }
   }
 
   async pushOffChanges(): Promise<void> {
     if (!this.On) {
-      const payload = {
-        commandType: 'command',
-        parameter: 'default',
-        command: 'turnOff',
-      };
-      await this.pushChanges(payload);
+      const body = JSON.stringify({
+        'command': 'turnOff',
+        'parameter': 'default',
+        'commandType': 'command',
+      });
+      await this.pushChanges(body);
     }
   }
 
-  async pushChanges(payload): Promise<void> {
+  async pushChanges(body): Promise<void> {
     try {
-      this.infoLog(
-        `Camera: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-          ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
-      );
-
-      // Make the API request
+      // Make Push On request to the API
       const t = Date.now();
       const nonce = 'requestID';
       const data = this.platform.config.credentials?.token + t + nonce;
-      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+        .update(Buffer.from(data, 'utf-8'))
+        .digest();
       const sign = signTerm.toString('base64');
       this.debugLog(`Camera: ${this.accessory.displayName} sign: ${sign}`);
+      this.infoLog(`Camera: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
       const options = {
         hostname: HostDomain,
         port: 443,
         path: `${DevicePath}/${this.device.deviceId}/commands`,
         method: 'POST',
         headers: {
-          Authorization: this.platform.config.credentials?.token,
-          sign: sign,
-          nonce: nonce,
-          t: t,
+          'Authorization': this.platform.config.credentials?.token,
+          'sign': sign,
+          'nonce': nonce,
+          't': t,
           'Content-Type': 'application/json',
+          'Content-Length': body.length,
         },
       };
-
-      const req = https.request(options, (res) => {
+      const req = https.request(options, res => {
         this.debugLog(`Camera: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
         this.statusCode({ res });
-        res.on('data', (d) => {
+        res.on('data', d => {
           this.debugLog(`Camera: ${this.accessory.displayName} d: ${d}`);
         });
       });
-
-      req.on('error', (error) => {
-        this.errorLog(`Camera: ${this.accessory.displayName} error: ${error}`);
+      req.on('error', (e: any) => {
+        this.errorLog(`Camera: ${this.accessory.displayName} error message: ${e.message}`);
       });
-
-      req.write(payload);
+      req.write(body);
       req.end();
-
       this.debugLog(`Camera: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
       this.updateHomeKitCharacteristics();
       this.OnCached = this.On;
