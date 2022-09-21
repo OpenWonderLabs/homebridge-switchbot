@@ -34,7 +34,7 @@ export class ColorBulb {
   color: deviceStatus['color'];
   brightness: deviceStatus['brightness'];
   colorTemperature?: deviceStatus['colorTemperature'];
-  deviceStatus!: any; //deviceStatusResponse;
+  deviceStatus!: any;
 
   // BLE Others
   connected?: boolean;
@@ -68,6 +68,7 @@ export class ColorBulb {
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
     this.logs(device);
+    this.scan(device);
     this.refreshRate(device);
     this.adaptiveLighting(device);
     this.config(device);
@@ -308,75 +309,79 @@ export class ColorBulb {
     this.debugLog(`Color Bulb: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     this.getCustomBLEAddress(switchbot);
     // Start to monitor advertisement packets
-    if (switchbot !== false) {
-      switchbot
-        .startScan({
-          model: 'u',
-          id: this.device.bleMac,
-        })
-        .then(() => {
-          // Set an event hander
-          switchbot.onadvertisement = (ad: any) => {
-            this.address = ad.address;
-            if (this.deviceLogging.includes('debug')) {
-              this.infoLog(this.address);
-              this.infoLog(this.device.bleMac);
-              this.infoLog(`Color Bulb: ${this.accessory.displayName} BLE Address Found: ${this.address}`);
-              this.infoLog(`Color Bulb: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac}`);
-            }
-            this.serviceData = ad.serviceData;
-            this.state = ad.serviceData.state;
-            this.delay = ad.serviceData.delay;
-            //this.timer = ad.serviceData.timer;
-            //this.syncUtcTime = ad.serviceData.syncUtcTime;
-            this.wifiRssi = ad.serviceData.wifiRssi;
-            //this.overload = ad.serviceData.overload;
-            //this.currentPower = ad.serviceData.currentPower;
-            this.debugLog(`Color Bulb: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-            this.debugLog(
-              `Color Bulb: ${this.accessory.displayName} state: ${ad.serviceData.state}, ` +
+    if (switchbot === false) {
+      this.errorLog(`Color Bulb: ${this.accessory.displayName} wasn't able to establish BLE Connection: ${switchbot}`);
+    }
+    switchbot
+      .startScan({
+        model: 'u',
+        id: this.device.bleMac,
+      })
+      .then(() => {
+        // Set an event hander
+        switchbot.onadvertisement = (ad: any) => {
+          //this.address = ad.address;
+          if (this.deviceLogging.includes('debug')) {
+            this.infoLog(this.address);
+            this.infoLog(this.device.bleMac);
+            this.infoLog(`Color Bulb: ${this.accessory.displayName} BLE Address Found: ${this.address}`);
+            this.infoLog(`Color Bulb: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac}`);
+          }
+          this.serviceData = ad.serviceData;
+          this.state = ad.serviceData.state;
+          this.delay = ad.serviceData.delay;
+          //this.timer = ad.serviceData.timer;
+          //this.syncUtcTime = ad.serviceData.syncUtcTime;
+          this.wifiRssi = ad.serviceData.wifiRssi;
+          //this.overload = ad.serviceData.overload;
+          //this.currentPower = ad.serviceData.currentPower;
+          this.debugLog(`Color Bulb: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+          this.debugLog(
+            `Color Bulb: ${this.accessory.displayName} state: ${ad.serviceData.state}, ` +
                 `delay: ${ad.serviceData.delay}, timer: ${ad.serviceData.timer}, syncUtcTime: ${ad.serviceData.syncUtcTime} ` +
                 `wifiRssi: ${ad.serviceData.wifiRssi}, overload: ${ad.serviceData.overload}, currentPower: ${ad.serviceData.currentPower}`,
-            );
+          );
 
-            if (this.serviceData) {
-              this.connected = true;
-              this.debugLog(`Color Bulb: ${this.accessory.displayName} connected: ${this.connected}`);
-            } else {
-              this.connected = false;
-              this.debugLog(`Color Bulb: ${this.accessory.displayName} connected: ${this.connected}`);
-            }
-          };
-          // Wait 2 seconds
-          return switchbot.wait(this.scanDuration * 1000);
-        })
-        .then(async () => {
-          // Stop to monitor
-          switchbot.stopScan();
-          if (this.connected) {
-            this.parseStatus();
-            this.updateHomeKitCharacteristics();
+          if (this.serviceData) {
+            this.connected = true;
+            this.debugLog(`Color Bulb: ${this.accessory.displayName} connected: ${this.connected}`);
           } else {
-            await this.BLEconnection(switchbot);
+            this.connected = false;
+            this.debugLog(`Color Bulb: ${this.accessory.displayName} connected: ${this.connected}`);
           }
-        })
-        .catch(async (e: any) => {
-          this.errorLog(`Color Bulb: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
-          if (this.deviceLogging.includes('debug')) {
-            this.errorLog(
-              `Color Bulb: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
-            );
-          }
+        };
+        // Wait 2 seconds
+        return switchbot.wait(this.scanDuration * 1000);
+      })
+      .then(async () => {
+        // Stop to monitor
+        switchbot.stopScan();
+        if (this.connected) {
+          this.parseStatus();
+          this.updateHomeKitCharacteristics();
+        } else {
+          this.errorLog(`Color Bulb: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
           if (this.platform.config.credentials?.token) {
             this.warnLog(`Color Bulb: ${this.accessory.displayName} Using OpenAPI Connection`);
             this.SwitchToOpenAPI = true;
             await this.openAPIRefreshStatus();
           }
-          this.apiError(e);
-        });
-    } else {
-      await this.BLEconnection(switchbot);
-    }
+        }
+      })
+      .catch(async (e: any) => {
+        this.errorLog(`Color Bulb: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
+        if (this.deviceLogging.includes('debug')) {
+          this.errorLog(
+            `Color Bulb: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+          );
+        }
+        if (this.platform.config.credentials?.token) {
+          this.warnLog(`Color Bulb: ${this.accessory.displayName} Using OpenAPI Connection`);
+          this.SwitchToOpenAPI = true;
+          await this.openAPIRefreshStatus();
+        }
+        this.apiError(e);
+      });
   }
 
   async getCustomBLEAddress(switchbot: any) {
@@ -388,21 +393,12 @@ export class ColorBulb {
         });
         // Set an event handler
         switchbot.onadvertisement = (ad: any) => {
-          this.warnLog(JSON.stringify(ad, null, '  '));
+          this.warnLog(`Color Bulb: ${this.accessory.displayName} ad: ${JSON.stringify(ad, null, '  ')}`);
         };
         await switchbot.wait(10000);
         // Stop to monitor
         switchbot.stopScan();
       })();
-    }
-  }
-
-  async BLEconnection(switchbot: any): Promise<void> {
-    this.errorLog(`Color Bulb: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
-    if (this.platform.config.credentials?.token) {
-      this.warnLog(`Color Bulb: ${this.accessory.displayName} Using OpenAPI Connection`);
-      this.SwitchToOpenAPI = true;
-      await this.openAPIRefreshStatus();
     }
   }
 
@@ -938,6 +934,20 @@ export class ColorBulb {
     } else if (this.platform.config.options!.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
       this.debugLog(`Color Bulb: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
+    }
+  }
+
+  async scan(device: device & devicesConfig): Promise<void> {
+    if (device.scanDuration) {
+      this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
+      if (device.ble) {
+        this.debugLog(`Bot: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
+      }
+    } else {
+      this.scanDuration = this.accessory.context.scanDuration = 1;
+      if (this.device.ble) {
+        this.debugLog(`Bot: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
+      }
     }
   }
 

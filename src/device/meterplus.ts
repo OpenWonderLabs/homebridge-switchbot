@@ -324,7 +324,7 @@ export class MeterPlus {
         });
         // Set an event handler
         switchbot.onadvertisement = (ad: any) => {
-          this.warnLog(JSON.stringify(ad, null, '  '));
+          this.warnLog(`Meter Plus: ${this.accessory.displayName} ad: ${JSON.stringify(ad, null, '  ')}`);
         };
         await switchbot.wait(10000);
         // Stop to monitor
