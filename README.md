@@ -27,13 +27,20 @@ plugin allows you to access your SwitchBot Device(s) from HomeKit with
 - ### If using OpenAPI Connection
   1. Download SwitchBot App on App Store or Google Play Store
   2. Register a SwitchBot account and log in into your account
-  3. Generate an Open Token within the App
+  3. Generate an Token within the App
      - Click Bottom Profile Tab
      - Click Preference
      - Click App version 10 Times, this will enable Developer Options
      - Click Developer Options
-     - Click Copy to Clipboard
-  4. Input your `openToken` into the config paramter
+     - Click Copy `token` to Clipboard
+  4. Input your `token` into the config parameter
+  5. Generate an Secret within the App
+     - Click Bottom Profile Tab
+     - Click Preference
+     - Click App version 10 Times, this will enable Developer Options
+     - Click Developer Options
+     - Click Copy `secret` to Clipboard
+  6. Input your `secret` into the config parameter
 - ### If using BLE Connection
   1. Download SwitchBot App on App Store or Google Play Store
   2. Register a SwitchBot account and log in into your account
