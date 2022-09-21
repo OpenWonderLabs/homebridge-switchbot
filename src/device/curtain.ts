@@ -436,6 +436,7 @@ export class Curtain {
     this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     this.getCustomBLEAddress(switchbot);
     // Start to monitor advertisement packets
+    this.errorLog(`Color Bulb: ${this.accessory.displayName} switchbot: ${JSON.stringify(switchbot)}`);
     if (switchbot !== false) {
       switchbot
         .startScan({
@@ -481,7 +482,12 @@ export class Curtain {
             this.parseStatus();
             this.updateHomeKitCharacteristics();
           } else {
-            await this.BLEconnection(switchbot);
+            this.errorLog(`Curtain: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+            if (this.platform.config.credentials?.token) {
+              this.warnLog(`Curtain: ${this.accessory.displayName} Using OpenAPI Connection`);
+              this.SwitchToOpenAPI = true;
+              await this.openAPIRefreshStatus();
+            }
           }
         })
         .catch(async (e: any) => {

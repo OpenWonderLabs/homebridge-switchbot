@@ -3,7 +3,7 @@
 #
 # To use this workflow, you will need to set up a .github/labeler.yml
 # file with configuration.  For more information, see:
-# https://github.com/actions/labeler/blob/master/README.md
+# https://github.com/actions/labeler/blob/main/README.md
 
 name: Labeler
 on: [pull_request]
@@ -13,6 +13,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/labeler@v4
+      - uses: OpenWonderLabs/.github/.github/workflows/labeler.yml@latest
         with:
           repo-token: '${{ secrets.GITHUB_TOKEN }}'

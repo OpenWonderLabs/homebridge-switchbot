@@ -78,6 +78,6 @@
   },
   "optionalDependencies": {
     "@abandonware/noble": "^1.9.2-15",
-    "node-switchbot": "^1.4.2-beta.4"
+    "node-switchbot": "^1.4.2-beta.7"
   }
 }
