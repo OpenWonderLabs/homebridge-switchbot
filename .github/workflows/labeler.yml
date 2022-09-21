@@ -6,13 +6,11 @@
 # https://github.com/actions/labeler/blob/main/README.md
 
 name: Labeler
+
 on: [pull_request]
 
 jobs:
   label:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: OpenWonderLabs/.github/.github/workflows/labeler.yml@latest
-        with:
-          repo-token: '${{ secrets.GITHUB_TOKEN }}'
+    uses: OpenWonderLabs/.github/.github/workflows/labeler.yml@latest
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
