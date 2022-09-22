@@ -436,7 +436,6 @@ export class Curtain {
     this.debugLog(`Curtain: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     this.getCustomBLEAddress(switchbot);
     // Start to monitor advertisement packets
-    this.errorLog(`Color Bulb: ${this.accessory.displayName} switchbot: ${JSON.stringify(switchbot)}`);
     if (switchbot !== false) {
       switchbot
         .startScan({
