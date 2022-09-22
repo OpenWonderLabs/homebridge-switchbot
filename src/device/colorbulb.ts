@@ -317,10 +317,7 @@ export class ColorBulb {
         })
         .then(() => {
           // Set an event hander
-          this.errorLog(`Color Bulb: ${this.accessory.displayName} then switchbot: ${JSON.stringify(switchbot)}`);
           switchbot.onadvertisement = (ad: any) => {
-            this.errorLog(`Color Bulb: ${this.accessory.displayName} switchbot: ${JSON.stringify(switchbot.onadvertisement)}`);
-            this.errorLog(`Color Bulb: ${this.accessory.displayName} ad: ${JSON.stringify(ad)}`);
             this.address = ad.address;
             if (this.deviceLogging.includes('debug')) {
               this.infoLog(this.address);
@@ -328,6 +325,7 @@ export class ColorBulb {
               this.infoLog(`Color Bulb: ${this.accessory.displayName} BLE Address Found: ${this.address}`);
               this.infoLog(`Color Bulb: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac}`);
             }
+            this.errorLog(`Color Bulb: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
             this.serviceData = ad.serviceData;
             //this.state = ad.serviceData.state;
             //this.delay = ad.serviceData.delay;
@@ -416,7 +414,7 @@ export class ColorBulb {
     }
   }
 
-  private async openAPIRefreshStatus() {
+  async openAPIRefreshStatus() {
     try {
       const t = Date.now();
       const nonce = 'requestID';

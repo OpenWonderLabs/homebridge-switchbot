@@ -6,7 +6,7 @@ import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap } from 'homebridge';
-import { device, devicesConfig, switchbot, hs2rgb, rgb2hs, deviceStatus, HostDomain, DevicePath } from '../settings';
+import { device, devicesConfig, switchbot, hs2rgb, rgb2hs, deviceStatus, HostDomain, DevicePath, ad, serviceData } from '../settings';
 
 /**
  * Platform Accessory
@@ -34,10 +34,18 @@ export class StripLight {
   deviceStatus!: any; //deviceStatusResponse;
 
   // BLE Others
+  connected?: boolean;
   switchbot!: switchbot;
+  address!: ad['address'];
+  SwitchToOpenAPI?: boolean;
+  serviceData!: serviceData;
+  state: serviceData['state'];
+  delay: serviceData['delay'];
+  wifiRssi: serviceData['wifiRssi'];
 
   // Config
   set_minStep?: number;
+  scanDuration!: number;
   deviceLogging!: string;
   deviceRefreshRate!: number;
   adaptiveLightingShift?: number;
@@ -57,6 +65,7 @@ export class StripLight {
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
     this.logs(device);
+    this.scan(device);
     this.refreshRate(device);
     this.config(device);
     if (this.On === undefined) {
@@ -176,6 +185,27 @@ export class StripLight {
   }
 
   async parseStatus(): Promise<void> {
+    if (this.SwitchToOpenAPI || !this.device.ble) {
+      await this.openAPIparseStatus();
+    } else {
+      await this.BLEparseStatus();
+    }
+  }
+
+  async BLEparseStatus(): Promise<void> {
+    this.debugLog(`Strip Light: ${this.accessory.displayName} BLE parseStatus`);
+    // State
+    switch (this.state) {
+      case 'on':
+        this.On = true;
+        break;
+      default:
+        this.On = false;
+    }
+    this.debugLog(`Strip Light: ${this.accessory.displayName} On: ${this.On}`);
+  }
+
+  async openAPIparseStatus(): Promise<void> {
     switch (this.power) {
       case 'on':
         this.On = true;
@@ -211,6 +241,130 @@ export class StripLight {
   }
 
   async refreshStatus(): Promise<void> {
+    if (this.device.ble) {
+      await this.BLERefreshStatus();
+    } else {
+      await this.openAPIRefreshStatus();
+    }
+  }
+
+  async BLERefreshStatus(): Promise<void> {
+    this.debugLog(`Strip Light: ${this.accessory.displayName} BLE refreshStatus`);
+    const switchbot = await this.platform.connectBLE();
+    // Convert to BLE Address
+    this.device.bleMac = this.device
+      .deviceId!.match(/.{1,2}/g)!
+      .join(':')
+      .toLowerCase();
+    this.debugLog(`Strip Light: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    this.getCustomBLEAddress(switchbot);
+    // Start to monitor advertisement packets
+    if (switchbot !== false) {
+      switchbot
+        .startScan({
+          model: 'r',
+          id: this.device.bleMac,
+        })
+        .then(() => {
+          // Set an event hander
+          switchbot.onadvertisement = (ad: any) => {
+            this.address = ad.address;
+            if (this.deviceLogging.includes('debug')) {
+              this.infoLog(this.address);
+              this.infoLog(this.device.bleMac);
+              this.infoLog(`Strip Light: ${this.accessory.displayName} BLE Address Found: ${this.address}`);
+              this.infoLog(`Strip Light: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac}`);
+            }
+            this.errorLog(`Strip Light: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+            this.serviceData = ad.serviceData;
+            //this.state = ad.serviceData.state;
+            //this.delay = ad.serviceData.delay;
+            //this.timer = ad.serviceData.timer;
+            //this.syncUtcTime = ad.serviceData.syncUtcTime;
+            //this.wifiRssi = ad.serviceData.wifiRssi;
+            //this.overload = ad.serviceData.overload;
+            //this.currentPower = ad.serviceData.currentPower;
+            this.debugLog(`Strip Light: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+            /*this.debugLog(
+              `Strip Light: ${this.accessory.displayName} state: ${ad.serviceData.state}, ` +
+                `delay: ${ad.serviceData.delay}, timer: ${ad.serviceData.timer}, syncUtcTime: ${ad.serviceData.syncUtcTime} ` +
+                `wifiRssi: ${ad.serviceData.wifiRssi}, overload: ${ad.serviceData.overload}, currentPower: ${ad.serviceData.currentPower}`,
+            );*/
+
+            if (this.serviceData) {
+              this.connected = true;
+              this.debugLog(`Strip Light: ${this.accessory.displayName} connected: ${this.connected}`);
+            } else {
+              this.connected = false;
+              this.debugLog(`Strip Light: ${this.accessory.displayName} connected: ${this.connected}`);
+            }
+          };
+          // Wait 2 seconds
+          return switchbot.wait(this.scanDuration * 1000);
+        })
+        .then(async () => {
+        // Stop to monitor
+          switchbot.stopScan();
+          if (this.connected) {
+            this.parseStatus();
+            this.updateHomeKitCharacteristics();
+          } else {
+            this.errorLog(`Strip Light: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+            if (this.platform.config.credentials?.token) {
+              this.warnLog(`Strip Light: ${this.accessory.displayName} Using OpenAPI Connection`);
+              this.SwitchToOpenAPI = true;
+              await this.openAPIRefreshStatus();
+            }
+          }
+        })
+        .catch(async (e: any) => {
+          this.errorLog(`Strip Light: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
+          if (this.deviceLogging.includes('debug')) {
+            this.errorLog(
+              `Strip Light: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+            );
+          }
+          if (this.platform.config.credentials?.token) {
+            this.warnLog(`Strip Light: ${this.accessory.displayName} Using OpenAPI Connection`);
+            this.SwitchToOpenAPI = true;
+            await this.openAPIRefreshStatus();
+          }
+          this.apiError(e);
+        });
+    } else {
+      await this.BLEconnection(switchbot);
+    }
+  }
+
+  async getCustomBLEAddress(switchbot: any) {
+    if (this.device.customBLEaddress && this.deviceLogging.includes('debug')) {
+      this.debugLog(`Strip Light: ${this.accessory.displayName} customBLEaddress: ${this.device.customBLEaddress}`);
+      (async () => {
+        // Start to monitor advertisement packets
+        await switchbot.startScan({
+          model: 'r',
+        });
+        // Set an event handler
+        switchbot.onadvertisement = (ad: any) => {
+          this.warnLog(`Strip Light: ${this.accessory.displayName} ad: ${JSON.stringify(ad, null, '  ')}`);
+        };
+        await switchbot.wait(10000);
+        // Stop to monitor
+        switchbot.stopScan();
+      })();
+    }
+  }
+
+  async BLEconnection(switchbot: any): Promise<void> {
+    this.errorLog(`Strip Light: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
+    if (this.platform.config.credentials?.token) {
+      this.warnLog(`Strip Light: ${this.accessory.displayName} Using OpenAPI Connection`);
+      this.SwitchToOpenAPI = true;
+      await this.openAPIRefreshStatus();
+    }
+  }
+
+  async openAPIRefreshStatus(): Promise<void> {
     try {
       const t = Date.now();
       const nonce = 'requestID';
@@ -636,6 +790,20 @@ export class StripLight {
     } else if (this.platform.config.options!.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
       this.debugLog(`Strip Light: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
+    }
+  }
+
+  async scan(device: device & devicesConfig): Promise<void> {
+    if (device.scanDuration) {
+      this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
+      if (device.ble) {
+        this.debugLog(`Bot: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
+      }
+    } else {
+      this.scanDuration = this.accessory.context.scanDuration = 1;
+      if (this.device.ble) {
+        this.debugLog(`Bot: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
+      }
     }
   }
 
