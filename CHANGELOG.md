@@ -84,7 +84,7 @@ All notable changes to this project will be documented in this file. This projec
 
 ## What's Changed
 
-- Fix for Curtain v3.3 and above, from v1.2.0 node-swtichbot update.
+- Fix for Curtain v3.3 and above, from v1.2.0 node-switchbot update.
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.5...v1.12.6

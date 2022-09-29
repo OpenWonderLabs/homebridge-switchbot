@@ -188,34 +188,34 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       if (this.platformLogging?.includes('debug')) {
         this.debugLog('Using Default Refresh Rate (2 minutes).');
       }
+    }
 
-      if (!this.config.options.pushRate) {
+    if (!this.config.options.pushRate) {
         // default 100 milliseconds
         this.config.options!.pushRate! = 0.1;
         if (this.platformLogging?.includes('debug')) {
           this.warnLog('Using Default Push Rate.');
         }
-      }
+    }
 
-      if (!this.config.credentials) {
-        if (this.platformLogging?.includes('debug')) {
-          this.debugLog('Missing Credentials');
-        }
+    if (!this.config.credentials) {
+      if (this.platformLogging?.includes('debug')) {
+        this.debugLog('Missing Credentials');
       }
-      if (!this.config.credentials?.token) {
+    }
+    if (!this.config.credentials?.token) {
+      if (this.platformLogging?.includes('debug')) {
+        this.errorLog('Missing token');
+        this.warnLog('Cloud Enabled SwitchBot Devices & IR Devices will not work');
+      }
+    }
+    if (this.config.credentials?.token) {
+      if (!this.config.credentials?.secret) {
         if (this.platformLogging?.includes('debug')) {
-          this.errorLog('Missing token');
+          this.errorLog('Missing secret');
           this.warnLog('Cloud Enabled SwitchBot Devices & IR Devices will not work');
         }
-      }
-      if (this.config.credentials?.token) {
-        if (!this.config.credentials?.secret) {
-          if (this.platformLogging?.includes('debug')) {
-            this.errorLog('Missing secret');
-            this.warnLog('Cloud Enabled SwitchBot Devices & IR Devices will not work');
-          }
-          throw Error('Missing secret');
-        }
+        throw Error('Missing secret');
       }
     }
   }
