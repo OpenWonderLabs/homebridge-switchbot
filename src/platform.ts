@@ -591,24 +591,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  private registerDevice(device: device & devicesConfig) {
-    if (!device.hide_device && device.enableCloudService && device.ble) {
-      this.registeringDevice = true;
-      this.debugLog(`Device: ${device.deviceName} Both OpenAPI and BLE Connections Enabled`);
-    } else if (!device.hide_device && device.deviceId && device.configDeviceType && device.configDeviceName
-      && !device.enableCloudService) {
-      this.registeringDevice = true;
-      this.debugLog(`Device: ${device.deviceName} BLE Connection Enabled`);
-    } else if (!device.hide_device && device.enableCloudService && !device.ble) {
-      this.registeringDevice = true;
-      this.debugLog(`Device: ${device.deviceName} OpenAPI Connection Enabled`);
-    } else {
-      this.registeringDevice = false;
-      this.debugLog(`Device: ${device.deviceName} OpenAPI and BLE Are Not Enabled`);
-    }
-    return this.registeringDevice;
-  }
-
   private async createHumidifier(device: device & devicesConfig) {
     const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`);
 
@@ -1741,8 +1723,26 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
+  private registerDevice(device: device & devicesConfig) {
+    if (!device.hide_device && device.enableCloudService && device.ble) {
+      this.registeringDevice = true;
+      this.debugLog(`Device: ${device.deviceName} Both OpenAPI and BLE Connections Enabled`);
+    } else if (!device.hide_device && device.deviceId && device.configDeviceType && device.configDeviceName
+      && !device.enableCloudService) {
+      this.registeringDevice = true;
+      this.debugLog(`Device: ${device.deviceName} BLE Connection Enabled`);
+    } else if (!device.hide_device && device.enableCloudService && !device.ble) {
+      this.registeringDevice = true;
+      this.debugLog(`Device: ${device.deviceName} OpenAPI Connection Enabled`);
+    } else {
+      this.registeringDevice = false;
+      this.debugLog(`Device: ${device.deviceName} OpenAPI and BLE Are Not Enabled`);
+    }
+    return this.registeringDevice;
+  }
+
   public async externalOrPlatform(device: device & devicesConfig, accessory: PlatformAccessory) {
-    this.errorLog(device.external);
+    this.debugLog(`${accessory.displayName} External Accessory Mode: ${device.external}`);
     if (device.external) {
       this.warnLog(`${accessory.displayName} External Accessory Mode`);
       this.externalAccessory(accessory);
