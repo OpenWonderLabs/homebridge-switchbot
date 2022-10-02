@@ -595,7 +595,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     if (!device.hide_device && device.enableCloudService && device.ble) {
       this.registeringDevice = true;
       this.debugLog(`Device: ${device.deviceName} Both OpenAPI and BLE Connections Enabled`);
-    } else if (!device.hide_device && device.deviceId && device.configDeviceType && device.configDeviceName && !device.enableCloudService) {
+    } else if (!device.hide_device && device.deviceId && device.configDeviceType && device.configDeviceName
+      && !device.enableCloudService) {
       this.registeringDevice = true;
       this.debugLog(`Device: ${device.deviceName} BLE Connection Enabled`);
     } else if (!device.hide_device && device.enableCloudService && !device.ble) {
@@ -656,8 +657,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       new Humidifier(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
@@ -716,8 +717,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       new Bot(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
@@ -771,8 +772,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       new Meter(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
@@ -826,8 +827,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       new MeterPlus(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
@@ -881,8 +882,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       new Motion(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
@@ -936,8 +937,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       new Contact(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
@@ -1002,8 +1003,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       new Curtain(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
@@ -1072,8 +1073,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       new Plug(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
@@ -1127,8 +1128,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       new Lock(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
@@ -1182,8 +1183,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       new ColorBulb(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
@@ -1237,8 +1238,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       new StripLight(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
@@ -1292,7 +1293,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
        * Only one TV can exist per bridge, to bypass this limitation, you should
        * publish your TV as an external accessory.
        */
-      this.api.publishExternalAccessories(PLUGIN_NAME, [accessory]);
+      this.externalAccessory(accessory);
       this.accessories.push(accessory);
     } else {
       this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
@@ -1347,8 +1348,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       new Fan(this, accessory, device);
       this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
@@ -1402,8 +1403,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       new Light(this, accessory, device);
       this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
@@ -1457,8 +1458,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       new AirConditioner(this, accessory, device);
       this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
@@ -1512,8 +1513,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       new AirPurifier(this, accessory, device);
       this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
@@ -1567,8 +1568,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       new WaterHeater(this, accessory, device);
       this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
@@ -1622,8 +1623,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       new VacuumCleaner(this, accessory, device);
       this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
@@ -1677,8 +1678,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       new Camera(this, accessory, device);
       this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
@@ -1732,12 +1733,26 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       new Others(this, accessory, device);
       this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
     }
+  }
+
+  public async externalOrPlatform(device: device & devicesConfig, accessory: PlatformAccessory) {
+    this.errorLog(device.external);
+    if (device.external) {
+      this.warnLog(`${accessory.displayName} External Accessory Mode`);
+      this.externalAccessory(accessory);
+    } else {
+      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+    }
+  }
+
+  public async externalAccessory(accessory: PlatformAccessory) {
+    this.api.publishExternalAccessories(PLUGIN_NAME, [accessory]);
   }
 
   public async connectionTypeNewAccessory(device: device & devicesConfig, accessory: PlatformAccessory) {

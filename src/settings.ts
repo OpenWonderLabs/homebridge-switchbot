@@ -44,6 +44,7 @@ export interface devicesConfig extends device {
   configDeviceType: string;
   configDeviceName?: string;
   deviceId: string;
+  external?: boolean;
   logging?: string;
   refreshRate?: number;
   firmware?: string;
@@ -123,6 +124,7 @@ export type lock = {
 export interface irDevicesConfig extends irdevice {
   configRemoteType?: string;
   deviceId: string;
+  external?: boolean;
   logging?: string;
   irfan?: irfan;
   irair?: irair;

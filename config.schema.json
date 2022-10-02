@@ -523,6 +523,13 @@
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
                   }
                 },
+                "external": {
+                  "title": "External Accessory",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
+                  }
+                },
                 "logging": {
                   "title": "Device Logging Override Setting",
                   "type": "string",
@@ -800,6 +807,13 @@
                     }
                   }
                 },
+                "external": {
+                  "title": "External Accessory",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType);"
+                  }
+                },
                 "logging": {
                   "title": "Device Logging Override Setting",
                   "type": "string",
@@ -923,6 +937,7 @@
             "options.devices[].lock.hide_contactsensor",
             "options.devices[].firmware",
             "options.devices[].refreshRate",
+            "options.devices[].external",
             "options.devices[].logging"
           ]
         }
@@ -958,6 +973,7 @@
             "options.irdevices[].other.deviceType",
             "options.irdevices[].other.commandOn",
             "options.irdevices[].other.commandOff",
+            "options.irdevices[].external",
             "options.irdevices[].logging"
           ]
         }

@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file. This projec
 ## What's Changed
 
 - Moved from v1.0 to v1.1 of [OpenAPI](https://github.com/OpenWonderLabs/SwitchBotAPI)
+- Publish device(s) as an external accessory.
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.15.0...v2.0.0
