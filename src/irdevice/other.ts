@@ -1,6 +1,7 @@
 import https from 'https';
 import crypto from 'crypto';
 import { IncomingMessage } from 'http';
+import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { irDevicesConfig, irdevice, HostDomain, DevicePath } from '../settings';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
@@ -99,7 +100,7 @@ export class Others {
       if (this.device.other) {
         if (this.device.other.commandOn) {
           if (!this.Active) {
-            const body = JSON.stringify({
+            const body = superStringify({
               'command': `${this.device.other.commandOn}`,
               'parameter': 'default',
               'commandType': 'customize',
@@ -122,7 +123,7 @@ export class Others {
       if (this.device.other) {
         if (this.device.other.commandOff) {
           if (this.Active) {
-            const body = JSON.stringify({
+            const body = superStringify({
               'command': `${this.device.other.commandOff}`,
               'parameter': 'default',
               'commandType': 'customize',
@@ -178,13 +179,13 @@ export class Others {
       });
       req.write(body);
       req.end();
-      this.debugLog(`Other: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
+      this.debugLog(`Other: ${this.accessory.displayName} pushchanges: ${superStringify(req)}`);
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.errorLog(`Other: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
       if (this.deviceLogging.includes('debug')) {
         this.errorLog(
-          `Other: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+          `Other: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${superStringify(e.message)}`,
         );
       }
       this.apiError(e);
@@ -211,7 +212,7 @@ export class Others {
       case 190:
         this.errorLog(
           `Other: ${this.accessory.displayName} Device internal error due to device states not synchronized` +
-            ` with server, Or command: ${JSON.stringify(res)} format is invalid`,
+            ` with server, Or command: ${superStringify(res)} format is invalid`,
         );
         break;
       case 100:
@@ -247,7 +248,7 @@ export class Others {
       config['logging'] = device.logging;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`Other: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Other: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
   }
 

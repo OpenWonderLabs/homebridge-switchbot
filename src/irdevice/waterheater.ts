@@ -1,6 +1,7 @@
 import https from 'https';
 import crypto from 'crypto';
 import { IncomingMessage } from 'http';
+import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { irDevicesConfig, irdevice, HostDomain, DevicePath } from '../settings';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
@@ -93,7 +94,7 @@ export class WaterHeater {
    */
   async pushWaterHeaterOnChanges(): Promise<void> {
     if (this.Active !== 1) {
-      const body = JSON.stringify({
+      const body = superStringify({
         'command': 'turnOn',
         'parameter': 'default',
         'commandType': 'command',
@@ -104,7 +105,7 @@ export class WaterHeater {
 
   async pushWaterHeaterOffChanges(): Promise<void> {
     if (this.Active !== 0) {
-      const body = JSON.stringify({
+      const body = superStringify({
         'command': 'turnOff',
         'parameter': 'default',
         'commandType': 'command',
@@ -151,13 +152,13 @@ export class WaterHeater {
       });
       req.write(body);
       req.end();
-      this.debugLog(`Water Heater: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
+      this.debugLog(`Water Heater: ${this.accessory.displayName} pushchanges: ${superStringify(req)}`);
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.errorLog(`Water Heater: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
       if (this.deviceLogging.includes('debug')) {
         this.errorLog(
-          `Water Heater: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+          `Water Heater: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${superStringify(e.message)}`,
         );
       }
       this.apiError(e);
@@ -184,7 +185,7 @@ export class WaterHeater {
       case 190:
         this.errorLog(
           `Water Heater: ${this.accessory.displayName} Device internal error due to device states not synchronized` +
-            ` with server, Or command: ${JSON.stringify(res)} format is invalid`,
+            ` with server, Or command: ${superStringify(res)} format is invalid`,
         );
         break;
       case 100:
@@ -209,7 +210,7 @@ export class WaterHeater {
       config['logging'] = device.logging;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`Water Heater: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Water Heater: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
   }
 

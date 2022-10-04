@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { Context } from 'vm';
 import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
+import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { device, devicesConfig, serviceData, switchbot, deviceStatus, ad, HostDomain, DevicePath } from '../settings';
@@ -298,7 +299,7 @@ export class Contact {
             this.doorState = ad.serviceData.doorState;
             this.lightLevel = ad.serviceData.lightLevel;
             this.battery = ad.serviceData.battery;
-            this.debugLog(`Contact Sensor: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+            this.debugLog(`Contact Sensor: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
             this.debugLog(
               `Contact Sensor: ${this.accessory.displayName} movement: ${ad.serviceData.movement}, doorState: ` +
                 `${ad.serviceData.doorState}, lightLevel: ${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}`,
@@ -330,7 +331,7 @@ export class Contact {
           if (this.deviceLogging.includes('debug')) {
             this.errorLog(
               `Contact Sensor: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` +
-                ` Error Message: ${JSON.stringify(e.message)}`,
+                ` Error Message: ${superStringify(e.message)}`,
             );
           }
           if (this.platform.config.credentials?.token) {
@@ -354,7 +355,7 @@ export class Contact {
         });
         // Set an event handler
         switchbot.onadvertisement = (ad: any) => {
-          this.warnLog(`Contact Sensor: ${this.accessory.displayName} ad: ${JSON.stringify(ad, null, '  ')}`);
+          this.warnLog(`Contact Sensor: ${this.accessory.displayName} ad: ${superStringify(ad, null, '  ')}`);
         };
         await switchbot.wait(10000);
         // Stop to monitor
@@ -405,7 +406,7 @@ export class Contact {
           res.on('end', () => {
             try {
               this.deviceStatus = JSON.parse(rawData);
-              this.debugLog(`Contact Sensor: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+              this.debugLog(`Contact Sensor: ${this.accessory.displayName} refreshStatus: ${superStringify(this.deviceStatus)}`);
               this.openState = this.deviceStatus.body.openState;
               this.moveDetected = this.deviceStatus.body.moveDetected;
               this.brightness = this.deviceStatus.body.brightness;
@@ -425,7 +426,7 @@ export class Contact {
         if (this.deviceLogging.includes('debug')) {
           this.errorLog(
             `Contact Sensor: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` +
-              ` Error Message: ${JSON.stringify(e.message)}`,
+              ` Error Message: ${superStringify(e.message)}`,
           );
         }
         this.apiError(e);
@@ -510,7 +511,7 @@ export class Contact {
       config['scanDuration'] = device.scanDuration;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`Contact Sensor: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Contact Sensor: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
   }
 

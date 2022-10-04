@@ -1,6 +1,7 @@
 import https from 'https';
 import crypto from 'crypto';
 import { IncomingMessage } from 'http';
+import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { irdevice, irDevicesConfig, HostDomain, DevicePath } from '../settings';
@@ -237,7 +238,7 @@ export class TV {
    */
   async pushTvOnChanges(): Promise<void> {
     if (this.Active !== 1) {
-      const body = JSON.stringify({
+      const body = superStringify({
         'command': 'turnOn',
         'parameter': 'default',
         'commandType': 'command',
@@ -247,7 +248,7 @@ export class TV {
   }
 
   async pushTvOffChanges(): Promise<void> {
-    const body = JSON.stringify({
+    const body = superStringify({
       'command': 'turnOff',
       'parameter': 'default',
       'commandType': 'command',
@@ -256,7 +257,7 @@ export class TV {
   }
 
   async pushOkChanges(): Promise<void> {
-    const body = JSON.stringify({
+    const body = superStringify({
       'command': 'Ok',
       'parameter': 'default',
       'commandType': 'command',
@@ -265,7 +266,7 @@ export class TV {
   }
 
   async pushBackChanges(): Promise<void> {
-    const body = JSON.stringify({
+    const body = superStringify({
       'command': 'Back',
       'parameter': 'default',
       'commandType': 'command',
@@ -274,7 +275,7 @@ export class TV {
   }
 
   async pushMenuChanges(): Promise<void> {
-    const body = JSON.stringify({
+    const body = superStringify({
       'command': 'Menu',
       'parameter': 'default',
       'commandType': 'command',
@@ -283,7 +284,7 @@ export class TV {
   }
 
   async pushUpChanges(): Promise<void> {
-    const body = JSON.stringify({
+    const body = superStringify({
       'command': 'Up',
       'parameter': 'default',
       'commandType': 'command',
@@ -292,7 +293,7 @@ export class TV {
   }
 
   async pushDownChanges(): Promise<void> {
-    const body = JSON.stringify({
+    const body = superStringify({
       'command': 'Down',
       'parameter': 'default',
       'commandType': 'command',
@@ -301,7 +302,7 @@ export class TV {
   }
 
   async pushRightChanges(): Promise<void> {
-    const body = JSON.stringify({
+    const body = superStringify({
       'command': 'Right',
       'parameter': 'default',
       'commandType': 'command',
@@ -310,7 +311,7 @@ export class TV {
   }
 
   async pushLeftChanges(): Promise<void> {
-    const body = JSON.stringify({
+    const body = superStringify({
       'command': 'Left',
       'parameter': 'default',
       'commandType': 'command',
@@ -319,7 +320,7 @@ export class TV {
   }
 
   async pushVolumeUpChanges(): Promise<void> {
-    const body = JSON.stringify({
+    const body = superStringify({
       'command': 'volumeAdd',
       'parameter': 'default',
       'commandType': 'command',
@@ -328,7 +329,7 @@ export class TV {
   }
 
   async pushVolumeDownChanges(): Promise<void> {
-    const body = JSON.stringify({
+    const body = superStringify({
       'command': 'volumeSub',
       'parameter': 'default',
       'commandType': 'command',
@@ -374,14 +375,14 @@ export class TV {
       });
       req.write(body);
       req.end();
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushchanges: ${superStringify(req)}`);
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
       if (this.deviceLogging.includes('debug')) {
         this.errorLog(
           `${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` +
-            ` Error Message: ${JSON.stringify(e.message)}`,
+            ` Error Message: ${superStringify(e.message)}`,
         );
       }
       this.apiError(e);
@@ -409,7 +410,7 @@ export class TV {
         this.errorLog(
           `${this.device.remoteType}: ` +
             `${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-            ` Or command: ${JSON.stringify(res)} format is invalid`,
+            ` Or command: ${superStringify(res)} format is invalid`,
         );
         break;
       case 100:
@@ -435,7 +436,7 @@ export class TV {
       config['logging'] = device.logging;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
   }
 

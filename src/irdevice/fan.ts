@@ -1,6 +1,7 @@
 import https from 'https';
 import crypto from 'crypto';
 import { IncomingMessage } from 'http';
+import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { irdevice, irDevicesConfig, HostDomain, DevicePath } from '../settings';
@@ -188,7 +189,7 @@ export class Fan {
    */
   async pushFanOnChanges(): Promise<void> {
     if (this.Active !== 1) {
-      const body = JSON.stringify({
+      const body = superStringify({
         'command': 'turnOn',
         'parameter': 'default',
         'commandType': 'command',
@@ -198,7 +199,7 @@ export class Fan {
   }
 
   async pushFanOffChanges(): Promise<void> {
-    const body = JSON.stringify({
+    const body = superStringify({
       'command': 'turnOff',
       'parameter': 'default',
       'commandType': 'command',
@@ -207,7 +208,7 @@ export class Fan {
   }
 
   async pushFanSpeedUpChanges(): Promise<void> {
-    const body = JSON.stringify({
+    const body = superStringify({
       'command': 'highSpeed',
       'parameter': 'default',
       'commandType': 'command',
@@ -216,7 +217,7 @@ export class Fan {
   }
 
   async pushFanSpeedDownChanges(): Promise<void> {
-    const body = JSON.stringify({
+    const body = superStringify({
       'command': 'lowSpeed',
       'parameter': 'default',
       'commandType': 'command',
@@ -225,7 +226,7 @@ export class Fan {
   }
 
   async pushFanSwingChanges(): Promise<void> {
-    const body = JSON.stringify({
+    const body = superStringify({
       'command': 'swing',
       'parameter': 'default',
       'commandType': 'command',
@@ -271,13 +272,13 @@ export class Fan {
       });
       req.write(body);
       req.end();
-      this.debugLog(`Fan: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
+      this.debugLog(`Fan: ${this.accessory.displayName} pushchanges: ${superStringify(req)}`);
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.errorLog(`Fan: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
       if (this.deviceLogging.includes('debug')) {
         this.errorLog(
-          `Fan: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+          `Fan: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${superStringify(e.message)}`,
         );
       }
       this.apiError(e);
@@ -304,7 +305,7 @@ export class Fan {
       case 190:
         this.errorLog(
           `Fan: ${this.accessory.displayName} Device internal error due to device states not synchronized` +
-            ` with server, Or command: ${JSON.stringify(res)} format is invalid`,
+            ` with server, Or command: ${superStringify(res)} format is invalid`,
         );
         break;
       case 100:
@@ -331,7 +332,7 @@ export class Fan {
       config['logging'] = device.logging;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`Fan: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Fan: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
   }
 

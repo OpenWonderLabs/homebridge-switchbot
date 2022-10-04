@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { Context } from 'vm';
 import { IncomingMessage } from 'http';
 import { interval, Subject } from 'rxjs';
+import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
@@ -121,7 +122,7 @@ export class Lock {
         } catch (e: any) {
           this.errorLog(`Lock: ${this.accessory.displayName} failed pushChanges`);
           if (this.deviceLogging.includes('debug')) {
-            this.errorLog(`Lock: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${JSON.stringify(e.message)}`);
+            this.errorLog(`Lock: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${superStringify(e.message)}`);
           }
           this.apiError(e);
         }
@@ -182,7 +183,7 @@ export class Lock {
         res.on('end', () => {
           try {
             this.deviceStatus = JSON.parse(rawData);
-            this.debugLog(`Lock: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+            this.debugLog(`Lock: ${this.accessory.displayName} refreshStatus: ${superStringify(this.deviceStatus)}`);
             this.lockState = this.deviceStatus.body.lockState;
             this.doorState = this.deviceStatus.body.doorState;
             this.parseStatus();
@@ -200,7 +201,7 @@ export class Lock {
       this.errorLog(`Lock: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
       if (this.deviceLogging.includes('debug')) {
         this.errorLog(
-          `Lock: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+          `Lock: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error Message: ${superStringify(e.message)}`,
         );
       }
       this.apiError(e);
@@ -229,7 +230,7 @@ export class Lock {
     } else {
       command = 'unlock';
     }
-    const body = JSON.stringify({
+    const body = superStringify({
       'command': `${command}`,
       'parameter': 'default',
       'commandType': 'command',
@@ -261,7 +262,7 @@ export class Lock {
     });
     req.write(body);
     req.end();
-    this.debugLog(`Lock: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
+    this.debugLog(`Lock: ${this.accessory.displayName} pushchanges: ${superStringify(req)}`);
     this.accessory.context.On = this.LockTargetState;
     interval(5000)
       .pipe(take(1))
@@ -322,7 +323,7 @@ export class Lock {
       case 190:
         this.errorLog(
           `Lock: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-            ` Or command: ${JSON.stringify(res)} format is invalid`,
+            ` Or command: ${superStringify(res)} format is invalid`,
         );
         break;
       case 100:
@@ -361,7 +362,7 @@ export class Lock {
       config['scanDuration'] = device.scanDuration;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`Lock: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Lock: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
   }
 

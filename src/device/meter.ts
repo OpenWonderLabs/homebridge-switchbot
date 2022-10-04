@@ -6,6 +6,7 @@ import { MqttClient } from 'mqtt';
 import { connectAsync } from 'async-mqtt';
 import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
+import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { Service, PlatformAccessory, Units, CharacteristicValue } from 'homebridge';
 import { device, devicesConfig, serviceData, ad, switchbot, temperature, deviceStatus, HostDomain, DevicePath } from '../settings';
@@ -187,7 +188,7 @@ export class Meter {
       ?.join(':');
     const options = this.device.mqttPubOptions || {};
     this.mqttClient?.publish(`homebridge-switchbot/meter/${mac}`, `${message}`, options);
-    this.debugLog(`Meter: ${this.accessory.displayName} MQTT message: ${message} options:${JSON.stringify(options)}`);
+    this.debugLog(`Meter: ${this.accessory.displayName} MQTT message: ${message} options:${superStringify(options)}`);
   }
 
   /*
@@ -327,10 +328,10 @@ export class Meter {
               this.humidity = ad.serviceData.humidity;
               this.battery = ad.serviceData.battery;
             }
-            this.debugLog(`Meter: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+            this.debugLog(`Meter: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
             this.debugLog(
               `Meter: ${this.accessory.displayName} model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName}, ` +
-                `temperature: ${JSON.stringify(ad.serviceData.temperature?.c)}, humidity: ${ad.serviceData.humidity}, ` +
+                `temperature: ${superStringify(ad.serviceData.temperature?.c)}, humidity: ${ad.serviceData.humidity}, ` +
                 `battery: ${ad.serviceData.battery}`,
             );
 
@@ -359,7 +360,7 @@ export class Meter {
           this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
           if (this.deviceLogging.includes('debug')) {
             this.errorLog(
-              `Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+              `Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${superStringify(e.message)}`,
             );
           }
           if (this.platform.config.credentials?.token) {
@@ -383,7 +384,7 @@ export class Meter {
         });
         // Set an event handler
         switchbot.onadvertisement = (ad: any) => {
-          this.warnLog(`Meter: ${this.accessory.displayName} ad: ${JSON.stringify(ad, null, '  ')}`);
+          this.warnLog(`Meter: ${this.accessory.displayName} ad: ${superStringify(ad, null, '  ')}`);
         };
         await switchbot.wait(10000);
         // Stop to monitor
@@ -434,7 +435,7 @@ export class Meter {
           res.on('end', () => {
             try {
               this.deviceStatus = JSON.parse(rawData);
-              this.debugLog(`Meter: ${this.accessory.displayName} openAPIRefreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+              this.debugLog(`Meter: ${this.accessory.displayName} openAPIRefreshStatus: ${superStringify(this.deviceStatus)}`);
               this.Humidity = this.deviceStatus.body.humidity!;
               this.Temperature = this.deviceStatus.body.temperature!;
               this.parseStatus();
@@ -452,7 +453,7 @@ export class Meter {
         this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
         if (this.deviceLogging.includes('debug')) {
           this.errorLog(
-            `Meter: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+            `Meter: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error Message: ${superStringify(e.message)}`,
           );
         }
         this.apiError(e);
@@ -541,7 +542,7 @@ export class Meter {
       config['scanDuration'] = device.scanDuration;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`Meter: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Meter: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
   }
 

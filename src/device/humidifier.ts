@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { Context } from 'vm';
 import { IncomingMessage } from 'http';
 import { interval, Subject } from 'rxjs';
+import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
@@ -183,7 +184,7 @@ export class Humidifier {
         } catch (e: any) {
           this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushChanges`);
           if (this.deviceLogging.includes('debug')) {
-            this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${JSON.stringify(e.message)}`);
+            this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${superStringify(e.message)}`);
           }
           this.apiError(e);
         }
@@ -315,7 +316,7 @@ export class Humidifier {
             this.autoMode = ad.serviceData.autoMode;
             this.onState = ad.serviceData.onState;
             this.percentage = ad.serviceData.percentage;
-            this.debugLog(`Humidifier: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+            this.debugLog(`Humidifier: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
             this.debugLog(
               `Humidifier: ${this.accessory.displayName} model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName},` +
                 `autoMode: ${ad.serviceData.autoMode}, onState: ${ad.serviceData.onState}, percentage: ${ad.serviceData.percentage}`,
@@ -346,7 +347,7 @@ export class Humidifier {
           this.errorLog(`Humidifier: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
           if (this.deviceLogging.includes('debug')) {
             this.errorLog(
-              `Humidifier: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+              `Humidifier: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${superStringify(e.message)}`,
             );
           }
           if (this.platform.config.credentials?.token) {
@@ -369,7 +370,7 @@ export class Humidifier {
         });
         // Set an event handler
         switchbot.onadvertisement = (ad: any) => {
-          this.warnLog(`Humidifier: ${this.accessory.displayName} ad: ${JSON.stringify(ad, null, '  ')}`);
+          this.warnLog(`Humidifier: ${this.accessory.displayName} ad: ${superStringify(ad, null, '  ')}`);
         };
         await switchbot.wait(10000);
         // Stop to monitor
@@ -419,7 +420,7 @@ export class Humidifier {
           res.on('end', () => {
             try {
               this.deviceStatus = JSON.parse(rawData);
-              this.debugLog(`Humidifier: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+              this.debugLog(`Humidifier: ${this.accessory.displayName} refreshStatus: ${superStringify(this.deviceStatus)}`);
               this.auto = this.deviceStatus.body.auto;
               this.power = this.deviceStatus.body.power;
               this.lackWater = this.deviceStatus.body.lackWater;
@@ -442,7 +443,7 @@ export class Humidifier {
         if (this.deviceLogging.includes('debug')) {
           this.errorLog(
             `Humidifier: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` +
-              ` Error Message: ${JSON.stringify(e.message)}`,
+              ` Error Message: ${superStringify(e.message)}`,
           );
         }
         this.apiError(e);
@@ -489,7 +490,7 @@ export class Humidifier {
           this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
           if (this.deviceLogging.includes('debug')) {
             this.errorLog(
-              `Humidifier: ${this.accessory.displayName} failed pushChanges with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+              `Humidifier: ${this.accessory.displayName} failed pushChanges with BLE Connection,` + ` Error Message: ${superStringify(e.message)}`,
             );
           }
           if (this.platform.config.credentials?.token) {
@@ -524,7 +525,7 @@ export class Humidifier {
         const sign = signTerm.toString('base64');
         this.debugLog(`Humidifier: ${this.accessory.displayName} sign: ${sign}`);
         this.debugLog(`Pushing Manual: ${this.RelativeHumidityHumidifierThreshold}!`);
-        const body = JSON.stringify({
+        const body = superStringify({
           'command': 'setMode',
           'parameter': `${this.RelativeHumidityHumidifierThreshold}`,
           'commandType': 'command',
@@ -556,7 +557,7 @@ export class Humidifier {
         });
         req.write(body);
         req.end();
-        this.debugLog(`Humidifier: ${this.accessory.displayName} openAPIpushChanges: ${JSON.stringify(req)}`);
+        this.debugLog(`Humidifier: ${this.accessory.displayName} openAPIpushChanges: ${superStringify(req)}`);
       } else if (
         this.TargetHumidifierDehumidifierState === this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER_OR_DEHUMIDIFIER &&
         this.Active === this.platform.Characteristic.Active.ACTIVE
@@ -587,7 +588,7 @@ export class Humidifier {
         const sign = signTerm.toString('base64');
         this.debugLog(`Humidifier: ${this.accessory.displayName} sign: ${sign}`);
         this.debugLog('Pushing Auto!');
-        const body = JSON.stringify({
+        const body = superStringify({
           'command': 'setMode',
           'parameter': 'auto',
           'commandType': 'command',
@@ -619,14 +620,14 @@ export class Humidifier {
         });
         req.write(body);
         req.end();
-        this.debugLog(`Humidifier: ${this.accessory.displayName} pushAutoChanges: ${JSON.stringify(req)}`);
+        this.debugLog(`Humidifier: ${this.accessory.displayName} pushAutoChanges: ${superStringify(req)}`);
       }
     } catch (e: any) {
       this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushAutoChanges with OpenAPI Connection`);
       if (this.deviceLogging.includes('debug')) {
         this.errorLog(
           `Humidifier: ${this.accessory.displayName} failed pushAutoChanges with OpenAPI Connection,` +
-            ` Error Message: ${JSON.stringify(e.message)}`,
+            ` Error Message: ${superStringify(e.message)}`,
         );
       }
       this.apiError(e);
@@ -649,7 +650,7 @@ export class Humidifier {
         const sign = signTerm.toString('base64');
         this.debugLog(`Humidifier: ${this.accessory.displayName} sign: ${sign}`);
         this.debugLog('Pushing Off!');
-        const body = JSON.stringify({
+        const body = superStringify({
           'command': 'turnOff',
           'parameter': 'default',
           'commandType': 'command',
@@ -681,14 +682,14 @@ export class Humidifier {
         });
         req.write(body);
         req.end();
-        this.debugLog(`Humidifier: ${this.accessory.displayName} pushActiveChanges: ${JSON.stringify(req)}`);
+        this.debugLog(`Humidifier: ${this.accessory.displayName} pushActiveChanges: ${superStringify(req)}`);
       }
     } catch (e: any) {
       this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushActiveChanges with OpenAPI Connection`);
       if (this.deviceLogging.includes('debug')) {
         this.errorLog(
           `Humidifier: ${this.accessory.displayName} failed pushActiveChanges with OpenAPI Connection,` +
-            ` Error Message: ${JSON.stringify(e.message)}`,
+            ` Error Message: ${superStringify(e.message)}`,
         );
       }
       this.apiError(e);
@@ -804,7 +805,7 @@ export class Humidifier {
       case 190:
         this.errorLog(
           `Humidifier: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-            ` Or command: ${JSON.stringify(res)} format is invalid`,
+            ` Or command: ${superStringify(res)} format is invalid`,
         );
         break;
       case 100:
@@ -876,7 +877,7 @@ export class Humidifier {
       config['offline'] = device.offline;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`Humidifier: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Humidifier: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
   }
 

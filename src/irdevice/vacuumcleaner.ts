@@ -1,6 +1,7 @@
 import https from 'https';
 import crypto from 'crypto';
 import { IncomingMessage } from 'http';
+import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { irDevicesConfig, irdevice, HostDomain, DevicePath } from '../settings';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
@@ -86,7 +87,7 @@ export class VacuumCleaner {
    */
   async pushOnChanges(): Promise<void> {
     if (this.On) {
-      const body = JSON.stringify({
+      const body = superStringify({
         'command': 'turnOn',
         'parameter': 'default',
         'commandType': 'command',
@@ -97,7 +98,7 @@ export class VacuumCleaner {
 
   async pushOffChanges(): Promise<void> {
     if (!this.On) {
-      const body = JSON.stringify({
+      const body = superStringify({
         'command': 'turnOff',
         'parameter': 'default',
         'commandType': 'command',
@@ -144,7 +145,7 @@ export class VacuumCleaner {
       });
       req.write(body);
       req.end();
-      this.debugLog(`Vacuum Cleaner: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
+      this.debugLog(`Vacuum Cleaner: ${this.accessory.displayName} pushchanges: ${superStringify(req)}`);
       this.OnCached = this.On;
       this.accessory.context.On = this.OnCached;
       this.updateHomeKitCharacteristics();
@@ -153,7 +154,7 @@ export class VacuumCleaner {
       if (this.deviceLogging.includes('debug')) {
         this.errorLog(
           `Vacuum Cleaner: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` +
-            ` Error Message: ${JSON.stringify(e.message)}`,
+            ` Error Message: ${superStringify(e.message)}`,
         );
       }
       this.apiError(e);
@@ -180,7 +181,7 @@ export class VacuumCleaner {
       case 190:
         this.errorLog(
           `Vacuum Cleaner: ${this.accessory.displayName} Device internal error due to device states not synchronized` +
-            ` with server, Or command: ${JSON.stringify(res)} format is invalid`,
+            ` with server, Or command: ${superStringify(res)} format is invalid`,
         );
         break;
       case 100:
@@ -205,7 +206,7 @@ export class VacuumCleaner {
       config['logging'] = device.logging;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`Vacuum Cleaner: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Vacuum Cleaner: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
   }
 

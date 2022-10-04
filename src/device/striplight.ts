@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { Context } from 'vm';
 import { IncomingMessage } from 'http';
 import { interval, Subject } from 'rxjs';
+import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap } from 'homebridge';
@@ -172,7 +173,7 @@ export class StripLight {
         } catch (e: any) {
           this.errorLog(`Strip Light: ${this.accessory.displayName} failed pushChanges`);
           if (this.deviceLogging.includes('debug')) {
-            this.errorLog(`Strip Light: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${JSON.stringify(e.message)}`);
+            this.errorLog(`Strip Light: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${superStringify(e.message)}`);
           }
           this.apiError(e);
         }
@@ -224,14 +225,14 @@ export class StripLight {
 
     // Color, Hue & Brightness
     if (this.color) {
-      this.debugLog(`Strip Light: ${this.accessory.displayName} color: ${JSON.stringify(this.color)}`);
+      this.debugLog(`Strip Light: ${this.accessory.displayName} color: ${superStringify(this.color)}`);
       const [red, green, blue] = this.color!.split(':');
-      this.debugLog(`Strip Light: ${this.accessory.displayName} red: ${JSON.stringify(red)}`);
-      this.debugLog(`Strip Light: ${this.accessory.displayName} green: ${JSON.stringify(green)}`);
-      this.debugLog(`Strip Light: ${this.accessory.displayName} blue: ${JSON.stringify(blue)}`);
+      this.debugLog(`Strip Light: ${this.accessory.displayName} red: ${superStringify(red)}`);
+      this.debugLog(`Strip Light: ${this.accessory.displayName} green: ${superStringify(green)}`);
+      this.debugLog(`Strip Light: ${this.accessory.displayName} blue: ${superStringify(blue)}`);
 
       const [hue, saturation] = rgb2hs(Number(red), Number(green), Number(blue));
-      this.debugLog(`Strip Light: ${this.accessory.displayName} hs: ${JSON.stringify(rgb2hs(Number(red), Number(green), Number(blue)))}`);
+      this.debugLog(`Strip Light: ${this.accessory.displayName} hs: ${superStringify(rgb2hs(Number(red), Number(green), Number(blue)))}`);
 
       // Hue
       this.Hue = hue;
@@ -278,7 +279,7 @@ export class StripLight {
               this.infoLog(`Strip Light: ${this.accessory.displayName} BLE Address Found: ${this.address}`);
               this.infoLog(`Strip Light: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac}`);
             }
-            this.errorLog(`Strip Light: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+            this.errorLog(`Strip Light: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
             this.serviceData = ad.serviceData;
             //this.state = ad.serviceData.state;
             //this.delay = ad.serviceData.delay;
@@ -287,7 +288,7 @@ export class StripLight {
             //this.wifiRssi = ad.serviceData.wifiRssi;
             //this.overload = ad.serviceData.overload;
             //this.currentPower = ad.serviceData.currentPower;
-            this.debugLog(`Strip Light: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+            this.debugLog(`Strip Light: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
             /*this.debugLog(
               `Strip Light: ${this.accessory.displayName} state: ${ad.serviceData.state}, ` +
                 `delay: ${ad.serviceData.delay}, timer: ${ad.serviceData.timer}, syncUtcTime: ${ad.serviceData.syncUtcTime} ` +
@@ -324,7 +325,7 @@ export class StripLight {
           this.errorLog(`Strip Light: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
           if (this.deviceLogging.includes('debug')) {
             this.errorLog(
-              `Strip Light: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+              `Strip Light: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${superStringify(e.message)}`,
             );
           }
           if (this.platform.config.credentials?.token) {
@@ -349,7 +350,7 @@ export class StripLight {
         });
         // Set an event handler
         switchbot.onadvertisement = (ad: any) => {
-          this.warnLog(`Strip Light: ${this.accessory.displayName} ad: ${JSON.stringify(ad, null, '  ')}`);
+          this.warnLog(`Strip Light: ${this.accessory.displayName} ad: ${superStringify(ad, null, '  ')}`);
         };
         await switchbot.wait(10000);
         // Stop to monitor
@@ -398,7 +399,7 @@ export class StripLight {
         res.on('end', () => {
           try {
             this.deviceStatus = JSON.parse(rawData);
-            this.debugLog(`Strip Light: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+            this.debugLog(`Strip Light: ${this.accessory.displayName} refreshStatus: ${superStringify(this.deviceStatus)}`);
             this.power = this.deviceStatus.body.power;
             this.color = this.deviceStatus.body.color;
             this.brightness = this.deviceStatus.body.brightness;
@@ -417,7 +418,7 @@ export class StripLight {
       this.errorLog(`Strip Light: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
       if (this.deviceLogging.includes('debug')) {
         this.errorLog(
-          `Strip Light: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+          `Strip Light: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error Message: ${superStringify(e.message)}`,
         );
       }
       this.apiError(e);
@@ -453,7 +454,7 @@ export class StripLight {
         } else {
           command = 'turnOff';
         }
-        const body = JSON.stringify({
+        const body = superStringify({
           'command': `${command}`,
           'parameter': 'default',
           'commandType': 'command',
@@ -485,7 +486,7 @@ export class StripLight {
         });
         req.write(body);
         req.end();
-        this.debugLog(`Strip Light: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
+        this.debugLog(`Strip Light: ${this.accessory.displayName} pushchanges: ${superStringify(req)}`);
       }
       // Push Brightness Update
       if (this.On) {
@@ -500,7 +501,7 @@ export class StripLight {
       this.errorLog(`Strip Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
       if (this.deviceLogging.includes('debug')) {
         this.errorLog(
-          `Strip Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+          `Strip Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${superStringify(e.message)}`,
         );
       }
       this.apiError(e);
@@ -510,11 +511,11 @@ export class StripLight {
   async pushHueSaturationChanges(): Promise<void> {
     try {
       if (this.Hue !== this.accessory.context.Hue || this.Saturation !== this.accessory.context.Saturation) {
-        this.debugLog(`Strip Light: ${this.accessory.displayName} Hue: ${JSON.stringify(this.Hue)}`);
-        this.debugLog(`Strip Light: ${this.accessory.displayName} Saturation: ${JSON.stringify(this.Saturation)}`);
+        this.debugLog(`Strip Light: ${this.accessory.displayName} Hue: ${superStringify(this.Hue)}`);
+        this.debugLog(`Strip Light: ${this.accessory.displayName} Saturation: ${superStringify(this.Saturation)}`);
 
         const [red, green, blue] = hs2rgb(Number(this.Hue), Number(this.Saturation));
-        this.debugLog(`Strip Light: ${this.accessory.displayName} rgb: ${JSON.stringify([red, green, blue])}`);
+        this.debugLog(`Strip Light: ${this.accessory.displayName} rgb: ${superStringify([red, green, blue])}`);
         // Make Push On request to the API
         const t = Date.now();
         const nonce = 'requestID';
@@ -524,7 +525,7 @@ export class StripLight {
           .digest();
         const sign = signTerm.toString('base64');
         this.debugLog(`Strip Light: ${this.accessory.displayName} sign: ${sign}`);
-        const body = JSON.stringify({
+        const body = superStringify({
           'command': 'setColor',
           'parameter': `${red}:${green}:${blue}`,
           'commandType': 'command',
@@ -556,7 +557,7 @@ export class StripLight {
         });
         req.write(body);
         req.end();
-        this.debugLog(`Strip Light: ${this.accessory.displayName} pushHueSaturationChanges: ${JSON.stringify(req)}`);
+        this.debugLog(`Strip Light: ${this.accessory.displayName} pushHueSaturationChanges: ${superStringify(req)}`);
       } else {
         this.debugLog(
           `Strip Light: ${this.accessory.displayName} No Changes.` +
@@ -569,7 +570,7 @@ export class StripLight {
       if (this.deviceLogging.includes('debug')) {
         this.errorLog(
           `Strip Light: ${this.accessory.displayName} failed pushHueSaturationChanges with OpenAPI Connection,`
-          + ` Error Message: ${JSON.stringify(e.message)}`,
+          + ` Error Message: ${superStringify(e.message)}`,
         );
       }
       this.apiError(e);
@@ -588,7 +589,7 @@ export class StripLight {
           .digest();
         const sign = signTerm.toString('base64');
         this.debugLog(`Strip Light: ${this.accessory.displayName} sign: ${sign}`);
-        const body = JSON.stringify({
+        const body = superStringify({
           'command': 'setBrightness',
           'parameter': `${this.Brightness}`,
           'commandType': 'command',
@@ -620,7 +621,7 @@ export class StripLight {
         });
         req.write(body);
         req.end();
-        this.debugLog(`Strip Light: ${this.accessory.displayName} pushBrightnessChanges: ${JSON.stringify(req)}`);
+        this.debugLog(`Strip Light: ${this.accessory.displayName} pushBrightnessChanges: ${superStringify(req)}`);
       } else {
         this.debugLog(
           `Strip Light: ${this.accessory.displayName} No Changes.` + `Brightness: ${this.Brightness}, `
@@ -632,7 +633,7 @@ export class StripLight {
       if (this.deviceLogging.includes('debug')) {
         this.errorLog(
           `Strip Light: ${this.accessory.displayName} failed pushBrightnessChanges with OpenAPI Connection,`
-          + ` Error Message: ${JSON.stringify(e.message)}`,
+          + ` Error Message: ${superStringify(e.message)}`,
         );
       }
       this.apiError(e);
@@ -700,7 +701,7 @@ export class StripLight {
       case 190:
         this.errorLog(
           `Strip Light: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-            ` Or command: ${JSON.stringify(res)} format is invalid`,
+            ` Or command: ${superStringify(res)} format is invalid`,
         );
         break;
       case 100:
@@ -783,7 +784,7 @@ export class StripLight {
       config['offline'] = device.offline;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`Strip Light: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Strip Light: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
   }
 

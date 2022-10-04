@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { Context } from 'vm';
 import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
+import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { Service, PlatformAccessory, Units, CharacteristicValue } from 'homebridge';
 import { device, devicesConfig, serviceData, ad, switchbot, temperature, deviceStatus, HostDomain, DevicePath } from '../settings';
@@ -264,10 +265,10 @@ export class MeterPlus {
             this.temperature = ad.serviceData.temperature!.c;
             this.humidity = ad.serviceData.humidity;
             this.battery = ad.serviceData.battery;
-            this.debugLog(`Meter Plus: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+            this.debugLog(`Meter Plus: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
             this.debugLog(
               `Meter Plus: ${this.accessory.displayName} model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName}, ` +
-                `temperature: ${JSON.stringify(ad.serviceData.temperature?.c)}, humidity: ${ad.serviceData.humidity}, ` +
+                `temperature: ${superStringify(ad.serviceData.temperature?.c)}, humidity: ${ad.serviceData.humidity}, ` +
                 `battery: ${ad.serviceData.battery}`,
             );
 
@@ -296,7 +297,7 @@ export class MeterPlus {
           this.errorLog(`Meter Plus: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
           if (this.deviceLogging.includes('debug')) {
             this.errorLog(
-              `Meter Plus: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+              `Meter Plus: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${superStringify(e.message)}`,
             );
           }
           if (this.platform.config.credentials?.token) {
@@ -320,7 +321,7 @@ export class MeterPlus {
         });
         // Set an event handler
         switchbot.onadvertisement = (ad: any) => {
-          this.warnLog(`Meter Plus: ${this.accessory.displayName} ad: ${JSON.stringify(ad, null, '  ')}`);
+          this.warnLog(`Meter Plus: ${this.accessory.displayName} ad: ${superStringify(ad, null, '  ')}`);
         };
         await switchbot.wait(10000);
         // Stop to monitor
@@ -371,7 +372,7 @@ export class MeterPlus {
           res.on('end', () => {
             try {
               this.deviceStatus = JSON.parse(rawData);
-              this.debugLog(`Meter Plus: ${this.accessory.displayName} openAPIRefreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+              this.debugLog(`Meter Plus: ${this.accessory.displayName} openAPIRefreshStatus: ${superStringify(this.deviceStatus)}`);
               this.Humidity = this.deviceStatus.body.humidity!;
               this.Temperature = this.deviceStatus.body.temperature!;
               this.parseStatus();
@@ -390,7 +391,7 @@ export class MeterPlus {
         if (this.deviceLogging.includes('debug')) {
           this.errorLog(
             `Meter Plus: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` +
-              ` Error Message: ${JSON.stringify(e.message)}`,
+              ` Error Message: ${superStringify(e.message)}`,
           );
         }
         this.apiError(e);
@@ -476,7 +477,7 @@ export class MeterPlus {
       config['scanDuration'] = device.scanDuration;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`Meter Plus: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Meter Plus: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
   }
 

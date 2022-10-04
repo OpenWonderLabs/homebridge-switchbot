@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { Context } from 'vm';
 import { IncomingMessage } from 'http';
 import { interval, Subject } from 'rxjs';
+import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
@@ -115,7 +116,7 @@ export class Plug {
         } catch (e: any) {
           this.errorLog(`Plug: ${this.accessory.displayName} failed pushChanges`);
           if (this.deviceLogging.includes('debug')) {
-            this.errorLog(`Plug: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${JSON.stringify(e.message)}`);
+            this.errorLog(`Plug: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${superStringify(e.message)}`);
           }
           this.apiError(e);
         }
@@ -198,7 +199,7 @@ export class Plug {
             this.wifiRssi = ad.serviceData.wifiRssi;
             this.overload = ad.serviceData.overload;
             this.currentPower = ad.serviceData.currentPower;
-            this.debugLog(`Plug: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+            this.debugLog(`Plug: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
             this.debugLog(
               `Plug: ${this.accessory.displayName} state: ${ad.serviceData.state}, ` +
                 `delay: ${ad.serviceData.delay}, timer: ${ad.serviceData.timer}, syncUtcTime: ${ad.serviceData.syncUtcTime} ` +
@@ -230,7 +231,7 @@ export class Plug {
           this.errorLog(`Plug: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
           if (this.deviceLogging.includes('debug')) {
             this.errorLog(
-              `Plug: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+              `Plug: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${superStringify(e.message)}`,
             );
           }
           if (this.platform.config.credentials?.token) {
@@ -262,7 +263,7 @@ export class Plug {
         });
         // Set an event handler
         switchbot.onadvertisement = (ad: any) => {
-          this.warnLog(`Plug: ${this.accessory.displayName} ad: ${JSON.stringify(ad, null, '  ')}`);
+          this.warnLog(`Plug: ${this.accessory.displayName} ad: ${superStringify(ad, null, '  ')}`);
         };
         await switchbot.wait(10000);
         // Stop to monitor
@@ -311,7 +312,7 @@ export class Plug {
         res.on('end', () => {
           try {
             this.deviceStatus = JSON.parse(rawData);
-            this.debugLog(`Plug: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+            this.debugLog(`Plug: ${this.accessory.displayName} refreshStatus: ${superStringify(this.deviceStatus)}`);
             this.power = this.deviceStatus.body.power;
             this.parseStatus();
             this.updateHomeKitCharacteristics();
@@ -328,7 +329,7 @@ export class Plug {
       this.errorLog(`Plug: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
       if (this.deviceLogging.includes('debug')) {
         this.errorLog(
-          `Plug: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+          `Plug: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error Message: ${superStringify(e.message)}`,
         );
       }
       this.apiError(e);
@@ -380,11 +381,11 @@ export class Plug {
         this.errorLog(`Plug: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
         if (this.deviceLogging.includes('debug')) {
           this.errorLog(
-            `Plug: ${this.accessory.displayName} failed pushChanges with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+            `Plug: ${this.accessory.displayName} failed pushChanges with BLE Connection,` + ` Error Message: ${superStringify(e.message)}`,
           );
         }
         if (this.platform.debugMode) {
-          this.errorLog(`Plug: ${this.accessory.displayName} failed pushChanges with BLE Connection,` + ` Error: ${JSON.stringify(e)}`);
+          this.errorLog(`Plug: ${this.accessory.displayName} failed pushChanges with BLE Connection,` + ` Error: ${superStringify(e)}`);
         }
         if (this.platform.config.credentials?.token) {
           this.warnLog(`Plug: ${this.accessory.displayName} Using OpenAPI Connection`);
@@ -427,7 +428,7 @@ export class Plug {
         } else {
           command = 'turnOff';
         }
-        const body = JSON.stringify({
+        const body = superStringify({
           'command': `${command}`,
           'parameter': 'default',
           'commandType': 'command',
@@ -459,7 +460,7 @@ export class Plug {
         });
         req.write(body);
         req.end();
-        this.debugLog(`Plug: ${this.accessory.displayName} openAPIpushChanges: ${JSON.stringify(req)}`);
+        this.debugLog(`Plug: ${this.accessory.displayName} openAPIpushChanges: ${superStringify(req)}`);
       }
       interval(5000)
         .pipe(take(1))
@@ -506,7 +507,7 @@ export class Plug {
       case 190:
         this.errorLog(
           `Plug: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-            ` Or command: ${JSON.stringify(res)} format is invalid`,
+            ` Or command: ${superStringify(res)} format is invalid`,
         );
         break;
       case 100:
@@ -589,7 +590,7 @@ export class Plug {
       config['offline'] = device.offline;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`Plug: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Plug: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
   }
 

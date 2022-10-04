@@ -5,6 +5,7 @@ import { MqttClient } from 'mqtt';
 import { IncomingMessage } from 'http';
 import { interval, Subject } from 'rxjs';
 import { connectAsync } from 'async-mqtt';
+import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
@@ -202,7 +203,7 @@ export class Curtain {
         } catch (e: any) {
           this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges`);
           if (this.deviceLogging.includes('debug')) {
-            this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${JSON.stringify(e.message)}`);
+            this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${superStringify(e.message)}`);
           }
           this.apiError(e);
         }
@@ -221,7 +222,7 @@ export class Curtain {
       ?.join(':');
     const options = this.device.mqttPubOptions || {};
     this.mqttClient?.publish(`homebridge-switchbot/curtain/${mac}/${topic}`, `${message}`, options);
-    this.debugLog(`Meter: ${this.accessory.displayName} MQTT message: ${topic}/${message} options:${JSON.stringify(options)}`);
+    this.debugLog(`Meter: ${this.accessory.displayName} MQTT message: ${topic}/${message} options:${superStringify(options)}`);
   }
 
   /*
@@ -457,7 +458,7 @@ export class Curtain {
             this.battery = ad.serviceData.battery;
             this.position = ad.serviceData.position;
             this.lightLevel = ad.serviceData.lightLevel;
-            this.debugLog(`Curtain: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+            this.debugLog(`Curtain: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
             this.debugLog(
               `Curtain: ${this.accessory.displayName} calibration: ${ad.serviceData.calibration}, ` +
                 `position: ${ad.serviceData.position}, lightLevel: ${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}`,
@@ -493,7 +494,7 @@ export class Curtain {
           this.errorLog(`Curtain: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
           if (this.deviceLogging.includes('debug')) {
             this.errorLog(
-              `Curtain: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+              `Curtain: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${superStringify(e.message)}`,
             );
           }
           if (this.platform.config.credentials?.token) {
@@ -517,7 +518,7 @@ export class Curtain {
         });
         // Set an event handler
         switchbot.onadvertisement = (ad: any) => {
-          this.warnLog(`Curtain: ${this.accessory.displayName} ad: ${JSON.stringify(ad, null, '  ')}`);
+          this.warnLog(`Curtain: ${this.accessory.displayName} ad: ${superStringify(ad, null, '  ')}`);
         };
         await switchbot.wait(10000);
         // Stop to monitor
@@ -569,7 +570,7 @@ export class Curtain {
           res.on('end', () => {
             try {
               this.deviceStatus = JSON.parse(rawData);
-              this.debugLog(`Curtain: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+              this.debugLog(`Curtain: ${this.accessory.displayName} refreshStatus: ${superStringify(this.deviceStatus)}`);
               this.slidePosition = this.deviceStatus.body.slidePosition;
               this.moving = this.deviceStatus.body.moving;
               this.brightness = this.deviceStatus.body.brightness;
@@ -588,7 +589,7 @@ export class Curtain {
         this.errorLog(`Curtain: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
         if (this.deviceLogging.includes('debug')) {
           this.errorLog(
-            `Curtain: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+            `Curtain: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error Message: ${superStringify(e.message)}`,
           );
         }
         this.apiError(e);
@@ -655,7 +656,7 @@ export class Curtain {
             this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
             if (this.deviceLogging.includes('debug')) {
               this.errorLog(
-                `Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+                `Curtain: ${this.accessory.displayName} failed pushChanges with BLE Connection,` + ` Error Message: ${superStringify(e.message)}`,
               );
             }
             if (this.platform.config.credentials?.token) {
@@ -709,7 +710,7 @@ export class Curtain {
           }
           this.debugLog(`${this.accessory.displayName} Mode: ${this.Mode}`);
           const adjustedMode = this.setPositionMode || 'ff';
-          const body = JSON.stringify({
+          const body = superStringify({
             'command': 'setPosition',
             'parameter': `0,${adjustedMode},${adjustedTargetPosition}`,
             'commandType': 'command',
@@ -741,7 +742,7 @@ export class Curtain {
           });
           req.write(body);
           req.end();
-          this.debugLog(`Curtain: ${this.accessory.displayName} openAPIpushChanges: ${JSON.stringify(req)}`);
+          this.debugLog(`Curtain: ${this.accessory.displayName} openAPIpushChanges: ${superStringify(req)}`);
         } else {
           this.debugLog(
             `Curtain: ${this.accessory.displayName} No OpenAPI Changes, CurrentPosition & TargetPosition Are the Same.` +
@@ -752,7 +753,7 @@ export class Curtain {
         this.errorLog(`Curtain: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
         if (this.deviceLogging.includes('debug')) {
           this.errorLog(
-            `Curtain: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+            `Curtain: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${superStringify(e.message)}`,
           );
         }
         this.apiError(e);
@@ -844,7 +845,7 @@ export class Curtain {
       case 190:
         this.errorLog(
           `Curtain: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-            ` Or command: ${JSON.stringify(res)} format is invalid`,
+            ` Or command: ${superStringify(res)} format is invalid`,
         );
         break;
       case 100:
@@ -927,7 +928,7 @@ export class Curtain {
       config['scanDuration'] = device.scanDuration;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`Curtain: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Curtain: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
   }
 

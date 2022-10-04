@@ -1,6 +1,7 @@
 import https from 'https';
 import crypto from 'crypto';
 import { IncomingMessage } from 'http';
+import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { irDevicesConfig, irdevice, HostDomain, DevicePath } from '../settings';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
@@ -110,14 +111,14 @@ export class AirConditioner {
       this.TargetHeaterCoolerState = 1 || 2;
       this.ValidValues = [1, 2];
       this.debugLog(
-        `Air Conditioner: ${this.accessory.displayName} ValidValues: ${JSON.stringify(this.ValidValues)},` +
+        `Air Conditioner: ${this.accessory.displayName} ValidValues: ${superStringify(this.ValidValues)},` +
           ` hide_automode: ${this.hide_automode}, TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`,
       );
     } else {
       this.TargetHeaterCoolerState = 0 || 1 || 2;
       this.ValidValues = [0, 1, 2];
       this.debugLog(
-        `Air Conditioner: ${this.accessory.displayName} ValidValues: ${JSON.stringify(this.ValidValues)},` +
+        `Air Conditioner: ${this.accessory.displayName} ValidValues: ${superStringify(this.ValidValues)},` +
           ` hide_automode: ${this.hide_automode}, TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`,
       );
     }
@@ -183,7 +184,7 @@ export class AirConditioner {
    */
   async pushAirConditionerOnChanges(): Promise<void> {
     if (this.Active !== this.platform.Characteristic.Active.ACTIVE || this.pushOn) {
-      const body = JSON.stringify({
+      const body = superStringify({
         'command': 'turnOn',
         'parameter': 'default',
         'commandType': 'command',
@@ -193,7 +194,7 @@ export class AirConditioner {
   }
 
   async pushAirConditionerOffChanges(): Promise<void> {
-    const body = JSON.stringify({
+    const body = superStringify({
       'command': 'turnOff',
       'parameter': 'default',
       'commandType': 'command',
@@ -243,7 +244,7 @@ export class AirConditioner {
     } else {
       this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.INACTIVE;
     }
-    const body = JSON.stringify({
+    const body = superStringify({
       'command': 'setAll',
       'parameter': `${parameter}`,
       'commandType': 'command',
@@ -290,7 +291,7 @@ export class AirConditioner {
       });
       req.write(body);
       req.end();
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
+      this.debugLog(`Air Conditioner: ${this.accessory.displayName} pushchanges: ${superStringify(req)}`);
       this.CurrentTemperatureCached = this.CurrentTemperature;
       this.accessory.context.CurrentTemperature = this.CurrentTemperatureCached;
       this.HeatingThresholdTemperature = this.CurrentTemperatureCached;
@@ -303,7 +304,7 @@ export class AirConditioner {
     } catch (e: any) {
       this.errorLog(`Air Conditioner: ${this.accessory.displayName} failed pushChanges`);
       if (this.deviceLogging.includes('debug')) {
-        this.errorLog(`Air Conditioner: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${JSON.stringify(e.message)}`);
+        this.errorLog(`Air Conditioner: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${superStringify(e.message)}`);
       }
       this.apiError(e);
     }
@@ -329,7 +330,7 @@ export class AirConditioner {
       case 190:
         this.errorLog(
           `Air Conditioner: ${this.accessory.displayName} Device internal error due to device states not synchronized` +
-            ` with server, Or command: ${JSON.stringify(res)} format is invalid`,
+            ` with server, Or command: ${superStringify(res)} format is invalid`,
         );
         break;
       case 100:
@@ -620,7 +621,7 @@ export class AirConditioner {
       config['logging'] = device.logging;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`Air Conditioner: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Air Conditioner: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
   }
 

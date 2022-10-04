@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { Context } from 'vm';
 import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
+import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { device, devicesConfig, serviceData, switchbot, deviceStatus, ad, HostDomain, DevicePath } from '../settings';
@@ -250,7 +251,7 @@ export class Motion {
             this.movement = ad.serviceData.movement;
             this.battery = ad.serviceData.battery;
             this.lightLevel = ad.serviceData.lightLevel;
-            this.debugLog(`Motion Sensor: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+            this.debugLog(`Motion Sensor: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
             this.debugLog(
               `Motion Sensor: ${this.accessory.displayName} movement: ${ad.serviceData.movement}, lightLevel: ` +
                 `${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}`,
@@ -282,7 +283,7 @@ export class Motion {
           if (this.deviceLogging.includes('debug')) {
             this.errorLog(
               `Motion Sensor: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` +
-                ` Error Message: ${JSON.stringify(e.message)}`,
+                ` Error Message: ${superStringify(e.message)}`,
             );
           }
           if (this.platform.config.credentials?.token) {
@@ -306,7 +307,7 @@ export class Motion {
         });
         // Set an event handler
         switchbot.onadvertisement = (ad: any) => {
-          this.warnLog(`Motion Sensor: ${this.accessory.displayName} ad: ${JSON.stringify(ad, null, '  ')}`);
+          this.warnLog(`Motion Sensor: ${this.accessory.displayName} ad: ${superStringify(ad, null, '  ')}`);
         };
         await switchbot.wait(10000);
         // Stop to monitor
@@ -357,7 +358,7 @@ export class Motion {
           res.on('end', () => {
             try {
               this.deviceStatus = JSON.parse(rawData);
-              this.debugLog(`Motion Sensor: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
+              this.debugLog(`Motion Sensor: ${this.accessory.displayName} refreshStatus: ${superStringify(this.deviceStatus)}`);
               this.moveDetected = this.deviceStatus.body.moveDetected;
               this.brightness = this.deviceStatus.body.brightness;
               this.parseStatus();
@@ -376,7 +377,7 @@ export class Motion {
         if (this.deviceLogging.includes('debug')) {
           this.errorLog(
             `Motion Sensor: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` +
-              ` Error Message: ${JSON.stringify(e.message)}`,
+              ` Error Message: ${superStringify(e.message)}`,
           );
         }
         this.apiError(e);
@@ -449,7 +450,7 @@ export class Motion {
       config['offline'] = device.offline;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`Motion Sensor: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Motion Sensor: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
   }
 

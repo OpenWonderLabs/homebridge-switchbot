@@ -22,6 +22,7 @@ import https from 'https';
 import crypto from 'crypto';
 import { Buffer } from 'buffer';
 import fakegato from 'fakegato-history';
+import superStringify from 'super-stringify';
 import { readFileSync, writeFileSync } from 'fs';
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, Service, Characteristic } from 'homebridge';
 import { PLATFORM_NAME, PLUGIN_NAME, irdevice, device, SwitchBotPlatformConfig, devicesConfig, DevicePath, HostDomain } from './settings';
@@ -65,9 +66,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.verifyConfig();
       this.debugLog('Config OK');
     } catch (e: any) {
-      this.errorLog(JSON.stringify(e.message));
+      this.errorLog(superStringify(e.message));
       if (this.platformLogging?.includes('debug')) {
-        this.errorLog(JSON.stringify(e));
+        this.errorLog(superStringify(e));
       }
       return;
     }
@@ -89,9 +90,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           this.discoverDevices();
         }
       } catch (e: any) {
-        this.errorLog('Failed to Discover Devices.', JSON.stringify(e.message));
+        this.errorLog('Failed to Discover Devices.', superStringify(e.message));
         if (this.platformLogging?.includes('debug')) {
-          this.errorLog(JSON.stringify(e));
+          this.errorLog(superStringify(e));
         }
       }
     });
@@ -145,7 +146,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       platformConfig['pushRate'] = this.config.options.pushRate;
     }
     if (Object.entries(platformConfig).length !== 0) {
-      this.infoLog(`Platform Config: ${JSON.stringify(platformConfig)}`);
+      this.infoLog(`Platform Config: ${superStringify(platformConfig)}`);
     }
 
     if (this.config.options) {
@@ -263,7 +264,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.warnLog(`Token: ${pluginConfig.credentials.token}`);
       }
       // save the config, ensuring we maintain pretty json
-      writeFileSync(this.api.user.configPath(), JSON.stringify(currentConfig, null, 4));
+      writeFileSync(this.api.user.configPath(), superStringify(currentConfig, null, 4));
       this.verifyConfig();
     } catch (e: any) {
       this.errorLog(e);
@@ -297,7 +298,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         };
         const req = https.request(options, (res) => {
           this.debugLog(`statusCode: ${res.statusCode}`);
-          this.debugLog(`headers: ${JSON.stringify(res.headers)}`);
+          this.debugLog(`headers: ${superStringify(res.headers)}`);
           let rawData = '';
           res.on('data', (d) => {
             rawData += d;
@@ -306,7 +307,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           res.on('end', () => {
             try {
               const devicesAPI = JSON.parse(rawData);
-              this.debugLog(`devicesAPI: ${JSON.stringify(devicesAPI.body)}`);
+              this.debugLog(`devicesAPI: ${superStringify(devicesAPI.body)}`);
 
               // SwitchBot Devices
               if (devicesAPI.body.deviceList.length !== 0) {
@@ -316,7 +317,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
               }
               const deviceLists = devicesAPI.body.deviceList;
               if (!this.config.options?.devices) {
-                this.debugLog(`SwitchBot Device Config Not Set: ${JSON.stringify(this.config.options?.devices)}`);
+                this.debugLog(`SwitchBot Device Config Not Set: ${superStringify(this.config.options?.devices)}`);
                 const devices = deviceLists.map((v: any) => v);
                 for (const device of devices) {
                   if (device.deviceType) {
@@ -327,7 +328,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
                   }
                 }
               } else if (this.config.credentials?.token && this.config.options.devices) {
-                this.debugLog(`SwitchBot Device Config Set: ${JSON.stringify(this.config.options?.devices)}`);
+                this.debugLog(`SwitchBot Device Config Set: ${superStringify(this.config.options?.devices)}`);
                 const deviceConfigs = this.config.options?.devices;
 
                 const mergeBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
@@ -340,7 +341,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
                   }));
 
                 const devices = mergeBydeviceId(deviceLists, deviceConfigs);
-                this.debugLog(`SwitchBot Devices: ${JSON.stringify(devices)}`);
+                this.debugLog(`SwitchBot Devices: ${superStringify(devices)}`);
                 for (const device of devices) {
                   if (device.deviceType) {
                     if (device.configDeviceName) {
@@ -361,7 +362,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
               }
               const irDeviceLists = devicesAPI.body.infraredRemoteList;
               if (!this.config.options?.irdevices) {
-                this.debugLog(`IR Device Config Not Set: ${JSON.stringify(this.config.options?.irdevices)}`);
+                this.debugLog(`IR Device Config Not Set: ${superStringify(this.config.options?.irdevices)}`);
                 const devices = irDeviceLists.map((v: any) => v);
                 for (const device of devices) {
                   if (device.remoteType) {
@@ -369,7 +370,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
                   }
                 }
               } else {
-                this.debugLog(`IR Device Config Set: ${JSON.stringify(this.config.options?.irdevices)}`);
+                this.debugLog(`IR Device Config Set: ${superStringify(this.config.options?.irdevices)}`);
                 const irDeviceConfig = this.config.options?.irdevices;
 
                 const mergeIRBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
@@ -382,7 +383,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
                   }));
 
                 const devices = mergeIRBydeviceId(irDeviceLists, irDeviceConfig);
-                this.debugLog(`IR Devices: ${JSON.stringify(devices)}`);
+                this.debugLog(`IR Devices: ${superStringify(devices)}`);
                 for (const device of devices) {
                   if (device.remoteType) {
                     this.createIRDevice(device);
@@ -399,7 +400,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         });
         req.end();
       } else if (!this.config.credentials?.token && this.config.options?.devices) {
-        this.debugLog(`SwitchBot Device Manual Config Set: ${JSON.stringify(this.config.options?.devices)}`);
+        this.debugLog(`SwitchBot Device Manual Config Set: ${superStringify(this.config.options?.devices)}`);
         const deviceConfigs = this.config.options?.devices;
         const devices = deviceConfigs.map((v: any) => v);
         for (const device of devices) {
@@ -452,10 +453,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.errorLog('Failed to Discover Devices');
     }
     if (this.platformLogging === 'debug') {
-      this.errorLog(`Failed to Discover Devices, Error Message: ${JSON.stringify(e.message)}`);
+      this.errorLog(`Failed to Discover Devices, Error Message: ${superStringify(e.message)}`);
     }
     if (this.platformLogging === 'debugMode') {
-      this.errorLog(`Failed to Discover Devices, Error: ${JSON.stringify(e)}`);
+      this.errorLog(`Failed to Discover Devices, Error: ${superStringify(e)}`);
     }
   }
 
@@ -659,7 +660,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       if (this.registerDevice(device)) {
         this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
 
-        this.debugLog(JSON.stringify(device.bot?.mode));
+        this.debugLog(superStringify(device.bot?.mode));
 
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.deviceType;
@@ -680,7 +681,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       // the accessory does not yet exist, so we need to create it
       this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
 
-      this.debugLog(JSON.stringify(device.bot?.mode));
+      this.debugLog(superStringify(device.bot?.mode));
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1787,13 +1788,13 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
   public deviceListInfo(devices) {
     if (this.platformLogging?.includes('debug')) {
-      this.warnLog(`deviceListInfoStatus: ${JSON.stringify(devices)}`);
+      this.warnLog(`deviceListInfoStatus: ${superStringify(devices)}`);
     }
   }
 
   public async deviceInfo(device: (irdevice & devicesConfig) | (device & devicesConfig)) {
     if (this.platformLogging?.includes('debug')) {
-      this.warnLog(JSON.stringify(device));
+      this.warnLog(superStringify(device));
 
       const t = Date.now();
       const nonce = 'requestID';
@@ -1827,9 +1828,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
       this.deviceStatus = req;
       if (this.deviceStatus.message === 'success') {
-        this.warnLog(`${device.deviceName} deviceInfoStatus: ${JSON.stringify(this.deviceStatus)}`);
+        this.warnLog(`${device.deviceName} deviceInfoStatus: ${superStringify(this.deviceStatus)}`);
       } else {
-        this.warnLog(`${device.deviceName} deviceInfoStatus: ${JSON.stringify(this.deviceStatus.message)}`);
+        this.warnLog(`${device.deviceName} deviceInfoStatus: ${superStringify(this.deviceStatus.message)}`);
         this.warnLog('Unable to retreive deviceInfoStatus.');
       }
     }

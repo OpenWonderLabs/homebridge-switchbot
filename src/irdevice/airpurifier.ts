@@ -1,6 +1,7 @@
 import https from 'https';
 import crypto from 'crypto';
 import { IncomingMessage } from 'http';
+import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { irDevicesConfig, irdevice, HostDomain, DevicePath } from '../settings';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
@@ -158,7 +159,7 @@ export class AirPurifier {
    */
   async pushAirPurifierOnChanges(): Promise<void> {
     if (this.Active !== 1) {
-      const body = JSON.stringify({
+      const body = superStringify({
         'command': 'turnOn',
         'parameter': 'default',
         'commandType': 'command',
@@ -169,7 +170,7 @@ export class AirPurifier {
 
   async pushAirPurifierOffChanges(): Promise<void> {
     if (this.Active !== 0) {
-      const body = JSON.stringify({
+      const body = superStringify({
         'command': 'turnOff',
         'parameter': 'default',
         'commandType': 'command',
@@ -195,7 +196,7 @@ export class AirPurifier {
     this.CurrentAPFanSpeed = this.CurrentFanSpeed || 1;
     this.APActive = this.Active === 1 ? 'on' : 'off';
     const parameter = `${this.CurrentAPTemp},${this.CurrentAPMode},${this.CurrentAPFanSpeed},${this.APActive}`;
-    const body = JSON.stringify({
+    const body = superStringify({
       'command': 'setAll',
       'parameter': `${parameter}`,
       'commandType': 'command',
@@ -250,7 +251,7 @@ export class AirPurifier {
       });
       req.write(body);
       req.end();
-      this.debugLog(`Air Purifier: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
+      this.debugLog(`Air Purifier: ${this.accessory.displayName} pushchanges: ${superStringify(req)}`);
       this.updateHomeKitCharacteristics();
       this.CurrentTemperatureCached = this.CurrentTemperature;
       this.accessory.context.CurrentTemperature = this.CurrentTemperatureCached;
@@ -258,7 +259,7 @@ export class AirPurifier {
       this.errorLog(`Air Purifier: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
       if (this.deviceLogging.includes('debug')) {
         this.errorLog(
-          `Air Purifier: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
+          `Air Purifier: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${superStringify(e.message)}`,
         );
       }
       this.apiError(e);
@@ -285,7 +286,7 @@ export class AirPurifier {
       case 190:
         this.errorLog(
           `Air Purifier: ${this.accessory.displayName} Device internal error due to device states not synchronized` +
-            ` with server, Or command: ${JSON.stringify(res)} format is invalid`,
+            ` with server, Or command: ${superStringify(res)} format is invalid`,
         );
         break;
       case 100:
@@ -313,7 +314,7 @@ export class AirPurifier {
       config['logging'] = device.logging;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`Air Purifier: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.infoLog(`Air Purifier: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
   }
 
