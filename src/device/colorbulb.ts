@@ -2,6 +2,7 @@ import https from 'https';
 import crypto from 'crypto';
 import { Context } from 'vm';
 import { IncomingMessage } from 'http';
+import superStringify from 'super-stringify';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, tap } from 'rxjs/operators';
@@ -529,7 +530,7 @@ export class ColorBulb {
         });
         req.write(body);
         req.end();
-        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushChanges: ${req}`);
+        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushChanges: ${superStringify(req)}`);
       }
       // Push Brightness Update
       if (this.On) {
@@ -605,7 +606,7 @@ export class ColorBulb {
         });
         req.write(body);
         req.end();
-        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushHueSaturationChanges: ${req}`);
+        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushHueSaturationChanges: ${superStringify(req)}`);
       } else {
         this.debugLog(
           `Color Bulb: ${this.accessory.displayName} No Changes.` +
@@ -671,7 +672,7 @@ export class ColorBulb {
         req.write(body);
         req.end();
 
-        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushColorTemperatureChanges: ${req}`);
+        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushColorTemperatureChanges: ${superStringify(req)}`);
         this.accessory.context.ColorTemperature = this.ColorTemperature;
       } else {
         this.debugLog(
@@ -733,7 +734,7 @@ export class ColorBulb {
         });
         req.write(body);
         req.end();
-        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushBrightnessChanges: ${req}`);
+        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushBrightnessChanges: ${superStringify(req)}`);
       } else {
         this.debugLog(
           `Color Bulb: ${this.accessory.displayName} No Changes.` + `Brightness: ${this.Brightness}, `
