@@ -529,7 +529,7 @@ export class ColorBulb {
         });
         req.write(body);
         req.end();
-        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushChanges: ${JSON.stringify(req)}`);
+        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushChanges: ${req}`);
       }
       // Push Brightness Update
       if (this.On) {
@@ -605,7 +605,7 @@ export class ColorBulb {
         });
         req.write(body);
         req.end();
-        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushHueSaturationChanges: ${JSON.stringify(req)}`);
+        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushHueSaturationChanges: ${req}`);
       } else {
         this.debugLog(
           `Color Bulb: ${this.accessory.displayName} No Changes.` +
@@ -671,7 +671,7 @@ export class ColorBulb {
         req.write(body);
         req.end();
 
-        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushColorTemperatureChanges: ${JSON.stringify(req)}`);
+        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushColorTemperatureChanges: ${req}`);
         this.accessory.context.ColorTemperature = this.ColorTemperature;
       } else {
         this.debugLog(
@@ -733,7 +733,7 @@ export class ColorBulb {
         });
         req.write(body);
         req.end();
-        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushBrightnessChanges: ${JSON.stringify(req)}`);
+        this.debugLog(`Color Bulb: ${this.accessory.displayName} pushBrightnessChanges: ${req}`);
       } else {
         this.debugLog(
           `Color Bulb: ${this.accessory.displayName} No Changes.` + `Brightness: ${this.Brightness}, `
