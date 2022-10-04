@@ -19,13 +19,9 @@ export class StripLight {
 
   // Characteristic Values
   On!: CharacteristicValue;
-  OnCached!: CharacteristicValue;
   Hue!: CharacteristicValue;
-  HueCached!: CharacteristicValue;
   Saturation!: CharacteristicValue;
-  SaturationCached!: CharacteristicValue;
   Brightness!: CharacteristicValue;
-  BrightnessCached!: CharacteristicValue;
 
   // OpenAPI Others
   power: deviceStatus['power'];
@@ -433,7 +429,7 @@ export class StripLight {
    */
   async pushChanges(): Promise<void> {
     try {
-      if (this.On !== this.OnCached) {
+      if (this.On !== this.accessory.context.On) {
         // Make Push On request to the API
         const t = Date.now();
         const nonce = 'requestID';
@@ -483,8 +479,6 @@ export class StripLight {
         req.write(body);
         req.end();
         this.debugLog(`Strip Light: ${this.accessory.displayName} pushchanges: ${JSON.stringify(req)}`);
-        this.OnCached = this.On;
-        this.accessory.context.On = this.OnCached;
       }
       // Push Brightness Update
       if (this.On) {
@@ -508,7 +502,7 @@ export class StripLight {
 
   async pushHueSaturationChanges(): Promise<void> {
     try {
-      if (this.Hue !== this.HueCached || this.Saturation !== this.SaturationCached) {
+      if (this.Hue !== this.accessory.context.Hue || this.Saturation !== this.accessory.context.Saturation) {
         this.debugLog(`Strip Light: ${this.accessory.displayName} Hue: ${JSON.stringify(this.Hue)}`);
         this.debugLog(`Strip Light: ${this.accessory.displayName} Saturation: ${JSON.stringify(this.Saturation)}`);
 
@@ -556,12 +550,11 @@ export class StripLight {
         req.write(body);
         req.end();
         this.debugLog(`Strip Light: ${this.accessory.displayName} pushHueSaturationChanges: ${JSON.stringify(req)}`);
-        this.HueCached = this.Hue;
-        this.SaturationCached = this.Saturation;
       } else {
         this.debugLog(
           `Strip Light: ${this.accessory.displayName} No Changes.` +
-            `Hue: ${this.Hue}, HueCached: ${this.HueCached}, Saturation: ${this.Saturation}, SaturationCached: ${this.SaturationCached}`,
+            `Hue: ${this.Hue}, HueCached: ${this.accessory.context.Hue}, Saturation: ${this.Saturation}, `
+            +`SaturationCached: ${this.accessory.context.Saturation}`,
         );
       }
     } catch (e: any) {
@@ -578,7 +571,7 @@ export class StripLight {
 
   async pushBrightnessChanges(): Promise<void> {
     try {
-      if (this.Brightness !== this.BrightnessCached) {
+      if (this.Brightness !== this.accessory.context.Brightness) {
         // Make Push On request to the API
         const t = Date.now();
         const nonce = 'requestID';
@@ -621,10 +614,10 @@ export class StripLight {
         req.write(body);
         req.end();
         this.debugLog(`Strip Light: ${this.accessory.displayName} pushBrightnessChanges: ${JSON.stringify(req)}`);
-        this.BrightnessCached = this.Brightness;
       } else {
         this.debugLog(
-          `Strip Light: ${this.accessory.displayName} No Changes.` + `Brightness: ${this.Brightness}, BrightnessCached: ${this.BrightnessCached}`,
+          `Strip Light: ${this.accessory.displayName} No Changes.` + `Brightness: ${this.Brightness}, `
+          +`BrightnessCached: ${this.accessory.context.Brightness}`,
         );
       }
     } catch (e: any) {
@@ -643,24 +636,28 @@ export class StripLight {
     if (this.On === undefined) {
       this.debugLog(`Strip Light: ${this.accessory.displayName} On: ${this.On}`);
     } else {
+      this.accessory.context.On = this.On;
       this.lightBulbService.updateCharacteristic(this.platform.Characteristic.On, this.On);
       this.debugLog(`Strip Light: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
     if (this.Brightness === undefined) {
       this.debugLog(`Strip Light: ${this.accessory.displayName} Brightness: ${this.Brightness}`);
     } else {
+      this.accessory.context.Brightness = this.Brightness;
       this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Brightness, this.Brightness);
       this.debugLog(`Strip Light: ${this.accessory.displayName} updateCharacteristic Brightness: ${this.Brightness}`);
     }
     if (this.Hue === undefined) {
       this.debugLog(`Strip Light: ${this.accessory.displayName} Hue: ${this.Hue}`);
     } else {
+      this.accessory.context.Hue = this.Hue;
       this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Hue, this.Hue);
       this.debugLog(`Strip Light: ${this.accessory.displayName} updateCharacteristic Hue: ${this.Hue}`);
     }
     if (this.Saturation === undefined) {
       this.debugLog(`Strip Light: ${this.accessory.displayName} Saturation: ${this.Saturation}`);
     } else {
+      this.accessory.context.Saturation = this.Saturation;
       this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Saturation, this.Saturation);
       this.debugLog(`Strip Light: ${this.accessory.displayName} updateCharacteristic Saturation: ${this.Saturation}`);
     }

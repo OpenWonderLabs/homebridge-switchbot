@@ -14,7 +14,6 @@ export class Plug {
 
   // Characteristic Values
   On!: CharacteristicValue;
-  OnCached!: CharacteristicValue;
 
   // OpenAPI Others
   power: deviceStatus['power'];
@@ -355,7 +354,7 @@ export class Plug {
   }
 
   async BLEpushChanges(): Promise<void> {
-    this.debugLog(`Plug: ${this.accessory.displayName} BLE pushChanges On: ${this.On} OnCached: ${this.OnCached}`);
+    this.debugLog(`Plug: ${this.accessory.displayName} BLE pushChanges On: ${this.On} OnCached: ${this.accessory.context.On}`);
     this.debugLog(`Plug: ${this.accessory.displayName} BLE pushChanges`);
     const switchbot = await this.platform.connectBLE();
     // Convert to BLE Address
@@ -376,8 +375,6 @@ export class Plug {
       .then(() => {
         this.debugLog(`Plug: ${this.accessory.displayName} Done.`);
         this.On = false;
-        this.OnCached = this.On;
-        this.accessory.context.On = this.OnCached;
       })
       .catch(async (e: any) => {
         this.errorLog(`Plug: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
@@ -395,8 +392,6 @@ export class Plug {
         }
         this.apiError(e);
       });
-    this.OnCached = this.On;
-    this.accessory.context.On = this.OnCached;
   }
 
   async turnOnOff(device_list: any): Promise<any> {
@@ -414,7 +409,7 @@ export class Plug {
 
   async openAPIpushChanges() {
     if (this.platform.config.credentials?.token) {
-      if (this.On !== this.OnCached) {
+      if (this.On !== this.accessory.context.On) {
         // Make Push On request to the API
         this.debugLog(`Plug: ${this.accessory.displayName} OpenAPI pushChanges`);
         const t = Date.now();
@@ -465,8 +460,6 @@ export class Plug {
         req.write(body);
         req.end();
         this.debugLog(`Plug: ${this.accessory.displayName} openAPIpushChanges: ${JSON.stringify(req)}`);
-        this.OnCached = this.On;
-        this.accessory.context.On = this.OnCached;
       }
       interval(5000)
         .pipe(take(1))
@@ -480,6 +473,7 @@ export class Plug {
     if (this.On === undefined) {
       this.debugLog(`Plug: ${this.accessory.displayName} On: ${this.On}`);
     } else {
+      this.accessory.context.On = this.On;
       this.outletService.updateCharacteristic(this.platform.Characteristic.On, this.On);
       this.debugLog(`Plug: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }

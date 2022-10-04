@@ -29,7 +29,6 @@ export class Bot {
 
   // Characteristic Values
   On!: CharacteristicValue;
-  OnCached!: CharacteristicValue;
   BatteryLevel!: CharacteristicValue;
   StatusLowBattery!: CharacteristicValue;
 
@@ -388,16 +387,14 @@ export class Bot {
     this.debugLog(`Bot: ${this.accessory.displayName} BLE parseStatus`);
     // BLEmode (true if Switch Mode) | (false if Press Mode)
     if (this.mode) {
-      this.OnCached = this.On;
-      this.accessory.context.On = this.OnCached;
+      this.accessory.context.On = this.On;
       if (this.On === undefined) {
         this.On = Boolean(this.state);
       }
       this.debugLog(`Bot: ${this.accessory.displayName} Switch Mode, mode: ${this.mode}, On: ${this.On}`);
     } else {
       this.On = false;
-      this.OnCached = this.On;
-      this.accessory.context.On = this.OnCached;
+      this.accessory.context.On = this.On;
       this.debugLog(`Bot: ${this.accessory.displayName} Press Mode, mode: ${this.mode}, On: ${this.On}`);
     }
 
@@ -421,20 +418,9 @@ export class Bot {
       this.debugLog(`Bot: ${this.accessory.displayName} OpenAPI parseStatus`);
       if (this.botMode === 'press') {
         this.On = false;
-        this.OnCached = this.On;
-        this.accessory.context.On = this.OnCached;
+        this.accessory.context.On = this.On;
       } else {
-        /*if (this.power === 'on') {
-          this.On = true;
-          this.OnCached = this.On;
-          this.accessory.context.On = this.OnCached;
-        } else {
-          this.On = false;
-          this.OnCached = this.On;
-          this.accessory.context.On = this.OnCached;
-        }*/
-        this.OnCached = this.On;
-        this.accessory.context.On = this.OnCached;
+        this.accessory.context.On = this.On;
         if (this.On === undefined) {
           this.On = false;
         }
@@ -635,8 +621,8 @@ export class Bot {
   }
 
   async BLEpushChanges(): Promise<void> {
-    this.debugLog(`Bot: ${this.accessory.displayName} BLE pushChanges On: ${this.On} OnCached: ${this.OnCached}`);
-    if (this.On !== this.OnCached || this.allowPush) {
+    this.debugLog(`Bot: ${this.accessory.displayName} BLE pushChanges On: ${this.On} OnCached: ${this.accessory.context.On}`);
+    if (this.On !== this.accessory.context.On || this.allowPush) {
       this.debugLog(`Bot: ${this.accessory.displayName} BLE pushChanges`);
       const switchbot = await this.platform.connectBLE();
       // Convert to BLE Address
@@ -656,9 +642,7 @@ export class Bot {
           })
           .then(() => {
             this.debugLog(`Bot: ${this.accessory.displayName} Done.`);
-            this.On = false;
-            this.OnCached = this.On;
-            this.accessory.context.On = this.OnCached;
+            this.accessory.context.On = this.On;
             setTimeout(() => {
               if (this.device.bot?.deviceType === 'switch') {
                 this.switchService?.getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);
@@ -694,8 +678,7 @@ export class Bot {
           })
           .then(() => {
             this.debugLog(`Bot: ${this.accessory.displayName} Done.`);
-            this.OnCached = this.On;
-            this.accessory.context.On = this.OnCached;
+            this.accessory.context.On = this.On;
           })
           .catch(async (e: any) => {
             this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
@@ -717,8 +700,7 @@ export class Bot {
         throw new Error(`Bot: ${this.accessory.displayName} Bot Mode: ${this.botMode}`);
       }
     }
-    this.OnCached = this.On;
-    this.accessory.context.On = this.OnCached;
+    this.accessory.context.On = this.On;
   }
 
   async turnOnOff(device_list: any): Promise<any> {
@@ -737,7 +719,7 @@ export class Bot {
   async openAPIpushChanges(): Promise<void> {
     if (this.platform.config.credentials?.token) {
       try {
-        if (this.On !== this.OnCached || this.allowPush) {
+        if (this.On !== this.accessory.context.On || this.allowPush) {
           this.debugLog(`Bot: ${this.accessory.displayName} OpenAPI pushChanges`);
           // Make Push On request to the API
           const t = Date.now();
@@ -797,8 +779,7 @@ export class Bot {
           req.write(body);
           req.end();
           this.debugLog(`Bot: ${this.accessory.displayName} openAPIpushChanges: ${JSON.stringify(req)}`);
-          this.OnCached = this.On;
-          this.accessory.context.On = this.OnCached;
+          this.accessory.context.On = this.On;
         }
       } catch (e: any) {
         this.errorLog(`Bot: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
@@ -989,16 +970,19 @@ export class Bot {
         this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
       }
     }
+    this.accessory.context.On = this.On;
     if (this.device.ble) {
       if (this.BatteryLevel === undefined) {
         this.debugLog(`Bot: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
       } else {
+        this.accessory.context.BatteryLevel = this.BatteryLevel;
         this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
         this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
       }
       if (this.StatusLowBattery === undefined) {
         this.debugLog(`Bot: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
       } else {
+        this.accessory.context.StatusLowBattery = this.StatusLowBattery;
         this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
         this.debugLog(`Bot: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
       }

@@ -23,14 +23,10 @@ export class Meter {
 
   // Characteristic Values
   CurrentRelativeHumidity!: CharacteristicValue;
-  CurrentRelativeHumidityCached!: CharacteristicValue;
   CurrentTemperature?: CharacteristicValue;
-  CurrentTemperatureCached?: CharacteristicValue;
   BatteryLevel?: CharacteristicValue;
   ChargingState?: CharacteristicValue;
   StatusLowBattery?: CharacteristicValue;
-  Active!: CharacteristicValue;
-  WaterLevel!: CharacteristicValue;
 
   // OpenAPI Others
   Temperature: deviceStatus['temperature'];
