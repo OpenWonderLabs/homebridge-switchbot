@@ -4,7 +4,7 @@ import { Context } from 'vm';
 import { IncomingMessage } from 'http';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
-import { debounceTime, skipWhile, tap } from 'rxjs/operators';
+import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap } from 'homebridge';
 import { device, devicesConfig, switchbot, hs2rgb, rgb2hs, deviceStatus, HostDomain, DevicePath, ad, serviceData } from '../settings';
 
@@ -55,8 +55,8 @@ export class StripLight {
   cacheKelvin!: number;
 
   // Updates
-  colorBulbUpdateInProgress!: boolean;
-  doColorBulbUpdate!: Subject<void>;
+  stripLightUpdateInProgress!: boolean;
+  doStripLightUpdate!: Subject<void>;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
@@ -75,8 +75,8 @@ export class StripLight {
     this.minKelvin = 2000;
     this.maxKelvin = 9000;
     // this is subject we use to track when we need to POST changes to the SwitchBot API
-    this.doColorBulbUpdate = new Subject();
-    this.colorBulbUpdateInProgress = false;
+    this.doStripLightUpdate = new Subject();
+    this.stripLightUpdateInProgress = false;
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();
@@ -152,17 +152,17 @@ export class StripLight {
 
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
-      .pipe(skipWhile(() => this.colorBulbUpdateInProgress))
+      .pipe(skipWhile(() => this.stripLightUpdateInProgress))
       .subscribe(async () => {
         await this.refreshStatus();
       });
 
     // Watch for Bulb change events
     // We put in a debounce of 100ms so we don't make duplicate calls
-    this.doColorBulbUpdate
+    this.doStripLightUpdate
       .pipe(
         tap(() => {
-          this.colorBulbUpdateInProgress = true;
+          this.stripLightUpdateInProgress = true;
         }),
         debounceTime(this.platform.config.options!.pushRate! * 1000),
       )
@@ -176,7 +176,14 @@ export class StripLight {
           }
           this.apiError(e);
         }
-        this.colorBulbUpdateInProgress = false;
+        this.stripLightUpdateInProgress = false;
+        // Refresh the status from the API
+        interval(15000)
+          .pipe(skipWhile(() => this.stripLightUpdateInProgress))
+          .pipe(take(1))
+          .subscribe(async () => {
+            await this.refreshStatus();
+          });
       });
   }
 
@@ -722,7 +729,7 @@ export class StripLight {
     this.debugLog(`Strip Light: ${this.accessory.displayName} On: ${value}`);
 
     this.On = value;
-    this.doColorBulbUpdate.next();
+    this.doStripLightUpdate.next();
   }
 
   /**
@@ -732,7 +739,7 @@ export class StripLight {
     this.debugLog(`Strip Light: ${this.accessory.displayName} Brightness: ${value}`);
 
     this.Brightness = value;
-    this.doColorBulbUpdate.next();
+    this.doStripLightUpdate.next();
   }
 
   /**
@@ -742,7 +749,7 @@ export class StripLight {
     this.debugLog(`Strip Light: ${this.accessory.displayName} Hue: ${value}`);
 
     this.Hue = value;
-    this.doColorBulbUpdate.next();
+    this.doStripLightUpdate.next();
   }
 
   /**
@@ -752,7 +759,7 @@ export class StripLight {
     this.debugLog(`Strip Light: ${this.accessory.displayName} Saturation: ${value}`);
 
     this.Saturation = value;
-    this.doColorBulbUpdate.next();
+    this.doStripLightUpdate.next();
   }
 
   async config(device: device & devicesConfig): Promise<void> {

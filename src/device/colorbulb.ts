@@ -5,7 +5,7 @@ import { IncomingMessage } from 'http';
 import superStringify from 'super-stringify';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
-import { debounceTime, skipWhile, tap } from 'rxjs/operators';
+import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap } from 'homebridge';
 import { device, devicesConfig, deviceStatus, switchbot, hs2rgb, rgb2hs, m2hs, serviceData, ad, HostDomain, DevicePath } from '../settings';
 
@@ -216,6 +216,13 @@ export class ColorBulb {
           this.apiError(e);
         }
         this.colorBulbUpdateInProgress = false;
+        // Refresh the status from the API
+        interval(15000)
+          .pipe(skipWhile(() => this.colorBulbUpdateInProgress))
+          .pipe(take(1))
+          .subscribe(async () => {
+            await this.refreshStatus();
+          });
       });
   }
 
