@@ -19,15 +19,10 @@ export class ColorBulb {
 
   // Characteristic Values
   On!: CharacteristicValue;
-  OnCached!: CharacteristicValue;
   Hue!: CharacteristicValue;
-  HueCached!: CharacteristicValue;
   Saturation!: CharacteristicValue;
-  SaturationCached!: CharacteristicValue;
   Brightness!: CharacteristicValue;
-  BrightnessCached!: CharacteristicValue;
   ColorTemperature?: CharacteristicValue;
-  ColorTemperatureCached?: CharacteristicValue;
 
   // OpenAPI Others
   power: deviceStatus['power'];
@@ -485,7 +480,7 @@ export class ColorBulb {
    */
   async pushChanges(): Promise<void> {
     try {
-      if (this.On !== this.OnCached) {
+      if (this.On !== this.accessory.context.On) {
         // Make Push On request to the API
         const t = Date.now();
         const nonce = 'requestID';
@@ -535,17 +530,15 @@ export class ColorBulb {
         req.write(body);
         req.end();
         this.debugLog(`Color Bulb: ${this.accessory.displayName} pushChanges: ${JSON.stringify(req)}`);
-        this.OnCached = this.On;
-        this.accessory.context.On = this.OnCached;
       }
       // Push Brightness Update
       if (this.On) {
-        //await this.pushBrightnessChanges();
+        await this.pushBrightnessChanges();
       }
 
       // Push ColorTemperature Update
       if (this.On) {
-        //await this.pushColorTemperatureChanges();
+        await this.pushColorTemperatureChanges();
       }
 
       // Push Hue & Saturation Update
@@ -565,7 +558,7 @@ export class ColorBulb {
 
   async pushHueSaturationChanges(): Promise<void> {
     try {
-      if (this.Hue !== this.HueCached || this.Saturation !== this.SaturationCached) {
+      if (this.Hue !== this.accessory.context.Hue || this.Saturation !== this.accessory.context.Saturation) {
         this.debugLog(`Color Bulb: ${this.accessory.displayName} Hue: ${JSON.stringify(this.Hue)}`);
         this.debugLog(`Color Bulb: ${this.accessory.displayName} Saturation: ${JSON.stringify(this.Saturation)}`);
 
@@ -613,12 +606,11 @@ export class ColorBulb {
         req.write(body);
         req.end();
         this.debugLog(`Color Bulb: ${this.accessory.displayName} pushHueSaturationChanges: ${JSON.stringify(req)}`);
-        this.HueCached = this.Hue;
-        this.SaturationCached = this.Saturation;
       } else {
         this.debugLog(
           `Color Bulb: ${this.accessory.displayName} No Changes.` +
-            `Hue: ${this.Hue}, HueCached: ${this.HueCached}, Saturation: ${this.Saturation}, SaturationCached: ${this.SaturationCached}`,
+            `Hue: ${this.Hue}, HueCached: ${this.accessory.context.Hue}, Saturation: ${this.Saturation},`
+            +` SaturationCached: ${this.accessory.context.Saturation}`,
         );
       }
     } catch (e: any) {
@@ -634,7 +626,7 @@ export class ColorBulb {
 
   async pushColorTemperatureChanges(): Promise<void> {
     try {
-      if (this.ColorTemperature !== this.ColorTemperatureCached) {
+      if (this.ColorTemperature !== this.accessory.context.ColorTemperature) {
         const kelvin = Math.round(1000000 / Number(this.ColorTemperature));
         this.cacheKelvin = kelvin;
 
@@ -680,11 +672,11 @@ export class ColorBulb {
         req.end();
 
         this.debugLog(`Color Bulb: ${this.accessory.displayName} pushColorTemperatureChanges: ${JSON.stringify(req)}`);
-        this.ColorTemperatureCached = this.ColorTemperature;
+        this.accessory.context.ColorTemperature = this.ColorTemperature;
       } else {
         this.debugLog(
           `Color Bulb: ${this.accessory.displayName} No Changes.` +
-            `ColorTemperature: ${this.ColorTemperature}, ColorTemperatureCached: ${this.ColorTemperatureCached}`,
+            `ColorTemperature: ${this.ColorTemperature}, ColorTemperatureCached: ${this.accessory.context.ColorTemperature}`,
         );
       }
     } catch (e: any) {
@@ -700,7 +692,7 @@ export class ColorBulb {
 
   async pushBrightnessChanges(): Promise<void> {
     try {
-      if (this.Brightness !== this.BrightnessCached) {
+      if (this.Brightness !== this.accessory.context.Brightness) {
         // Make Push On request to the API
         const t = Date.now();
         const nonce = 'requestID';
@@ -742,10 +734,10 @@ export class ColorBulb {
         req.write(body);
         req.end();
         this.debugLog(`Color Bulb: ${this.accessory.displayName} pushBrightnessChanges: ${JSON.stringify(req)}`);
-        this.BrightnessCached = this.Brightness;
       } else {
         this.debugLog(
-          `Color Bulb: ${this.accessory.displayName} No Changes.` + `Brightness: ${this.Brightness}, BrightnessCached: ${this.BrightnessCached}`,
+          `Color Bulb: ${this.accessory.displayName} No Changes.` + `Brightness: ${this.Brightness}, `
+          +`BrightnessCached: ${this.accessory.context.Brightness}`,
         );
       }
     } catch (e: any) {
@@ -763,30 +755,36 @@ export class ColorBulb {
     if (this.On === undefined) {
       this.debugLog(`Color Bulb: ${this.accessory.displayName} On: ${this.On}`);
     } else {
+      this.accessory.context.On = this.On;
       this.lightBulbService.updateCharacteristic(this.platform.Characteristic.On, this.On);
       this.debugLog(`Color Bulb: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
     if (this.Brightness === undefined) {
       this.debugLog(`Color Bulb: ${this.accessory.displayName} Brightness: ${this.Brightness}`);
     } else {
+      this.accessory.context.Brightness = this.Brightness;
       this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Brightness, this.Brightness);
       this.debugLog(`Color Bulb: ${this.accessory.displayName} updateCharacteristic Brightness: ${this.Brightness}`);
     }
     if (this.ColorTemperature === undefined) {
       this.debugLog(`Color Bulb: ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
     } else {
+
+      this.accessory.context.ColorTemperature = this.ColorTemperature;
       this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, this.ColorTemperature);
       this.debugLog(`Color Bulb: ${this.accessory.displayName} updateCharacteristic ColorTemperature: ${this.ColorTemperature}`);
     }
     if (this.Hue === undefined) {
       this.debugLog(`Color Bulb: ${this.accessory.displayName} Hue: ${this.Hue}`);
     } else {
+      this.accessory.context.Hue = this.Hue;
       this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Hue, this.Hue);
       this.debugLog(`Color Bulb: ${this.accessory.displayName} updateCharacteristic Hue: ${this.Hue}`);
     }
     if (this.Saturation === undefined) {
       this.debugLog(`Color Bulb: ${this.accessory.displayName} Saturation: ${this.Saturation}`);
     } else {
+      this.accessory.context.Saturation = this.Saturation;
       this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Saturation, this.Saturation);
       this.debugLog(`Color Bulb: ${this.accessory.displayName} updateCharacteristic Saturation: ${this.Saturation}`);
     }
@@ -877,7 +875,7 @@ export class ColorBulb {
     // Check and increase/decrease kelvin to range of device
     const k = Math.min(Math.max(kelvin, this.minKelvin), this.maxKelvin);
 
-    if (!this.OnCached || this.cacheKelvin === k) {
+    if (!this.accessory.context.On || this.cacheKelvin === k) {
       return;
     }
 
