@@ -58,6 +58,7 @@ export interface devicesConfig extends device {
   plug?: Record<any, any>;
   lock?: lock;
   ble?: boolean;
+  openAPI?: boolean;
   customBLEaddress?: string;
   scanDuration?: number;
   hide_device?: boolean;

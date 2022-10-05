@@ -86,6 +86,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       try {
         if (this.config.credentials?.openToken && !this.config.credentials.token) {
           await this.updateToken();
+        } else if (!this.config.credentials?.secret) {
+          // eslint-disable-next-line no-useless-escape
+          this.errorLog('\"secret\" config is not populated, you must populate then please restart Homebridge.');
         } else {
           this.discoverDevices();
         }
@@ -139,10 +142,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     if (this.config.options.logging) {
       platformConfig['logging'] = this.config.options.logging;
     }
-    if (this.config.options.logging) {
+    if (this.config.options.logging && this.config.options.refreshRate) {
       platformConfig['refreshRate'] = this.config.options.refreshRate;
     }
-    if (this.config.options.logging) {
+    if (this.config.options.logging && this.config.options.pushRate) {
       platformConfig['pushRate'] = this.config.options.pushRate;
     }
     if (Object.entries(platformConfig).length !== 0) {
@@ -216,7 +219,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           this.errorLog('Missing secret');
           this.warnLog('Cloud Enabled SwitchBot Devices & IR Devices will not work');
         }
-        throw Error('Missing secret');
       }
     }
   }
@@ -253,8 +255,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         throw new Error('pluginConfig.credentials is not an object');
       }
       // Move openToken to token
-      this.warnLog('This plugin has been updated to use OpenAPI v1.1, config is set with openToken.');
-      this.warnLog('`openToken` config has been moved to the `token` config, Please restart Homebridge.');
+      if (!this.config.credentials.secret){
+        // eslint-disable-next-line no-useless-escape, max-len
+        this.warnLog('This plugin has been updated to use OpenAPI v1.1, config is set with openToken, \"openToken\" cconfig has been moved to the \"token\" config' );
+        // eslint-disable-next-line no-useless-escape
+        this.errorLog('\"secret\" config is not populated, you must populate then please restart Homebridge.');
+      } else {
+        // eslint-disable-next-line no-useless-escape, max-len
+        this.warnLog('This plugin has been updated to use OpenAPI v1.1, config is set with openToken, \"openToken\" config has been moved to the \"token\" config, please restart Homebridge.');
+      }
 
       // set the refresh token
       pluginConfig.credentials.token = this.config.credentials?.openToken;
@@ -264,7 +273,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.warnLog(`Token: ${pluginConfig.credentials.token}`);
       }
       // save the config, ensuring we maintain pretty json
-      writeFileSync(this.api.user.configPath(), superStringify(currentConfig, null, 4));
+      writeFileSync(this.api.user.configPath(), JSON.stringify(currentConfig, null, 4));
       this.verifyConfig();
     } catch (e: any) {
       this.errorLog(e);

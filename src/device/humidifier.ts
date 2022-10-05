@@ -50,6 +50,7 @@ export class Humidifier {
   scanDuration!: number;
   deviceLogging!: string;
   deviceRefreshRate!: number;
+  OpenAPI?: boolean;
 
   // Updates
   humidifierUpdateInProgress!: boolean;
@@ -58,6 +59,7 @@ export class Humidifier {
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
     this.logs(device);
+    this.openAPI();
     this.scan(device);
     this.refreshRate(device);
     this.config(device);
@@ -388,7 +390,7 @@ export class Humidifier {
   }
 
   async openAPIRefreshStatus(): Promise<void> {
-    if (this.platform.config.credentials?.token) {
+    if (this.platform.config.credentials?.token && this.device.openAPI) {
       this.debugLog(`Humidifier: ${this.accessory.displayName} OpenAPI refreshStatus`);
       try {
         const t = Date.now();
@@ -447,6 +449,10 @@ export class Humidifier {
           );
         }
         this.apiError(e);
+      }
+    } else {
+      if (this.deviceLogging.includes('debug')) {
+        this.warnLog(`Humidifier: ${this.accessory.displayName} OpenAPI is disabled, device status will not be sent.`);
       }
     }
   }
@@ -509,7 +515,7 @@ export class Humidifier {
   }
 
   async openAPIpushChanges(): Promise<void> {
-    if (this.platform.config.credentials?.token) {
+    if (this.platform.config.credentials?.token && this.device.openAPI) {
       this.debugLog(`Humidifier: ${this.accessory.displayName} OpenAPI pushChanges`);
       if (
         this.TargetHumidifierDehumidifierState === this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER &&
@@ -566,6 +572,8 @@ export class Humidifier {
       } else {
         await this.pushActiveChanges();
       }
+    } else {
+      this.warnLog(`Humidifier: ${this.accessory.displayName} OpenAPI is disabled, commands will not be sent.`);
     }
   }
 
@@ -876,6 +884,9 @@ export class Humidifier {
     if (device.offline !== undefined) {
       config['offline'] = device.offline;
     }
+    if (device.openAPI !== undefined) {
+      config['openAPI'] = device.openAPI;
+    }
     if (Object.entries(config).length !== 0) {
       this.infoLog(`Humidifier: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
@@ -889,6 +900,15 @@ export class Humidifier {
       this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
       this.debugLog(`Humidifier: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
     }
+  }
+
+  async openAPI() {
+    if (!this.device.openAPI) {
+      this.OpenAPI = true;
+    } else {
+      this.OpenAPI = this.device.openAPI;
+    }
+    this.debugLog(`Humidifier: ${this.accessory.displayName} Using OpenAPI: ${this.OpenAPI}`);
   }
 
   async scan(device: device & devicesConfig): Promise<void> {
