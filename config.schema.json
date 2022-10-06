@@ -145,7 +145,7 @@
                   }
                 },
                 "ble": {
-                  "title": "Enable Bluetooth Low Energy (BLE) Connection",
+                  "title": "Enable Bluetooth (BLE) Connection",
                   "type": "boolean",
                   "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
                   "condition": {
@@ -155,7 +155,7 @@
                 "openAPI": {
                   "title": "Enable OpenAPI Connection",
                   "type": "boolean",
-                  "description": "Can be used to disable commands, but leave device in HomeKit. Currently only avialable for Device Type: Humidifier",
+                  "description": "Enables OpenAPI, if disabled will leave device in HomeKit and commands will not be sent to OpenAPI, BLE can still be used. Currently only avialable for Device Type: Humidifier",
                   "default": true,
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
@@ -707,6 +707,15 @@
                   ],
                   "condition": {
                     "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device);"
+                  }
+                },
+                "openAPI": {
+                  "title": "Enable OpenAPI Connection",
+                  "type": "boolean",
+                  "description": "Enables OpenAPI, if disabled will leave device in HomeKit and commands will not be sent to OpenAPI.",
+                  "default": true,
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
                   }
                 },
                 "irair": {

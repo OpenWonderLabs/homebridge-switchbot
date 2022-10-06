@@ -45,6 +45,7 @@ export class Meter {
   humidity!: serviceData['humidity'];
 
   // Config
+  OpenAPI?: boolean;
   scanDuration!: number;
   deviceLogging!: string;
   deviceRefreshRate!: number;
@@ -62,6 +63,7 @@ export class Meter {
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
     this.logs(device);
+    this.openAPI();
     this.scan(device);
     this.setupHistoryService(device);
     this.refreshRate(device);
@@ -97,11 +99,11 @@ export class Meter {
 
     // Temperature Sensor Service
     if (device.meter?.hide_temperature) {
-      this.debugLog(`Meter: ${accessory.displayName} Removing Temperature Sensor Service`);
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Temperature Sensor Service`);
       this.temperatureservice = this.accessory.getService(this.platform.Service.TemperatureSensor);
       accessory.removeService(this.temperatureservice!);
     } else if (!this.temperatureservice) {
-      this.debugLog(`Meter: ${accessory.displayName} Add Temperature Sensor Service`);
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Temperature Sensor Service`);
       (this.temperatureservice =
         this.accessory.getService(this.platform.Service.TemperatureSensor) || this.accessory.addService(this.platform.Service.TemperatureSensor)),
       `${accessory.displayName} Temperature Sensor`;
@@ -121,16 +123,16 @@ export class Meter {
           return this.CurrentTemperature!;
         });
     } else {
-      this.debugLog(`Meter: ${accessory.displayName} Temperature Sensor Service Not Added`);
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Temperature Sensor Service Not Added`);
     }
 
     // Humidity Sensor Service
     if (device.meter?.hide_humidity) {
-      this.debugLog(`Meter: ${accessory.displayName} Removing Humidity Sensor Service`);
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Humidity Sensor Service`);
       this.humidityservice = this.accessory.getService(this.platform.Service.HumiditySensor);
       accessory.removeService(this.humidityservice!);
     } else if (!this.humidityservice) {
-      this.debugLog(`Meter: ${accessory.displayName} Add Humidity Sensor Service`);
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Humidity Sensor Service`);
       (this.humidityservice =
         this.accessory.getService(this.platform.Service.HumiditySensor) || this.accessory.addService(this.platform.Service.HumiditySensor)),
       `${accessory.displayName} Humidity Sensor`;
@@ -146,16 +148,16 @@ export class Meter {
           return this.CurrentRelativeHumidity;
         });
     } else {
-      this.debugLog(`Meter: ${accessory.displayName} Humidity Sensor Service Not Added`);
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Humidity Sensor Service Not Added`);
     }
 
     // Battery Service
     if (!device.ble) {
-      this.debugLog(`Meter: ${accessory.displayName} Removing Battery Service`);
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Battery Service`);
       this.batteryService = this.accessory.getService(this.platform.Service.Battery);
       accessory.removeService(this.batteryService!);
     } else if (device.ble && !this.batteryService) {
-      this.debugLog(`Meter: ${accessory.displayName} Add Battery Service`);
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Battery Service`);
       (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || this.accessory.addService(this.platform.Service.Battery)),
       `${accessory.displayName} Battery`;
 
@@ -163,7 +165,7 @@ export class Meter {
 
       this.batteryService.setCharacteristic(this.platform.Characteristic.ChargingState, this.platform.Characteristic.ChargingState.NOT_CHARGEABLE);
     } else {
-      this.debugLog(`Meter: ${accessory.displayName} Battery Service Not Added`);
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Battery Service Not Added`);
     }
 
     // Retrieve initial values and updateHomekit
@@ -188,7 +190,7 @@ export class Meter {
       ?.join(':');
     const options = this.device.mqttPubOptions || {};
     this.mqttClient?.publish(`homebridge-switchbot/meter/${mac}`, `${message}`, options);
-    this.debugLog(`Meter: ${this.accessory.displayName} MQTT message: ${message} options:${superStringify(options)}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MQTT message: ${message} options:${superStringify(options)}`);
   }
 
   /*
@@ -198,13 +200,13 @@ export class Meter {
     if (device.mqttURL) {
       try {
         this.mqttClient = await connectAsync(device.mqttURL, device.mqttOptions || {});
-        this.debugLog(`Meter: ${this.accessory.displayName} MQTT connection has been established successfully.`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MQTT connection has been established successfully.`);
         this.mqttClient.on('error', (e: Error) => {
-          this.errorLog(`Meter: ${this.accessory.displayName} Failed to publish MQTT messages. ${e}`);
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Failed to publish MQTT messages. ${e}`);
         });
       } catch (e) {
         this.mqttClient = null;
-        this.errorLog(`Meter: ${this.accessory.displayName} Failed to establish MQTT connection. ${e}`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Failed to establish MQTT connection. ${e}`);
       }
     }
   }
@@ -238,7 +240,7 @@ export class Meter {
   }
 
   async BLEparseStatus(): Promise<void> {
-    this.debugLog(`Meter: ${this.accessory.displayName} BLE parseStatus`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE parseStatus`);
 
     // Battery
     this.BatteryLevel = Number(this.battery);
@@ -247,19 +249,20 @@ export class Meter {
     } else {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     }
-    this.debugLog(`Meter: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel},`
+    + ` StatusLowBattery: ${this.StatusLowBattery}`);
 
     // Humidity
     if (!this.device.meter?.hide_humidity) {
       this.CurrentRelativeHumidity = this.humidity!;
-      this.debugLog(`Meter: ${this.accessory.displayName} Humidity: ${this.CurrentRelativeHumidity}%`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Humidity: ${this.CurrentRelativeHumidity}%`);
     }
 
     // Current Temperature
     if (!this.device.meter?.hide_temperature) {
       this.temperature < 0 ? 0 : this.temperature > 100 ? 100 : this.temperature;
       this.CurrentTemperature = this.temperature;
-      this.debugLog(`Meter: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c`);
     }
   }
 
@@ -268,17 +271,17 @@ export class Meter {
       this.SwitchToOpenAPI = false;
     }
     if (this.platform.config.credentials?.token) {
-      this.debugLog(`Meter: ${this.accessory.displayName} OpenAPI parseStatus`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} OpenAPI parseStatus`);
       // Current Relative Humidity
       if (!this.device.meter?.hide_humidity) {
         this.CurrentRelativeHumidity = this.Humidity!;
-        this.debugLog(`Meter: ${this.accessory.displayName} Humidity: ${this.CurrentRelativeHumidity}%`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Humidity: ${this.CurrentRelativeHumidity}%`);
       }
 
       // Current Temperature
       if (!this.device.meter?.hide_temperature) {
         this.CurrentTemperature = this.Temperature!;
-        this.debugLog(`Meter: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c`);
       }
     }
   }
@@ -295,14 +298,14 @@ export class Meter {
   }
 
   async BLErefreshStatus(): Promise<void> {
-    this.debugLog(`Meter: ${this.accessory.displayName} BLE RefreshStatus`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE RefreshStatus`);
     const switchbot = await this.platform.connectBLE();
     // Convert to BLE Address
     this.device.bleMac = this.device
       .deviceId!.match(/.{1,2}/g)!
       .join(':')
       .toLowerCase();
-    this.debugLog(`Meter: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     this.getCustomBLEAddress(switchbot);
     // Start to monitor advertisement packets
     if (switchbot !== false) {
@@ -318,8 +321,8 @@ export class Meter {
             if (this.deviceLogging.includes('debug')) {
               this.infoLog(this.address);
               this.infoLog(this.device.bleMac);
-              this.infoLog(`Meter: ${this.accessory.displayName} BLE Address Found: ${this.address}`);
-              this.infoLog(`Meter: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac}`);
+              this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address Found: ${this.address}`);
+              this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac}`);
             }
             if (ad.serviceData.humidity! > 0) {
               // reject unreliable data
@@ -328,19 +331,19 @@ export class Meter {
               this.humidity = ad.serviceData.humidity;
               this.battery = ad.serviceData.battery;
             }
-            this.debugLog(`Meter: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
             this.debugLog(
-              `Meter: ${this.accessory.displayName} model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName}, ` +
+              `${this.device.deviceType}: ${this.accessory.displayName} model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName}, ` +
                 `temperature: ${superStringify(ad.serviceData.temperature?.c)}, humidity: ${ad.serviceData.humidity}, ` +
                 `battery: ${ad.serviceData.battery}`,
             );
 
             if (this.serviceData) {
               this.connected = true;
-              this.debugLog(`Meter: ${this.accessory.displayName} connected: ${this.connected}`);
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
             } else {
               this.connected = false;
-              this.debugLog(`Meter: ${this.accessory.displayName} connected: ${this.connected}`);
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
             }
           };
           // Wait 10 seconds
@@ -357,14 +360,15 @@ export class Meter {
           }
         })
         .catch(async (e: any) => {
-          this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
           if (this.deviceLogging.includes('debug')) {
             this.errorLog(
-              `Meter: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${superStringify(e.message)}`,
+              `${this.device.deviceType}: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
+              + ` Error Message: ${superStringify(e.message)}`,
             );
           }
           if (this.platform.config.credentials?.token) {
-            this.warnLog(`Meter: ${this.accessory.displayName} Using OpenAPI Connection`);
+            this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection`);
             this.SwitchToOpenAPI = true;
             this.openAPIRefreshStatus();
           }
@@ -384,7 +388,7 @@ export class Meter {
         });
         // Set an event handler
         switchbot.onadvertisement = (ad: any) => {
-          this.warnLog(`Meter: ${this.accessory.displayName} ad: ${superStringify(ad, null, '  ')}`);
+          this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} ad: ${superStringify(ad, null, '  ')}`);
         };
         await switchbot.wait(10000);
         // Stop to monitor
@@ -394,24 +398,24 @@ export class Meter {
   }
 
   async BLEconnection(switchbot: any): Promise<void> {
-    this.errorLog(`Meter: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
+    this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
     if (this.platform.config.credentials?.token) {
-      this.warnLog(`Meter: ${this.accessory.displayName} Using OpenAPI Connection`);
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection`);
       this.SwitchToOpenAPI = true;
       await this.openAPIRefreshStatus();
     }
   }
 
   async openAPIRefreshStatus(): Promise<void> {
-    if (this.platform.config.credentials?.token) {
-      this.debugLog(`Meter: ${this.accessory.displayName} OpenAPI RefreshStatus`);
+    if (this.platform.config.credentials?.token && this.OpenAPI) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} OpenAPI RefreshStatus`);
       try {
         const t = Date.now();
         const nonce = 'requestID';
         const data = this.platform.config.credentials?.token + t + nonce;
         const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
         const sign = signTerm.toString('base64');
-        this.debugLog(`Meter: ${this.accessory.displayName} sign: ${sign}`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
         const options = {
           hostname: HostDomain,
           port: 443,
@@ -426,38 +430,41 @@ export class Meter {
           },
         };
         const req = https.request(options, (res) => {
-          this.debugLog(`Meter: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
           let rawData = '';
           res.on('data', (d) => {
             rawData += d;
-            this.debugLog(`Meter: ${this.accessory.displayName} d: ${d}`);
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
           });
           res.on('end', () => {
             try {
               this.deviceStatus = JSON.parse(rawData);
-              this.debugLog(`Meter: ${this.accessory.displayName} openAPIRefreshStatus: ${superStringify(this.deviceStatus)}`);
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus: ${superStringify(this.deviceStatus)}`);
               this.Humidity = this.deviceStatus.body.humidity!;
               this.Temperature = this.deviceStatus.body.temperature!;
               this.parseStatus();
               this.updateHomeKitCharacteristics();
             } catch (e: any) {
-              this.errorLog(`Meter: ${this.accessory.displayName} error message: ${e.message}`);
+              this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
             }
           });
         });
         req.on('error', (e: any) => {
-          this.errorLog(`Meter: ${this.accessory.displayName} error message: ${e.message}`);
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
         });
         req.end();
       } catch (e: any) {
-        this.errorLog(`Meter: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
         if (this.deviceLogging.includes('debug')) {
           this.errorLog(
-            `Meter: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` + ` Error Message: ${superStringify(e.message)}`,
+            `${this.device.deviceType}: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
+            + ` Error Message: ${superStringify(e.message)}`,
           );
         }
         this.apiError(e);
       }
+    } else {
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} OpenAPI is disabled, commands will not be sent.`);
     }
   }
 
@@ -469,37 +476,38 @@ export class Meter {
     const entry = { time: Math.round(new Date().valueOf() / 1000) };
     if (!this.device.meter?.hide_humidity) {
       if (this.CurrentRelativeHumidity === undefined) {
-        this.debugLog(`Meter: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
       } else {
         this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
-        this.debugLog(`Meter: ${this.accessory.displayName} updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
+        + ` CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
         mqttmessage.push(`"humidity": ${this.CurrentRelativeHumidity}`);
         entry['humidity'] = this.CurrentRelativeHumidity;
       }
     }
     if (!this.device.meter?.hide_temperature) {
       if (this.CurrentTemperature === undefined) {
-        this.debugLog(`Meter: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
       } else {
         this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
-        this.debugLog(`Meter: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
         mqttmessage.push(`"temperature": ${this.CurrentTemperature}`);
         entry['temp'] = this.CurrentTemperature;
       }
     }
     if (this.device.ble) {
       if (this.BatteryLevel === undefined) {
-        this.debugLog(`Meter: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
       } else {
         this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
-        this.debugLog(`Meter: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
         mqttmessage.push(`"battery": ${this.BatteryLevel}`);
       }
       if (this.StatusLowBattery === undefined) {
-        this.debugLog(`Meter: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
       } else {
         this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
-        this.debugLog(`Meter: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
         mqttmessage.push(`"lowBattery": ${this.StatusLowBattery}`);
       }
     }
@@ -532,6 +540,9 @@ export class Meter {
     if (device.ble !== undefined) {
       config['ble'] = device.ble;
     }
+    if (device.openAPI !== undefined) {
+      config['openAPI'] = device.openAPI;
+    }
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }
@@ -542,30 +553,39 @@ export class Meter {
       config['scanDuration'] = device.scanDuration;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`Meter: ${this.accessory.displayName} Config: ${superStringify(config)}`);
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
   }
 
   async refreshRate(device: device & devicesConfig): Promise<void> {
     if (device.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
-      this.debugLog(`Meter: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
     } else if (this.platform.config.options!.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
-      this.debugLog(`Meter: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
     }
+  }
+
+  async openAPI() {
+    if (!this.device.openAPI) {
+      this.OpenAPI = true;
+    } else {
+      this.OpenAPI = this.device.openAPI;
+    }
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI: ${this.OpenAPI}`);
   }
 
   async scan(device: device & devicesConfig): Promise<void> {
     if (device.scanDuration) {
       this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
       if (device.ble) {
-        this.debugLog(`Meter: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
       }
     } else {
       this.scanDuration = this.accessory.context.scanDuration = 1;
       if (this.device.ble) {
-        this.debugLog(`Meter: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
       }
     }
   }
@@ -573,24 +593,25 @@ export class Meter {
   async logs(device: device & devicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
-      this.debugLog(`Meter: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
     } else if (device.logging) {
       this.deviceLogging = this.accessory.context.logging = device.logging;
-      this.debugLog(`Meter: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
     } else if (this.platform.config.options?.logging) {
       this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      this.debugLog(`Meter: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
-      this.debugLog(`Meter: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
     }
   }
 
   FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
     let FirmwareRevision: string;
-    this.debugLog(`Meter: ${this.accessory.displayName} accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
-    this.debugLog(`Meter: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
-    this.debugLog(`Meter: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+    + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
     if (accessory.context.FirmwareRevision) {
       FirmwareRevision = accessory.context.FirmwareRevision;
     } else if (device.firmware) {

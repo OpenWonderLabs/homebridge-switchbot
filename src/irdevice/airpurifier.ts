@@ -40,6 +40,7 @@ export class AirPurifier {
 
   // Config
   deviceLogging!: string;
+  OpenAPI?: boolean;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
     // default placeholders
@@ -87,7 +88,7 @@ export class AirPurifier {
   }
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
-    this.debugLog(`Air Purifier: ${this.accessory.displayName} Set Active: ${value}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Active: ${value}`);
     if (value === this.platform.Characteristic.Active.INACTIVE) {
       this.pushAirPurifierOffChanges();
     } else {
@@ -100,23 +101,25 @@ export class AirPurifier {
 
   async updateHomeKitCharacteristics(): Promise<void> {
     if (this.Active === undefined) {
-      this.debugLog(`Air Purifier: ${this.accessory.displayName} Active: ${this.Active}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Active}`);
     } else {
       this.airPurifierService?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
-      this.debugLog(`Air Purifier: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
     }
     if (this.CurrentAirPurifierState === undefined) {
-      this.debugLog(`Air Purifier: ${this.accessory.displayName} CurrentAirPurifierState: ${this.CurrentAirPurifierState}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} CurrentAirPurifierState: ${this.CurrentAirPurifierState}`);
     } else {
       this.airPurifierService?.updateCharacteristic(this.platform.Characteristic.CurrentAirPurifierState, this.CurrentAirPurifierState);
-      this.debugLog(`Air Purifier: ${this.accessory.displayName}` + ` updateCharacteristic CurrentAirPurifierState: ${this.CurrentAirPurifierState}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+      + ` updateCharacteristic CurrentAirPurifierState: ${this.CurrentAirPurifierState}`);
     }
     if (this.CurrentHeaterCoolerState === undefined) {
-      this.debugLog(`Air Purifier: ${this.accessory.displayName} CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
     } else {
       this.airPurifierService?.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, this.CurrentHeaterCoolerState);
       this.debugLog(
-        `Air Purifier: ${this.accessory.displayName}` + ` updateCharacteristic CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`,
+        `${this.device.remoteType}: ${this.accessory.displayName}`
+        + ` updateCharacteristic CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`,
       );
     }
   }
@@ -214,86 +217,89 @@ export class AirPurifier {
   }
 
   async pushChanges(body): Promise<void> {
-    try {
+    if (this.OpenAPI) {
+      try {
       // Make Push On request to the API
-      const t = Date.now();
-      const nonce = 'requestID';
-      const data = this.platform.config.credentials?.token + t + nonce;
-      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
-        .update(Buffer.from(data, 'utf-8'))
-        .digest();
-      const sign = signTerm.toString('base64');
-      this.debugLog(`Air Purifier: ${this.accessory.displayName} sign: ${sign}`);
-      this.infoLog(`Air Purifier: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
-      const options = {
-        hostname: HostDomain,
-        port: 443,
-        path: `${DevicePath}/${this.device.deviceId}/commands`,
-        method: 'POST',
-        headers: {
-          'Authorization': this.platform.config.credentials?.token,
-          'sign': sign,
-          'nonce': nonce,
-          't': t,
-          'Content-Type': 'application/json',
-          'Content-Length': body.length,
-        },
-      };
-      const req = https.request(options, res => {
-        this.debugLog(`Air Purifier: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
-        this.statusCode({ res });
-        res.on('data', d => {
-          this.debugLog(`Air Purifier: ${this.accessory.displayName} d: ${d}`);
+        const t = Date.now();
+        const nonce = 'requestID';
+        const data = this.platform.config.credentials?.token + t + nonce;
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+          .update(Buffer.from(data, 'utf-8'))
+          .digest();
+        const sign = signTerm.toString('base64');
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} sign: ${sign}`);
+        this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
+        const options = {
+          hostname: HostDomain,
+          port: 443,
+          path: `${DevicePath}/${this.device.deviceId}/commands`,
+          method: 'POST',
+          headers: {
+            'Authorization': this.platform.config.credentials?.token,
+            'sign': sign,
+            'nonce': nonce,
+            't': t,
+            'Content-Type': 'application/json',
+            'Content-Length': body.length,
+          },
+        };
+        const req = https.request(options, res => {
+          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+          this.statusCode({ res });
+          res.on('data', d => {
+            this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} d: ${d}`);
+          });
         });
-      });
-      req.on('error', (e: any) => {
-        this.errorLog(`Air Purifier: ${this.accessory.displayName} error message: ${e.message}`);
-      });
-      req.write(body);
-      req.end();
-      this.debugLog(`Air Purifier: ${this.accessory.displayName} pushchanges: ${superStringify(req)}`);
-      this.updateHomeKitCharacteristics();
-      this.CurrentTemperatureCached = this.CurrentTemperature;
-      this.accessory.context.CurrentTemperature = this.CurrentTemperatureCached;
-    } catch (e: any) {
-      this.errorLog(`Air Purifier: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-      if (this.deviceLogging.includes('debug')) {
-        this.errorLog(
-          `Air Purifier: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` + ` Error Message: ${superStringify(e.message)}`,
-        );
+        req.on('error', (e: any) => {
+          this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} error message: ${e.message}`);
+        });
+        req.write(body);
+        req.end();
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushchanges: ${superStringify(req)}`);
+        this.updateHomeKitCharacteristics();
+        this.CurrentTemperatureCached = this.CurrentTemperature;
+        this.accessory.context.CurrentTemperature = this.CurrentTemperatureCached;
+      } catch (e: any) {
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
+        if (this.deviceLogging.includes('debug')) {
+          this.errorLog(
+            `${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
+            + ` Error Message: ${superStringify(e.message)}`,
+          );
+        }
+        this.apiError(e);
       }
-      this.apiError(e);
     }
   }
 
   async statusCode({ res }: { res: IncomingMessage }): Promise<void> {
     switch (res.statusCode) {
       case 151:
-        this.errorLog(`Air Purifier: ${this.accessory.displayName} Command not supported by this device type.`);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Command not supported by this device type.`);
         break;
       case 152:
-        this.errorLog(`Air Purifier: ${this.accessory.displayName} Device not found.`);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device not found.`);
         break;
       case 160:
-        this.errorLog(`Air Purifier: ${this.accessory.displayName} Command is not supported.`);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Command is not supported.`);
         break;
       case 161:
-        this.errorLog(`Air Purifier: ${this.accessory.displayName} Device is offline.`);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device is offline.`);
         break;
       case 171:
-        this.errorLog(`Air Purifier: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
         break;
       case 190:
         this.errorLog(
-          `Air Purifier: ${this.accessory.displayName} Device internal error due to device states not synchronized` +
+          `${this.device.remoteType}: ${this.accessory.displayName} Device internal error due to device states not synchronized` +
             ` with server, Or command: ${superStringify(res)} format is invalid`,
         );
         break;
       case 100:
-        this.debugLog(`Air Purifier: ${this.accessory.displayName} Command successfully sent.`);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Command successfully sent.`);
         break;
       default:
-        this.debugLog(`Air Purifier: ${this.accessory.displayName} Unknown statusCode.`);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Unknown statusCode.`);
     }
   }
 
@@ -305,6 +311,15 @@ export class AirPurifier {
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
+  async openAPI() {
+    if (!this.device.openAPI) {
+      this.OpenAPI = true;
+    } else {
+      this.OpenAPI = this.device.openAPI;
+    }
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using OpenAPI: ${this.OpenAPI}`);
+  }
+
   async config(device: irdevice & irDevicesConfig): Promise<void> {
     let config = {};
     if (device.irpur) {
@@ -313,24 +328,27 @@ export class AirPurifier {
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }
+    if (device.openAPI !== undefined) {
+      config['openAPI'] = device.openAPI;
+    }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`Air Purifier: ${this.accessory.displayName} Config: ${superStringify(config)}`);
+      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
   }
 
   async logs(device: irdevice & irDevicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
-      this.debugLog(`Air Purifier: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
     } else if (device.logging) {
       this.deviceLogging = this.accessory.context.logging = device.logging;
-      this.debugLog(`Air Purifier: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
     } else if (this.platform.config.options?.logging) {
       this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      this.debugLog(`Air Purifier: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
-      this.debugLog(`Air Purifier: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
     }
   }
 

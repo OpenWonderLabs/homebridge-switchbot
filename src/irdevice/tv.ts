@@ -26,6 +26,7 @@ export class TV {
 
   // Config
   deviceLogging!: string;
+  OpenAPI?: boolean;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
     // default placeholders
@@ -229,12 +230,12 @@ export class TV {
   /**
    * Pushes the requested changes to the SwitchBot API
    * deviceType	commandType     Command	          command parameter	         Description
-   * TV:        "command"       "turnOff"         "default"	        =        set to OFF state
-   * TV:        "command"       "turnOn"          "default"	        =        set to ON state
-   * TV:        "command"       "volumeAdd"       "default"	        =        volume up
-   * TV:        "command"       "volumeSub"       "default"	        =        volume down
-   * TV:        "command"       "channelAdd"      "default"	        =        next channel
-   * TV:        "command"       "channelSub"      "default"	        =        previous channel
+   * TV -        "command"       "turnOff"         "default"	        =        set to OFF state
+   * TV -        "command"       "turnOn"          "default"	        =        set to ON state
+   * TV -        "command"       "volumeAdd"       "default"	        =        volume up
+   * TV -        "command"       "volumeSub"       "default"	        =        volume down
+   * TV -        "command"       "channelAdd"      "default"	        =        next channel
+   * TV -        "command"       "channelSub"      "default"	        =        previous channel
    */
   async pushTvOnChanges(): Promise<void> {
     if (this.Active !== 1) {
@@ -338,54 +339,57 @@ export class TV {
   }
 
   async pushTVChanges(body): Promise<void> {
-    try {
-      // Make Push On request to the API
-      const t = Date.now();
-      const nonce = 'requestID';
-      const data = this.platform.config.credentials?.token + t + nonce;
-      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
-        .update(Buffer.from(data, 'utf-8'))
-        .digest();
-      const sign = signTerm.toString('base64');
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} sign: ${sign}`);
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
-      const options = {
-        hostname: HostDomain,
-        port: 443,
-        path: `${DevicePath}/${this.device.deviceId}/commands`,
-        method: 'POST',
-        headers: {
-          'Authorization': this.platform.config.credentials?.token,
-          'sign': sign,
-          'nonce': nonce,
-          't': t,
-          'Content-Type': 'application/json',
-          'Content-Length': body.length,
-        },
-      };
-      const req = https.request(options, res => {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
-        this.statusCode({ res });
-        res.on('data', d => {
-          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} d: ${d}`);
-        });
-      });
-      req.on('error', (e: any) => {
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} error message: ${e.message}`);
-      });
-      req.write(body);
-      req.end();
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushchanges: ${superStringify(req)}`);
-      this.updateHomeKitCharacteristics();
-    } catch (e: any) {
-      this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-      if (this.deviceLogging.includes('debug')) {
-        this.errorLog(
-          `${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` +
+    if (this.OpenAPI) {
+      {
+        try {
+          // Make Push On request to the API
+          const t = Date.now();
+          const nonce = 'requestID';
+          const data = this.platform.config.credentials?.token + t + nonce;
+          const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+            .update(Buffer.from(data, 'utf-8'))
+            .digest();
+          const sign = signTerm.toString('base64');
+          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} sign: ${sign}`);
+          this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
+          const options = {
+            hostname: HostDomain,
+            port: 443,
+            path: `${DevicePath}/${this.device.deviceId}/commands`,
+            method: 'POST',
+            headers: {
+              'Authorization': this.platform.config.credentials?.token,
+              'sign': sign,
+              'nonce': nonce,
+              't': t,
+              'Content-Type': 'application/json',
+              'Content-Length': body.length,
+            },
+          };
+          const req = https.request(options, res => {
+            this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+            this.statusCode({ res });
+            res.on('data', d => {
+              this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} d: ${d}`);
+            });
+          });
+          req.on('error', (e: any) => {
+            this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} error message: ${e.message}`);
+          });
+          req.write(body);
+          req.end();
+          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushchanges: ${superStringify(req)}`);
+          this.updateHomeKitCharacteristics();
+        } catch (e: any) {
+          this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
+          if (this.deviceLogging.includes('debug')) {
+            this.errorLog(
+              `${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` +
             ` Error Message: ${superStringify(e.message)}`,
-        );
-      }
-      this.apiError(e);
+            );
+          }
+          this.apiError(e);
+        }}
     }
   }
 
@@ -427,6 +431,15 @@ export class TV {
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
+  async openAPI() {
+    if (!this.device.openAPI) {
+      this.OpenAPI = true;
+    } else {
+      this.OpenAPI = this.device.openAPI;
+    }
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using OpenAPI: ${this.OpenAPI}`);
+  }
+
   async config(device: irdevice & irDevicesConfig): Promise<void> {
     let config = {};
     if (device.irtv) {
@@ -434,6 +447,9 @@ export class TV {
     }
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
+    }
+    if (device.openAPI !== undefined) {
+      config['openAPI'] = device.openAPI;
     }
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);

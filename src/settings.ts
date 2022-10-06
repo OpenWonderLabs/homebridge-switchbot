@@ -45,18 +45,9 @@ export interface devicesConfig extends device {
   configDeviceName?: string;
   deviceId: string;
   external?: boolean;
-  logging?: string;
   refreshRate?: number;
   firmware?: string;
-  bot?: bot;
-  meter?: meter;
-  humidifier?: humidifier;
-  curtain?: curtain;
-  contact?: contact;
-  motion?: motion;
-  colorbulb?: colorbulb;
-  plug?: Record<any, any>;
-  lock?: lock;
+  logging?: string;
   ble?: boolean;
   openAPI?: boolean;
   customBLEaddress?: string;
@@ -67,6 +58,15 @@ export interface devicesConfig extends device {
   mqttOptions?: IClientOptions;
   mqttPubOptions?: IClientOptions;
   history?: boolean;
+  bot?: bot;
+  meter?: meter;
+  humidifier?: humidifier;
+  curtain?: curtain;
+  contact?: contact;
+  motion?: motion;
+  colorbulb?: colorbulb;
+  plug?: Record<any, any>;
+  lock?: lock;
 }
 
 export type meter = {
@@ -127,6 +127,8 @@ export interface irDevicesConfig extends irdevice {
   deviceId: string;
   external?: boolean;
   logging?: string;
+  openAPI?: boolean;
+  hide_device?: boolean;
   irfan?: irfan;
   irair?: irair;
   irpur?: Record<any, any>;
@@ -136,7 +138,6 @@ export interface irDevicesConfig extends irdevice {
   irwh?: Record<any, any>;
   irtv?: irtv;
   other?: other;
-  hide_device?: boolean;
 }
 
 export type irfan = {

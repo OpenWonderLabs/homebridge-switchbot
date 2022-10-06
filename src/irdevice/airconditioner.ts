@@ -46,6 +46,7 @@ export class AirConditioner {
   deviceLogging!: string;
   hide_automode?: boolean;
   pushOn?: boolean;
+  OpenAPI?: boolean;
 
   private readonly valid12 = [1, 2];
   private readonly valid012 = [0, 1, 2];
@@ -111,14 +112,14 @@ export class AirConditioner {
       this.TargetHeaterCoolerState = 1 || 2;
       this.ValidValues = [1, 2];
       this.debugLog(
-        `Air Conditioner: ${this.accessory.displayName} ValidValues: ${superStringify(this.ValidValues)},` +
+        `${this.device.remoteType}: ${this.accessory.displayName} ValidValues: ${superStringify(this.ValidValues)},` +
           ` hide_automode: ${this.hide_automode}, TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`,
       );
     } else {
       this.TargetHeaterCoolerState = 0 || 1 || 2;
       this.ValidValues = [0, 1, 2];
       this.debugLog(
-        `Air Conditioner: ${this.accessory.displayName} ValidValues: ${superStringify(this.ValidValues)},` +
+        `${this.device.remoteType}: ${this.accessory.displayName} ValidValues: ${superStringify(this.ValidValues)},` +
           ` hide_automode: ${this.hide_automode}, TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`,
       );
     }
@@ -229,7 +230,8 @@ export class AirConditioner {
     if (this.CurrentMode === 1) {
       this.CurrentTemperature = 25;
       this.debugLog(
-        `Air Conditioner: ${this.accessory.displayName} CurrentMode: ${this.CurrentMode},` + ` CurrentTemperature: ${this.CurrentTemperature}`,
+        `${this.device.remoteType}: ${this.accessory.displayName} CurrentMode: ${this.CurrentMode},`
+        + ` CurrentTemperature: ${this.CurrentTemperature}`,
       );
     }
     const parameter = `${this.CurrentTemperature},${this.CurrentMode},${this.CurrentFanSpeed},${this.state}`;
@@ -254,142 +256,148 @@ export class AirConditioner {
   }
 
   async pushChanges(body): Promise<void> {
-    try {
+    if (this.OpenAPI) {
+      try {
       // Make Push On request to the API
-      const t = Date.now();
-      const nonce = 'requestID';
-      const data = this.platform.config.credentials?.token + t + nonce;
-      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
-        .update(Buffer.from(data, 'utf-8'))
-        .digest();
-      const sign = signTerm.toString('base64');
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} sign: ${sign}`);
-      this.infoLog(`Air Conditioner: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
-      const options = {
-        hostname: HostDomain,
-        port: 443,
-        path: `${DevicePath}/${this.device.deviceId}/commands`,
-        method: 'POST',
-        headers: {
-          'Authorization': this.platform.config.credentials?.token,
-          'sign': sign,
-          'nonce': nonce,
-          't': t,
-          'Content-Type': 'application/json',
-          'Content-Length': body.length,
-        },
-      };
-      const req = https.request(options, res => {
-        this.debugLog(`Air Conditioner: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
-        this.statusCode({ res });
-        res.on('data', d => {
-          this.debugLog(`Air Conditioner: ${this.accessory.displayName} d: ${d}`);
+        const t = Date.now();
+        const nonce = 'requestID';
+        const data = this.platform.config.credentials?.token + t + nonce;
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+          .update(Buffer.from(data, 'utf-8'))
+          .digest();
+        const sign = signTerm.toString('base64');
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} sign: ${sign}`);
+        this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
+        const options = {
+          hostname: HostDomain,
+          port: 443,
+          path: `${DevicePath}/${this.device.deviceId}/commands`,
+          method: 'POST',
+          headers: {
+            'Authorization': this.platform.config.credentials?.token,
+            'sign': sign,
+            'nonce': nonce,
+            't': t,
+            'Content-Type': 'application/json',
+            'Content-Length': body.length,
+          },
+        };
+        const req = https.request(options, res => {
+          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+          this.statusCode({ res });
+          res.on('data', d => {
+            this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} d: ${d}`);
+          });
         });
-      });
-      req.on('error', (e: any) => {
-        this.errorLog(`Air Conditioner: ${this.accessory.displayName} error message: ${e.message}`);
-      });
-      req.write(body);
-      req.end();
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} pushchanges: ${superStringify(req)}`);
-      this.CurrentTemperatureCached = this.CurrentTemperature;
-      this.accessory.context.CurrentTemperature = this.CurrentTemperatureCached;
-      this.HeatingThresholdTemperature = this.CurrentTemperatureCached;
-      this.HeatingThresholdTemperatureCached = this.CurrentTemperatureCached;
-      this.accessory.context.HeatingThresholdTemperature = this.HeatingThresholdTemperatureCached;
-      this.CoolingThresholdTemperature = this.CurrentTemperatureCached;
-      this.CoolingThresholdTemperatureCached = this.CurrentTemperatureCached;
-      this.accessory.context.CoolingThresholdTemperature = this.CoolingThresholdTemperatureCached;
-      this.updateHomeKitCharacteristics();
-    } catch (e: any) {
-      this.errorLog(`Air Conditioner: ${this.accessory.displayName} failed pushChanges`);
-      if (this.deviceLogging.includes('debug')) {
-        this.errorLog(`Air Conditioner: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${superStringify(e.message)}`);
+        req.on('error', (e: any) => {
+          this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} error message: ${e.message}`);
+        });
+        req.write(body);
+        req.end();
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushchanges: ${superStringify(req)}`);
+        this.CurrentTemperatureCached = this.CurrentTemperature;
+        this.accessory.context.CurrentTemperature = this.CurrentTemperatureCached;
+        this.HeatingThresholdTemperature = this.CurrentTemperatureCached;
+        this.HeatingThresholdTemperatureCached = this.CurrentTemperatureCached;
+        this.accessory.context.HeatingThresholdTemperature = this.HeatingThresholdTemperatureCached;
+        this.CoolingThresholdTemperature = this.CurrentTemperatureCached;
+        this.CoolingThresholdTemperatureCached = this.CurrentTemperatureCached;
+        this.accessory.context.CoolingThresholdTemperature = this.CoolingThresholdTemperatureCached;
+        this.updateHomeKitCharacteristics();
+      } catch (e: any) {
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges`);
+        if (this.deviceLogging.includes('debug')) {
+          this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges,`
+          + ` Error Message: ${superStringify(e.message)}`);
+        }
+        this.apiError(e);
       }
-      this.apiError(e);
     }
   }
 
   async statusCode({ res }: { res: IncomingMessage }): Promise<void> {
     switch (res.statusCode) {
       case 151:
-        this.errorLog(`Air Conditioner: ${this.accessory.displayName} Command not supported by this device type.`);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Command not supported by this device type.`);
         break;
       case 152:
-        this.errorLog(`Air Conditioner: ${this.accessory.displayName} Device not found.`);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device not found.`);
         break;
       case 160:
-        this.errorLog(`Air Conditioner: ${this.accessory.displayName} Command is not supported.`);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Command is not supported.`);
         break;
       case 161:
-        this.errorLog(`Air Conditioner: ${this.accessory.displayName} Device is offline.`);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device is offline.`);
         break;
       case 171:
-        this.errorLog(`Air Conditioner: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
         break;
       case 190:
         this.errorLog(
-          `Air Conditioner: ${this.accessory.displayName} Device internal error due to device states not synchronized` +
+          `${this.device.remoteType}: ${this.accessory.displayName} Device internal error due to device states not synchronized` +
             ` with server, Or command: ${superStringify(res)} format is invalid`,
         );
         break;
       case 100:
-        this.debugLog(`Air Conditioner: ${this.accessory.displayName} Command successfully sent.`);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Command successfully sent.`);
         break;
       default:
-        this.debugLog(`Air Conditioner: ${this.accessory.displayName} Unknown statusCode.`);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Unknown statusCode.`);
     }
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
     if (this.Active === undefined) {
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} Active: ${this.Active}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Active}`);
     } else {
       this.coolerService?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
     }
     if (this.RotationSpeed === undefined) {
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} RotationSpeed: ${this.RotationSpeed}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} RotationSpeed: ${this.RotationSpeed}`);
     } else {
       this.coolerService?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.RotationSpeed);
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} updateCharacteristic RotationSpeed: ${this.RotationSpeed}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic RotationSpeed: ${this.RotationSpeed}`);
     }
     if (this.CurrentTemperature === undefined) {
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
     } else {
       this.coolerService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
     }
     if (this.TargetHeaterCoolerState === undefined) {
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
     } else {
       this.coolerService?.updateCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState, this.TargetHeaterCoolerState);
       this.debugLog(
-        `Air Conditioner: ${this.accessory.displayName}` + ` updateCharacteristic TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`,
+        `${this.device.remoteType}: ${this.accessory.displayName}` + ` updateCharacteristic TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`,
       );
     }
     if (this.CurrentHeaterCoolerState === undefined) {
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
     } else {
       this.coolerService?.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, this.CurrentHeaterCoolerState);
       this.debugLog(
-        `Air Conditioner: ${this.accessory.displayName}` + ` updateCharacteristic CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`,
+        `${this.device.remoteType}: ${this.accessory.displayName}`
+        + ` updateCharacteristic CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`,
       );
     }
     if (this.HeatingThresholdTemperature === undefined) {
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} HeatingThresholdTemperature: ${this.HeatingThresholdTemperature}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} HeatingThresholdTemperature: ${this.HeatingThresholdTemperature}`);
     } else {
       this.coolerService?.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, this.HeatingThresholdTemperature);
       this.debugLog(
-        `Air Conditioner: ${this.accessory.displayName}` + ` updateCharacteristic HeatingThresholdTemperature: ${this.HeatingThresholdTemperature}`,
+        `${this.device.remoteType}: ${this.accessory.displayName}`
+        + ` updateCharacteristic HeatingThresholdTemperature: ${this.HeatingThresholdTemperature}`,
       );
     }
     if (this.CoolingThresholdTemperature === undefined) {
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} CoolingThresholdTemperature: ${this.CoolingThresholdTemperature}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} CoolingThresholdTemperature: ${this.CoolingThresholdTemperature}`);
     } else {
       this.coolerService?.updateCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature, this.CoolingThresholdTemperature);
       this.debugLog(
-        `Air Conditioner: ${this.accessory.displayName}` + ` updateCharacteristic CoolingThresholdTemperature: ${this.CoolingThresholdTemperature}`,
+        `${this.device.remoteType}: ${this.accessory.displayName}`
+        + ` updateCharacteristic CoolingThresholdTemperature: ${this.CoolingThresholdTemperature}`,
       );
     }
   }
@@ -412,7 +420,7 @@ export class AirConditioner {
     } else {
       this.CurrentTemperatureCached = this.CurrentTemperature;
     }
-    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Get CurrentTemperature: ${this.CurrentTemperature}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Get CurrentTemperature: ${this.CurrentTemperature}`);
     this.accessory.context.CurrentTemperature = this.CurrentTemperatureCached;
     return this.CurrentTemperature;
   }
@@ -425,7 +433,7 @@ export class AirConditioner {
     } else {
       this.RotationSpeed = this.CurrentFanSpeed - 1;
     }
-    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Get RotationSpeed: ${this.RotationSpeed}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Get RotationSpeed: ${this.RotationSpeed}`);
     this.RotationSpeedCached = this.RotationSpeed;
     this.accessory.context.RotationSpeed = this.RotationSpeedCached;
     return this.RotationSpeed;
@@ -444,17 +452,17 @@ export class AirConditioner {
   }
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
-    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Set Active: ${value}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Active: ${value}`);
 
     this.Active = value;
     this.ActiveCached = this.Active;
     this.accessory.context.Active = this.ActiveCached;
 
     if (value === this.platform.Characteristic.Active.INACTIVE) {
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} pushAirConditionerOffChanges, Active: ${this.Active}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushAirConditionerOffChanges, Active: ${this.Active}`);
       this.pushAirConditionerOffChanges();
     } else {
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} pushAirConditionerOnChanges, Active: ${this.Active}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushAirConditionerOnChanges, Active: ${this.Active}`);
       if (this.pushOn) {
         this.pushAirConditionerOnChanges();
       } else {
@@ -467,19 +475,19 @@ export class AirConditioner {
     if (this.ValidValues === this.valid012) {
       this.TargetHeaterCoolerState = this.platform.Characteristic.TargetHeaterCoolerState.AUTO;
       this.debugLog(
-        `Air Conditioner: ${this.accessory.displayName} Get (AUTO) TargetHeaterCoolerState: ${this.CurrentHeaterCoolerState},` +
+        `${this.device.remoteType}: ${this.accessory.displayName} Get (AUTO) TargetHeaterCoolerState: ${this.CurrentHeaterCoolerState},` +
           ` ValidValues: ${this.ValidValues}`,
       );
     } else if (this.ValidValues === this.valid12) {
       this.TargetHeaterCoolerState =
         this.platform.Characteristic.TargetHeaterCoolerState.COOL || this.platform.Characteristic.TargetHeaterCoolerState.HEAT;
       this.debugLog(
-        `Air Conditioner: ${this.accessory.displayName} Get (COOL/HEAT) TargetHeaterCoolerState: ${this.CurrentHeaterCoolerState},` +
+        `${this.device.remoteType}: ${this.accessory.displayName} Get (COOL/HEAT) TargetHeaterCoolerState: ${this.CurrentHeaterCoolerState},` +
           ` ValidValues: ${this.ValidValues}`,
       );
     } else {
       this.debugLog(
-        `Air Conditioner: ${this.accessory.displayName} Get TargetHeaterCoolerState: ${this.CurrentHeaterCoolerState},` +
+        `${this.device.remoteType}: ${this.accessory.displayName} Get TargetHeaterCoolerState: ${this.CurrentHeaterCoolerState},` +
           ` ValidValues: ${this.ValidValues}`,
       );
     }
@@ -496,7 +504,7 @@ export class AirConditioner {
         this.TargetHeaterCoolerStateCOOL();
       } else {
         this.errorLog(
-          `Air Conditioner: ${this.accessory.displayName} Set TargetHeaterCoolerState: ${this.TargetHeaterCoolerState},` +
+          `${this.device.remoteType}: ${this.accessory.displayName} Set TargetHeaterCoolerState: ${this.TargetHeaterCoolerState},` +
             ` hide_automode: ${this.hide_automode} `,
         );
       }
@@ -509,7 +517,7 @@ export class AirConditioner {
         this.TargetHeaterCoolerStateCOOL();
       } else {
         this.errorLog(
-          `Air Conditioner: ${this.accessory.displayName} Set TargetHeaterCoolerState: ${this.TargetHeaterCoolerState},` +
+          `${this.device.remoteType}: ${this.accessory.displayName} Set TargetHeaterCoolerState: ${this.TargetHeaterCoolerState},` +
             ` hide_automode: ${this.hide_automode} `,
         );
       }
@@ -522,22 +530,22 @@ export class AirConditioner {
   async TargetHeaterCoolerStateAUTO(): Promise<void> {
     this.TargetHeaterCoolerState = this.platform.Characteristic.TargetHeaterCoolerState.AUTO;
     this.CurrentMode = 1;
-    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Set (AUTO) TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
-    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Switchbot CurrentMode: ${this.CurrentMode}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set (AUTO) TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Switchbot CurrentMode: ${this.CurrentMode}`);
   }
 
   async TargetHeaterCoolerStateCOOL(): Promise<void> {
     this.TargetHeaterCoolerState = this.platform.Characteristic.TargetHeaterCoolerState.COOL;
     this.CurrentMode = 2;
-    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Set (COOL) TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
-    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Switchbot CurrentMode: ${this.CurrentMode}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set (COOL) TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Switchbot CurrentMode: ${this.CurrentMode}`);
   }
 
   async TargetHeaterCoolerStateHEAT(): Promise<void> {
     this.TargetHeaterCoolerState = this.platform.Characteristic.TargetHeaterCoolerState.HEAT;
     this.CurrentMode = 5;
-    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Set (HEAT) TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
-    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Switchbot CurrentMode: ${this.CurrentMode}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set (HEAT) TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Switchbot CurrentMode: ${this.CurrentMode}`);
   }
 
   async CurrentHeaterCoolerStateGet(): Promise<CharacteristicValue> {
@@ -545,14 +553,17 @@ export class AirConditioner {
       this.CurrentTemperatureUndefined();
       if (this.CurrentTemperature < this.CurrentTemperatureCached) {
         this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.COOLING;
-        this.debugLog(`Air Conditioner: ${this.accessory.displayName} Get (COOLLING) CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+        +` Get (COOLLING) CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
       } else if (this.CurrentTemperature > this.CurrentTemperatureCached) {
         this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.HEATING;
-        this.debugLog(`Air Conditioner: ${this.accessory.displayName} Get (HEATING) CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+        +` Get (HEATING) CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
       }
     } else {
       this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.INACTIVE;
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} Get (INACTIVE) CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+      +` Get (INACTIVE) CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
     }
     this.CurrentHeaterCoolerStateCached = this.CurrentHeaterCoolerState;
     this.accessory.context.CurrentHeaterCoolerState = this.CurrentHeaterCoolerStateCached;
@@ -565,7 +576,7 @@ export class AirConditioner {
     this.HeatingThresholdTemperature = this.CurrentTemperatureCached;
     this.HeatingThresholdTemperatureCached = this.HeatingThresholdTemperature;
     this.accessory.context.HeatingThresholdTemperature = this.HeatingThresholdTemperatureCached;
-    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Get HeatingThresholdTemperature: ${this.HeatingThresholdTemperature}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Get HeatingThresholdTemperature: ${this.HeatingThresholdTemperature}`);
     return this.HeatingThresholdTemperature;
   }
 
@@ -575,7 +586,7 @@ export class AirConditioner {
     this.HeatingThresholdTemperatureCached = this.HeatingThresholdTemperature;
     this.accessory.context.HeatingThresholdTemperature = this.HeatingThresholdTemperatureCached;
     this.debugLog(
-      `Air Conditioner: ${this.accessory.displayName} Set HeatingThresholdTemperature: ${this.HeatingThresholdTemperature},` +
+      `${this.device.remoteType}: ${this.accessory.displayName} Set HeatingThresholdTemperature: ${this.HeatingThresholdTemperature},` +
         ` CurrentTemperatureCached: ${this.CurrentTemperatureCached}`,
     );
     this.pushAirConditionerStatusChanges();
@@ -587,7 +598,7 @@ export class AirConditioner {
     this.CoolingThresholdTemperature = this.CurrentTemperatureCached;
     this.CoolingThresholdTemperatureCached = this.CoolingThresholdTemperature;
     this.accessory.context.CoolingThresholdTemperature = this.CoolingThresholdTemperatureCached;
-    this.debugLog(`Air Conditioner: ${this.accessory.displayName} Get CoolingThresholdTemperature: ${this.CoolingThresholdTemperature}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Get CoolingThresholdTemperature: ${this.CoolingThresholdTemperature}`);
     return this.CoolingThresholdTemperature;
   }
 
@@ -597,7 +608,7 @@ export class AirConditioner {
     this.CoolingThresholdTemperatureCached = this.CoolingThresholdTemperature;
     this.accessory.context.CoolingThresholdTemperature = this.CoolingThresholdTemperatureCached;
     this.debugLog(
-      `Air Conditioner: ${this.accessory.displayName} Set CoolingThresholdTemperature: ${this.CoolingThresholdTemperature},` +
+      `${this.device.remoteType}: ${this.accessory.displayName} Set CoolingThresholdTemperature: ${this.CoolingThresholdTemperature},` +
         ` CurrentTemperatureCached: ${this.CurrentTemperatureCached}`,
     );
     this.pushAirConditionerStatusChanges();
@@ -612,6 +623,15 @@ export class AirConditioner {
     }
   }
 
+  async openAPI() {
+    if (!this.device.openAPI) {
+      this.OpenAPI = true;
+    } else {
+      this.OpenAPI = this.device.openAPI;
+    }
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using OpenAPI: ${this.OpenAPI}`);
+  }
+
   async config(device: irdevice & irDevicesConfig): Promise<void> {
     let config = {};
     if (device.irair) {
@@ -620,24 +640,27 @@ export class AirConditioner {
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }
+    if (device.openAPI !== undefined) {
+      config['openAPI'] = device.openAPI;
+    }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`Air Conditioner: ${this.accessory.displayName} Config: ${superStringify(config)}`);
+      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
   }
 
   async logs(device: irdevice & irDevicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
     } else if (device.logging) {
       this.deviceLogging = this.accessory.context.logging = device.logging;
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
     } else if (this.platform.config.options?.logging) {
       this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
-      this.debugLog(`Air Conditioner: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
     }
   }
 
