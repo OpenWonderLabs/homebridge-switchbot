@@ -393,7 +393,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
               }*/
               const irDeviceBodyList = devicesAPI.body.infraredRemoteList;
               let irDeviceLists: any[];
-
               if (irDeviceBodyList) {
                 if (irDeviceBodyList.length > 1) {
                   irDeviceLists = irDeviceBodyList;
