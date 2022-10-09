@@ -35,7 +35,6 @@ export class Plug {
   currentPower: serviceData['currentPower'];
 
   // Config
-  OpenAPI?: boolean;
   scanDuration!: number;
   deviceLogging!: string;
   deviceRefreshRate!: number;
@@ -44,17 +43,17 @@ export class Plug {
   plugUpdateInProgress!: boolean;
   doPlugUpdate!: Subject<void>;
 
+  // Connection
+  private readonly BLE = (this.device.connectionType === 'BLE' || this.device.connectionType === 'Both');
+  private readonly OpenAPI = (this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'Both');
+
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
     this.logs(device);
     this.scan(device);
     this.refreshRate(device);
     this.config(device);
-    if (this.On === undefined) {
-      this.On = false;
-    } else {
-      this.On = this.accessory.context.On;
-    }
+    this.context();
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doPlugUpdate = new Subject();
@@ -90,7 +89,7 @@ export class Plug {
     // see https://developers.homebridge.io/#/service/Outlet
 
     // create handlers for required characteristics
-    this.outletService.getCharacteristic(this.platform.Characteristic.On).onSet(this.handleOnSet.bind(this));
+    this.outletService.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
 
     // Update Homekit
     this.updateHomeKitCharacteristics();
@@ -115,27 +114,31 @@ export class Plug {
         try {
           await this.pushChanges();
         } catch (e: any) {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges`);
-          if (this.deviceLogging.includes('debug')) {
-            this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges,`
-            + ` Error Message: ${superStringify(e.message)}`);
-          }
           this.apiError(e);
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
+              + ` Error Message: ${superStringify(e.message)}`);
         }
         this.plugUpdateInProgress = false;
       });
   }
 
+  /**
+   * Parse the device status from the SwitchBot api
+   */
   async parseStatus(): Promise<void> {
-    if (this.SwitchToOpenAPI || !this.device.ble) {
+    if (this.BLE && !this.SwitchToOpenAPI) {
+      await this.BLEparseStatus();
+    } else if (this.OpenAPI && this.platform.config.credentials?.token) {
+      this.SwitchToOpenAPI = false;
       await this.openAPIparseStatus();
     } else {
-      await this.BLEparseStatus();
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+      + ` ${this.device.connectionType}, parseStatus will not happen.`);
     }
   }
 
   async BLEparseStatus(): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE parseStatus`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
     // State
     switch (this.state) {
       case 'on':
@@ -148,6 +151,7 @@ export class Plug {
   }
 
   async openAPIparseStatus() {
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
     switch (this.power) {
       case 'on':
         this.On = true;
@@ -158,16 +162,22 @@ export class Plug {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
   }
 
+  /**
+   * Asks the SwitchBot API for the latest device information
+   */
   async refreshStatus(): Promise<void> {
-    if (this.device.ble) {
+    if (this.BLE) {
       await this.BLERefreshStatus();
-    } else {
+    } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
+    } else {
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+      + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
   }
 
   async BLERefreshStatus(): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE refreshStatus`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLERefreshStatus`);
     const switchbot = await this.platform.connectBLE();
     // Convert to BLE Address
     this.device.bleMac = this.device
@@ -230,117 +240,66 @@ export class Plug {
           }
         })
         .catch(async (e: any) => {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
-          if (this.deviceLogging.includes('debug')) {
-            this.errorLog(
-              `${this.device.deviceType}: ${this.accessory.displayName} failed refreshStatus with BLE Connection,`
-              + ` Error Message: ${superStringify(e.message)}`,
-            );
-          }
-          if (this.platform.config.credentials?.token) {
-            this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection`);
-            this.SwitchToOpenAPI = true;
-            await this.openAPIRefreshStatus();
-          }
           this.apiError(e);
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLERefreshStatus with ${this.device.connectionType}`
+                + ` Connection, Error Message: ${superStringify(e.message)}`);
+          await this.BLEconnection(switchbot);
         });
     } else {
       await this.BLEconnection(switchbot);
     }
   }
 
-  BLEmodel(): 'g' | 'j' {
-    if (this.device.deviceType === 'Plug Mini (US)') {
-      return 'g';
-    } else {
-      return 'j';
-    }
-  }
-
-  async getCustomBLEAddress(switchbot: any) {
-    if (this.device.customBLEaddress && this.deviceLogging.includes('debug')) {
-      (async () => {
-        // Start to monitor advertisement packets
-        await switchbot.startScan({
-          model: this.BLEmodel(),
-        });
-        // Set an event handler
-        switchbot.onadvertisement = (ad: any) => {
-          this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} ad: ${superStringify(ad, null, '  ')}`);
-        };
-        await switchbot.wait(10000);
-        // Stop to monitor
-        switchbot.stopScan();
-      })();
-    }
-  }
-
-  async BLEconnection(switchbot: any): Promise<void> {
-    this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
-    if (this.platform.config.credentials?.token) {
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection`);
-      this.SwitchToOpenAPI = true;
-      await this.openAPIRefreshStatus();
-    }
-  }
-
   async openAPIRefreshStatus() {
-    if (this.OpenAPI) {
-      try {
-        const t = Date.now();
-        const nonce = 'requestID';
-        const data = this.platform.config.credentials?.token + t + nonce;
-        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
-        const sign = signTerm.toString('base64');
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
-        const options = {
-          hostname: HostDomain,
-          port: 443,
-          path: `${DevicePath}/${this.device.deviceId}/status`,
-          method: 'GET',
-          headers: {
-            Authorization: this.platform.config.credentials?.token,
-            sign: sign,
-            nonce: nonce,
-            t: t,
-            'Content-Type': 'application/json',
-          },
-        };
-        const req = https.request(options, (res) => {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
-          let rawData = '';
-          res.on('data', (d) => {
-            rawData += d;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
-          });
-          res.on('end', () => {
-            try {
-              this.deviceStatus = JSON.parse(rawData);
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${superStringify(this.deviceStatus)}`);
-              this.power = this.deviceStatus.body.power;
-              this.parseStatus();
-              this.updateHomeKitCharacteristics();
-            } catch (e: any) {
-              this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
-            }
-          });
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
+    try {
+      const t = Date.now();
+      const nonce = 'requestID';
+      const data = this.platform.config.credentials?.token + t + nonce;
+      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+      const sign = signTerm.toString('base64');
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
+      const options = {
+        hostname: HostDomain,
+        port: 443,
+        path: `${DevicePath}/${this.device.deviceId}/status`,
+        method: 'GET',
+        headers: {
+          Authorization: this.platform.config.credentials?.token,
+          sign: sign,
+          nonce: nonce,
+          t: t,
+          'Content-Type': 'application/json',
+        },
+      };
+      const req = https.request(options, (res) => {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus statusCode: ${res.statusCode}`);
+        this.statusCode({ res });
+        let rawData = '';
+        res.on('data', (d) => {
+          rawData += d;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
         });
-        req.on('error', (e: any) => {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
+        res.on('end', () => {
+          try {
+            this.deviceStatus = JSON.parse(rawData);
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus: ${superStringify(this.deviceStatus)}`);
+            this.power = this.deviceStatus.body.power;
+            this.parseStatus();
+            this.updateHomeKitCharacteristics();
+          } catch (e: any) {
+            this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
+          }
         });
-        req.end();
-      } catch (e: any) {
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
-        if (this.deviceLogging.includes('debug')) {
-          this.errorLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,`
-          + ` Error Message: ${superStringify(e.message)}`,
-          );
-        }
-        this.apiError(e);
-      }
-    } else {
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} OpenAPI is disabled, commands will not be sent.`);
+      });
+      req.on('error', (e: any) => {
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
+      });
+      req.end();
+    } catch (e: any) {
+      this.apiError(e);
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
+            + ` Connection, Error Message: ${superStringify(e.message)}`);
     }
   }
 
@@ -355,74 +314,67 @@ export class Plug {
    */
 
   async pushChanges(): Promise<void> {
-    if (this.device.ble) {
+    if (this.BLE) {
       await this.BLEpushChanges();
-    } else {
+    } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges();
+    } else {
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+      + ` ${this.device.connectionType}, pushChanges will not happen.`);
     }
-  }
-
-  async BLEpushChanges(): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE pushChanges On: ${this.On} OnCached: ${this.accessory.context.On}`);
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE pushChanges`);
-    const switchbot = await this.platform.connectBLE();
-    // Convert to BLE Address
-    this.device.bleMac = this.device
-      .deviceId!.match(/.{1,2}/g)!
-      .join(':')
-      .toLowerCase();
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-    switchbot
-      .discover({
-        model: this.BLEmodel(),
-        id: this.device.bleMac,
-      })
-      .then((device_list: any) => {
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
-        return this.turnOnOff(device_list);
-      })
-      .then(() => {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
-        this.On = false;
-      })
-      .catch(async (e: any) => {
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
-        if (this.deviceLogging.includes('debug')) {
-          this.errorLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
-            + ` Error Message: ${superStringify(e.message)}`,
-          );
-        }
-        if (this.platform.debugMode) {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with BLE Connection,`
-          + ` Error: ${superStringify(e)}`);
-        }
-        if (this.platform.config.credentials?.token) {
-          this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection`);
-          await this.openAPIpushChanges();
-        }
-        this.apiError(e);
+    interval(5000)
+      .pipe(take(1))
+      .subscribe(async () => {
+        await this.refreshStatus();
       });
   }
 
-  async turnOnOff(device_list: any): Promise<any> {
-    return await this.retry({
-      max: await this.maxRetry(),
-      fn: () => {
-        if (this.On) {
-          return device_list[0].turnOn({ id: this.device.bleMac });
-        } else {
-          return device_list[0].turnOff({ id: this.device.bleMac });
-        }
-      },
-    });
+  async BLEpushChanges(): Promise<void> {
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges`);
+    if (this.On !== this.accessory.context.On) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges On: ${this.On} OnCached: ${this.accessory.context.On}`);
+      const switchbot = await this.platform.connectBLE();
+      // Convert to BLE Address
+      this.device.bleMac = this.device
+        .deviceId!.match(/.{1,2}/g)!
+        .join(':')
+        .toLowerCase();
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+      switchbot
+        .discover({
+          model: this.BLEmodel(),
+          id: this.device.bleMac,
+        })
+        .then((device_list: any) => {
+          this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
+          return this.turnOnOff(device_list);
+        })
+        .then(() => {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
+          this.On = false;
+        })
+        .catch(async (e: any) => {
+          this.apiError(e);
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${superStringify(e.message)}`);
+          if (this.platform.config.credentials?.token && this.device.connectionType !== 'Both') {
+            this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection`);
+            await this.openAPIpushChanges();
+          }
+        });
+    } else {
+      this.debugLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges.` + `On: ${this.On}, `
+        +`OnCached: ${this.accessory.context.On}`,
+      );
+    }
   }
 
   async openAPIpushChanges() {
-    if (this.platform.config.credentials?.token && this.OpenAPI) {
+    try {
       if (this.On !== this.accessory.context.On) {
         // Make Push On request to the API
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} OpenAPI pushChanges`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges`);
         const t = Date.now();
         const nonce = 'requestID';
         const data = this.platform.config.credentials?.token + t + nonce;
@@ -459,7 +411,7 @@ export class Plug {
           },
         };
         const req = https.request(options, res => {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges statusCode: ${res.statusCode}`);
           this.statusCode({ res });
           res.on('data', d => {
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
@@ -471,15 +423,28 @@ export class Plug {
         req.write(body);
         req.end();
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges: ${superStringify(req)}`);
+      } else {
+        this.debugLog(
+          `${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges.` + `On: ${this.On}, `
+          +`OnCached: ${this.accessory.context.On}`,
+        );
       }
-      interval(5000)
-        .pipe(take(1))
-        .subscribe(async () => {
-          await this.refreshStatus();
-        });
-    } else {
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} OpenAPI is disabled, commands will not be sent.`);
+    } catch (e: any) {
+      this.apiError(e);
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${superStringify(e.message)}`,
+      );
     }
+  }
+
+  /**
+   * Handle requests to set the value of the "On" characteristic
+   */
+  async OnSet(value: CharacteristicValue): Promise<void> {
+    this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set On: ${value}`);
+
+    this.On = value;
+    this.doPlugUpdate.next();
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
@@ -492,9 +457,100 @@ export class Plug {
     }
   }
 
-  async apiError(e: any): Promise<void> {
-    this.outletService.updateCharacteristic(this.platform.Characteristic.On, e);
-    //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+  BLEmodel(): 'g' | 'j' {
+    if (this.device.deviceType === 'Plug Mini (US)') {
+      return 'g';
+    } else {
+      return 'j';
+    }
+  }
+
+  async getCustomBLEAddress(switchbot: any) {
+    if (this.device.customBLEaddress && this.deviceLogging.includes('debug')) {
+      (async () => {
+        // Start to monitor advertisement packets
+        await switchbot.startScan({
+          model: this.BLEmodel(),
+        });
+        // Set an event handler
+        switchbot.onadvertisement = (ad: any) => {
+          this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} ad: ${superStringify(ad, null, '  ')}`);
+        };
+        await switchbot.wait(10000);
+        // Stop to monitor
+        switchbot.stopScan();
+      })();
+    }
+  }
+
+  async BLEconnection(switchbot: any): Promise<void> {
+    this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
+    if (this.platform.config.credentials?.token && this.device.connectionType !== 'Both') {
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection`);
+      this.SwitchToOpenAPI = true;
+      await this.openAPIRefreshStatus();
+    }
+  }
+
+  async turnOnOff(device_list: any): Promise<any> {
+    return await this.retry({
+      max: await this.maxRetry(),
+      fn: () => {
+        if (this.On) {
+          return device_list[0].turnOn({ id: this.device.bleMac });
+        } else {
+          return device_list[0].turnOff({ id: this.device.bleMac });
+        }
+      },
+    });
+  }
+
+  async retry({ max, fn }: { max: number; fn: { (): any; (): Promise<any> } }): Promise<null> {
+    return fn().catch(async (err: any) => {
+      if (max === 0) {
+        throw err;
+      }
+      this.infoLog(err);
+      this.infoLog('Retrying');
+      await this.switchbot.wait(1000);
+      return this.retry({ max: max - 1, fn });
+    });
+  }
+
+  async maxRetry(): Promise<number> {
+    let maxRetry: number;
+    if (this.device.bot?.maxRetry) {
+      maxRetry = this.device.bot?.maxRetry;
+    } else {
+      maxRetry = 5;
+    }
+    return maxRetry;
+  }
+
+  model(device: device & devicesConfig): string {
+    let model: string;
+    if (device.deviceType === 'Plug Mini (US)') {
+      model = 'W1901400';
+    } else if (device.deviceType === 'Plug Mini (JP)') {
+      model = 'W2001400';
+    } else {
+      model = 'SP11';
+    }
+    return model;
+  }
+
+  async scan(device: device & devicesConfig): Promise<void> {
+    if (device.scanDuration) {
+      this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
+      if (this.BLE) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
+      }
+    } else {
+      this.scanDuration = this.accessory.context.scanDuration = 1;
+      if (this.BLE) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
+      }
+    }
   }
 
   async statusCode({ res }: { res: IncomingMessage }): Promise<void> {
@@ -534,51 +590,46 @@ export class Plug {
     if (this.device.offline) {
       this.On = false;
       this.outletService.getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);
+      await this.updateHomeKitCharacteristics();
     }
   }
 
-  /**
-   * Handle requests to set the value of the "On" characteristic
-   */
-  async handleOnSet(value: CharacteristicValue): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} - Set On: ${value}`);
-
-    this.On = value;
-    this.doPlugUpdate.next();
+  async apiError(e: any): Promise<void> {
+    this.outletService.updateCharacteristic(this.platform.Characteristic.On, e);
   }
 
-  model(device: device & devicesConfig): string {
-    let model: string;
-    if (device.deviceType === 'Plug Mini (US)') {
-      model = 'W1901400';
-    } else if (device.deviceType === 'Plug Mini (JP)') {
-      model = 'W2001400';
+  FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
+    let FirmwareRevision: string;
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+    +` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
+    if (accessory.context.FirmwareRevision) {
+      FirmwareRevision = accessory.context.FirmwareRevision;
+    } else if (device.firmware) {
+      FirmwareRevision = device.firmware;
     } else {
-      model = 'SP11';
+      FirmwareRevision = this.platform.version;
     }
-    return model;
+    return FirmwareRevision;
   }
 
-  async retry({ max, fn }: { max: number; fn: { (): any; (): Promise<any> } }): Promise<null> {
-    return fn().catch(async (err: any) => {
-      if (max === 0) {
-        throw err;
-      }
-      this.infoLog(err);
-      this.infoLog('Retrying');
-      await this.switchbot.wait(1000);
-      return this.retry({ max: max - 1, fn });
-    });
-  }
-
-  async maxRetry(): Promise<number> {
-    let maxRetry: number;
-    if (this.device.bot?.maxRetry) {
-      maxRetry = this.device.bot?.maxRetry;
+  async context() {
+    if (this.On === undefined) {
+      this.On = false;
     } else {
-      maxRetry = 5;
+      this.On = this.accessory.context.On;
     }
-    return maxRetry;
+  }
+
+  async refreshRate(device: device & devicesConfig): Promise<void> {
+    if (device.refreshRate) {
+      this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
+    } else if (this.platform.config.options!.refreshRate) {
+      this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
+    }
   }
 
   async config(device: device & devicesConfig): Promise<void> {
@@ -586,11 +637,8 @@ export class Plug {
     if (device.plug) {
       config = device.plug;
     }
-    if (device.ble !== undefined) {
-      config['ble'] = device.ble;
-    }
-    if (device.openAPI !== undefined) {
-      config['openAPI'] = device.openAPI;
+    if (device.connectionType !== undefined) {
+      config['connectionType'] = device.connectionType;
     }
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
@@ -609,39 +657,6 @@ export class Plug {
     }
   }
 
-  async refreshRate(device: device & devicesConfig): Promise<void> {
-    if (device.refreshRate) {
-      this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
-    } else if (this.platform.config.options!.refreshRate) {
-      this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
-    }
-  }
-
-  async openAPI() {
-    if (!this.device.openAPI) {
-      this.OpenAPI = true;
-    } else {
-      this.OpenAPI = this.device.openAPI;
-    }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI: ${this.OpenAPI}`);
-  }
-
-  async scan(device: device & devicesConfig): Promise<void> {
-    if (device.scanDuration) {
-      this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
-      if (device.ble) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
-      }
-    } else {
-      this.scanDuration = this.accessory.context.scanDuration = 1;
-      if (this.device.ble) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
-      }
-    }
-  }
-
   async logs(device: device & devicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
@@ -656,22 +671,6 @@ export class Plug {
       this.deviceLogging = this.accessory.context.logging = 'standard';
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
     }
-  }
-
-  FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
-    let FirmwareRevision: string;
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-    +` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
-    if (accessory.context.FirmwareRevision) {
-      FirmwareRevision = accessory.context.FirmwareRevision;
-    } else if (device.firmware) {
-      FirmwareRevision = device.firmware;
-    } else {
-      FirmwareRevision = this.platform.version;
-    }
-    return FirmwareRevision;
   }
 
   /**

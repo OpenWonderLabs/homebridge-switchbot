@@ -18,13 +18,11 @@ export class AirPurifier {
   // Characteristic Values
   Active!: CharacteristicValue;
   APActive!: CharacteristicValue;
-  ActiveCached!: CharacteristicValue;
   CurrentAPTemp!: CharacteristicValue;
   CurrentAPMode!: CharacteristicValue;
   RotationSpeed!: CharacteristicValue;
   CurrentAPFanSpeed!: CharacteristicValue;
   CurrentTemperature!: CharacteristicValue;
-  CurrentTemperatureCached!: CharacteristicValue;
   CurrentAirPurifierState!: CharacteristicValue;
   CurrentHeaterCoolerState!: CharacteristicValue;
 
@@ -40,29 +38,22 @@ export class AirPurifier {
 
   // Config
   deviceLogging!: string;
-  OpenAPI?: boolean;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
     // default placeholders
     this.logs(device);
     this.config(device);
-    if (this.Active === undefined) {
-      this.Active = this.platform.Characteristic.Active.INACTIVE;
-    } else {
-      this.Active = this.accessory.context.Active;
-    }
-    if (this.CurrentTemperature === undefined) {
-      this.CurrentTemperature = 24;
-    } else {
-      this.CurrentTemperature = this.accessory.context.CurrentTemperature;
-    }
+    this.context();
 
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
+      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
+      .updateValue(this.FirmwareRevision(accessory, device));
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
@@ -89,38 +80,12 @@ export class AirPurifier {
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Active: ${value}`);
+    this.Active = value;
+    this.accessory.context.Active = this.Active;
     if (value === this.platform.Characteristic.Active.INACTIVE) {
       this.pushAirPurifierOffChanges();
     } else {
       this.pushAirPurifierOnChanges();
-    }
-    this.Active = value;
-    this.ActiveCached = this.Active;
-    this.accessory.context.Active = this.ActiveCached;
-  }
-
-  async updateHomeKitCharacteristics(): Promise<void> {
-    if (this.Active === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Active}`);
-    } else {
-      this.airPurifierService?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
-    }
-    if (this.CurrentAirPurifierState === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} CurrentAirPurifierState: ${this.CurrentAirPurifierState}`);
-    } else {
-      this.airPurifierService?.updateCharacteristic(this.platform.Characteristic.CurrentAirPurifierState, this.CurrentAirPurifierState);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-      + ` updateCharacteristic CurrentAirPurifierState: ${this.CurrentAirPurifierState}`);
-    }
-    if (this.CurrentHeaterCoolerState === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
-    } else {
-      this.airPurifierService?.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, this.CurrentHeaterCoolerState);
-      this.debugLog(
-        `${this.device.remoteType}: ${this.accessory.displayName}`
-        + ` updateCharacteristic CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`,
-      );
     }
   }
 
@@ -217,7 +182,7 @@ export class AirPurifier {
   }
 
   async pushChanges(body): Promise<void> {
-    if (this.OpenAPI) {
+    if (this.device.connectionType === 'OpenAPI') {
       try {
       // Make Push On request to the API
         const t = Date.now();
@@ -257,18 +222,44 @@ export class AirPurifier {
         req.end();
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushchanges: ${superStringify(req)}`);
         this.updateHomeKitCharacteristics();
-        this.CurrentTemperatureCached = this.CurrentTemperature;
-        this.accessory.context.CurrentTemperature = this.CurrentTemperatureCached;
+        this.accessory.context.CurrentTemperature = this.CurrentTemperature;
       } catch (e: any) {
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-        if (this.deviceLogging.includes('debug')) {
-          this.errorLog(
-            `${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
-            + ` Error Message: ${superStringify(e.message)}`,
-          );
-        }
         this.apiError(e);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
+            + ` Error Message: ${superStringify(e.message)}`,
+        );
       }
+    } else {
+      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+      + ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
+    }
+  }
+
+  async updateHomeKitCharacteristics(): Promise<void> {
+    if (this.Active === undefined) {
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Active}`);
+    } else {
+      this.accessory.context.Active = this.Active;
+      this.airPurifierService?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
+    }
+    if (this.CurrentAirPurifierState === undefined) {
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} CurrentAirPurifierState: ${this.CurrentAirPurifierState}`);
+    } else {
+      this.accessory.context.CurrentAirPurifierState = this.CurrentAirPurifierState;
+      this.airPurifierService?.updateCharacteristic(this.platform.Characteristic.CurrentAirPurifierState, this.CurrentAirPurifierState);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+      + ` updateCharacteristic CurrentAirPurifierState: ${this.CurrentAirPurifierState}`);
+    }
+    if (this.CurrentHeaterCoolerState === undefined) {
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
+    } else {
+      this.accessory.context.CurrentHeaterCoolerState = this.CurrentHeaterCoolerState;
+      this.airPurifierService?.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, this.CurrentHeaterCoolerState);
+      this.debugLog(
+        `${this.device.remoteType}: ${this.accessory.displayName}`
+        + ` updateCharacteristic CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`,
+      );
     }
   }
 
@@ -308,16 +299,35 @@ export class AirPurifier {
     this.airPurifierService.updateCharacteristic(this.platform.Characteristic.CurrentAirPurifierState, e);
     this.airPurifierService.updateCharacteristic(this.platform.Characteristic.TargetAirPurifierState, e);
     this.airPurifierService.updateCharacteristic(this.platform.Characteristic.Active, e);
-    //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
-  async openAPI() {
-    if (!this.device.openAPI) {
-      this.OpenAPI = true;
+  FirmwareRevision(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): string {
+    let FirmwareRevision: string;
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+    + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
+    if (accessory.context.FirmwareRevision) {
+      FirmwareRevision = accessory.context.FirmwareRevision;
+    } else if (device.firmware) {
+      FirmwareRevision = device.firmware;
     } else {
-      this.OpenAPI = this.device.openAPI;
+      FirmwareRevision = this.platform.version;
     }
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using OpenAPI: ${this.OpenAPI}`);
+    return FirmwareRevision;
+  }
+
+  private context() {
+    if (this.Active === undefined) {
+      this.Active = this.platform.Characteristic.Active.INACTIVE;
+    } else {
+      this.Active = this.accessory.context.Active;
+    }
+    if (this.CurrentTemperature === undefined) {
+      this.CurrentTemperature = 24;
+    } else {
+      this.CurrentTemperature = this.accessory.context.CurrentTemperature;
+    }
   }
 
   async config(device: irdevice & irDevicesConfig): Promise<void> {
@@ -328,8 +338,8 @@ export class AirPurifier {
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }
-    if (device.openAPI !== undefined) {
-      config['openAPI'] = device.openAPI;
+    if (device.connectionType !== undefined) {
+      config['connectionType'] = device.connectionType;
     }
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);

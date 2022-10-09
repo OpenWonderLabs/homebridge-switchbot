@@ -18,7 +18,6 @@ export class TV {
 
   // Characteristic Values
   Active!: CharacteristicValue;
-  ActiveCached!: CharacteristicValue;
   ActiveIdentifier!: CharacteristicValue;
 
   // Others
@@ -26,17 +25,12 @@ export class TV {
 
   // Config
   deviceLogging!: string;
-  OpenAPI?: boolean;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
     // default placeholders
     this.logs(device);
     this.config(device);
-    if (this.Active === undefined) {
-      this.Active = this.platform.Characteristic.Active.INACTIVE;
-    } else {
-      this.Active = this.accessory.context.Active;
-    }
+    this.context();
 
     // set accessory information
     accessory
@@ -44,7 +38,10 @@ export class TV {
       .setCharacteristic(this.platform.Characteristic.Name, `${device.deviceName} ${device.remoteType}`)
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
+      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
+      .updateValue(this.FirmwareRevision(accessory, device));
 
     // set the accessory category
     switch (device.remoteType) {
@@ -196,46 +193,31 @@ export class TV {
   async ActiveIdentifierSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} ActiveIdentifier: ${value}`);
     this.ActiveIdentifier = value;
+    this.accessory.context.ActiveIdentifier = this.ActiveIdentifier;
   }
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${value}`);
+    this.Active = value;
+    this.accessory.context.Active = this.Active;
     if (!this.device.irtv?.disable_power) {
       if (value === this.platform.Characteristic.Active.INACTIVE) {
         await this.pushTvOffChanges();
       } else {
         await this.pushTvOnChanges();
       }
-      this.Active = value;
-      this.ActiveCached = this.Active;
-      this.accessory.context.Active = this.ActiveCached;
-    }
-  }
-
-  async updateHomeKitCharacteristics(): Promise<void> {
-    if (this.Active === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Active}`);
-    } else {
-      this.tvService?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
-    }
-    if (this.ActiveIdentifier === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} ActiveIdentifier: ${this.ActiveIdentifier}`);
-    } else {
-      this.tvService?.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, this.ActiveIdentifier);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}` + ` updateCharacteristic ActiveIdentifier: ${this.ActiveIdentifier}`);
     }
   }
 
   /**
    * Pushes the requested changes to the SwitchBot API
-   * deviceType	commandType     Command	          command parameter	         Description
-   * TV -        "command"       "turnOff"         "default"	        =        set to OFF state
-   * TV -        "command"       "turnOn"          "default"	        =        set to ON state
-   * TV -        "command"       "volumeAdd"       "default"	        =        volume up
-   * TV -        "command"       "volumeSub"       "default"	        =        volume down
-   * TV -        "command"       "channelAdd"      "default"	        =        next channel
-   * TV -        "command"       "channelSub"      "default"	        =        previous channel
+   * deviceType	  commandType     Command           Parameter	        Description
+   * TV           "command"       "turnOff"         "default"	        set to OFF state
+   * TV           "command"       "turnOn"          "default"	        set to ON state
+   * TV           "command"       "volumeAdd"       "default"	        volume up
+   * TV           "command"       "volumeSub"       "default"	        volume down
+   * TV           "command"       "channelAdd"      "default"	        next channel
+   * TV           "command"       "channelSub"      "default"	        previous channel
    */
   async pushTvOnChanges(): Promise<void> {
     if (this.Active !== 1) {
@@ -339,7 +321,7 @@ export class TV {
   }
 
   async pushTVChanges(body): Promise<void> {
-    if (this.OpenAPI) {
+    if (this.device.connectionType === 'OpenAPI') {
       {
         try {
           // Make Push On request to the API
@@ -367,7 +349,7 @@ export class TV {
             },
           };
           const req = https.request(options, res => {
-            this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+            this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushchanges statusCode: ${res.statusCode}`);
             this.statusCode({ res });
             res.on('data', d => {
               this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} d: ${d}`);
@@ -381,15 +363,32 @@ export class TV {
           this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushchanges: ${superStringify(req)}`);
           this.updateHomeKitCharacteristics();
         } catch (e: any) {
-          this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-          if (this.deviceLogging.includes('debug')) {
-            this.errorLog(
-              `${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` +
-            ` Error Message: ${superStringify(e.message)}`,
-            );
-          }
           this.apiError(e);
-        }}
+          this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
+            + ` Error Message: ${superStringify(e.message)}`,
+          );
+        }
+      }
+    } else {
+      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+      + ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
+    }
+  }
+
+  async updateHomeKitCharacteristics(): Promise<void> {
+    if (this.Active === undefined) {
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Active}`);
+    } else {
+      this.accessory.context.Active = this.Active;
+      this.tvService?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
+    }
+    if (this.ActiveIdentifier === undefined) {
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} ActiveIdentifier: ${this.ActiveIdentifier}`);
+    } else {
+      this.accessory.context.ActiveIdentifier = this.ActiveIdentifier;
+      this.tvService?.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, this.ActiveIdentifier);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}` + ` updateCharacteristic ActiveIdentifier: ${this.ActiveIdentifier}`);
     }
   }
 
@@ -428,16 +427,30 @@ export class TV {
   async apiError(e: any): Promise<void> {
     this.tvService.updateCharacteristic(this.platform.Characteristic.Active, e);
     this.tvService.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, e);
-    //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
-  async openAPI() {
-    if (!this.device.openAPI) {
-      this.OpenAPI = true;
+  FirmwareRevision(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): string {
+    let FirmwareRevision: string;
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+    + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
+    if (accessory.context.FirmwareRevision) {
+      FirmwareRevision = accessory.context.FirmwareRevision;
+    } else if (device.firmware) {
+      FirmwareRevision = device.firmware;
     } else {
-      this.OpenAPI = this.device.openAPI;
+      FirmwareRevision = this.platform.version;
     }
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using OpenAPI: ${this.OpenAPI}`);
+    return FirmwareRevision;
+  }
+
+  async context() {
+    if (this.Active === undefined) {
+      this.Active = this.platform.Characteristic.Active.INACTIVE;
+    } else {
+      this.Active = this.accessory.context.Active;
+    }
   }
 
   async config(device: irdevice & irDevicesConfig): Promise<void> {
@@ -448,8 +461,8 @@ export class TV {
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }
-    if (device.openAPI !== undefined) {
-      config['openAPI'] = device.openAPI;
+    if (device.connectionType !== undefined) {
+      config['connectionType'] = device.connectionType;
     }
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);

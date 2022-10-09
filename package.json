@@ -14,7 +14,7 @@
   },
   "engines": {
     "homebridge": "^1.5.0",
-    "node": "^14.20.0 || ^16.17.0 || ^18.8.0"
+    "node": "^14.20.0 || ^16.17.0 || ^18.10.0"
   },
   "main": "dist/index.js",
   "scripts": {
@@ -44,6 +44,7 @@
   "keywords": [
     "homebridge-plugin",
     "switchbot",
+    "lock",
     "humidifier",
     "humidity",
     "temperature",
@@ -79,6 +80,6 @@
   },
   "optionalDependencies": {
     "@abandonware/noble": "^1.9.2-15",
-    "node-switchbot": "^1.5.0-beta.0"
+    "node-switchbot": "^1.5.0"
   }
 }

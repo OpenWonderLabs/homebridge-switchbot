@@ -17,33 +17,30 @@ export class WaterHeater {
 
   // Characteristic Values
   Active!: CharacteristicValue;
-  ActiveCached!: CharacteristicValue;
 
   // Config
   deviceLogging!: string;
-  OpenAPI?: boolean;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
     // default placeholders
     this.logs(device);
     this.config(device);
-    if (this.Active === undefined) {
-      this.Active = this.platform.Characteristic.Active.INACTIVE;
-    } else {
-      this.Active = this.accessory.context.Active;
-    }
+    this.context();
 
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
+      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
+      .updateValue(this.FirmwareRevision(accessory, device));
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
     (this.valveService = accessory.getService(this.platform.Service.Valve) || accessory.addService(this.platform.Service.Valve)),
-    `${accessory.displayName} Water Heater`;
+    `${accessory.displayName} ${device.remoteType}`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -62,6 +59,8 @@ export class WaterHeater {
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${value}`);
+    this.Active = value;
+    this.accessory.context.Active = this.Active;
     if (value === this.platform.Characteristic.Active.INACTIVE) {
       await this.pushWaterHeaterOffChanges();
       this.valveService.setCharacteristic(this.platform.Characteristic.InUse, this.platform.Characteristic.InUse.NOT_IN_USE);
@@ -69,29 +68,13 @@ export class WaterHeater {
       await this.pushWaterHeaterOnChanges();
       this.valveService.setCharacteristic(this.platform.Characteristic.InUse, this.platform.Characteristic.InUse.IN_USE);
     }
-    this.Active = value;
-    this.ActiveCached = this.Active;
-    this.accessory.context.Active = this.ActiveCached;
-  }
-
-  async updateHomeKitCharacteristics(): Promise<void> {
-    if (this.Active === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Active}`);
-    } else {
-      this.valveService?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
-    }
   }
 
   /**
    * Pushes the requested changes to the SwitchBot API
-   * deviceType	commandType     Command	          command parameter	         Description
-   * WaterHeater:        "command"       "turnOff"         "default"	        =        set to OFF state
-   * WaterHeater:        "command"       "turnOn"          "default"	        =        set to ON state
-   * WaterHeater:        "command"       "volumeAdd"       "default"	        =        volume up
-   * WaterHeater:        "command"       "volumeSub"       "default"	        =        volume down
-   * WaterHeater:        "command"       "channelAdd"      "default"	        =        next channel
-   * WaterHeater:        "command"       "channelSub"      "default"	        =        previous channel
+   * deviceType	     Command Type    Command	         Parameter	       Description
+   * WaterHeater     "command"       "turnOff"         "default"	       set to OFF state
+   * WaterHeater     "command"       "turnOn"          "default"	       set to ON state
    */
   async pushWaterHeaterOnChanges(): Promise<void> {
     if (this.Active !== 1) {
@@ -116,7 +99,7 @@ export class WaterHeater {
   }
 
   async pushChanges(body): Promise<void> {
-    if (this.OpenAPI) {
+    if (this.device.connectionType === 'OpenAPI') {
       try {
       // Make Push On request to the API
         const t = Date.now();
@@ -143,7 +126,7 @@ export class WaterHeater {
           },
         };
         const req = https.request(options, res => {
-          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushchanges statusCode: ${res.statusCode}`);
           this.statusCode({ res });
           res.on('data', d => {
             this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} d: ${d}`);
@@ -157,15 +140,23 @@ export class WaterHeater {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushchanges: ${superStringify(req)}`);
         this.updateHomeKitCharacteristics();
       } catch (e: any) {
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-        if (this.deviceLogging.includes('debug')) {
-          this.errorLog(
-            `${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
-            + ` Error Message: ${superStringify(e.message)}`,
-          );
-        }
         this.apiError(e);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
+            + ` Error Message: ${superStringify(e.message)}`);
       }
+    } else {
+      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+      + ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
+    }
+  }
+
+  async updateHomeKitCharacteristics(): Promise<void> {
+    if (this.Active === undefined) {
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Active}`);
+    } else {
+      this.accessory.context.Active = this.Active;
+      this.valveService?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
     }
   }
 
@@ -202,16 +193,30 @@ export class WaterHeater {
 
   async apiError(e: any): Promise<void> {
     this.valveService.updateCharacteristic(this.platform.Characteristic.Active, e);
-    //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
-  async openAPI() {
-    if (!this.device.openAPI) {
-      this.OpenAPI = true;
+  FirmwareRevision(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): string {
+    let FirmwareRevision: string;
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+    + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
+    if (accessory.context.FirmwareRevision) {
+      FirmwareRevision = accessory.context.FirmwareRevision;
+    } else if (device.firmware) {
+      FirmwareRevision = device.firmware;
     } else {
-      this.OpenAPI = this.device.openAPI;
+      FirmwareRevision = this.platform.version;
     }
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using OpenAPI: ${this.OpenAPI}`);
+    return FirmwareRevision;
+  }
+
+  async context() {
+    if (this.Active === undefined) {
+      this.Active = this.platform.Characteristic.Active.INACTIVE;
+    } else {
+      this.Active = this.accessory.context.Active;
+    }
   }
 
   async config(device: irdevice & irDevicesConfig): Promise<void> {
@@ -222,8 +227,8 @@ export class WaterHeater {
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }
-    if (device.openAPI !== undefined) {
-      config['openAPI'] = device.openAPI;
+    if (device.connectionType !== undefined) {
+      config['connectionType'] = device.connectionType;
     }
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);

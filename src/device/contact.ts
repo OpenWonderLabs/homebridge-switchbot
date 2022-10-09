@@ -7,6 +7,7 @@ import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { device, devicesConfig, serviceData, switchbot, deviceStatus, ad, HostDomain, DevicePath } from '../settings';
+import { IncomingMessage } from 'http';
 
 /**
  * Platform Accessory
@@ -45,7 +46,6 @@ export class Contact {
   lightLevel!: serviceData['lightLevel'];
 
   // Config
-  OpenAPI?: boolean;
   set_minLux!: number;
   set_maxLux!: number;
   scanDuration!: number;
@@ -56,14 +56,17 @@ export class Contact {
   contactUbpdateInProgress!: boolean;
   doContactUpdate!: Subject<void>;
 
+  // Connection
+  private readonly BLE = (this.device.connectionType === 'BLE' || this.device.connectionType === 'Both');
+  private readonly OpenAPI = (this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'Both');
+
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
     this.logs(device);
-    this.openAPI();
     this.scan(device);
     this.refreshRate(device);
     this.config(device);
-    this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+    this.context();
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doContactUpdate = new Subject();
@@ -132,11 +135,11 @@ export class Contact {
     }
 
     // Battery Service
-    if (!device.ble) {
+    if (!this.BLE) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Battery Service`);
       this.batteryService = this.accessory.getService(this.platform.Service.Battery);
       accessory.removeService(this.batteryService!);
-    } else if (device.ble && !this.batteryService) {
+    } else if (this.BLE && !this.batteryService) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Battery Service`);
       (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || this.accessory.addService(this.platform.Service.Battery)),
       `${accessory.displayName} Battery`;
@@ -161,15 +164,19 @@ export class Contact {
    * Parse the device status from the SwitchBot api
    */
   async parseStatus(): Promise<void> {
-    if (this.SwitchToOpenAPI || !this.device.ble) {
+    if (this.BLE && !this.SwitchToOpenAPI) {
+      await this.BLEparseStatus();
+    } else if (this.OpenAPI && this.platform.config.credentials?.token) {
+      this.SwitchToOpenAPI = false;
       await this.openAPIparseStatus();
     } else {
-      await this.BLEparseStatus();
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+      + ` ${this.device.connectionType}, parseStatus will not happen.`);
     }
   }
 
   async BLEparseStatus(): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE parseStatus`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
     // Door State
     switch (this.doorState) {
       case 'open':
@@ -220,40 +227,35 @@ export class Contact {
   }
 
   async openAPIparseStatus(): Promise<void> {
-    if (this.device.ble) {
-      this.SwitchToOpenAPI = false;
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
+    // Contact State
+    if (this.openState === 'open') {
+      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
+    } else if (this.openState === 'close') {
+      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openState: ${this.openState}`);
     }
-    if (this.platform.config.credentials?.token) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} OpenAPI parseStatus`);
-      // Contact State
-      if (this.openState === 'open') {
-        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
-      } else if (this.openState === 'close') {
-        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
-      } else {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openState: ${this.openState}`);
+    // Motion State
+    if (!this.device.contact?.hide_motionsensor) {
+      this.MotionDetected = this.moveDetected!;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
+    }
+    // Light Level
+    if (!this.device.contact?.hide_lightsensor) {
+      this.set_minLux = this.minLux();
+      this.set_maxLux = this.maxLux();
+      switch (this.brightness) {
+        case 'dim':
+          this.CurrentAmbientLightLevel = this.set_minLux;
+          break;
+        case 'bright':
+        default:
+          this.CurrentAmbientLightLevel = this.set_maxLux;
       }
-      // Motion State
-      if (!this.device.contact?.hide_motionsensor) {
-        this.MotionDetected = this.moveDetected!;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
-      }
-      // Light Level
-      if (!this.device.contact?.hide_lightsensor) {
-        this.set_minLux = this.minLux();
-        this.set_maxLux = this.maxLux();
-        switch (this.brightness) {
-          case 'dim':
-            this.CurrentAmbientLightLevel = this.set_minLux;
-            break;
-          case 'bright':
-          default:
-            this.CurrentAmbientLightLevel = this.set_maxLux;
-        }
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
-      }
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
     }
   }
 
@@ -261,15 +263,18 @@ export class Contact {
    * Asks the SwitchBot API for the latest device information
    */
   async refreshStatus(): Promise<void> {
-    if (this.device.ble) {
+    if (this.BLE) {
       await this.BLERefreshStatus();
-    } else {
+    } else if (this.OpenAPI) {
       await this.openAPIRefreshStatus();
+    } else {
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+      + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
   }
 
   async BLERefreshStatus(): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE refreshStatus`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLERefreshStatus`);
     const switchbot = await this.platform.connectBLE();
     // Convert to BLE Address
     this.device.bleMac =
@@ -330,22 +335,116 @@ export class Contact {
           }
         })
         .catch(async (e: any) => {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
-          if (this.deviceLogging.includes('debug')) {
-            this.errorLog(
-              `${this.device.deviceType}: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` +
-                ` Error Message: ${superStringify(e.message)}`,
-            );
-          }
-          if (this.platform.config.credentials?.token) {
-            this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection`);
-            this.SwitchToOpenAPI = true;
-            await this.openAPIRefreshStatus();
-          }
           this.apiError(e);
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLERefreshStatus with ${this.device.connectionType}`
+                + ` Connection, Error Message: ${superStringify(e.message)}`);
+          await this.BLEconnection(switchbot);
         });
     } else {
       await this.BLEconnection(switchbot);
+    }
+  }
+
+  async openAPIRefreshStatus(): Promise<void> {
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
+    try {
+      const t = Date.now();
+      const nonce = 'requestID';
+      const data = this.platform.config.credentials?.token + t + nonce;
+      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+      const sign = signTerm.toString('base64');
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
+      const options = {
+        hostname: HostDomain,
+        port: 443,
+        path: `${DevicePath}/${this.device.deviceId}/status`,
+        method: 'GET',
+        headers: {
+          Authorization: this.platform.config.credentials?.token,
+          sign: sign,
+          nonce: nonce,
+          t: t,
+          'Content-Type': 'application/json',
+        },
+      };
+      const req = https.request(options, (res) => {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus statusCode: ${res.statusCode}`);
+        let rawData = '';
+        res.on('data', (d) => {
+          rawData += d;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
+        });
+        res.on('end', () => {
+          try {
+            this.deviceStatus = JSON.parse(rawData);
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${superStringify(this.deviceStatus)}`);
+            this.openState = this.deviceStatus.body.openState;
+            this.moveDetected = this.deviceStatus.body.moveDetected;
+            this.brightness = this.deviceStatus.body.brightness;
+            this.parseStatus();
+            this.updateHomeKitCharacteristics();
+          } catch (e: any) {
+            this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
+          }
+        });
+      });
+      req.on('error', (e: any) => {
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
+      });
+      req.end();
+    } catch (e: any) {
+      this.apiError(e);
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
+            + ` Connection, Error Message: ${superStringify(e.message)}`);
+    }
+  }
+
+  /**
+   * Updates the status for each of the HomeKit Characteristics
+   */
+  async updateHomeKitCharacteristics(): Promise<void> {
+    if (this.ContactSensorState === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
+    } else {
+      this.accessory.context.ContactSensorState = this.ContactSensorState;
+      this.contactSensorservice.updateCharacteristic(this.platform.Characteristic.ContactSensorState, this.ContactSensorState);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic ContactSensorState: ${this.ContactSensorState}`);
+    }
+    if (!this.device.contact?.hide_motionsensor) {
+      if (this.MotionDetected === undefined) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
+      } else {
+        this.accessory.context.MotionDetected = this.MotionDetected;
+        this.motionService?.updateCharacteristic(this.platform.Characteristic.MotionDetected, this.MotionDetected);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic MotionDetected: ${this.MotionDetected}`);
+      }
+    }
+    if (!this.device.contact?.hide_lightsensor) {
+      if (this.CurrentAmbientLightLevel === undefined) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+      } else {
+        this.accessory.context.CurrentAmbientLightLevel = this.CurrentAmbientLightLevel;
+        this.lightSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+          + ` updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
+        );
+      }
+    }
+    if (this.BLE) {
+      if (this.BatteryLevel === undefined) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
+      } else {
+        this.accessory.context.BatteryLevel = this.BatteryLevel;
+        this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
+      }
+      if (this.StatusLowBattery === undefined) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
+      } else {
+        this.accessory.context.StatusLowBattery = this.StatusLowBattery;
+        this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
+      }
     }
   }
 
@@ -369,118 +468,87 @@ export class Contact {
 
   async BLEconnection(switchbot: any): Promise<void> {
     this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
-    if (this.platform.config.credentials?.token) {
+    if (this.platform.config.credentials?.token && this.device.connectionType !== 'Both') {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection`);
       this.SwitchToOpenAPI = true;
       await this.openAPIRefreshStatus();
     }
   }
 
-  async openAPIRefreshStatus(): Promise<void> {
-    if (this.platform.config.credentials?.token && this.OpenAPI) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} OpenAPI refreshStatus`);
-      try {
-        const t = Date.now();
-        const nonce = 'requestID';
-        const data = this.platform.config.credentials?.token + t + nonce;
-        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
-        const sign = signTerm.toString('base64');
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
-        const options = {
-          hostname: HostDomain,
-          port: 443,
-          path: `${DevicePath}/${this.device.deviceId}/status`,
-          method: 'GET',
-          headers: {
-            Authorization: this.platform.config.credentials?.token,
-            sign: sign,
-            nonce: nonce,
-            t: t,
-            'Content-Type': 'application/json',
-          },
-        };
-        const req = https.request(options, (res) => {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
-          let rawData = '';
-          res.on('data', (d) => {
-            rawData += d;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
-          });
-          res.on('end', () => {
-            try {
-              this.deviceStatus = JSON.parse(rawData);
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${superStringify(this.deviceStatus)}`);
-              this.openState = this.deviceStatus.body.openState;
-              this.moveDetected = this.deviceStatus.body.moveDetected;
-              this.brightness = this.deviceStatus.body.brightness;
-              this.parseStatus();
-              this.updateHomeKitCharacteristics();
-            } catch (e: any) {
-              this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
-            }
-          });
-        });
-        req.on('error', (e: any) => {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
-        });
-        req.end();
-      } catch (e: any) {
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
-        if (this.deviceLogging.includes('debug')) {
-          this.errorLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` +
-              ` Error Message: ${superStringify(e.message)}`,
-          );
-        }
-        this.apiError(e);
+  minLux(): number {
+    if (this.device.contact?.set_minLux) {
+      this.set_minLux = this.device.contact!.set_minLux!;
+    } else {
+      this.set_minLux = 1;
+    }
+    return this.set_minLux;
+  }
+
+  maxLux(): number {
+    if (this.device.contact?.set_maxLux) {
+      this.set_maxLux = this.device.contact!.set_maxLux!;
+    } else {
+      this.set_maxLux = 6001;
+    }
+    return this.set_maxLux;
+  }
+
+  async scan(device: device & devicesConfig): Promise<void> {
+    if (device.scanDuration) {
+      this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
+      if (this.BLE) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
       }
     } else {
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} OpenAPI is disabled, commands will not be sent.`);
+      this.scanDuration = this.accessory.context.scanDuration = 1;
+      if (this.BLE) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
+      }
     }
   }
 
-  /**
-   * Updates the status for each of the HomeKit Characteristics
-   */
-  async updateHomeKitCharacteristics(): Promise<void> {
-    if (this.ContactSensorState === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
-    } else {
-      this.contactSensorservice.updateCharacteristic(this.platform.Characteristic.ContactSensorState, this.ContactSensorState);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic ContactSensorState: ${this.ContactSensorState}`);
-    }
-    if (!this.device.contact?.hide_motionsensor) {
-      if (this.MotionDetected === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
-      } else {
-        this.motionService?.updateCharacteristic(this.platform.Characteristic.MotionDetected, this.MotionDetected);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic MotionDetected: ${this.MotionDetected}`);
-      }
-    }
-    if (!this.device.contact?.hide_lightsensor) {
-      if (this.CurrentAmbientLightLevel === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
-      } else {
-        this.lightSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
-        this.debugLog(
-          `${this.device.deviceType}: ${this.accessory.displayName}`
-          + ` updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
+  async statusCode({ res }: { res: IncomingMessage }): Promise<void> {
+    switch (res.statusCode) {
+      case 151:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command not supported by this device type.`);
+        break;
+      case 152:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device not found.`);
+        break;
+      case 160:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command is not supported.`);
+        break;
+      case 161:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device is offline.`);
+        this.offlineOff();
+        break;
+      case 171:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} is offline. Hub: ${this.device.hubDeviceId}`);
+        this.offlineOff();
+        break;
+      case 190:
+        this.errorLog(
+          `${this.device.deviceType}: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
+            ` Or command: ${superStringify(res)} format is invalid`,
         );
-      }
+        break;
+      case 100:
+        if (this.platform.debugMode) {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Command successfully sent.`);
+        }
+        break;
+      default:
+        if (this.platform.debugMode) {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode.`);
+        }
     }
-    if (this.device.ble) {
-      if (this.BatteryLevel === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
-      } else {
-        this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
-      }
-      if (this.StatusLowBattery === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
-      } else {
-        this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
-      }
+  }
+
+  async offlineOff(): Promise<void> {
+    if (this.device.offline) {
+      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+      this.contactSensorservice.getCharacteristic(this.platform.Characteristic.ContactSensorState).updateValue(this.ContactSensorState);
+      await this.updateHomeKitCharacteristics();
     }
   }
 
@@ -492,84 +560,9 @@ export class Contact {
     if (!this.device.contact?.hide_lightsensor) {
       this.lightSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, e);
     }
-    if (this.device.ble) {
+    if (this.BLE) {
       this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
       this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
-    }
-    //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
-  }
-
-  async config(device: device & devicesConfig): Promise<void> {
-    let config = {};
-    if (device.contact) {
-      config = device.contact;
-    }
-    if (device.ble) {
-      config['ble'] = device.ble;
-    }
-    if (device.openAPI !== undefined) {
-      config['openAPI'] = device.openAPI;
-    }
-    if (device.logging !== undefined) {
-      config['logging'] = device.logging;
-    }
-    if (device.refreshRate !== undefined) {
-      config['refreshRate'] = device.refreshRate;
-    }
-    if (device.scanDuration !== undefined) {
-      config['scanDuration'] = device.scanDuration;
-    }
-    if (Object.entries(config).length !== 0) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);
-    }
-  }
-
-  async refreshRate(device: device & devicesConfig): Promise<void> {
-    if (device.refreshRate) {
-      this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
-    } else if (this.platform.config.options!.refreshRate) {
-      this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
-    }
-  }
-
-  async openAPI() {
-    if (!this.device.openAPI) {
-      this.OpenAPI = true;
-    } else {
-      this.OpenAPI = this.device.openAPI;
-    }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI: ${this.OpenAPI}`);
-  }
-
-  async scan(device: device & devicesConfig): Promise<void> {
-    if (device.scanDuration) {
-      this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
-      if (device.ble) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
-      }
-    } else {
-      this.scanDuration = this.accessory.context.scanDuration = 1;
-      if (this.device.ble) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
-      }
-    }
-  }
-
-  async logs(device: device & devicesConfig): Promise<void> {
-    if (this.platform.debugMode) {
-      this.deviceLogging = this.accessory.context.logging = 'debugMode';
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
-    } else if (device.logging) {
-      this.deviceLogging = this.accessory.context.logging = device.logging;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
-    } else if (this.platform.config.options?.logging) {
-      this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
-    } else {
-      this.deviceLogging = this.accessory.context.logging = 'standard';
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
     }
   }
 
@@ -589,22 +582,65 @@ export class Contact {
     return FirmwareRevision;
   }
 
-  minLux(): number {
-    if (this.device.contact?.set_minLux) {
-      this.set_minLux = this.device.contact!.set_minLux!;
+  async context() {
+    if (this.MotionDetected === undefined) {
+      this.MotionDetected = false;
     } else {
-      this.set_minLux = 1;
+      this.MotionDetected = this.accessory.context.MotionDetected;
     }
-    return this.set_minLux;
+    if (this.ContactSensorState === undefined) {
+      this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+    } else {
+      this.ContactSensorState = this.accessory.context.ContactSensorState;
+    }
   }
 
-  maxLux(): number {
-    if (this.device.contact?.set_maxLux) {
-      this.set_maxLux = this.device.contact!.set_maxLux!;
-    } else {
-      this.set_maxLux = 6001;
+  async refreshRate(device: device & devicesConfig): Promise<void> {
+    if (device.refreshRate) {
+      this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
+    } else if (this.platform.config.options!.refreshRate) {
+      this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
     }
-    return this.set_maxLux;
+  }
+
+  async config(device: device & devicesConfig): Promise<void> {
+    let config = {};
+    if (device.contact) {
+      config = device.contact;
+    }
+    if (device.connectionType !== undefined) {
+      config['connectionType'] = device.connectionType;
+    }
+    if (device.logging !== undefined) {
+      config['logging'] = device.logging;
+    }
+    if (device.refreshRate !== undefined) {
+      config['refreshRate'] = device.refreshRate;
+    }
+    if (device.scanDuration !== undefined) {
+      config['scanDuration'] = device.scanDuration;
+    }
+    if (Object.entries(config).length !== 0) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);
+    }
+  }
+
+  async logs(device: device & devicesConfig): Promise<void> {
+    if (this.platform.debugMode) {
+      this.deviceLogging = this.accessory.context.logging = 'debugMode';
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+    } else if (device.logging) {
+      this.deviceLogging = this.accessory.context.logging = device.logging;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
+    } else if (this.platform.config.options?.logging) {
+      this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
+    } else {
+      this.deviceLogging = this.accessory.context.logging = 'standard';
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
+    }
   }
 
   /**

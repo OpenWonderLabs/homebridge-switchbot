@@ -8,7 +8,12 @@ All notable changes to this project will be documented in this file. This projec
 
 - Moved from v1.0 to v1.1 of [OpenAPI](https://github.com/OpenWonderLabs/SwitchBotAPI)
 - Publish device(s) as an external accessory.
-- Added `openAPI` config so that you can disable OpenAPI, allowing you to disable commands and refreshes for a specific device.
+- Added `connectionType` config, this replaces the `BLE` config.
+  - You can now select Both Connections, Only OpenAPI, Only BLE, or Disable.
+    - `Both` will use BLE as the default connection and will use OpenAPI as a backup connection.
+    - `OpenAPI` will only allow connections through the OpenAPI.
+    - `BLE` will only allow connections through Bluetooth (BLE), .
+    - `Disable` will disable all connections. This will also allow you to disable commands and refreshes for a specific device but leave it in HomeKit.
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.15.0...v2.0.0

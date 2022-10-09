@@ -48,8 +48,7 @@ export interface devicesConfig extends device {
   refreshRate?: number;
   firmware?: string;
   logging?: string;
-  ble?: boolean;
-  openAPI?: boolean;
+  connectionType?: string;
   customBLEaddress?: string;
   scanDuration?: number;
   hide_device?: boolean;
@@ -126,8 +125,9 @@ export interface irDevicesConfig extends irdevice {
   configRemoteType?: string;
   deviceId: string;
   external?: boolean;
+  firmware?: string;
   logging?: string;
-  openAPI?: boolean;
+  connectionType?: string;
   hide_device?: boolean;
   irfan?: irfan;
   irair?: irair;

@@ -17,28 +17,25 @@ export class Camera {
 
   // Characteristic Values
   On!: CharacteristicValue;
-  OnCached!: CharacteristicValue;
 
   // Config
   deviceLogging!: string;
-  OpenAPI?: boolean;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
     // default placeholders
     this.logs(device);
     this.config(device);
-    if (this.On === undefined) {
-      this.On = false;
-    } else {
-      this.On = this.accessory.context.On;
-    }
+    this.context();
 
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
+      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
+      .updateValue(this.FirmwareRevision(accessory, device));
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
@@ -60,19 +57,11 @@ export class Camera {
   async OnSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${value}`);
     this.On = value;
+    this.accessory.context.On = this.On;
     if (this.On) {
       this.pushOnChanges();
     } else {
       this.pushOffChanges();
-    }
-  }
-
-  async updateHomeKitCharacteristics(): Promise<void> {
-    if (this.On === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.On}`);
-    } else {
-      this.switchService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
   }
 
@@ -109,7 +98,7 @@ export class Camera {
   }
 
   async pushChanges(body): Promise<void> {
-    if (this.OpenAPI) {
+    if (this.device.connectionType === 'OpenAPI') {
       try {
       // Make Push On request to the API
         const t = Date.now();
@@ -136,7 +125,7 @@ export class Camera {
           },
         };
         const req = https.request(options, res => {
-          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushchanges statusCode: ${res.statusCode}`);
           this.statusCode({ res });
           res.on('data', d => {
             this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} d: ${d}`);
@@ -149,18 +138,25 @@ export class Camera {
         req.end();
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushchanges: ${superStringify(req)}`);
         this.updateHomeKitCharacteristics();
-        this.OnCached = this.On;
-        this.accessory.context.On = this.OnCached;
       } catch (e: any) {
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-        if (this.deviceLogging.includes('debug')) {
-          this.errorLog(
-            `${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,`
-            + ` Error Message: ${superStringify(e.message)}`,
-          );
-        }
         this.apiError(e);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
+            + ` Error Message: ${superStringify(e.message)}`,
+        );
       }
+    } else {
+      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+      + ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
+    }
+  }
+
+  async updateHomeKitCharacteristics(): Promise<void> {
+    if (this.On === undefined) {
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.On}`);
+    } else {
+      this.accessory.context.On = this.On;
+      this.switchService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
   }
 
@@ -197,16 +193,30 @@ export class Camera {
 
   async apiError(e: any): Promise<void> {
     this.switchService.updateCharacteristic(this.platform.Characteristic.On, e);
-    //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
-  async openAPI() {
-    if (!this.device.openAPI) {
-      this.OpenAPI = true;
+  FirmwareRevision(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): string {
+    let FirmwareRevision: string;
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+    + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
+    if (accessory.context.FirmwareRevision) {
+      FirmwareRevision = accessory.context.FirmwareRevision;
+    } else if (device.firmware) {
+      FirmwareRevision = device.firmware;
     } else {
-      this.OpenAPI = this.device.openAPI;
+      FirmwareRevision = this.platform.version;
     }
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using OpenAPI: ${this.OpenAPI}`);
+    return FirmwareRevision;
+  }
+
+  async context() {
+    if (this.On === undefined) {
+      this.On = false;
+    } else {
+      this.On = this.accessory.context.On;
+    }
   }
 
   async config(device: irdevice & irDevicesConfig): Promise<void> {
@@ -217,8 +227,8 @@ export class Camera {
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }
-    if (device.openAPI !== undefined) {
-      config['openAPI'] = device.openAPI;
+    if (device.connectionType !== undefined) {
+      config['connectionType'] = device.connectionType;
     }
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);

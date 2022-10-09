@@ -63,16 +63,9 @@
                 "hide_device": {
                   "title": "Hide Device",
                   "type": "boolean",
-                  "description": "If true then devices that are reported as offline will be shown as off in HomeKit.",
+                  "description": "If true, device will be removed or hidden from HomeKit.",
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId);"
-                  }
-                },
-                "offline": {
-                  "title": "Offline as Off",
-                  "type": "boolean",
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
                   }
                 },
                 "configDeviceType": {
@@ -144,19 +137,28 @@
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
                   }
                 },
-                "ble": {
-                  "title": "Enable Bluetooth (BLE) Connection",
-                  "type": "boolean",
+                "connectionType": {
+                  "title": "Connection Type",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "OpenAPI & BLE",
+                      "enum": ["Both"]
+                    },
+                    {
+                      "title": "OpenAPI",
+                      "enum": ["OpenAPI"]
+                    },
+                    {
+                      "title": "BLE",
+                      "enum": ["BLE"]
+                    },
+                    {
+                      "title": "Disable",
+                      "enum": ["Disable"]
+                    }
+                  ],
                   "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
-                  }
-                },
-                "openAPI": {
-                  "title": "Enable OpenAPI Connection",
-                  "type": "boolean",
-                  "description": "Enables OpenAPI, if disabled will leave device in HomeKit and commands will not be sent to OpenAPI, BLE can still be used. Currently only avialable for Device Type: Humidifier",
-                  "default": true,
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
                   }
@@ -166,7 +168,7 @@
                   "type": "string",
                   "placeholder": "81F3UT59513F",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].ble);"
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].connectionType === 'BLE' || model.options.devices[arrayIndices].connectionType === 'Both'));"
                   }
                 },
                 "scanDuration": {
@@ -174,7 +176,7 @@
                   "type": "number",
                   "placeholder": 1,
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].ble);"
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].connectionType === 'BLE' || model.options.devices[arrayIndices].connectionType === 'Both'));"
                   }
                 },
                 "bot": {
@@ -562,7 +564,7 @@
                   }
                 }
               },
-              "required": ["deviceId", "configDeviceType", "configDeviceName", "logging"]
+              "required": ["deviceId", "configDeviceType", "configDeviceName", "connectionType", "logging"]
             },
             "uniqueItems": true
           },
@@ -588,6 +590,7 @@
                 "hide_device": {
                   "title": "Hide Device",
                   "type": "boolean",
+                  "description": "If true, device will be removed or hidden from HomeKit.",
                   "condition": {
                     "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId);"
                   }
@@ -709,11 +712,20 @@
                     "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device);"
                   }
                 },
-                "openAPI": {
-                  "title": "Enable OpenAPI Connection",
-                  "type": "boolean",
+                "connectionType": {
+                  "title": "Connection Type",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "OpenAPI",
+                      "enum": ["OpenAPI"]
+                    },
+                    {
+                      "title": "Disable",
+                      "enum": ["Disable"]
+                    }
+                  ],
                   "description": "Enables OpenAPI, if disabled will leave device in HomeKit and commands will not be sent to OpenAPI.",
-                  "default": true,
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
                   }
@@ -826,6 +838,14 @@
                     }
                   }
                 },
+                "firmware": {
+                  "title": "Firmware Override",
+                  "type": "string",
+                  "placeholder": "1.2.8",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType);"
+                  }
+                },
                 "external": {
                   "title": "External Accessory",
                   "type": "boolean",
@@ -855,7 +875,7 @@
                   }
                 }
               },
-              "required": ["deviceId", "configRemoteType", "logging"]
+              "required": ["deviceId", "configRemoteType", "connectionType", "logging"]
             },
             "uniqueItems": true
           },
@@ -901,7 +921,7 @@
       "title": "SwitchBot Account Info",
       "expandable": true,
       "expanded": false,
-      "items": ["credentials.token","credentials.secret"]
+      "items": ["credentials.token", "credentials.secret"]
     },
     {
       "type": "fieldset",
@@ -922,9 +942,7 @@
             "options.devices[].deviceId",
             "options.devices[].hide_device",
             "options.devices[].configDeviceType",
-            "options.devices[].offline",
-            "options.devices[].ble",
-            "options.devices[].openAPI",
+            "options.devices[].connectionType",
             "options.devices[].scanDuration",
             "options.devices[].bot.mode",
             "options.devices[].bot.deviceType",
@@ -993,6 +1011,7 @@
             "options.irdevices[].other.deviceType",
             "options.irdevices[].other.commandOn",
             "options.irdevices[].other.commandOff",
+            "options.irdevices[].firmware",
             "options.irdevices[].external",
             "options.irdevices[].logging"
           ]
