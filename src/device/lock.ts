@@ -34,8 +34,8 @@ export class Lock {
   doLockUpdate!: Subject<void>;
 
   // Connection
-  private readonly BLE = (this.device.connectionType === 'BLE' || this.device.connectionType === 'Both');
-  private readonly OpenAPI = (this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'Both');
+  private readonly BLE = (this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI');
+  private readonly OpenAPI = (this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI');
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
@@ -132,15 +132,35 @@ export class Lock {
    * Parse the device status from the SwitchBot api
    */
   async parseStatus(): Promise<void> {
-    /*if (this.BLE && !this.SwitchToOpenAPI) {
+    /*if (this.BLE) {
       await this.BLEparseStatus();
-    } else*/ if (this.OpenAPI) {
-      //this.SwitchToOpenAPI = false;
+    } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
     } else {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, parseStatus will not happen.`);
     }
+  }
+
+  async BLEparseStatus(): Promise<void> {
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
+    switch (this.lockState) {
+      case 'locked':
+        this.LockCurrentState = this.platform.Characteristic.LockCurrentState.SECURED;
+        this.LockTargetState = this.platform.Characteristic.LockTargetState.SECURED;
+        break;
+      default:
+        this.LockCurrentState = this.platform.Characteristic.LockCurrentState.UNSECURED;
+        this.LockTargetState = this.platform.Characteristic.LockTargetState.UNSECURED;
+    }
+    switch (this.doorState) {
+      case 'opened':
+        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
+        break;
+      default:
+        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+    }
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.LockTargetState}`);
   }
 
   //{"deviceId":"DBDC23B53139","deviceType":"Smart Lock","hubDeviceId":"E68B14109DA2","lockState":"locked","doorState":"opened","calibrate":true}
@@ -215,7 +235,7 @@ export class Lock {
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus: ${superStringify(this.deviceStatus)}`);
             this.lockState = this.deviceStatus.body.lockState;
             this.doorState = this.deviceStatus.body.doorState;
-            this.parseStatus();
+            this.openAPIparseStatus();
             this.updateHomeKitCharacteristics();
           } catch (e: any) {
             this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
@@ -280,7 +300,7 @@ export class Lock {
           this.apiError(e);
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
         + ` Connection, Error Message: ${superStringify(e.message)}`);
-          if (this.platform.config.credentials?.token && this.device.connectionType !== 'Both') {
+          if (this.platform.config.credentials?.token && this.device.connectionType !== 'BLE/OpenAPI') {
             this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection`);
             await this.openAPIpushChanges();
           }

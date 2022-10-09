@@ -7,7 +7,7 @@ import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap } from 'homebridge';
-import { device, devicesConfig, switchbot, hs2rgb, rgb2hs, deviceStatus, HostDomain, DevicePath, ad, serviceData } from '../settings';
+import { device, devicesConfig, switchbot, hs2rgb, rgb2hs, deviceStatus, HostDomain, DevicePath, ad, serviceData, m2hs } from '../settings';
 
 /**
  * Platform Accessory
@@ -35,7 +35,6 @@ export class StripLight {
   connected?: boolean;
   switchbot!: switchbot;
   address!: ad['address'];
-  SwitchToOpenAPI?: boolean;
   serviceData!: serviceData;
   state: serviceData['state'];
   delay: serviceData['delay'];
@@ -61,8 +60,8 @@ export class StripLight {
   doStripLightUpdate!: Subject<void>;
 
   // Connection
-  private readonly BLE = (this.device.connectionType === 'BLE' || this.device.connectionType === 'Both');
-  private readonly OpenAPI = (this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'Both');
+  private readonly BLE = (this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI');
+  private readonly OpenAPI = (this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI');
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
@@ -94,12 +93,12 @@ export class StripLight {
     `${accessory.displayName} ${device.deviceType}`;
 
 
-    /*if (this.adaptiveLightingShift === -1 && this.accessory.context.adaptiveLighting) {
+    if (this.adaptiveLightingShift === -1 && this.accessory.context.adaptiveLighting) {
       this.accessory.removeService(this.lightBulbService);
       this.lightBulbService = this.accessory.addService(this.platform.Service.Lightbulb);
       this.accessory.context.adaptiveLighting = false;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} adaptiveLighting: ${this.accessory.context.adaptiveLighting}`);
-    }*/
+    }
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -125,6 +124,19 @@ export class StripLight {
         return this.Brightness;
       })
       .onSet(this.BrightnessSet.bind(this));
+
+    // handle ColorTemperature events using the ColorTemperature characteristic
+    this.lightBulbService
+      .getCharacteristic(this.platform.Characteristic.ColorTemperature)
+      .setProps({
+        minValue: 140,
+        maxValue: 500,
+        validValueRanges: [140, 500],
+      })
+      .onGet(() => {
+        return this.ColorTemperature!;
+      })
+      .onSet(this.ColorTemperatureSet.bind(this));
 
     // handle Hue events using the Hue characteristic
     this.lightBulbService
@@ -152,7 +164,7 @@ export class StripLight {
       })
       .onSet(this.SaturationSet.bind(this));
 
-    /*this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
     if (this.adaptiveLightingShift !== -1) {
       this.AdaptiveLightingController = new platform.api.hap.AdaptiveLightingController(this.lightBulbService, {
         customTemperatureAdjustment: this.adaptiveLightingShift,
@@ -163,7 +175,7 @@ export class StripLight {
         `${this.device.deviceType}: ${this.accessory.displayName} adaptiveLighting: ${this.accessory.context.adaptiveLighting},` +
             ` adaptiveLightingShift: ${this.adaptiveLightingShift}`,
       );
-    }*/
+    }
 
     // Update Homekit
     this.updateHomeKitCharacteristics();
@@ -207,10 +219,9 @@ export class StripLight {
    * Parse the device status from the SwitchBot api
    */
   async parseStatus(): Promise<void> {
-    /*if (this.BLE && !this.SwitchToOpenAPI) {
+    /*if (this.BLE) {
       await this.BLEparseStatus();
     } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
-      this.SwitchToOpenAPI = false;
       await this.openAPIparseStatus();
     } else {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
@@ -340,7 +351,7 @@ export class StripLight {
         // Stop to monitor
           switchbot.stopScan();
           if (this.connected) {
-            this.parseStatus();
+            this.BLEparseStatus();
             this.updateHomeKitCharacteristics();
           } else {
             await this.BLEconnection(switchbot);
@@ -394,7 +405,7 @@ export class StripLight {
             this.power = this.deviceStatus.body.power;
             this.color = this.deviceStatus.body.color;
             this.brightness = this.deviceStatus.body.brightness;
-            this.parseStatus();
+            this.openAPIparseStatus();
             this.updateHomeKitCharacteristics();
           } catch (e: any) {
             this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
@@ -466,7 +477,7 @@ export class StripLight {
           this.apiError(e);
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
         + ` Connection, Error Message: ${superStringify(e.message)}`);
-          if (this.platform.config.credentials?.token && this.device.connectionType !== 'Both') {
+          if (this.platform.config.credentials?.token && this.device.connectionType !== 'BLE/OpenAPI') {
             this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection`);
             await this.openAPIpushChanges();
           }
@@ -694,7 +705,7 @@ export class StripLight {
   /**
    * Handle requests to set the value of the "ColorTemperature" characteristic
    */
-  /*async ColorTemperatureSet(value: CharacteristicValue): Promise<void> {
+  async ColorTemperatureSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${value}`);
 
     // Convert mired to kelvin to nearest 100 (SwitchBot seems to need this)
@@ -713,8 +724,8 @@ export class StripLight {
     this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Saturation, hs[1]);
 
     this.ColorTemperature = value;
-    this.doColorBulbUpdate.next();
-  }*/
+    this.doStripLightUpdate.next();
+  }
 
   /**
    * Handle requests to set the value of the "Hue" characteristic
@@ -755,14 +766,13 @@ export class StripLight {
       this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Brightness, this.Brightness);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic Brightness: ${this.Brightness}`);
     }
-    /*
     if (this.ColorTemperature === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
     } else {
       this.accessory.context.ColorTemperature = this.ColorTemperature;
       this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, this.ColorTemperature);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic ColorTemperature: ${this.ColorTemperature}`);
-    }*/
+    }
     if (this.Hue === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${this.Hue}`);
     } else {
@@ -800,9 +810,8 @@ export class StripLight {
 
   async BLEconnection(switchbot: any): Promise<void> {
     this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
-    if (this.platform.config.credentials?.token && this.device.connectionType !== 'Both') {
+    if (this.platform.config.credentials?.token && this.device.connectionType !== 'BLE/OpenAPI') {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection`);
-      this.SwitchToOpenAPI = true;
       await this.openAPIRefreshStatus();
     }
   }
@@ -851,7 +860,7 @@ export class StripLight {
     return this.set_minStep;
   }
 
-  /*async adaptiveLighting(device: device & devicesConfig): Promise<void> {
+  async adaptiveLighting(device: device & devicesConfig): Promise<void> {
     if (device.colorbulb?.adaptiveLightingShift) {
       this.adaptiveLightingShift = device.colorbulb.adaptiveLightingShift;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
@@ -859,7 +868,7 @@ export class StripLight {
       this.adaptiveLightingShift = 0;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
     }
-  }*/
+  }
 
   async scan(device: device & devicesConfig): Promise<void> {
     if (device.scanDuration) {
@@ -964,11 +973,11 @@ export class StripLight {
     } else {
       this.Saturation = this.accessory.context.Saturation;
     }
-    /*if (this.ColorTemperature === undefined) {
+    if (this.ColorTemperature === undefined) {
       this.ColorTemperature = 140;
     } else {
       this.ColorTemperature = this.accessory.context.ColorTemperature;
-    }*/
+    }
     this.minKelvin = 2000;
     this.maxKelvin = 9000;
   }

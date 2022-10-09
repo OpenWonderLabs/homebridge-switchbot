@@ -36,7 +36,6 @@ export class ColorBulb {
   connected?: boolean;
   switchbot!: switchbot;
   address!: ad['address'];
-  SwitchToOpenAPI?: boolean;
   serviceData!: serviceData;
   state: serviceData['state'];
   delay: serviceData['delay'];
@@ -62,8 +61,8 @@ export class ColorBulb {
   doColorBulbUpdate!: Subject<void>;
 
   // Connection
-  private readonly BLE = (this.device.connectionType === 'BLE' || this.device.connectionType === 'Both');
-  private readonly OpenAPI = (this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'Both');
+  private readonly BLE = (this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI');
+  private readonly OpenAPI = (this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI');
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
@@ -128,7 +127,6 @@ export class ColorBulb {
       .onSet(this.BrightnessSet.bind(this));
 
     // handle ColorTemperature events using the ColorTemperature characteristic
-    this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add ColorTemperature Characteristic`);
     this.lightBulbService
       .getCharacteristic(this.platform.Characteristic.ColorTemperature)
       .setProps({
@@ -222,10 +220,9 @@ export class ColorBulb {
    * Parse the device status from the SwitchBot api
    */
   async parseStatus(): Promise<void> {
-    /*if (this.BLE && !this.SwitchToOpenAPI) {
+    /*if (this.BLE) {
       await this.BLEparseStatus();
     } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
-      this.SwitchToOpenAPI = false;
       await this.openAPIparseStatus();
     } else {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
@@ -366,7 +363,7 @@ export class ColorBulb {
         // Stop to monitor
           switchbot.stopScan();
           if (this.connected) {
-            this.parseStatus();
+            this.BLEparseStatus();
             this.updateHomeKitCharacteristics();
           } else {
             await this.BLEconnection(switchbot);
@@ -421,7 +418,7 @@ export class ColorBulb {
             this.color = this.deviceStatus.body.color;
             this.brightness = this.deviceStatus.body.brightness;
             this.colorTemperature = this.deviceStatus.body.colorTemperature;
-            this.parseStatus();
+            this.openAPIparseStatus();
             this.updateHomeKitCharacteristics();
           } catch (e: any) {
             this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
@@ -494,7 +491,7 @@ export class ColorBulb {
           this.apiError(e);
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
         + ` Connection, Error Message: ${superStringify(e.message)}`);
-          if (this.platform.config.credentials?.token && this.device.connectionType !== 'Both') {
+          if (this.platform.config.credentials?.token && this.device.connectionType !== 'BLE/OpenAPI') {
             this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection`);
             await this.openAPIpushChanges();
           }
@@ -903,7 +900,6 @@ export class ColorBulb {
     this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
     if (this.platform.config.credentials?.token) {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection`);
-      this.SwitchToOpenAPI = true;
       await this.openAPIRefreshStatus();
     }
   }

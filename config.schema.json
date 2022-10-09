@@ -142,8 +142,8 @@
                   "type": "string",
                   "oneOf": [
                     {
-                      "title": "OpenAPI & BLE",
-                      "enum": ["Both"]
+                      "title": "BLE/OpenAPI",
+                      "enum": ["BLE/OpenAPI"]
                     },
                     {
                       "title": "OpenAPI",
@@ -168,7 +168,7 @@
                   "type": "string",
                   "placeholder": "81F3UT59513F",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].connectionType === 'BLE' || model.options.devices[arrayIndices].connectionType === 'Both'));"
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].connectionType === 'BLE' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
                   }
                 },
                 "scanDuration": {
@@ -176,7 +176,7 @@
                   "type": "number",
                   "placeholder": 1,
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].connectionType === 'BLE' || model.options.devices[arrayIndices].connectionType === 'Both'));"
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].connectionType === 'BLE' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
                   }
                 },
                 "bot": {
