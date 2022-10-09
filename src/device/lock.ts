@@ -300,10 +300,7 @@ export class Lock {
           this.apiError(e);
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
         + ` Connection, Error Message: ${superStringify(e.message)}`);
-          if (this.platform.config.credentials?.token && this.device.connectionType !== 'BLE/OpenAPI') {
-            this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection`);
-            await this.openAPIpushChanges();
-          }
+          await this.BLEPushConnection();
         });
     } else {
       this.debugLog(
@@ -412,6 +409,21 @@ export class Lock {
       this.accessory.context.LockCurrentState = this.LockCurrentState;
       this.lockService.updateCharacteristic(this.platform.Characteristic.LockCurrentState, this.LockCurrentState);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic LockCurrentState: ${this.LockCurrentState}`);
+    }
+  }
+
+  async BLEPushConnection() {
+    if (this.platform.config.credentials?.token && this.device.connectionType !== 'BLE/OpenAPI') {
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Push Changes`);
+      await this.openAPIpushChanges();
+    }
+  }
+
+  async BLERefreshConnection(switchbot: any): Promise<void> {
+    this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
+    if (this.platform.config.credentials?.token && this.device.connectionType !== 'BLE/OpenAPI') {
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Refresh Status`);
+      await this.openAPIRefreshStatus();
     }
   }
 
