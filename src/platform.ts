@@ -26,6 +26,8 @@ import superStringify from 'super-stringify';
 import { readFileSync, writeFileSync } from 'fs';
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, Service, Characteristic } from 'homebridge';
 import { PLATFORM_NAME, PLUGIN_NAME, irdevice, device, SwitchBotPlatformConfig, devicesConfig, DevicePath, HostDomain } from './settings';
+import { IncomingMessage } from 'http';
+import { interval, take } from 'rxjs';
 
 /**
  * HomebridgePlatform
@@ -68,7 +70,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     } catch (e: any) {
       this.errorLog(superStringify(e.message));
       if (this.platformLogging?.includes('debug')) {
-        this.errorLog(superStringify(e));
+        this.errorLog(`Verify Config: ${e}`);
       }
       return;
     }
@@ -95,7 +97,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } catch (e: any) {
         this.errorLog('Failed to Discover Devices.', superStringify(e.message));
         if (this.platformLogging?.includes('debug')) {
-          this.errorLog(superStringify(e));
+          this.errorLog(`Platform: ${e}`);
         }
       }
     });
@@ -221,6 +223,16 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         }
       }
     }
+
+    // Re-Discover Devices
+    if (!this.config.options.discoverDevices) {
+      this.config.options.discoverDevices = false;
+      this.debugLog(`Rediscover Devices disabled, discoverDevices: ${this.config.options.discoverDevices}`);
+    }
+    if (!this.config.options.discoverDevicesInterval) {
+      this.config.options.discoverDevicesInterval = 86400;
+      this.debugLog(`Default Rediscover Devices Interval, discoverDevicesInterval: ${this.config.options.discoverDevicesInterval}`);
+    }
   }
 
   /**
@@ -276,7 +288,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       writeFileSync(this.api.user.configPath(), JSON.stringify(currentConfig, null, 4));
       this.verifyConfig();
     } catch (e: any) {
-      this.errorLog(e);
+      this.errorLog(`Update Token: ${e}`);
     }
   }
 
@@ -305,8 +317,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
             'Content-Type': 'application/json',
           },
         };
-        const req = https.request(options, (res) => {
+        const req = https.request(options, async (res) => {
           this.debugLog(`statusCode: ${res.statusCode}`);
+          await this.statusCode({ res });
           this.debugLog(`headers: ${superStringify(res.headers)}`);
           let rawData = '';
           res.on('data', (d) => {
@@ -319,93 +332,113 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
               this.debugLog(`devicesAPI: ${superStringify(devicesAPI.body)}`);
 
               // SwitchBot Devices
-              if (devicesAPI.body.deviceList.length !== 0) {
+              /*if (devicesAPI.body.deviceList.length !== 0) {
                 this.infoLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
               } else {
                 this.debugLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
-              }
-              const deviceLists = devicesAPI.body.deviceList;
-              if (!this.config.options?.devices) {
-                this.debugLog(`SwitchBot Device Config Not Set: ${superStringify(this.config.options?.devices)}`);
-                const devices = deviceLists.map((v: any) => v);
-                for (const device of devices) {
-                  if (device.deviceType) {
-                    if (device.configDeviceName) {
-                      device.deviceName = device.configDeviceName;
-                    }
-                    this.createDevice(device);
-                  }
+              }*/
+              const deviceBodyList = devicesAPI.body.deviceList;
+              let deviceLists: any[];
+              if (deviceBodyList) {
+                if (deviceBodyList.length > 1) {
+                  deviceLists = deviceBodyList;
+                  this.infoLog(`Total SwitchBot Devices Found: ${deviceLists.length}`);
+                } else {
+                  deviceLists = [deviceBodyList];
+                  this.infoLog(`Total SwitchBot Devices Found: ${deviceLists.length}`);
                 }
-              } else if (this.config.credentials?.token && this.config.options.devices) {
-                this.debugLog(`SwitchBot Device Config Set: ${superStringify(this.config.options?.devices)}`);
-                const deviceConfigs = this.config.options?.devices;
-
-                const mergeBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
-                  a1.map((itm: { deviceId: string }) => ({
-                    ...a2.find(
-                      (item: { deviceId: string }) =>
-                        item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
-                    ),
-                    ...itm,
-                  }));
-
-                const devices = mergeBydeviceId(deviceLists, deviceConfigs);
-                this.debugLog(`SwitchBot Devices: ${superStringify(devices)}`);
-                for (const device of devices) {
-                  if (device.deviceType) {
-                    if (device.configDeviceName) {
-                      device.deviceName = device.configDeviceName;
+                if (!this.config.options?.devices) {
+                  this.debugLog(`SwitchBot Device Config Not Set: ${superStringify(this.config.options?.devices)}`);
+                  const devices = deviceLists.map((v: any) => v);
+                  for (const device of devices) {
+                    if (device.deviceType) {
+                      if (device.configDeviceName) {
+                        device.deviceName = device.configDeviceName;
+                      }
+                      this.createDevice(device);
                     }
-                    this.createDevice(device);
                   }
-                }
-              } else {
-                this.errorLog('SwitchBot Token Supplied, Issue with Auth.');
-              }
+                } else if (this.config.credentials?.token && this.config.options.devices) {
+                  this.debugLog(`SwitchBot Device Config Set: ${superStringify(this.config.options?.devices)}`);
+                  const deviceConfigs = this.config.options?.devices;
 
+                  const mergeBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
+                    a1.map((itm: { deviceId: string }) => ({
+                      ...a2.find(
+                        (item: { deviceId: string }) =>
+                          item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
+                      ),
+                      ...itm,
+                    }));
+
+                  const devices = mergeBydeviceId(deviceLists, deviceConfigs);
+                  this.debugLog(`SwitchBot Devices: ${superStringify(devices)}`);
+                  for (const device of devices) {
+                    if (device.deviceType) {
+                      if (device.configDeviceName) {
+                        device.deviceName = device.configDeviceName;
+                      }
+                      this.createDevice(device);
+                    }
+                  }
+                } else {
+                  this.errorLog('SwitchBot Token Supplied, Issue with Auth.');
+                }
+              }
               // IR Devices
-              if (devicesAPI.body.infraredRemoteList.length !== 0) {
+              /*if (devicesAPI.body.infraredRemoteList.length !== 0) {
                 this.infoLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
               } else {
                 this.debugLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
-              }
-              const irDeviceLists = devicesAPI.body.infraredRemoteList;
-              if (!this.config.options?.irdevices) {
-                this.debugLog(`IR Device Config Not Set: ${superStringify(this.config.options?.irdevices)}`);
-                const devices = irDeviceLists.map((v: any) => v);
-                for (const device of devices) {
-                  if (device.remoteType) {
-                    this.createIRDevice(device);
-                  }
+              }*/
+              const irDeviceBodyList = devicesAPI.body.infraredRemoteList;
+              let irDeviceLists: any[];
+
+              if (irDeviceBodyList) {
+                if (irDeviceBodyList.length > 1) {
+                  irDeviceLists = irDeviceBodyList;
+                  this.infoLog(`Total IR Devices Found: ${irDeviceLists.length}`);
+                } else {
+                  irDeviceLists = [irDeviceBodyList];
+                  this.infoLog(`Total IR Devices Found: ${irDeviceLists.length}`);
                 }
-              } else {
-                this.debugLog(`IR Device Config Set: ${superStringify(this.config.options?.irdevices)}`);
-                const irDeviceConfig = this.config.options?.irdevices;
+                if (!this.config.options?.irdevices) {
+                  this.debugLog(`IR Device Config Not Set: ${superStringify(this.config.options?.irdevices)}`);
+                  const devices = irDeviceLists.map((v: any) => v);
+                  for (const device of devices) {
+                    if (device.remoteType) {
+                      this.createIRDevice(device);
+                    }
+                  }
+                } else {
+                  this.debugLog(`IR Device Config Set: ${superStringify(this.config.options?.irdevices)}`);
+                  const irDeviceConfig = this.config.options?.irdevices;
 
-                const mergeIRBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
-                  a1.map((itm: { deviceId: string }) => ({
-                    ...a2.find(
-                      (item: { deviceId: string }) =>
-                        item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
-                    ),
-                    ...itm,
-                  }));
+                  const mergeIRBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
+                    a1.map((itm: { deviceId: string }) => ({
+                      ...a2.find(
+                        (item: { deviceId: string }) =>
+                          item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
+                      ),
+                      ...itm,
+                    }));
 
-                const devices = mergeIRBydeviceId(irDeviceLists, irDeviceConfig);
-                this.debugLog(`IR Devices: ${superStringify(devices)}`);
-                for (const device of devices) {
-                  if (device.remoteType) {
-                    this.createIRDevice(device);
+                  const devices = mergeIRBydeviceId(irDeviceLists, irDeviceConfig);
+                  this.debugLog(`IR Devices: ${superStringify(devices)}`);
+                  for (const device of devices) {
+                    if (device.remoteType) {
+                      this.createIRDevice(device);
+                    }
                   }
                 }
               }
             } catch (e:any) {
-              this.errorLog(e.message);
+              this.errorLog(`API Request: ${e}`);
             }
           });
         });
-        req.on('error', (error) => {
-          this.errorLog(error);
+        req.on('error', (e: any) => {
+          this.errorLog(`req: ${e}`);
         });
         req.end();
       } else if (!this.config.credentials?.token && this.config.options?.devices) {
@@ -423,7 +456,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.errorLog('Neither SwitchBot Token or Device Config are not set.');
       }
     } catch (e: any) {
-      this.deviceError(e);
+      this.deviceError(`Discover Devices: ${e}`);
+    }
+    if (this.config.options?.discoverDevices) {
+      interval(this.config.options!.discoverDevicesInterval * 1000)
+        .pipe(take(1))
+        .subscribe(async () => {
+          await this.discoverDevices();
+        });
     }
   }
 
@@ -465,7 +505,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.errorLog(`Failed to Discover Devices, Error Message: ${superStringify(e.message)}`);
     }
     if (this.platformLogging === 'debugMode') {
-      this.errorLog(`Failed to Discover Devices, Error: ${superStringify(e)}`);
+      this.errorLog(`Failed to Discover Devices, Error: ${e}`);
     }
   }
 
@@ -524,7 +564,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.createStripLight(device);
         break;
       case 'Indoor Cam':
-        this.deviceInfo(device);
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.warnLog(`Device: ${device.deviceName} with Device Type: ${device.deviceType}, is currently not supported.`);
         break;
@@ -532,7 +571,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId} is Not Supported.`);
         break;
       default:
-        this.deviceInfo(device);
         this.warnLog(`Device: ${device.deviceName} with Device Type: ${device.deviceType}, is currently not supported.`);
         this.warnLog('Submit Feature Requests Here: https://git.io/JL14Z');
     }
@@ -595,7 +633,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.createOthers(device);
         break;
       default:
-        this.deviceInfo(device);
+        this.debugLog(`Unsupported Device: ${superStringify(device)}`);
         this.warnLog(`Device: ${device.deviceName} with Device Type: ${device.remoteType}, is currently not supported.`);
         this.warnLog('Submit Feature Requests Here: https://git.io/JL14Z');
     }
@@ -1775,47 +1813,35 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  public async deviceInfo(device: (irdevice & devicesConfig) | (device & devicesConfig)) {
-    if (this.platformLogging?.includes('debug')) {
-      this.warnLog(superStringify(device));
-
-      const t = Date.now();
-      const nonce = 'requestID';
-      const data = this.config.credentials?.token + t + nonce;
-      const signTerm = crypto.createHmac('sha256', this.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
-      const sign = signTerm.toString('base64');
-      this.debugLog(sign);
-      const options = {
-        hostname: HostDomain,
-        port: 443,
-        path: `${DevicePath}/${device.deviceId}/status`,
-        method: 'GET',
-        headers: {
-          Authorization: this.config.credentials?.token,
-          sign: sign,
-          nonce: nonce,
-          t: t,
-          'Content-Type': 'application/json',
-        },
-      };
-      const req = https.request(options, (res) => {
-        this.debugLog(`statusCode: ${res.statusCode}`);
-        res.on('data', (d) => {
-          process.stdout.write(d);
-        });
-      });
-      req.on('error', (error) => {
-        this.errorLog(error);
-      });
-      req.end();
-
-      this.deviceStatus = req;
-      if (this.deviceStatus.message === 'success') {
-        this.warnLog(`${device.deviceName} deviceInfoStatus: ${superStringify(this.deviceStatus)}`);
-      } else {
-        this.warnLog(`${device.deviceName} deviceInfoStatus: ${superStringify(this.deviceStatus.message)}`);
-        this.warnLog('Unable to retreive deviceInfoStatus.');
-      }
+  async statusCode({ res }: { res: IncomingMessage }): Promise<void> {
+    switch (res.statusCode) {
+      case 151:
+        this.errorLog('Command not supported by this device type.');
+        break;
+      case 152:
+        this.errorLog('Device not found.');
+        break;
+      case 160:
+        this.errorLog('Command is not supported.');
+        break;
+      case 161:
+        this.errorLog('Device is offline.');
+        break;
+      case 171:
+        this.errorLog('is offline');
+        break;
+      case 190:
+        this.errorLog('Requests reached the daily limit');
+        break;
+      case 100:
+        if (this.debugMode) {
+          this.debugLog('Command successfully sent.');
+        }
+        break;
+      default:
+        if (this.debugMode) {
+          this.debugLog('Unknown statusCode.');
+        }
     }
   }
 
@@ -1826,7 +1852,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     try {
       Switchbot = require('node-switchbot');
       switchbot = new Switchbot();
-    } catch (e) {
+    } catch (e: any) {
       switchbot = false;
       this.errorLog(`Was 'node-switchbot' found: ${switchbot}`);
     }

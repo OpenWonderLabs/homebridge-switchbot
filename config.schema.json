@@ -909,6 +909,28 @@
                 "enum": ["debug"]
               }
             ]
+          },
+          "discoverDevices": {
+            "title": "Rediscover Devices Periodically",
+            "type": "boolean"
+          },
+          "discoverDevicesInterval": {
+            "title": "Rediscover Devices Interval",
+            "type": "number",
+            "oneOf": [
+              {
+                "title": "1 Day",
+                "enum": [86400]
+              },
+              {
+                "title": "7 Days",
+                "enum": [604800]
+              },
+              {
+                "title": "30 Days",
+                "enum": [2592000]
+              }
+            ]
           }
         }
       }
@@ -1040,7 +1062,9 @@
           "key": "options.pushRate",
           "notitle": true
         },
-        "options.logging"
+        "options.logging",
+        "options.discoverDevices",
+        "options.discoverDevicesInterval"
       ]
     }
   ]
