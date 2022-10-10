@@ -88,7 +88,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       try {
         if (this.config.credentials?.openToken && !this.config.credentials.token) {
           await this.updateToken();
-        } else if (!this.config.credentials?.secret) {
+        } else if (this.config.credentials?.token && !this.config.credentials?.secret) {
           // eslint-disable-next-line no-useless-escape
           this.errorLog('\"secret\" config is not populated, you must populate then please restart Homebridge.');
         } else {
@@ -1762,26 +1762,28 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     device.connectionType = await this.connectionType(device);
     if (!device.hide_device && device.enableCloudService && device.connectionType === 'BLE/OpenAPI') {
       this.registeringDevice = true;
-      this.debugLog(`Device: ${device.deviceName} Both OpenAPI and BLE Connections Enabled`);
+      this.debugLog(`Device: ${device.deviceName} Both OpenAPI and BLE Connections Enabled, Connection Type: ${device.connectionType}`);
     } else if (!device.hide_device && device.deviceId && device.configDeviceType && device.configDeviceName
       && device.connectionType === 'BLE') {
       this.registeringDevice = true;
-      this.debugLog(`Device: ${device.deviceName} BLE Connection Enabled`);
+      this.debugLog(`Device: ${device.deviceName} BLE Connection Enabled, Connection Type: ${device.connectionType}`);
     } else if (!device.hide_device && device.enableCloudService && device.connectionType === 'OpenAPI') {
       this.registeringDevice = true;
-      this.debugLog(`Device: ${device.deviceName} OpenAPI Connection Enabled`);
+      this.debugLog(`Device: ${device.deviceName} OpenAPI Connection Enabled, Connection Type: ${device.connectionType}`);
     } else if (!device.hide_device && device.enableCloudService && device.connectionType === 'Disable') {
       this.registeringDevice = true;
-      this.debugLog(`Device: ${device.deviceName} Device connection Disabled, will continue to display in HomeKit`);
+      this.debugLog(`Device: ${device.deviceName} Device connection Disabled, will continue to display in HomeKit,`
+      + ` Connection Type: ${device.connectionType}`);
     } else if (!device.connectionType){
       this.registeringDevice = false;
-      this.errorLog(`Device: ${device.deviceName} Connection Type not Set, will not display in HomeKit`);
+      this.errorLog(`Device: ${device.deviceName} Connection Type not Set, will not display in HomeKit, Connection Type: ${device.connectionType}`);
     } else if (device.hide_device){
       this.registeringDevice = false;
-      this.errorLog(`Device: ${device.deviceName} Device Set to Hidden, will not display in HomeKit`);
+      this.errorLog(`Device: ${device.deviceName} Device Set to Hidden, will not display in HomeKit, hide_device: ${device.hide_device}`);
     } else {
       this.registeringDevice = false;
-      this.errorLog(`Device: ${device.deviceName} OpenAPI or BLE Are Not Enabled`);
+      this.errorLog(`Device: ${device.deviceName} OpenAPI or BLE Are Not Enabled, Connection Type: ${device.connectionType},`
+      + ` hide_device: ${device.hide_device}`);
     }
     return this.registeringDevice;
   }

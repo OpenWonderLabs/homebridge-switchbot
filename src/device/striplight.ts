@@ -693,7 +693,11 @@ export class StripLight {
    * Handle requests to set the value of the "Brightness" characteristic
    */
   async BrightnessSet(value: CharacteristicValue): Promise<void> {
-    this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Brightness: ${value}`);
+    if (this.On) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Brightness: ${value}`);
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Brightness: ${value}`);
+    }
 
     this.Brightness = value;
     this.doStripLightUpdate.next();
@@ -703,7 +707,11 @@ export class StripLight {
    * Handle requests to set the value of the "ColorTemperature" characteristic
    */
   async ColorTemperatureSet(value: CharacteristicValue): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${value}`);
+    if (this.On) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${value}`);
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${value}`);
+    }
 
     // Convert mired to kelvin to nearest 100 (SwitchBot seems to need this)
     const kelvin = Math.round(1000000 / Number(value) / 100) * 100;
@@ -728,9 +736,13 @@ export class StripLight {
    * Handle requests to set the value of the "Hue" characteristic
    */
   async HueSet(value: CharacteristicValue): Promise<void> {
-    this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Hue: ${value}`);
+    if (this.On) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Hue: ${value}`);
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Hue: ${value}`);
+    }
 
-    //this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, 140);
+    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, 140);
 
     this.Hue = value;
     this.doStripLightUpdate.next();
@@ -740,9 +752,13 @@ export class StripLight {
    * Handle requests to set the value of the "Saturation" characteristic
    */
   async SaturationSet(value: CharacteristicValue): Promise<void> {
-    this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Saturation: ${value}`);
+    if (this.On) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Saturation: ${value}`);
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Saturation: ${value}`);
+    }
 
-    //this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, 140);
+    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, 140);
 
     this.Saturation = value;
     this.doStripLightUpdate.next();
