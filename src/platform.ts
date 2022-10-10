@@ -277,6 +277,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           let rawData = '';
           res.on('data', (d) => {
             rawData += d;
+            this.deviceStatus = d;
             this.debugLog(`d: ${d}`);
           });
           res.on('end', () => {
@@ -337,6 +338,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
                 } else {
                   this.errorLog('SwitchBot Token Supplied, Issue with Auth.');
                 }
+              } else {
+                this.errorLog(`SwitchBot Device Request Issue: ${this.deviceStatus}`);
               }
               // IR Devices
               /*if (devicesAPI.body.infraredRemoteList.length !== 0) {
@@ -383,6 +386,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
                     }
                   }
                 }
+              } else {
+                this.errorLog(`SwitchBot IR Device Request Issue: ${this.deviceStatus}`);
               }
             } catch (e:any) {
               this.errorLog(`API Request: ${e}`);
