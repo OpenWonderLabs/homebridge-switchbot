@@ -181,7 +181,7 @@ export class MeterPlus {
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
     } else {
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, parseStatus will not happen.`);
     }
   }
@@ -236,7 +236,7 @@ export class MeterPlus {
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
   }
@@ -262,12 +262,8 @@ export class MeterPlus {
           // Set an event hander
           switchbot.onadvertisement = (ad: ad) => {
             this.address = ad.address;
-            if (this.deviceLogging.includes('debug')) {
-              this.infoLog(this.address);
-              this.infoLog(this.device.bleMac);
-              this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address Found: ${this.address}`);
-              this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac}`);
-            }
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
+            + ` BLE Address Found: ${this.address}`);
             if (ad.serviceData.humidity! > 0) {
               // reject unreliable data
               this.humidity = ad.serviceData.humidity;
@@ -692,9 +688,25 @@ export class MeterPlus {
     }
   }
 
+  debugWarnLog(...log: any[]): void {
+    if (this.enablingDeviceLogging()) {
+      if (this.deviceLogging?.includes('debug')) {
+        this.platform.log.warn('[DEBUG]', String(...log));
+      }
+    }
+  }
+
   errorLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.error(String(...log));
+    }
+  }
+
+  debugErrorLog(...log: any[]): void {
+    if (this.enablingDeviceLogging()) {
+      if (this.deviceLogging?.includes('debug')) {
+        this.platform.log.error('[DEBUG]', String(...log));
+      }
     }
   }
 

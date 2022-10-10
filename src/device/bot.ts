@@ -369,7 +369,7 @@ export class Bot {
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
     } else {
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, parseStatus will not happen.`);
     }
   }
@@ -424,7 +424,7 @@ export class Bot {
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
   }
@@ -450,12 +450,8 @@ export class Bot {
         // Set an event hander
           switchbot.onadvertisement = (ad: ad) => {
             this.address = ad.address;
-            if (this.deviceLogging.includes('debug')) {
-              this.infoLog(this.address);
-              this.infoLog(this.device.bleMac);
-              this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address Found: ${this.address}`);
-              this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac}`);
-            }
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
+            + ` BLE Address Found: ${this.address}`);
             this.serviceData = ad.serviceData;
             this.mode = ad.serviceData.mode;
             this.state = ad.serviceData.state;
@@ -563,7 +559,7 @@ export class Bot {
     } else if (this.OpenAPI) {
       await this.openAPIpushChanges();
     } else {
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, pushChanges will not happen.`);
     }
     interval(5000)
@@ -1352,9 +1348,25 @@ export class Bot {
     }
   }
 
+  debugWarnLog(...log: any[]): void {
+    if (this.enablingDeviceLogging()) {
+      if (this.deviceLogging?.includes('debug')) {
+        this.platform.log.warn('[DEBUG]', String(...log));
+      }
+    }
+  }
+
   errorLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.error(String(...log));
+    }
+  }
+
+  debugErrorLog(...log: any[]): void {
+    if (this.enablingDeviceLogging()) {
+      if (this.deviceLogging?.includes('debug')) {
+        this.platform.log.error('[DEBUG]', String(...log));
+      }
     }
   }
 

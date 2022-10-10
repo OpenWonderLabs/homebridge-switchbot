@@ -155,7 +155,7 @@
                     },
                     {
                       "title": "Disable",
-                      "enum": ["Disable"]
+                      "enum": ["Disabled"]
                     }
                   ],
                   "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
@@ -722,7 +722,7 @@
                     },
                     {
                       "title": "Disable",
-                      "enum": ["Disable"]
+                      "enum": ["Disabled"]
                     }
                   ],
                   "description": "Enables OpenAPI, if disabled will leave device in HomeKit and commands will not be sent to OpenAPI.",
@@ -892,31 +892,6 @@
             "placeholder": 1,
             "description": "Indicates the number of seconds between pushes to SwitchBot API."
           },
-          "discoverDevices": {
-            "title": "Rediscover Devices Periodically",
-            "type": "boolean"
-          },
-          "discoverDevicesInterval": {
-            "title": "Rediscover Devices Interval",
-            "type": "number",
-            "oneOf": [
-              {
-                "title": "1 Day",
-                "enum": [86400]
-              },
-              {
-                "title": "7 Days",
-                "enum": [604800]
-              },
-              {
-                "title": "30 Days",
-                "enum": [2592000]
-              }
-            ],
-            "condition": {
-              "functionBody": "return (model.options && model.options.discoverDevices);"
-            }
-          },
           "logging": {
             "title": "Logging Setting",
             "type": "string",
@@ -1065,8 +1040,6 @@
           "key": "options.pushRate",
           "notitle": true
         },
-        "options.discoverDevices",
-        "options.discoverDevicesInterval",
         "options.logging"
       ]
     }

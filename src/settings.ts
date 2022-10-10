@@ -29,6 +29,7 @@ export interface SwitchBotPlatformConfig extends PlatformConfig {
 export type credentials = {
   token?: any;
   secret?: any;
+  notice?: any;
   openToken?: any;
 };
 
