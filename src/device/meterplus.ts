@@ -490,7 +490,7 @@ export class MeterPlus {
 
   async BLERefreshConnection(switchbot: any): Promise<void> {
     this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
-    if (this.platform.config.credentials?.token && this.device.connectionType !== 'BLE/OpenAPI') {
+    if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Refresh Status`);
       await this.openAPIRefreshStatus();
     }

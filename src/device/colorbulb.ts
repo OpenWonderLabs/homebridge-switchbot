@@ -761,7 +761,11 @@ export class ColorBulb {
    * Handle requests to set the value of the "On" characteristic
    */
   async OnSet(value: CharacteristicValue): Promise<void> {
-    this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set On: ${value}`);
+    if (this.On === this.accessory.context.On) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set On: ${value}`);
+    } else {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set On: ${value}`);
+    }
 
     this.On = value;
     this.doColorBulbUpdate.next();
@@ -771,7 +775,9 @@ export class ColorBulb {
    * Handle requests to set the value of the "Brightness" characteristic
    */
   async BrightnessSet(value: CharacteristicValue): Promise<void> {
-    if (this.On) {
+    if (this.Brightness === this.accessory.context.Brightness) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set Brightness: ${value}`);
+    } else if (this.On) {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Brightness: ${value}`);
     } else {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Brightness: ${value}`);
@@ -785,7 +791,9 @@ export class ColorBulb {
    * Handle requests to set the value of the "ColorTemperature" characteristic
    */
   async ColorTemperatureSet(value: CharacteristicValue): Promise<void> {
-    if (this.On) {
+    if (this.ColorTemperature === this.accessory.context.ColorTemperature) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set ColorTemperature: ${value}`);
+    } else if (this.On) {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set ColorTemperature: ${value}`);
     } else {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Set ColorTemperature: ${value}`);
@@ -814,7 +822,9 @@ export class ColorBulb {
    * Handle requests to set the value of the "Hue" characteristic
    */
   async HueSet(value: CharacteristicValue): Promise<void> {
-    if (this.On) {
+    if (this.Hue === this.accessory.context.Hue) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set Hue: ${value}`);
+    } else if (this.On) {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Hue: ${value}`);
     } else {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Hue: ${value}`);
@@ -830,7 +840,9 @@ export class ColorBulb {
    * Handle requests to set the value of the "Saturation" characteristic
    */
   async SaturationSet(value: CharacteristicValue): Promise<void> {
-    if (this.On) {
+    if (this.Saturation === this.accessory.context.Saturation) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set Saturation: ${value}`);
+    } else if (this.On) {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Saturation: ${value}`);
     } else {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Saturation: ${value}`);
@@ -910,7 +922,7 @@ export class ColorBulb {
   }
 
   async BLEPushConnection() {
-    if (this.platform.config.credentials?.token && this.device.connectionType !== 'BLE/OpenAPI') {
+    if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Push Changes`);
       await this.openAPIpushChanges();
     }
@@ -918,7 +930,7 @@ export class ColorBulb {
 
   async BLERefreshConnection(switchbot: any): Promise<void> {
     this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
-    if (this.platform.config.credentials?.token && this.device.connectionType !== 'BLE/OpenAPI') {
+    if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Refresh Status`);
       await this.openAPIRefreshStatus();
     }

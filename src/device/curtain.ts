@@ -658,7 +658,11 @@ export class Curtain {
    * Handle requests to set the value of the "Target Position" characteristic
    */
   async TargetPositionSet(value: CharacteristicValue): Promise<void> {
-    this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set TargetPosition: ${value}`);
+    if (this.TargetPosition === this.accessory.context.TargetPosition) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set TargetPosition: ${value}`);
+    } else {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set TargetPosition: ${value}`);
+    }
 
     this.TargetPosition = value;
     this.mqttPublish('TargetPosition', this.TargetPosition);
@@ -803,7 +807,7 @@ export class Curtain {
   }
 
   async BLEPushConnection() {
-    if (this.platform.config.credentials?.token && this.device.connectionType !== 'BLE/OpenAPI') {
+    if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Push Changes`);
       await this.openAPIpushChanges();
     }
@@ -811,7 +815,7 @@ export class Curtain {
 
   async BLERefreshConnection(switchbot: any): Promise<void> {
     this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
-    if (this.platform.config.credentials?.token && this.device.connectionType !== 'BLE/OpenAPI') {
+    if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Refresh Status`);
       await this.openAPIRefreshStatus();
     }

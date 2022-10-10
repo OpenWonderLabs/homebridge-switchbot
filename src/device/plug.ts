@@ -436,7 +436,11 @@ export class Plug {
    * Handle requests to set the value of the "On" characteristic
    */
   async OnSet(value: CharacteristicValue): Promise<void> {
-    this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set On: ${value}`);
+    if (this.On === this.accessory.context.On) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set On: ${value}`);
+    } else {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set On: ${value}`);
+    }
 
     this.On = value;
     this.doPlugUpdate.next();
@@ -479,7 +483,7 @@ export class Plug {
   }
 
   async BLEPushConnection() {
-    if (this.platform.config.credentials?.token && this.device.connectionType !== 'BLE/OpenAPI') {
+    if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Push Changes`);
       await this.openAPIpushChanges();
     }
@@ -487,7 +491,7 @@ export class Plug {
 
   async BLERefreshConnection(switchbot: any): Promise<void> {
     this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
-    if (this.platform.config.credentials?.token && this.device.connectionType !== 'BLE/OpenAPI') {
+    if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Refresh Status`);
       await this.openAPIRefreshStatus();
     }

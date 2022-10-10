@@ -651,22 +651,30 @@ export class Humidifier {
   }
 
   /**
-   * Handle requests to set the "Target Humidifier Dehumidifier State" characteristic
+   * Handle requests to set the "Active" characteristic
    */
-  async TargetHumidifierDehumidifierStateSet(value: CharacteristicValue): Promise<void> {
-    this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set TargetHumidifierDehumidifierState: ${value}`);
+  async ActiveSet(value: CharacteristicValue): Promise<void> {
+    if (this.Active === this.accessory.context.Active) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set Active: ${value}`);
+    } else {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Active: ${value}`);
+    }
 
-    this.TargetHumidifierDehumidifierState = value;
+    this.Active = value;
     this.doHumidifierUpdate.next();
   }
 
   /**
-   * Handle requests to set the "Active" characteristic
+   * Handle requests to set the "Target Humidifier Dehumidifier State" characteristic
    */
-  async ActiveSet(value: CharacteristicValue): Promise<void> {
-    this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Active: ${value}`);
+  async TargetHumidifierDehumidifierStateSet(value: CharacteristicValue): Promise<void> {
+    if (this.Active === this.platform.Characteristic.Active.ACTIVE) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set TargetHumidifierDehumidifierState: ${value}`);
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Set TargetHumidifierDehumidifierState: ${value}`);
+    }
 
-    this.Active = value;
+    this.TargetHumidifierDehumidifierState = value;
     this.doHumidifierUpdate.next();
   }
 
@@ -674,7 +682,11 @@ export class Humidifier {
    * Handle requests to set the "Relative Humidity Humidifier Threshold" characteristic
    */
   async RelativeHumidityHumidifierThresholdSet(value: CharacteristicValue): Promise<void> {
-    this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set RelativeHumidityHumidifierThreshold: ${value}`);
+    if (this.Active === this.platform.Characteristic.Active.ACTIVE) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set RelativeHumidityHumidifierThreshold: ${value}`);
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Set RelativeHumidityHumidifierThreshold: ${value}`);
+    }
 
     this.RelativeHumidityHumidifierThreshold = value;
     if (this.Active === this.platform.Characteristic.Active.INACTIVE) {
@@ -773,7 +785,7 @@ export class Humidifier {
   }
 
   async BLEPushConnection() {
-    if (this.platform.config.credentials?.token && this.device.connectionType !== 'BLE/OpenAPI') {
+    if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Push Changes`);
       await this.openAPIpushChanges();
     }
@@ -781,7 +793,7 @@ export class Humidifier {
 
   async BLERefreshConnection(switchbot: any): Promise<void> {
     this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
-    if (this.platform.config.credentials?.token && this.device.connectionType !== 'BLE/OpenAPI') {
+    if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Refresh Status`);
       await this.openAPIRefreshStatus();
     }

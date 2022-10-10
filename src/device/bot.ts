@@ -609,10 +609,7 @@ export class Bot {
             this.apiError(e);
             this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
           + ` Connection & botMode: ${this.botMode}, Error Message: ${superStringify(e.message)}`);
-            if (this.platform.config.credentials?.token && this.device.connectionType !== 'BLE/OpenAPI') {
-              this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection`);
-              await this.openAPIpushChanges();
-            }
+            await this.BLEPushConnection();
           });
       } else if (this.botMode === 'switch') {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Press Mode: ${this.botMode}`);
@@ -630,10 +627,7 @@ export class Bot {
             this.apiError(e);
             this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
           + ` Connection & botMode: ${this.botMode}, Error Message: ${superStringify(e.message)}`);
-            if (this.platform.config.credentials?.token && this.device.connectionType !== 'BLE/OpenAPI') {
-              this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection`);
-              await this.openAPIpushChanges();
-            }
+            await this.BLEPushConnection();
           });
       } else {
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Bot Mode: ${this.botMode}`);
@@ -1085,7 +1079,7 @@ export class Bot {
   }
 
   async BLEPushConnection() {
-    if (this.platform.config.credentials?.token && this.device.connectionType !== 'BLE/OpenAPI') {
+    if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Push Changes`);
       await this.openAPIpushChanges();
     }
@@ -1093,7 +1087,7 @@ export class Bot {
 
   async BLERefreshConnection(switchbot: any): Promise<void> {
     this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
-    if (this.platform.config.credentials?.token && this.device.connectionType !== 'BLE/OpenAPI') {
+    if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Refresh Status`);
       await this.openAPIRefreshStatus();
     }
