@@ -37,8 +37,8 @@ export type options = {
   refreshRate?: number;
   pushRate?: number;
   logging?: string;
-  discoverDevices: boolean;
-  discoverDevicesInterval: number;
+  reDiscoverDevices: boolean;
+  reDiscoverDevicesInterval: number;
   devices?: Array<devicesConfig>;
   irdevices?: Array<irDevicesConfig>;
 };

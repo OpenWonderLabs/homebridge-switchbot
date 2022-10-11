@@ -14,6 +14,8 @@ All notable changes to this project will be documented in this file. This projec
     - `OpenAPI` will only allow connections through the OpenAPI.
     - `BLE` will only allow connections through Bluetooth (BLE), .
     - `Disable` will disable all connections. This will also allow you to disable commands and refreshes for a specific device but leave it in HomeKit.
+- Added `reDiscoverDevices` config which allows you to enable device rediscover periodically.
+  - Added `reDiscoverDevicesInterval` config which allows you to set the Interval for the `reDiscoverDevices` config.
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.15.0...v2.0.0

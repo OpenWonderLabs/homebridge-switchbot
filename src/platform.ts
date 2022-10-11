@@ -27,6 +27,7 @@ import { readFileSync, writeFileSync } from 'fs';
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, Service, Characteristic } from 'homebridge';
 import { PLATFORM_NAME, PLUGIN_NAME, irdevice, device, SwitchBotPlatformConfig, devicesConfig, DevicePath, HostDomain } from './settings';
 import { IncomingMessage } from 'http';
+import { interval, take } from 'rxjs';
 
 /**
  * HomebridgePlatform
@@ -186,6 +187,16 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           this.debugWarnLog('Cloud Enabled SwitchBot Devices & IR Devices will not work');
         }
       }
+    }
+
+    // Rediscover Devices
+    if (!this.config.options.reDiscoverDevices) {
+      this.config.options.reDiscoverDevices = false;
+      this.debugWarnLog(`Rediscover Devices disabled, discoverDevices: ${this.config.options.reDiscoverDevices}`);
+    }
+    if (!this.config.options.reDiscoverDevicesInterval && this.config.options.reDiscoverDevices) {
+      this.config.options.reDiscoverDevicesInterval = 1;
+      this.debugWarnLog(`Default Rediscover Devices Interval, discoverDevicesInterval: ${this.config.options.reDiscoverDevicesInterval} Day`);
     }
   }
 
@@ -415,6 +426,18 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     } catch (e: any) {
       this.debugErrorLog(`Failed to Discover Devices, Error Message: ${superStringify(e.message)}`);
       this.debugErrorLog(`Failed to Discover Devices, Error: ${e}`);
+    }
+    if (this.config.options?.reDiscoverDevices) {
+      this.debugWarnLog(`Rediscover Devices Interval, discoverDevicesInterval: ${this.config.options.reDiscoverDevicesInterval} Day`);
+      if (this.config.options.reDiscoverDevicesInterval > 1) {
+        interval(this.config.options.reDiscoverDevicesInterval * 86400000)
+          .pipe(take(1))
+          .subscribe(async () => {
+            await this.discoverDevices();
+          });
+      } else {
+        this.debugErrorLog(`discoverDevicesInterval must be > 1, discoverDevicesInterval: ${this.config.options.reDiscoverDevicesInterval} Day`);
+      }
     }
   }
 
@@ -1798,19 +1821,13 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     this.debugMode = process.argv.includes('-D') || process.argv.includes('--debug');
     if (this.config.options?.logging === 'debug' || this.config.options?.logging === 'standard' || this.config.options?.logging === 'none') {
       this.platformLogging = this.config.options!.logging;
-      if (this.platformLogging.includes('debug')) {
-        this.log.warn(`Using Config Logging: ${this.platformLogging}`);
-      }
+      this.debugWarnLog(`Using Config Logging: ${this.platformLogging}`);
     } else if (this.debugMode) {
       this.platformLogging = 'debugMode';
-      if (this.platformLogging?.includes('debug')) {
-        this.log.warn(`Using ${this.platformLogging} Logging`);
-      }
+      this.debugWarnLog(`Using ${this.platformLogging} Logging`);
     } else {
       this.platformLogging = 'standard';
-      if (this.platformLogging?.includes('debug')) {
-        this.log.warn(`Using ${this.platformLogging} Logging`);
-      }
+      this.debugWarnLog(`Using ${this.platformLogging} Logging`);
     }
   }
 

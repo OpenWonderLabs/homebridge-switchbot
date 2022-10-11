@@ -892,6 +892,31 @@
             "placeholder": 1,
             "description": "Indicates the number of seconds between pushes to SwitchBot API."
           },
+          "reDiscoverDevices": {
+            "title": "Rediscover Devices Periodically",
+            "type": "boolean"
+          },
+          "reDiscoverDevicesInterval": {
+            "title": "Rediscover Devices Interval",
+            "type": "number",
+            "oneOf": [
+              {
+                "title": "1 Day",
+                "enum": [1]
+              },
+              {
+                "title": "7 Days",
+                "enum": [7]
+              },
+              {
+                "title": "30 Days",
+                "enum": [30]
+              }
+            ],
+            "condition": {
+              "functionBody": "return (model.options && model.options.reDiscoverDevices);"
+            }
+          },
           "logging": {
             "title": "Logging Setting",
             "type": "string",
@@ -1040,6 +1065,8 @@
           "key": "options.pushRate",
           "notitle": true
         },
+        "options.reDiscoverDevices",
+        "options.reDiscoverDevicesInterval",
         "options.logging"
       ]
     }
