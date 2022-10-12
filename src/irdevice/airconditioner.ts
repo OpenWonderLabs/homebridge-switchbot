@@ -641,6 +641,9 @@ export class AirConditioner {
     if (device.connectionType !== undefined) {
       config['connectionType'] = device.connectionType;
     }
+    if (device.external !== undefined) {
+      config['external'] = device.external;
+    }
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
@@ -700,7 +703,7 @@ export class AirConditioner {
     }
   }
 
-debugErrorLog(...log: any[]): void {
+  debugErrorLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       if (this.deviceLogging?.includes('debug')) {
         this.platform.log.error('[DEBUG]', String(...log));

@@ -1729,11 +1729,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   public async externalOrPlatform(device: device & devicesConfig, accessory: PlatformAccessory) {
-    this.debugLog(`${accessory.displayName} External Accessory Mode: ${device.external}`);
     if (device.external) {
-      this.warnLog(`${accessory.displayName} External Accessory Mode`);
+      this.debugWarnLog(`${accessory.displayName} External Accessory Mode`);
       this.externalAccessory(accessory);
     } else {
+      this.debugLog(`${accessory.displayName} External Accessory Mode: ${device.external}`);
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
     }
   }

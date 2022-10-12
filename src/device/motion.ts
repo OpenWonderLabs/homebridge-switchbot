@@ -537,6 +537,9 @@ export class Motion {
     if (device.connectionType !== undefined) {
       config['connectionType'] = device.connectionType;
     }
+    if (device.external !== undefined) {
+      config['external'] = device.external;
+    }
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }

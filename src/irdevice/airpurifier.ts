@@ -341,6 +341,9 @@ export class AirPurifier {
     if (device.connectionType !== undefined) {
       config['connectionType'] = device.connectionType;
     }
+    if (device.external !== undefined) {
+      config['external'] = device.external;
+    }
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
