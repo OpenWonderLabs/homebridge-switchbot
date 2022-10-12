@@ -136,6 +136,9 @@ export interface irDevicesConfig extends irdevice {
   logging?: string;
   connectionType?: string;
   hide_device?: boolean;
+  customize?: boolean;
+  customOn?: string;
+  customOff?: string;
   irfan?: irfan;
   irair?: irair;
   irpur?: Record<any, any>;

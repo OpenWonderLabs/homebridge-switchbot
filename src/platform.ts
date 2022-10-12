@@ -58,7 +58,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     // HOOBS notice
     if (__dirname.includes('hoobs')) {
-      this.log.warn('This plugin has not been tested under HOOBS, it is highly recommended that you switch to Homebridge: https://git.io/Jtxb0');
+      this.warnLog('This plugin has not been tested under HOOBS, it is highly recommended that you switch to Homebridge: '
+      + 'https://tinyurl.com/HOOBS2Homebridge');
     }
 
     // verify the config
@@ -66,7 +67,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.verifyConfig();
       this.debugLog('Config OK');
     } catch (e: any) {
-      this.errorLog(`Verify Config, Error Message: ${e.message}`);
+      this.errorLog(`Verify Config, Error Message: ${e.message}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug');
       this.debugErrorLog(`Verify Config, Error: ${e}`);
       return;
     }
@@ -91,7 +92,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           this.discoverDevices();
         }
       } catch (e: any) {
-        this.errorLog(`Failed to Discover, Error Message: ${e.message}`);
+        this.errorLog(`Failed to Discover, Error Message: ${e.message}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug');
         this.debugErrorLog(`Failed to Discover, Error: ${e}`);
       }
     });
@@ -340,7 +341,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
                   this.errorLog('SwitchBot Token Supplied, Issue with Auth.');
                 }
               } else {
-                this.errorLog(`SwitchBot Device Request Issue: ${this.deviceStatus}`);
+                this.errorLog(`SwitchBot Device Request Issue: ${this.deviceStatus}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug');
               }
               // IR Devices
               /*if (devicesAPI.body.infraredRemoteList.length !== 0) {
@@ -388,15 +389,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
                   }
                 }
               } else {
-                this.errorLog(`SwitchBot IR Device Request Issue: ${this.deviceStatus}`);
+                this.errorLog(`SwitchBot IR Device Request Issue: ${this.deviceStatus}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug');
               }
             } catch (e:any) {
-              this.errorLog(`API Request: ${e}`);
+              this.errorLog(`API Request: ${e}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug');
             }
           });
         });
         req.on('error', (e: any) => {
-          this.errorLog(`req: ${e}`);
+          this.errorLog(`req: ${e}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug');
         });
         req.end();
       } else if (!this.config.credentials?.token && this.config.options?.devices) {
@@ -414,7 +415,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.errorLog('Neither SwitchBot Token or Device Config are not set.');
       }
     } catch (e: any) {
-      this.debugErrorLog(`Failed to Discover Devices, Error Message: ${superStringify(e.message)}`);
+      this.debugErrorLog(`Failed to Discover Devices, Error Message: ${superStringify(e.message)}, Submit Bugs Here: `
+      + 'https://tinyurl.com/SwitchBotBug');
       this.debugErrorLog(`Failed to Discover Devices, Error: ${e}`);
     }
   }
@@ -486,7 +488,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         break;
       default:
         this.warnLog(`Device: ${device.deviceName} with Device Type: ${device.deviceType}, is currently not supported.`);
-        this.warnLog('Submit Feature Requests Here: https://git.io/JL14Z');
+        // eslint-disable-next-line max-len
+        this.warnLog('Submit Feature Requests Here: ' + 'https://tinyurl.com/SwitchBotFeatureRequest');
     }
   }
 
@@ -549,7 +552,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       default:
         this.debugLog(`Unsupported Device: ${superStringify(device)}`);
         this.warnLog(`Device: ${device.deviceName} with Device Type: ${device.remoteType}, is currently not supported.`);
-        this.warnLog('Submit Feature Requests Here: https://git.io/JL14Z');
+        this.warnLog('Submit Feature Requests Here: ' + 'https://tinyurl.com/SwitchBotFeatureRequest');
     }
   }
 
@@ -1852,13 +1855,13 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   async statusCode({ res }: { res: IncomingMessage }): Promise<void> {
     switch (res.statusCode) {
       case 151:
-        this.errorLog('Command not supported by this device type.');
+        this.errorLog('Command not supported by this device type, Submit Feature Request Here: ' + 'https://tinyurl.com/SwitchBotFeatureRequest');
         break;
       case 152:
         this.errorLog('Device not found.');
         break;
       case 160:
-        this.errorLog('Command is not supported.');
+        this.errorLog('Command is not supported, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug');
         break;
       case 161:
         this.errorLog('Device is offline.');
@@ -1876,7 +1879,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         break;
       default:
         if (this.debugMode) {
-          this.debugLog('Unknown statusCode.');
+          this.debugLog('Unknown statusCode, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug');
         }
     }
   }

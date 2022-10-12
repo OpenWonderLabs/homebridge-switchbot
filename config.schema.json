@@ -756,7 +756,31 @@
                   ],
                   "description": "Enables OpenAPI, if disabled will leave device in HomeKit and commands will not be sent to OpenAPI.",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType);"
+                  }
+                },
+                "customize": {
+                  "title": "Custom IR Commands",
+                  "type": "boolean",
+                  "description": "Enables Custom IR Commands",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device  && model.options.irdevices[arrayIndices].configRemoteType);"
+                  }
+                },
+                "customOn": {
+                  "title": "Custom On Command",
+                  "type": "string",
+                  "placeholder": "On",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType && model.options.irdevices[arrayIndices].customize);"
+                  }
+                },
+                "customOff": {
+                  "title": "Custom Off Command",
+                  "type": "string",
+                  "placeholder": "Off",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType && model.options.irdevices[arrayIndices].customize);"
                   }
                 },
                 "irair": {
@@ -1033,6 +1057,10 @@
             "options.irdevices[].deviceId",
             "options.irdevices[].hide_device",
             "options.irdevices[].configRemoteType",
+            "options.irdevices[].connectionType",
+            "options.irdevices[].customize",
+            "options.irdevices[].customOn",
+            "options.irdevices[].customOff",
             "options.irdevices[].irair.hide_automode",
             "options.irdevices[].irair.pushOn",
             "options.irdevices[].irfan.rotation_speed",
