@@ -2,11 +2,21 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [Beta - Version 2.0.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.0.0) (2022-XX-XX)
+## [Version 2.0.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.0.0) (2022-10-12)
 
 ## What's Changed
 
 - Moved from v1.0 to v1.1 of [OpenAPI](https://github.com/OpenWonderLabs/SwitchBotAPI)
+- Publish device(s) as an external accessory.
+- Added `connectionType` config, this replaces the `BLE` config.
+  - You can now select Both Connections, Only OpenAPI, Only BLE, or Disable.
+    - `Both` will use BLE as the default connection and will use OpenAPI as a backup connection.
+    - `OpenAPI` will only allow connections through the OpenAPI.
+    - `BLE` will only allow connections through Bluetooth (BLE), .
+    - `Disable` will disable all connections. This will also allow you to disable commands and refreshes for a specific device but leave it in HomeKit.
+- Added Support for Ceiling Light & Ceiling Light Pro
+- Fixes Smart Lock Issues fixed in v1.1 of OpenAPI. [#462](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/462)
+= Fixes excesive logging from node-switchbot. [#435](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/435), [#444](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/444), [#446](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/446) 
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.15.0...v2.0.0
@@ -84,7 +94,7 @@ All notable changes to this project will be documented in this file. This projec
 
 ## What's Changed
 
-- Fix for Curtain v3.3 and above, from v1.2.0 node-swtichbot update.
+- Fix for Curtain v3.3 and above, from v1.2.0 node-switchbot update.
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.5...v1.12.6

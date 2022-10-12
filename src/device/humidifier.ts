@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { Context } from 'vm';
 import { IncomingMessage } from 'http';
 import { interval, Subject } from 'rxjs';
+import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
@@ -54,19 +55,17 @@ export class Humidifier {
   humidifierUpdateInProgress!: boolean;
   doHumidifierUpdate!: Subject<void>;
 
+  // Connection
+  private readonly BLE = (this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI');
+  private readonly OpenAPI = (this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI');
+
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
     this.logs(device);
     this.scan(device);
     this.refreshRate(device);
     this.config(device);
-    this.CurrentRelativeHumidity = 0;
-    this.TargetHumidifierDehumidifierState = this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER;
-    this.CurrentHumidifierDehumidifierState = this.platform.Characteristic.CurrentHumidifierDehumidifierState.INACTIVE;
-    this.Active = this.platform.Characteristic.Active.ACTIVE;
-    this.RelativeHumidityHumidifierThreshold = 0;
-    this.CurrentTemperature = 0;
-    this.WaterLevel = 0;
+    this.context();
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doHumidifierUpdate = new Subject();
@@ -116,9 +115,9 @@ export class Humidifier {
         maxValue: 1,
         validValues: [0, 1],
       })
-      .onSet(this.handleTargetHumidifierDehumidifierStateSet.bind(this));
+      .onSet(this.TargetHumidifierDehumidifierStateSet.bind(this));
 
-    this.humidifierService.getCharacteristic(this.platform.Characteristic.Active).onSet(this.handleActiveSet.bind(this));
+    this.humidifierService.getCharacteristic(this.platform.Characteristic.Active).onSet(this.ActiveSet.bind(this));
 
     this.humidifierService
       .getCharacteristic(this.platform.Characteristic.RelativeHumidityHumidifierThreshold)
@@ -128,15 +127,15 @@ export class Humidifier {
         maxValue: 100,
         minStep: this.minStep(),
       })
-      .onSet(this.handleRelativeHumidityHumidifierThresholdSet.bind(this));
+      .onSet(this.RelativeHumidityHumidifierThresholdSet.bind(this));
 
     // Temperature Sensor Service
-    if (device.humidifier?.hide_temperature || device.ble) {
-      this.debugLog(`Humidifier: ${accessory.displayName} Removing Temperature Sensor Service`);
+    if (device.humidifier?.hide_temperature || this.BLE) {
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Temperature Sensor Service`);
       this.temperatureservice = this.accessory.getService(this.platform.Service.TemperatureSensor);
       accessory.removeService(this.temperatureservice!);
-    } else if (!this.temperatureservice && !device.ble) {
-      this.debugLog(`Humidifier: ${accessory.displayName} Add Temperature Sensor Service`);
+    } else if (!this.temperatureservice && !this.BLE) {
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Temperature Sensor Service`);
       (this.temperatureservice =
         this.accessory.getService(this.platform.Service.TemperatureSensor) || this.accessory.addService(this.platform.Service.TemperatureSensor)),
       `${accessory.displayName} Temperature Sensor`;
@@ -155,7 +154,7 @@ export class Humidifier {
           return this.CurrentTemperature;
         });
     } else {
-      this.debugLog(`Humidifier: ${accessory.displayName} Temperature Sensor Service Not Added`);
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Temperature Sensor Service Not Added`);
     }
 
     // Retrieve initial values and updateHomekit
@@ -181,11 +180,9 @@ export class Humidifier {
         try {
           await this.pushChanges();
         } catch (e: any) {
-          this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushChanges`);
-          if (this.deviceLogging.includes('debug')) {
-            this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${JSON.stringify(e.message)}`);
-          }
           this.apiError(e);
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
+              + ` Error Message: ${superStringify(e.message)}`);
         }
         this.humidifierUpdateInProgress = false;
       });
@@ -195,104 +192,112 @@ export class Humidifier {
    * Parse the device status from the SwitchBot api
    */
   async parseStatus(): Promise<void> {
-    if (this.device.ble) {
+    if (this.BLE) {
       await this.BLEparseStatus();
-    } else {
+    } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
+    } else {
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+      + ` ${this.device.connectionType}, parseStatus will not happen.`);
     }
   }
 
   async BLEparseStatus(): Promise<void> {
-    this.debugLog(`Humidifier: ${this.accessory.displayName} BLE parseStatus`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
     // Current Relative Humidity
     this.CurrentRelativeHumidity = this.percentage!;
-    this.debugLog(`Humidifier: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
     // Active
     if (this.onState) {
       this.Active = this.platform.Characteristic.Active.ACTIVE;
     } else {
       this.Active = this.platform.Characteristic.Active.INACTIVE;
     }
-    this.debugLog(`Humidifier: ${this.accessory.displayName} Active: ${this.Active}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Active: ${this.Active}`);
   }
 
   async openAPIparseStatus(): Promise<void> {
-    if (this.platform.config.credentials?.token) {
-      this.debugLog(`Humidifier: ${this.accessory.displayName} OpenAPI parseStatus`);
-      // Current Relative Humidity
-      this.CurrentRelativeHumidity = this.humidity!;
-      this.debugLog(`Humidifier: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
-      // Current Temperature
-      if (!this.device.humidifier?.hide_temperature) {
-        this.CurrentTemperature = this.temperature!;
-        this.debugLog(`Humidifier: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
-      }
-      // Target Humidifier Dehumidifier State
-      switch (this.auto) {
-        case true:
-          this.TargetHumidifierDehumidifierState = this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER_OR_DEHUMIDIFIER;
-          this.CurrentHumidifierDehumidifierState = this.platform.Characteristic.CurrentHumidifierDehumidifierState.HUMIDIFYING;
-          this.RelativeHumidityHumidifierThreshold = this.CurrentRelativeHumidity;
-          break;
-        default:
-          this.TargetHumidifierDehumidifierState = this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER;
-          if (this.nebulizationEfficiency! > 100) {
-            this.RelativeHumidityHumidifierThreshold = 100;
-          } else {
-            this.RelativeHumidityHumidifierThreshold = this.nebulizationEfficiency!;
-          }
-          if (this.CurrentRelativeHumidity > this.RelativeHumidityHumidifierThreshold) {
-            this.CurrentHumidifierDehumidifierState = this.platform.Characteristic.CurrentHumidifierDehumidifierState.IDLE;
-          } else if (this.Active === this.platform.Characteristic.Active.INACTIVE) {
-            this.CurrentHumidifierDehumidifierState = this.platform.Characteristic.CurrentHumidifierDehumidifierState.INACTIVE;
-          } else {
-            this.CurrentHumidifierDehumidifierState = this.platform.Characteristic.CurrentHumidifierDehumidifierState.HUMIDIFYING;
-          }
-      }
-      this.debugLog(`Humidifier: ${this.accessory.displayName} TargetHumidifierDehumidifierState: ${this.TargetHumidifierDehumidifierState}`);
-      this.debugLog(
-        `Humidifier: ${this.accessory.displayName}` + ` RelativeHumidityHumidifierThreshold: ${this.RelativeHumidityHumidifierThreshold}`,
-      );
-      this.debugLog(`Humidifier: ${this.accessory.displayName} CurrentHumidifierDehumidifierState: ${this.CurrentHumidifierDehumidifierState}`);
-      // Active
-      switch (this.power) {
-        case 'on':
-          this.Active = this.platform.Characteristic.Active.ACTIVE;
-          break;
-        default:
-          this.Active = this.platform.Characteristic.Active.INACTIVE;
-      }
-      this.debugLog(`Humidifier: ${this.accessory.displayName} Active: ${this.Active}`);
-      // Water Level
-      if (this.lackWater) {
-        this.WaterLevel = 0;
-      } else {
-        this.WaterLevel = 100;
-      }
-      this.debugLog(`Humidifier: ${this.accessory.displayName} WaterLevel: ${this.WaterLevel}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
+    // Current Relative Humidity
+    this.CurrentRelativeHumidity = this.humidity!;
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+    // Current Temperature
+    if (!this.device.humidifier?.hide_temperature) {
+      this.CurrentTemperature = this.temperature!;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
     }
+    // Target Humidifier Dehumidifier State
+    switch (this.auto) {
+      case true:
+        this.TargetHumidifierDehumidifierState = this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER_OR_DEHUMIDIFIER;
+        this.CurrentHumidifierDehumidifierState = this.platform.Characteristic.CurrentHumidifierDehumidifierState.HUMIDIFYING;
+        this.RelativeHumidityHumidifierThreshold = this.CurrentRelativeHumidity;
+        break;
+      default:
+        this.TargetHumidifierDehumidifierState = this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER;
+        if (this.nebulizationEfficiency! > 100) {
+          this.RelativeHumidityHumidifierThreshold = 100;
+        } else {
+          this.RelativeHumidityHumidifierThreshold = this.nebulizationEfficiency!;
+        }
+        if (this.CurrentRelativeHumidity > this.RelativeHumidityHumidifierThreshold) {
+          this.CurrentHumidifierDehumidifierState = this.platform.Characteristic.CurrentHumidifierDehumidifierState.IDLE;
+        } else if (this.Active === this.platform.Characteristic.Active.INACTIVE) {
+          this.CurrentHumidifierDehumidifierState = this.platform.Characteristic.CurrentHumidifierDehumidifierState.INACTIVE;
+        } else {
+          this.CurrentHumidifierDehumidifierState = this.platform.Characteristic.CurrentHumidifierDehumidifierState.HUMIDIFYING;
+        }
+    }
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+      + ` TargetHumidifierDehumidifierState: ${this.TargetHumidifierDehumidifierState}`);
+    this.debugLog(
+      `${this.device.deviceType}: ${this.accessory.displayName}`
+        + ` RelativeHumidityHumidifierThreshold: ${this.RelativeHumidityHumidifierThreshold}`,
+    );
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+      + ` CurrentHumidifierDehumidifierState: ${this.CurrentHumidifierDehumidifierState}`);
+    // Active
+    switch (this.power) {
+      case 'on':
+        this.Active = this.platform.Characteristic.Active.ACTIVE;
+        break;
+      default:
+        this.Active = this.platform.Characteristic.Active.INACTIVE;
+    }
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Active: ${this.Active}`);
+    // Water Level
+    if (this.lackWater) {
+      this.WaterLevel = 0;
+    } else {
+      this.WaterLevel = 100;
+    }
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} WaterLevel: ${this.WaterLevel}`);
+
   }
 
   /**
    * Asks the SwitchBot API for the latest device information
    */
   async refreshStatus(): Promise<void> {
-    if (this.device.ble) {
+    if (this.BLE) {
       await this.BLERefreshStatus();
-    } else {
+    } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
+    } else {
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+      + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
   }
 
   async BLERefreshStatus(): Promise<void> {
-    this.debugLog(`Humidifier: ${this.accessory.displayName} BLE refreshStatus`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLERefreshStatus`);
     const switchbot = await this.platform.connectBLE();
     // Convert to BLE Address
     this.device.bleMac = this.device
       .deviceId!.match(/.{1,2}/g)!
       .join(':')
       .toLowerCase();
-    this.debugLog(`Humidifier: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     this.getCustomBLEAddress(switchbot);
     // Start to monitor advertisement packets
     if (switchbot !== false) {
@@ -305,28 +310,24 @@ export class Humidifier {
           // Set an event hander
           switchbot.onadvertisement = (ad: ad) => {
             this.address = ad.address;
-            if (this.deviceLogging.includes('debug')) {
-              this.infoLog(this.address);
-              this.infoLog(this.device.bleMac);
-              this.infoLog(`Humidifier: ${this.accessory.displayName} BLE Address Found: ${this.address}`);
-              this.infoLog(`Humidifier: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac}`);
-            }
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
+            + ` BLE Address Found: ${this.address}`);
             this.serviceData = ad.serviceData;
             this.autoMode = ad.serviceData.autoMode;
             this.onState = ad.serviceData.onState;
             this.percentage = ad.serviceData.percentage;
-            this.debugLog(`Humidifier: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
             this.debugLog(
-              `Humidifier: ${this.accessory.displayName} model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName},` +
+              `${this.device.deviceType}: ${this.accessory.displayName} model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName},` +
                 `autoMode: ${ad.serviceData.autoMode}, onState: ${ad.serviceData.onState}, percentage: ${ad.serviceData.percentage}`,
             );
 
             if (this.serviceData) {
               this.connected = true;
-              this.debugLog(`Humidifier: ${this.accessory.displayName} connected: ${this.connected}`);
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
             } else {
               this.connected = false;
-              this.debugLog(`Humidifier: ${this.accessory.displayName} connected: ${this.connected}`);
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
             }
           };
           // Wait 2 seconds
@@ -336,27 +337,428 @@ export class Humidifier {
           // Stop to monitor
           switchbot.stopScan();
           if (this.connected) {
-            this.parseStatus();
+            this.BLEparseStatus();
             this.updateHomeKitCharacteristics();
           } else {
-            await this.BLEconnection(switchbot);
+            await this.BLERefreshConnection(switchbot);
           }
         })
         .catch(async (e: any) => {
-          this.errorLog(`Humidifier: ${this.accessory.displayName} failed refreshStatus with BLE Connection`);
-          if (this.deviceLogging.includes('debug')) {
-            this.errorLog(
-              `Humidifier: ${this.accessory.displayName} failed refreshStatus with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
-            );
-          }
-          if (this.platform.config.credentials?.token) {
-            this.warnLog(`Humidifier: ${this.accessory.displayName} Using OpenAPI Connection`);
-            await this.openAPIRefreshStatus();
-          }
           this.apiError(e);
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLERefreshStatus with ${this.device.connectionType}`
+                + ` Connection, Error Message: ${superStringify(e.message)}`);
+          await this.BLERefreshConnection(switchbot);
         });
     } else {
-      await this.BLEconnection(switchbot);
+      await this.BLERefreshConnection(switchbot);
+    }
+  }
+
+  async openAPIRefreshStatus(): Promise<void> {
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
+    try {
+      const t = Date.now();
+      const nonce = 'requestID';
+      const data = this.platform.config.credentials?.token + t + nonce;
+      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+      const sign = signTerm.toString('base64');
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
+      const options = {
+        hostname: HostDomain,
+        port: 443,
+        path: `${DevicePath}/${this.device.deviceId}/status`,
+        method: 'GET',
+        headers: {
+          Authorization: this.platform.config.credentials?.token,
+          sign: sign,
+          nonce: nonce,
+          t: t,
+          'Content-Type': 'application/json',
+        },
+      };
+      const req = https.request(options, (res) => {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus statusCode: ${res.statusCode}`);
+        let rawData = '';
+        res.on('data', (d) => {
+          rawData += d;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
+        });
+        res.on('end', () => {
+          try {
+            this.deviceStatus = JSON.parse(rawData);
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus: ${superStringify(this.deviceStatus)}`);
+            this.auto = this.deviceStatus.body.auto;
+            this.power = this.deviceStatus.body.power;
+            this.lackWater = this.deviceStatus.body.lackWater;
+            this.humidity = this.deviceStatus.body.humidity;
+            this.temperature = this.deviceStatus.body.temperature;
+            this.nebulizationEfficiency = this.deviceStatus.body.nebulizationEfficiency;
+            this.openAPIparseStatus();
+            this.updateHomeKitCharacteristics();
+          } catch (e: any) {
+            this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
+          }
+        });
+      });
+      req.on('error', (e: any) => {
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
+      });
+      req.end();
+    } catch (e: any) {
+      this.apiError(e);
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
+              + ` Connection, Error Message: ${superStringify(e.message)}`);
+    }
+  }
+
+  /**
+   * Pushes the requested changes to the SwitchBot API
+   */
+  async pushChanges(): Promise<void> {
+    /*if (this.BLE) {
+      await this.BLEpushChanges();
+    } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
+      await this.openAPIpushChanges();
+    } else {
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+      + ` ${this.device.connectionType}, pushChanges will not happen.`);
+    }
+    interval(5000)
+      .pipe(take(1))
+      .subscribe(async () => {
+        await this.refreshStatus();
+      });
+  }
+
+  async BLEpushChanges(): Promise<void> {
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges`);
+    const switchbot = await this.platform.connectBLE();
+    // Convert to BLE Address
+    this.device.bleMac = this.device
+      .deviceId!.match(/.{1,2}/g)!
+      .join(':')
+      .toLowerCase();
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    switchbot
+      .discover({
+        model: 'e',
+        quick: true,
+        id: this.device.bleMac,
+      })
+      .then((device_list: any) => {
+        this.infoLog(`${this.accessory.displayName} Target Position: ${this.Active}`);
+        return device_list[0].percentage(this.RelativeHumidityHumidifierThreshold);
+      })
+      .then(() => {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
+      })
+      .catch(async (e: any) => {
+        this.apiError(e);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
+      + ` Connection, Error Message: ${superStringify(e.message)}`);
+        await this.BLEPushConnection();
+      });
+  }
+
+  async openAPIpushChanges(): Promise<void> {
+    try {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges`);
+      if (this.TargetHumidifierDehumidifierState === this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER &&
+        this.Active === this.platform.Characteristic.Active.ACTIVE) {
+      // Make Push On request to the API
+        const t = Date.now();
+        const nonce = 'requestID';
+        const data = this.platform.config.credentials?.token + t + nonce;
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+          .update(Buffer.from(data, 'utf-8'))
+          .digest();
+        const sign = signTerm.toString('base64');
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
+        this.debugLog(`Pushing Manual: ${this.RelativeHumidityHumidifierThreshold}!`);
+        const body = superStringify({
+          'command': 'setMode',
+          'parameter': `${this.RelativeHumidityHumidifierThreshold}`,
+          'commandType': 'command',
+        });
+        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
+        const options = {
+          hostname: HostDomain,
+          port: 443,
+          path: `${DevicePath}/${this.device.deviceId}/commands`,
+          method: 'POST',
+          headers: {
+            'Authorization': this.platform.config.credentials?.token,
+            'sign': sign,
+            'nonce': nonce,
+            't': t,
+            'Content-Type': 'application/json',
+            'Content-Length': body.length,
+          },
+        };
+        const req = https.request(options, res => {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges statusCode: ${res.statusCode}`);
+          res.on('data', d => {
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
+          });
+        });
+        req.on('error', (e: any) => {
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
+          this.apiError(e);
+        });
+        req.write(body);
+        req.end();
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges: ${superStringify(req)}`);
+      } else if (
+        this.TargetHumidifierDehumidifierState === this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER_OR_DEHUMIDIFIER &&
+        this.Active === this.platform.Characteristic.Active.ACTIVE
+      ) {
+        await this.pushAutoChanges();
+      } else {
+        await this.pushActiveChanges();
+      }
+    } catch (e: any) {
+      this.apiError(e);
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${superStringify(e.message)}`);
+    }
+  }
+
+  /**
+   * Pushes the requested changes to the SwitchBot API
+   */
+  async pushAutoChanges(): Promise<void> {
+    try {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} pushAutoChanges`);
+      if (
+        this.TargetHumidifierDehumidifierState === this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER_OR_DEHUMIDIFIER &&
+        this.Active === this.platform.Characteristic.Active.ACTIVE
+      ) {
+        // Make Push On request to the API
+        const t = Date.now();
+        const nonce = 'requestID';
+        const data = this.platform.config.credentials?.token + t + nonce;
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+          .update(Buffer.from(data, 'utf-8'))
+          .digest();
+        const sign = signTerm.toString('base64');
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
+        this.debugLog('Pushing Auto!');
+        const body = superStringify({
+          'command': 'setMode',
+          'parameter': 'auto',
+          'commandType': 'command',
+        });
+        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
+        const options = {
+          hostname: HostDomain,
+          port: 443,
+          path: `${DevicePath}/${this.device.deviceId}/commands`,
+          method: 'POST',
+          headers: {
+            'Authorization': this.platform.config.credentials?.token,
+            'sign': sign,
+            'nonce': nonce,
+            't': t,
+            'Content-Type': 'application/json',
+            'Content-Length': body.length,
+          },
+        };
+        const req = https.request(options, res => {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
+          this.statusCode({ res });
+          res.on('data', d => {
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
+          });
+        });
+        req.on('error', (e: any) => {
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
+        });
+        req.write(body);
+        req.end();
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} pushAutoChanges: ${superStringify(req)}`);
+      } else {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No pushAutoChanges.` +
+            `TargetHumidifierDehumidifierState: ${this.TargetHumidifierDehumidifierState}, Active: ${this.Active}`);
+      }
+    } catch (e: any) {
+      this.apiError(e);
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushAutoChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${superStringify(e.message)}`);
+    }
+  }
+
+  /**
+   * Pushes the requested changes to the SwitchBot API
+   */
+  async pushActiveChanges(): Promise<void> {
+    try {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} pushActiveChanges`);
+      if (this.Active === this.platform.Characteristic.Active.INACTIVE) {
+        // Make Push On request to the API
+        const t = Date.now();
+        const nonce = 'requestID';
+        const data = this.platform.config.credentials?.token + t + nonce;
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+          .update(Buffer.from(data, 'utf-8'))
+          .digest();
+        const sign = signTerm.toString('base64');
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
+        this.debugLog('Pushing Off!');
+        const body = superStringify({
+          'command': 'turnOff',
+          'parameter': 'default',
+          'commandType': 'command',
+        });
+        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
+        const options = {
+          hostname: HostDomain,
+          port: 443,
+          path: `${DevicePath}/${this.device.deviceId}/commands`,
+          method: 'POST',
+          headers: {
+            'Authorization': this.platform.config.credentials?.token,
+            'sign': sign,
+            'nonce': nonce,
+            't': t,
+            'Content-Type': 'application/json',
+            'Content-Length': body.length,
+          },
+        };
+        const req = https.request(options, res => {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} pushActiveChanges statusCode: ${res.statusCode}`);
+          this.statusCode({ res });
+          res.on('data', d => {
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
+          });
+        });
+        req.on('error', (e: any) => {
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
+        });
+        req.write(body);
+        req.end();
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} pushActiveChanges: ${superStringify(req)}`);
+      }
+    } catch (e: any) {
+      this.apiError(e);
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushActiveChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${superStringify(e.message)}`,
+      );
+    }
+  }
+
+  /**
+   * Handle requests to set the "Active" characteristic
+   */
+  async ActiveSet(value: CharacteristicValue): Promise<void> {
+    if (this.Active === this.accessory.context.Active) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set Active: ${value}`);
+    } else {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Active: ${value}`);
+    }
+
+    this.Active = value;
+    this.doHumidifierUpdate.next();
+  }
+
+  /**
+   * Handle requests to set the "Target Humidifier Dehumidifier State" characteristic
+   */
+  async TargetHumidifierDehumidifierStateSet(value: CharacteristicValue): Promise<void> {
+    if (this.Active === this.platform.Characteristic.Active.ACTIVE) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set TargetHumidifierDehumidifierState: ${value}`);
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Set TargetHumidifierDehumidifierState: ${value}`);
+    }
+
+    this.TargetHumidifierDehumidifierState = value;
+    this.doHumidifierUpdate.next();
+  }
+
+  /**
+   * Handle requests to set the "Relative Humidity Humidifier Threshold" characteristic
+   */
+  async RelativeHumidityHumidifierThresholdSet(value: CharacteristicValue): Promise<void> {
+    if (this.Active === this.platform.Characteristic.Active.ACTIVE) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set RelativeHumidityHumidifierThreshold: ${value}`);
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Set RelativeHumidityHumidifierThreshold: ${value}`);
+    }
+
+    this.RelativeHumidityHumidifierThreshold = value;
+    if (this.Active === this.platform.Characteristic.Active.INACTIVE) {
+      this.Active = this.platform.Characteristic.Active.ACTIVE;
+      this.CurrentHumidifierDehumidifierState = this.platform.Characteristic.CurrentHumidifierDehumidifierState.IDLE;
+    }
+    this.doHumidifierUpdate.next();
+  }
+
+  /**
+   * Updates the status for each of the HomeKit Characteristics
+   */
+  async updateHomeKitCharacteristics(): Promise<void> {
+    if (this.CurrentRelativeHumidity === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+    } else {
+      this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidity;
+      this.humidifierService.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+      + ` updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+    }
+    if (this.OpenAPI) {
+      if (this.WaterLevel === undefined) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} WaterLevel: ${this.WaterLevel}`);
+      } else {
+        this.accessory.context.WaterLevel = this.WaterLevel;
+        this.humidifierService.updateCharacteristic(this.platform.Characteristic.WaterLevel, this.WaterLevel);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic WaterLevel: ${this.WaterLevel}`);
+      }
+    }
+    if (this.CurrentHumidifierDehumidifierState === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+      + ` CurrentHumidifierDehumidifierState: ${this.CurrentHumidifierDehumidifierState}`);
+    } else {
+      this.accessory.context.CurrentHumidifierDehumidifierState = this.CurrentHumidifierDehumidifierState;
+      this.humidifierService.updateCharacteristic(this.platform.Characteristic.CurrentHumidifierDehumidifierState,
+        this.CurrentHumidifierDehumidifierState);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}` +
+          ` updateCharacteristic CurrentHumidifierDehumidifierState: ${this.CurrentHumidifierDehumidifierState}`);
+    }
+    if (this.TargetHumidifierDehumidifierState === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+      +` TargetHumidifierDehumidifierState: ${this.TargetHumidifierDehumidifierState}`);
+    } else {
+      this.accessory.context.TargetHumidifierDehumidifierState = this.TargetHumidifierDehumidifierState;
+      this.humidifierService.updateCharacteristic(this.platform.Characteristic.TargetHumidifierDehumidifierState,
+        this.TargetHumidifierDehumidifierState);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}` +
+          ` updateCharacteristic TargetHumidifierDehumidifierState: ${this.TargetHumidifierDehumidifierState}`,
+      );
+    }
+    if (this.Active === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Active: ${this.Active}`);
+    } else {
+      this.accessory.context.Active = this.Active;
+      this.humidifierService.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
+    }
+    if (this.RelativeHumidityHumidifierThreshold === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+        + ` RelativeHumidityHumidifierThreshold: ${this.RelativeHumidityHumidifierThreshold}`);
+    } else {
+      this.accessory.context.RelativeHumidityHumidifierThreshold = this.RelativeHumidityHumidifierThreshold;
+      this.humidifierService.updateCharacteristic(this.platform.Characteristic.RelativeHumidityHumidifierThreshold,
+        this.RelativeHumidityHumidifierThreshold);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}` +
+          ` updateCharacteristic RelativeHumidityHumidifierThreshold: ${this.RelativeHumidityHumidifierThreshold}`);
+    }
+    if (!this.device.humidifier?.hide_temperature && !this.BLE) {
+      if (this.CurrentTemperature === undefined) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
+      } else {
+        this.accessory.context.CurrentTemperature = this.CurrentTemperature;
+        this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
+      }
     }
   }
 
@@ -369,7 +771,7 @@ export class Humidifier {
         });
         // Set an event handler
         switchbot.onadvertisement = (ad: any) => {
-          this.warnLog(`Humidifier: ${this.accessory.displayName} ad: ${JSON.stringify(ad, null, '  ')}`);
+          this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} ad: ${superStringify(ad, null, '  ')}`);
         };
         await switchbot.wait(10000);
         // Stop to monitor
@@ -378,440 +780,74 @@ export class Humidifier {
     }
   }
 
-  async BLEconnection(switchbot: any): Promise<void> {
-    this.errorLog(`Humidifier: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
-    if (this.platform.config.credentials?.token) {
-      this.warnLog(`Humidifier: ${this.accessory.displayName} Using OpenAPI Connection`);
+  async BLEPushConnection() {
+    if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Push Changes`);
+      await this.openAPIpushChanges();
+    }
+  }
+
+  async BLERefreshConnection(switchbot: any): Promise<void> {
+    this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
+    if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Refresh Status`);
       await this.openAPIRefreshStatus();
     }
   }
 
-  async openAPIRefreshStatus(): Promise<void> {
-    if (this.platform.config.credentials?.token) {
-      this.debugLog(`Humidifier: ${this.accessory.displayName} OpenAPI refreshStatus`);
-      try {
-        const t = Date.now();
-        const nonce = 'requestID';
-        const data = this.platform.config.credentials?.token + t + nonce;
-        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
-        const sign = signTerm.toString('base64');
-        this.debugLog(`Humidifier: ${this.accessory.displayName} sign: ${sign}`);
-        const options = {
-          hostname: HostDomain,
-          port: 443,
-          path: `${DevicePath}/${this.device.deviceId}/status`,
-          method: 'GET',
-          headers: {
-            Authorization: this.platform.config.credentials?.token,
-            sign: sign,
-            nonce: nonce,
-            t: t,
-            'Content-Type': 'application/json',
-          },
-        };
-        const req = https.request(options, (res) => {
-          this.debugLog(`Humidifier: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
-          let rawData = '';
-          res.on('data', (d) => {
-            rawData += d;
-            this.debugLog(`Humidifier: ${this.accessory.displayName} d: ${d}`);
-          });
-          res.on('end', () => {
-            try {
-              this.deviceStatus = JSON.parse(rawData);
-              this.debugLog(`Humidifier: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
-              this.auto = this.deviceStatus.body.auto;
-              this.power = this.deviceStatus.body.power;
-              this.lackWater = this.deviceStatus.body.lackWater;
-              this.humidity = this.deviceStatus.body.humidity;
-              this.temperature = this.deviceStatus.body.temperature;
-              this.nebulizationEfficiency = this.deviceStatus.body.nebulizationEfficiency;
-              this.parseStatus();
-              this.updateHomeKitCharacteristics();
-            } catch (e: any) {
-              this.errorLog(`Humidifier: ${this.accessory.displayName} error message: ${e.message}`);
-            }
-          });
-        });
-        req.on('error', (e: any) => {
-          this.errorLog(`Humidifier: ${this.accessory.displayName} error message: ${e.message}`);
-        });
-        req.end();
-      } catch (e: any) {
-        this.errorLog(`Humidifier: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
-        if (this.deviceLogging.includes('debug')) {
-          this.errorLog(
-            `Humidifier: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` +
-              ` Error Message: ${JSON.stringify(e.message)}`,
-          );
-        }
-        this.apiError(e);
-      }
-    }
-  }
-
-  /**
-   * Pushes the requested changes to the SwitchBot API
-   */
-  async pushChanges(): Promise<void> {
-    //if (this.device.ble) {
-    //  await this.BLEpushChanges();
-    //} else {
-    await this.openAPIpushChanges();
-    //}
-    interval(5000)
-      .pipe(take(1))
-      .subscribe(async () => {
-        await this.refreshStatus();
-      });
-  }
-
-  async BLEpushChanges(): Promise<void> {
-    this.debugLog(`Humidifier: ${this.accessory.displayName} BLE pushChanges`);
-    const switchbot = await this.platform.connectBLE();
-    // Convert to BLE Address
-    this.device.bleMac = this.device
-      .deviceId!.match(/.{1,2}/g)!
-      .join(':')
-      .toLowerCase();
-    this.debugLog(`Humidifier: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-    if (switchbot !== false) {
-      switchbot
-        .discover({ model: 'e', quick: true, id: this.device.bleMac })
-        .then((device_list) => {
-          this.infoLog(`${this.accessory.displayName} Target Position: ${this.Active}`);
-          return device_list[0].percentage(this.RelativeHumidityHumidifierThreshold);
-        })
-        .then(() => {
-          this.debugLog(`Humidifier: ${this.accessory.displayName} Done.`);
-        })
-        .catch(async (e: any) => {
-          this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushChanges with BLE Connection`);
-          if (this.deviceLogging.includes('debug')) {
-            this.errorLog(
-              `Humidifier: ${this.accessory.displayName} failed pushChanges with BLE Connection,` + ` Error Message: ${JSON.stringify(e.message)}`,
-            );
-          }
-          if (this.platform.config.credentials?.token) {
-            this.warnLog(`Humidifier: ${this.accessory.displayName} Using OpenAPI Connection`);
-            await this.openAPIpushChanges();
-          }
-          this.apiError(e);
-        });
+  minStep(): number {
+    if (this.device.humidifier?.set_minStep) {
+      this.set_minStep = this.device.humidifier?.set_minStep;
     } else {
-      this.errorLog(`Humidifier: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
-      if (this.platform.config.credentials?.token) {
-        this.warnLog(`Humidifier: ${this.accessory.displayName} Using OpenAPI Connection`);
-        await this.openAPIpushChanges();
-      }
+      this.set_minStep = 1;
     }
+    return this.set_minStep;
   }
 
-  async openAPIpushChanges(): Promise<void> {
-    if (this.platform.config.credentials?.token) {
-      this.debugLog(`Humidifier: ${this.accessory.displayName} OpenAPI pushChanges`);
-      if (
-        this.TargetHumidifierDehumidifierState === this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER &&
-        this.Active === this.platform.Characteristic.Active.ACTIVE
-      ) {
-        // Make Push On request to the API
-        const t = Date.now();
-        const nonce = 'requestID';
-        const data = this.platform.config.credentials?.token + t + nonce;
-        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
-          .update(Buffer.from(data, 'utf-8'))
-          .digest();
-        const sign = signTerm.toString('base64');
-        this.debugLog(`Humidifier: ${this.accessory.displayName} sign: ${sign}`);
-        this.debugLog(`Pushing Manual: ${this.RelativeHumidityHumidifierThreshold}!`);
-        const body = JSON.stringify({
-          'command': 'setMode',
-          'parameter': `${this.RelativeHumidityHumidifierThreshold}`,
-          'commandType': 'command',
-        });
-        this.infoLog(`Humidifier: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
-        const options = {
-          hostname: HostDomain,
-          port: 443,
-          path: `${DevicePath}/${this.device.deviceId}/commands`,
-          method: 'POST',
-          headers: {
-            'Authorization': this.platform.config.credentials?.token,
-            'sign': sign,
-            'nonce': nonce,
-            't': t,
-            'Content-Type': 'application/json',
-            'Content-Length': body.length,
-          },
-        };
-        const req = https.request(options, res => {
-          this.debugLog(`Humidifier: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
-          res.on('data', d => {
-            this.debugLog(`Humidifier: ${this.accessory.displayName} d: ${d}`);
-          });
-        });
-        req.on('error', (e: any) => {
-          this.errorLog(`Humidifier: ${this.accessory.displayName} error message: ${e.message}`);
-          this.apiError(e);
-        });
-        req.write(body);
-        req.end();
-        this.debugLog(`Humidifier: ${this.accessory.displayName} openAPIpushChanges: ${JSON.stringify(req)}`);
-      } else if (
-        this.TargetHumidifierDehumidifierState === this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER_OR_DEHUMIDIFIER &&
-        this.Active === this.platform.Characteristic.Active.ACTIVE
-      ) {
-        await this.pushAutoChanges();
-      } else {
-        await this.pushActiveChanges();
+  async scan(device: device & devicesConfig): Promise<void> {
+    if (device.scanDuration) {
+      this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
+      if (this.BLE) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
       }
-    }
-  }
-
-  /**
-   * Pushes the requested changes to the SwitchBot API
-   */
-  async pushAutoChanges(): Promise<void> {
-    try {
-      if (
-        this.TargetHumidifierDehumidifierState === this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER_OR_DEHUMIDIFIER &&
-        this.Active === this.platform.Characteristic.Active.ACTIVE
-      ) {
-        // Make Push On request to the API
-        const t = Date.now();
-        const nonce = 'requestID';
-        const data = this.platform.config.credentials?.token + t + nonce;
-        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
-          .update(Buffer.from(data, 'utf-8'))
-          .digest();
-        const sign = signTerm.toString('base64');
-        this.debugLog(`Humidifier: ${this.accessory.displayName} sign: ${sign}`);
-        this.debugLog('Pushing Auto!');
-        const body = JSON.stringify({
-          'command': 'setMode',
-          'parameter': 'auto',
-          'commandType': 'command',
-        });
-        this.infoLog(`Humidifier: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
-        const options = {
-          hostname: HostDomain,
-          port: 443,
-          path: `${DevicePath}/${this.device.deviceId}/commands`,
-          method: 'POST',
-          headers: {
-            'Authorization': this.platform.config.credentials?.token,
-            'sign': sign,
-            'nonce': nonce,
-            't': t,
-            'Content-Type': 'application/json',
-            'Content-Length': body.length,
-          },
-        };
-        const req = https.request(options, res => {
-          this.debugLog(`Humidifier: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
-          this.statusCode({ res });
-          res.on('data', d => {
-            this.debugLog(`Humidifier: ${this.accessory.displayName} d: ${d}`);
-          });
-        });
-        req.on('error', (e: any) => {
-          this.errorLog(`Humidifier: ${this.accessory.displayName} error message: ${e.message}`);
-        });
-        req.write(body);
-        req.end();
-        this.debugLog(`Humidifier: ${this.accessory.displayName} pushAutoChanges: ${JSON.stringify(req)}`);
-      }
-    } catch (e: any) {
-      this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushAutoChanges with OpenAPI Connection`);
-      if (this.deviceLogging.includes('debug')) {
-        this.errorLog(
-          `Humidifier: ${this.accessory.displayName} failed pushAutoChanges with OpenAPI Connection,` +
-            ` Error Message: ${JSON.stringify(e.message)}`,
-        );
-      }
-      this.apiError(e);
-    }
-  }
-
-  /**
-   * Pushes the requested changes to the SwitchBot API
-   */
-  async pushActiveChanges(): Promise<void> {
-    try {
-      if (this.Active === this.platform.Characteristic.Active.INACTIVE) {
-        // Make Push On request to the API
-        const t = Date.now();
-        const nonce = 'requestID';
-        const data = this.platform.config.credentials?.token + t + nonce;
-        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
-          .update(Buffer.from(data, 'utf-8'))
-          .digest();
-        const sign = signTerm.toString('base64');
-        this.debugLog(`Humidifier: ${this.accessory.displayName} sign: ${sign}`);
-        this.debugLog('Pushing Off!');
-        const body = JSON.stringify({
-          'command': 'turnOff',
-          'parameter': 'default',
-          'commandType': 'command',
-        });
-        this.infoLog(`Humidifier: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
-        const options = {
-          hostname: HostDomain,
-          port: 443,
-          path: `${DevicePath}/${this.device.deviceId}/commands`,
-          method: 'POST',
-          headers: {
-            'Authorization': this.platform.config.credentials?.token,
-            'sign': sign,
-            'nonce': nonce,
-            't': t,
-            'Content-Type': 'application/json',
-            'Content-Length': body.length,
-          },
-        };
-        const req = https.request(options, res => {
-          this.debugLog(`Humidifier: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
-          this.statusCode({ res });
-          res.on('data', d => {
-            this.debugLog(`Humidifier: ${this.accessory.displayName} d: ${d}`);
-          });
-        });
-        req.on('error', (e: any) => {
-          this.errorLog(`Humidifier: ${this.accessory.displayName} error message: ${e.message}`);
-        });
-        req.write(body);
-        req.end();
-        this.debugLog(`Humidifier: ${this.accessory.displayName} pushActiveChanges: ${JSON.stringify(req)}`);
-      }
-    } catch (e: any) {
-      this.errorLog(`Humidifier: ${this.accessory.displayName} failed pushActiveChanges with OpenAPI Connection`);
-      if (this.deviceLogging.includes('debug')) {
-        this.errorLog(
-          `Humidifier: ${this.accessory.displayName} failed pushActiveChanges with OpenAPI Connection,` +
-            ` Error Message: ${JSON.stringify(e.message)}`,
-        );
-      }
-      this.apiError(e);
-    }
-  }
-
-  /**
-   * Updates the status for each of the HomeKit Characteristics
-   */
-  async updateHomeKitCharacteristics(): Promise<void> {
-    if (this.CurrentRelativeHumidity === undefined) {
-      this.debugLog(`Humidifier: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
     } else {
-      this.humidifierService.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
-      this.debugLog(`Humidifier: ${this.accessory.displayName}` + ` updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
-    }
-    if (!this.device.ble) {
-      if (this.WaterLevel === undefined) {
-        this.debugLog(`Humidifier: ${this.accessory.displayName} WaterLevel: ${this.WaterLevel}`);
-      } else {
-        this.humidifierService.updateCharacteristic(this.platform.Characteristic.WaterLevel, this.WaterLevel);
-        this.debugLog(`Humidifier: ${this.accessory.displayName} updateCharacteristic WaterLevel: ${this.WaterLevel}`);
+      this.scanDuration = this.accessory.context.scanDuration = 1;
+      if (this.BLE) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
       }
     }
-    if (this.CurrentHumidifierDehumidifierState === undefined) {
-      this.debugLog(`Humidifier: ${this.accessory.displayName} CurrentHumidifierDehumidifierState: ${this.CurrentHumidifierDehumidifierState}`);
-    } else {
-      this.humidifierService.updateCharacteristic(
-        this.platform.Characteristic.CurrentHumidifierDehumidifierState,
-        this.CurrentHumidifierDehumidifierState,
-      );
-      this.debugLog(
-        `Humidifier: ${this.accessory.displayName}` +
-          ` updateCharacteristic CurrentHumidifierDehumidifierState: ${this.CurrentHumidifierDehumidifierState}`,
-      );
-    }
-    if (this.TargetHumidifierDehumidifierState === undefined) {
-      this.debugLog(`Humidifier: ${this.accessory.displayName} TargetHumidifierDehumidifierState: ${this.TargetHumidifierDehumidifierState}`);
-    } else {
-      this.humidifierService.updateCharacteristic(
-        this.platform.Characteristic.TargetHumidifierDehumidifierState,
-        this.TargetHumidifierDehumidifierState,
-      );
-      this.debugLog(
-        `Humidifier: ${this.accessory.displayName}` +
-          ` updateCharacteristic TargetHumidifierDehumidifierState: ${this.TargetHumidifierDehumidifierState}`,
-      );
-    }
-    if (this.Active === undefined) {
-      this.debugLog(`Humidifier: ${this.accessory.displayName} Active: ${this.Active}`);
-    } else {
-      this.humidifierService.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
-      this.debugLog(`Humidifier: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
-    }
-    if (this.RelativeHumidityHumidifierThreshold === undefined) {
-      this.debugLog(
-        `Humidifier: ${this.accessory.displayName}` + ` RelativeHumidityHumidifierThreshold: ${this.RelativeHumidityHumidifierThreshold}`,
-      );
-    } else {
-      this.humidifierService.updateCharacteristic(
-        this.platform.Characteristic.RelativeHumidityHumidifierThreshold,
-        this.RelativeHumidityHumidifierThreshold,
-      );
-      this.debugLog(
-        `Humidifier: ${this.accessory.displayName}` +
-          ` updateCharacteristic RelativeHumidityHumidifierThreshold: ${this.RelativeHumidityHumidifierThreshold}`,
-      );
-    }
-    if (!this.device.humidifier?.hide_temperature && !this.device.ble) {
-      if (this.CurrentTemperature === undefined) {
-        this.debugLog(`Humidifier: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
-      } else {
-        this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
-        this.debugLog(`Humidifier: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
-      }
-    }
-  }
-
-  async apiError(e: any): Promise<void> {
-    this.humidifierService.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, e);
-    if (!this.device.ble) {
-      this.humidifierService.updateCharacteristic(this.platform.Characteristic.WaterLevel, e);
-    }
-    this.humidifierService.updateCharacteristic(this.platform.Characteristic.CurrentHumidifierDehumidifierState, e);
-    this.humidifierService.updateCharacteristic(this.platform.Characteristic.TargetHumidifierDehumidifierState, e);
-    this.humidifierService.updateCharacteristic(this.platform.Characteristic.Active, e);
-    this.humidifierService.updateCharacteristic(this.platform.Characteristic.RelativeHumidityHumidifierThreshold, e);
-    if (!this.device.humidifier?.hide_temperature && !this.device.ble) {
-      this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
-    }
-    //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
   async statusCode({ res }: { res: IncomingMessage }): Promise<void> {
     switch (res.statusCode) {
       case 151:
-        this.errorLog(`Humidifier: ${this.accessory.displayName} Command not supported by this device type.`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command not supported by this device type.`);
         break;
       case 152:
-        this.errorLog(`Humidifier: ${this.accessory.displayName} Device not found.`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device not found.`);
         break;
       case 160:
-        this.errorLog(`Humidifier: ${this.accessory.displayName} Command is not supported.`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command is not supported.`);
         break;
       case 161:
-        this.errorLog(`Humidifier: ${this.accessory.displayName} Device is offline.`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device is offline.`);
         this.offlineOff();
         break;
       case 171:
-        this.errorLog(`Humidifier: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
         this.offlineOff();
         break;
       case 190:
         this.errorLog(
-          `Humidifier: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-            ` Or command: ${JSON.stringify(res)} format is invalid`,
+          `${this.device.deviceType}: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
+            ` Or command: ${superStringify(res)} format is invalid`,
         );
         break;
       case 100:
-        this.debugLog(`Humidifier: ${this.accessory.displayName} Command successfully sent.`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Command successfully sent.`);
         break;
       default:
-        this.debugLog(`Humidifier: ${this.accessory.displayName} Unknown statusCode.`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode.`);
     }
   }
 
@@ -819,40 +855,86 @@ export class Humidifier {
     if (this.device.offline) {
       this.Active = this.platform.Characteristic.Active.INACTIVE;
       this.humidifierService.getCharacteristic(this.platform.Characteristic.Active).updateValue(this.Active);
+      await this.updateHomeKitCharacteristics();
     }
   }
 
-  /**
-   * Handle requests to set the "Target Humidifier Dehumidifier State" characteristic
-   */
-  async handleTargetHumidifierDehumidifierStateSet(value: CharacteristicValue): Promise<void> {
-    this.debugLog(`Humidifier: ${this.accessory.displayName} TargetHumidifierDehumidifierState: ${value}`);
-
-    this.TargetHumidifierDehumidifierState = value;
-    this.doHumidifierUpdate.next();
+  async apiError(e: any): Promise<void> {
+    this.humidifierService.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, e);
+    if (!this.BLE) {
+      this.humidifierService.updateCharacteristic(this.platform.Characteristic.WaterLevel, e);
+    }
+    this.humidifierService.updateCharacteristic(this.platform.Characteristic.CurrentHumidifierDehumidifierState, e);
+    this.humidifierService.updateCharacteristic(this.platform.Characteristic.TargetHumidifierDehumidifierState, e);
+    this.humidifierService.updateCharacteristic(this.platform.Characteristic.Active, e);
+    this.humidifierService.updateCharacteristic(this.platform.Characteristic.RelativeHumidityHumidifierThreshold, e);
+    if (!this.device.humidifier?.hide_temperature && !this.BLE) {
+      this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
+    }
   }
 
-  /**
-   * Handle requests to set the "Active" characteristic
-   */
-  async handleActiveSet(value: CharacteristicValue): Promise<void> {
-    this.debugLog(`Humidifier: ${this.accessory.displayName} Active: ${value}`);
-    this.Active = value;
-    this.doHumidifierUpdate.next();
+  FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
+    let FirmwareRevision: string;
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+    + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
+    if (accessory.context.FirmwareRevision) {
+      FirmwareRevision = accessory.context.FirmwareRevision;
+    } else if (device.firmware) {
+      FirmwareRevision = device.firmware;
+    } else {
+      FirmwareRevision = this.platform.version;
+    }
+    return FirmwareRevision;
   }
 
-  /**
-   * Handle requests to set the "Relative Humidity Humidifier Threshold" characteristic
-   */
-  async handleRelativeHumidityHumidifierThresholdSet(value: CharacteristicValue): Promise<void> {
-    this.debugLog(`Humidifier: ${this.accessory.displayName} RelativeHumidityHumidifierThreshold: ${value}`);
-
-    this.RelativeHumidityHumidifierThreshold = value;
-    if (this.Active === this.platform.Characteristic.Active.INACTIVE) {
+  async context() {
+    if (this.Active === undefined) {
       this.Active = this.platform.Characteristic.Active.ACTIVE;
-      this.CurrentHumidifierDehumidifierState = this.platform.Characteristic.CurrentHumidifierDehumidifierState.IDLE;
+    } else {
+      this.Active = this.accessory.context.Active;
     }
-    this.doHumidifierUpdate.next();
+    if (this.CurrentTemperature === undefined) {
+      this.CurrentTemperature = 0;
+    } else {
+      this.CurrentTemperature = this.accessory.context.CurrentTemperature;
+    }
+    if (this.CurrentRelativeHumidity === undefined) {
+      this.CurrentRelativeHumidity = 0;
+    } else {
+      this.CurrentRelativeHumidity = this.accessory.context.CurrentRelativeHumidity;
+    }
+    if (this.TargetHumidifierDehumidifierState === undefined) {
+      this.TargetHumidifierDehumidifierState = this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER;
+    } else {
+      this.TargetHumidifierDehumidifierState = this.accessory.context.TargetHumidifierDehumidifierState;
+    }
+    if (this.CurrentHumidifierDehumidifierState === undefined) {
+      this.CurrentHumidifierDehumidifierState = this.platform.Characteristic.CurrentHumidifierDehumidifierState.INACTIVE;
+    } else {
+      this.CurrentHumidifierDehumidifierState = this.accessory.context.CurrentHumidifierDehumidifierState;
+    }
+    if (this.RelativeHumidityHumidifierThreshold === undefined) {
+      this.RelativeHumidityHumidifierThreshold = 0;
+    } else {
+      this.RelativeHumidityHumidifierThreshold = this.accessory.context.RelativeHumidityHumidifierThreshold;
+    }
+    if (this.WaterLevel === undefined) {
+      this.WaterLevel = 0;
+    } else {
+      this.WaterLevel = this.accessory.context.WaterLevel;
+    }
+  }
+
+  async refreshRate(device: device & devicesConfig): Promise<void> {
+    if (device.refreshRate) {
+      this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
+    } else if (this.platform.config.options!.refreshRate) {
+      this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
+    }
   }
 
   async config(device: device & devicesConfig): Promise<void> {
@@ -860,8 +942,11 @@ export class Humidifier {
     if (device.humidifier) {
       config = device.humidifier;
     }
-    if (device.ble !== undefined) {
-      config['ble'] = device.ble;
+    if (device.connectionType !== undefined) {
+      config['connectionType'] = device.connectionType;
+    }
+    if (device.external !== undefined) {
+      config['external'] = device.external;
     }
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
@@ -876,72 +961,24 @@ export class Humidifier {
       config['offline'] = device.offline;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`Humidifier: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
-    }
-  }
-
-  async refreshRate(device: device & devicesConfig): Promise<void> {
-    if (device.refreshRate) {
-      this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
-      this.debugLog(`Humidifier: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
-    } else if (this.platform.config.options!.refreshRate) {
-      this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
-      this.debugLog(`Humidifier: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
-    }
-  }
-
-  async scan(device: device & devicesConfig): Promise<void> {
-    if (device.scanDuration) {
-      this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
-      if (device.ble) {
-        this.debugLog(`Humidifier: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
-      }
-    } else {
-      this.scanDuration = this.accessory.context.scanDuration = 1;
-      if (this.device.ble) {
-        this.debugLog(`Humidifier: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
-      }
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
   }
 
   async logs(device: device & devicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
-      this.debugLog(`Humidifier: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
     } else if (device.logging) {
       this.deviceLogging = this.accessory.context.logging = device.logging;
-      this.debugLog(`Humidifier: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
     } else if (this.platform.config.options?.logging) {
       this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      this.debugLog(`Humidifier: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
-      this.debugLog(`Humidifier: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
     }
-  }
-
-  FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
-    let FirmwareRevision: string;
-    this.debugLog(`Humidifier: ${this.accessory.displayName} accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
-    this.debugLog(`Humidifier: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
-    this.debugLog(`Humidifier: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
-    if (accessory.context.FirmwareRevision) {
-      FirmwareRevision = accessory.context.FirmwareRevision;
-    } else if (device.firmware) {
-      FirmwareRevision = device.firmware;
-    } else {
-      FirmwareRevision = this.platform.version;
-    }
-    return FirmwareRevision;
-  }
-
-  minStep(): number {
-    if (this.device.humidifier?.set_minStep) {
-      this.set_minStep = this.device.humidifier?.set_minStep;
-    } else {
-      this.set_minStep = 1;
-    }
-    return this.set_minStep;
   }
 
   /**
@@ -959,9 +996,25 @@ export class Humidifier {
     }
   }
 
+  debugWarnLog(...log: any[]): void {
+    if (this.enablingDeviceLogging()) {
+      if (this.deviceLogging?.includes('debug')) {
+        this.platform.log.warn('[DEBUG]', String(...log));
+      }
+    }
+  }
+
   errorLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.error(String(...log));
+    }
+  }
+
+  debugErrorLog(...log: any[]): void {
+    if (this.enablingDeviceLogging()) {
+      if (this.deviceLogging?.includes('debug')) {
+        this.platform.log.error('[DEBUG]', String(...log));
+      }
     }
   }
 

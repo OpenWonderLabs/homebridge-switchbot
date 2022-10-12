@@ -7,6 +7,7 @@ import { Contact } from './device/contact';
 import { Curtain } from './device/curtain';
 import { MeterPlus } from './device/meterplus';
 import { ColorBulb } from './device/colorbulb';
+import { CeilingLight } from './device/ceilinglight';
 import { StripLight } from './device/striplight';
 import { Humidifier } from './device/humidifier';
 import { TV } from './irdevice/tv';
@@ -22,9 +23,11 @@ import https from 'https';
 import crypto from 'crypto';
 import { Buffer } from 'buffer';
 import fakegato from 'fakegato-history';
+import superStringify from 'super-stringify';
 import { readFileSync, writeFileSync } from 'fs';
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, Service, Characteristic } from 'homebridge';
 import { PLATFORM_NAME, PLUGIN_NAME, irdevice, device, SwitchBotPlatformConfig, devicesConfig, DevicePath, HostDomain } from './settings';
+import { IncomingMessage } from 'http';
 
 /**
  * HomebridgePlatform
@@ -40,7 +43,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
   version = require('../package.json').version || '1.12.8'; // eslint-disable-line @typescript-eslint/no-var-requires
   deviceStatus!: any;
-  registeringDevice!: boolean;
   debugMode!: boolean;
   platformLogging?: string;
 
@@ -48,7 +50,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
   constructor(public readonly log: Logger, public readonly config: SwitchBotPlatformConfig, public readonly api: API) {
     this.logs();
-
     this.debugLog('Finished initializing platform:', this.config.name);
     // only load if configured
     if (!this.config) {
@@ -65,10 +66,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.verifyConfig();
       this.debugLog('Config OK');
     } catch (e: any) {
-      this.errorLog(JSON.stringify(e.message));
-      if (this.platformLogging?.includes('debug')) {
-        this.errorLog(JSON.stringify(e));
-      }
+      this.errorLog(`Verify Config, Error Message: ${e.message}`);
+      this.debugErrorLog(`Verify Config, Error: ${e}`);
       return;
     }
 
@@ -85,36 +84,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       try {
         if (this.config.credentials?.openToken && !this.config.credentials.token) {
           await this.updateToken();
+        } else if (this.config.credentials?.token && !this.config.credentials?.secret) {
+          // eslint-disable-next-line no-useless-escape
+          this.errorLog('\"secret\" config is not populated, you must populate then please restart Homebridge.');
         } else {
           this.discoverDevices();
         }
       } catch (e: any) {
-        this.errorLog('Failed to Discover Devices.', JSON.stringify(e.message));
-        if (this.platformLogging?.includes('debug')) {
-          this.errorLog(JSON.stringify(e));
-        }
+        this.errorLog(`Failed to Discover, Error Message: ${e.message}`);
+        this.debugErrorLog(`Failed to Discover, Error: ${e}`);
       }
     });
-  }
-
-  logs() {
-    this.debugMode = process.argv.includes('-D') || process.argv.includes('--debug');
-    if (this.config.options?.logging === 'debug' || this.config.options?.logging === 'standard' || this.config.options?.logging === 'none') {
-      this.platformLogging = this.config.options!.logging;
-      if (this.platformLogging.includes('debug')) {
-        this.log.warn(`Using Config Logging: ${this.platformLogging}`);
-      }
-    } else if (this.debugMode) {
-      this.platformLogging = 'debugMode';
-      if (this.platformLogging?.includes('debug')) {
-        this.log.warn(`Using ${this.platformLogging} Logging`);
-      }
-    } else {
-      this.platformLogging = 'standard';
-      if (this.platformLogging?.includes('debug')) {
-        this.log.warn(`Using ${this.platformLogging} Logging`);
-      }
-    }
   }
 
   /**
@@ -138,14 +118,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     if (this.config.options.logging) {
       platformConfig['logging'] = this.config.options.logging;
     }
-    if (this.config.options.logging) {
+    if (this.config.options.logging && this.config.options.refreshRate) {
       platformConfig['refreshRate'] = this.config.options.refreshRate;
     }
-    if (this.config.options.logging) {
+    if (this.config.options.logging && this.config.options.pushRate) {
       platformConfig['pushRate'] = this.config.options.pushRate;
     }
     if (Object.entries(platformConfig).length !== 0) {
-      this.infoLog(`Platform Config: ${JSON.stringify(platformConfig)}`);
+      this.infoLog(`Platform Config: ${superStringify(platformConfig)}`);
     }
 
     if (this.config.options) {
@@ -156,7 +136,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
             if (!deviceConfig.deviceId) {
               throw new Error('The devices config section is missing the *Device ID* in the config. Please check your config.');
             }
-            if (!deviceConfig.configDeviceType && deviceConfig.ble) {
+            if (!deviceConfig.configDeviceType && deviceConfig.connectionType) {
               throw new Error('The devices config section is missing the *Device Type* in the config. Please check your config.');
             }
           }
@@ -185,36 +165,26 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     if (!this.config.options.refreshRate) {
       // default 120 seconds (2 minutes)
       this.config.options!.refreshRate! = 120;
-      if (this.platformLogging?.includes('debug')) {
-        this.debugLog('Using Default Refresh Rate (2 minutes).');
-      }
+      this.debugWarnLog('Using Default Refresh Rate (2 minutes).');
+    }
 
-      if (!this.config.options.pushRate) {
+    if (!this.config.options.pushRate) {
         // default 100 milliseconds
         this.config.options!.pushRate! = 0.1;
-        if (this.platformLogging?.includes('debug')) {
-          this.warnLog('Using Default Push Rate.');
-        }
-      }
+        this.debugWarnLog('Using Default Push Rate.');
+    }
 
-      if (!this.config.credentials) {
-        if (this.platformLogging?.includes('debug')) {
-          this.debugLog('Missing Credentials');
-        }
-      }
+    if (!this.config.credentials && !this.config.options) {
+      this.debugWarnLog('Missing Credentials');
+    } else if (this.config.credentials && !this.config.credentials.notice) {
       if (!this.config.credentials?.token) {
-        if (this.platformLogging?.includes('debug')) {
-          this.errorLog('Missing token');
-          this.warnLog('Cloud Enabled SwitchBot Devices & IR Devices will not work');
-        }
+        this.debugErrorLog('Missing token');
+        this.debugWarnLog('Cloud Enabled SwitchBot Devices & IR Devices will not work');
       }
       if (this.config.credentials?.token) {
         if (!this.config.credentials?.secret) {
-          if (this.platformLogging?.includes('debug')) {
-            this.errorLog('Missing secret');
-            this.warnLog('Cloud Enabled SwitchBot Devices & IR Devices will not work');
-          }
-          throw Error('Missing secret');
+          this.debugErrorLog('Missing secret');
+          this.debugWarnLog('Cloud Enabled SwitchBot Devices & IR Devices will not work');
         }
       }
     }
@@ -252,21 +222,27 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         throw new Error('pluginConfig.credentials is not an object');
       }
       // Move openToken to token
-      this.warnLog('This plugin has been updated to use OpenAPI v1.1, config is set with openToken.');
-      this.warnLog('`openToken` config has been moved to the `token` config, Please restart Homebridge.');
+      if (!this.config.credentials.secret){
+        // eslint-disable-next-line no-useless-escape, max-len
+        this.warnLog('This plugin has been updated to use OpenAPI v1.1, config is set with openToken, \"openToken\" cconfig has been moved to the \"token\" config' );
+        // eslint-disable-next-line no-useless-escape
+        this.errorLog('\"secret\" config is not populated, you must populate then please restart Homebridge.');
+      } else {
+        // eslint-disable-next-line no-useless-escape, max-len
+        this.warnLog('This plugin has been updated to use OpenAPI v1.1, config is set with openToken, \"openToken\" config has been moved to the \"token\" config, please restart Homebridge.');
+      }
 
       // set the refresh token
       pluginConfig.credentials.token = this.config.credentials?.openToken;
       pluginConfig.credentials.openToken = 'Delete';
 
-      if (this.platformLogging?.includes('debug')) {
-        this.warnLog(`Token: ${pluginConfig.credentials.token}`);
-      }
+      this.debugWarnLog(`Token: ${pluginConfig.credentials.token}`);
+
       // save the config, ensuring we maintain pretty json
       writeFileSync(this.api.user.configPath(), JSON.stringify(currentConfig, null, 4));
       this.verifyConfig();
     } catch (e: any) {
-      this.errorLog(e);
+      this.errorLog(`Update Token: ${e}`);
     }
   }
 
@@ -295,111 +271,136 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
             'Content-Type': 'application/json',
           },
         };
-        const req = https.request(options, (res) => {
+        const req = https.request(options, async (res) => {
           this.debugLog(`statusCode: ${res.statusCode}`);
-          this.debugLog(`headers: ${JSON.stringify(res.headers)}`);
+          await this.statusCode({ res });
+          this.debugLog(`headers: ${superStringify(res.headers)}`);
           let rawData = '';
           res.on('data', (d) => {
             rawData += d;
+            this.deviceStatus = d;
             this.debugLog(`d: ${d}`);
           });
           res.on('end', () => {
             try {
               const devicesAPI = JSON.parse(rawData);
-              this.debugLog(`devicesAPI: ${JSON.stringify(devicesAPI.body)}`);
+              this.debugLog(`devicesAPI: ${superStringify(devicesAPI.body)}`);
 
               // SwitchBot Devices
-              if (devicesAPI.body.deviceList.length !== 0) {
+              /*if (devicesAPI.body.deviceList.length !== 0) {
                 this.infoLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
               } else {
                 this.debugLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
-              }
-              const deviceLists = devicesAPI.body.deviceList;
-              if (!this.config.options?.devices) {
-                this.debugLog(`SwitchBot Device Config Not Set: ${JSON.stringify(this.config.options?.devices)}`);
-                const devices = deviceLists.map((v: any) => v);
-                for (const device of devices) {
-                  if (device.deviceType) {
-                    if (device.configDeviceName) {
-                      device.deviceName = device.configDeviceName;
-                    }
-                    this.createDevice(device);
-                  }
+              }*/
+              const deviceBodyList = devicesAPI.body.deviceList;
+              let deviceLists: any[];
+              if (deviceBodyList) {
+                if (deviceBodyList.length > 1) {
+                  deviceLists = deviceBodyList;
+                  this.infoLog(`Total SwitchBot Devices Found: ${deviceLists.length}`);
+                } else {
+                  deviceLists = [deviceBodyList];
+                  this.infoLog(`Total SwitchBot Devices Found: ${deviceLists.length}`);
                 }
-              } else if (this.config.credentials?.token && this.config.options.devices) {
-                this.debugLog(`SwitchBot Device Config Set: ${JSON.stringify(this.config.options?.devices)}`);
-                const deviceConfigs = this.config.options?.devices;
-
-                const mergeBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
-                  a1.map((itm: { deviceId: string }) => ({
-                    ...a2.find(
-                      (item: { deviceId: string }) =>
-                        item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
-                    ),
-                    ...itm,
-                  }));
-
-                const devices = mergeBydeviceId(deviceLists, deviceConfigs);
-                this.debugLog(`SwitchBot Devices: ${JSON.stringify(devices)}`);
-                for (const device of devices) {
-                  if (device.deviceType) {
-                    if (device.configDeviceName) {
-                      device.deviceName = device.configDeviceName;
+                if (!this.config.options?.devices) {
+                  this.debugLog(`SwitchBot Device Config Not Set: ${superStringify(this.config.options?.devices)}`);
+                  const devices = deviceLists.map((v: any) => v);
+                  for (const device of devices) {
+                    if (device.deviceType) {
+                      if (device.configDeviceName) {
+                        device.deviceName = device.configDeviceName;
+                      }
+                      this.createDevice(device);
                     }
-                    this.createDevice(device);
                   }
+                } else if (this.config.credentials?.token && this.config.options.devices) {
+                  this.debugLog(`SwitchBot Device Config Set: ${superStringify(this.config.options?.devices)}`);
+                  const deviceConfigs = this.config.options?.devices;
+
+                  const mergeBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
+                    a1.map((itm: { deviceId: string }) => ({
+                      ...a2.find(
+                        (item: { deviceId: string }) =>
+                          item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
+                      ),
+                      ...itm,
+                    }));
+
+                  const devices = mergeBydeviceId(deviceLists, deviceConfigs);
+                  this.debugLog(`SwitchBot Devices: ${superStringify(devices)}`);
+                  for (const device of devices) {
+                    if (device.deviceType) {
+                      if (device.configDeviceName) {
+                        device.deviceName = device.configDeviceName;
+                      }
+                      this.createDevice(device);
+                    }
+                  }
+                } else {
+                  this.errorLog('SwitchBot Token Supplied, Issue with Auth.');
                 }
               } else {
-                this.errorLog('SwitchBot Token Supplied, Issue with Auth.');
+                this.errorLog(`SwitchBot Device Request Issue: ${this.deviceStatus}`);
               }
-
               // IR Devices
-              if (devicesAPI.body.infraredRemoteList.length !== 0) {
+              /*if (devicesAPI.body.infraredRemoteList.length !== 0) {
                 this.infoLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
               } else {
                 this.debugLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
-              }
-              const irDeviceLists = devicesAPI.body.infraredRemoteList;
-              if (!this.config.options?.irdevices) {
-                this.debugLog(`IR Device Config Not Set: ${JSON.stringify(this.config.options?.irdevices)}`);
-                const devices = irDeviceLists.map((v: any) => v);
-                for (const device of devices) {
-                  if (device.remoteType) {
-                    this.createIRDevice(device);
+              }*/
+              const irDeviceBodyList = devicesAPI.body.infraredRemoteList;
+              let irDeviceLists: any[];
+              if (irDeviceBodyList) {
+                if (irDeviceBodyList.length > 1) {
+                  irDeviceLists = irDeviceBodyList;
+                  this.infoLog(`Total IR Devices Found: ${irDeviceLists.length}`);
+                } else {
+                  irDeviceLists = [irDeviceBodyList];
+                  this.infoLog(`Total IR Devices Found: ${irDeviceLists.length}`);
+                }
+                if (!this.config.options?.irdevices) {
+                  this.debugLog(`IR Device Config Not Set: ${superStringify(this.config.options?.irdevices)}`);
+                  const devices = irDeviceLists.map((v: any) => v);
+                  for (const device of devices) {
+                    if (device.remoteType) {
+                      this.createIRDevice(device);
+                    }
+                  }
+                } else {
+                  this.debugLog(`IR Device Config Set: ${superStringify(this.config.options?.irdevices)}`);
+                  const irDeviceConfig = this.config.options?.irdevices;
+
+                  const mergeIRBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
+                    a1.map((itm: { deviceId: string }) => ({
+                      ...a2.find(
+                        (item: { deviceId: string }) =>
+                          item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
+                      ),
+                      ...itm,
+                    }));
+
+                  const devices = mergeIRBydeviceId(irDeviceLists, irDeviceConfig);
+                  this.debugLog(`IR Devices: ${superStringify(devices)}`);
+                  for (const device of devices) {
+                    if (device.remoteType) {
+                      this.createIRDevice(device);
+                    }
                   }
                 }
               } else {
-                this.debugLog(`IR Device Config Set: ${JSON.stringify(this.config.options?.irdevices)}`);
-                const irDeviceConfig = this.config.options?.irdevices;
-
-                const mergeIRBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
-                  a1.map((itm: { deviceId: string }) => ({
-                    ...a2.find(
-                      (item: { deviceId: string }) =>
-                        item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
-                    ),
-                    ...itm,
-                  }));
-
-                const devices = mergeIRBydeviceId(irDeviceLists, irDeviceConfig);
-                this.debugLog(`IR Devices: ${JSON.stringify(devices)}`);
-                for (const device of devices) {
-                  if (device.remoteType) {
-                    this.createIRDevice(device);
-                  }
-                }
+                this.errorLog(`SwitchBot IR Device Request Issue: ${this.deviceStatus}`);
               }
             } catch (e:any) {
-              this.errorLog(e.message);
+              this.errorLog(`API Request: ${e}`);
             }
           });
         });
-        req.on('error', (error) => {
-          this.errorLog(error);
+        req.on('error', (e: any) => {
+          this.errorLog(`req: ${e}`);
         });
         req.end();
       } else if (!this.config.credentials?.token && this.config.options?.devices) {
-        this.debugLog(`SwitchBot Device Manual Config Set: ${JSON.stringify(this.config.options?.devices)}`);
+        this.debugLog(`SwitchBot Device Manual Config Set: ${superStringify(this.config.options?.devices)}`);
         const deviceConfigs = this.config.options?.devices;
         const devices = deviceConfigs.map((v: any) => v);
         for (const device of devices) {
@@ -413,49 +414,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.errorLog('Neither SwitchBot Token or Device Config are not set.');
       }
     } catch (e: any) {
-      this.deviceError(e);
-    }
-  }
-
-  deviceError(e: any) {
-    if (e.message.includes('400')) {
-      this.errorLog('Failed to Discover Devices: Bad Request');
-      this.debugLog('The client has issued an invalid request. This is commonly used to specify validation errors in a request payload.');
-    } else if (e.message.includes('401')) {
-      this.errorLog('Failed to Discover Devices: Unauthorized Request');
-      this.debugLog('Authorization for the API is required, but the request has not been authenticated.');
-    } else if (e.message.includes('403')) {
-      this.errorLog('Failed to Discover Devices: Forbidden Request');
-      this.debugLog('The request has been authenticated but does not have appropriate permissions, or a requested resource is not found.');
-    } else if (e.message.includes('404')) {
-      this.errorLog('Failed to Discover Devices: Requst Not Found');
-      this.debugLog('Specifies the requested path does not exist.');
-    } else if (e.message.includes('406')) {
-      this.errorLog('Failed to Discover Devices: Request Not Acceptable');
-      this.debugLog('The client has requested a MIME type via the Accept header for a value not supported by the server.');
-    } else if (e.message.includes('415')) {
-      this.errorLog('Failed to Discover Devices: Unsupported Requst Header');
-      this.debugLog('The client has defined a contentType header that is not supported by the server.');
-    } else if (e.message.includes('422')) {
-      this.errorLog('Failed to Discover Devices: Unprocessable Entity');
-      this.debugLog(
-        'The client has made a valid request, but the server cannot process it.' +
-          ' This is often used for APIs for which certain limits have been exceeded.',
-      );
-    } else if (e.message.includes('429')) {
-      this.errorLog('Failed to Discover Devices: Too Many Requests');
-      this.debugLog('The client has exceeded the number of requests allowed for a given time window.');
-    } else if (e.message.includes('500')) {
-      this.errorLog('Failed to Discover Devices: Internal Server Error');
-      this.debugLog('An unexpected error on the SmartThings servers has occurred. These errors should be rare.');
-    } else {
-      this.errorLog('Failed to Discover Devices');
-    }
-    if (this.platformLogging === 'debug') {
-      this.errorLog(`Failed to Discover Devices, Error Message: ${JSON.stringify(e.message)}`);
-    }
-    if (this.platformLogging === 'debugMode') {
-      this.errorLog(`Failed to Discover Devices, Error: ${JSON.stringify(e)}`);
+      this.debugErrorLog(`Failed to Discover Devices, Error Message: ${superStringify(e.message)}`);
+      this.debugErrorLog(`Failed to Discover Devices, Error: ${e}`);
     }
   }
 
@@ -492,7 +452,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.createContact(device);
         break;
       case 'Curtain':
-        this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
+        this.debugLog(`Discovered ${device.deviceType} ${device.deviceName}: ${device.deviceId}`);
         this.createCurtain(device);
         break;
       case 'Plug':
@@ -509,12 +469,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createColorBulb(device);
         break;
+      case 'Ceiling Light':
+        this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
+        this.createCeilingLight(device);
+        break;
       case 'Strip Light':
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createStripLight(device);
         break;
       case 'Indoor Cam':
-        this.deviceInfo(device);
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.warnLog(`Device: ${device.deviceName} with Device Type: ${device.deviceType}, is currently not supported.`);
         break;
@@ -522,7 +485,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId} is Not Supported.`);
         break;
       default:
-        this.deviceInfo(device);
         this.warnLog(`Device: ${device.deviceName} with Device Type: ${device.deviceType}, is currently not supported.`);
         this.warnLog('Submit Feature Requests Here: https://git.io/JL14Z');
     }
@@ -585,27 +547,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.createOthers(device);
         break;
       default:
-        this.deviceInfo(device);
+        this.debugLog(`Unsupported Device: ${superStringify(device)}`);
         this.warnLog(`Device: ${device.deviceName} with Device Type: ${device.remoteType}, is currently not supported.`);
         this.warnLog('Submit Feature Requests Here: https://git.io/JL14Z');
     }
-  }
-
-  private registerDevice(device: device & devicesConfig) {
-    if (!device.hide_device && device.enableCloudService && device.ble) {
-      this.registeringDevice = true;
-      this.debugLog(`Device: ${device.deviceName} Both OpenAPI and BLE Connections Enabled`);
-    } else if (!device.hide_device && device.deviceId && device.configDeviceType && device.configDeviceName && !device.enableCloudService) {
-      this.registeringDevice = true;
-      this.debugLog(`Device: ${device.deviceName} BLE Connection Enabled`);
-    } else if (!device.hide_device && device.enableCloudService && !device.ble) {
-      this.registeringDevice = true;
-      this.debugLog(`Device: ${device.deviceName} OpenAPI Connection Enabled`);
-    } else {
-      this.registeringDevice = false;
-      this.debugLog(`Device: ${device.deviceName} OpenAPI and BLE Are Not Enabled`);
-    }
-    return this.registeringDevice;
   }
 
   private async createHumidifier(device: device & devicesConfig) {
@@ -617,17 +562,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       // the accessory already exists
-      if (this.registerDevice(device)) {
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
-
+      if (await this.registerDevice(device)) {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        //existingAccessory.context.firmwareRevision = firmware;
         existingAccessory.context.model = device.deviceType;
         existingAccessory.context.deviceID = device.deviceId;
-        existingAccessory.displayName = device.deviceName;
+        existingAccessory.displayName = device.configDeviceName || device.deviceName;
         existingAccessory.context.firmwareRevision = device.firmware;
         existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
-        await this.connectionTypeExistingAccessory(device, existingAccessory);
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+        existingAccessory.context.connectionType = await this.connectionType(device);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -636,9 +579,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } else {
         this.unregisterPlatformAccessories(existingAccessory);
       }
-    } else if (this.registerDevice(device)) {
+    } else if (await this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -650,17 +595,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = device.firmware;
       accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
-      await this.connectionTypeNewAccessory(device, accessory);
+      accessory.context.connectionType = await this.connectionType(device);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new Humidifier(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
-      this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
     }
   }
 
@@ -673,18 +618,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       // the accessory already exists
-      if (this.registerDevice(device)) {
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+      if (await this.registerDevice(device)) {
 
-        this.debugLog(JSON.stringify(device.bot?.mode));
-
+        this.debugLog(superStringify(device.bot?.mode));
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.deviceType;
         existingAccessory.context.deviceID = device.deviceId;
-        existingAccessory.displayName = device.deviceName;
+        existingAccessory.displayName = device.configDeviceName || device.deviceName;
         existingAccessory.context.firmwareRevision = device.firmware;
         existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
-        await this.connectionTypeExistingAccessory(device, existingAccessory);
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+        existingAccessory.context.connectionType = await this.connectionType(device);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -693,11 +637,13 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } else {
         this.unregisterPlatformAccessories(existingAccessory);
       }
-    } else if (this.registerDevice(device)) {
+    } else if (await this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
 
-      this.debugLog(JSON.stringify(device.bot?.mode));
+      this.debugLog(superStringify(device.bot?.mode));
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -709,18 +655,18 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = device.firmware;
       accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
-      await this.connectionTypeNewAccessory(device, accessory);
+      accessory.context.connectionType = await this.connectionType(device);
       // accessory.context.firmwareRevision = findaccessories.accessoryAttribute.softwareRevision;
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new Bot(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
-      this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
     }
   }
 
@@ -733,16 +679,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       // the accessory already exists
-      if (this.registerDevice(device)) {
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
-
+      if (await this.registerDevice(device)) {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.deviceType;
         existingAccessory.context.deviceID = device.deviceId;
-        existingAccessory.displayName = device.deviceName;
+        existingAccessory.displayName = device.configDeviceName || device.deviceName;
         existingAccessory.context.firmwareRevision = device.firmware;
         existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
-        await this.connectionTypeExistingAccessory(device, existingAccessory);
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+        existingAccessory.context.connectionType = await this.connectionType(device);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -751,9 +696,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } else {
         this.unregisterPlatformAccessories(existingAccessory);
       }
-    } else if (this.registerDevice(device)) {
+    } else if (await this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -765,17 +712,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = device.firmware;
       accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
-      await this.connectionTypeNewAccessory(device, accessory);
+      accessory.context.connectionType = await this.connectionType(device);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new Meter(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
-      this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
     }
   }
 
@@ -788,16 +735,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       // the accessory already exists
-      if (this.registerDevice(device)) {
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
-
+      if (await this.registerDevice(device)) {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.deviceType;
         existingAccessory.context.deviceID = device.deviceId;
-        existingAccessory.displayName = device.deviceName;
+        existingAccessory.displayName = device.configDeviceName || device.deviceName;
         existingAccessory.context.firmwareRevision = device.firmware;
         existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
-        await this.connectionTypeExistingAccessory(device, existingAccessory);
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+        existingAccessory.context.connectionType = await this.connectionType(device);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -806,9 +752,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } else {
         this.unregisterPlatformAccessories(existingAccessory);
       }
-    } else if (this.registerDevice(device)) {
+    } else if (await this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -820,17 +768,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = device.firmware;
       accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
-      await this.connectionTypeNewAccessory(device, accessory);
+      accessory.context.connectionType = await this.connectionType(device);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new MeterPlus(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
-      this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
     }
   }
 
@@ -843,16 +791,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       // the accessory already exists
-      if (this.registerDevice(device)) {
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
-
+      if (await this.registerDevice(device)) {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.deviceType;
         existingAccessory.context.deviceID = device.deviceId;
-        existingAccessory.displayName = device.deviceName;
+        existingAccessory.displayName = device.configDeviceName || device.deviceName;
         existingAccessory.context.firmwareRevision = device.firmware;
         existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
-        await this.connectionTypeExistingAccessory(device, existingAccessory);
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+        existingAccessory.context.connectionType = await this.connectionType(device);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -861,9 +808,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } else {
         this.unregisterPlatformAccessories(existingAccessory);
       }
-    } else if (this.registerDevice(device)) {
+    } else if (await this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -875,17 +824,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = device.firmware;
       accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
-      await this.connectionTypeNewAccessory(device, accessory);
+      accessory.context.connectionType = await this.connectionType(device);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new Motion(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
-      this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
     }
   }
 
@@ -898,16 +847,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       // the accessory already exists
-      if (this.registerDevice(device)) {
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
-
+      if (await this.registerDevice(device)) {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.deviceType;
         existingAccessory.context.deviceID = device.deviceId;
-        existingAccessory.displayName = device.deviceName;
+        existingAccessory.displayName = device.configDeviceName || device.deviceName;
         existingAccessory.context.firmwareRevision = device.firmware;
         existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
-        await this.connectionTypeExistingAccessory(device, existingAccessory);
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+        existingAccessory.context.connectionType = await this.connectionType(device);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -916,9 +864,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } else {
         this.unregisterPlatformAccessories(existingAccessory);
       }
-    } else if (this.registerDevice(device)) {
+    } else if (await this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -930,17 +880,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = device.firmware;
       accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
-      await this.connectionTypeNewAccessory(device, accessory);
+      accessory.context.connectionType = await this.connectionType(device);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new Contact(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
-      this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
     }
   }
 
@@ -953,16 +903,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       // the accessory already exists
-      if (this.isCurtainGrouped(device)) {
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
-
+      if (await this.registerDevice(device)) {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.deviceType;
         existingAccessory.context.deviceID = device.deviceId;
-        existingAccessory.displayName = device.deviceName;
+        existingAccessory.displayName = device.configDeviceName || device.deviceName;
         existingAccessory.context.firmwareRevision = device.firmware;
         existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
-        await this.connectionTypeExistingAccessory(device, existingAccessory);
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+        existingAccessory.context.connectionType = await this.connectionType(device);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -971,18 +920,20 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } else {
         this.unregisterPlatformAccessories(existingAccessory);
       }
-    } else if (this.isCurtainGrouped(device)) {
+    } else if (await this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
 
       if (device.group && !device.curtain?.disable_group) {
         this.debugLog(`Your Curtains are grouped
         , Secondary curtain automatically hidden. Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
       } else {
         if (device.master) {
-          this.debugLog(`Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
+          this.warnLog(`Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
         } else {
-          this.debugLog(`Secondary Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
+          this.errorLog(`Secondary Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
         }
       }
 
@@ -996,32 +947,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = device.firmware;
       accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
-      await this.connectionTypeNewAccessory(device, accessory);
+      accessory.context.connectionType = await this.connectionType(device);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new Curtain(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
-      this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
-    }
-  }
-
-  private isCurtainGrouped(device: device & devicesConfig) {
-    this.debugLog(
-      `deviceId: ${device.deviceId}, curtainDevicesIds: ${device.curtainDevicesIds},` +
-        ` master: ${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group}`,
-    );
-
-    if (device.group && !device.curtain?.disable_group) {
-      this.debugLog(`[Curtain Config] disable_group: ${device.curtain?.disable_group}`);
-      return device.master && this.registerDevice(device);
-    } else {
-      this.debugLog(`[Curtain Config] disable_group: ${device.curtain?.disable_group}, UnGrouping ${device.master}`);
-      return this.registerDevice(device);
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
     }
   }
 
@@ -1034,16 +970,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       // the accessory already exists
-      if (this.registerDevice(device)) {
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
-
+      if (await this.registerDevice(device)) {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.deviceType;
         existingAccessory.context.deviceID = device.deviceId;
-        existingAccessory.displayName = device.deviceName;
+        existingAccessory.displayName = device.configDeviceName || device.deviceName;
         existingAccessory.context.firmwareRevision = device.firmware;
         existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
-        await this.connectionTypeExistingAccessory(device, existingAccessory);
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+        existingAccessory.context.connectionType = await this.connectionType(device);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -1052,9 +987,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } else {
         this.unregisterPlatformAccessories(existingAccessory);
       }
-    } else if (this.registerDevice(device)) {
+    } else if (await this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1066,17 +1003,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = device.firmware;
       accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
-      await this.connectionTypeNewAccessory(device, accessory);
+      accessory.context.connectionType = await this.connectionType(device);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new Plug(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
-      this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
     }
   }
 
@@ -1089,16 +1026,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       // the accessory already exists
-      if (this.registerDevice(device)) {
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
-
+      if (await this.registerDevice(device)) {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.deviceType;
         existingAccessory.context.deviceID = device.deviceId;
-        existingAccessory.displayName = device.deviceName;
+        existingAccessory.displayName = device.configDeviceName || device.deviceName;
         existingAccessory.context.firmwareRevision = device.firmware;
         existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
-        await this.connectionTypeExistingAccessory(device, existingAccessory);
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+        existingAccessory.context.connectionType = await this.connectionType(device);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -1107,9 +1043,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } else {
         this.unregisterPlatformAccessories(existingAccessory);
       }
-    } else if (this.registerDevice(device)) {
+    } else if (await this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1121,17 +1059,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = device.firmware;
       accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
-      await this.connectionTypeNewAccessory(device, accessory);
+      accessory.context.connectionType = await this.connectionType(device);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new Lock(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
-      this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
     }
   }
 
@@ -1144,16 +1082,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       // the accessory already exists
-      if (this.registerDevice(device)) {
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
-
+      if (await this.registerDevice(device)) {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.deviceType;
         existingAccessory.context.deviceID = device.deviceId;
-        existingAccessory.displayName = device.deviceName;
+        existingAccessory.displayName = device.configDeviceName || device.deviceName;
         existingAccessory.context.firmwareRevision = device.firmware;
         existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
-        await this.connectionTypeExistingAccessory(device, existingAccessory);
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+        existingAccessory.context.connectionType = await this.connectionType(device);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -1162,9 +1099,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } else {
         this.unregisterPlatformAccessories(existingAccessory);
       }
-    } else if (this.registerDevice(device)) {
+    } else if (await this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1176,17 +1115,73 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = device.firmware;
       accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
-      await this.connectionTypeNewAccessory(device, accessory);
+      accessory.context.connectionType = await this.connectionType(device);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new ColorBulb(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
-      this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+    }
+  }
+
+  private async createCeilingLight(device: device & devicesConfig) {
+    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`);
+
+    // see if an accessory with the same uuid has already been registered and restored from
+    // the cached devices we stored in the `configureAccessory` method above
+    const existingAccessory = this.accessories.find((accessory) => accessory.UUID === uuid);
+
+    if (existingAccessory) {
+      // the accessory already exists
+      if (await this.registerDevice(device)) {
+        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
+        existingAccessory.context.model = device.deviceType;
+        existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.displayName = device.configDeviceName || device.deviceName;
+        existingAccessory.context.firmwareRevision = device.firmware;
+        existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+        existingAccessory.context.connectionType = await this.connectionType(device);
+        this.api.updatePlatformAccessories([existingAccessory]);
+        // create the accessory handler for the restored accessory
+        // this is imported from `platformAccessory.ts`
+        new CeilingLight(this, existingAccessory, device);
+        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`);
+      } else {
+        this.unregisterPlatformAccessories(existingAccessory);
+      }
+    } else if (await this.registerDevice(device)) {
+      // the accessory does not yet exist, so we need to create it
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
+
+      // create a new accessory
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+
+      // store a copy of the device object in the `accessory.context`
+      // the `context` property can be used to store any data about the accessory you may need
+      accessory.context.device = device;
+      accessory.context.model = device.deviceType;
+      accessory.context.deviceID = device.deviceId;
+      accessory.context.firmwareRevision = device.firmware;
+      accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
+      accessory.context.connectionType = await this.connectionType(device);
+      // create the accessory handler for the newly create accessory
+      // this is imported from `platformAccessory.ts`
+      new CeilingLight(this, accessory, device);
+      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
+
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
+      this.accessories.push(accessory);
+    } else {
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
     }
   }
 
@@ -1199,16 +1194,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       // the accessory already exists
-      if (this.registerDevice(device)) {
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
-
+      if (await this.registerDevice(device)) {
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.deviceType;
         existingAccessory.context.deviceID = device.deviceId;
-        existingAccessory.displayName = device.deviceName;
+        existingAccessory.displayName = device.configDeviceName || device.deviceName;
         existingAccessory.context.firmwareRevision = device.firmware;
         existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
-        await this.connectionTypeExistingAccessory(device, existingAccessory);
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+        existingAccessory.context.connectionType = await this.connectionType(device);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -1217,9 +1211,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } else {
         this.unregisterPlatformAccessories(existingAccessory);
       }
-    } else if (this.registerDevice(device)) {
+    } else if (await this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1231,17 +1227,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = device.firmware;
       accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
-      await this.connectionTypeNewAccessory(device, accessory);
+      accessory.context.connectionType = await this.connectionType(device);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new StripLight(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
-      this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.deviceType} - ${device.deviceId}`);
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
     }
   }
 
@@ -1253,15 +1249,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     const existingAccessory = this.accessories.find((accessory) => accessory.UUID === uuid);
 
     if (!device.hide_device && existingAccessory) {
-      this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
-
       // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
       existingAccessory.context.model = device.remoteType;
       existingAccessory.context.deviceID = device.deviceId;
-      existingAccessory.displayName = device.deviceName;
+      existingAccessory.displayName = device.configDeviceName || device.deviceName;
       existingAccessory.context.firmwareRevision = device.firmware;
       existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
-      await this.connectionTypeExistingIRAccessory(existingAccessory);
+      this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+      existingAccessory.context.connectionType = await this.connectionType(device);
       this.api.updatePlatformAccessories([existingAccessory]);
       // create the accessory handler for the restored accessory
       // this is imported from `platformAccessory.ts`
@@ -1269,7 +1264,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${existingAccessory.UUID})`);
     } else if (!device.hide_device && device.hubDeviceId) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1281,7 +1278,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = device.firmware;
       accessory.context.deviceType = `IR: ${device.remoteType}`;
-      await this.connectionTypeNewIRAccessory(accessory);
+      accessory.context.connectionType = await this.connectionType(device);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new TV(this, accessory, device);
@@ -1292,10 +1289,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
        * Only one TV can exist per bridge, to bypass this limitation, you should
        * publish your TV as an external accessory.
        */
-      this.api.publishExternalAccessories(PLUGIN_NAME, [accessory]);
+      this.externalAccessory(accessory);
       this.accessories.push(accessory);
     } else {
-      this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
     }
   }
 
@@ -1309,16 +1306,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     if (existingAccessory) {
       // the accessory already exists
       if (!device.hide_device && device.hubDeviceId) {
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
-
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-
         existingAccessory.context.model = device.remoteType;
         existingAccessory.context.deviceID = device.deviceId;
-        existingAccessory.displayName = device.deviceName;
+        existingAccessory.displayName = device.configDeviceName || device.deviceName;
         existingAccessory.context.firmwareRevision = device.firmware;
         existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
-        await this.connectionTypeExistingIRAccessory(existingAccessory);
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+        existingAccessory.context.connectionType = await this.connectionType(device);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -1329,7 +1324,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1341,17 +1338,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = device.firmware;
       accessory.context.deviceType = `IR: ${device.remoteType}`;
-      await this.connectionTypeNewIRAccessory(accessory);
+      accessory.context.connectionType = await this.connectionType(device);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new Fan(this, accessory, device);
       this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
-      this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
     }
   }
 
@@ -1365,15 +1362,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     if (existingAccessory) {
       // the accessory already exists
       if (!device.hide_device && device.hubDeviceId) {
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
-
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.remoteType;
         existingAccessory.context.deviceID = device.deviceId;
-        existingAccessory.displayName = device.deviceName;
+        existingAccessory.displayName = device.configDeviceName || device.deviceName;
         existingAccessory.context.firmwareRevision = device.firmware;
         existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
-        await this.connectionTypeExistingIRAccessory(existingAccessory);
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+        existingAccessory.context.connectionType = await this.connectionType(device);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -1384,7 +1380,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1396,17 +1394,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = device.firmware;
       accessory.context.deviceType = `IR: ${device.remoteType}`;
-      await this.connectionTypeNewIRAccessory(accessory);
+      accessory.context.connectionType = await this.connectionType(device);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new Light(this, accessory, device);
       this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
-      this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
     }
   }
 
@@ -1420,15 +1418,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     if (existingAccessory) {
       // the accessory already exists
       if (!device.hide_device && device.hubDeviceId) {
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
-
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.remoteType;
         existingAccessory.context.deviceID = device.deviceId;
-        existingAccessory.displayName = device.deviceName;
+        existingAccessory.displayName = device.configDeviceName || device.deviceName;
         existingAccessory.context.firmwareRevision = device.firmware;
         existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
-        await this.connectionTypeExistingIRAccessory(existingAccessory);
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+        existingAccessory.context.connectionType = await this.connectionType(device);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -1439,7 +1436,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1451,17 +1450,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = device.firmware;
       accessory.context.deviceType = `IR: ${device.remoteType}`;
-      await this.connectionTypeNewIRAccessory(accessory);
+      accessory.context.connectionType = await this.connectionType(device);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new AirConditioner(this, accessory, device);
       this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
-      this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
     }
   }
 
@@ -1475,15 +1474,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     if (existingAccessory) {
       // the accessory already exists
       if (!device.hide_device && device.hubDeviceId) {
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
-
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.remoteType;
         existingAccessory.context.deviceID = device.deviceId;
-        existingAccessory.displayName = device.deviceName;
+        existingAccessory.displayName = device.configDeviceName || device.deviceName;
         existingAccessory.context.firmwareRevision = device.firmware;
         existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
-        await this.connectionTypeExistingIRAccessory(existingAccessory);
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+        existingAccessory.context.connectionType = await this.connectionType(device);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -1494,7 +1492,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1506,17 +1506,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = device.firmware;
       accessory.context.deviceType = `IR: ${device.remoteType}`;
-      await this.connectionTypeNewIRAccessory(accessory);
+      accessory.context.connectionType = await this.connectionType(device);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new AirPurifier(this, accessory, device);
       this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
-      this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
     }
   }
 
@@ -1530,15 +1530,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     if (existingAccessory) {
       // the accessory already exists
       if (!device.hide_device && device.hubDeviceId) {
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
-
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.remoteType;
         existingAccessory.context.deviceID = device.deviceId;
-        existingAccessory.displayName = device.deviceName;
+        existingAccessory.displayName = device.configDeviceName || device.deviceName;
         existingAccessory.context.firmwareRevision = device.firmware;
         existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
-        await this.connectionTypeExistingIRAccessory(existingAccessory);
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+        existingAccessory.context.connectionType = await this.connectionType(device);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -1549,7 +1548,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1561,17 +1562,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = device.firmware;
       accessory.context.deviceType = `IR: ${device.remoteType}`;
-      await this.connectionTypeNewIRAccessory(accessory);
+      accessory.context.connectionType = await this.connectionType(device);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new WaterHeater(this, accessory, device);
       this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
-      this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
     }
   }
 
@@ -1585,15 +1586,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     if (existingAccessory) {
       // the accessory already exists
       if (!device.hide_device && device.hubDeviceId) {
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
-
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.remoteType;
         existingAccessory.context.deviceID = device.deviceId;
-        existingAccessory.displayName = device.deviceName;
+        existingAccessory.displayName = device.configDeviceName || device.deviceName;
         existingAccessory.context.firmwareRevision = device.firmware;
         existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
-        await this.connectionTypeExistingIRAccessory(existingAccessory);
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+        existingAccessory.context.connectionType = await this.connectionType(device);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -1604,7 +1604,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1616,17 +1618,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = device.firmware;
       accessory.context.deviceType = `IR: ${device.remoteType}`;
-      await this.connectionTypeNewIRAccessory(accessory);
+      accessory.context.connectionType = await this.connectionType(device);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new VacuumCleaner(this, accessory, device);
       this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
-      this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
     }
   }
 
@@ -1640,15 +1642,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     if (existingAccessory) {
       // the accessory already exists
       if (!device.hide_device && device.hubDeviceId) {
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
-
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.remoteType;
         existingAccessory.context.deviceID = device.deviceId;
-        existingAccessory.displayName = device.deviceName;
+        existingAccessory.displayName = device.configDeviceName || device.deviceName;
         existingAccessory.context.firmwareRevision = device.firmware;
         existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
-        await this.connectionTypeExistingIRAccessory(existingAccessory);
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+        existingAccessory.context.connectionType = await this.connectionType(device);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -1659,7 +1660,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1671,17 +1674,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = device.firmware;
       accessory.context.deviceType = `IR: ${device.remoteType}`;
-      await this.connectionTypeNewIRAccessory(accessory);
+      accessory.context.connectionType = await this.connectionType(device);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new Camera(this, accessory, device);
       this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
-      this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
     }
   }
 
@@ -1695,15 +1698,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     if (existingAccessory) {
       // the accessory already exists
       if (!device.hide_device && device.hubDeviceId) {
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
-
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.remoteType;
         existingAccessory.context.deviceID = device.deviceId;
-        existingAccessory.displayName = device.deviceName;
+        existingAccessory.displayName = device.configDeviceName || device.deviceName;
         existingAccessory.context.firmwareRevision = device.firmware;
         existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
-        await this.connectionTypeExistingIRAccessory(existingAccessory);
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+        existingAccessory.context.connectionType = await this.connectionType(device);
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
@@ -1714,7 +1716,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1726,42 +1730,117 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceID = device.deviceId;
       accessory.context.firmwareRevision = device.firmware;
       accessory.context.deviceType = `IR: ${device.remoteType}`;
-      await this.connectionTypeNewIRAccessory(accessory);
+      accessory.context.connectionType = await this.connectionType(device);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new Others(this, accessory, device);
       this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
-      this.debugLog(`Unable to Register new device: ${device.deviceName} ${device.remoteType} - ${device.deviceId}`);
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
     }
   }
 
-  public async connectionTypeNewAccessory(device: device & devicesConfig, accessory: PlatformAccessory) {
-    if (device.ble) {
-      accessory.context.connectionType = 'BLE';
+  async registerCurtains(device: device & devicesConfig) {
+    this.debugWarnLog(`deviceName: ${device.deviceName} deviceId: ${device.deviceId}, curtainDevicesIds: ${device.curtainDevicesIds}, master: ` +
+    `${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group}, connectionType: ${device.connectionType}`);
+
+    let registerCurtain: boolean;
+    if (device.group && !device.curtain?.disable_group) {
+      registerCurtain = true;
+      this.debugLog(`deviceName: ${device.deviceName} [Curtain Config] disable_group: ${device.curtain?.disable_group}`);
+      this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`);
+    } else if (device.connectionType?.includes('BLE') || device.connectionType === 'Disabled') {
+      registerCurtain = true;
+      this.debugLog(`deviceName: ${device.deviceName} [Curtain Config] connectionType: ${device.connectionType}`);
+      this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`);
     } else {
-      accessory.context.connectionType = 'OpenAPI';
+      registerCurtain = false;
+      this.errorLog(`deviceName: ${device.deviceName} [Curtain Config] disable_group: ${device.curtain?.disable_group}, UnGrouping ${device.master}`);
+      this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`);
     }
+    return registerCurtain;
   }
 
-  public async connectionTypeExistingAccessory(device: device & devicesConfig, existingAccessory: PlatformAccessory) {
-    if (device.ble) {
-      existingAccessory.context.connectionType = 'BLE';
+  async connectionType(device: device & devicesConfig): Promise<any> {
+    let connectionType: string;
+    if (!device.connectionType && this.config.credentials?.token && this.config.credentials.secret) {
+      connectionType = 'OpenAPI';
     } else {
-      existingAccessory.context.connectionType = 'OpenAPI';
+      connectionType = device.connectionType!;
+    }
+    return connectionType;
+  }
+
+  async registerDevice(device: device & devicesConfig) {
+    device.connectionType = await this.connectionType(device);
+    let registerDevice: boolean;
+    if (!device.hide_device && device.enableCloudService && device.connectionType === 'BLE/OpenAPI') {
+      if (device.deviceType === 'Curtain') {
+        registerDevice = await this.registerCurtains(device);
+        this.debugWarnLog(`Device: ${device.deviceName} Curtain registerDevice: ${registerDevice}`);
+      } else {
+        registerDevice = true;
+        this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`);
+      }
+      this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`);
+    } else if (!device.hide_device && device.deviceId && device.configDeviceType && device.configDeviceName
+      && device.connectionType === 'BLE') {
+      if (device.deviceType === 'Curtain') {
+        registerDevice = await this.registerCurtains(device);
+        this.debugWarnLog(`Device: ${device.deviceName} Curtain registerDevice: ${registerDevice}`);
+      } else {
+        registerDevice = true;
+        this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`);
+      }
+      this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`);
+    } else if (!device.hide_device && device.enableCloudService && device.connectionType === 'OpenAPI') {
+      if (device.deviceType === 'Curtain') {
+        registerDevice = await this.registerCurtains(device);
+        this.debugWarnLog(`Device: ${device.deviceName} Curtain registerDevice: ${registerDevice}`);
+      } else {
+        registerDevice = true;
+        this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`);
+      }
+      this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`);
+    } else if (!device.hide_device && device.connectionType === 'Disabled') {
+      if (device.deviceType === 'Curtain') {
+        registerDevice = await this.registerCurtains(device);
+        this.debugWarnLog(`Device: ${device.deviceName} Curtain registerDevice: ${registerDevice}`);
+      } else {
+        registerDevice = true;
+        this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`);
+      }
+      this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will continue to display in HomeKit`);
+    } else if (!device.connectionType && !device.hide_device) {
+      registerDevice = false;
+      this.debugErrorLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will not display in HomeKit`);
+    } else if (device.hide_device){
+      registerDevice = false;
+      this.debugErrorLog(`Device: ${device.deviceName} hide_device: ${device.hide_device}, will not display in HomeKit`);
+    } else {
+      registerDevice = false;
+      this.debugErrorLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, hide_device: `
+      + `${device.hide_device},  will not display in HomeKit`);
+    }
+    return registerDevice;
+  }
+
+  public async externalOrPlatform(device: device & devicesConfig, accessory: PlatformAccessory) {
+    if (device.external) {
+      this.debugWarnLog(`${accessory.displayName} External Accessory Mode`);
+      this.externalAccessory(accessory);
+    } else {
+      this.debugLog(`${accessory.displayName} External Accessory Mode: ${device.external}`);
+      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
     }
   }
 
-  public async connectionTypeNewIRAccessory(accessory: PlatformAccessory) {
-    accessory.context.connectionType = 'IR wirth OpenAPI';
-  }
-
-  public async connectionTypeExistingIRAccessory(existingAccessory: PlatformAccessory) {
-    existingAccessory.context.connectionType = 'IR with OpenAPI';
+  public async externalAccessory(accessory: PlatformAccessory) {
+    this.api.publishExternalAccessories(PLUGIN_NAME, [accessory]);
   }
 
   public unregisterPlatformAccessories(existingAccessory: PlatformAccessory) {
@@ -1770,53 +1849,35 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     this.warnLog(`Removing existing accessory from cache: ${existingAccessory.displayName}`);
   }
 
-  public deviceListInfo(devices) {
-    if (this.platformLogging?.includes('debug')) {
-      this.warnLog(`deviceListInfoStatus: ${JSON.stringify(devices)}`);
-    }
-  }
-
-  public async deviceInfo(device: (irdevice & devicesConfig) | (device & devicesConfig)) {
-    if (this.platformLogging?.includes('debug')) {
-      this.warnLog(JSON.stringify(device));
-
-      const t = Date.now();
-      const nonce = 'requestID';
-      const data = this.config.credentials?.token + t + nonce;
-      const signTerm = crypto.createHmac('sha256', this.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
-      const sign = signTerm.toString('base64');
-      this.debugLog(sign);
-      const options = {
-        hostname: HostDomain,
-        port: 443,
-        path: `${DevicePath}/${device.deviceId}/status`,
-        method: 'GET',
-        headers: {
-          Authorization: this.config.credentials?.token,
-          sign: sign,
-          nonce: nonce,
-          t: t,
-          'Content-Type': 'application/json',
-        },
-      };
-      const req = https.request(options, (res) => {
-        this.debugLog(`statusCode: ${res.statusCode}`);
-        res.on('data', (d) => {
-          process.stdout.write(d);
-        });
-      });
-      req.on('error', (error) => {
-        this.errorLog(error);
-      });
-      req.end();
-
-      this.deviceStatus = req;
-      if (this.deviceStatus.message === 'success') {
-        this.warnLog(`${device.deviceName} deviceInfoStatus: ${JSON.stringify(this.deviceStatus)}`);
-      } else {
-        this.warnLog(`${device.deviceName} deviceInfoStatus: ${JSON.stringify(this.deviceStatus.message)}`);
-        this.warnLog('Unable to retreive deviceInfoStatus.');
-      }
+  async statusCode({ res }: { res: IncomingMessage }): Promise<void> {
+    switch (res.statusCode) {
+      case 151:
+        this.errorLog('Command not supported by this device type.');
+        break;
+      case 152:
+        this.errorLog('Device not found.');
+        break;
+      case 160:
+        this.errorLog('Command is not supported.');
+        break;
+      case 161:
+        this.errorLog('Device is offline.');
+        break;
+      case 171:
+        this.errorLog('is offline');
+        break;
+      case 190:
+        this.errorLog('Requests reached the daily limit');
+        break;
+      case 100:
+        if (this.debugMode) {
+          this.debugLog('Command successfully sent.');
+        }
+        break;
+      default:
+        if (this.debugMode) {
+          this.debugLog('Unknown statusCode.');
+        }
     }
   }
 
@@ -1827,11 +1888,25 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     try {
       Switchbot = require('node-switchbot');
       switchbot = new Switchbot();
-    } catch (e) {
+    } catch (e: any) {
       switchbot = false;
       this.errorLog(`Was 'node-switchbot' found: ${switchbot}`);
     }
     return switchbot;
+  }
+
+  logs() {
+    this.debugMode = process.argv.includes('-D') || process.argv.includes('--debug');
+    if (this.config.options?.logging === 'debug' || this.config.options?.logging === 'standard' || this.config.options?.logging === 'none') {
+      this.platformLogging = this.config.options!.logging;
+      this.debugWarnLog(`Using Config Logging: ${this.platformLogging}`);
+    } else if (this.debugMode) {
+      this.platformLogging = 'debugMode';
+      this.debugWarnLog(`Using ${this.platformLogging} Logging`);
+    } else {
+      this.platformLogging = 'standard';
+      this.debugWarnLog(`Using ${this.platformLogging} Logging`);
+    }
   }
 
   /**
@@ -1850,9 +1925,25 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
+  debugWarnLog(...log: any[]): void {
+    if (this.enablingPlatfromLogging()) {
+      if (this.platformLogging?.includes('debug')) {
+        this.log.warn('[DEBUG]', String(...log));
+      }
+    }
+  }
+
   errorLog(...log: any[]): void {
     if (this.enablingPlatfromLogging()) {
       this.log.error(String(...log));
+    }
+  }
+
+  debugErrorLog(...log: any[]): void {
+    if (this.enablingPlatfromLogging()) {
+      if (this.platformLogging?.includes('debug')) {
+        this.log.error('[DEBUG]', String(...log));
+      }
     }
   }
 

@@ -3,7 +3,7 @@
   "pluginType": "platform",
   "singular": true,
   "customUi": true,
-  "headerDisplay": "<p align='center'><img width='100px' src='https://user-images.githubusercontent.com/9875439/102681754-ac2eb800-4189-11eb-8e17-7c47c804484b.png'></p>\n\nThe **SwitchBot** plugin allows you to control SwitchBot Devices. \n\nTo get started link your SwtichBot account.\nTo get started link your SwtichBot account.\n\n1. Download SwitchBot App on App Store or Google Play Store.\n\n2. Register a SwitchBot account and log in into your account.\n\n3. Generate an Open Token within the App.\n\n4. Input your `Open Token` into the paramter below.",
+  "headerDisplay": "<p align='center'><img width='100px' src='https://user-images.githubusercontent.com/9875439/102681754-ac2eb800-4189-11eb-8e17-7c47c804484b.png'></p>\n\nThe **SwitchBot** plugin allows you to control SwitchBot Devices. \n\nTo get started link your SwitchBot account.\n\n1. Download SwitchBot App on App Store or Google Play Store.\n\n2. Register a SwitchBot account and log in into your account.\n\n3. Generate an Open Token within the App.\n\n4. Input your `Open Token` into the paramter below.",
   "footerDisplay": "Please raise any issues on our [project page](https://github.com/OpenWonderLabs/homebridge-switchbot/issues).\n\nIf you would like to have other SwitchBot Devices added to this plugin fill out [Feature Request Form](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/new?assignees=&labels=&template=feature_request.md).\n\n[SwitchBot Website](https://www.switch-bot.com)",
   "schema": {
     "type": "object",
@@ -63,16 +63,9 @@
                 "hide_device": {
                   "title": "Hide Device",
                   "type": "boolean",
-                  "description": "If true then devices that are reported as offline will be shown as off in HomeKit.",
+                  "description": "If true, device will be removed or hidden from HomeKit.",
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId);"
-                  }
-                },
-                "offline": {
-                  "title": "Offline as Off",
-                  "type": "boolean",
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
                   }
                 },
                 "configDeviceType": {
@@ -144,11 +137,30 @@
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
                   }
                 },
-                "ble": {
-                  "title": "Enable Bluetooth Low Energy (BLE) Connection",
-                  "type": "boolean",
+                "connectionType": {
+                  "title": "Connection Type",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "BLE/OpenAPI",
+                      "enum": ["BLE/OpenAPI"]
+                    },
+                    {
+                      "title": "OpenAPI",
+                      "enum": ["OpenAPI"]
+                    },
+                    {
+                      "title": "BLE",
+                      "enum": ["BLE"]
+                    },
+                    {
+                      "title": "Disable",
+                      "enum": ["Disabled"]
+                    }
+                  ],
+                  "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Humidifier' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Bot' || model.options.devices[arrayIndices].configDeviceType === 'Motion Sensor' || model.options.devices[arrayIndices].configDeviceType === 'Contact Sensor' || model.options.devices[arrayIndices].configDeviceType === 'Plug Mini (US)' || model.options.devices[arrayIndices].configDeviceType === 'Plug Mini (JP)') || model.options.devices[arrayIndices].configDeviceType === 'Color Bulb'));"
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
                   }
                 },
                 "customBLEaddress": {
@@ -156,7 +168,7 @@
                   "type": "string",
                   "placeholder": "81F3UT59513F",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].ble);"
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].connectionType === 'BLE' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
                   }
                 },
                 "scanDuration": {
@@ -164,7 +176,7 @@
                   "type": "number",
                   "placeholder": 1,
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].ble);"
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].connectionType === 'BLE' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
                   }
                 },
                 "bot": {
@@ -505,6 +517,35 @@
                     }
                   }
                 },
+                "mqttURL": {
+                  "title": "MQTT URL",
+                  "type": "string",
+                  "placeholder": "192.168.7.1",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
+                  }
+                },
+                "mqttOptions": {
+                  "title": "MQTT Options",
+                  "type": "string",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].mqttURL && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
+                  }
+                },
+                "mqttPubOptions": {
+                  "title": "MQTT Pub Options",
+                  "type": "string",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].mqttURL && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
+                  }
+                },
+                "history": {
+                  "title": "EVE History",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
+                  }
+                },
                 "firmware": {
                   "title": "Firmware Override",
                   "type": "string",
@@ -519,6 +560,13 @@
                   "minimum": 30,
                   "placeholder": 360,
                   "description": "Indicates the number of seconds between polls of SwitchBot API.",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
+                  }
+                },
+                "external": {
+                  "title": "External Accessory",
+                  "type": "boolean",
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
                   }
@@ -545,7 +593,7 @@
                   }
                 }
               },
-              "required": ["deviceId", "configDeviceType", "configDeviceName", "logging"]
+              "required": ["deviceId", "configDeviceType", "configDeviceName", "connectionType", "logging"]
             },
             "uniqueItems": true
           },
@@ -571,6 +619,7 @@
                 "hide_device": {
                   "title": "Hide Device",
                   "type": "boolean",
+                  "description": "If true, device will be removed or hidden from HomeKit.",
                   "condition": {
                     "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId);"
                   }
@@ -692,6 +741,24 @@
                     "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device);"
                   }
                 },
+                "connectionType": {
+                  "title": "Connection Type",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "OpenAPI",
+                      "enum": ["OpenAPI"]
+                    },
+                    {
+                      "title": "Disable",
+                      "enum": ["Disabled"]
+                    }
+                  ],
+                  "description": "Enables OpenAPI, if disabled will leave device in HomeKit and commands will not be sent to OpenAPI.",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
+                  }
+                },
                 "irair": {
                   "type": "object",
                   "properties": {
@@ -800,6 +867,21 @@
                     }
                   }
                 },
+                "firmware": {
+                  "title": "Firmware Override",
+                  "type": "string",
+                  "placeholder": "1.2.8",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType);"
+                  }
+                },
+                "external": {
+                  "title": "External Accessory",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType);"
+                  }
+                },
                 "logging": {
                   "title": "Device Logging Override Setting",
                   "type": "string",
@@ -822,7 +904,7 @@
                   }
                 }
               },
-              "required": ["deviceId", "configRemoteType", "logging"]
+              "required": ["deviceId", "configRemoteType", "connectionType", "logging"]
             },
             "uniqueItems": true
           },
@@ -868,7 +950,7 @@
       "title": "SwitchBot Account Info",
       "expandable": true,
       "expanded": false,
-      "items": ["credentials.token","credentials.secret"]
+      "items": ["credentials.token", "credentials.secret"]
     },
     {
       "type": "fieldset",
@@ -889,8 +971,7 @@
             "options.devices[].deviceId",
             "options.devices[].hide_device",
             "options.devices[].configDeviceType",
-            "options.devices[].offline",
-            "options.devices[].ble",
+            "options.devices[].connectionType",
             "options.devices[].scanDuration",
             "options.devices[].bot.mode",
             "options.devices[].bot.deviceType",
@@ -921,8 +1002,13 @@
             "options.devices[].colorbulb.set_minStep",
             "options.devices[].colorbulb.adaptiveLightingShift",
             "options.devices[].lock.hide_contactsensor",
+            "options.devices[].mqttURL",
+            "options.devices[].mqttOptions",
+            "options.devices[].mqttPubOptions",
+            "options.devices[].history",
             "options.devices[].firmware",
             "options.devices[].refreshRate",
+            "options.devices[].external",
             "options.devices[].logging"
           ]
         }
@@ -958,6 +1044,8 @@
             "options.irdevices[].other.deviceType",
             "options.irdevices[].other.commandOn",
             "options.irdevices[].other.commandOff",
+            "options.irdevices[].firmware",
+            "options.irdevices[].external",
             "options.irdevices[].logging"
           ]
         }

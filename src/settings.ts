@@ -29,6 +29,7 @@ export interface SwitchBotPlatformConfig extends PlatformConfig {
 export type credentials = {
   token?: any;
   secret?: any;
+  notice?: any;
   openToken?: any;
 };
 
@@ -44,19 +45,11 @@ export interface devicesConfig extends device {
   configDeviceType: string;
   configDeviceName?: string;
   deviceId: string;
-  logging?: string;
+  external?: boolean;
   refreshRate?: number;
   firmware?: string;
-  bot?: bot;
-  meter?: meter;
-  humidifier?: humidifier;
-  curtain?: curtain;
-  contact?: contact;
-  motion?: motion;
-  colorbulb?: colorbulb;
-  plug?: Record<any, any>;
-  lock?: lock;
-  ble?: boolean;
+  logging?: string;
+  connectionType?: string;
   customBLEaddress?: string;
   scanDuration?: number;
   hide_device?: boolean;
@@ -65,6 +58,16 @@ export interface devicesConfig extends device {
   mqttOptions?: IClientOptions;
   mqttPubOptions?: IClientOptions;
   history?: boolean;
+  bot?: bot;
+  meter?: meter;
+  humidifier?: humidifier;
+  curtain?: curtain;
+  contact?: contact;
+  motion?: motion;
+  colorbulb?: colorbulb;
+  ceilinglight?: ceilinglight;
+  plug?: Record<any, any>;
+  lock?: lock;
 }
 
 export type meter = {
@@ -116,6 +119,11 @@ export type colorbulb = {
   adaptiveLightingShift?: number;
 };
 
+export type ceilinglight = {
+  set_minStep?: number;
+  adaptiveLightingShift?: number;
+};
+
 export type lock = {
   hide_contactsensor?: boolean;
 };
@@ -123,7 +131,11 @@ export type lock = {
 export interface irDevicesConfig extends irdevice {
   configRemoteType?: string;
   deviceId: string;
+  external?: boolean;
+  firmware?: string;
   logging?: string;
+  connectionType?: string;
+  hide_device?: boolean;
   irfan?: irfan;
   irair?: irair;
   irpur?: Record<any, any>;
@@ -133,7 +145,6 @@ export interface irDevicesConfig extends irdevice {
   irwh?: Record<any, any>;
   irtv?: irtv;
   other?: other;
-  hide_device?: boolean;
 }
 
 export type irfan = {

@@ -8,8 +8,7 @@
 [![npm downloads](https://badgen.net/npm/dt/@switchbot/homebridge-switchbot)](https://www.npmjs.com/package/@switchbot/homebridge-switchbot)
 [![discord-switchbot](https://badgen.net/discord/online-members/5wYTbwP4ha?icon=discord&label=discord)](https://discord.gg/5wYTbwP4ha)
 
-<p>The Homebridge <a href="https://www.switch-bot.com">SwitchBot</a>  OpenAPI
-plugin allows you to access your SwitchBot Device(s) from HomeKit with
+<p>The Homebridge <a href="https://www.switch-bot.com">SwitchBot</a> plugin allows you to access your SwitchBot Device(s) from HomeKit with
   <a href="https://homebridge.io">Homebridge</a>. 
 </p>
 
@@ -97,6 +96,8 @@ plugin allows you to access your SwitchBot Device(s) from HomeKit with
     - Must supply `deviceId` & `deviceName` to Device Config
     - Check `Enable Bluetooth Low Energy (BLE) Connection` on Device Config
 - [SwitchBot Bulb](https://www.switch-bot.com/products/switchbot-color-bulb)
+- [SwitchBot Ceiling Light](https://www.switchbot.jp/collections/all/products/switchbot-ceiling-light)
+- [SwitchBot Ceiling Light Pro](https://www.switchbot.jp/collections/all/products/switchbot-ceiling-light)
 - [SwitchBot Light Strip](https://www.switch-bot.com/products/switchbot-light-strip)
   - Supports OpenAPI Connection Only
   - If using OpenAPI:
