@@ -1644,7 +1644,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   async registerCurtains(device: device & devicesConfig) {
-    this.warnLog(`deviceName: ${device.deviceName} deviceId: ${device.deviceId}, curtainDevicesIds: ${device.curtainDevicesIds}, master: ` +
+    this.debugWarnLog(`deviceName: ${device.deviceName} deviceId: ${device.deviceId}, curtainDevicesIds: ${device.curtainDevicesIds}, master: ` +
     `${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group}, connectionType: ${device.connectionType}`);
 
     let registerCurtain: boolean;
