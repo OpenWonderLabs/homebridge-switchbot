@@ -555,7 +555,7 @@ export class Bot {
    */
   async pushChanges(): Promise<void> {
     if (this.BLE) {
-      await this.BLERefreshStatus();
+      await this.BLEpushChanges();
     } else if (this.OpenAPI) {
       await this.openAPIpushChanges();
     } else {

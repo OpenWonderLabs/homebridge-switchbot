@@ -518,7 +518,7 @@ export class Curtain {
 
   async pushChanges(): Promise<void> {
     if (this.BLE) {
-      await this.BLERefreshStatus();
+      await this.BLEpushChanges();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges();
     } else {
