@@ -1764,7 +1764,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       registerCurtain = false;
       this.debugErrorLog(`deviceName: ${device.deviceName} [Curtain Config] disable_group: ${device.curtain?.disable_group},`
       + ` UnGrouping ${device.master}, device.group: ${device.group}`);
-      this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`);
+      this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}, device.connectionType: ${device.connectionType}`);
     }
     return registerCurtain;
   }
