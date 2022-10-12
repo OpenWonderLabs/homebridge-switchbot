@@ -649,6 +649,9 @@ export class Meter {
     if (device.external !== undefined) {
       config['external'] = device.external;
     }
+    if (device.mqttURL !== undefined) {
+      config['mqttURL'] = device.mqttURL;
+    }
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
     }
