@@ -48,7 +48,7 @@ export class Meter {
   mqttClient: MqttClient | null = null;
 
   // EVE history service handler
-  historyService: any;
+  historyService?: any;
 
   // Config
   scanDuration!: number;
@@ -379,6 +379,8 @@ export class Meter {
         + ` CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
         if (this.device.mqttURL) {
           mqttmessage.push(`"humidity": ${this.CurrentRelativeHumidity}`);
+        }
+        if (this.device.history) {
           entry['humidity'] = this.CurrentRelativeHumidity;
         }
       }
@@ -389,6 +391,8 @@ export class Meter {
       } else {
         if (this.device.mqttURL) {
           mqttmessage.push(`"temperature": ${this.CurrentTemperature}`);
+        }
+        if (this.device.history) {
           entry['temp'] = this.CurrentTemperature;
         }
         this.accessory.context.CurrentTemperature = this.CurrentTemperature;
@@ -424,7 +428,7 @@ export class Meter {
     }
     if (this.CurrentRelativeHumidity > 0) {
       // reject unreliable data
-      if (this.device.mqttURL) {
+      if (this.device.history) {
         this.historyService?.addEntry(entry);
       }
     }
