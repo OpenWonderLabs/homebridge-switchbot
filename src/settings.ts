@@ -187,8 +187,6 @@ export type irtv = {
 
 export type other = {
   deviceType?: string;
-  commandOn?: string;
-  commandOff?: string;
 };
 
 //a list of physical devices.

@@ -166,7 +166,6 @@ export class AirConditioner {
     if (this.Active !== this.platform.Characteristic.Active.ACTIVE || this.pushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
-
       const body = superStringify({
         'command': command,
         'parameter': 'default',
@@ -179,7 +178,6 @@ export class AirConditioner {
   async pushAirConditionerOffChanges(): Promise<void> {
     const commandType: string = await this.commandType();
     const command: string = await this.commandOff();
-
     const body = superStringify({
       'command': command,
       'parameter': 'default',

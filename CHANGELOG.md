@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Beta - Version 2.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.0.1) (2022-10-XX)
+
+## What's Changed
+
+- Added `customize` config option which will allow for custom On and off commands for IR Devices.
+  - Added `customOn` & `customOff` to set custom commands for IR Devices.
+- Removed `Other`: `commandOn` & `commandOff` you will have to change your commands to the new `customOn` & `customOff` config under the `customize` config.
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.15.0...v2.0.0
+
 ## [Version 2.0.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.0.0) (2022-10-12)
 
 ## What's Changed

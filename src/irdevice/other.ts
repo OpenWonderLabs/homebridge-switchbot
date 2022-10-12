@@ -84,22 +84,16 @@ export class Others {
    * Other -       "command"       "channelSub"      "default"	        =        previous channel
    */
   async pushOnChanges(): Promise<void> {
-    if (this.platform.config.options) {
-      if (this.device.other) {
-        if (this.device.other.commandOn) {
-          if (!this.Active) {
-            const body = superStringify({
-              'command': `${this.device.other.commandOn}`,
-              'parameter': 'default',
-              'commandType': 'customize',
-            });
-            await this.pushChanges(body);
-          }
-        } else {
-          this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} On Command not set, commandOn: ${this.device.other.commandOn}`);
-        }
-      } else {
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} On Command not set, other: ${this.device.other}`);
+    if (this.device.customize) {
+      if (!this.Active) {
+        const commandType: string = await this.commandType();
+        const command: string = await this.commandOn();
+        const body = superStringify({
+          'command': command,
+          'parameter': 'default',
+          'commandType': commandType,
+        });
+        await this.pushChanges(body);
       }
     } else {
       this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} On Command not set`);
@@ -107,22 +101,16 @@ export class Others {
   }
 
   async pushOffChanges(): Promise<void> {
-    if (this.platform.config.options) {
-      if (this.device.other) {
-        if (this.device.other.commandOff) {
-          if (this.Active) {
-            const body = superStringify({
-              'command': `${this.device.other.commandOff}`,
-              'parameter': 'default',
-              'commandType': 'customize',
-            });
-            await this.pushChanges(body);
-          }
-        } else {
-          this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Off Command not set, commandOff: ${this.device.other.commandOff}`);
-        }
-      } else {
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Off Command not set, other: ${this.device.other}`);
+    if (this.device.customize) {
+      if (this.Active) {
+        const commandType: string = await this.commandType();
+        const command: string = await this.commandOff();
+        const body = superStringify({
+          'command': command,
+          'parameter': 'default',
+          'commandType': commandType,
+        });
+        await this.pushChanges(body);
       }
     } else {
       this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Off Command not set.`);
@@ -189,6 +177,36 @@ export class Others {
       this.fanService?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
     }
+  }
+
+  async commandType() {
+    let commandType: string;
+    if (this.device.customize) {
+      commandType = 'customize';
+    } else {
+      commandType = 'command';
+    }
+    return commandType;
+  }
+
+  async commandOn() {
+    let command: string;
+    if (this.device.customize && this.device.customOn) {
+      command = this.device.customOn;
+    } else {
+      command = 'turnOn';
+    }
+    return command;
+  }
+
+  async commandOff() {
+    let command: string;
+    if (this.device.customize && this.device.customOn) {
+      command = this.device.customOn;
+    } else {
+      command = 'turnOff';
+    }
+    return command;
   }
 
   async statusCode({ res }: { res: IncomingMessage }): Promise<void> {

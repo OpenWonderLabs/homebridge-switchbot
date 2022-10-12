@@ -978,7 +978,7 @@
     },
     {
       "type": "fieldset",
-      "title": "Optional SwitchBot Device Settings",
+      "title": "SwitchBot Device Settings",
       "expandable": true,
       "expanded": false,
       "items": [
@@ -1040,7 +1040,7 @@
     },
     {
       "type": "fieldset",
-      "title": "Optional IR Device Settings",
+      "title": "IR Device Settings",
       "expandable": true,
       "expanded": false,
       "items": [
