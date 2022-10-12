@@ -661,7 +661,9 @@ export class Curtain {
     }
 
     this.TargetPosition = value;
-    this.mqttPublish('TargetPosition', this.TargetPosition);
+    if (this.device.mqttURL) {
+      this.mqttPublish('TargetPosition', this.TargetPosition);
+    }
 
     await this.setMinMax();
     if (value > this.CurrentPosition) {
@@ -700,54 +702,66 @@ export class Curtain {
     if (this.CurrentPosition === undefined || Number.isNaN(this.CurrentPosition)) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition}`);
     } else {
+      if (this.device.mqttURL) {
+        this.mqttPublish('CurrentPosition', this.CurrentPosition);
+      }
       this.accessory.context.CurrentPosition = this.CurrentPosition;
       this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.CurrentPosition, Number(this.CurrentPosition));
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic CurrentPosition: ${this.CurrentPosition}`);
-      this.mqttPublish('CurrentPosition', this.CurrentPosition);
     }
     if (this.PositionState === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} PositionState: ${this.PositionState}`);
     } else {
+      if (this.device.mqttURL) {
+        this.mqttPublish('PositionState', this.PositionState);
+      }
       this.accessory.context.PositionState = this.PositionState;
       this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.PositionState, Number(this.PositionState));
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic PositionState: ${this.PositionState}`);
-      this.mqttPublish('PositionState', this.PositionState);
     }
     if (this.TargetPosition === undefined || Number.isNaN(this.TargetPosition)) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} TargetPosition: ${this.TargetPosition}`);
     } else {
+      if (this.device.mqttURL) {
+        this.mqttPublish('TargetPosition', this.TargetPosition);
+      }
       this.accessory.context.TargetPosition = this.TargetPosition;
       this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.TargetPosition, Number(this.TargetPosition));
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic TargetPosition: ${this.TargetPosition}`);
-      this.mqttPublish('TargetPosition', this.TargetPosition);
     }
     if (!this.device.curtain?.hide_lightsensor) {
       if (this.CurrentAmbientLightLevel === undefined || Number.isNaN(this.CurrentAmbientLightLevel)) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
       } else {
+        if (this.device.mqttURL) {
+          this.mqttPublish('CurrentAmbientLightLevel', this.CurrentAmbientLightLevel);
+        }
         this.accessory.context.CurrentAmbientLightLevel = this.CurrentAmbientLightLevel;
         this.lightSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
         + ` updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
-        this.mqttPublish('CurrentAmbientLightLevel', this.CurrentAmbientLightLevel);
       }
     }
     if (this.BLE) {
       if (this.BatteryLevel === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
       } else {
+        if (this.device.mqttURL) {
+          this.mqttPublish('BatteryLevel', this.BatteryLevel);
+        }
         this.accessory.context.BatteryLevel = this.BatteryLevel;
         this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
-        this.mqttPublish('BatteryLevel', this.BatteryLevel);
       }
       if (this.StatusLowBattery === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
       } else {
+        if (this.device.mqttURL) {
+          this.mqttPublish('StatusLowBattery', this.StatusLowBattery);
+        }
         this.accessory.context.StatusLowBattery = this.StatusLowBattery;
         this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
-        this.mqttPublish('StatusLowBattery', this.StatusLowBattery);
       }
     }
   }

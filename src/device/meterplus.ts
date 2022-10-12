@@ -377,16 +377,20 @@ export class MeterPlus {
         this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
         + ` updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
-        mqttmessage.push(`"humidity": ${this.CurrentRelativeHumidity}`);
-        entry['humidity'] = this.CurrentRelativeHumidity;
+        if (this.device.mqttURL) {
+          mqttmessage.push(`"humidity": ${this.CurrentRelativeHumidity}`);
+          entry['humidity'] = this.CurrentRelativeHumidity;
+        }
       }
     }
     if (!this.device.meter?.hide_temperature) {
       if (this.CurrentTemperature === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
       } else {
-        mqttmessage.push(`"temperature": ${this.CurrentTemperature}`);
-        entry['temp'] = this.CurrentTemperature;
+        if (this.device.mqttURL) {
+          mqttmessage.push(`"temperature": ${this.CurrentTemperature}`);
+          entry['temp'] = this.CurrentTemperature;
+        }
         this.accessory.context.CurrentTemperature = this.CurrentTemperature;
         this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
@@ -396,7 +400,9 @@ export class MeterPlus {
       if (this.BatteryLevel === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
       } else {
-        mqttmessage.push(`"battery": ${this.BatteryLevel}`);
+        if (this.device.mqttURL) {
+          mqttmessage.push(`"battery": ${this.BatteryLevel}`);
+        }
         this.accessory.context.BatteryLevel = this.BatteryLevel;
         this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
@@ -404,16 +410,22 @@ export class MeterPlus {
       if (this.StatusLowBattery === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
       } else {
-        mqttmessage.push(`"lowBattery": ${this.StatusLowBattery}`);
+        if (this.device.mqttURL) {
+          mqttmessage.push(`"lowBattery": ${this.StatusLowBattery}`);
+        }
         this.accessory.context.StatusLowBattery = this.StatusLowBattery;
         this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
       }
     }
-    this.mqttPublish(`{${mqttmessage.join(',')}}`);
+    if (this.device.mqttURL) {
+      this.mqttPublish(`{${mqttmessage.join(',')}}`);
+    }
     if (this.CurrentRelativeHumidity > 0) {
       // reject unreliable data
-      this.historyService?.addEntry(entry);
+      if (this.device.mqttURL) {
+        this.historyService?.addEntry(entry);
+      }
     }
   }
 
