@@ -1,10 +1,13 @@
-import { AxiosResponse } from 'axios';
-import { interval, Subject } from 'rxjs';
-import { SwitchBotPlatform } from '../platform';
-import { debounceTime, skipWhile, tap } from 'rxjs/operators';
-import { Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap } from 'homebridge';
-import { DeviceURL, device, devicesConfig, switchbot, deviceStatusResponse, payload, hs2rgb, rgb2hs, deviceStatus } from '../settings';
+import https from 'https';
+import crypto from 'crypto';
 import { Context } from 'vm';
+import { IncomingMessage } from 'http';
+import { interval, Subject } from 'rxjs';
+import superStringify from 'super-stringify';
+import { SwitchBotPlatform } from '../platform';
+import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
+import { Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap } from 'homebridge';
+import { device, devicesConfig, switchbot, hs2rgb, rgb2hs, deviceStatus, HostDomain, DevicePath, ad, serviceData, m2hs } from '../settings';
 
 /**
  * Platform Accessory
@@ -17,25 +20,29 @@ export class StripLight {
 
   // Characteristic Values
   On!: CharacteristicValue;
-  OnCached!: CharacteristicValue;
   Hue!: CharacteristicValue;
-  HueCached!: CharacteristicValue;
   Saturation!: CharacteristicValue;
-  SaturationCached!: CharacteristicValue;
   Brightness!: CharacteristicValue;
-  BrightnessCached!: CharacteristicValue;
+  ColorTemperature?: CharacteristicValue;
 
   // OpenAPI Others
   power: deviceStatus['power'];
   color: deviceStatus['color'];
   brightness: deviceStatus['brightness'];
-  deviceStatus!: deviceStatusResponse;
+  deviceStatus!: any; //deviceStatusResponse;
 
   // BLE Others
+  connected?: boolean;
   switchbot!: switchbot;
+  address!: ad['address'];
+  serviceData!: serviceData;
+  state: serviceData['state'];
+  delay: serviceData['delay'];
+  wifiRssi: serviceData['wifiRssi'];
 
   // Config
   set_minStep?: number;
+  scanDuration!: number;
   deviceLogging!: string;
   deviceRefreshRate!: number;
   adaptiveLightingShift?: number;
@@ -49,27 +56,23 @@ export class StripLight {
   cacheKelvin!: number;
 
   // Updates
-  colorBulbUpdateInProgress!: boolean;
-  doColorBulbUpdate!: Subject<void>;
+  stripLightUpdateInProgress!: boolean;
+  doStripLightUpdate!: Subject<void>;
+
+  // Connection
+  private readonly BLE = (this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI');
+  private readonly OpenAPI = (this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI');
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
     this.logs(device);
+    this.scan(device);
     this.refreshRate(device);
     this.config(device);
-    if (this.On === undefined) {
-      this.On = false;
-    } else {
-      this.On = this.accessory.context.On;
-    }
-    this.Hue = 0;
-    this.Brightness = 0;
-    this.Saturation = 0;
-    this.minKelvin = 2000;
-    this.maxKelvin = 9000;
+    this.context();
     // this is subject we use to track when we need to POST changes to the SwitchBot API
-    this.doColorBulbUpdate = new Subject();
-    this.colorBulbUpdateInProgress = false;
+    this.doStripLightUpdate = new Subject();
+    this.stripLightUpdateInProgress = false;
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();
@@ -81,12 +84,21 @@ export class StripLight {
       .setCharacteristic(this.platform.Characteristic.Model, 'W1701100')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
       .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
-      .getCharacteristic(this.platform.Characteristic.FirmwareRevision).updateValue(this.FirmwareRevision(accessory, device));
+      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
+      .updateValue(this.FirmwareRevision(accessory, device));
 
     // get the Lightbulb service if it exists, otherwise create a new Lightbulb service
     // you can create multiple services for each accessory
     (this.lightBulbService = accessory.getService(this.platform.Service.Lightbulb) || accessory.addService(this.platform.Service.Lightbulb)),
-    `${accessory.displayName} Strip Light`;
+    `${accessory.displayName} ${device.deviceType}`;
+
+
+    if (this.adaptiveLightingShift === -1 && this.accessory.context.adaptiveLighting) {
+      this.accessory.removeService(this.lightBulbService);
+      this.lightBulbService = this.accessory.addService(this.platform.Service.Lightbulb);
+      this.accessory.context.adaptiveLighting = false;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} adaptiveLighting: ${this.accessory.context.adaptiveLighting}`);
+    }
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -112,6 +124,19 @@ export class StripLight {
         return this.Brightness;
       })
       .onSet(this.BrightnessSet.bind(this));
+
+    // handle ColorTemperature events using the ColorTemperature characteristic
+    this.lightBulbService
+      .getCharacteristic(this.platform.Characteristic.ColorTemperature)
+      .setProps({
+        minValue: 140,
+        maxValue: 500,
+        validValueRanges: [140, 500],
+      })
+      .onGet(() => {
+        return this.ColorTemperature!;
+      })
+      .onSet(this.ColorTemperatureSet.bind(this));
 
     // handle Hue events using the Hue characteristic
     this.lightBulbService
@@ -139,22 +164,35 @@ export class StripLight {
       })
       .onSet(this.SaturationSet.bind(this));
 
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
+    if (this.adaptiveLightingShift !== -1) {
+      this.AdaptiveLightingController = new platform.api.hap.AdaptiveLightingController(this.lightBulbService, {
+        customTemperatureAdjustment: this.adaptiveLightingShift,
+      });
+      this.accessory.configureController(this.AdaptiveLightingController);
+      this.accessory.context.adaptiveLighting = true;
+      this.debugLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} adaptiveLighting: ${this.accessory.context.adaptiveLighting},` +
+            ` adaptiveLightingShift: ${this.adaptiveLightingShift}`,
+      );
+    }
+
     // Update Homekit
     this.updateHomeKitCharacteristics();
 
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
-      .pipe(skipWhile(() => this.colorBulbUpdateInProgress))
+      .pipe(skipWhile(() => this.stripLightUpdateInProgress))
       .subscribe(async () => {
         await this.refreshStatus();
       });
 
     // Watch for Bulb change events
-    // We put in a debounce of 100ms so we don't make duplicate calls
-    this.doColorBulbUpdate
+    // We put in a debounce of 1000ms so we don't make duplicate calls
+    this.doStripLightUpdate
       .pipe(
         tap(() => {
-          this.colorBulbUpdateInProgress = true;
+          this.stripLightUpdateInProgress = true;
         }),
         debounceTime(this.platform.config.options!.pushRate! * 1000),
       )
@@ -162,17 +200,50 @@ export class StripLight {
         try {
           await this.pushChanges();
         } catch (e: any) {
-          this.errorLog(`Strip Light: ${this.accessory.displayName} failed pushChanges`);
-          if (this.deviceLogging.includes('debug')) {
-            this.errorLog(`Strip Light: ${this.accessory.displayName} failed pushChanges,` + ` Error Message: ${JSON.stringify(e.message)}`);
-          }
           this.apiError(e);
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
+              + ` Error Message: ${superStringify(e.message)}`);
         }
-        this.colorBulbUpdateInProgress = false;
+        this.stripLightUpdateInProgress = false;
+        // Refresh the status from the API
+        interval(15000)
+          .pipe(skipWhile(() => this.stripLightUpdateInProgress))
+          .pipe(take(1))
+          .subscribe(async () => {
+            await this.refreshStatus();
+          });
       });
   }
 
+  /**
+   * Parse the device status from the SwitchBot api
+   */
   async parseStatus(): Promise<void> {
+    /*if (this.BLE) {
+      await this.BLEparseStatus();
+    } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
+      await this.openAPIparseStatus();
+    } else {
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+      + ` ${this.device.connectionType}, parseStatus will not happen.`);
+    }
+  }
+
+  async BLEparseStatus(): Promise<void> {
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
+    // State
+    switch (this.state) {
+      case 'on':
+        this.On = true;
+        break;
+      default:
+        this.On = false;
+    }
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
+  }
+
+  async openAPIparseStatus(): Promise<void> {
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
     switch (this.power) {
       case 'on':
         this.On = true;
@@ -180,54 +251,171 @@ export class StripLight {
       default:
         this.On = false;
     }
-    this.debugLog(`Strip Light: ${this.accessory.displayName} On: ${this.On}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
 
     // Brightness
     this.Brightness = Number(this.brightness);
-    this.debugLog(`Strip Light: ${this.accessory.displayName} Brightness: ${this.Brightness}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Brightness: ${this.Brightness}`);
 
     // Color, Hue & Brightness
     if (this.color) {
-      this.debugLog(`Strip Light: ${this.accessory.displayName} color: ${JSON.stringify(this.color)}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} color: ${superStringify(this.color)}`);
       const [red, green, blue] = this.color!.split(':');
-      this.debugLog(`Strip Light: ${this.accessory.displayName} red: ${JSON.stringify(red)}`);
-      this.debugLog(`Strip Light: ${this.accessory.displayName} green: ${JSON.stringify(green)}`);
-      this.debugLog(`Strip Light: ${this.accessory.displayName} blue: ${JSON.stringify(blue)}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} red: ${superStringify(red)}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} green: ${superStringify(green)}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} blue: ${superStringify(blue)}`);
 
       const [hue, saturation] = rgb2hs(Number(red), Number(green), Number(blue));
-      this.debugLog(
-        `Strip Light: ${this.accessory.displayName} hs: ${JSON.stringify(rgb2hs(Number(red), Number(green), Number(blue)))}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+      +` hs: ${superStringify(rgb2hs(Number(red), Number(green), Number(blue)))}`);
 
       // Hue
       this.Hue = hue;
-      this.debugLog(`Strip Light: ${this.accessory.displayName} Hue: ${this.Hue}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${this.Hue}`);
 
       // Saturation
       this.Saturation = saturation;
-      this.debugLog(`Strip Light: ${this.accessory.displayName} Saturation: ${this.Saturation}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${this.Saturation}`);
     }
   }
 
+  /**
+   * Asks the SwitchBot API for the latest device information
+   */
   async refreshStatus(): Promise<void> {
-    try {
-      this.deviceStatus = (await this.platform.axios.get(`${DeviceURL}/${this.device.deviceId}/status`)).data;
-      this.debugLog(`Strip Light: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(this.deviceStatus)}`);
-      this.power = this.deviceStatus.body.power;
-      this.color = this.deviceStatus.body.color;
-      this.brightness = this.deviceStatus.body.brightness;
+    /*if (this.BLE) {
+      await this.BLERefreshStatus();
+    } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
+      await this.openAPIRefreshStatus();
+    } else {
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+      + ` ${this.device.connectionType}, refreshStatus will not happen.`);
+    }
+  }
 
-      this.parseStatus();
-      this.updateHomeKitCharacteristics();
+  async BLERefreshStatus(): Promise<void> {
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLERefreshStatus`);
+    const switchbot = await this.platform.connectBLE();
+    // Convert to BLE Address
+    this.device.bleMac = this.device
+      .deviceId!.match(/.{1,2}/g)!
+      .join(':')
+      .toLowerCase();
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    this.getCustomBLEAddress(switchbot);
+    // Start to monitor advertisement packets
+    if (switchbot !== false) {
+      switchbot
+        .startScan({
+          model: 'r',
+          id: this.device.bleMac,
+        })
+        .then(() => {
+          // Set an event hander
+          switchbot.onadvertisement = (ad: any) => {
+            this.address = ad.address;
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
+            + ` BLE Address Found: ${this.address}`);
+            this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
+            this.serviceData = ad.serviceData;
+            //this.state = ad.serviceData.state;
+            //this.delay = ad.serviceData.delay;
+            //this.timer = ad.serviceData.timer;
+            //this.syncUtcTime = ad.serviceData.syncUtcTime;
+            //this.wifiRssi = ad.serviceData.wifiRssi;
+            //this.overload = ad.serviceData.overload;
+            //this.currentPower = ad.serviceData.currentPower;
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
+            /*this.debugLog(
+              `${this.device.deviceType}: ${this.accessory.displayName} state: ${ad.serviceData.state}, ` +
+                `delay: ${ad.serviceData.delay}, timer: ${ad.serviceData.timer}, syncUtcTime: ${ad.serviceData.syncUtcTime} ` +
+                `wifiRssi: ${ad.serviceData.wifiRssi}, overload: ${ad.serviceData.overload}, currentPower: ${ad.serviceData.currentPower}`,
+            );*/
+
+            if (this.serviceData) {
+              this.connected = true;
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+            } else {
+              this.connected = false;
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+            }
+          };
+          // Wait 2 seconds
+          return switchbot.wait(this.scanDuration * 1000);
+        })
+        .then(async () => {
+        // Stop to monitor
+          switchbot.stopScan();
+          if (this.connected) {
+            this.BLEparseStatus();
+            this.updateHomeKitCharacteristics();
+          } else {
+            await this.BLERefreshConnection(switchbot);
+          }
+        })
+        .catch(async (e: any) => {
+          this.apiError(e);
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLERefreshStatus with ${this.device.connectionType}`
+                + ` Connection, Error Message: ${superStringify(e.message)}`);
+          await this.BLERefreshConnection(switchbot);
+        });
+    } else {
+      await this.BLERefreshConnection(switchbot);
+    }
+  }
+
+  async openAPIRefreshStatus(): Promise<void> {
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
+    try {
+      const t = Date.now();
+      const nonce = 'requestID';
+      const data = this.platform.config.credentials?.token + t + nonce;
+      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+      const sign = signTerm.toString('base64');
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
+      const options = {
+        hostname: HostDomain,
+        port: 443,
+        path: `${DevicePath}/${this.device.deviceId}/status`,
+        method: 'GET',
+        headers: {
+          Authorization: this.platform.config.credentials?.token,
+          sign: sign,
+          nonce: nonce,
+          t: t,
+          'Content-Type': 'application/json',
+        },
+      };
+      const req = https.request(options, (res) => {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus statusCode: ${res.statusCode}`);
+        this.statusCode({ res });
+        let rawData = '';
+        res.on('data', (d) => {
+          rawData += d;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
+        });
+        res.on('end', () => {
+          try {
+            this.deviceStatus = JSON.parse(rawData);
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus: ${superStringify(this.deviceStatus)}`);
+            this.power = this.deviceStatus.body.power;
+            this.color = this.deviceStatus.body.color;
+            this.brightness = this.deviceStatus.body.brightness;
+            this.openAPIparseStatus();
+            this.updateHomeKitCharacteristics();
+          } catch (e: any) {
+            this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
+          }
+        });
+      });
+      req.on('error', (e: any) => {
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
+      });
+      req.end();
     } catch (e: any) {
-      this.errorLog(`Strip Light: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection`);
-      if (this.deviceLogging.includes('debug')) {
-        this.errorLog(
-          `Strip Light: ${this.accessory.displayName} failed refreshStatus with OpenAPI Connection,` +
-            ` Error Message: ${JSON.stringify(e.message)}`,
-        );
-      }
       this.apiError(e);
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
+            + ` Connection, Error Message: ${superStringify(e.message)}`);
     }
   }
 
@@ -242,202 +430,521 @@ export class StripLight {
    *
    */
   async pushChanges(): Promise<void> {
+    /*if (this.BLE) {
+      await this.BLEpushChanges();
+    } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
+      await this.openAPIpushChanges();
+    } else {
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+      + ` ${this.device.connectionType}, pushChanges will not happen.`);
+    }
+    interval(5000)
+      .pipe(take(1))
+      .subscribe(async () => {
+        await this.refreshStatus();
+      });
+  }
+
+  async BLEpushChanges(): Promise<void> {
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges`);
+    if (this.On !== this.accessory.context.On) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges On: ${this.On} OnCached: ${this.accessory.context.On}`);
+      const switchbot = await this.platform.connectBLE();
+      // Convert to BLE Address
+      this.device.bleMac = this.device
+        .deviceId!.match(/.{1,2}/g)!
+        .join(':')
+        .toLowerCase();
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+      switchbot
+        .discover({
+          model: 'r',
+          id: this.device.bleMac,
+        })
+        .then((device_list: any) => {
+          this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
+          return this.turnOnOff(device_list);
+        })
+        .then(() => {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
+          this.On = false;
+        })
+        .catch(async (e: any) => {
+          this.apiError(e);
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${superStringify(e.message)}`);
+          await this.BLEPushConnection();
+        });
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges.` + `On: ${this.On}, `
+        +`OnCached: ${this.accessory.context.On}`);
+    }
+  }
+
+  async openAPIpushChanges() {
     try {
-      if (this.On !== this.OnCached) {
-        // Push On Update
-        const payload = {
-          commandType: 'command',
-          parameter: 'default',
-        } as payload;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges`);
+      if (this.On !== this.accessory.context.On) {
+        // Make Push On request to the API
+        const t = Date.now();
+        const nonce = 'requestID';
+        const data = this.platform.config.credentials?.token + t + nonce;
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+          .update(Buffer.from(data, 'utf-8'))
+          .digest();
+        const sign = signTerm.toString('base64');
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
 
+        let command = '';
         if (this.On) {
-          payload.command = 'turnOn';
+          command = 'turnOn';
         } else {
-          payload.command = 'turnOff';
+          command = 'turnOff';
         }
-
-        this.infoLog(
-          `Strip Light: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-            ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
+        const body = superStringify({
+          'command': `${command}`,
+          'parameter': 'default',
+          'commandType': 'command',
+        });
+        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
+        const options = {
+          hostname: HostDomain,
+          port: 443,
+          path: `${DevicePath}/${this.device.deviceId}/commands`,
+          method: 'POST',
+          headers: {
+            'Authorization': this.platform.config.credentials?.token,
+            'sign': sign,
+            'nonce': nonce,
+            't': t,
+            'Content-Type': 'application/json',
+            'Content-Length': body.length,
+          },
+        };
+        const req = https.request(options, res => {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges statusCode: ${res.statusCode}`);
+          this.statusCode({ res });
+          res.on('data', d => {
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
+          });
+        });
+        req.on('error', (e: any) => {
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
+        });
+        req.write(body);
+        req.end();
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges: ${superStringify(req)}`);
+      } else {
+        this.debugLog(
+          `${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges.` + `On: ${this.On}, `
+          +`OnCached: ${this.accessory.context.On}`,
         );
-
-        // Make the API request
-        const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-        this.debugLog(`Strip Light: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
-        this.statusCode(push);
-        this.OnCached = this.On;
-        this.accessory.context.On = this.OnCached;
       }
       // Push Brightness Update
       if (this.On) {
         await this.pushBrightnessChanges();
       }
-
       // Push Hue & Saturation Update
       if (this.On) {
         await this.pushHueSaturationChanges();
       }
     } catch (e: any) {
-      this.errorLog(`Strip Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-      if (this.deviceLogging.includes('debug')) {
-        this.errorLog(
-          `Strip Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` +
-            ` Error Message: ${JSON.stringify(e.message)}`,
-        );
-      }
       this.apiError(e);
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${superStringify(e.message)}`,
+      );
     }
   }
 
   async pushHueSaturationChanges(): Promise<void> {
     try {
-      if (this.Hue !== this.HueCached || this.Saturation !== this.SaturationCached) {
-        this.debugLog(`Strip Light: ${this.accessory.displayName} Hue: ${JSON.stringify(this.Hue)}`);
-        this.debugLog(`Strip Light: ${this.accessory.displayName} Saturation: ${JSON.stringify(this.Saturation)}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} pushHueSaturationChanges`);
+      if (this.Hue !== this.accessory.context.Hue || this.Saturation !== this.accessory.context.Saturation) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${superStringify(this.Hue)}`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${superStringify(this.Saturation)}`);
 
         const [red, green, blue] = hs2rgb(Number(this.Hue), Number(this.Saturation));
-        this.debugLog(`Strip Light: ${this.accessory.displayName} rgb: ${JSON.stringify([red, green, blue])}`);
-
-        const payload = {
-          commandType: 'command',
-          command: 'setColor',
-          parameter: `${red}:${green}:${blue}`,
-        } as payload;
-
-        this.infoLog(
-          `Strip Light: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-            ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
-        );
-
-        // Make the API request
-        const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-        this.debugLog(`Strip Light: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
-        this.statusCode(push);
-        this.HueCached = this.Hue;
-        this.SaturationCached = this.Saturation;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} rgb: ${superStringify([red, green, blue])}`);
+        // Make Push On request to the API
+        const t = Date.now();
+        const nonce = 'requestID';
+        const data = this.platform.config.credentials?.token + t + nonce;
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+          .update(Buffer.from(data, 'utf-8'))
+          .digest();
+        const sign = signTerm.toString('base64');
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
+        const body = superStringify({
+          'command': 'setColor',
+          'parameter': `${red}:${green}:${blue}`,
+          'commandType': 'command',
+        });
+        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
+        const options = {
+          hostname: HostDomain,
+          port: 443,
+          path: `${DevicePath}/${this.device.deviceId}/commands`,
+          method: 'POST',
+          headers: {
+            'Authorization': this.platform.config.credentials?.token,
+            'sign': sign,
+            'nonce': nonce,
+            't': t,
+            'Content-Type': 'application/json',
+            'Content-Length': body.length,
+          },
+        };
+        const req = https.request(options, res => {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} pushHueSaturationChanges statusCode: ${res.statusCode}`);
+          this.statusCode({ res });
+          res.on('data', d => {
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
+          });
+        });
+        req.on('error', (e: any) => {
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
+        });
+        req.write(body);
+        req.end();
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} pushHueSaturationChanges: ${superStringify(req)}`);
       } else {
-        this.debugLog(
-          `Strip Light: ${this.accessory.displayName} No Changes.` +
-            `Hue: ${this.Hue}, HueCached: ${this.HueCached}, Saturation: ${this.Saturation}, SaturationCached: ${this.SaturationCached}`,
-        );
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No pushHueSaturationChanges. Hue: ${this.Hue}, `
+        + `HueCached: ${this.accessory.context.Hue}, Saturation: ${this.Saturation}, SaturationCached: ${this.accessory.context.Saturation}`);
       }
     } catch (e: any) {
-      this.errorLog(`Strip Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-      if (this.deviceLogging.includes('debug')) {
-        this.errorLog(
-          `Strip Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` +
-            ` Error Message: ${JSON.stringify(e.message)}`,
-        );
-      }
       this.apiError(e);
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushHueSaturationChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${superStringify(e.message)}`);
     }
   }
 
   async pushBrightnessChanges(): Promise<void> {
     try {
-      if (this.Brightness !== this.BrightnessCached) {
-        const payload = {
-          commandType: 'command',
-          command: 'setBrightness',
-          parameter: `${this.Brightness}`,
-        } as payload;
-
-        this.infoLog(
-          `Strip Light: ${this.accessory.displayName} Sending request to SwitchBot API. command: ${payload.command},` +
-            ` parameter: ${payload.parameter}, commandType: ${payload.commandType}`,
-        );
-
-        // Make the API request
-        const push: any = await this.platform.axios.post(`${DeviceURL}/${this.device.deviceId}/commands`, payload);
-        this.debugLog(`Strip Light: ${this.accessory.displayName} pushChanges: ${JSON.stringify(push.data)}`);
-        this.statusCode(push);
-        this.BrightnessCached = this.Brightness;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} pushBrightnessChanges`);
+      if (this.Brightness !== this.accessory.context.Brightness) {
+        // Make Push On request to the API
+        const t = Date.now();
+        const nonce = 'requestID';
+        const data = this.platform.config.credentials?.token + t + nonce;
+        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+          .update(Buffer.from(data, 'utf-8'))
+          .digest();
+        const sign = signTerm.toString('base64');
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
+        const body = superStringify({
+          'command': 'setBrightness',
+          'parameter': `${this.Brightness}`,
+          'commandType': 'command',
+        });
+        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
+        const options = {
+          hostname: HostDomain,
+          port: 443,
+          path: `${DevicePath}/${this.device.deviceId}/commands`,
+          method: 'POST',
+          headers: {
+            'Authorization': this.platform.config.credentials?.token,
+            'sign': sign,
+            'nonce': nonce,
+            't': t,
+            'Content-Type': 'application/json',
+            'Content-Length': body.length,
+          },
+        };
+        const req = https.request(options, res => {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} pushBrightnessChanges statusCode: ${res.statusCode}`);
+          this.statusCode({ res });
+          res.on('data', d => {
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
+          });
+        });
+        req.on('error', (e: any) => {
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
+        });
+        req.write(body);
+        req.end();
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} pushBrightnessChanges: ${superStringify(req)}`);
       } else {
-        this.debugLog(
-          `Strip Light: ${this.accessory.displayName} No Changes.` +
-            `Brightness: ${this.Brightness}, BrightnessCached: ${this.BrightnessCached}`,
-        );
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No pushBrightnessChanges.` + `Brightness: ${this.Brightness}, `
+          +`BrightnessCached: ${this.accessory.context.Brightness}`);
       }
     } catch (e: any) {
-      this.errorLog(`Strip Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection`);
-      if (this.deviceLogging.includes('debug')) {
-        this.errorLog(
-          `Strip Light: ${this.accessory.displayName} failed pushChanges with OpenAPI Connection,` +
-            ` Error Message: ${JSON.stringify(e.message)}`,
-        );
-      }
       this.apiError(e);
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushBrightnessChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${superStringify(e.message)}`);
     }
+  }
+
+  /**
+   * Handle requests to set the value of the "On" characteristic
+   */
+  async OnSet(value: CharacteristicValue): Promise<void> {
+    if (this.On === this.accessory.context.On) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set On: ${value}`);
+    } else {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set On: ${value}`);
+    }
+
+    this.On = value;
+    this.doStripLightUpdate.next();
+  }
+
+  /**
+   * Handle requests to set the value of the "Brightness" characteristic
+   */
+  async BrightnessSet(value: CharacteristicValue): Promise<void> {
+    if (this.Brightness === this.accessory.context.Brightness) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set Brightness: ${value}`);
+    } else if (this.On) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Brightness: ${value}`);
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Brightness: ${value}`);
+    }
+
+    this.Brightness = value;
+    this.doStripLightUpdate.next();
+  }
+
+  /**
+   * Handle requests to set the value of the "ColorTemperature" characteristic
+   */
+  async ColorTemperatureSet(value: CharacteristicValue): Promise<void> {
+    if (this.ColorTemperature === this.accessory.context.ColorTemperature) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set ColorTemperature: ${value}`);
+    } else if (this.On) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set ColorTemperature: ${value}`);
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Set ColorTemperature: ${value}`);
+    }
+
+    // Convert mired to kelvin to nearest 100 (SwitchBot seems to need this)
+    const kelvin = Math.round(1000000 / Number(value) / 100) * 100;
+
+    // Check and increase/decrease kelvin to range of device
+    const k = Math.min(Math.max(kelvin, this.minKelvin), this.maxKelvin);
+
+    if (!this.accessory.context.On || this.cacheKelvin === k) {
+      return;
+    }
+
+    // Updating the hue/sat to the corresponding values mimics native adaptive lighting
+    const hs = m2hs(value);
+    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Hue, hs[0]);
+    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Saturation, hs[1]);
+
+    this.ColorTemperature = value;
+    this.doStripLightUpdate.next();
+  }
+
+  /**
+   * Handle requests to set the value of the "Hue" characteristic
+   */
+  async HueSet(value: CharacteristicValue): Promise<void> {
+    if (this.Hue === this.accessory.context.Hue) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set Hue: ${value}`);
+    } else if (this.On) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Hue: ${value}`);
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Hue: ${value}`);
+    }
+
+    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, 140);
+
+    this.Hue = value;
+    this.doStripLightUpdate.next();
+  }
+
+  /**
+   * Handle requests to set the value of the "Saturation" characteristic
+   */
+  async SaturationSet(value: CharacteristicValue): Promise<void> {
+    if (this.Saturation === this.accessory.context.Saturation) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set Saturation: ${value}`);
+    } else if (this.On) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Saturation: ${value}`);
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Saturation: ${value}`);
+    }
+
+    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, 140);
+
+    this.Saturation = value;
+    this.doStripLightUpdate.next();
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
     if (this.On === undefined) {
-      this.debugLog(`Strip Light: ${this.accessory.displayName} On: ${this.On}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
     } else {
+      this.accessory.context.On = this.On;
       this.lightBulbService.updateCharacteristic(this.platform.Characteristic.On, this.On);
-      this.debugLog(`Strip Light: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
     if (this.Brightness === undefined) {
-      this.debugLog(`Strip Light: ${this.accessory.displayName} Brightness: ${this.Brightness}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Brightness: ${this.Brightness}`);
     } else {
+      this.accessory.context.Brightness = this.Brightness;
       this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Brightness, this.Brightness);
-      this.debugLog(`Strip Light: ${this.accessory.displayName} updateCharacteristic Brightness: ${this.Brightness}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic Brightness: ${this.Brightness}`);
+    }
+    if (this.ColorTemperature === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
+    } else {
+      this.accessory.context.ColorTemperature = this.ColorTemperature;
+      this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, this.ColorTemperature);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic ColorTemperature: ${this.ColorTemperature}`);
     }
     if (this.Hue === undefined) {
-      this.debugLog(`Strip Light: ${this.accessory.displayName} Hue: ${this.Hue}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${this.Hue}`);
     } else {
+      this.accessory.context.Hue = this.Hue;
       this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Hue, this.Hue);
-      this.debugLog(`Strip Light: ${this.accessory.displayName} updateCharacteristic Hue: ${this.Hue}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic Hue: ${this.Hue}`);
     }
     if (this.Saturation === undefined) {
-      this.debugLog(`Strip Light: ${this.accessory.displayName} Saturation: ${this.Saturation}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${this.Saturation}`);
     } else {
+      this.accessory.context.Saturation = this.Saturation;
       this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Saturation, this.Saturation);
-      this.debugLog(`Strip Light: ${this.accessory.displayName} updateCharacteristic Saturation: ${this.Saturation}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic Saturation: ${this.Saturation}`);
     }
   }
 
-  apiError(e: any): void {
-    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.On, e);
-    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Hue, e);
-    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Brightness, e);
-    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Saturation, e);
-    //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+  async getCustomBLEAddress(switchbot: any) {
+    if (this.device.customBLEaddress && this.deviceLogging.includes('debug')) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} customBLEaddress: ${this.device.customBLEaddress}`);
+      (async () => {
+        // Start to monitor advertisement packets
+        await switchbot.startScan({
+          model: 'r',
+        });
+        // Set an event handler
+        switchbot.onadvertisement = (ad: any) => {
+          this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} ad: ${superStringify(ad, null, '  ')}`);
+        };
+        await switchbot.wait(10000);
+        // Stop to monitor
+        switchbot.stopScan();
+      })();
+    }
   }
 
-  statusCode(push: AxiosResponse<{ statusCode: number }>): void {
-    switch (push.data.statusCode) {
+  async BLEPushConnection() {
+    if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Push Changes`);
+      await this.openAPIpushChanges();
+    }
+  }
+
+  async BLERefreshConnection(switchbot: any): Promise<void> {
+    this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
+    if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Refresh Status`);
+      await this.openAPIRefreshStatus();
+    }
+  }
+
+  async turnOnOff(device_list: any): Promise<any> {
+    return await this.retry({
+      max: await this.maxRetry(),
+      fn: () => {
+        if (this.On) {
+          return device_list[0].turnOn({ id: this.device.bleMac });
+        } else {
+          return device_list[0].turnOff({ id: this.device.bleMac });
+        }
+      },
+    });
+  }
+
+  async retry({ max, fn }: { max: number; fn: { (): any; (): Promise<any> } }): Promise<null> {
+    return fn().catch(async (err: any) => {
+      if (max === 0) {
+        throw err;
+      }
+      this.infoLog(err);
+      this.infoLog('Retrying');
+      await this.switchbot.wait(1000);
+      return this.retry({ max: max - 1, fn });
+    });
+  }
+
+  async maxRetry(): Promise<number> {
+    let maxRetry: number;
+    if (this.device.bot?.maxRetry) {
+      maxRetry = this.device.bot?.maxRetry;
+    } else {
+      maxRetry = 5;
+    }
+    return maxRetry;
+  }
+
+  minStep(device: device & devicesConfig): number {
+    if (device.colorbulb?.set_minStep) {
+      this.set_minStep = device.colorbulb?.set_minStep;
+    } else {
+      this.set_minStep = 1;
+    }
+    return this.set_minStep;
+  }
+
+  async adaptiveLighting(device: device & devicesConfig): Promise<void> {
+    if (device.colorbulb?.adaptiveLightingShift) {
+      this.adaptiveLightingShift = device.colorbulb.adaptiveLightingShift;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
+    } else {
+      this.adaptiveLightingShift = 0;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
+    }
+  }
+
+  async scan(device: device & devicesConfig): Promise<void> {
+    if (device.scanDuration) {
+      this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
+      if (this.BLE) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
+      }
+    } else {
+      this.scanDuration = this.accessory.context.scanDuration = 1;
+      if (this.BLE) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
+      }
+    }
+  }
+
+  async statusCode({ res }: { res: IncomingMessage }): Promise<void> {
+    switch (res.statusCode) {
       case 151:
-        this.errorLog(`Strip Light: ${this.accessory.displayName} Command not supported by this device type.`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command not supported by this device type.`);
         break;
       case 152:
-        this.errorLog(`Strip Light: ${this.accessory.displayName} Device not found.`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device not found.`);
         break;
       case 160:
-        this.errorLog(`Strip Light: ${this.accessory.displayName} Command is not supported.`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command is not supported.`);
         break;
       case 161:
-        this.errorLog(`Strip Light: ${this.accessory.displayName} Device is offline.`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device is offline.`);
         this.offlineOff();
         break;
       case 171:
-        this.errorLog(`Strip Light: ${this.accessory.displayName} is offline. Hub: ${this.device.hubDeviceId}`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} is offline. Hub: ${this.device.hubDeviceId}`);
         this.offlineOff();
         break;
       case 190:
         this.errorLog(
-          `Strip Light: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-            ` Or command: ${JSON.stringify(push.data)} format is invalid`,
+          `${this.device.deviceType}: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
+            ` Or command: ${superStringify(res)} format is invalid`,
         );
         break;
       case 100:
         if (this.platform.debugMode) {
-          this.debugLog(`Strip Light: ${this.accessory.displayName} Command successfully sent.`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Command successfully sent.`);
         }
         break;
       default:
         if (this.platform.debugMode) {
-          this.debugLog(`Strip Light: ${this.accessory.displayName} Unknown statusCode.`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode.`);
         }
     }
   }
@@ -446,47 +953,71 @@ export class StripLight {
     if (this.device.offline) {
       this.On = false;
       this.lightBulbService.getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);
+      await this.updateHomeKitCharacteristics();
     }
   }
 
-  /**
-   * Handle requests to set the value of the "On" characteristic
-   */
-  async OnSet(value: CharacteristicValue): Promise<void> {
-    this.debugLog(`Strip Light: ${this.accessory.displayName} On: ${value}`);
-
-    this.On = value;
-    this.doColorBulbUpdate.next();
+  apiError(e: any): void {
+    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.On, e);
+    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Hue, e);
+    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Brightness, e);
+    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Saturation, e);
   }
 
-  /**
-   * Handle requests to set the value of the "Brightness" characteristic
-   */
-  async BrightnessSet(value: CharacteristicValue): Promise<void> {
-    this.debugLog(`Strip Light: ${this.accessory.displayName} Brightness: ${value}`);
-
-    this.Brightness = value;
-    this.doColorBulbUpdate.next();
+  FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
+    let FirmwareRevision: string;
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+    +`accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
+    if (accessory.context.FirmwareRevision) {
+      FirmwareRevision = accessory.context.FirmwareRevision;
+    } else if (device.firmware) {
+      FirmwareRevision = device.firmware;
+    } else {
+      FirmwareRevision = this.platform.version;
+    }
+    return FirmwareRevision;
   }
 
-  /**
-   * Handle requests to set the value of the "Hue" characteristic
-   */
-  async HueSet(value: CharacteristicValue): Promise<void> {
-    this.debugLog(`Strip Light: ${this.accessory.displayName} Hue: ${value}`);
-
-    this.Hue = value;
-    this.doColorBulbUpdate.next();
+  async context() {
+    if (this.On === undefined) {
+      this.On = false;
+    } else {
+      this.On = this.accessory.context.On;
+    }
+    if (this.Hue === undefined) {
+      this.Hue = 0;
+    } else {
+      this.Hue = this.accessory.context.Hue;
+    }
+    if (this.Brightness === undefined) {
+      this.Brightness = 0;
+    } else {
+      this.Brightness = this.accessory.context.Brightness;
+    }
+    if (this.Brightness === undefined) {
+      this.Saturation = 0;
+    } else {
+      this.Saturation = this.accessory.context.Saturation;
+    }
+    if (this.ColorTemperature === undefined) {
+      this.ColorTemperature = 140;
+    } else {
+      this.ColorTemperature = this.accessory.context.ColorTemperature;
+    }
+    this.minKelvin = 2000;
+    this.maxKelvin = 9000;
   }
 
-  /**
-   * Handle requests to set the value of the "Saturation" characteristic
-   */
-  async SaturationSet(value: CharacteristicValue): Promise<void> {
-    this.debugLog(`Strip Light: ${this.accessory.displayName} Saturation: ${value}`);
-
-    this.Saturation = value;
-    this.doColorBulbUpdate.next();
+  async refreshRate(device: device & devicesConfig): Promise<void> {
+    if (device.refreshRate) {
+      this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
+    } else if (this.platform.config.options!.refreshRate) {
+      this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
+    }
   }
 
   async config(device: device & devicesConfig): Promise<void> {
@@ -494,8 +1025,11 @@ export class StripLight {
     if (device.colorbulb) {
       config = device.colorbulb;
     }
-    if (device.ble) {
-      config['ble'] = device.ble;
+    if (device.connectionType !== undefined) {
+      config['connectionType'] = device.connectionType;
+    }
+    if (device.external !== undefined) {
+      config['external'] = device.external;
     }
     if (device.logging !== undefined) {
       config['logging'] = device.logging;
@@ -510,58 +1044,24 @@ export class StripLight {
       config['offline'] = device.offline;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`Strip Light: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
-    }
-  }
-
-  async refreshRate(device: device & devicesConfig): Promise<void> {
-    if (device.refreshRate) {
-      this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
-      this.debugLog(`Strip Light: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
-    } else if (this.platform.config.options!.refreshRate) {
-      this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
-      this.debugLog(`Strip Light: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
   }
 
   async logs(device: device & devicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
-      this.debugLog(`Strip Light: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
     } else if (device.logging) {
       this.deviceLogging = this.accessory.context.logging = device.logging;
-      this.debugLog(`Strip Light: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
     } else if (this.platform.config.options?.logging) {
       this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      this.debugLog(`Strip Light: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
-      this.debugLog(`Strip Light: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
     }
-  }
-
-  FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
-    let FirmwareRevision: string;
-    this.debugLog(`Strip Light: ${this.accessory.displayName} accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
-    this.debugLog(`Strip Light: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
-    this.debugLog(`Strip Light: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
-    if (accessory.context.FirmwareRevision) {
-      FirmwareRevision = accessory.context.FirmwareRevision;
-    } else if (device.firmware) {
-      FirmwareRevision = device.firmware;
-    } else {
-      FirmwareRevision = this.platform.version;
-    }
-    return FirmwareRevision;
-  }
-
-  minStep(device: device & devicesConfig): number {
-    if (device.colorbulb?.set_minStep) {
-      this.set_minStep = device.colorbulb?.set_minStep;
-    } else {
-      this.set_minStep = 1;
-    }
-    return this.set_minStep;
   }
 
   /**
@@ -579,9 +1079,25 @@ export class StripLight {
     }
   }
 
+  debugWarnLog(...log: any[]): void {
+    if (this.enablingDeviceLogging()) {
+      if (this.deviceLogging?.includes('debug')) {
+        this.platform.log.warn('[DEBUG]', String(...log));
+      }
+    }
+  }
+
   errorLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.error(String(...log));
+    }
+  }
+
+  debugErrorLog(...log: any[]): void {
+    if (this.enablingDeviceLogging()) {
+      if (this.deviceLogging?.includes('debug')) {
+        this.platform.log.error('[DEBUG]', String(...log));
+      }
     }
   }
 

@@ -13,12 +13,12 @@ export const PLUGIN_NAME = '@switchbot/homebridge-switchbot';
 /**
  * This is the main url used to access SwitchBot API
  */
-export const AuthURL = 'https://api.switch-bot.com';
+export const HostDomain = 'api.switch-bot.com';
 
 /**
  * This is the main url used to access SwitchBot API
  */
-export const DeviceURL = 'https://api.switch-bot.com/v1.0/devices';
+export const DevicePath = '/v1.1/devices';
 
 //Config
 export interface SwitchBotPlatformConfig extends PlatformConfig {
@@ -27,6 +27,9 @@ export interface SwitchBotPlatformConfig extends PlatformConfig {
 }
 
 export type credentials = {
+  token?: any;
+  secret?: any;
+  notice?: any;
   openToken?: any;
 };
 
@@ -42,19 +45,11 @@ export interface devicesConfig extends device {
   configDeviceType: string;
   configDeviceName?: string;
   deviceId: string;
-  logging?: string;
+  external?: boolean;
   refreshRate?: number;
   firmware?: string;
-  bot?: bot;
-  meter?: meter;
-  humidifier?: humidifier;
-  curtain?: curtain;
-  contact?: contact;
-  motion?: motion;
-  colorbulb?: colorbulb;
-  plug?: Record<any, any>;
-  lock?: lock;
-  ble?: boolean;
+  logging?: string;
+  connectionType?: string;
   customBLEaddress?: string;
   scanDuration?: number;
   hide_device?: boolean;
@@ -63,6 +58,16 @@ export interface devicesConfig extends device {
   mqttOptions?: IClientOptions;
   mqttPubOptions?: IClientOptions;
   history?: boolean;
+  bot?: bot;
+  meter?: meter;
+  humidifier?: humidifier;
+  curtain?: curtain;
+  contact?: contact;
+  motion?: motion;
+  colorbulb?: colorbulb;
+  ceilinglight?: ceilinglight;
+  plug?: Record<any, any>;
+  lock?: lock;
 }
 
 export type meter = {
@@ -114,6 +119,11 @@ export type colorbulb = {
   adaptiveLightingShift?: number;
 };
 
+export type ceilinglight = {
+  set_minStep?: number;
+  adaptiveLightingShift?: number;
+};
+
 export type lock = {
   hide_contactsensor?: boolean;
 };
@@ -121,7 +131,11 @@ export type lock = {
 export interface irDevicesConfig extends irdevice {
   configRemoteType?: string;
   deviceId: string;
+  external?: boolean;
+  firmware?: string;
   logging?: string;
+  connectionType?: string;
+  hide_device?: boolean;
   irfan?: irfan;
   irair?: irair;
   irpur?: Record<any, any>;
@@ -131,7 +145,6 @@ export interface irDevicesConfig extends irdevice {
   irwh?: Record<any, any>;
   irtv?: irtv;
   other?: other;
-  hide_device?: boolean;
 }
 
 export type irfan = {
@@ -175,23 +188,6 @@ export type other = {
   commandOff?: string;
 };
 
-export type payload = {
-  commandType: string;
-  parameter: string;
-  command: string;
-};
-
-export interface AxiosRequestConfig {
-  params?: Record<string, unknown>;
-  headers?: any;
-}
-
-export type deviceResponses = {
-  statusCode: number | string;
-  message: string;
-  body: deviceList | infraredRemoteList;
-};
-
 //a list of physical devices.
 export type deviceList = {
   device: Array<device>;
@@ -232,12 +228,6 @@ export type irdevice = {
   deviceName: string; //device name
   remoteType: string; //device type
   hubDeviceId: string; //remote device's parent Hub ID
-};
-
-export type deviceStatusResponse = {
-  statusCode: number;
-  message: string;
-  body: deviceStatus;
 };
 
 export type deviceStatus = {

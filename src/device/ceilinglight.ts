@@ -14,7 +14,7 @@ import { device, devicesConfig, deviceStatus, switchbot, hs2rgb, rgb2hs, m2hs, s
  * An instance of this class is created for each accessory your platform registers
  * Each accessory may expose multiple services of different service types.
  */
-export class ColorBulb {
+export class CeilingLight {
   // Services
   lightBulbService!: Service;
 
@@ -57,8 +57,8 @@ export class ColorBulb {
   cacheKelvin!: number;
 
   // Updates
-  colorBulbUpdateInProgress!: boolean;
-  doColorBulbUpdate!: Subject<void>;
+  ceilingLightUpdateInProgress!: boolean;
+  doCeilingLightUpdate!: Subject<void>;
 
   // Connection
   private readonly BLE = (this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI');
@@ -73,8 +73,8 @@ export class ColorBulb {
     this.config(device);
     this.context();
     // this is subject we use to track when we need to POST changes to the SwitchBot API
-    this.doColorBulbUpdate = new Subject();
-    this.colorBulbUpdateInProgress = false;
+    this.doCeilingLightUpdate = new Subject();
+    this.ceilingLightUpdateInProgress = false;
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();
@@ -83,7 +83,7 @@ export class ColorBulb {
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, 'W1401400')
+      .setCharacteristic(this.platform.Characteristic.Model, this.model(device))
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
       .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
       .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
@@ -183,17 +183,17 @@ export class ColorBulb {
 
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
-      .pipe(skipWhile(() => this.colorBulbUpdateInProgress))
+      .pipe(skipWhile(() => this.ceilingLightUpdateInProgress))
       .subscribe(async () => {
         await this.refreshStatus();
       });
 
     // Watch for Bulb change events
     // We put in a debounce of 100ms so we don't make duplicate calls
-    this.doColorBulbUpdate
+    this.doCeilingLightUpdate
       .pipe(
         tap(() => {
-          this.colorBulbUpdateInProgress = true;
+          this.ceilingLightUpdateInProgress = true;
         }),
         debounceTime(this.platform.config.options!.pushRate! * 1000),
       )
@@ -205,15 +205,27 @@ export class ColorBulb {
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
               + ` Error Message: ${superStringify(e.message)}`);
         }
-        this.colorBulbUpdateInProgress = false;
+        this.ceilingLightUpdateInProgress = false;
         // Refresh the status from the API
         interval(15000)
-          .pipe(skipWhile(() => this.colorBulbUpdateInProgress))
+          .pipe(skipWhile(() => this.ceilingLightUpdateInProgress))
           .pipe(take(1))
           .subscribe(async () => {
             await this.refreshStatus();
           });
       });
+  }
+
+  private model(device): CharacteristicValue {
+    let model: string;
+    if (device.deviceType === 'Ceiling Light') {
+      model = 'W2612230' || 'W2612240';
+    } else if (device.deviceType === 'Ceiling Light Pro') {
+      model = 'W2612210' || 'W2612220';
+    } else {
+      model = 'unknown';
+    }
+    return model;
   }
 
   /**
@@ -764,7 +776,7 @@ export class ColorBulb {
     }
 
     this.On = value;
-    this.doColorBulbUpdate.next();
+    this.doCeilingLightUpdate.next();
   }
 
   /**
@@ -780,7 +792,7 @@ export class ColorBulb {
     }
 
     this.Brightness = value;
-    this.doColorBulbUpdate.next();
+    this.doCeilingLightUpdate.next();
   }
 
   /**
@@ -811,7 +823,7 @@ export class ColorBulb {
     this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Saturation, hs[1]);
 
     this.ColorTemperature = value;
-    this.doColorBulbUpdate.next();
+    this.doCeilingLightUpdate.next();
   }
 
   /**
@@ -829,7 +841,7 @@ export class ColorBulb {
     this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, 140);
 
     this.Hue = value;
-    this.doColorBulbUpdate.next();
+    this.doCeilingLightUpdate.next();
   }
 
   /**
@@ -847,7 +859,7 @@ export class ColorBulb {
     this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, 140);
 
     this.Saturation = value;
-    this.doColorBulbUpdate.next();
+    this.doCeilingLightUpdate.next();
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
@@ -889,8 +901,8 @@ export class ColorBulb {
   }
 
   async adaptiveLighting(device: device & devicesConfig): Promise<void> {
-    if (device.colorbulb?.adaptiveLightingShift) {
-      this.adaptiveLightingShift = device.colorbulb.adaptiveLightingShift;
+    if (device.ceilinglight?.adaptiveLightingShift) {
+      this.adaptiveLightingShift = device.ceilinglight.adaptiveLightingShift;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
     } else {
       this.adaptiveLightingShift = 0;
@@ -968,8 +980,8 @@ export class ColorBulb {
   }
 
   minStep(device: device & devicesConfig): number {
-    if (device.colorbulb?.set_minStep) {
-      this.set_minStep = device.colorbulb?.set_minStep;
+    if (device.ceilinglight?.set_minStep) {
+      this.set_minStep = device.ceilinglight?.set_minStep;
     } else {
       this.set_minStep = 1;
     }
@@ -1101,8 +1113,8 @@ export class ColorBulb {
 
   async config(device: device & devicesConfig): Promise<void> {
     let config = {};
-    if (device.colorbulb) {
-      config = device.colorbulb;
+    if (device.ceilinglight) {
+      config = device.ceilinglight;
     }
     if (device.connectionType !== undefined) {
       config['connectionType'] = device.connectionType;
