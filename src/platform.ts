@@ -1751,11 +1751,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     let registerCurtain: boolean;
     if (device.group && !device.curtain?.disable_group) {
       registerCurtain = true;
-      this.debugLog(`deviceName: ${device.deviceName} [Curtain Config] disable_group: ${device.curtain?.disable_group}`);
+      this.debugLog(`deviceName: ${device.deviceName} [Curtain Config] disable_group: ${device.curtain?.disable_group}, group: ${device.group}`);
       this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`);
-    } else if (device.connectionType?.includes('BLE') || device.connectionType === 'Disabled') {
+    } else if (!device.group && device.connectionType) {
       registerCurtain = true;
-      this.debugLog(`deviceName: ${device.deviceName} [Curtain Config] connectionType: ${device.connectionType}`);
+      this.debugLog(`deviceName: ${device.deviceName} [Curtain Config] connectionType: ${device.connectionType}, group: ${device.group}`);
       this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`);
     } else {
       registerCurtain = false;
