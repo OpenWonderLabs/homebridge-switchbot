@@ -96,6 +96,8 @@
     - Must supply `deviceId` & `deviceName` to Device Config
     - Check `Enable Bluetooth Low Energy (BLE) Connection` on Device Config
 - [SwitchBot Bulb](https://www.switch-bot.com/products/switchbot-color-bulb)
+- [SwitchBot Ceiling Light](https://www.switchbot.jp/collections/all/products/switchbot-ceiling-light)
+- [SwitchBot Ceiling Light Pro](https://www.switchbot.jp/collections/all/products/switchbot-ceiling-light)
 - [SwitchBot Light Strip](https://www.switch-bot.com/products/switchbot-light-strip)
   - Supports OpenAPI Connection Only
   - If using OpenAPI:

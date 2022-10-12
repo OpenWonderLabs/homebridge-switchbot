@@ -65,6 +65,7 @@ export interface devicesConfig extends device {
   contact?: contact;
   motion?: motion;
   colorbulb?: colorbulb;
+  ceilinglight?: ceilinglight;
   plug?: Record<any, any>;
   lock?: lock;
 }
@@ -114,6 +115,11 @@ export type motion = {
 };
 
 export type colorbulb = {
+  set_minStep?: number;
+  adaptiveLightingShift?: number;
+};
+
+export type ceilinglight = {
   set_minStep?: number;
   adaptiveLightingShift?: number;
 };
