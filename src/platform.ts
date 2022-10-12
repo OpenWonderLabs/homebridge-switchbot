@@ -486,7 +486,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         break;
       default:
         this.warnLog(`Device: ${device.deviceName} with Device Type: ${device.deviceType}, is currently not supported.`);
-        this.warnLog('Submit Feature Requests Here: https://git.io/JL14Z');
+        this.warnLog('Submit Feature Requests Here: https://github.com/OpenWonderLabs/homebridge-switchbot/issues');
     }
   }
 
@@ -549,7 +549,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       default:
         this.debugLog(`Unsupported Device: ${superStringify(device)}`);
         this.warnLog(`Device: ${device.deviceName} with Device Type: ${device.remoteType}, is currently not supported.`);
-        this.warnLog('Submit Feature Requests Here: https://git.io/JL14Z');
+        this.warnLog('Submit Feature Requests Here: https://github.com/OpenWonderLabs/homebridge-switchbot/issues');
     }
   }
 
