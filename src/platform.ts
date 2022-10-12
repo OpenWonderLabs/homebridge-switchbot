@@ -581,7 +581,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -637,7 +639,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
 
       this.debugLog(superStringify(device.bot?.mode));
 
@@ -694,7 +698,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -748,7 +754,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -802,7 +810,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -856,7 +866,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -910,7 +922,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
 
       if (device.group && !device.curtain?.disable_group) {
         this.debugLog(`Your Curtains are grouped
@@ -975,7 +989,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1029,7 +1045,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1083,7 +1101,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1137,7 +1157,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1191,7 +1213,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1240,7 +1264,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${existingAccessory.UUID})`);
     } else if (!device.hide_device && device.hubDeviceId) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1298,7 +1324,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1352,7 +1380,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1406,7 +1436,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1460,7 +1492,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1514,7 +1548,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1568,7 +1604,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1622,7 +1660,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1676,7 +1716,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // the accessory does not yet exist, so we need to create it
-      this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.remoteType} DeviceID: ${device.deviceId}`);
+      }
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
