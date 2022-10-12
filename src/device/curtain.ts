@@ -1020,10 +1020,10 @@ export class Curtain {
     // updateRate
     if (device?.curtain?.updateRate) {
       this.updateRate = device?.curtain?.updateRate;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config Curtain refreshRate: ${this.deviceRefreshRate}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config Curtain updateRate: ${this.updateRate}`);
     } else {
       this.updateRate = 7;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Default Curtain Refresh Rate.`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Default Curtain updateRate: ${this.updateRate}`);
     }
   }
 

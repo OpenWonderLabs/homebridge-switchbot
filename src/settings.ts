@@ -79,6 +79,7 @@ export type bot = {
   mode?: string;
   deviceType?: string;
   doublePress?: number;
+  pushRatePress?: number;
   allowPush?: boolean;
   maxRetry?: number;
 };
