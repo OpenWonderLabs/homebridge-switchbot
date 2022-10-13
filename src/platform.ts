@@ -1758,7 +1758,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     if (device.master && device.group) {
       // OpenAPI: Master Curtains in Group
       registerCurtain = true;
-      this.debugLog(`deviceName: ${device.deviceName} [Curtain Config] device.master: ${device.master}, group: ${device.group}`
+      this.debugLog(`deviceName: ${device.deviceName} [Curtain Config] device.master: ${device.master}, device.group: ${device.group}`
       + ` connectionType; ${device.connectionType}`);
       this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`);
     } else if (!device.master && device.curtain?.disable_group) { //!device.group && device.connectionType === 'BLE'
@@ -1766,6 +1766,12 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       registerCurtain = true;
       this.debugLog(`deviceName: ${device.deviceName} [Curtain Config] device.master: ${device.master}, disable_group: `
       + `${device.curtain?.disable_group}, connectionType; ${device.connectionType}`);
+      this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`);
+    } else if (device.master && !device.group) {
+      // OpenAPI: Master Curtains not in Group
+      registerCurtain = true;
+      this.debugLog(`deviceName: ${device.deviceName} [Curtain Config] device.master: ${device.master}, device.group: ${device.group}`
+      + ` connectionType; ${device.connectionType}`);
       this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`);
     } else if (device.connectionType === 'BLE') {
       // BLE: Curtains
@@ -1775,7 +1781,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     } else {
       registerCurtain = false;
       this.debugErrorLog(`deviceName: ${device.deviceName} [Curtain Config] disable_group: ${device.curtain?.disable_group},`
-      + ` UnGrouping ${device.master}, device.group: ${device.group}`);
+      + ` device.master: ${device.master}, device.group: ${device.group}`);
       this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}, device.connectionType: ${device.connectionType}`);
     }
     return registerCurtain;
