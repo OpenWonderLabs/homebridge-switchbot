@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file. This projec
 - Added `customize` config option which will allow for custom On and off commands for IR Devices.
   - Added `customOn` & `customOff` to set custom commands for IR Devices.
 - Removed `Other`: `commandOn` & `commandOff` you will have to change your commands to the new `customOn` & `customOff` config under the `customize` config.
+- Fixed issue with Non-group Curtains being removed or not displaying in Homekit. [#510](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/510)
+- Fixed issue were Plugin was waiting 15 seconds before sending command to SwitchBot API. [#509](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/509)
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.15.0...v2.0.0
