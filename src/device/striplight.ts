@@ -205,13 +205,6 @@ export class StripLight {
               + ` Error Message: ${superStringify(e.message)}`);
         }
         this.stripLightUpdateInProgress = false;
-        // Refresh the status from the API
-        interval(15000)
-          .pipe(skipWhile(() => this.stripLightUpdateInProgress))
-          .pipe(take(1))
-          .subscribe(async () => {
-            await this.refreshStatus();
-          });
       });
   }
 
@@ -438,7 +431,9 @@ export class StripLight {
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, pushChanges will not happen.`);
     }
-    interval(5000)
+    // Refresh the status from the API
+    interval(15000)
+      .pipe(skipWhile(() => this.stripLightUpdateInProgress))
       .pipe(take(1))
       .subscribe(async () => {
         await this.refreshStatus();

@@ -525,7 +525,9 @@ export class Curtain {
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, pushChanges will not happen.`);
     }
-    interval(this.updateRate * 1000)
+    // Refresh the status from the API
+    interval(15000)
+      .pipe(skipWhile(() => this.curtainUpdateInProgress))
       .pipe(take(1))
       .subscribe(async () => {
         await this.refreshStatus();

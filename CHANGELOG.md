@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file. This projec
 ## What's Changed
 
 - Added `pushRatePress` config to set how many seconds inbetween doublePresses.
+  - Also if `doublePress` isn't set it will not wait to pushChanges.
 - Added `customize` config option which will allow for custom On and off commands for IR Devices.
   - Added `customOn` & `customOff` to set custom commands for IR Devices.
 - Removed `Other`: `commandOn` & `commandOff` you will have to change your commands to the new `customOn` & `customOff` config under the `customize` config.

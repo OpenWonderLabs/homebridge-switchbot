@@ -235,9 +235,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
       // set the refresh token
       pluginConfig.credentials.token = this.config.credentials?.openToken;
-      pluginConfig.credentials.openToken = 'Delete';
+      if (pluginConfig.credentials.token) {
+        pluginConfig.credentials.openToken = undefined;
+      }
 
-      this.debugWarnLog(`Token: ${pluginConfig.credentials.token}`);
+      this.debugWarnLog(`token: ${pluginConfig.credentials.token}`);
 
       // save the config, ensuring we maintain pretty json
       writeFileSync(this.api.user.configPath(), JSON.stringify(currentConfig, null, 4));

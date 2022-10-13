@@ -206,13 +206,6 @@ export class CeilingLight {
               + ` Error Message: ${superStringify(e.message)}`);
         }
         this.ceilingLightUpdateInProgress = false;
-        // Refresh the status from the API
-        interval(15000)
-          .pipe(skipWhile(() => this.ceilingLightUpdateInProgress))
-          .pipe(take(1))
-          .subscribe(async () => {
-            await this.refreshStatus();
-          });
       });
   }
 
@@ -464,7 +457,9 @@ export class CeilingLight {
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, pushChanges will not happen.`);
     }
-    interval(5000)
+    // Refresh the status from the API
+    interval(15000)
+      .pipe(skipWhile(() => this.ceilingLightUpdateInProgress))
       .pipe(take(1))
       .subscribe(async () => {
         await this.refreshStatus();

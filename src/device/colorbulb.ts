@@ -206,13 +206,6 @@ export class ColorBulb {
               + ` Error Message: ${superStringify(e.message)}`);
         }
         this.colorBulbUpdateInProgress = false;
-        // Refresh the status from the API
-        interval(15000)
-          .pipe(skipWhile(() => this.colorBulbUpdateInProgress))
-          .pipe(take(1))
-          .subscribe(async () => {
-            await this.refreshStatus();
-          });
       });
   }
 
@@ -452,7 +445,9 @@ export class ColorBulb {
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, pushChanges will not happen.`);
     }
-    interval(5000)
+    // Refresh the status from the API
+    interval(15000)
+      .pipe(skipWhile(() => this.colorBulbUpdateInProgress))
       .pipe(take(1))
       .subscribe(async () => {
         await this.refreshStatus();
