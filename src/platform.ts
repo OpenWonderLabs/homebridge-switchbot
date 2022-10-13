@@ -474,6 +474,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.createColorBulb(device);
         break;
       case 'Ceiling Light':
+      case 'Ceiling Light Pro':
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createCeilingLight(device);
         break;
