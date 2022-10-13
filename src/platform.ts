@@ -1753,7 +1753,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     } else if (device.connectionType === 'BLE') {
       // BLE: Curtains
       registerCurtain = true;
-      this.debugLog(`deviceName: ${device.deviceName} [Curtain Config] connectionType: ${device.connectionType}`);
+      this.debugLog(`deviceName: ${device.deviceName} [Curtain Config] connectionType: ${device.connectionType}, group: ${device.group}`);
       this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`);
     } else {
       registerCurtain = false;
