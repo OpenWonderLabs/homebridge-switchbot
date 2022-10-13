@@ -205,13 +205,6 @@ export class StripLight {
               + ` Error Message: ${superStringify(e.message)}`);
         }
         this.stripLightUpdateInProgress = false;
-        // Refresh the status from the API
-        interval(15000)
-          .pipe(skipWhile(() => this.stripLightUpdateInProgress))
-          .pipe(take(1))
-          .subscribe(async () => {
-            await this.refreshStatus();
-          });
       });
   }
 
@@ -219,7 +212,9 @@ export class StripLight {
    * Parse the device status from the SwitchBot api
    */
   async parseStatus(): Promise<void> {
-    /*if (this.BLE) {
+    if (!this.device.enableCloudService && this.OpenAPI) {
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} parseStatus enableCloudService: ${this.device.enableCloudService}`);
+    } else/*if (this.BLE) {
       await this.BLEparseStatus();
     } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
@@ -283,7 +278,9 @@ export class StripLight {
    * Asks the SwitchBot API for the latest device information
    */
   async refreshStatus(): Promise<void> {
-    /*if (this.BLE) {
+    if (!this.device.enableCloudService && this.OpenAPI) {
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus enableCloudService: ${this.device.enableCloudService}`);
+    } else/*if (this.BLE) {
       await this.BLERefreshStatus();
     } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
@@ -430,7 +427,9 @@ export class StripLight {
    *
    */
   async pushChanges(): Promise<void> {
-    /*if (this.BLE) {
+    if (!this.device.enableCloudService && this.OpenAPI) {
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} pushChanges enableCloudService: ${this.device.enableCloudService}`);
+    } else /*if (this.BLE) {
       await this.BLEpushChanges();
     } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges();
@@ -438,7 +437,9 @@ export class StripLight {
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, pushChanges will not happen.`);
     }
-    interval(5000)
+    // Refresh the status from the API
+    interval(15000)
+      .pipe(skipWhile(() => this.stripLightUpdateInProgress))
       .pipe(take(1))
       .subscribe(async () => {
         await this.refreshStatus();

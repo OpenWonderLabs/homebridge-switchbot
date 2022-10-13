@@ -214,7 +214,9 @@ export class Curtain {
    * Parse the device status from the SwitchBot api
    */
   async parseStatus(): Promise<void> {
-    if (this.BLE) {
+    if (!this.device.enableCloudService && this.OpenAPI) {
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} parseStatus enableCloudService: ${this.device.enableCloudService}`);
+    } else if (this.BLE) {
       await this.BLEparseStatus();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
@@ -386,7 +388,9 @@ export class Curtain {
   }
 
   async refreshStatus(): Promise<void> {
-    if (this.BLE) {
+    if (!this.device.enableCloudService && this.OpenAPI) {
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus enableCloudService: ${this.device.enableCloudService}`);
+    } else if (this.BLE) {
       await this.BLERefreshStatus();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
@@ -517,7 +521,9 @@ export class Curtain {
   }
 
   async pushChanges(): Promise<void> {
-    if (this.BLE) {
+    if (!this.device.enableCloudService && this.OpenAPI) {
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} pushChanges enableCloudService: ${this.device.enableCloudService}`);
+    } else if (this.BLE) {
       await this.BLEpushChanges();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges();
@@ -525,7 +531,9 @@ export class Curtain {
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, pushChanges will not happen.`);
     }
-    interval(this.updateRate * 1000)
+    // Refresh the status from the API
+    interval(15000)
+      .pipe(skipWhile(() => this.curtainUpdateInProgress))
       .pipe(take(1))
       .subscribe(async () => {
         await this.refreshStatus();
@@ -1020,10 +1028,10 @@ export class Curtain {
     // updateRate
     if (device?.curtain?.updateRate) {
       this.updateRate = device?.curtain?.updateRate;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config Curtain refreshRate: ${this.deviceRefreshRate}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config Curtain updateRate: ${this.updateRate}`);
     } else {
       this.updateRate = 7;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Default Curtain Refresh Rate.`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Default Curtain updateRate: ${this.updateRate}`);
     }
   }
 

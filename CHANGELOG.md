@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 2.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.1.0) (2022-10-13)
+
+## What's Changed
+
+- Added `pushRatePress` config to set how many seconds inbetween doublePresses.
+  - Also if `doublePress` isn't set it will not wait to pushChanges.
+- Added `customize` config option which will allow for custom On and off commands for IR Devices.
+  - Added `customOn` & `customOff` to set custom commands for IR Devices.
+- Removed `Other`: `commandOn` & `commandOff` you will have to change your commands to the new `customOn` & `customOff` config under the `customize` config.
+- Fixed issue where devices are not exposed to Homekit. [#507](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/507), [#508](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/508), [#513](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/513)
+- Fixed issue with Non-group Curtains being removed or not displaying in Homekit. [#510](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/510)
+- Fixed issue were Plugin was waiting 15 seconds before sending command to SwitchBot API. [#509](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/509)
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.0.0...v2.1.0
+
 ## [Version 2.0.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.0.0) (2022-10-12)
 
 ## What's Changed

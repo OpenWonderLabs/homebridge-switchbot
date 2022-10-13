@@ -77,21 +77,25 @@ export class Camera {
    */
   async pushOnChanges(): Promise<void> {
     if (this.On) {
+      const commandType: string = await this.commandType();
+      const command: string = await this.commandOn();
       const body = superStringify({
-        'command': 'turnOn',
+        'command': command,
         'parameter': 'default',
-        'commandType': 'command',
+        'commandType': commandType,
       });
       await this.pushChanges(body);
     }
   }
 
   async pushOffChanges(): Promise<void> {
+    const commandType: string = await this.commandType();
+    const command: string = await this.commandOff();
     if (!this.On) {
       const body = superStringify({
-        'command': 'turnOff',
+        'command': command,
         'parameter': 'default',
-        'commandType': 'command',
+        'commandType': commandType,
       });
       await this.pushChanges(body);
     }
@@ -158,6 +162,36 @@ export class Camera {
       this.switchService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
+  }
+
+  async commandType() {
+    let commandType: string;
+    if (this.device.customize) {
+      commandType = 'customize';
+    } else {
+      commandType = 'command';
+    }
+    return commandType;
+  }
+
+  async commandOn() {
+    let command: string;
+    if (this.device.customize && this.device.customOn) {
+      command = this.device.customOn;
+    } else {
+      command = 'turnOn';
+    }
+    return command;
+  }
+
+  async commandOff() {
+    let command: string;
+    if (this.device.customize && this.device.customOn) {
+      command = this.device.customOn;
+    } else {
+      command = 'turnOff';
+    }
+    return command;
   }
 
   async statusCode({ res }: { res: IncomingMessage }): Promise<void> {

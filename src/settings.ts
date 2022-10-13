@@ -79,6 +79,7 @@ export type bot = {
   mode?: string;
   deviceType?: string;
   doublePress?: number;
+  pushRatePress?: number;
   allowPush?: boolean;
   maxRetry?: number;
 };
@@ -136,6 +137,9 @@ export interface irDevicesConfig extends irdevice {
   logging?: string;
   connectionType?: string;
   hide_device?: boolean;
+  customize?: boolean;
+  customOn?: string;
+  customOff?: string;
   irfan?: irfan;
   irair?: irair;
   irpur?: Record<any, any>;
@@ -184,8 +188,6 @@ export type irtv = {
 
 export type other = {
   deviceType?: string;
-  commandOn?: string;
-  commandOff?: string;
 };
 
 //a list of physical devices.

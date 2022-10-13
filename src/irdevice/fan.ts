@@ -167,20 +167,24 @@ export class Fan {
    */
   async pushFanOnChanges(): Promise<void> {
     if (this.Active !== 1) {
+      const commandType: string = await this.commandType();
+      const command: string = await this.commandOn();
       const body = superStringify({
-        'command': 'turnOn',
+        'command': command,
         'parameter': 'default',
-        'commandType': 'command',
+        'commandType': commandType,
       });
       await this.pushTVChanges(body);
     }
   }
 
   async pushFanOffChanges(): Promise<void> {
+    const commandType: string = await this.commandType();
+    const command: string = await this.commandOff();
     const body = superStringify({
-      'command': 'turnOff',
+      'command': command,
       'parameter': 'default',
-      'commandType': 'command',
+      'commandType': commandType,
     });
     await this.pushTVChanges(body);
   }
@@ -287,6 +291,36 @@ export class Fan {
       this.fanService?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.RotationSpeed);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic RotationSpeed: ${this.RotationSpeed}`);
     }
+  }
+
+  async commandType() {
+    let commandType: string;
+    if (this.device.customize) {
+      commandType = 'customize';
+    } else {
+      commandType = 'command';
+    }
+    return commandType;
+  }
+
+  async commandOn() {
+    let command: string;
+    if (this.device.customize && this.device.customOn) {
+      command = this.device.customOn;
+    } else {
+      command = 'turnOn';
+    }
+    return command;
+  }
+
+  async commandOff() {
+    let command: string;
+    if (this.device.customize && this.device.customOn) {
+      command = this.device.customOn;
+    } else {
+      command = 'turnOff';
+    }
+    return command;
   }
 
   async statusCode({ res }: { res: IncomingMessage }): Promise<void> {
