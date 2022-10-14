@@ -860,9 +860,13 @@ export class Humidifier {
   }
 
   async offlineOff(): Promise<void> {
+    this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} offline: ${this.device.offline}`);
     if (this.device.offline) {
       await this.context();
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} offline context: ${this.context}`);
       await this.updateHomeKitCharacteristics();
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+      + `offline updateHomeKitCharacteristics: ${this.updateHomeKitCharacteristics}`);
       /*this.humidifierService.setCharacteristic(this.platform.Characteristic.Active, this.Active)
         .getCharacteristic(this.platform.Characteristic.Active).updateValue(this.Active);*/
     }
