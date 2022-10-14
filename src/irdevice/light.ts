@@ -56,13 +56,17 @@ export class Light {
 
   async OnSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${value}`);
-    this.On = value;
-    this.accessory.context.On = this.On;
-    if (this.On) {
+    if (value) {
       await this.pushLightOnChanges();
     } else {
       await this.pushLightOffChanges();
     }
+    /**
+     * pushLightOnChanges and pushLightOffChanges above assume they are measuring the state of the accessory BEFORE
+     * they are updated, so we are only updating the accessory state after calling the above.
+     */
+    this.On = value;
+    this.accessory.context.On = this.On;
   }
 
   /**

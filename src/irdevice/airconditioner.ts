@@ -334,8 +334,6 @@ export class AirConditioner {
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Active: ${value}`);
-    this.Active = value;
-    this.accessory.context.Active = this.Active;
     if (value === this.platform.Characteristic.Active.INACTIVE) {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushAirConditionerOffChanges, Active: ${this.Active}`);
       this.pushAirConditionerOffChanges();
@@ -347,6 +345,12 @@ export class AirConditioner {
         this.pushAirConditionerStatusChanges();
       }
     }
+    /**
+     * pushAirConditionerOnChanges and pushAirConditionerOffChanges above assume they are measuring the state of the accessory BEFORE
+     * they are updated, so we are only updating the accessory state after calling the above.
+     */
+    this.Active = value;
+    this.accessory.context.Active = this.Active;
   }
 
   async TargetHeaterCoolerStateGet(): Promise<CharacteristicValue> {

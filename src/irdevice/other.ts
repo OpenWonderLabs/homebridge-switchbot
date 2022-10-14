@@ -69,15 +69,12 @@ export class Others {
     } else {
       await this.pushOffChanges();
     }
-    
-    /*
-    pushOnChanges and pushOffChanges above assume they are measuring the state of the accessory BEFORE
-    they are updated, so we are only updating the accessory state after calling the above.
-    */
-    
+    /**
+     * pushOnChanges and pushOffChanges above assume they are measuring the state of the accessory BEFORE
+     * they are updated, so we are only updating the accessory state after calling the above.
+     */
     this.Active = value;
     this.accessory.context.Active = this.Active;
-
   }
 
   /**

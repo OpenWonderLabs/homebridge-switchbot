@@ -6,7 +6,8 @@ All notable changes to this project will be documented in this file. This projec
 
 ## What's Changed
 
-- Fixed issue were `CustomOff` would send incorrect commands. Also Resolves [#409](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/507).
+- Fixed issue were `CustomOff` would send incorrect commands. Also Resolves [#409](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/409).
+- Fixed issue were IR Commands were not sent from IR Devices, Thanks [@jonzhan](https://github.com/jonzhan). [#520](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/520)
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.1.0...v2.1.1

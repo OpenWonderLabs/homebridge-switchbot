@@ -56,13 +56,17 @@ export class Camera {
 
   async OnSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${value}`);
-    this.On = value;
-    this.accessory.context.On = this.On;
-    if (this.On) {
+    if (value) {
       this.pushOnChanges();
     } else {
       this.pushOffChanges();
     }
+    /**
+     * pushOnChanges and pushOffChanges above assume they are measuring the state of the accessory BEFORE
+     * they are updated, so we are only updating the accessory state after calling the above.
+     */
+    this.On = value;
+    this.accessory.context.On = this.On;
   }
 
   /**

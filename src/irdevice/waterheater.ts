@@ -59,8 +59,6 @@ export class WaterHeater {
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${value}`);
-    this.Active = value;
-    this.accessory.context.Active = this.Active;
     if (value === this.platform.Characteristic.Active.INACTIVE) {
       await this.pushWaterHeaterOffChanges();
       this.valveService.setCharacteristic(this.platform.Characteristic.InUse, this.platform.Characteristic.InUse.NOT_IN_USE);
@@ -68,6 +66,12 @@ export class WaterHeater {
       await this.pushWaterHeaterOnChanges();
       this.valveService.setCharacteristic(this.platform.Characteristic.InUse, this.platform.Characteristic.InUse.IN_USE);
     }
+    /**
+     * pushWaterHeaterOnChanges and pushWaterHeaterOffChanges above assume they are measuring the state of the accessory BEFORE
+     * they are updated, so we are only updating the accessory state after calling the above.
+     */
+    this.Active = value;
+    this.accessory.context.Active = this.Active;
   }
 
   /**
