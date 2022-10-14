@@ -41,7 +41,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   // this is used to track restored cached accessories
   public readonly accessories: PlatformAccessory[] = [];
 
-  version = require('../package.json').version || '1.12.8'; // eslint-disable-line @typescript-eslint/no-var-requires
+  version = process.env.npm_package_version!;
   debugMode!: boolean;
   platformLogging?: string;
 
