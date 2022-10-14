@@ -45,10 +45,10 @@ export class AirConditioner {
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
     // default placeholders
-    this.logs(device);
-    this.config(device);
-    this.pushOnChanges(device);
-    this.context(device);
+    this.logs({ device });
+    this.config({ device });
+    this.pushOnChanges({ device });
+    this.context({ device });
 
     // set accessory information
     accessory
@@ -56,9 +56,9 @@ export class AirConditioner {
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision({ accessory, device }))
       .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-      .updateValue(this.FirmwareRevision(accessory, device));
+      .updateValue(this.FirmwareRevision({ accessory, device }));
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
@@ -238,7 +238,7 @@ export class AirConditioner {
     await this.pushChanges(body);
   }
 
-  async pushChanges(body): Promise<void> {
+  async pushChanges(body: any): Promise<void> {
     if (this.device.connectionType === 'OpenAPI') {
       try {
       // Make Push On request to the API
@@ -285,7 +285,7 @@ export class AirConditioner {
         this.accessory.context.CoolingThresholdTemperature = this.CoolingThresholdTemperature;
         this.updateHomeKitCharacteristics();
       } catch (e: any) {
-        this.apiError(e);
+        this.apiError({ e });
         this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
             + ` Error Message: ${superStringify(e.message)}`,
         );
@@ -622,7 +622,7 @@ export class AirConditioner {
     }
   }
 
-  async apiError(e: any): Promise<void> {
+  async apiError({ e }: { e: any; }): Promise<void> {
     this.coolerService.updateCharacteristic(this.platform.Characteristic.Active, e);
     this.coolerService.updateCharacteristic(this.platform.Characteristic.RotationSpeed, e);
     this.coolerService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
@@ -632,7 +632,7 @@ export class AirConditioner {
     this.coolerService.updateCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature, e);
   }
 
-  FirmwareRevision(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): string {
+  FirmwareRevision({ accessory, device }: { accessory: PlatformAccessory; device: irdevice & irDevicesConfig; }): string {
     let FirmwareRevision: string;
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
     + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
@@ -648,7 +648,7 @@ export class AirConditioner {
     return FirmwareRevision;
   }
 
-  async context(device: irdevice & irDevicesConfig) {
+  async context({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
     if (this.Active === undefined) {
       this.Active = this.platform.Characteristic.Active.INACTIVE;
     } else {
@@ -668,7 +668,7 @@ export class AirConditioner {
     }
   }
 
-  async config(device: irdevice & irDevicesConfig): Promise<void> {
+  async config({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
     let config = {};
     if (device.irair) {
       config = device.irair;
@@ -687,7 +687,7 @@ export class AirConditioner {
     }
   }
 
-  async logs(device: irdevice & irDevicesConfig): Promise<void> {
+  async logs({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
@@ -704,7 +704,7 @@ export class AirConditioner {
   }
 
 
-  async pushOnChanges(device: irdevice & irDevicesConfig): Promise<void> {
+  async pushOnChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
     if (device.irair?.pushOn) {
       this.pushOn = true;
     } else {
