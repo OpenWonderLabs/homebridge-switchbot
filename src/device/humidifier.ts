@@ -863,8 +863,8 @@ export class Humidifier {
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
       this.Active = this.platform.Characteristic.Active.INACTIVE;
-      //this.humidifierService.getCharacteristic(this.platform.Characteristic.Active).updateValue(this.Active);
-      await this.updateHomeKitCharacteristics();
+      this.humidifierService.getCharacteristic(this.platform.Characteristic.Active).updateValue(this.Active);
+      //await this.updateHomeKitCharacteristics();
     }
   }
 
