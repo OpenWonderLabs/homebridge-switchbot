@@ -22,6 +22,7 @@ import { AirConditioner } from './irdevice/airconditioner';
 import https from 'https';
 import crypto from 'crypto';
 import { Buffer } from 'buffer';
+import { queueScheduler } from 'rxjs';
 import fakegato from 'fakegato-history';
 import superStringify from 'super-stringify';
 import { readFileSync, writeFileSync } from 'fs';
@@ -41,7 +42,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   // this is used to track restored cached accessories
   public readonly accessories: PlatformAccessory[] = [];
 
-  version = process.env.npm_package_version!;
+  version = process.env.npm_package_version || '0.0.0';
   debugMode!: boolean;
   platformLogging?: string;
 
@@ -1880,13 +1881,19 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
+
+
   // BLE Connection
   connectBLE() {
     let Switchbot: new () => any;
     let switchbot: any;
     try {
-      Switchbot = require('node-switchbot');
-      switchbot = new Switchbot();
+      Switchbot = require('node-switchbot'),
+      queueScheduler.schedule(() => {
+        queueScheduler.schedule(() =>
+          switchbot = new Switchbot(),
+        );
+      });
     } catch (e: any) {
       switchbot = false;
       this.errorLog(`Was 'node-switchbot' found: ${switchbot}`);
