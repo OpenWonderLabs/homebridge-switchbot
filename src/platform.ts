@@ -910,8 +910,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
 
       if (device.group && !device.curtain?.disable_group) {
-        this.debugLog(`Your Curtains are grouped
-        , Secondary curtain automatically hidden. Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
+        this.debugLog('Your Curtains are grouped, '
+        + `, Secondary curtain automatically hidden. Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
       } else {
         if (device.master) {
           this.warnLog(`Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);

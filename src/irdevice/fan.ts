@@ -293,7 +293,7 @@ export class Fan {
     }
   }
 
-  async commandType() {
+  async commandType(): Promise<string> {
     let commandType: string;
     if (this.device.customize) {
       commandType = 'customize';
@@ -303,7 +303,7 @@ export class Fan {
     return commandType;
   }
 
-  async commandOn() {
+  async commandOn(): Promise<string> {
     let command: string;
     if (this.device.customize && this.device.customOn) {
       command = this.device.customOn;
@@ -313,10 +313,10 @@ export class Fan {
     return command;
   }
 
-  async commandOff() {
+  async commandOff(): Promise<string> {
     let command: string;
-    if (this.device.customize && this.device.customOn) {
-      command = this.device.customOn;
+    if (this.device.customize && this.device.customOff) {
+      command = this.device.customOff;
     } else {
       command = 'turnOff';
     }

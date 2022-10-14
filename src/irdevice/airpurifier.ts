@@ -267,7 +267,7 @@ export class AirPurifier {
     }
   }
 
-  async commandType() {
+  async commandType(): Promise<string> {
     let commandType: string;
     if (this.device.customize) {
       commandType = 'customize';
@@ -277,7 +277,7 @@ export class AirPurifier {
     return commandType;
   }
 
-  async commandOn() {
+  async commandOn(): Promise<string> {
     let command: string;
     if (this.device.customize && this.device.customOn) {
       command = this.device.customOn;
@@ -287,10 +287,10 @@ export class AirPurifier {
     return command;
   }
 
-  async commandOff() {
+  async commandOff(): Promise<string> {
     let command: string;
-    if (this.device.customize && this.device.customOn) {
-      command = this.device.customOn;
+    if (this.device.customize && this.device.customOff) {
+      command = this.device.customOff;
     } else {
       command = 'turnOff';
     }

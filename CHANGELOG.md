@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Beta - Version 2.1.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.1.1) (2022-10-XX)
+
+## What's Changed
+
+- Fixed issue were `CustomOff` would send incorrect commands. Also Resolves [#409](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/507).
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.1.0...v2.1.1
+
 ## [Version 2.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.1.0) (2022-10-13)
 
 ## What's Changed
