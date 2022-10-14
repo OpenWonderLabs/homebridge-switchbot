@@ -493,8 +493,8 @@ export class Lock {
     if (this.device.offline) {
       await this.conext();
       await this.updateHomeKitCharacteristics();
-      this.lockService.setCharacteristic(this.platform.Characteristic.LockCurrentState, this.LockCurrentState)
-        .getCharacteristic(this.platform.Characteristic.LockCurrentState).updateValue(this.LockCurrentState);
+      /*this.lockService.setCharacteristic(this.platform.Characteristic.LockCurrentState, this.LockCurrentState)
+        .getCharacteristic(this.platform.Characteristic.LockCurrentState).updateValue(this.LockCurrentState);*/
     }
   }
 

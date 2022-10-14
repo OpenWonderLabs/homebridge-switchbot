@@ -864,8 +864,8 @@ export class Humidifier {
     if (this.device.offline) {
       await this.context();
       await this.updateHomeKitCharacteristics();
-      this.humidifierService.setCharacteristic(this.platform.Characteristic.Active, this.Active)
-        .getCharacteristic(this.platform.Characteristic.Active).updateValue(this.Active);
+      /*this.humidifierService.setCharacteristic(this.platform.Characteristic.Active, this.Active)
+        .getCharacteristic(this.platform.Characteristic.Active).updateValue(this.Active);*/
     }
   }
 

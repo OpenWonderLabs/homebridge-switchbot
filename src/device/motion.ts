@@ -488,8 +488,8 @@ export class Motion {
     if (this.device.offline) {
       await this.context();
       await this.updateHomeKitCharacteristics();
-      this.motionSensorService.setCharacteristic(this.platform.Characteristic.MotionDetected, this.MotionDetected)
-        .getCharacteristic(this.platform.Characteristic.MotionDetected).updateValue(this.MotionDetected);
+      /*this.motionSensorService.setCharacteristic(this.platform.Characteristic.MotionDetected, this.MotionDetected)
+        .getCharacteristic(this.platform.Characteristic.MotionDetected).updateValue(this.MotionDetected);*/
     }
   }
 

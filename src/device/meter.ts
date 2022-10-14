@@ -570,7 +570,7 @@ export class Meter {
     if (this.device.offline) {
       await this.context();
       await this.updateHomeKitCharacteristics();
-      if (!this.device.meter?.hide_humidity) {
+      /*if (!this.device.meter?.hide_humidity) {
         this.humidityservice!.setCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity)
           .getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity).updateValue(this.CurrentRelativeHumidity);
       }
@@ -583,7 +583,7 @@ export class Meter {
           .getCharacteristic(this.platform.Characteristic.BatteryLevel).updateValue(this.BatteryLevel!);
         this.batteryService!.setCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery!)
           .getCharacteristic(this.platform.Characteristic.StatusLowBattery).updateValue(this.StatusLowBattery!);
-      }
+      }*/
     }
   }
 

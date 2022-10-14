@@ -1047,8 +1047,8 @@ export class CeilingLight {
     if (this.device.offline) {
       await this.context();
       await this.updateHomeKitCharacteristics();
-      this.lightBulbService.setCharacteristic(this.platform.Characteristic.On, this.On)
-        .getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);
+      /*this.lightBulbService.setCharacteristic(this.platform.Characteristic.On, this.On)
+        .getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);*/
     }
   }
 

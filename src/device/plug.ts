@@ -602,8 +602,8 @@ export class Plug {
     if (this.device.offline) {
       await this.context();
       await this.updateHomeKitCharacteristics();
-      this.outletService.setCharacteristic(this.platform.Characteristic.On, this.On)
-        .getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);
+      /*this.outletService.setCharacteristic(this.platform.Characteristic.On, this.On)
+        .getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);*/
     }
   }
 

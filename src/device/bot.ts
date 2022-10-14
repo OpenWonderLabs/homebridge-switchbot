@@ -1214,13 +1214,13 @@ export class Bot {
     if (this.device.offline) {
       await this.context();
       await this.updateHomeKitCharacteristics();
-      if (this.device.bot?.deviceType === 'switch') {
+      /*if (this.device.bot?.deviceType === 'switch') {
         this.switchService!.setCharacteristic(this.platform.Characteristic.On, this.On)
           .getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);
       } else {
         this.outletService!.setCharacteristic(this.platform.Characteristic.On, this.On)
           .getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);
-      }
+      }*/
     }
   }
 

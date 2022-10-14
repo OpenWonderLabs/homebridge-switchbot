@@ -965,10 +965,10 @@ export class Curtain {
     if (this.device.offline) {
       await this.context();
       await this.updateHomeKitCharacteristics();
-      this.windowCoveringService.setCharacteristic(this.platform.Characteristic.PositionState, this.PositionState)
+      /* this.windowCoveringService.setCharacteristic(this.platform.Characteristic.PositionState, this.PositionState)
         .getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
       this.windowCoveringService.setCharacteristic(this.platform.Characteristic.CurrentPosition, this.CurrentPosition)
-        .getCharacteristic(this.platform.Characteristic.CurrentPosition).updateValue(this.CurrentPosition);
+        .getCharacteristic(this.platform.Characteristic.CurrentPosition).updateValue(this.CurrentPosition);*/
     }
   }
 

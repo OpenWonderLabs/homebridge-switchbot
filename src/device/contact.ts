@@ -547,8 +547,8 @@ export class Contact {
     if (this.device.offline) {
       await this.context();
       await this.updateHomeKitCharacteristics();
-      this.contactSensorservice.setCharacteristic(this.platform.Characteristic.ContactSensorState, this.ContactSensorState)
-        .getCharacteristic(this.platform.Characteristic.ContactSensorState).updateValue(this.ContactSensorState);
+      /*this.contactSensorservice.setCharacteristic(this.platform.Characteristic.ContactSensorState, this.ContactSensorState)
+        .getCharacteristic(this.platform.Characteristic.ContactSensorState).updateValue(this.ContactSensorState);*/
     }
   }
 
