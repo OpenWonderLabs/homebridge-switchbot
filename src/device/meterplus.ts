@@ -183,6 +183,7 @@ export class MeterPlus {
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
     } else {
+      await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, parseStatus will not happen.`);
     }
@@ -240,6 +241,7 @@ export class MeterPlus {
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
+      await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
@@ -549,11 +551,11 @@ export class MeterPlus {
         break;
       case 161:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device is offline.`);
-        this.offlineOff();
+        await this.offlineOff();
         break;
       case 171:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} is offline. Hub: ${this.device.hubDeviceId}`);
-        this.offlineOff();
+        await this.offlineOff();
         break;
       case 190:
         this.errorLog(
@@ -575,18 +577,22 @@ export class MeterPlus {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
+      await this.context();
+      await this.updateHomeKitCharacteristics();
       if (!this.device.meter?.hide_humidity) {
-        this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity,
-          this.accessory.context.CurrentRelativeHumidity);
+        this.humidityservice!.setCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity)
+          .getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity).updateValue(this.CurrentRelativeHumidity);
       }
       if (!this.device.meter?.hide_temperature) {
-        this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.accessory.context.CurrentTemperature);
+        this.temperatureservice!.setCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature!)
+          .getCharacteristic(this.platform.Characteristic.CurrentTemperature).updateValue(this.CurrentTemperature!);
       }
       if (this.BLE) {
-        this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.accessory.context.BatteryLevel);
-        this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.accessory.context.StatusLowBattery);
+        this.batteryService!.setCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel!)
+          .getCharacteristic(this.platform.Characteristic.BatteryLevel).updateValue(this.BatteryLevel!);
+        this.batteryService!.setCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery!)
+          .getCharacteristic(this.platform.Characteristic.StatusLowBattery).updateValue(this.StatusLowBattery!);
       }
-      await this.updateHomeKitCharacteristics();
     }
   }
 
@@ -619,7 +625,7 @@ export class MeterPlus {
     return FirmwareRevision;
   }
 
-  private context() {
+  async context() {
     if (this.CurrentRelativeHumidity === undefined) {
       this.CurrentRelativeHumidity = 0;
     } else {

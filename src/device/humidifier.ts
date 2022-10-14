@@ -199,7 +199,7 @@ export class Humidifier {
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
     } else {
-      this.offlineOff();
+      await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, parseStatus will not happen.`);
     }
@@ -289,7 +289,7 @@ export class Humidifier {
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
-      this.offlineOff();
+      await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
@@ -428,7 +428,7 @@ export class Humidifier {
     } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges();
     } else {
-      this.offlineOff();
+      await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, pushChanges will not happen.`);
     }
@@ -840,11 +840,11 @@ export class Humidifier {
         break;
       case 161:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device is offline.`);
-        this.offlineOff();
+        await this.offlineOff();
         break;
       case 171:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
-        this.offlineOff();
+        await this.offlineOff();
         break;
       case 190:
         this.errorLog(
@@ -862,9 +862,10 @@ export class Humidifier {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      this.Active = this.platform.Characteristic.Active.INACTIVE;
-      this.humidifierService.getCharacteristic(this.platform.Characteristic.Active).updateValue(this.Active);
-      //await this.updateHomeKitCharacteristics();
+      await this.context();
+      await this.updateHomeKitCharacteristics();
+      this.humidifierService.setCharacteristic(this.platform.Characteristic.Active, this.Active)
+        .getCharacteristic(this.platform.Characteristic.Active).updateValue(this.Active);
     }
   }
 

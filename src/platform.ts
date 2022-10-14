@@ -42,7 +42,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   // this is used to track restored cached accessories
   public readonly accessories: PlatformAccessory[] = [];
 
-  version = process.env.npm_package_version || '0.0.0';
+  version = process.env.npm_package_version || '2.1.1';
   debugMode!: boolean;
   platformLogging?: string;
 
@@ -1888,12 +1888,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     let Switchbot: new () => any;
     let switchbot: any;
     try {
-      Switchbot = require('node-switchbot'),
-      queueScheduler.schedule(() => {
-        queueScheduler.schedule(() =>
-          switchbot = new Switchbot(),
-        );
-      });
+      Switchbot = require('node-switchbot');
+      queueScheduler.schedule(() =>
+        switchbot = new Switchbot(),
+      );
     } catch (e: any) {
       switchbot = false;
       this.errorLog(`Was 'node-switchbot' found: ${switchbot}`);

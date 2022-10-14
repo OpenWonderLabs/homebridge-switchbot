@@ -219,6 +219,7 @@ export class StripLight {
     } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
     } else {
+      await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, parseStatus will not happen.`);
     }
@@ -285,6 +286,7 @@ export class StripLight {
     } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
+      await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
@@ -434,6 +436,7 @@ export class StripLight {
     } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges();
     } else {
+      await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, pushChanges will not happen.`);
     }
@@ -926,11 +929,11 @@ export class StripLight {
         break;
       case 161:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device is offline.`);
-        this.offlineOff();
+        await this.offlineOff();
         break;
       case 171:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} is offline. Hub: ${this.device.hubDeviceId}`);
-        this.offlineOff();
+        await this.offlineOff();
         break;
       case 190:
         this.errorLog(
@@ -952,9 +955,10 @@ export class StripLight {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      this.On = false;
-      this.lightBulbService.getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);
+      await this.context();
       await this.updateHomeKitCharacteristics();
+      this.lightBulbService.setCharacteristic(this.platform.Characteristic.On, this.On)
+        .getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);
     }
   }
 

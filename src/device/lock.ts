@@ -139,6 +139,7 @@ export class Lock {
     } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
     } else {
+      await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, parseStatus will not happen.`);
     }
@@ -199,6 +200,7 @@ export class Lock {
     } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
+      await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
@@ -271,6 +273,7 @@ export class Lock {
     } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges();
     } else {
+      await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, pushChanges will not happen.`);
     }
@@ -466,11 +469,11 @@ export class Lock {
         break;
       case 161:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device is offline.`);
-        this.offlineOff();
+        await this.offlineOff();
         break;
       case 171:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
-        this.offlineOff();
+        await this.offlineOff();
         break;
       case 190:
         this.errorLog(
@@ -488,9 +491,10 @@ export class Lock {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      this.LockCurrentState = this.platform.Characteristic.LockCurrentState.SECURED;
-      this.lockService.getCharacteristic(this.platform.Characteristic.LockCurrentState).updateValue(this.LockCurrentState);
+      await this.conext();
       await this.updateHomeKitCharacteristics();
+      this.lockService.setCharacteristic(this.platform.Characteristic.LockCurrentState, this.LockCurrentState)
+        .getCharacteristic(this.platform.Characteristic.LockCurrentState).updateValue(this.LockCurrentState);
     }
   }
 
@@ -518,7 +522,7 @@ export class Lock {
     return FirmwareRevision;
   }
 
-  private conext() {
+  async conext() {
     if (this.LockTargetState === undefined) {
       this.LockTargetState = false;
     } else {

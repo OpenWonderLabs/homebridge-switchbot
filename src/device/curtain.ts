@@ -221,6 +221,7 @@ export class Curtain {
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
     } else {
+      await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, parseStatus will not happen.`);
     }
@@ -395,6 +396,7 @@ export class Curtain {
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
+      await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
@@ -528,6 +530,7 @@ export class Curtain {
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges();
     } else {
+      await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, pushChanges will not happen.`);
     }
@@ -960,9 +963,12 @@ export class Curtain {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      this.CurrentPosition = 100;
-      this.windowCoveringService.getCharacteristic(this.platform.Characteristic.On).updateValue(this.CurrentPosition);
+      await this.context();
       await this.updateHomeKitCharacteristics();
+      this.windowCoveringService.setCharacteristic(this.platform.Characteristic.PositionState, this.PositionState)
+        .getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
+      this.windowCoveringService.setCharacteristic(this.platform.Characteristic.CurrentPosition, this.CurrentPosition)
+        .getCharacteristic(this.platform.Characteristic.CurrentPosition).updateValue(this.CurrentPosition);
     }
   }
 
