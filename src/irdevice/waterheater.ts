@@ -5,6 +5,7 @@ import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { irDevicesConfig, irdevice, HostDomain, DevicePath } from '../settings';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+const version = process.env.npm_package_version;
 
 /**
  * Platform Accessory
@@ -23,8 +24,8 @@ export class WaterHeater {
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
     // default placeholders
-    this.logs(device);
-    this.config(device);
+    this.logs({ device });
+    this.config({ device });
     this.context();
 
     // set accessory information
@@ -33,9 +34,9 @@ export class WaterHeater {
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision({ accessory, device }))
       .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-      .updateValue(this.FirmwareRevision(accessory, device));
+      .updateValue(this.FirmwareRevision({ accessory, device }));
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
@@ -59,8 +60,6 @@ export class WaterHeater {
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${value}`);
-    this.Active = value;
-    this.accessory.context.Active = this.Active;
     if (value === this.platform.Characteristic.Active.INACTIVE) {
       await this.pushWaterHeaterOffChanges();
       this.valveService.setCharacteristic(this.platform.Characteristic.InUse, this.platform.Characteristic.InUse.NOT_IN_USE);
@@ -68,6 +67,12 @@ export class WaterHeater {
       await this.pushWaterHeaterOnChanges();
       this.valveService.setCharacteristic(this.platform.Characteristic.InUse, this.platform.Characteristic.InUse.IN_USE);
     }
+    /**
+     * pushWaterHeaterOnChanges and pushWaterHeaterOffChanges above assume they are measuring the state of the accessory BEFORE
+     * they are updated, so we are only updating the accessory state after calling the above.
+     */
+    this.Active = value;
+    this.accessory.context.Active = this.Active;
   }
 
   /**
@@ -85,7 +90,7 @@ export class WaterHeater {
         'parameter': 'default',
         'commandType': commandType,
       });
-      await this.pushChanges(body);
+      await this.pushChanges({ body });
     }
   }
 
@@ -98,11 +103,11 @@ export class WaterHeater {
         'parameter': 'default',
         'commandType': commandType,
       });
-      await this.pushChanges(body);
+      await this.pushChanges({ body });
     }
   }
 
-  async pushChanges(body): Promise<void> {
+  async pushChanges({ body }: { body: any; }): Promise<void> {
     if (this.device.connectionType === 'OpenAPI') {
       try {
       // Make Push On request to the API
@@ -114,7 +119,7 @@ export class WaterHeater {
           .digest();
         const sign = signTerm.toString('base64');
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} sign: ${sign}`);
-        this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
+        this.infoLog({ log: [`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`] });
         const options = {
           hostname: HostDomain,
           port: 443,
@@ -137,20 +142,24 @@ export class WaterHeater {
           });
         });
         req.on('error', (e: any) => {
-          this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} error message: ${e.message}`);
+          this.errorLog({ log: [`${this.device.remoteType}: ${this.accessory.displayName} error message: ${e.message}`] });
         });
         req.write(body);
         req.end();
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushchanges: ${superStringify(req)}`);
         this.updateHomeKitCharacteristics();
       } catch (e: any) {
-        this.apiError(e);
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
-            + ` Error Message: ${superStringify(e.message)}`);
+        this.apiError({ e });
+        this.errorLog({
+          log: [`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
+              + ` Error Message: ${superStringify(e.message)}`],
+        });
       }
     } else {
-      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-      + ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
+      this.warnLog({
+        log: [`${this.device.remoteType}: ${this.accessory.displayName}`
+            + ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`],
+      });
     }
   }
 
@@ -164,7 +173,7 @@ export class WaterHeater {
     }
   }
 
-  async commandType() {
+  async commandType(): Promise<string> {
     let commandType: string;
     if (this.device.customize) {
       commandType = 'customize';
@@ -174,7 +183,7 @@ export class WaterHeater {
     return commandType;
   }
 
-  async commandOn() {
+  async commandOn(): Promise<string> {
     let command: string;
     if (this.device.customize && this.device.customOn) {
       command = this.device.customOn;
@@ -184,10 +193,10 @@ export class WaterHeater {
     return command;
   }
 
-  async commandOff() {
+  async commandOff(): Promise<string> {
     let command: string;
-    if (this.device.customize && this.device.customOn) {
-      command = this.device.customOn;
+    if (this.device.customize && this.device.customOff) {
+      command = this.device.customOff;
     } else {
       command = 'turnOff';
     }
@@ -197,24 +206,26 @@ export class WaterHeater {
   async statusCode({ res }: { res: IncomingMessage }): Promise<void> {
     switch (res.statusCode) {
       case 151:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Command not supported by this device type.`);
+        this.errorLog({ log: [`${this.device.remoteType}: ${this.accessory.displayName} Command not supported by this device type.`] });
         break;
       case 152:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device not found.`);
+        this.errorLog({ log: [`${this.device.remoteType}: ${this.accessory.displayName} Device not found.`] });
         break;
       case 160:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Command is not supported.`);
+        this.errorLog({ log: [`${this.device.remoteType}: ${this.accessory.displayName} Command is not supported.`] });
         break;
       case 161:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device is offline.`);
+        this.errorLog({ log: [`${this.device.remoteType}: ${this.accessory.displayName} Device is offline.`] });
         break;
       case 171:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
+        this.errorLog({ log: [`${this.device.remoteType}: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`] });
         break;
       case 190:
         this.errorLog(
-          `${this.device.remoteType}: ${this.accessory.displayName} Device internal error due to device states not synchronized` +
-            ` with server, Or command: ${superStringify(res)} format is invalid`,
+          {
+            log: [`${this.device.remoteType}: ${this.accessory.displayName} Device internal error due to device states not synchronized` +
+              ` with server, Or command: ${superStringify(res)} format is invalid`],
+          },
         );
         break;
       case 100:
@@ -225,27 +236,27 @@ export class WaterHeater {
     }
   }
 
-  async apiError(e: any): Promise<void> {
+  async apiError({ e }: { e: any; }): Promise<void> {
     this.valveService.updateCharacteristic(this.platform.Characteristic.Active, e);
   }
 
-  FirmwareRevision(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): string {
+  FirmwareRevision({ accessory, device }: { accessory: PlatformAccessory; device: irdevice & irDevicesConfig; }): string {
     let FirmwareRevision: string;
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
     + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} version: ${version}`);
     if (accessory.context.FirmwareRevision) {
       FirmwareRevision = accessory.context.FirmwareRevision;
     } else if (device.firmware) {
       FirmwareRevision = device.firmware;
     } else {
-      FirmwareRevision = this.platform.version;
+      FirmwareRevision = version!;
     }
     return FirmwareRevision;
   }
 
-  async context() {
+  async context(): Promise<void> {
     if (this.Active === undefined) {
       this.Active = this.platform.Characteristic.Active.INACTIVE;
     } else {
@@ -253,7 +264,7 @@ export class WaterHeater {
     }
   }
 
-  async config(device: irdevice & irDevicesConfig): Promise<void> {
+  async config({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
     let config = {};
     if (device.irwh) {
       config = device.irwh;
@@ -268,11 +279,11 @@ export class WaterHeater {
       config['external'] = device.external;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);
+      this.infoLog({ log: [`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`] });
     }
   }
 
-  async logs(device: irdevice & irDevicesConfig): Promise<void> {
+  async logs({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
@@ -291,19 +302,19 @@ export class WaterHeater {
   /**
    * Logging for Device
    */
-  infoLog(...log: any[]): void {
+  infoLog({ log = [] }: { log?: any[]; } = {}): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));
     }
   }
 
-  warnLog(...log: any[]): void {
+  warnLog({ log = [] }: { log?: any[]; } = {}): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.warn(String(...log));
     }
   }
 
-  debugWarnLog(...log: any[]): void {
+  debugWarnLog({ log = [] }: { log?: any[]; } = {}): void {
     if (this.enablingDeviceLogging()) {
       if (this.deviceLogging?.includes('debug')) {
         this.platform.log.warn('[DEBUG]', String(...log));
@@ -311,13 +322,13 @@ export class WaterHeater {
     }
   }
 
-  errorLog(...log: any[]): void {
+  errorLog({ log = [] }: { log?: any[]; } = {}): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.error(String(...log));
     }
   }
 
-  debugErrorLog(...log: any[]): void {
+  debugErrorLog({ log = [] }: { log?: any[]; } = {}): void {
     if (this.enablingDeviceLogging()) {
       if (this.deviceLogging?.includes('debug')) {
         this.platform.log.error('[DEBUG]', String(...log));

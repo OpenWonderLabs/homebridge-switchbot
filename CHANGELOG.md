@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 2.1.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.1.1) (2022-10-14)
+
+## What's Changed
+
+- Fixed issue were `CustomOff` would send incorrect commands. Also Resolves [#409](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/409).
+- Fixed issue were IR Commands were not sent from IR Devices, Thanks [@jonzhan](https://github.com/jonzhan). [#520](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/520)
+- Fixed issue with Curtain not refreshing moving status. [#517](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/517)
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.1.0...v2.1.1
+
 ## [Version 2.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.1.0) (2022-10-13)
 
 ## What's Changed

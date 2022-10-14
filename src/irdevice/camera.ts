@@ -56,13 +56,17 @@ export class Camera {
 
   async OnSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${value}`);
-    this.On = value;
-    this.accessory.context.On = this.On;
-    if (this.On) {
+    if (value) {
       this.pushOnChanges();
     } else {
       this.pushOffChanges();
     }
+    /**
+     * pushOnChanges and pushOffChanges above assume they are measuring the state of the accessory BEFORE
+     * they are updated, so we are only updating the accessory state after calling the above.
+     */
+    this.On = value;
+    this.accessory.context.On = this.On;
   }
 
   /**
@@ -164,7 +168,7 @@ export class Camera {
     }
   }
 
-  async commandType() {
+  async commandType(): Promise<string> {
     let commandType: string;
     if (this.device.customize) {
       commandType = 'customize';
@@ -174,7 +178,7 @@ export class Camera {
     return commandType;
   }
 
-  async commandOn() {
+  async commandOn(): Promise<string> {
     let command: string;
     if (this.device.customize && this.device.customOn) {
       command = this.device.customOn;
@@ -184,10 +188,10 @@ export class Camera {
     return command;
   }
 
-  async commandOff() {
+  async commandOff(): Promise<string> {
     let command: string;
-    if (this.device.customize && this.device.customOn) {
-      command = this.device.customOn;
+    if (this.device.customize && this.device.customOff) {
+      command = this.device.customOff;
     } else {
       command = 'turnOff';
     }

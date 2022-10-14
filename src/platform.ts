@@ -41,7 +41,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   // this is used to track restored cached accessories
   public readonly accessories: PlatformAccessory[] = [];
 
-  version = require('../package.json').version || '1.12.8'; // eslint-disable-line @typescript-eslint/no-var-requires
+  version = process.env.npm_package_version!;
   debugMode!: boolean;
   platformLogging?: string;
 
@@ -910,8 +910,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
 
       if (device.group && !device.curtain?.disable_group) {
-        this.debugLog(`Your Curtains are grouped
-        , Secondary curtain automatically hidden. Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
+        this.debugLog('Your Curtains are grouped, '
+        + `, Secondary curtain automatically hidden. Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
       } else {
         if (device.master) {
           this.warnLog(`Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);

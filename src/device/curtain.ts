@@ -180,7 +180,7 @@ export class Curtain {
 
     // update slide progress
     interval(this.updateRate * 1000)
-      .pipe(skipWhile(() => this.curtainUpdateInProgress))
+      //.pipe(skipWhile(() => this.curtainUpdateInProgress))
       .subscribe(async () => {
         if (this.PositionState === this.platform.Characteristic.PositionState.STOPPED) {
           return;
@@ -652,7 +652,7 @@ export class Curtain {
       }
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushBrightnessChanges with ${this.device.connectionType}`
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
           + ` Connection, Error Message: ${superStringify(e.message)}`,
       );
     }
