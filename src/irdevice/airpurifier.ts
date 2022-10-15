@@ -38,6 +38,7 @@ export class AirPurifier {
 
   // Config
   deviceLogging!: string;
+  allowPush?: boolean;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
     // default placeholders
@@ -130,7 +131,7 @@ export class AirPurifier {
    * AirPurifier:        "command"       "highSpeed"      "default"	        =        fan speed to high
    */
   async pushAirPurifierOnChanges(): Promise<void> {
-    if (this.Active !== 1) {
+    if (this.Active !== 1 || this.allowPush) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const body = superStringify({
@@ -145,7 +146,7 @@ export class AirPurifier {
   async pushAirPurifierOffChanges(): Promise<void> {
     const commandType: string = await this.commandType();
     const command: string = await this.commandOff();
-    if (this.Active !== 0) {
+    if (this.Active !== 0 || this.allowPush) {
       const body = superStringify({
         'command': command,
         'parameter': 'default',

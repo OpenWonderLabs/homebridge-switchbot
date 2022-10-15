@@ -30,6 +30,7 @@ export class Fan {
   minValue?: number;
   maxValue?: number;
   deviceLogging!: string;
+  allowPush?: boolean;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
     // default placeholders
@@ -169,8 +170,8 @@ export class Fan {
    * Fan -        "command"       "middleSpeed"    "default"	        =        fan speed to medium
    * Fan -        "command"       "highSpeed"      "default"	        =        fan speed to high
    */
-  async pushFanOnChanges(): Promise<void> {
-    if (this.Active !== 1) {
+  async pushFanOffChanges(): Promise<void> {
+    if (this.Active !== 1 || this.allowPush) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const body = superStringify({
@@ -183,14 +184,16 @@ export class Fan {
   }
 
   async pushFanOffChanges(): Promise<void> {
-    const commandType: string = await this.commandType();
-    const command: string = await this.commandOff();
-    const body = superStringify({
-      'command': command,
-      'parameter': 'default',
-      'commandType': commandType,
-    });
-    await this.pushTVChanges(body);
+    if (this.Active === 1 || this.allowPush) {
+      const commandType: string = await this.commandType();
+      const command: string = await this.commandOff();
+      const body = superStringify({
+        'command': command,
+        'parameter': 'default',
+        'commandType': commandType,
+      });
+      await this.pushTVChanges(body);
+    }
   }
 
   async pushFanSpeedUpChanges(): Promise<void> {

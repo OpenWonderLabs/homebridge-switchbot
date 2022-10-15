@@ -20,6 +20,7 @@ export class Light {
 
   // Config
   deviceLogging!: string;
+  allowPush?: boolean;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
     // default placeholders
@@ -80,7 +81,7 @@ export class Light {
    * Light -       "command"       "channelSub"      "default"	        =        previous channel
    */
   async pushLightOnChanges(): Promise<void> {
-    if (this.On) {
+    if (this.On || this.allowPush) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const body = superStringify({
@@ -93,7 +94,7 @@ export class Light {
   }
 
   async pushLightOffChanges(): Promise<void> {
-    if (!this.On) {
+    if (!this.On || this.allowPush) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
       const body = superStringify({
