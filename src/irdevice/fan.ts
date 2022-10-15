@@ -170,7 +170,7 @@ export class Fan {
    * Fan -        "command"       "middleSpeed"    "default"	        =        fan speed to medium
    * Fan -        "command"       "highSpeed"      "default"	        =        fan speed to high
    */
-  async pushFanOffChanges(): Promise<void> {
+  async pushFanOnChanges(): Promise<void> {
     if (this.Active !== 1 || this.allowPush) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
