@@ -240,7 +240,7 @@ export class TV {
   }
 
   async pushTvOffChanges(): Promise<void> {
-    if (this.Active == 1 || this.allowPush) {
+    if (this.Active === 1 || this.allowPush) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
       const body = superStringify({
