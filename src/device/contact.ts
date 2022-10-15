@@ -546,9 +546,10 @@ export class Contact {
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
       await this.context();
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} offline context: ${superStringify(this.context)}`);
       await this.updateHomeKitCharacteristics();
-      /*this.contactSensorservice.setCharacteristic(this.platform.Characteristic.ContactSensorState, this.ContactSensorState)
-        .getCharacteristic(this.platform.Characteristic.ContactSensorState).updateValue(this.ContactSensorState);*/
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+      + `offline updateHomeKitCharacteristics: ${superStringify(this.updateHomeKitCharacteristics)}`);
     }
   }
 

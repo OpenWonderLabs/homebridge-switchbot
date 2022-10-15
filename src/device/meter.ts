@@ -569,21 +569,10 @@ export class Meter {
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
       await this.context();
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} offline context: ${superStringify(this.context)}`);
       await this.updateHomeKitCharacteristics();
-      /*if (!this.device.meter?.hide_humidity) {
-        this.humidityservice!.setCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity)
-          .getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity).updateValue(this.CurrentRelativeHumidity);
-      }
-      if (!this.device.meter?.hide_temperature) {
-        this.temperatureservice!.setCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature!)
-          .getCharacteristic(this.platform.Characteristic.CurrentTemperature).updateValue(this.CurrentTemperature!);
-      }
-      if (this.BLE) {
-        this.batteryService!.setCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel!)
-          .getCharacteristic(this.platform.Characteristic.BatteryLevel).updateValue(this.BatteryLevel!);
-        this.batteryService!.setCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery!)
-          .getCharacteristic(this.platform.Characteristic.StatusLowBattery).updateValue(this.StatusLowBattery!);
-      }*/
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+      + `offline updateHomeKitCharacteristics: ${superStringify(this.updateHomeKitCharacteristics)}`);
     }
   }
 

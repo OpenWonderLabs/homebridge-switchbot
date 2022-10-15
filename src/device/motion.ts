@@ -487,9 +487,10 @@ export class Motion {
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
       await this.context();
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} offline context: ${superStringify(this.context)}`);
       await this.updateHomeKitCharacteristics();
-      /*this.motionSensorService.setCharacteristic(this.platform.Characteristic.MotionDetected, this.MotionDetected)
-        .getCharacteristic(this.platform.Characteristic.MotionDetected).updateValue(this.MotionDetected);*/
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+      + `offline updateHomeKitCharacteristics: ${superStringify(this.updateHomeKitCharacteristics)}`);
     }
   }
 

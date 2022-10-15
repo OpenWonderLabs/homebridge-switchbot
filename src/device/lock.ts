@@ -43,7 +43,7 @@ export class Lock {
     this.scan(device);
     this.refreshRate(device);
     this.config(device);
-    this.conext();
+    this.context();
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doLockUpdate = new Subject();
@@ -491,10 +491,11 @@ export class Lock {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      await this.conext();
+      await this.context();
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} offline context: ${superStringify(this.context)}`);
       await this.updateHomeKitCharacteristics();
-      /*this.lockService.setCharacteristic(this.platform.Characteristic.LockCurrentState, this.LockCurrentState)
-        .getCharacteristic(this.platform.Characteristic.LockCurrentState).updateValue(this.LockCurrentState);*/
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+      + `offline updateHomeKitCharacteristics: ${superStringify(this.updateHomeKitCharacteristics)}`);
     }
   }
 
@@ -522,7 +523,7 @@ export class Lock {
     return FirmwareRevision;
   }
 
-  async conext() {
+  async context() {
     if (this.LockTargetState === undefined) {
       this.LockTargetState = false;
     } else {

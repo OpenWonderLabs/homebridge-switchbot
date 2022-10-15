@@ -964,11 +964,10 @@ export class Curtain {
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
       await this.context();
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} offline context: ${superStringify(this.context)}`);
       await this.updateHomeKitCharacteristics();
-      /* this.windowCoveringService.setCharacteristic(this.platform.Characteristic.PositionState, this.PositionState)
-        .getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
-      this.windowCoveringService.setCharacteristic(this.platform.Characteristic.CurrentPosition, this.CurrentPosition)
-        .getCharacteristic(this.platform.Characteristic.CurrentPosition).updateValue(this.CurrentPosition);*/
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+      + `offline updateHomeKitCharacteristics: ${superStringify(this.updateHomeKitCharacteristics)}`);
     }
   }
 
