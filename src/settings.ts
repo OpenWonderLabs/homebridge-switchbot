@@ -140,6 +140,7 @@ export interface irDevicesConfig extends irdevice {
   customize?: boolean;
   customOn?: string;
   customOff?: string;
+  allowPush?: boolean;
   irfan?: irfan;
   irair?: irair;
   irpur?: Record<any, any>;

@@ -799,6 +799,14 @@
                     "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType && model.options.irdevices[arrayIndices].customize);"
                   }
                 },
+                "allowPush": {
+                  "title": "Allow Changes to Be Pushed",
+                  "description": "If set to true, this will allow commands to be sent even if device state is already in state that is being pushed.",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType);"
+                  }
+                },
                 "irair": {
                   "type": "object",
                   "properties": {
@@ -887,22 +895,6 @@
                       ],
                       "condition": {
                         "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType === 'Others' && model.options.irdevices[arrayIndices].deviceId);"
-                      }
-                    },
-                    "commandOn": {
-                      "title": "Command sent to turn On Device.",
-                      "type": "string",
-                      "placeholder": "On",
-                      "condition": {
-                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType === 'Others' && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].other  && model.options.irdevices[arrayIndices].other.deviceType);"
-                      }
-                    },
-                    "commandOff": {
-                      "title": "Command sent to turn Off Device.",
-                      "type": "string",
-                      "placeholder": "Off",
-                      "condition": {
-                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType === 'Others' && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].other  && model.options.irdevices[arrayIndices].other.deviceType);"
                       }
                     }
                   }
@@ -1079,6 +1071,7 @@
             "options.irdevices[].customize",
             "options.irdevices[].customOn",
             "options.irdevices[].customOff",
+            "options.irdevices[].allowPush",
             "options.irdevices[].irair.hide_automode",
             "options.irdevices[].irair.pushOn",
             "options.irdevices[].irfan.rotation_speed",
@@ -1088,8 +1081,6 @@
             "options.irdevices[].irfan.set_max",
             "options.irdevices[].irtv.disable_power",
             "options.irdevices[].other.deviceType",
-            "options.irdevices[].other.commandOn",
-            "options.irdevices[].other.commandOff",
             "options.irdevices[].firmware",
             "options.irdevices[].external",
             "options.irdevices[].logging"
