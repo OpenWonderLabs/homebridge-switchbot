@@ -1,5 +1,5 @@
 # Add 'branding' to any file changes within 'switchbot' folder
-branding: image/*
+branding: switchbot/*
 
 # Add 'enhancement' label to any change to index.js file
 enhancement:
