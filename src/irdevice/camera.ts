@@ -20,6 +20,7 @@ export class Camera {
 
   // Config
   deviceLogging!: string;
+  allowPush?: boolean;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
     // default placeholders
@@ -80,7 +81,7 @@ export class Camera {
    * Camera -        "command"       "channelSub"      "default"	        =        previous channel
    */
   async pushOnChanges(): Promise<void> {
-    if (this.On) {
+    if (this.On || this.allowPush) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const body = superStringify({
@@ -95,7 +96,7 @@ export class Camera {
   async pushOffChanges(): Promise<void> {
     const commandType: string = await this.commandType();
     const command: string = await this.commandOff();
-    if (!this.On) {
+    if (!this.On || this.allowPush) {
       const body = superStringify({
         'command': command,
         'parameter': 'default',
