@@ -863,10 +863,10 @@ export class Humidifier {
     this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} offline: ${this.device.offline}`);
     if (this.device.offline) {
       await this.context();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} offline context: ${superStringify(this.context)}`);
+      if (this.CurrentTemperature === undefined) {
+        this.CurrentTemperature = 0;
+      }
       await this.updateHomeKitCharacteristics();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-      + `offline updateHomeKitCharacteristics: ${superStringify(this.updateHomeKitCharacteristics)}`);
     }
   }
 
