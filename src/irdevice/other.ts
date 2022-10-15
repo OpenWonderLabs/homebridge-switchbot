@@ -21,6 +21,7 @@ export class Others {
   // Config
   deviceLogging!: string;
   otherDeviceType?: string;
+  allowPush?: boolean;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
     // default placeholders
@@ -89,7 +90,7 @@ export class Others {
    */
   async pushOnChanges(): Promise<void> {
     if (this.device.customize) {
-      if (!this.Active) {
+      if (!this.Active || this.allowPush) {
         const commandType: string = await this.commandType();
         const command: string = await this.commandOn();
         const body = superStringify({
@@ -106,7 +107,7 @@ export class Others {
 
   async pushOffChanges(): Promise<void> {
     if (this.device.customize) {
-      if (this.Active) {
+      if (this.Active || this.allowPush) {
         const commandType: string = await this.commandType();
         const command: string = await this.commandOff();
         const body = superStringify({
