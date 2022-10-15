@@ -149,6 +149,7 @@ export class Motion {
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
     } else {
+      await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, parseStatus will not happen.`);
     }
@@ -222,6 +223,7 @@ export class Motion {
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
+      await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
@@ -458,11 +460,11 @@ export class Motion {
         break;
       case 161:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device is offline.`);
-        this.offlineOff();
+        await this.offlineOff();
         break;
       case 171:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} is offline. Hub: ${this.device.hubDeviceId}`);
-        this.offlineOff();
+        await this.offlineOff();
         break;
       case 190:
         this.errorLog(
@@ -484,9 +486,11 @@ export class Motion {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      this.MotionDetected = false;
-      this.motionSensorService.getCharacteristic(this.platform.Characteristic.MotionDetected).updateValue(this.MotionDetected);
+      await this.context();
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} offline context: ${superStringify(this.context)}`);
       await this.updateHomeKitCharacteristics();
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+      + `offline updateHomeKitCharacteristics: ${superStringify(this.updateHomeKitCharacteristics)}`);
     }
   }
 

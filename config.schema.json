@@ -573,6 +573,13 @@
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
                   }
                 },
+                "offline": {
+                  "title": "Offline as Off",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
+                  }
+                },
                 "external": {
                   "title": "External Accessory",
                   "type": "boolean",
@@ -1042,6 +1049,7 @@
             "options.devices[].history",
             "options.devices[].firmware",
             "options.devices[].refreshRate",
+            "options.devices[].offline",
             "options.devices[].external",
             "options.devices[].logging"
           ]

@@ -374,6 +374,7 @@ export class Bot {
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
     } else {
+      await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, parseStatus will not happen.`);
     }
@@ -431,6 +432,7 @@ export class Bot {
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
+      await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
@@ -568,6 +570,7 @@ export class Bot {
     } else if (this.OpenAPI) {
       await this.openAPIpushChanges();
     } else {
+      await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, pushChanges will not happen.`);
     }
@@ -1187,11 +1190,11 @@ export class Bot {
         break;
       case 161:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device is offline.`);
-        this.offlineOff();
+        await this.offlineOff();
         break;
       case 171:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
-        this.offlineOff();
+        await this.offlineOff();
         break;
       case 190:
         this.errorLog(
@@ -1209,13 +1212,11 @@ export class Bot {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      this.On = false;
-      if (this.device.bot?.deviceType === 'switch') {
-        this.switchService?.getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);
-      } else {
-        this.outletService?.getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);
-      }
+      await this.context();
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} offline context: ${superStringify(this.context)}`);
       await this.updateHomeKitCharacteristics();
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+      + `offline updateHomeKitCharacteristics: ${superStringify(this.updateHomeKitCharacteristics)}`);
     }
   }
 
@@ -1273,7 +1274,7 @@ export class Bot {
     return FirmwareRevision;
   }
 
-  private context() {
+  async context() {
     if (this.On === undefined) {
       this.On = false;
       this.accessory.context.On = this.On;

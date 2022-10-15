@@ -183,6 +183,7 @@ export class Meter {
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
     } else {
+      await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, parseStatus will not happen.`);
     }
@@ -240,6 +241,7 @@ export class Meter {
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
+      await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
@@ -540,11 +542,11 @@ export class Meter {
         break;
       case 161:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device is offline.`);
-        this.offlineOff();
+        await this.offlineOff();
         break;
       case 171:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} is offline. Hub: ${this.device.hubDeviceId}`);
-        this.offlineOff();
+        await this.offlineOff();
         break;
       case 190:
         this.errorLog(
@@ -566,18 +568,11 @@ export class Meter {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      if (!this.device.meter?.hide_humidity) {
-        this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity,
-          this.accessory.context.CurrentRelativeHumidity);
-      }
-      if (!this.device.meter?.hide_temperature) {
-        this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.accessory.context.CurrentTemperature);
-      }
-      if (this.BLE) {
-        this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.accessory.context.BatteryLevel);
-        this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.accessory.context.StatusLowBattery);
-      }
+      await this.context();
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} offline context: ${superStringify(this.context)}`);
       await this.updateHomeKitCharacteristics();
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+      + `offline updateHomeKitCharacteristics: ${superStringify(this.updateHomeKitCharacteristics)}`);
     }
   }
 
