@@ -20,6 +20,7 @@ export class VacuumCleaner {
 
   // Config
   deviceLogging!: string;
+  allowPush?: boolean;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
     // default placeholders
@@ -76,7 +77,7 @@ export class VacuumCleaner {
    * Vacuum Cleaner    "command"       "turnOn"       "default"	      set to ON state
    */
   async pushOnChanges(): Promise<void> {
-    if (this.On) {
+    if (this.On || this.allowPush) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const body = superStringify({
@@ -89,7 +90,7 @@ export class VacuumCleaner {
   }
 
   async pushOffChanges(): Promise<void> {
-    if (!this.On) {
+    if (!this.On || this.allowPush) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
       const body = superStringify({
