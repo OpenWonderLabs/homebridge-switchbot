@@ -40,7 +40,9 @@ export class Meter {
   switchbot!: switchbot;
   serviceData!: serviceData;
   address!: ad['address'];
-  temperature!: temperature['c'];
+  temperature!: serviceData['temperature'];
+  celsius!: temperature['c'];
+  fahrenheit!: temperature['f'];
   battery!: serviceData['battery'];
   humidity!: serviceData['humidity'];
 
@@ -209,7 +211,7 @@ export class Meter {
 
     // Current Temperature
     if (!this.device.meter?.hide_temperature) {
-      this.temperature < 0 ? 0 : this.temperature > 100 ? 100 : this.temperature;
+      this.celsius < 0 ? 0 : this.celsius > 100 ? 100 : this.temperature;
       this.CurrentTemperature = this.temperature;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c`);
     }
@@ -275,7 +277,9 @@ export class Meter {
               this.humidity = ad.serviceData.humidity;
             }
             this.serviceData = ad.serviceData;
-            this.temperature = ad.serviceData.temperature!.c;
+            this.temperature = ad.serviceData.temperature;
+            this.celsius = ad.serviceData.temperature!.c;
+            this.fahrenheit = ad.serviceData.temperature!.f;
             this.battery = ad.serviceData.battery;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
             this.debugLog(

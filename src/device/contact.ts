@@ -41,8 +41,12 @@ export class Contact {
   address!: ad['address'];
   battery!: serviceData['battery'];
   movement!: serviceData['movement'];
-  doorState!: serviceData['doorState'];
-  lightLevel!: serviceData['lightLevel'];
+  hallState!: any; //serviceData['doorState'];
+  is_light!: any; //serviceData['lightLevel'];
+  tested!: any;
+  contact_open!: any;
+  contact_timeout!: any;
+  button_count!: any;
 
   // Config
   set_minLux!: number;
@@ -179,7 +183,7 @@ export class Contact {
   async BLEparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
     // Door State
-    switch (this.doorState) {
+    switch (this.hallState) {
       case 'open':
       case 1:
         this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
@@ -189,7 +193,7 @@ export class Contact {
         this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
         break;
       default:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} timeout no closed, doorstate: ${this.doorState}`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} timeout no closed, doorstate: ${this.hallState}`);
     }
     // Movement
     if (!this.device.contact?.hide_motionsensor) {
@@ -200,16 +204,15 @@ export class Contact {
     if (!this.device.contact?.hide_lightsensor) {
       this.set_minLux = this.minLux();
       this.set_maxLux = this.maxLux();
-      switch (this.lightLevel) {
-        case 'dark':
-        case 0:
+      switch (this.is_light) {
+        case true:
           this.CurrentAmbientLightLevel = this.set_minLux;
           break;
         default:
           this.CurrentAmbientLightLevel = this.set_maxLux;
       }
       this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel},` +
+        `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.is_light},` +
           ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
       );
     }
@@ -304,13 +307,17 @@ export class Contact {
             + ` BLE Address Found: ${this.address}`);
             this.serviceData = ad.serviceData;
             this.movement = ad.serviceData.movement;
-            this.doorState = ad.serviceData.doorState;
-            this.lightLevel = ad.serviceData.lightLevel;
+            this.tested = ad.serviceData.tested;
             this.battery = ad.serviceData.battery;
+            this.contact_open = ad.serviceData.contact_open;
+            this.contact_timeout = ad.serviceData.contact_timeout;
+            this.is_light = ad.serviceData.is_light;
+            this.button_count = ad.serviceData.button_count;
+            this.hallState = ad.serviceData.hallState;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} movement: ${ad.serviceData.movement}, doorState: ` +
-                `${ad.serviceData.doorState}, lightLevel: ${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}`,
+                `${ad.serviceData.doorState}, is_light: ${ad.serviceData.is_light}, battery: ${ad.serviceData.battery}`,
             );
 
             if (this.serviceData) {
