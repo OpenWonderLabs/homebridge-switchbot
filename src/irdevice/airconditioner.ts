@@ -36,9 +36,10 @@ export class AirConditioner {
   static MODE_HEAT: number;
 
   // Config
+  allowPushOn?: boolean;
+  allowPushOff?: boolean;
   deviceLogging!: string;
   hide_automode?: boolean;
-  pushOn?: boolean;
 
   private readonly valid12 = [1, 2];
   private readonly valid012 = [0, 1, 2];
@@ -47,8 +48,9 @@ export class AirConditioner {
     // default placeholders
     this.logs({ device });
     this.config({ device });
-    this.pushOnChanges({ device });
     this.context({ device });
+    this.allowPushOnChanges({ device });
+    this.allowPushOffChanges({ device });
 
     // set accessory information
     accessory
@@ -163,7 +165,7 @@ export class AirConditioner {
    * AirConditioner:        "command"       "highSpeed"      "default"	        =        fan speed to high
    */
   async pushAirConditionerOnChanges(): Promise<void> {
-    if (this.Active !== this.platform.Characteristic.Active.ACTIVE || this.pushOn) {
+    if (this.Active === this.platform.Characteristic.Active.INACTIVE || this.allowPushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const body = superStringify({
@@ -176,14 +178,16 @@ export class AirConditioner {
   }
 
   async pushAirConditionerOffChanges(): Promise<void> {
-    const commandType: string = await this.commandType();
-    const command: string = await this.commandOff();
-    const body = superStringify({
-      'command': command,
-      'parameter': 'default',
-      'commandType': commandType,
-    });
-    await this.pushChanges(body);
+    if (this.Active === this.platform.Characteristic.Active.ACTIVE || this.allowPushOff) {
+      const commandType: string = await this.commandType();
+      const command: string = await this.commandOff();
+      const body = superStringify({
+        'command': command,
+        'parameter': 'default',
+        'commandType': commandType,
+      });
+      await this.pushChanges(body);
+    }
   }
 
   async pushAirConditionerStatusChanges(): Promise<void> {
@@ -339,7 +343,7 @@ export class AirConditioner {
       this.pushAirConditionerOffChanges();
     } else {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushAirConditionerOnChanges, Active: ${this.Active}`);
-      if (this.pushOn) {
+      if (this.allowPushOn) {
         this.pushAirConditionerOnChanges();
       } else {
         this.pushAirConditionerStatusChanges();
@@ -561,6 +565,22 @@ export class AirConditioner {
     }
   }
 
+  async allowPushOnChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+    if (device.allowPushOn) {
+      this.allowPushOn = true;
+    } else {
+      this.allowPushOn = false;
+    }
+  }
+
+  async allowPushOffChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+    if (device.allowPushOff) {
+      this.allowPushOn = true;
+    } else {
+      this.allowPushOn = false;
+    }
+  }
+
   async commandType(): Promise<string> {
     let commandType: string;
     if (this.device.customize) {
@@ -682,6 +702,21 @@ export class AirConditioner {
     if (device.external !== undefined) {
       config['external'] = device.external;
     }
+    if (device.customOn !== undefined) {
+      config['customOn'] = device.customOn;
+    }
+    if (device.customOff !== undefined) {
+      config['customOff'] = device.customOff;
+    }
+    if (device.customize !== undefined) {
+      config['customize'] = device.customize;
+    }
+    if (device.allowPushOn !== undefined) {
+      config['allowPushOn'] = device.allowPushOn;
+    }
+    if (device.allowPushOff !== undefined) {
+      config['allowPushOff'] = device.allowPushOff;
+    }
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
@@ -700,15 +735,6 @@ export class AirConditioner {
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
-    }
-  }
-
-
-  async pushOnChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
-    if (device.irair?.pushOn) {
-      this.pushOn = true;
-    } else {
-      this.pushOn = false;
     }
   }
 

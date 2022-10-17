@@ -40,6 +40,12 @@ export class ColorBulb {
   state: serviceData['state'];
   delay: serviceData['delay'];
   wifiRssi: serviceData['wifiRssi'];
+  brightnessBLE: serviceData['brightness'];
+  sequence: any;//serviceData['sequence'];
+  preset: any;//serviceData['preset'];
+  color_mode: any;//serviceData['color_mode'];
+  speed: any;//serviceData['speed'];
+  loop_index: any;//serviceData['loop_index'];
 
   // Config
   set_minStep?: number;
@@ -293,9 +299,9 @@ export class ColorBulb {
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus enableCloudService: ${this.device.enableCloudService}`);
-    } else/*if (this.BLE) {
+    } else if (this.BLE) {
       await this.BLERefreshStatus();
-    } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
+    } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
@@ -329,13 +335,14 @@ export class ColorBulb {
             + ` BLE Address Found: ${this.address}`);
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
             this.serviceData = ad.serviceData;
-            //this.state = ad.serviceData.state;
-            //this.delay = ad.serviceData.delay;
-            //this.timer = ad.serviceData.timer;
-            //this.syncUtcTime = ad.serviceData.syncUtcTime;
-            //this.wifiRssi = ad.serviceData.wifiRssi;
-            //this.overload = ad.serviceData.overload;
-            //this.currentPower = ad.serviceData.currentPower;
+            this.state = ad.serviceData.state;
+            this.sequence = ad.serviceData.sequence_number;
+            this.brightnessBLE = ad.serviceData.brightness;
+            this.delay = ad.serviceData.delay;
+            this.preset = ad.serviceData.preset;
+            this.color_mode = ad.serviceData.color_mode;
+            this.speed = ad.serviceData.speed;
+            this.loop_index = ad.serviceData.loop_index;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
             /*this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} state: ${ad.serviceData.state}, ` +

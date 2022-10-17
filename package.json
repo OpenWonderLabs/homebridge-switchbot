@@ -72,7 +72,7 @@
     "eslint-plugin-prettier": "4.2.1",
     "homebridge": "^1.5.0",
     "nodemon": "^2.0.20",
-    "npm-check-updates": "^16.3.11",
+    "npm-check-updates": "^16.3.13",
     "prettier": "2.7.1",
     "rimraf": "^3.0.2",
     "ts-node": "^10.9.1",
@@ -80,6 +80,6 @@
   },
   "optionalDependencies": {
     "@abandonware/noble": "^1.9.2-15",
-    "node-switchbot": "^1.5.0"
+    "node-switchbot": "^1.6.0-beta.4"
   }
 }

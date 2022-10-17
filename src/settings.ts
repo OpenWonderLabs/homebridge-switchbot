@@ -131,16 +131,17 @@ export type lock = {
 
 export interface irDevicesConfig extends irdevice {
   configRemoteType?: string;
-  deviceId: string;
-  external?: boolean;
-  firmware?: string;
-  logging?: string;
   connectionType?: string;
   hide_device?: boolean;
-  customize?: boolean;
+  external?: boolean;
+  firmware?: string;
+  deviceId: string;
+  logging?: string;
   customOn?: string;
   customOff?: string;
-  allowPush?: boolean;
+  customize?: boolean;
+  allowPushOn?: boolean;
+  allowPushOff?: boolean;
   irfan?: irfan;
   irair?: irair;
   irpur?: Record<any, any>;
@@ -180,7 +181,6 @@ export type set_min = {
 
 export type irair = {
   hide_automode?: boolean;
-  pushOn?: boolean;
 };
 
 export type irtv = {
@@ -355,6 +355,8 @@ export type serviceData = {
   overload?: boolean;
   //PlugMini - Plug Mini current power value of the load
   currentPower?: number;
+  //Color Bulb's brightness level
+  brightness?: boolean | string;
 };
 
 export type temperature = {

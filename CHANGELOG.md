@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 2.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.2.0) (2022-10-XX)
+
+## What's Changed
+
+- Moved Air Conditioner config `PushOn` to be an overal IR Device config of `allowPushOn` and `allowPushOff`.
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.1.2...v2.2.0
+
 ## [Version 2.1.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.1.2) (2022-10-14)
 
 ## What's Changed
