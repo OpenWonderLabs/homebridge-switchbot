@@ -41,7 +41,7 @@ export class Contact {
   address!: ad['address'];
   battery!: serviceData['battery'];
   movement!: serviceData['movement'];
-  hallState!: any; //serviceData['doorState'];
+  doorState!: serviceData['doorState'];
   is_light!: any; //serviceData['lightLevel'];
   tested!: any;
   contact_open!: any;
@@ -183,7 +183,7 @@ export class Contact {
   async BLEparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
     // Door State
-    switch (this.hallState) {
+    switch (this.doorState) {
       case 'open':
       case 1:
         this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
@@ -193,7 +193,7 @@ export class Contact {
         this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
         break;
       default:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} timeout no closed, doorstate: ${this.hallState}`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} timeout no closed, doorstate: ${this.doorState}`);
     }
     // Movement
     if (!this.device.contact?.hide_motionsensor) {
@@ -313,7 +313,7 @@ export class Contact {
             this.contact_timeout = ad.serviceData.contact_timeout;
             this.is_light = ad.serviceData.is_light;
             this.button_count = ad.serviceData.button_count;
-            this.hallState = ad.serviceData.hallState;
+            this.doorState = ad.serviceData.doorState;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} movement: ${ad.serviceData.movement}, doorState: ` +

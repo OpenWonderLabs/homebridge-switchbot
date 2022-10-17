@@ -38,12 +38,12 @@ export class Motion {
   address!: ad['address'];
   battery!: serviceData['battery'];
   movement!: serviceData['movement'];
+  lightLevel!: serviceData['lightLevel'];
   is_light!: any;//serviceData['is_light'];
   tested!: any;
   led!: any;
   iot!: any;
   sense_distance!: any;
-  light_intensity!: any;
 
   // Config
   set_minLux!: number;
@@ -169,15 +169,16 @@ export class Motion {
     if (!this.device.motion?.hide_lightsensor) {
       this.set_minLux = this.minLux();
       this.set_maxLux = this.maxLux();
-      switch (this.is_light) {
-        case true:
+      switch (this.lightLevel) {
+        case 'dark':
+        case 1:
           this.CurrentAmbientLightLevel = this.set_minLux;
           break;
         default:
           this.CurrentAmbientLightLevel = this.set_maxLux;
       }
       this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.is_light},` +
+        `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel},` +
           ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
       );
     }
@@ -265,12 +266,12 @@ export class Motion {
             this.led = ad.serviceData.led;
             this.iot = ad.serviceData.led;
             this.sense_distance = ad.serviceData.sense_distance;
-            this.light_intensity = ad.serviceData.light_intensity;
+            this.lightLevel = ad.serviceData.lightLevel;
             this.is_light = ad.serviceData.is_light;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} movement: ${ad.serviceData.movement}, is_light: ` +
-                `${ad.serviceData.is_light}, battery: ${ad.serviceData.battery}`,
+                `${ad.serviceData.is_light}, lightLevel: ${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}`,
             );
 
             if (this.serviceData) {
