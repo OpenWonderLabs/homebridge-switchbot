@@ -24,6 +24,8 @@ export class TV {
   deviceStatus!: any;
 
   // Config
+  allowPushOn?: boolean;
+  allowPushOff?: boolean;
   deviceLogging!: string;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
@@ -31,6 +33,8 @@ export class TV {
     this.logs(device);
     this.config(device);
     this.context();
+    this.allowPushOnChanges({ device });
+    this.allowPushOffChanges({ device });
 
     // set accessory information
     accessory
@@ -198,8 +202,6 @@ export class TV {
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${value}`);
-    this.Active = value;
-    this.accessory.context.Active = this.Active;
     if (!this.device.irtv?.disable_power) {
       if (value === this.platform.Characteristic.Active.INACTIVE) {
         await this.pushTvOffChanges();
@@ -211,7 +213,6 @@ export class TV {
        * they are updated, so we are only updating the accessory state after calling the above.
        */
       this.Active = value;
-      this.accessory.context.Active = this.Active;
     }
   }
 
@@ -226,7 +227,9 @@ export class TV {
    * TV           "command"       "channelSub"      "default"	        previous channel
    */
   async pushTvOnChanges(): Promise<void> {
-    if (this.Active !== 1) {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushTvOnChanges Active: ${this.Active},`
+    + ` allowPushOn: ${this.allowPushOn}`);
+    if (this.Active === this.platform.Characteristic.Active.INACTIVE || this.allowPushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const body = superStringify({
@@ -239,14 +242,18 @@ export class TV {
   }
 
   async pushTvOffChanges(): Promise<void> {
-    const commandType: string = await this.commandType();
-    const command: string = await this.commandOff();
-    const body = superStringify({
-      'command': command,
-      'parameter': 'default',
-      'commandType': commandType,
-    });
-    await this.pushTVChanges(body);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushTvOffChanges Active: ${this.Active},`
+    + ` allowPushOff: ${this.allowPushOff}`);
+    if (this.Active === this.platform.Characteristic.Active.ACTIVE || this.allowPushOff) {
+      const commandType: string = await this.commandType();
+      const command: string = await this.commandOff();
+      const body = superStringify({
+        'command': command,
+        'parameter': 'default',
+        'commandType': commandType,
+      });
+      await this.pushTVChanges(body);
+    }
   }
 
   async pushOkChanges(): Promise<void> {
@@ -402,6 +409,22 @@ export class TV {
     }
   }
 
+  async allowPushOnChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+    if (device.allowPushOn) {
+      this.allowPushOn = true;
+    } else {
+      this.allowPushOn = false;
+    }
+  }
+
+  async allowPushOffChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+    if (device.allowPushOff) {
+      this.allowPushOn = true;
+    } else {
+      this.allowPushOn = false;
+    }
+  }
+
   async commandType(): Promise<string> {
     let commandType: string;
     if (this.device.customize) {
@@ -506,6 +529,21 @@ export class TV {
     }
     if (device.external !== undefined) {
       config['external'] = device.external;
+    }
+    if (device.customOn !== undefined) {
+      config['customOn'] = device.customOn;
+    }
+    if (device.customOff !== undefined) {
+      config['customOff'] = device.customOff;
+    }
+    if (device.customize !== undefined) {
+      config['customize'] = device.customize;
+    }
+    if (device.allowPushOn !== undefined) {
+      config['allowPushOn'] = device.allowPushOn;
+    }
+    if (device.allowPushOff !== undefined) {
+      config['allowPushOff'] = device.allowPushOff;
     }
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);

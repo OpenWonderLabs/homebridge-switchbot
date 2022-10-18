@@ -20,6 +20,8 @@ export class WaterHeater {
   Active!: CharacteristicValue;
 
   // Config
+  allowPushOn?: boolean;
+  allowPushOff?: boolean;
   deviceLogging!: string;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
@@ -27,6 +29,8 @@ export class WaterHeater {
     this.logs({ device });
     this.config({ device });
     this.context();
+    this.allowPushOnChanges({ device });
+    this.allowPushOffChanges({ device });
 
     // set accessory information
     accessory
@@ -72,7 +76,6 @@ export class WaterHeater {
      * they are updated, so we are only updating the accessory state after calling the above.
      */
     this.Active = value;
-    this.accessory.context.Active = this.Active;
   }
 
   /**
@@ -82,7 +85,9 @@ export class WaterHeater {
    * WaterHeater     "command"       "turnOn"          "default"	       set to ON state
    */
   async pushWaterHeaterOnChanges(): Promise<void> {
-    if (this.Active !== 1) {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushWaterHeaterOnChanges Active: ${this.Active},`
+    + ` allowPushOn: ${this.allowPushOn}`);
+    if (this.Active === this.platform.Characteristic.Active.INACTIVE || this.allowPushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const body = superStringify({
@@ -95,7 +100,9 @@ export class WaterHeater {
   }
 
   async pushWaterHeaterOffChanges(): Promise<void> {
-    if (this.Active !== 0) {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushWaterHeaterOffChanges Active: ${this.Active},`
+    + ` allowPushOff: ${this.allowPushOff}`);
+    if (this.Active === this.platform.Characteristic.Active.ACTIVE || this.allowPushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
       const body = superStringify({
@@ -170,6 +177,22 @@ export class WaterHeater {
       this.accessory.context.Active = this.Active;
       this.valveService?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
+    }
+  }
+
+  async allowPushOnChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+    if (device.allowPushOn) {
+      this.allowPushOn = true;
+    } else {
+      this.allowPushOn = false;
+    }
+  }
+
+  async allowPushOffChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+    if (device.allowPushOff) {
+      this.allowPushOn = true;
+    } else {
+      this.allowPushOn = false;
     }
   }
 
@@ -277,6 +300,21 @@ export class WaterHeater {
     }
     if (device.external !== undefined) {
       config['external'] = device.external;
+    }
+    if (device.customOn !== undefined) {
+      config['customOn'] = device.customOn;
+    }
+    if (device.customOff !== undefined) {
+      config['customOff'] = device.customOff;
+    }
+    if (device.customize !== undefined) {
+      config['customize'] = device.customize;
+    }
+    if (device.allowPushOn !== undefined) {
+      config['allowPushOn'] = device.allowPushOn;
+    }
+    if (device.allowPushOff !== undefined) {
+      config['allowPushOff'] = device.allowPushOff;
     }
     if (Object.entries(config).length !== 0) {
       this.infoLog({ log: [`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`] });

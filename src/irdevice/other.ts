@@ -19,6 +19,8 @@ export class Others {
   Active!: CharacteristicValue;
 
   // Config
+  allowPushOn?: boolean;
+  allowPushOff?: boolean;
   deviceLogging!: string;
   otherDeviceType?: string;
 
@@ -28,6 +30,8 @@ export class Others {
     this.deviceType(device);
     this.config(device);
     this.context();
+    this.allowPushOnChanges({ device });
+    this.allowPushOffChanges({ device });
 
     // set accessory information
     accessory
@@ -74,7 +78,6 @@ export class Others {
      * they are updated, so we are only updating the accessory state after calling the above.
      */
     this.Active = value;
-    this.accessory.context.Active = this.Active;
   }
 
   /**
@@ -88,8 +91,10 @@ export class Others {
    * Other -       "command"       "channelSub"      "default"	        =        previous channel
    */
   async pushOnChanges(): Promise<void> {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOnChanges Active: ${this.Active},`
+    + ` allowPushOn: ${this.allowPushOn}, customize: ${this.device.customize}, customOn: ${this.device.customOn}`);
     if (this.device.customize) {
-      if (!this.Active) {
+      if (this.Active === this.platform.Characteristic.Active.INACTIVE || this.allowPushOn) {
         const commandType: string = await this.commandType();
         const command: string = await this.commandOn();
         const body = superStringify({
@@ -105,8 +110,10 @@ export class Others {
   }
 
   async pushOffChanges(): Promise<void> {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOffChanges Active: ${this.Active},`
+    + ` allowPushOff: ${this.allowPushOff}, customize: ${this.device.customize}, customOff: ${this.device.customOff}`);
     if (this.device.customize) {
-      if (this.Active) {
+      if (this.Active === this.platform.Characteristic.Active.ACTIVE || this.allowPushOff) {
         const commandType: string = await this.commandType();
         const command: string = await this.commandOff();
         const body = superStringify({
@@ -121,7 +128,7 @@ export class Others {
     }
   }
 
-  async pushChanges(body): Promise<void> {
+  async pushChanges(body: any): Promise<void> {
     if (this.device.connectionType === 'OpenAPI') {
       try {
       // Make Push On request to the API
@@ -178,8 +185,25 @@ export class Others {
     if (this.Active === undefined) {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Active}`);
     } else {
+      this.accessory.context.Active = this.Active;
       this.fanService?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
+    }
+  }
+
+  async allowPushOnChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+    if (device.allowPushOn) {
+      this.allowPushOn = true;
+    } else {
+      this.allowPushOn = false;
+    }
+  }
+
+  async allowPushOffChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+    if (device.allowPushOff) {
+      this.allowPushOn = true;
+    } else {
+      this.allowPushOn = false;
     }
   }
 
@@ -297,6 +321,21 @@ export class Others {
     }
     if (device.external !== undefined) {
       config['external'] = device.external;
+    }
+    if (device.customOn !== undefined) {
+      config['customOn'] = device.customOn;
+    }
+    if (device.customOff !== undefined) {
+      config['customOff'] = device.customOff;
+    }
+    if (device.customize !== undefined) {
+      config['customize'] = device.customize;
+    }
+    if (device.allowPushOn !== undefined) {
+      config['allowPushOn'] = device.allowPushOn;
+    }
+    if (device.allowPushOff !== undefined) {
+      config['allowPushOff'] = device.allowPushOff;
     }
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);

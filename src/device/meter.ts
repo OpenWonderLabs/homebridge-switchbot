@@ -40,7 +40,9 @@ export class Meter {
   switchbot!: switchbot;
   serviceData!: serviceData;
   address!: ad['address'];
-  temperature!: temperature['c'];
+  temperature!: serviceData['temperature'];
+  celsius!: temperature['c'];
+  fahrenheit!: temperature['f'];
   battery!: serviceData['battery'];
   humidity!: serviceData['humidity'];
 
@@ -209,7 +211,7 @@ export class Meter {
 
     // Current Temperature
     if (!this.device.meter?.hide_temperature) {
-      this.temperature < 0 ? 0 : this.temperature > 100 ? 100 : this.temperature;
+      this.celsius < 0 ? 0 : this.celsius > 100 ? 100 : this.temperature;
       this.CurrentTemperature = this.temperature;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c`);
     }
@@ -264,9 +266,9 @@ export class Meter {
           model: 'T',
           id: this.device.bleMac,
         })
-        .then(() => {
+        .then(async () => {
           // Set an event hander
-          switchbot.onadvertisement = (ad: ad) => {
+          switchbot.onadvertisement = async (ad: ad) => {
             this.address = ad.address;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
             + ` BLE Address Found: ${this.address}`);
@@ -275,7 +277,9 @@ export class Meter {
               this.humidity = ad.serviceData.humidity;
             }
             this.serviceData = ad.serviceData;
-            this.temperature = ad.serviceData.temperature!.c;
+            this.temperature = ad.serviceData.temperature;
+            this.celsius = ad.serviceData.temperature!.c;
+            this.fahrenheit = ad.serviceData.temperature!.f;
             this.battery = ad.serviceData.battery;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
             this.debugLog(
@@ -287,23 +291,18 @@ export class Meter {
             if (this.serviceData) {
               this.connected = true;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+              await this.stopScanning(switchbot);
             } else {
               this.connected = false;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
             }
           };
-          // Wait 10 seconds
-          return switchbot.wait(this.scanDuration * 1000);
+          // Wait
+          return await switchbot.wait(this.scanDuration * 1000);
         })
         .then(async () => {
           // Stop to monitor
-          switchbot.stopScan();
-          if (this.connected) {
-            this.BLEparseStatus();
-            this.updateHomeKitCharacteristics();
-          } else {
-            await this.BLERefreshConnection(switchbot);
-          }
+          await this.stopScanning(switchbot);
         })
         .catch(async (e: any) => {
           this.apiError(e);
@@ -489,6 +488,16 @@ export class Meter {
       : null;
   }
 
+  async stopScanning({ switchbot }: { switchbot: any; }): Promise<void> {
+    switchbot.stopScan();
+    if (this.connected) {
+      await this.BLEparseStatus();
+      await this.updateHomeKitCharacteristics();
+    } else {
+      await this.BLERefreshConnection(switchbot);
+    }
+  }
+
   async getCustomBLEAddress(switchbot: any) {
     if (this.device.customBLEaddress && this.deviceLogging.includes('debug')) {
       (async () => {
@@ -569,10 +578,7 @@ export class Meter {
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
       await this.context();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} offline context: ${superStringify(this.context)}`);
       await this.updateHomeKitCharacteristics();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-      + `offline updateHomeKitCharacteristics: ${superStringify(this.updateHomeKitCharacteristics)}`);
     }
   }
 

@@ -29,6 +29,8 @@ export class Fan {
   minStep?: number;
   minValue?: number;
   maxValue?: number;
+  allowPushOn?: boolean;
+  allowPushOff?: boolean;
   deviceLogging!: string;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
@@ -36,6 +38,8 @@ export class Fan {
     this.logs(device);
     this.config(device);
     this.context();
+    this.allowPushOnChanges({ device });
+    this.allowPushOffChanges({ device });
 
     // set accessory information
     accessory
@@ -157,7 +161,6 @@ export class Fan {
      * they are updated, so we are only updating the accessory state after calling the above.
      */
     this.Active = value;
-    this.accessory.context.Active = this.Active;
   }
 
   /**
@@ -170,7 +173,9 @@ export class Fan {
    * Fan -        "command"       "highSpeed"      "default"	        =        fan speed to high
    */
   async pushFanOnChanges(): Promise<void> {
-    if (this.Active !== 1) {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushFanOnChanges Active: ${this.Active},`
+    + ` allowPushOn: ${this.allowPushOn}`);
+    if (this.Active === this.platform.Characteristic.Active.INACTIVE || this.allowPushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const body = superStringify({
@@ -183,14 +188,18 @@ export class Fan {
   }
 
   async pushFanOffChanges(): Promise<void> {
-    const commandType: string = await this.commandType();
-    const command: string = await this.commandOff();
-    const body = superStringify({
-      'command': command,
-      'parameter': 'default',
-      'commandType': commandType,
-    });
-    await this.pushTVChanges(body);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushLightOffChanges Active: ${this.Active},`
+    + ` allowPushOff: ${this.allowPushOff}`);
+    if (this.Active === this.platform.Characteristic.Active.ACTIVE || this.allowPushOff) {
+      const commandType: string = await this.commandType();
+      const command: string = await this.commandOff();
+      const body = superStringify({
+        'command': command,
+        'parameter': 'default',
+        'commandType': commandType,
+      });
+      await this.pushTVChanges(body);
+    }
   }
 
   async pushFanSpeedUpChanges(): Promise<void> {
@@ -294,6 +303,22 @@ export class Fan {
       this.accessory.context.RotationSpeed = this.RotationSpeed;
       this.fanService?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.RotationSpeed);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic RotationSpeed: ${this.RotationSpeed}`);
+    }
+  }
+
+  async allowPushOnChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+    if (device.allowPushOn) {
+      this.allowPushOn = true;
+    } else {
+      this.allowPushOn = false;
+    }
+  }
+
+  async allowPushOffChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+    if (device.allowPushOff) {
+      this.allowPushOn = true;
+    } else {
+      this.allowPushOn = false;
     }
   }
 
@@ -402,6 +427,21 @@ export class Fan {
     }
     if (device.external !== undefined) {
       config['external'] = device.external;
+    }
+    if (device.customOn !== undefined) {
+      config['customOn'] = device.customOn;
+    }
+    if (device.customOff !== undefined) {
+      config['customOff'] = device.customOff;
+    }
+    if (device.customize !== undefined) {
+      config['customize'] = device.customize;
+    }
+    if (device.allowPushOn !== undefined) {
+      config['allowPushOn'] = device.allowPushOn;
+    }
+    if (device.allowPushOff !== undefined) {
+      config['allowPushOff'] = device.allowPushOff;
     }
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);

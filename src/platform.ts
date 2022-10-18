@@ -261,7 +261,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         const data = this.config.credentials?.token + t + nonce;
         const signTerm = crypto.createHmac('sha256', this.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
         const sign = signTerm.toString('base64');
-        this.debugLog(sign);
+        this.debugLog(`sing: ${sign}`);
         const options = {
           hostname: HostDomain,
           port: 443,
@@ -334,11 +334,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
               }
 
               // IR Devices
-              if (devicesAPI.body.infraredRemoteList.length !== 0) {
-                this.infoLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
-              } else {
-                this.debugLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
-              }
               if (devicesAPI.body.infraredRemoteList.length !== 0) {
                 this.infoLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
               } else {
@@ -605,7 +600,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       // the accessory already exists
       if (await this.registerDevice(device)) {
 
-        this.debugLog(superStringify(device.bot?.mode));
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.deviceType;
         existingAccessory.context.deviceID = device.deviceId;
@@ -627,8 +621,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       if (!device.external) {
         this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
       }
-
-      this.debugLog(superStringify(device.bot?.mode));
 
       // create a new accessory
       const accessory = new this.api.platformAccessory(device.deviceName, uuid);
@@ -1269,11 +1261,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       new TV(this, accessory, device);
       this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
-      /**
-       * Publish as external accessory
-       * Only one TV can exist per bridge, to bypass this limitation, you should
-       * publish your TV as an external accessory.
-       */
       this.externalOrPlatformIR(device, accessory);
       this.accessories.push(accessory);
     } else {
@@ -1841,8 +1828,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   public async externalOrPlatformIR(device: device & irDevicesConfig, accessory: PlatformAccessory) {
+    /**
+       * Publish as external accessory
+       * Only one TV can exist per bridge, to bypass this limitation, you should
+       * publish your TV as an external accessory.
+       */
     if (device.external === undefined && device.remoteType === 'TV') {
       device.external = true;
+      this.debugWarnLog(`${accessory.displayName} External TV Accessory Mode`);
+      this.externalAccessory(accessory);
     } else if (device.external) {
       this.debugWarnLog(`${accessory.displayName} External Accessory Mode`);
       this.externalAccessory(accessory);

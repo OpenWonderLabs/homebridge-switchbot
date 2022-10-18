@@ -42,7 +42,11 @@ export class Contact {
   battery!: serviceData['battery'];
   movement!: serviceData['movement'];
   doorState!: serviceData['doorState'];
-  lightLevel!: serviceData['lightLevel'];
+  is_light!: any; //serviceData['lightLevel'];
+  tested!: any;
+  contact_open!: any;
+  contact_timeout!: any;
+  button_count!: any;
 
   // Config
   set_minLux!: number;
@@ -200,16 +204,15 @@ export class Contact {
     if (!this.device.contact?.hide_lightsensor) {
       this.set_minLux = this.minLux();
       this.set_maxLux = this.maxLux();
-      switch (this.lightLevel) {
-        case 'dark':
-        case 0:
+      switch (this.is_light) {
+        case true:
           this.CurrentAmbientLightLevel = this.set_minLux;
           break;
         default:
           this.CurrentAmbientLightLevel = this.set_maxLux;
       }
       this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel},` +
+        `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.is_light},` +
           ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
       );
     }
@@ -298,41 +301,40 @@ export class Contact {
         })
         .then(async () => {
           // Set an event hander
-          switchbot.onadvertisement = (ad: any) => {
+          switchbot.onadvertisement = async (ad: any) => {
             this.address = ad.address;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
             + ` BLE Address Found: ${this.address}`);
             this.serviceData = ad.serviceData;
             this.movement = ad.serviceData.movement;
-            this.doorState = ad.serviceData.doorState;
-            this.lightLevel = ad.serviceData.lightLevel;
+            this.tested = ad.serviceData.tested;
             this.battery = ad.serviceData.battery;
+            this.contact_open = ad.serviceData.contact_open;
+            this.contact_timeout = ad.serviceData.contact_timeout;
+            this.is_light = ad.serviceData.is_light;
+            this.button_count = ad.serviceData.button_count;
+            this.doorState = ad.serviceData.doorState;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} movement: ${ad.serviceData.movement}, doorState: ` +
-                `${ad.serviceData.doorState}, lightLevel: ${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}`,
+                `${ad.serviceData.doorState}, is_light: ${ad.serviceData.is_light}, battery: ${ad.serviceData.battery}`,
             );
 
             if (this.serviceData) {
               this.connected = true;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+              await this.stopScanning(switchbot);
             } else {
               this.connected = false;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
             }
           };
-          // Wait 2 seconds
+          // Wait
           return await switchbot.wait(this.scanDuration * 1000);
         })
         .then(async () => {
           // Stop to monitor
-          switchbot.stopScan();
-          if (this.connected) {
-            this.BLEparseStatus();
-            this.updateHomeKitCharacteristics();
-          } else {
-            await this.BLERefreshConnection(switchbot);
-          }
+          await this.stopScanning(switchbot);
         })
         .catch(async (e: any) => {
           this.apiError(e);
@@ -448,6 +450,16 @@ export class Contact {
     }
   }
 
+  async stopScanning({ switchbot }: { switchbot: any; }): Promise<void> {
+    switchbot.stopScan();
+    if (this.connected) {
+      await this.BLEparseStatus();
+      await this.updateHomeKitCharacteristics();
+    } else {
+      await this.BLERefreshConnection(switchbot);
+    }
+  }
+
   async getCustomBLEAddress(switchbot: any) {
     if (this.device.customBLEaddress && this.deviceLogging.includes('debug')) {
       (async () => {
@@ -546,10 +558,7 @@ export class Contact {
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
       await this.context();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} offline context: ${superStringify(this.context)}`);
       await this.updateHomeKitCharacteristics();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-      + `offline updateHomeKitCharacteristics: ${superStringify(this.updateHomeKitCharacteristics)}`);
     }
   }
 

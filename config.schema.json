@@ -566,7 +566,6 @@
                 "refreshRate": {
                   "title": "Device Refresh Rate",
                   "type": "number",
-                  "minimum": 30,
                   "placeholder": 360,
                   "description": "Indicates the number of seconds between polls of SwitchBot API.",
                   "condition": {
@@ -799,18 +798,27 @@
                     "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType && model.options.irdevices[arrayIndices].customize);"
                   }
                 },
+                "allowPushOn": {
+                  "title": "Allow On Changes to Be Pushed",
+                  "description": "If set to true, this will allow commands to be sent even if device state is already in state that is being pushed.",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType);"
+                  }
+                },
+                "allowPushOff": {
+                  "title": "Allow Off Changes to Be Pushed",
+                  "description": "If set to true, this will allow commands to be sent even if device state is already in state that is being pushed.",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType);"
+                  }
+                },
                 "irair": {
                   "type": "object",
                   "properties": {
                     "hide_automode": {
                       "title": "Hide Auto Mode on IR Air Conditioners",
-                      "type": "boolean",
-                      "condition": {
-                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Air Conditioner' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Air Conditioner') && model.options.irdevices[arrayIndices].deviceId);"
-                      }
-                    },
-                    "pushOn": {
-                      "title": "Push On Changes",
                       "type": "boolean",
                       "condition": {
                         "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Air Conditioner' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Air Conditioner') && model.options.irdevices[arrayIndices].deviceId);"
@@ -951,7 +959,6 @@
           "refreshRate": {
             "title": "Refresh Rate",
             "type": "number",
-            "minimum": 30,
             "placeholder": 360,
             "description": "Indicates the number of seconds between polls of SwitchBot API."
           },
@@ -1079,8 +1086,9 @@
             "options.irdevices[].customize",
             "options.irdevices[].customOn",
             "options.irdevices[].customOff",
+            "options.irdevices[].allowPushOn",
+            "options.irdevices[].allowPushOff",
             "options.irdevices[].irair.hide_automode",
-            "options.irdevices[].irair.pushOn",
             "options.irdevices[].irfan.rotation_speed",
             "options.irdevices[].irfan.swing_mode",
             "options.irdevices[].irfan.set_minStep",

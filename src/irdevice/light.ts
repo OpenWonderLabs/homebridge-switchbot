@@ -19,6 +19,8 @@ export class Light {
   On!: CharacteristicValue;
 
   // Config
+  allowPushOn?: boolean;
+  allowPushOff?: boolean;
   deviceLogging!: string;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
@@ -26,6 +28,8 @@ export class Light {
     this.logs(device);
     this.config(device);
     this.context();
+    this.allowPushOnChanges({ device });
+    this.allowPushOffChanges({ device });
 
     // set accessory information
     accessory
@@ -66,7 +70,6 @@ export class Light {
      * they are updated, so we are only updating the accessory state after calling the above.
      */
     this.On = value;
-    this.accessory.context.On = this.On;
   }
 
   /**
@@ -80,7 +83,9 @@ export class Light {
    * Light -       "command"       "channelSub"      "default"	        =        previous channel
    */
   async pushLightOnChanges(): Promise<void> {
-    if (this.On) {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushLightOnChanges On: ${this.On},`
+    + ` allowPushOn: ${this.allowPushOn}`);
+    if (this.On || this.allowPushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const body = superStringify({
@@ -93,7 +98,9 @@ export class Light {
   }
 
   async pushLightOffChanges(): Promise<void> {
-    if (!this.On) {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushLightOffChanges On: ${this.On},`
+    + ` allowPushOff: ${this.allowPushOff}`);
+    if (!this.On || this.allowPushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
       const body = superStringify({
@@ -184,6 +191,22 @@ export class Light {
       this.accessory.context.On = this.On;
       this.lightBulbService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+    }
+  }
+
+  async allowPushOnChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+    if (device.allowPushOn) {
+      this.allowPushOn = true;
+    } else {
+      this.allowPushOn = false;
+    }
+  }
+
+  async allowPushOffChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+    if (device.allowPushOff) {
+      this.allowPushOn = true;
+    } else {
+      this.allowPushOn = false;
     }
   }
 
@@ -289,6 +312,21 @@ export class Light {
     }
     if (device.external !== undefined) {
       config['external'] = device.external;
+    }
+    if (device.customOn !== undefined) {
+      config['customOn'] = device.customOn;
+    }
+    if (device.customOff !== undefined) {
+      config['customOff'] = device.customOff;
+    }
+    if (device.customize !== undefined) {
+      config['customize'] = device.customize;
+    }
+    if (device.allowPushOn !== undefined) {
+      config['allowPushOn'] = device.allowPushOn;
+    }
+    if (device.allowPushOff !== undefined) {
+      config['allowPushOff'] = device.allowPushOff;
     }
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);

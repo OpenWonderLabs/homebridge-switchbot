@@ -455,9 +455,9 @@ export class Bot {
           model: 'H',
           id: this.device.bleMac,
         })
-        .then(() => {
+        .then(async () => {
         // Set an event hander
-          switchbot.onadvertisement = (ad: ad) => {
+          switchbot.onadvertisement = async (ad: ad) => {
             this.address = ad.address;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
             + ` BLE Address Found: ${this.address}`);
@@ -466,31 +466,24 @@ export class Bot {
             this.state = ad.serviceData.state;
             this.battery = ad.serviceData.battery;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
-            this.debugLog(
-              `${this.device.deviceType}: ${this.accessory.displayName}, model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName},` +
-              ` mode: ${ad.serviceData.mode}, state: ${ad.serviceData.state}, battery: ${ad.serviceData.battery}`,
-            );
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}, model: ${ad.serviceData.model}, modelName: `
+            + `${ad.serviceData.modelName}, mode: ${ad.serviceData.mode}, state: ${ad.serviceData.state}, battery: ${ad.serviceData.battery}`);
 
             if (this.serviceData) {
               this.connected = true;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+              await this.stopScanning(switchbot);
             } else {
               this.connected = false;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
             }
           };
-          // Wait 2 seconds
-          return switchbot.wait(this.scanDuration * 1000);
+          // Wait
+          return await switchbot.wait(this.scanDuration * 1000);
         })
         .then(async () => {
         // Stop to monitor
-          switchbot.stopScan();
-          if (this.connected) {
-            this.BLEparseStatus();
-            this.updateHomeKitCharacteristics();
-          } else {
-            await this.BLERefreshConnection(switchbot);
-          }
+          await this.stopScanning(switchbot);
         })
         .catch(async (e: any) => {
           this.apiError(e);
@@ -1070,6 +1063,16 @@ export class Bot {
     }
   }
 
+  async stopScanning({ switchbot }: { switchbot: any; }): Promise<void> {
+    switchbot.stopScan();
+    if (this.connected) {
+      await this.BLEparseStatus();
+      await this.updateHomeKitCharacteristics();
+    } else {
+      await this.BLERefreshConnection(switchbot);
+    }
+  }
+
   async getCustomBLEAddress(switchbot: any) {
     if (this.device.customBLEaddress && this.deviceLogging.includes('debug')) {
       (async () => {
@@ -1213,10 +1216,7 @@ export class Bot {
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
       await this.context();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} offline context: ${superStringify(this.context)}`);
       await this.updateHomeKitCharacteristics();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-      + `offline updateHomeKitCharacteristics: ${superStringify(this.updateHomeKitCharacteristics)}`);
     }
   }
 

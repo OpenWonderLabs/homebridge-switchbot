@@ -131,15 +131,17 @@ export type lock = {
 
 export interface irDevicesConfig extends irdevice {
   configRemoteType?: string;
-  deviceId: string;
-  external?: boolean;
-  firmware?: string;
-  logging?: string;
   connectionType?: string;
   hide_device?: boolean;
-  customize?: boolean;
+  external?: boolean;
+  firmware?: string;
+  deviceId: string;
+  logging?: string;
   customOn?: string;
   customOff?: string;
+  customize?: boolean;
+  allowPushOn?: boolean;
+  allowPushOff?: boolean;
   irfan?: irfan;
   irair?: irair;
   irpur?: Record<any, any>;
@@ -179,7 +181,6 @@ export type set_min = {
 
 export type irair = {
   hide_automode?: boolean;
-  pushOn?: boolean;
 };
 
 export type irtv = {
@@ -313,8 +314,18 @@ export type serviceData = {
   modelName: string;
   //Mode for Bot either Press or Switch
   mode?: boolean;
-  //Bot State
-  state?: string;
+  //Bot/ColorBulb State
+  state?: string | boolean;
+  //ColorBulb Power
+  power?: boolean;
+  //ColorBulb R
+  red?: number;
+  //ColorBulb G
+  green?: number;
+  //ColorBulb B
+  blue?: number;
+  //ColorBulb Color temperature
+  color_temperature?: number;
   //Battery percentage left on Bot, Meter, Motion, Contact, PlugMini, and Curtain
   battery?: number;
   //Humidifier's humidity level percentage
@@ -342,6 +353,8 @@ export type serviceData = {
   calibration?: boolean;
   //Current Curtain Positon %
   position?: number;
+  //Is Curtain Moving?
+  inMotion?: boolean;
   //PlugMini - Is there a delay?
   delay?: boolean;
   //PlugMini - Is there a Timer?
@@ -354,6 +367,8 @@ export type serviceData = {
   overload?: boolean;
   //PlugMini - Plug Mini current power value of the load
   currentPower?: number;
+  //Color Bulb's brightness level
+  brightness?: boolean | string;
 };
 
 export type temperature = {

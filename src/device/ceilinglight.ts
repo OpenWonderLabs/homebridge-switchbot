@@ -333,7 +333,7 @@ export class CeilingLight {
           model: 'u',
           id: this.device.bleMac,
         })
-        .then(() => {
+        .then(async () => {
           // Set an event hander
           switchbot.onadvertisement = (ad: any) => {
             this.address = ad.address;
@@ -363,8 +363,8 @@ export class CeilingLight {
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
             }
           };
-          // Wait 2 seconds
-          return switchbot.wait(this.scanDuration * 1000);
+          // Wait
+          return await switchbot.wait(this.scanDuration * 1000);
         })
         .then(async () => {
         // Stop to monitor
@@ -1046,10 +1046,7 @@ export class CeilingLight {
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
       await this.context();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} offline context: ${superStringify(this.context)}`);
       await this.updateHomeKitCharacteristics();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-      + `offline updateHomeKitCharacteristics: ${superStringify(this.updateHomeKitCharacteristics)}`);
     }
   }
 
