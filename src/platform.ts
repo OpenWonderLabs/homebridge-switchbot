@@ -1261,11 +1261,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       new TV(this, accessory, device);
       this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
-      /**
-       * Publish as external accessory
-       * Only one TV can exist per bridge, to bypass this limitation, you should
-       * publish your TV as an external accessory.
-       */
       this.externalOrPlatformIR(device, accessory);
       this.accessories.push(accessory);
     } else {
@@ -1833,9 +1828,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   public async externalOrPlatformIR(device: device & irDevicesConfig, accessory: PlatformAccessory) {
+    /**
+       * Publish as external accessory
+       * Only one TV can exist per bridge, to bypass this limitation, you should
+       * publish your TV as an external accessory.
+       */
     if (device.external === undefined && device.remoteType === 'TV') {
       device.external = true;
-    } else if (device.external) {
+      this.debugWarnLog(`${accessory.displayName} External TV Accessory Mode`);
+      this.externalAccessory(accessory);
+    }
+    if (device.external) {
       this.debugWarnLog(`${accessory.displayName} External Accessory Mode`);
       this.externalAccessory(accessory);
     } else {
