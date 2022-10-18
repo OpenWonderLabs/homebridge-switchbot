@@ -202,8 +202,6 @@ export class TV {
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${value}`);
-    this.Active = value;
-    this.accessory.context.Active = this.Active;
     if (!this.device.irtv?.disable_power) {
       if (value === this.platform.Characteristic.Active.INACTIVE) {
         await this.pushTvOffChanges();
@@ -215,7 +213,6 @@ export class TV {
        * they are updated, so we are only updating the accessory state after calling the above.
        */
       this.Active = value;
-      this.accessory.context.Active = this.Active;
     }
   }
 
@@ -230,7 +227,7 @@ export class TV {
    * TV           "command"       "channelSub"      "default"	        previous channel
    */
   async pushTvOnChanges(): Promise<void> {
-    if (this.Active !== 1) {
+    if (this.Active === this.platform.Characteristic.Active.INACTIVE || this.allowPushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const body = superStringify({
@@ -243,14 +240,16 @@ export class TV {
   }
 
   async pushTvOffChanges(): Promise<void> {
-    const commandType: string = await this.commandType();
-    const command: string = await this.commandOff();
-    const body = superStringify({
-      'command': command,
-      'parameter': 'default',
-      'commandType': commandType,
-    });
-    await this.pushTVChanges(body);
+    if (this.Active === this.platform.Characteristic.Active.ACTIVE || this.allowPushOn) {
+      const commandType: string = await this.commandType();
+      const command: string = await this.commandOff();
+      const body = superStringify({
+        'command': command,
+        'parameter': 'default',
+        'commandType': commandType,
+      });
+      await this.pushTVChanges(body);
+    }
   }
 
   async pushOkChanges(): Promise<void> {

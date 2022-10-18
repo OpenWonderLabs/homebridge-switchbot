@@ -94,7 +94,6 @@ export class AirPurifier {
      * they are updated, so we are only updating the accessory state after calling the above.
      */
     this.Active = value;
-    this.accessory.context.Active = this.Active;
   }
 
   async TargetAirPurifierStateSet(value: CharacteristicValue): Promise<void> {
@@ -134,7 +133,7 @@ export class AirPurifier {
    * AirPurifier:        "command"       "highSpeed"      "default"	        =        fan speed to high
    */
   async pushAirPurifierOnChanges(): Promise<void> {
-    if (this.Active !== 1) {
+    if (this.Active === this.platform.Characteristic.Active.INACTIVE || this.allowPushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const body = superStringify({
@@ -147,9 +146,9 @@ export class AirPurifier {
   }
 
   async pushAirPurifierOffChanges(): Promise<void> {
-    const commandType: string = await this.commandType();
-    const command: string = await this.commandOff();
-    if (this.Active !== 0) {
+    if (this.Active === this.platform.Characteristic.Active.ACTIVE || this.allowPushOn) {
+      const commandType: string = await this.commandType();
+      const command: string = await this.commandOff();
       const body = superStringify({
         'command': command,
         'parameter': 'default',

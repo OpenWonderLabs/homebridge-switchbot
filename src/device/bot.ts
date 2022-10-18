@@ -1065,11 +1065,11 @@ export class Bot {
     }
   }
 
-  async stopScanning(switchbot: any) {
+  async stopScanning({ switchbot }: { switchbot: any; }): Promise<void> {
     switchbot.stopScan();
     if (this.connected) {
-      this.BLEparseStatus();
-      this.updateHomeKitCharacteristics();
+      await this.BLEparseStatus();
+      await this.updateHomeKitCharacteristics();
     } else {
       await this.BLERefreshConnection(switchbot);
     }

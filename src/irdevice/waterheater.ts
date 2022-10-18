@@ -76,7 +76,6 @@ export class WaterHeater {
      * they are updated, so we are only updating the accessory state after calling the above.
      */
     this.Active = value;
-    this.accessory.context.Active = this.Active;
   }
 
   /**
@@ -86,7 +85,7 @@ export class WaterHeater {
    * WaterHeater     "command"       "turnOn"          "default"	       set to ON state
    */
   async pushWaterHeaterOnChanges(): Promise<void> {
-    if (this.Active !== 1) {
+    if (this.Active === this.platform.Characteristic.Active.INACTIVE || this.allowPushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const body = superStringify({
@@ -99,7 +98,7 @@ export class WaterHeater {
   }
 
   async pushWaterHeaterOffChanges(): Promise<void> {
-    if (this.Active !== 0) {
+    if (this.Active === this.platform.Characteristic.Active.ACTIVE || this.allowPushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
       const body = superStringify({

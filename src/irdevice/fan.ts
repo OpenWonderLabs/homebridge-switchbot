@@ -161,7 +161,6 @@ export class Fan {
      * they are updated, so we are only updating the accessory state after calling the above.
      */
     this.Active = value;
-    this.accessory.context.Active = this.Active;
   }
 
   /**
@@ -174,7 +173,7 @@ export class Fan {
    * Fan -        "command"       "highSpeed"      "default"	        =        fan speed to high
    */
   async pushFanOnChanges(): Promise<void> {
-    if (this.Active !== 1) {
+    if (this.Active === this.platform.Characteristic.Active.INACTIVE || this.allowPushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const body = superStringify({
@@ -187,14 +186,16 @@ export class Fan {
   }
 
   async pushFanOffChanges(): Promise<void> {
-    const commandType: string = await this.commandType();
-    const command: string = await this.commandOff();
-    const body = superStringify({
-      'command': command,
-      'parameter': 'default',
-      'commandType': commandType,
-    });
-    await this.pushTVChanges(body);
+    if (this.Active === this.platform.Characteristic.Active.ACTIVE || this.allowPushOff) {
+      const commandType: string = await this.commandType();
+      const command: string = await this.commandOff();
+      const body = superStringify({
+        'command': command,
+        'parameter': 'default',
+        'commandType': commandType,
+      });
+      await this.pushTVChanges(body);
+    }
   }
 
   async pushFanSpeedUpChanges(): Promise<void> {

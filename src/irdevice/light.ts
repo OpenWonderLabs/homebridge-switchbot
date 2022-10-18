@@ -70,7 +70,6 @@ export class Light {
      * they are updated, so we are only updating the accessory state after calling the above.
      */
     this.On = value;
-    this.accessory.context.On = this.On;
   }
 
   /**
@@ -84,7 +83,7 @@ export class Light {
    * Light -       "command"       "channelSub"      "default"	        =        previous channel
    */
   async pushLightOnChanges(): Promise<void> {
-    if (this.On) {
+    if (this.On || this.allowPushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const body = superStringify({
@@ -97,7 +96,7 @@ export class Light {
   }
 
   async pushLightOffChanges(): Promise<void> {
-    if (!this.On) {
+    if (!this.On || this.allowPushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
       const body = superStringify({

@@ -7,7 +7,7 @@ import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, deviceStatus, HostDomain, DevicePath } from '../settings';
+import { device, devicesConfig, deviceStatus, HostDomain, DevicePath, switchbot, ad, serviceData } from '../settings';
 
 export class Lock {
   // Services
@@ -23,6 +23,12 @@ export class Lock {
   doorState!: deviceStatus['doorState'];
   lockState!: deviceStatus['lockState'];
   deviceStatus!: any; //deviceStatusResponse;
+
+  // BLE Others
+  connected?: boolean;
+  switchbot!: switchbot;
+  address!: ad['address'];
+  serviceData!: serviceData;
 
   // Config
   scanDuration!: number;
@@ -203,6 +209,63 @@ export class Lock {
       await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
       + ` ${this.device.connectionType}, refreshStatus will not happen.`);
+    }
+  }
+
+  async BLERefreshStatus(): Promise<void> {
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLERefreshStatus`);
+    const switchbot = await this.platform.connectBLE();
+    // Convert to BLE Address
+    this.device.bleMac = this.device
+      .deviceId!.match(/.{1,2}/g)!
+      .join(':')
+      .toLowerCase();
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+    this.getCustomBLEAddress(switchbot);
+    // Start to monitor advertisement packets
+    if (switchbot !== false) {
+      switchbot
+        .startScan({
+          model: 'o',
+          id: this.device.bleMac,
+        })
+        .then(() => {
+          // Set an event hander
+          switchbot.onadvertisement = async (ad: any) => {
+            this.address = ad.address;
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
+            + ` BLE Address Found: ${this.address}`);
+            this.serviceData = ad.serviceData;
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
+            this.debugLog(
+              `${this.device.deviceType}: ${this.accessory.displayName} calibration: ${ad.serviceData.calibration}, ` +
+                `position: ${ad.serviceData.position}, lightLevel: ${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}, ` +
+                `inMotion: ${ad.serviceData.inMotion}`);
+
+            if (this.serviceData) {
+              this.connected = true;
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+              await this.stopScanning(switchbot);
+            } else {
+              this.connected = false;
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+            }
+          };
+          // Wait 2 seconds
+          return switchbot.wait(this.scanDuration * 1000);
+        })
+        .then(async () => {
+          // Stop to monitor
+          await this.stopScanning(switchbot);
+        })
+        .catch(async (e: any) => {
+          this.apiError(e);
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLERefreshStatus with ${this.device.connectionType}`
+                + ` Connection, Error Message: ${superStringify(e.message)}`);
+          await this.BLERefreshConnection(switchbot);
+        });
+    } else {
+      await this.BLERefreshConnection(switchbot);
     }
   }
 
@@ -424,6 +487,34 @@ export class Lock {
       this.accessory.context.LockCurrentState = this.LockCurrentState;
       this.lockService.updateCharacteristic(this.platform.Characteristic.LockCurrentState, this.LockCurrentState);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic LockCurrentState: ${this.LockCurrentState}`);
+    }
+  }
+
+  async stopScanning(switchbot: any) {
+    switchbot.stopScan();
+    if (this.connected) {
+      await this.BLEparseStatus();
+      await this.updateHomeKitCharacteristics();
+    } else {
+      await this.BLERefreshConnection(switchbot);
+    }
+  }
+
+  async getCustomBLEAddress(switchbot: any) {
+    if (this.device.customBLEaddress && this.deviceLogging.includes('debug')) {
+      (async () => {
+        // Start to monitor advertisement packets
+        await switchbot.startScan({
+          model: 'c',
+        });
+        // Set an event handler
+        switchbot.onadvertisement = (ad: any) => {
+          this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} ad: ${superStringify(ad, null, '  ')}`);
+        };
+        await switchbot.wait(10000);
+        // Stop to monitor
+        switchbot.stopScan();
+      })();
     }
   }
 

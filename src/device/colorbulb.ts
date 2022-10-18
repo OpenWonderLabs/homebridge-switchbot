@@ -506,85 +506,85 @@ export class ColorBulb {
 
   async BLEpushChanges(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges`);
-    //if (this.On !== this.accessory.context.On) {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges On: ${this.On} OnCached: ${this.accessory.context.On}`);
-    const switchbot = await this.platform.connectBLE();
-    // Convert to BLE Address
-    this.device.bleMac = this.device
-      .deviceId!.match(/.{1,2}/g)!
-      .join(':')
-      .toLowerCase();
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-    switchbot
-      .discover({
-        model: 'u',
-        id: this.device.bleMac,
-      })
-      .then((device_list: any) => {
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
-        return this.turnOnOff(device_list);
-      })
-      .then(() => {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
-        this.On = false;
-      })
-      .catch(async (e: any) => {
-        this.apiError(e);
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
+    if (this.On !== this.accessory.context.On) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges On: ${this.On} OnCached: ${this.accessory.context.On}`);
+      const switchbot = await this.platform.connectBLE();
+      // Convert to BLE Address
+      this.device.bleMac = this.device
+        .deviceId!.match(/.{1,2}/g)!
+        .join(':')
+        .toLowerCase();
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+      switchbot
+        .discover({
+          model: 'u',
+          id: this.device.bleMac,
+        })
+        .then((device_list: any) => {
+          this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
+          return this.turnOnOff(device_list);
+        })
+        .then(() => {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
+          this.On = false;
+        })
+        .catch(async (e: any) => {
+          this.apiError(e);
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
         + ` Connection, Error Message: ${superStringify(e.message)}`);
-        await this.BLEPushConnection();
-      });
-    // Push Brightness Update
-    if (this.On) {
-      await this.BLEpushBrightnessChanges();
+          await this.BLEPushConnection();
+        });
+      // Push Brightness Update
+      if (this.On) {
+        await this.BLEpushBrightnessChanges();
+      }
+      // Push ColorTemperature Update
+      if (this.On) {
+        await this.BLEpushColorTemperatureChanges();
+      }
+      // Push Hue & Saturation Update
+      if (this.On) {
+        await this.BLEpushRGBChanges();
+      }
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges.` + `On: ${this.On}, `
+         +`OnCached: ${this.accessory.context.On}`);
     }
-    // Push ColorTemperature Update
-    if (this.On) {
-      await this.BLEpushColorTemperatureChanges();
-    }
-    // Push Hue & Saturation Update
-    if (this.On) {
-      await this.BLEpushRGBChanges();
-    }
-    // } else {
-    //   this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges.` + `On: ${this.On}, `
-    //     +`OnCached: ${this.accessory.context.On}`);
-    // }
   }
 
   async BLEpushBrightnessChanges(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushBrightnessChanges`);
-    //if (this.Brightness !== this.accessory.context.Brightness) {
-    const switchbot = await this.platform.connectBLE();
-    // Convert to BLE Address
-    this.device.bleMac = this.device
-      .deviceId!.match(/.{1,2}/g)!
-      .join(':')
-      .toLowerCase();
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-    switchbot
-      .discover({
-        model: 'u',
-        id: this.device.bleMac,
-      })
-      .then((device_list: any) => {
-        this.infoLog(`${this.accessory.displayName} Target Brightness: ${this.Brightness}`);
-        return device_list[0].setBrightness(this.Brightness);
-      })
-      .then(() => {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
-        this.On = false;
-      })
-      .catch(async (e: any) => {
-        this.apiError(e);
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushBrightnessChanges with ${this.device.connectionType}`
+    if (this.Brightness !== this.accessory.context.Brightness) {
+      const switchbot = await this.platform.connectBLE();
+      // Convert to BLE Address
+      this.device.bleMac = this.device
+        .deviceId!.match(/.{1,2}/g)!
+        .join(':')
+        .toLowerCase();
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+      switchbot
+        .discover({
+          model: 'u',
+          id: this.device.bleMac,
+        })
+        .then((device_list: any) => {
+          this.infoLog(`${this.accessory.displayName} Target Brightness: ${this.Brightness}`);
+          return device_list[0].setBrightness(this.Brightness);
+        })
+        .then(() => {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
+          this.On = false;
+        })
+        .catch(async (e: any) => {
+          this.apiError(e);
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushBrightnessChanges with ${this.device.connectionType}`
         + ` Connection, Error Message: ${superStringify(e.message)}`);
-        await this.BLEPushConnection();
-      });
-    // } else {
-    // this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No BLEpushBrightnessChanges.` + `Brightness: ${this.Brightness}, `
-    //   +`BrightnessCached: ${this.accessory.context.Brightness}`);
-    //}
+          await this.BLEPushConnection();
+        });
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No BLEpushBrightnessChanges.` + `Brightness: ${this.Brightness}, `
+       +`BrightnessCached: ${this.accessory.context.Brightness}`);
+    }
   }
 
   async BLEpushColorTemperatureChanges(): Promise<void> {
@@ -1068,8 +1068,8 @@ export class ColorBulb {
   async stopScanning({ switchbot }: { switchbot: any; }): Promise<void> {
     switchbot.stopScan();
     if (this.connected) {
-      this.BLEparseStatus();
-      this.updateHomeKitCharacteristics();
+      await this.BLEparseStatus();
+      await this.updateHomeKitCharacteristics();
     } else {
       await this.BLERefreshConnection(switchbot);
     }

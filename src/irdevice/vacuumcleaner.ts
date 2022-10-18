@@ -70,7 +70,6 @@ export class VacuumCleaner {
      * they are updated, so we are only updating the accessory state after calling the above.
      */
     this.On = value;
-    this.accessory.context.On = this.On;
   }
 
   /**
@@ -80,7 +79,7 @@ export class VacuumCleaner {
    * Vacuum Cleaner    "command"       "turnOn"       "default"	      set to ON state
    */
   async pushOnChanges(): Promise<void> {
-    if (this.On) {
+    if (this.On || this.allowPushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const body = superStringify({
@@ -93,7 +92,7 @@ export class VacuumCleaner {
   }
 
   async pushOffChanges(): Promise<void> {
-    if (!this.On) {
+    if (!this.On || this.allowPushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
       const body = superStringify({

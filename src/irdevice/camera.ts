@@ -70,7 +70,6 @@ export class Camera {
      * they are updated, so we are only updating the accessory state after calling the above.
      */
     this.On = value;
-    this.accessory.context.On = this.On;
   }
 
   /**
@@ -84,7 +83,7 @@ export class Camera {
    * Camera -        "command"       "channelSub"      "default"	        =        previous channel
    */
   async pushOnChanges(): Promise<void> {
-    if (this.On) {
+    if (this.On || this.allowPushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const body = superStringify({
@@ -99,7 +98,7 @@ export class Camera {
   async pushOffChanges(): Promise<void> {
     const commandType: string = await this.commandType();
     const command: string = await this.commandOff();
-    if (!this.On) {
+    if (!this.On || this.allowPushOff) {
       const body = superStringify({
         'command': command,
         'parameter': 'default',
@@ -109,7 +108,7 @@ export class Camera {
     }
   }
 
-  async pushChanges(body): Promise<void> {
+  async pushChanges(body: any): Promise<void> {
     if (this.device.connectionType === 'OpenAPI') {
       try {
       // Make Push On request to the API
