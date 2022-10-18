@@ -566,7 +566,6 @@
                 "refreshRate": {
                   "title": "Device Refresh Rate",
                   "type": "number",
-                  "minimum": 30,
                   "placeholder": 360,
                   "description": "Indicates the number of seconds between polls of SwitchBot API.",
                   "condition": {
@@ -960,7 +959,6 @@
           "refreshRate": {
             "title": "Refresh Rate",
             "type": "number",
-            "minimum": 30,
             "placeholder": 360,
             "description": "Indicates the number of seconds between polls of SwitchBot API."
           },

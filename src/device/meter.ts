@@ -268,7 +268,7 @@ export class Meter {
         })
         .then(() => {
           // Set an event hander
-          switchbot.onadvertisement = (ad: ad) => {
+          switchbot.onadvertisement = async (ad: ad) => {
             this.address = ad.address;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
             + ` BLE Address Found: ${this.address}`);
@@ -291,6 +291,7 @@ export class Meter {
             if (this.serviceData) {
               this.connected = true;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+              await this.stopScanning(switchbot);
             } else {
               this.connected = false;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
@@ -301,13 +302,7 @@ export class Meter {
         })
         .then(async () => {
           // Stop to monitor
-          switchbot.stopScan();
-          if (this.connected) {
-            this.BLEparseStatus();
-            this.updateHomeKitCharacteristics();
-          } else {
-            await this.BLERefreshConnection(switchbot);
-          }
+          await this.stopScanning(switchbot);
         })
         .catch(async (e: any) => {
           this.apiError(e);
@@ -491,6 +486,16 @@ export class Meter {
         filename: `${hostname().split('.')[0]}_${mac}_persist.json`,
       })
       : null;
+  }
+
+  async stopScanning({ switchbot }: { switchbot: any; }): Promise<void> {
+    switchbot.stopScan();
+    if (this.connected) {
+      this.BLEparseStatus();
+      this.updateHomeKitCharacteristics();
+    } else {
+      await this.BLERefreshConnection(switchbot);
+    }
   }
 
   async getCustomBLEAddress(switchbot: any) {

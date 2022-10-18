@@ -301,7 +301,7 @@ export class Contact {
         })
         .then(async () => {
           // Set an event hander
-          switchbot.onadvertisement = (ad: any) => {
+          switchbot.onadvertisement = async (ad: any) => {
             this.address = ad.address;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
             + ` BLE Address Found: ${this.address}`);
@@ -323,6 +323,7 @@ export class Contact {
             if (this.serviceData) {
               this.connected = true;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+              await this.stopScanning(switchbot);
             } else {
               this.connected = false;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
@@ -333,13 +334,7 @@ export class Contact {
         })
         .then(async () => {
           // Stop to monitor
-          switchbot.stopScan();
-          if (this.connected) {
-            this.BLEparseStatus();
-            this.updateHomeKitCharacteristics();
-          } else {
-            await this.BLERefreshConnection(switchbot);
-          }
+          await this.stopScanning(switchbot);
         })
         .catch(async (e: any) => {
           this.apiError(e);
@@ -452,6 +447,16 @@ export class Contact {
         this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
       }
+    }
+  }
+
+  async stopScanning(switchbot: any) {
+    switchbot.stopScan();
+    if (this.connected) {
+      this.BLEparseStatus();
+      this.updateHomeKitCharacteristics();
+    } else {
+      await this.BLERefreshConnection(switchbot);
     }
   }
 

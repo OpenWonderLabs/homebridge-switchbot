@@ -314,8 +314,18 @@ export type serviceData = {
   modelName: string;
   //Mode for Bot either Press or Switch
   mode?: boolean;
-  //Bot State
-  state?: string;
+  //Bot/ColorBulb State
+  state?: string | boolean;
+  //ColorBulb Power
+  power?: boolean;
+  //ColorBulb R
+  red?: number;
+  //ColorBulb G
+  green?: number;
+  //ColorBulb B
+  blue?: number;
+  //ColorBulb Color temperature
+  color_temperature?: number;
   //Battery percentage left on Bot, Meter, Motion, Contact, PlugMini, and Curtain
   battery?: number;
   //Humidifier's humidity level percentage
@@ -343,6 +353,8 @@ export type serviceData = {
   calibration?: boolean;
   //Current Curtain Positon %
   position?: number;
+  //Is Curtain Moving?
+  inMotion?: boolean;
   //PlugMini - Is there a delay?
   delay?: boolean;
   //PlugMini - Is there a Timer?
