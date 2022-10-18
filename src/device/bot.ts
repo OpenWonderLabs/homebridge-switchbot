@@ -466,10 +466,8 @@ export class Bot {
             this.state = ad.serviceData.state;
             this.battery = ad.serviceData.battery;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
-            this.debugLog(
-              `${this.device.deviceType}: ${this.accessory.displayName}, model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName},` +
-              ` mode: ${ad.serviceData.mode}, state: ${ad.serviceData.state}, battery: ${ad.serviceData.battery}`,
-            );
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}, model: ${ad.serviceData.model}, modelName: `
+            + `${ad.serviceData.modelName}, mode: ${ad.serviceData.mode}, state: ${ad.serviceData.state}, battery: ${ad.serviceData.battery}`);
 
             if (this.serviceData) {
               this.connected = true;
