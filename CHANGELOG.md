@@ -2,11 +2,13 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [Beta - Version 2.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.2.0) (2022-10-XX)
+## [Version 2.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.2.0) (2022-10-13)
 
 ## What's Changed
 
 - Moved Air Conditioner config `PushOn` to be an overal IR Device config of `allowPushOn` and `allowPushOff`.
+- Fixed Issue where Brightness characteristic received "NaN". [#518](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/518)
+- Fixed Issue where IR TVs would not default to External Device. [#520](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/518)
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.1.2...v2.2.0

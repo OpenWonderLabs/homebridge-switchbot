@@ -266,7 +266,7 @@ export class MeterPlus {
           model: 'i',
           id: this.device.bleMac,
         })
-        .then(() => {
+        .then(async () => {
           // Set an event hander
           switchbot.onadvertisement = async (ad: ad) => {
             this.address = ad.address;
@@ -297,8 +297,8 @@ export class MeterPlus {
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
             }
           };
-          // Wait 10 seconds
-          return switchbot.wait(this.scanDuration * 1000);
+          // Wait
+          return await switchbot.wait(this.scanDuration * 1000);
         })
         .then(async () => {
           // Stop to monitor

@@ -329,7 +329,7 @@ export class Contact {
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
             }
           };
-          // Wait 2 seconds
+          // Wait
           return await switchbot.wait(this.scanDuration * 1000);
         })
         .then(async () => {

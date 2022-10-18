@@ -420,7 +420,7 @@ export class Curtain {
           model: 'c',
           id: this.device.bleMac,
         })
-        .then(() => {
+        .then(async () => {
           // Set an event hander
           switchbot.onadvertisement = async (ad: any) => {
             this.address = ad.address;
@@ -447,8 +447,8 @@ export class Curtain {
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
             }
           };
-          // Wait 2 seconds
-          return switchbot.wait(this.scanDuration * 1000);
+          // Wait
+          return await switchbot.wait(this.scanDuration * 1000);
         })
         .then(async () => {
           // Stop to monitor
