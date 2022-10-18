@@ -83,6 +83,8 @@ export class Light {
    * Light -       "command"       "channelSub"      "default"	        =        previous channel
    */
   async pushLightOnChanges(): Promise<void> {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushLightOnChanges On: ${this.On},`
+    + ` allowPushOn: ${this.allowPushOn}`);
     if (this.On || this.allowPushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
@@ -96,6 +98,8 @@ export class Light {
   }
 
   async pushLightOffChanges(): Promise<void> {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushLightOffChanges On: ${this.On},`
+    + ` allowPushOff: ${this.allowPushOff}`);
     if (!this.On || this.allowPushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();

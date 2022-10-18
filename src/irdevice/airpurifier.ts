@@ -133,6 +133,8 @@ export class AirPurifier {
    * AirPurifier:        "command"       "highSpeed"      "default"	        =        fan speed to high
    */
   async pushAirPurifierOnChanges(): Promise<void> {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushAirPurifierOnChanges Active: ${this.Active},`
+    + ` allowPushOn: ${this.allowPushOn}`);
     if (this.Active === this.platform.Characteristic.Active.INACTIVE || this.allowPushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
@@ -146,6 +148,8 @@ export class AirPurifier {
   }
 
   async pushAirPurifierOffChanges(): Promise<void> {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushAirPurifierOffChanges Active: ${this.Active},`
+    + ` allowPushOff: ${this.allowPushOff}`);
     if (this.Active === this.platform.Characteristic.Active.ACTIVE || this.allowPushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();

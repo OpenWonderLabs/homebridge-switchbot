@@ -83,6 +83,8 @@ export class Camera {
    * Camera -        "command"       "channelSub"      "default"	        =        previous channel
    */
   async pushOnChanges(): Promise<void> {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOnChanges On: ${this.On},`
+    + ` allowPushOn: ${this.allowPushOn}`);
     if (this.On || this.allowPushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
@@ -96,9 +98,11 @@ export class Camera {
   }
 
   async pushOffChanges(): Promise<void> {
-    const commandType: string = await this.commandType();
-    const command: string = await this.commandOff();
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOffChanges On: ${this.On},`
+    + ` allowPushOff: ${this.allowPushOff}`);
     if (!this.On || this.allowPushOff) {
+      const commandType: string = await this.commandType();
+      const command: string = await this.commandOff();
       const body = superStringify({
         'command': command,
         'parameter': 'default',

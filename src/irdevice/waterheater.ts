@@ -85,6 +85,8 @@ export class WaterHeater {
    * WaterHeater     "command"       "turnOn"          "default"	       set to ON state
    */
   async pushWaterHeaterOnChanges(): Promise<void> {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushWaterHeaterOnChanges Active: ${this.Active},`
+    + ` allowPushOn: ${this.allowPushOn}`);
     if (this.Active === this.platform.Characteristic.Active.INACTIVE || this.allowPushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
@@ -98,6 +100,8 @@ export class WaterHeater {
   }
 
   async pushWaterHeaterOffChanges(): Promise<void> {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushWaterHeaterOffChanges Active: ${this.Active},`
+    + ` allowPushOff: ${this.allowPushOff}`);
     if (this.Active === this.platform.Characteristic.Active.ACTIVE || this.allowPushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();

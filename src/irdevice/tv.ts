@@ -227,6 +227,8 @@ export class TV {
    * TV           "command"       "channelSub"      "default"	        previous channel
    */
   async pushTvOnChanges(): Promise<void> {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushTvOnChanges Active: ${this.Active},`
+    + ` allowPushOn: ${this.allowPushOn}`);
     if (this.Active === this.platform.Characteristic.Active.INACTIVE || this.allowPushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
@@ -240,7 +242,9 @@ export class TV {
   }
 
   async pushTvOffChanges(): Promise<void> {
-    if (this.Active === this.platform.Characteristic.Active.ACTIVE || this.allowPushOn) {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushTvOffChanges Active: ${this.Active},`
+    + ` allowPushOff: ${this.allowPushOff}`);
+    if (this.Active === this.platform.Characteristic.Active.ACTIVE || this.allowPushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
       const body = superStringify({

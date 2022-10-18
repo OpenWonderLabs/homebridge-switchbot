@@ -173,6 +173,8 @@ export class Fan {
    * Fan -        "command"       "highSpeed"      "default"	        =        fan speed to high
    */
   async pushFanOnChanges(): Promise<void> {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushFanOnChanges Active: ${this.Active},`
+    + ` allowPushOn: ${this.allowPushOn}`);
     if (this.Active === this.platform.Characteristic.Active.INACTIVE || this.allowPushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
@@ -186,6 +188,8 @@ export class Fan {
   }
 
   async pushFanOffChanges(): Promise<void> {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushLightOffChanges Active: ${this.Active},`
+    + ` allowPushOff: ${this.allowPushOff}`);
     if (this.Active === this.platform.Characteristic.Active.ACTIVE || this.allowPushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();

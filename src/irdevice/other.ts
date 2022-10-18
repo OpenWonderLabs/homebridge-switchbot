@@ -91,8 +91,10 @@ export class Others {
    * Other -       "command"       "channelSub"      "default"	        =        previous channel
    */
   async pushOnChanges(): Promise<void> {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOnChanges Active: ${this.Active},`
+    + ` allowPushOn: ${this.allowPushOn}, customize: ${this.device.customize}, customOn: ${this.device.customOn}`);
     if (this.device.customize) {
-      if (!this.Active) {
+      if (this.Active === this.platform.Characteristic.Active.INACTIVE || this.allowPushOn) {
         const commandType: string = await this.commandType();
         const command: string = await this.commandOn();
         const body = superStringify({
@@ -108,8 +110,10 @@ export class Others {
   }
 
   async pushOffChanges(): Promise<void> {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOffChanges Active: ${this.Active},`
+    + ` allowPushOff: ${this.allowPushOff}, customize: ${this.device.customize}, customOff: ${this.device.customOff}`);
     if (this.device.customize) {
-      if (this.Active) {
+      if (this.Active === this.platform.Characteristic.Active.ACTIVE || this.allowPushOff) {
         const commandType: string = await this.commandType();
         const command: string = await this.commandOff();
         const body = superStringify({
@@ -124,7 +128,7 @@ export class Others {
     }
   }
 
-  async pushChanges(body): Promise<void> {
+  async pushChanges(body: any): Promise<void> {
     if (this.device.connectionType === 'OpenAPI') {
       try {
       // Make Push On request to the API

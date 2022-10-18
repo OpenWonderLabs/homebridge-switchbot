@@ -79,6 +79,8 @@ export class VacuumCleaner {
    * Vacuum Cleaner    "command"       "turnOn"       "default"	      set to ON state
    */
   async pushOnChanges(): Promise<void> {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOnChanges On: ${this.On},`
+    + ` allowPushOn: ${this.allowPushOn}`);
     if (this.On || this.allowPushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
@@ -92,6 +94,8 @@ export class VacuumCleaner {
   }
 
   async pushOffChanges(): Promise<void> {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOffChanges On: ${this.On},`
+    + ` allowPushOff: ${this.allowPushOff}`);
     if (!this.On || this.allowPushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
