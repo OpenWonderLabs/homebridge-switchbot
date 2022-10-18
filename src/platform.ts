@@ -1837,8 +1837,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       device.external = true;
       this.debugWarnLog(`${accessory.displayName} External TV Accessory Mode`);
       this.externalAccessory(accessory);
-    }
-    if (device.external) {
+    } else if (device.external) {
       this.debugWarnLog(`${accessory.displayName} External Accessory Mode`);
       this.externalAccessory(accessory);
     } else {
