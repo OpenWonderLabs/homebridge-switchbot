@@ -925,6 +925,7 @@ export class Humidifier {
       this.TargetHumidifierDehumidifierState = this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER;
     } else {
       this.TargetHumidifierDehumidifierState = this.accessory.context.TargetHumidifierDehumidifierState;
+      this.warnLog(this.TargetHumidifierDehumidifierState);
     }
     if (this.CurrentHumidifierDehumidifierState === undefined) {
       this.CurrentHumidifierDehumidifierState = this.platform.Characteristic.CurrentHumidifierDehumidifierState.INACTIVE;
