@@ -185,9 +185,9 @@ export class Camera {
 
   async allowPushOffChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
     if (device.allowPushOff) {
-      this.allowPushOn = true;
+      this.allowPushOff = true;
     } else {
-      this.allowPushOn = false;
+      this.allowPushOff = false;
     }
   }
 
