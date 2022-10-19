@@ -925,6 +925,9 @@ export class Humidifier {
       this.TargetHumidifierDehumidifierState = this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER;
     } else {
       this.TargetHumidifierDehumidifierState = this.accessory.context.TargetHumidifierDehumidifierState;
+      if (this.accessory.context.TargetHumidifierDehumidifierState === undefined) {
+        this.TargetHumidifierDehumidifierState = this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER;
+      }
       this.warnLog(this.TargetHumidifierDehumidifierState);
     }
     if (this.CurrentHumidifierDehumidifierState === undefined) {
