@@ -1025,7 +1025,7 @@ export class StripLight {
     } else {
       this.Brightness = this.accessory.context.Brightness;
     }
-    if (this.Brightness === undefined) {
+    if (this.Saturation === undefined) {
       this.Saturation = 0;
     } else {
       this.Saturation = this.accessory.context.Saturation;
