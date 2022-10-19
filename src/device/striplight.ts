@@ -505,7 +505,7 @@ export class StripLight {
           'parameter': 'default',
           'commandType': 'command',
         });
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
         const options = {
           hostname: HostDomain,
           port: 443,
@@ -578,7 +578,7 @@ export class StripLight {
           'parameter': `${red}:${green}:${blue}`,
           'commandType': 'command',
         });
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
         const options = {
           hostname: HostDomain,
           port: 443,
@@ -635,7 +635,7 @@ export class StripLight {
           'parameter': `${this.Brightness}`,
           'commandType': 'command',
         });
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
         const options = {
           hostname: HostDomain,
           port: 443,

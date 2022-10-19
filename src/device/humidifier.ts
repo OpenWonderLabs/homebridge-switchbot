@@ -484,7 +484,7 @@ export class Humidifier {
           'parameter': `${this.RelativeHumidityHumidifierThreshold}`,
           'commandType': 'command',
         });
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
         const options = {
           hostname: HostDomain,
           port: 443,
@@ -552,7 +552,7 @@ export class Humidifier {
           'parameter': 'auto',
           'commandType': 'command',
         });
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
         const options = {
           hostname: HostDomain,
           port: 443,
@@ -613,7 +613,7 @@ export class Humidifier {
           'parameter': 'default',
           'commandType': 'command',
         });
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
         const options = {
           hostname: HostDomain,
           port: 443,
