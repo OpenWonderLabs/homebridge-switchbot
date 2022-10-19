@@ -289,11 +289,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
               const devicesAPI = JSON.parse(rawData);
               this.debugLog(`devicesAPI: ${superStringify(devicesAPI.body)}`);
               // SwitchBot Devices
-              if (devicesAPI.body.deviceList.length !== 0) {
-                this.infoLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
-              } else {
-                this.debugLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
-              }
               const deviceLists = devicesAPI.body.deviceList;
               if (!this.config.options?.devices) {
                 this.debugLog(`SwitchBot Device Config Not Set: ${JSON.stringify(this.config.options?.devices)}`);
@@ -332,13 +327,13 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
               } else {
                 this.errorLog('SwitchBot Token Supplied, Issue with Auth.');
               }
+              if (devicesAPI.body.deviceList.length !== 0) {
+                this.infoLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
+              } else {
+                this.debugLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
+              }
 
               // IR Devices
-              if (devicesAPI.body.infraredRemoteList.length !== 0) {
-                this.infoLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
-              } else {
-                this.debugLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
-              }
               const irDeviceLists = devicesAPI.body.infraredRemoteList;
               if (!this.config.options?.irdevices) {
                 this.debugLog(`IR Device Config Not Set: ${JSON.stringify(this.config.options?.irdevices)}`);
@@ -366,6 +361,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
                 for (const device of devices) {
                   this.createIRDevice(device);
                 }
+              }
+              if (devicesAPI.body.infraredRemoteList.length !== 0) {
+                this.infoLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
+              } else {
+                this.debugLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
               }
             } catch (e:any) {
               this.errorLog(`API Request: ${e}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug');
