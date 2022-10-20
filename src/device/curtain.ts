@@ -441,7 +441,13 @@ export class Curtain {
             if (this.serviceData) {
               this.connected = true;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
-              await this.stopScanning({ switchbot: { switchbot } });
+              await switchbot.stopScan();
+              if (this.connected) {
+                await this.BLEparseStatus();
+                await this.updateHomeKitCharacteristics();
+              } else {
+                await this.BLERefreshConnection(switchbot);
+              }
             } else {
               this.connected = false;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
@@ -452,7 +458,13 @@ export class Curtain {
         })
         .then(async () => {
           // Stop to monitor
-          await this.stopScanning({ switchbot: { switchbot } });
+          await switchbot.stopScan();
+          if (this.connected) {
+            await this.BLEparseStatus();
+            await this.updateHomeKitCharacteristics();
+          } else {
+            await this.BLERefreshConnection(switchbot);
+          }
         })
         .catch(async (e: any) => {
           this.apiError(e);
@@ -803,20 +815,6 @@ export class Curtain {
         this.mqttClient = null;
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Failed to establish MQTT connection. ${e}`);
       }
-    }
-  }
-
-  async stopScanning(switchbot: any) {
-    if (switchbot) {
-      if (switchbot) {
-        await switchbot.stopScan();
-      }
-    }
-    if (this.connected) {
-      await this.BLEparseStatus();
-      await this.updateHomeKitCharacteristics();
-    } else {
-      await this.BLERefreshConnection(switchbot);
     }
   }
 
