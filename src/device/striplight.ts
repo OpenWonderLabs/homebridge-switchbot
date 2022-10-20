@@ -215,9 +215,9 @@ export class StripLight {
   async parseStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} parseStatus enableCloudService: ${this.device.enableCloudService}`);
-    } else/*if (this.BLE) {
+    } else if (this.BLE) {
       await this.BLEparseStatus();
-    } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
+    } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
     } else {
       await this.offlineOff();
@@ -282,9 +282,9 @@ export class StripLight {
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus enableCloudService: ${this.device.enableCloudService}`);
-    } else/*if (this.BLE) {
+    } else if (this.BLE) {
       await this.BLERefreshStatus();
-    } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
+    } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
