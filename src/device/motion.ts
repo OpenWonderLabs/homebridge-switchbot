@@ -395,7 +395,9 @@ export class Motion {
   }
 
   async stopScanning({ switchbot }: { switchbot: any; }): Promise<void> {
-    await await switchbot.stopScan();
+    await if (switchbot) {
+      await switchbot.stopScan();
+    }
     if (this.connected) {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
