@@ -323,7 +323,7 @@ export class Contact {
             if (this.serviceData) {
               this.connected = true;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
-              await this.stopScanning({ switchbot });
+              await this.stopScanning({ switchbot: { switchbot } });
             } else {
               this.connected = false;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
@@ -334,7 +334,7 @@ export class Contact {
         })
         .then(async () => {
           // Stop to monitor
-          await this.stopScanning({ switchbot });
+          await this.stopScanning({ switchbot: { switchbot } });
         })
         .catch(async (e: any) => {
           this.apiError(e);
