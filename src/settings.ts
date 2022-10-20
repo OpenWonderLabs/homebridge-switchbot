@@ -149,7 +149,7 @@ export interface irDevicesConfig extends irdevice {
   irlight?: Record<any, any>;
   irvc?: Record<any, any>;
   irwh?: Record<any, any>;
-  irtv?: irtv;
+  irtv?: Record<any, any>;
   other?: other;
 }
 
@@ -161,30 +161,8 @@ export type irfan = {
   set_min?: number; //set_min
 };
 
-//For Potential Future Use
-export type set_minStep = {
-  set_minStep_device?: boolean;
-  set_minStep?: number;
-};
-
-//For Potential Future Use
-export type set_max = {
-  set_max_device?: boolean;
-  set_max?: number;
-};
-
-//For Potential Future Use
-export type set_min = {
-  set_min_device?: boolean;
-  set_min?: number;
-};
-
 export type irair = {
   hide_automode?: boolean;
-};
-
-export type irtv = {
-  disable_power?: boolean;
 };
 
 export type other = {

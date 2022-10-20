@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 2.2.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.2.1) (2022-10-18)
+
+## What's Changed
+
+- Removed `disable_power` config in favor of `allowPushOn` and `allowPushOff` config settings.
+- Fix for node-switchbot showing not installed.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.2.0...v2.2.1
+
 ## [Version 2.2.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.2.1) (2022-10-18)
 
 ## What's Changed

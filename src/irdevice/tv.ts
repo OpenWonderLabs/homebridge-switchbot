@@ -197,23 +197,20 @@ export class TV {
   async ActiveIdentifierSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} ActiveIdentifier: ${value}`);
     this.ActiveIdentifier = value;
-    this.accessory.context.ActiveIdentifier = this.ActiveIdentifier;
   }
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${value}`);
-    if (!this.device.irtv?.disable_power) {
-      if (value === this.platform.Characteristic.Active.INACTIVE) {
-        await this.pushTvOffChanges();
-      } else {
-        await this.pushTvOnChanges();
-      }
-      /**
+    if (value === this.platform.Characteristic.Active.ACTIVE) {
+      await this.pushTvOnChanges();
+    } else {
+      await this.pushTvOffChanges();
+    }
+    /**
        * pushTvOnChanges and pushTvOffChanges above assume they are measuring the state of the accessory BEFORE
        * they are updated, so we are only updating the accessory state after calling the above.
        */
-      this.Active = value;
-    }
+    this.Active = value;
   }
 
   /**
@@ -513,6 +510,11 @@ export class TV {
       this.Active = this.platform.Characteristic.Active.INACTIVE;
     } else {
       this.Active = this.accessory.context.Active;
+    }
+    if (this.ActiveIdentifier === undefined) {
+      this.ActiveIdentifier = 1;
+    } else {
+      this.ActiveIdentifier = this.accessory.context.ActiveIdentifier;
     }
   }
 

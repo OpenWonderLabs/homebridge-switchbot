@@ -869,18 +869,6 @@
                     }
                   }
                 },
-                "irtv": {
-                  "type": "object",
-                  "properties": {
-                    "disable_power": {
-                      "title": "Disable Power Command",
-                      "type": "boolean",
-                      "condition": {
-                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'TV' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY TV' || model.options.irdevices[arrayIndices].configRemoteType === 'Projector' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Projector' || model.options.irdevices[arrayIndices].configRemoteType === 'Set Top Box' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Set Top Box' || model.options.irdevices[arrayIndices].configRemoteType === 'IPTV' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY IPTV' || model.options.irdevices[arrayIndices].configRemoteType === 'DVD' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY DVD' || model.options.irdevices[arrayIndices].configRemoteType === 'Speaker' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Speaker') && model.options.irdevices[arrayIndices].deviceId);"
-                      }
-                    }
-                  }
-                },
                 "other": {
                   "type": "object",
                   "properties": {
@@ -895,22 +883,6 @@
                       ],
                       "condition": {
                         "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType === 'Others' && model.options.irdevices[arrayIndices].deviceId);"
-                      }
-                    },
-                    "commandOn": {
-                      "title": "Command sent to turn On Device.",
-                      "type": "string",
-                      "placeholder": "On",
-                      "condition": {
-                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType === 'Others' && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].other  && model.options.irdevices[arrayIndices].other.deviceType);"
-                      }
-                    },
-                    "commandOff": {
-                      "title": "Command sent to turn Off Device.",
-                      "type": "string",
-                      "placeholder": "Off",
-                      "condition": {
-                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType === 'Others' && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].other  && model.options.irdevices[arrayIndices].other.deviceType);"
                       }
                     }
                   }
@@ -1094,10 +1066,7 @@
             "options.irdevices[].irfan.set_minStep",
             "options.irdevices[].irfan.set_min",
             "options.irdevices[].irfan.set_max",
-            "options.irdevices[].irtv.disable_power",
             "options.irdevices[].other.deviceType",
-            "options.irdevices[].other.commandOn",
-            "options.irdevices[].other.commandOff",
             "options.irdevices[].firmware",
             "options.irdevices[].external",
             "options.irdevices[].logging"
