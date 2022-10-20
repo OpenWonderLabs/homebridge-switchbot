@@ -807,7 +807,9 @@ export class Curtain {
   }
 
   async stopScanning(switchbot: any) {
-    await switchbot.stopScan();
+    if (switchbot) {
+      await switchbot.stopScan();
+    }
     if (this.connected) {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
