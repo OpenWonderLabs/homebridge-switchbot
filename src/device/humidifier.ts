@@ -923,21 +923,17 @@ export class Humidifier {
     }
     if (this.TargetHumidifierDehumidifierState === undefined) {
       this.TargetHumidifierDehumidifierState = this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER;
+    } else if (this.accessory.context.TargetHumidifierDehumidifierState === undefined) {
+      this.TargetHumidifierDehumidifierState = this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER;
     } else {
       this.TargetHumidifierDehumidifierState = this.accessory.context.TargetHumidifierDehumidifierState;
-      if (this.accessory.context.TargetHumidifierDehumidifierState === undefined) {
-        this.TargetHumidifierDehumidifierState = this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER;
-      }
-      this.warnLog(this.TargetHumidifierDehumidifierState);
     }
     if (this.CurrentHumidifierDehumidifierState === undefined) {
       this.CurrentHumidifierDehumidifierState = this.platform.Characteristic.CurrentHumidifierDehumidifierState.INACTIVE;
+    } else if (this.accessory.context.CurrentHumidifierDehumidifierState === undefined) {
+      this.CurrentHumidifierDehumidifierState = this.platform.Characteristic.CurrentHumidifierDehumidifierState.INACTIVE;
     } else {
       this.CurrentHumidifierDehumidifierState = this.accessory.context.CurrentHumidifierDehumidifierState;
-      if (this.accessory.context.CurrentHumidifierDehumidifierState === undefined) {
-        this.CurrentHumidifierDehumidifierState = this.platform.Characteristic.CurrentHumidifierDehumidifierState.INACTIVE;
-      }
-      this.warnLog(this.CurrentHumidifierDehumidifierState);
     }
     if (this.RelativeHumidityHumidifierThreshold === undefined) {
       this.RelativeHumidityHumidifierThreshold = 0;
@@ -1008,19 +1004,19 @@ export class Humidifier {
   /**
    * Logging for Device
    */
-  infoLog(...log: any[]): void {
+  async infoLog(...log: any[]): Promise<void> {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));
     }
   }
 
-  warnLog(...log: any[]): void {
+  async warnLog(...log: any[]): Promise<void> {
     if (this.enablingDeviceLogging()) {
       this.platform.log.warn(String(...log));
     }
   }
 
-  debugWarnLog(...log: any[]): void {
+  async debugWarnLog(...log: any[]): Promise<void> {
     if (this.enablingDeviceLogging()) {
       if (this.deviceLogging?.includes('debug')) {
         this.platform.log.warn('[DEBUG]', String(...log));
@@ -1028,13 +1024,13 @@ export class Humidifier {
     }
   }
 
-  errorLog(...log: any[]): void {
+  async errorLog(...log: any[]): Promise<void> {
     if (this.enablingDeviceLogging()) {
       this.platform.log.error(String(...log));
     }
   }
 
-  debugErrorLog(...log: any[]): void {
+  async debugErrorLog(...log: any[]): Promise<void> {
     if (this.enablingDeviceLogging()) {
       if (this.deviceLogging?.includes('debug')) {
         this.platform.log.error('[DEBUG]', String(...log));
@@ -1042,7 +1038,7 @@ export class Humidifier {
     }
   }
 
-  debugLog(...log: any[]): void {
+  async debugLog(...log: any[]): Promise<void> {
     if (this.enablingDeviceLogging()) {
       if (this.deviceLogging === 'debug') {
         this.platform.log.info('[DEBUG]', String(...log));
