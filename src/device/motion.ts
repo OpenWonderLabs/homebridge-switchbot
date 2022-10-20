@@ -395,7 +395,7 @@ export class Motion {
   }
 
   async stopScanning({ switchbot }: { switchbot: any; }): Promise<void> {
-    await if (switchbot) {
+    if (switchbot) {
       await switchbot.stopScan();
     }
     if (this.connected) {
