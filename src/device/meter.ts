@@ -291,7 +291,7 @@ export class Meter {
             if (this.serviceData) {
               this.connected = true;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
-              await this.stopScanning(switchbot);
+              await this.stopScanning({ switchbot });
             } else {
               this.connected = false;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
@@ -302,7 +302,7 @@ export class Meter {
         })
         .then(async () => {
           // Stop to monitor
-          await this.stopScanning(switchbot);
+          await this.stopScanning({ switchbot });
         })
         .catch(async (e: any) => {
           this.apiError(e);
