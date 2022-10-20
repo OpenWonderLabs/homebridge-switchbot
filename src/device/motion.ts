@@ -277,13 +277,7 @@ export class Motion {
             if (this.serviceData) {
               this.connected = true;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
-              await switchbot.stopScan();
-              if (this.connected) {
-                await this.BLEparseStatus();
-                await this.updateHomeKitCharacteristics();
-              } else {
-                await this.BLERefreshConnection(switchbot);
-              }
+              await this.stopScanning(switchbot);
             } else {
               this.connected = false;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
@@ -294,13 +288,7 @@ export class Motion {
         })
         .then(async () => {
           // Stop to monitor
-          await switchbot.stopScan();
-          if (this.connected) {
-            await this.BLEparseStatus();
-            await this.updateHomeKitCharacteristics();
-          } else {
-            await this.BLERefreshConnection(switchbot);
-          }
+          await this.stopScanning(switchbot);
         })
         .catch(async (e: any) => {
           this.apiError(e);
@@ -308,6 +296,16 @@ export class Motion {
                 + ` Connection, Error Message: ${superStringify(e.message)}`);
           await this.BLERefreshConnection(switchbot);
         });
+    } else {
+      await this.BLERefreshConnection(switchbot);
+    }
+  }
+
+  async stopScanning(switchbot: any) {
+    await switchbot.stopScan();
+    if (this.connected) {
+      await this.BLEparseStatus();
+      await this.updateHomeKitCharacteristics();
     } else {
       await this.BLERefreshConnection(switchbot);
     }
