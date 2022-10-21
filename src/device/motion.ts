@@ -44,6 +44,7 @@ export class Motion {
   led!: any;
   iot!: any;
   sense_distance!: any;
+  scanning!: boolean;
 
   // Config
   set_minLux!: number;
@@ -255,6 +256,7 @@ export class Motion {
         })
         .then(async () => {
           // Set an event hander
+          this.scanning = true;
           switchbot.onadvertisement = async (ad: any) => {
             this.address = ad.address;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
@@ -278,6 +280,7 @@ export class Motion {
               this.connected = true;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
               await this.stopScanning(switchbot);
+              this.scanning = false;
             } else {
               this.connected = false;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
@@ -288,7 +291,9 @@ export class Motion {
         })
         .then(async () => {
           // Stop to monitor
-          await this.stopScanning(switchbot);
+          if (!this.scanning) {
+            await this.stopScanning(switchbot);
+          }
         })
         .catch(async (e: any) => {
           this.apiError(e);
