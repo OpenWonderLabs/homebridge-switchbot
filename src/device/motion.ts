@@ -32,6 +32,7 @@ export class Motion {
   brightness: deviceStatus['brightness'];
 
   // BLE Others
+  scanning!: boolean;
   connected?: boolean;
   switchbot!: switchbot;
   serviceData!: serviceData;
@@ -44,7 +45,6 @@ export class Motion {
   led!: any;
   iot!: any;
   sense_distance!: any;
-  scanning!: boolean;
 
   // Config
   set_minLux!: number;
@@ -166,6 +166,9 @@ export class Motion {
     // Movement
     this.MotionDetected = this.movement!;
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
+    if ((this.MotionDetected !== this.accessory.context.MotionDetected) && this.MotionDetected) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Detected Motion`);
+    }
     // Light Level
     if (!this.device.motion?.hide_lightsensor) {
       this.set_minLux = this.minLux();
@@ -178,10 +181,11 @@ export class Motion {
         default:
           this.CurrentAmbientLightLevel = this.set_maxLux;
       }
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel},` +
-          ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel},` +
+          ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+      if (this.CurrentAmbientLightLevel !== this.accessory.context.CurrentAmbientLightLevel) {
+        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+      }
     }
     // Battery
     if (this.battery === undefined) {

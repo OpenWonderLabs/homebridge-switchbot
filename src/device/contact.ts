@@ -196,10 +196,18 @@ export class Contact {
       default:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} timeout no closed, doorstate: ${this.doorState}`);
     }
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
+    if ((this.ContactSensorState !== this.accessory.context.ContactSensorState)
+    && this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Opened`);
+    }
     // Movement
     if (!this.device.contact?.hide_motionsensor) {
       this.MotionDetected = Boolean(this.movement);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
+      if ((this.MotionDetected !== this.accessory.context.MotionDetected) && this.MotionDetected) {
+        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Detected Motion`);
+      }
     }
     // Light Level
     if (!this.device.contact?.hide_lightsensor) {
@@ -212,10 +220,11 @@ export class Contact {
         default:
           this.CurrentAmbientLightLevel = this.set_maxLux;
       }
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.is_light},` +
-          ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.is_light},` +
+          ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+      if (this.CurrentAmbientLightLevel !== this.accessory.context.CurrentAmbientLightLevel) {
+        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+      }
     }
     // Battery
     if (this.battery === undefined) {
