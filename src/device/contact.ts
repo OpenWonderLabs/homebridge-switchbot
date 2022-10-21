@@ -311,6 +311,7 @@ export class Contact {
         })
         .then(async () => {
           // Set an event hander
+          this.scanning = true;
           switchbot.onadvertisement = async (ad: any) => {
             this.address = ad.address;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
