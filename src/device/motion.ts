@@ -281,6 +281,7 @@ export class Motion {
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
               await this.stopScanning(switchbot);
               this.scanning = false;
+              this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} scanning: ${this.scanning}`);
             } else {
               this.connected = false;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
@@ -291,7 +292,8 @@ export class Motion {
         })
         .then(async () => {
           // Stop to monitor
-          if (!this.scanning) {
+          this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} scanning: ${this.scanning}`);
+          if (this.scanning) {
             await this.stopScanning(switchbot);
           }
         })
