@@ -308,16 +308,6 @@ export class Motion {
     }
   }
 
-  async stopScanning(switchbot: any) {
-    await switchbot.stopScan();
-    if (this.connected) {
-      await this.BLEparseStatus();
-      await this.updateHomeKitCharacteristics();
-    } else {
-      await this.BLERefreshConnection(switchbot);
-    }
-  }
-
   async openAPIRefreshStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
     try {
@@ -408,6 +398,16 @@ export class Motion {
           + ` updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
         );
       }
+    }
+  }
+
+  async stopScanning(switchbot: any) {
+    await switchbot.stopScan();
+    if (this.connected) {
+      await this.BLEparseStatus();
+      await this.updateHomeKitCharacteristics();
+    } else {
+      await this.BLERefreshConnection(switchbot);
     }
   }
 

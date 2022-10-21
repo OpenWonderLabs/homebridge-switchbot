@@ -35,7 +35,12 @@ export class Contact {
   deviceStatus!: any; //deviceStatusResponse;
 
   // BLE Others
+  tested!: any;
+  contact_open!: any;
+  button_count!: any;
+  scanning!: boolean;
   connected?: boolean;
+  contact_timeout!: any;
   switchbot!: switchbot;
   serviceData!: serviceData;
   address!: ad['address'];
@@ -43,10 +48,6 @@ export class Contact {
   movement!: serviceData['movement'];
   doorState!: serviceData['doorState'];
   is_light!: any; //serviceData['lightLevel'];
-  tested!: any;
-  contact_open!: any;
-  contact_timeout!: any;
-  button_count!: any;
 
   // Config
   set_minLux!: number;
@@ -324,6 +325,7 @@ export class Contact {
               this.connected = true;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
               await this.stopScanning(switchbot);
+              this.scanning = false;
             } else {
               this.connected = false;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
@@ -334,7 +336,9 @@ export class Contact {
         })
         .then(async () => {
           // Stop to monitor
-          await this.stopScanning(switchbot);
+          if (this.scanning) {
+            await this.stopScanning(switchbot);
+          }
         })
         .catch(async (e: any) => {
           this.apiError(e);
