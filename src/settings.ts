@@ -140,8 +140,8 @@ export interface irDevicesConfig extends irdevice {
   customOn?: string;
   customOff?: string;
   customize?: boolean;
-  allowPushOn?: boolean;
-  allowPushOff?: boolean;
+  disablePushOn?: boolean;
+  disablePushOff?: boolean;
   irfan?: irfan;
   irair?: irair;
   irpur?: Record<any, any>;
@@ -168,6 +168,12 @@ export type irair = {
 export type other = {
   deviceType?: string;
 };
+
+export type body = {
+  command: string;
+  parameter: string;
+  commandType: string;
+}
 
 //a list of physical devices.
 export type deviceList = {
@@ -359,7 +365,7 @@ export type switchbot = {
   wait: (arg0: number) => any;
 };
 
-export function rgb2hs(r, g, b) {
+export function rgb2hs(r: any, g: any, b: any) {
   /*
     Credit:
     https://github.com/WickyNilliams/pure-color
@@ -394,7 +400,7 @@ export function rgb2hs(r, g, b) {
   return [Math.round(h), Math.round(s)];
 }
 
-export function hs2rgb(h, s) {
+export function hs2rgb(h: any, s: any) {
   /*
     Credit:
     https://github.com/WickyNilliams/pure-color
@@ -437,7 +443,7 @@ export function hs2rgb(h, s) {
   return [Math.round(rgb[0]), Math.round(rgb[1]), Math.round(rgb[2])];
 }
 
-export function k2rgb(k) {
+export function k2rgb(k: number) {
   // Set kelvin to nearest 100, between 2000 and 7100
   k = Math.round(k / 100) * 100;
   k = Math.max(Math.min(k, 7100), 2000);

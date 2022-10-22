@@ -29,8 +29,8 @@ export class Fan {
   minStep?: number;
   minValue?: number;
   maxValue?: number;
-  allowPushOn?: boolean;
-  allowPushOff?: boolean;
+  disablePushOn?: boolean;
+  disablePushOff?: boolean;
   deviceLogging!: string;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
@@ -38,8 +38,8 @@ export class Fan {
     this.logs(device);
     this.config(device);
     this.context();
-    this.allowPushOnChanges({ device });
-    this.allowPushOffChanges({ device });
+    this.disablePushOnChanges({ device });
+    this.disablePushOffChanges({ device });
 
     // set accessory information
     accessory
@@ -151,16 +151,13 @@ export class Fan {
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${value}`);
-    if (value === this.platform.Characteristic.Active.INACTIVE) {
-      this.pushFanOffChanges();
-    } else {
-      this.pushFanOnChanges();
-    }
-    /**
-     * pushFanOnChanges and pushFanOffChanges above assume they are measuring the state of the accessory BEFORE
-     * they are updated, so we are only updating the accessory state after calling the above.
-     */
+
     this.Active = value;
+    if (this.Active === this.platform.Characteristic.Active.ACTIVE) {
+      this.pushFanOnChanges();
+    } else {
+      this.pushFanOffChanges();
+    }
   }
 
   /**
@@ -174,8 +171,8 @@ export class Fan {
    */
   async pushFanOnChanges(): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushFanOnChanges Active: ${this.Active},`
-    + ` allowPushOn: ${this.allowPushOn}`);
-    if (this.Active === this.platform.Characteristic.Active.INACTIVE || this.allowPushOn) {
+    + ` disablePushOn: ${this.disablePushOn}`);
+    if (this.Active === this.platform.Characteristic.Active.ACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const body = superStringify({
@@ -189,8 +186,8 @@ export class Fan {
 
   async pushFanOffChanges(): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushLightOffChanges Active: ${this.Active},`
-    + ` allowPushOff: ${this.allowPushOff}`);
-    if (this.Active === this.platform.Characteristic.Active.ACTIVE || this.allowPushOff) {
+    + ` disablePushOff: ${this.disablePushOff}`);
+    if (this.Active === this.platform.Characteristic.Active.INACTIVE && !this.disablePushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
       const body = superStringify({
@@ -306,19 +303,19 @@ export class Fan {
     }
   }
 
-  async allowPushOnChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
-    if (device.allowPushOn) {
-      this.allowPushOn = true;
+  async disablePushOnChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+    if (device.disablePushOn === undefined) {
+      this.disablePushOn = false;
     } else {
-      this.allowPushOn = false;
+      this.disablePushOn = device.disablePushOn;
     }
   }
 
-  async allowPushOffChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
-    if (device.allowPushOff) {
-      this.allowPushOff = true;
+  async disablePushOffChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+    if (device.disablePushOff === undefined) {
+      this.disablePushOff = false;
     } else {
-      this.allowPushOff = false;
+      this.disablePushOff = device.disablePushOff;
     }
   }
 
@@ -437,11 +434,11 @@ export class Fan {
     if (device.customize !== undefined) {
       config['customize'] = device.customize;
     }
-    if (device.allowPushOn !== undefined) {
-      config['allowPushOn'] = device.allowPushOn;
+    if (device.disablePushOn !== undefined) {
+      config['disablePushOn'] = device.disablePushOn;
     }
-    if (device.allowPushOff !== undefined) {
-      config['allowPushOff'] = device.allowPushOff;
+    if (device.disablePushOff !== undefined) {
+      config['disablePushOff'] = device.disablePushOff;
     }
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);

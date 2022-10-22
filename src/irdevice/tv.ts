@@ -4,7 +4,7 @@ import { IncomingMessage } from 'http';
 import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
-import { irdevice, irDevicesConfig, HostDomain, DevicePath } from '../settings';
+import { irdevice, irDevicesConfig, HostDomain, DevicePath, body } from '../settings';
 
 /**
  * Platform Accessory
@@ -24,8 +24,8 @@ export class TV {
   deviceStatus!: any;
 
   // Config
-  allowPushOn?: boolean;
-  allowPushOff?: boolean;
+  disablePushOn?: boolean;
+  disablePushOff?: boolean;
   deviceLogging!: string;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
@@ -33,8 +33,8 @@ export class TV {
     this.logs(device);
     this.config(device);
     this.context();
-    this.allowPushOnChanges({ device });
-    this.allowPushOffChanges({ device });
+    this.disablePushOnChanges({ device });
+    this.disablePushOffChanges({ device });
 
     // set accessory information
     accessory
@@ -53,13 +53,13 @@ export class TV {
       case 'DIY Speaker':
         accessory.category = this.platform.api.hap.Categories.SPEAKER;
         (this.tvService = accessory.getService(this.platform.Service.Television) || accessory.addService(this.platform.Service.Television)),
-        `${accessory.displayName} Speaker`;
+        `${accessory.displayName} ${device.remoteType}`;
         break;
       case 'IPTV':
       case 'DIY IPTV':
         accessory.category = this.platform.api.hap.Categories.TV_STREAMING_STICK;
         (this.tvService = accessory.getService(this.platform.Service.Television) || accessory.addService(this.platform.Service.Television)),
-        `${accessory.displayName} Streaming Stick`;
+        `${accessory.displayName} ${device.remoteType}`;
         break;
       case 'DVD':
       case 'DIY DVD':
@@ -67,7 +67,7 @@ export class TV {
       case 'DIY Set Top Box':
         accessory.category = this.platform.api.hap.Categories.TV_SET_TOP_BOX;
         (this.tvService = accessory.getService(this.platform.Service.Television) || accessory.addService(this.platform.Service.Television)),
-        `${accessory.displayName} Set Top Box`;
+        `${accessory.displayName} ${device.remoteType}`;
         break;
       default:
         accessory.category = this.platform.api.hap.Categories.TELEVISION;
@@ -75,7 +75,7 @@ export class TV {
         // get the Television service if it exists, otherwise create a new Television service
         // you can create multiple services for each accessory
         (this.tvService = accessory.getService(this.platform.Service.Television) || accessory.addService(this.platform.Service.Television)),
-        `${accessory.displayName} TV`;
+        `${accessory.displayName} ${device.remoteType}`;
     }
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
@@ -200,17 +200,14 @@ export class TV {
   }
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${value}`);
-    if (value === this.platform.Characteristic.Active.ACTIVE) {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active (value): ${value}`);
+
+    this.Active = value;
+    if (this.Active === this.platform.Characteristic.Active.ACTIVE) {
       await this.pushTvOnChanges();
     } else {
       await this.pushTvOffChanges();
     }
-    /**
-       * pushTvOnChanges and pushTvOffChanges above assume they are measuring the state of the accessory BEFORE
-       * they are updated, so we are only updating the accessory state after calling the above.
-       */
-    this.Active = value;
   }
 
   /**
@@ -225,8 +222,8 @@ export class TV {
    */
   async pushTvOnChanges(): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushTvOnChanges Active: ${this.Active},`
-    + ` allowPushOn: ${this.allowPushOn}`);
-    if (this.Active === this.platform.Characteristic.Active.INACTIVE || this.allowPushOn) {
+    + ` disablePushOn: ${this.disablePushOn}`);
+    if (this.Active === this.platform.Characteristic.Active.ACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const body = superStringify({
@@ -240,8 +237,8 @@ export class TV {
 
   async pushTvOffChanges(): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushTvOffChanges Active: ${this.Active},`
-    + ` allowPushOff: ${this.allowPushOff}`);
-    if (this.Active === this.platform.Characteristic.Active.ACTIVE || this.allowPushOff) {
+    + ` disablePushOff: ${this.disablePushOff}`);
+    if (this.Active === this.platform.Characteristic.Active.INACTIVE && !this.disablePushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
       const body = superStringify({
@@ -334,7 +331,7 @@ export class TV {
     await this.pushTVChanges(body);
   }
 
-  async pushTVChanges(body): Promise<void> {
+  async pushTVChanges(body: Array<body>): Promise<void> {
     if (this.device.connectionType === 'OpenAPI') {
       {
         try {
@@ -406,19 +403,19 @@ export class TV {
     }
   }
 
-  async allowPushOnChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
-    if (device.allowPushOn) {
-      this.allowPushOn = true;
+  async disablePushOnChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+    if (device.disablePushOn === undefined) {
+      this.disablePushOn = false;
     } else {
-      this.allowPushOn = false;
+      this.disablePushOn = device.disablePushOn;
     }
   }
 
-  async allowPushOffChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
-    if (device.allowPushOff) {
-      this.allowPushOff = true;
+  async disablePushOffChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+    if (device.disablePushOff === undefined) {
+      this.disablePushOff = false;
     } else {
-      this.allowPushOff = false;
+      this.disablePushOff = device.disablePushOff;
     }
   }
 
@@ -541,11 +538,11 @@ export class TV {
     if (device.customize !== undefined) {
       config['customize'] = device.customize;
     }
-    if (device.allowPushOn !== undefined) {
-      config['allowPushOn'] = device.allowPushOn;
+    if (device.disablePushOn !== undefined) {
+      config['disablePushOn'] = device.disablePushOn;
     }
-    if (device.allowPushOff !== undefined) {
-      config['allowPushOff'] = device.allowPushOff;
+    if (device.disablePushOff !== undefined) {
+      config['disablePushOff'] = device.disablePushOff;
     }
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);

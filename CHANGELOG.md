@@ -2,14 +2,18 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [Version 2.2.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.2.2) (2022-10-20)
+## [Version 2.2.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.2.2) (2022-10-22)
 
 ## What's Changed
 
-- Removed `disable_power` config in favor of `allowPushOn` and `allowPushOff` config settings.
+- Changed from `allowPushOn` and `allowPushOff` configs to `disablePushOn` and `disablePushOff` config, so default is to push changes.
+  - Removed `disable_power` config in favor of `disablePushOn` and `disablePushOff` config settings.
+- Fixed Issue where IR Devices commands wouldn't send commands. [#551](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/551), [#553](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/553), [#545](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/545)
+- Issue where plugin would continue to crash homebridge. [#547](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/547)
 - Fix for node-switchbot showing not installed.
+- Housekeeping and updated dependencies.
 
-**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.2....v2.2.2
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.2.1....v2.2.2
 
 ## [Version 2.2.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.2.1) (2022-10-18)
 
