@@ -485,7 +485,12 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       case 'Speaker':
       case 'DIY Speaker':
         this.debugLog(`Discovered ${device.remoteType}: ${device.deviceId}`);
-        this.createTV(device);
+        if (device.external === undefined) {
+          device.external = true;
+          this.createTV(device);
+        } else {
+          this.createTV(device);
+        }
         break;
       case 'Fan':
       case 'DIY Fan':
@@ -1833,11 +1838,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
        * Only one TV can exist per bridge, to bypass this limitation, you should
        * publish your TV as an external accessory.
        */
-    if (device.external === undefined && device.remoteType === 'TV') {
-      device.external = true;
-      this.debugWarnLog(`${accessory.displayName} External TV Accessory Mode`);
-      this.externalAccessory(accessory);
-    } else if (device.external) {
+    if (device.external) {
       this.debugWarnLog(`${accessory.displayName} External Accessory Mode`);
       this.externalAccessory(accessory);
     } else {
