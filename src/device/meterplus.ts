@@ -487,7 +487,7 @@ export class MeterPlus {
       : null;
   }
 
-  async stopScanning({ switchbot }: { switchbot: any; }): Promise<void> {
+  async stopScanning(switchbot: any) {
     await switchbot.stopScan();
     if (this.connected) {
       await this.BLEparseStatus();

@@ -19,8 +19,8 @@ export class Light {
   On!: CharacteristicValue;
 
   // Config
-  allowPushOn?: boolean;
-  allowPushOff?: boolean;
+  disablePushOn?: boolean;
+  disablePushOff?: boolean;
   deviceLogging!: string;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
@@ -28,8 +28,8 @@ export class Light {
     this.logs(device);
     this.config(device);
     this.context();
-    this.allowPushOnChanges({ device });
-    this.allowPushOffChanges({ device });
+    this.disablePushOnChanges({ device });
+    this.disablePushOffChanges({ device });
 
     // set accessory information
     accessory
@@ -60,7 +60,9 @@ export class Light {
 
   async OnSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${value}`);
-    if (value) {
+
+    this.On = value;
+    if (this.On) {
       await this.pushLightOnChanges();
     } else {
       await this.pushLightOffChanges();
@@ -69,7 +71,6 @@ export class Light {
      * pushLightOnChanges and pushLightOffChanges above assume they are measuring the state of the accessory BEFORE
      * they are updated, so we are only updating the accessory state after calling the above.
      */
-    this.On = value;
   }
 
   /**
@@ -84,8 +85,8 @@ export class Light {
    */
   async pushLightOnChanges(): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushLightOnChanges On: ${this.On},`
-    + ` allowPushOn: ${this.allowPushOn}`);
-    if (this.On || this.allowPushOn) {
+    + ` disablePushOn: ${this.disablePushOn}`);
+    if (this.On && !this.disablePushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const body = superStringify({
@@ -99,8 +100,8 @@ export class Light {
 
   async pushLightOffChanges(): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushLightOffChanges On: ${this.On},`
-    + ` allowPushOff: ${this.allowPushOff}`);
-    if (!this.On || this.allowPushOff) {
+    + ` disablePushOff: ${this.disablePushOff}`);
+    if (!this.On && !this.disablePushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
       const body = superStringify({
@@ -194,19 +195,19 @@ export class Light {
     }
   }
 
-  async allowPushOnChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
-    if (device.allowPushOn) {
-      this.allowPushOn = true;
+  async disablePushOnChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+    if (device.disablePushOn === undefined) {
+      this.disablePushOn = false;
     } else {
-      this.allowPushOn = false;
+      this.disablePushOn = device.disablePushOn;
     }
   }
 
-  async allowPushOffChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
-    if (device.allowPushOff) {
-      this.allowPushOn = true;
+  async disablePushOffChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+    if (device.disablePushOff === undefined) {
+      this.disablePushOff = false;
     } else {
-      this.allowPushOn = false;
+      this.disablePushOff = device.disablePushOff;
     }
   }
 
@@ -322,11 +323,11 @@ export class Light {
     if (device.customize !== undefined) {
       config['customize'] = device.customize;
     }
-    if (device.allowPushOn !== undefined) {
-      config['allowPushOn'] = device.allowPushOn;
+    if (device.disablePushOn !== undefined) {
+      config['disablePushOn'] = device.disablePushOn;
     }
-    if (device.allowPushOff !== undefined) {
-      config['allowPushOff'] = device.allowPushOff;
+    if (device.disablePushOff !== undefined) {
+      config['disablePushOff'] = device.disablePushOff;
     }
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);

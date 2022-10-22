@@ -392,7 +392,7 @@ export class ColorBulb {
             if (this.serviceData) {
               this.connected = true;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
-              await this.stopScanning({ switchbot });
+              await this.stopScanning(switchbot);
             } else {
               this.connected = false;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
@@ -403,7 +403,7 @@ export class ColorBulb {
         })
         .then(async () => {
         // Stop to monitor
-          await this.stopScanning({ switchbot });
+          await this.stopScanning(switchbot);
         })
         .catch(async (e: any) => {
           this.apiError(e);
@@ -689,7 +689,7 @@ export class ColorBulb {
           'parameter': 'default',
           'commandType': 'command',
         });
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
         const options = {
           hostname: HostDomain,
           port: 443,
@@ -766,7 +766,7 @@ export class ColorBulb {
           'parameter': `${red}:${green}:${blue}`,
           'commandType': 'command',
         });
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
         const options = {
           hostname: HostDomain,
           port: 443,
@@ -825,7 +825,7 @@ export class ColorBulb {
           'parameter': `${kelvin}`,
           'commandType': 'command',
         });
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
         const options = {
           hostname: HostDomain,
           port: 443,
@@ -882,7 +882,7 @@ export class ColorBulb {
           'parameter': `${this.Brightness}`,
           'commandType': 'command',
         });
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
         const options = {
           hostname: HostDomain,
           port: 443,
@@ -1065,7 +1065,7 @@ export class ColorBulb {
     }
   }
 
-  async stopScanning({ switchbot }: { switchbot: any; }): Promise<void> {
+  async stopScanning(switchbot: any) {
     await switchbot.stopScan();
     if (this.connected) {
       await this.BLEparseStatus();

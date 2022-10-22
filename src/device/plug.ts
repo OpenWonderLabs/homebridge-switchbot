@@ -392,7 +392,7 @@ export class Plug {
           'parameter': 'default',
           'commandType': 'command',
         });
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
         const options = {
           hostname: HostDomain,
           port: 443,
@@ -458,7 +458,7 @@ export class Plug {
     }
   }
 
-  async stopScanning({ switchbot }: { switchbot: any; }): Promise<void> {
+  async stopScanning(switchbot: any) {
     await switchbot.stopScan();
     if (this.connected) {
       await this.BLEparseStatus();

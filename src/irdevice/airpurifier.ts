@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { IncomingMessage } from 'http';
 import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
-import { irDevicesConfig, irdevice, HostDomain, DevicePath } from '../settings';
+import { irDevicesConfig, irdevice, HostDomain, DevicePath, body } from '../settings';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 
 /**
@@ -37,8 +37,8 @@ export class AirPurifier {
   static PURIFYING_AIR: number;
 
   // Config
-  allowPushOn?: boolean;
-  allowPushOff?: boolean;
+  disablePushOn?: boolean;
+  disablePushOff?: boolean;
   deviceLogging!: string;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
@@ -46,8 +46,8 @@ export class AirPurifier {
     this.logs(device);
     this.config(device);
     this.context();
-    this.allowPushOnChanges({ device });
-    this.allowPushOffChanges({ device });
+    this.disablePushOnChanges({ device });
+    this.disablePushOffChanges({ device });
 
     // set accessory information
     accessory
@@ -84,16 +84,13 @@ export class AirPurifier {
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Active: ${value}`);
-    if (value === this.platform.Characteristic.Active.INACTIVE) {
-      this.pushAirPurifierOffChanges();
-    } else {
-      this.pushAirPurifierOnChanges();
-    }
-    /**
-     * pushAirPurifierOnChanges and pushAirPurifierOffChanges above assume they are measuring the state of the accessory BEFORE
-     * they are updated, so we are only updating the accessory state after calling the above.
-     */
+
     this.Active = value;
+    if (this.Active === this.platform.Characteristic.Active.ACTIVE) {
+      this.pushAirPurifierOnChanges();
+    } else {
+      this.pushAirPurifierOffChanges();
+    }
   }
 
   async TargetAirPurifierStateSet(value: CharacteristicValue): Promise<void> {
@@ -134,8 +131,8 @@ export class AirPurifier {
    */
   async pushAirPurifierOnChanges(): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushAirPurifierOnChanges Active: ${this.Active},`
-    + ` allowPushOn: ${this.allowPushOn}`);
-    if (this.Active === this.platform.Characteristic.Active.INACTIVE || this.allowPushOn) {
+    + ` disablePushOn: ${this.disablePushOn}`);
+    if (this.Active === this.platform.Characteristic.Active.ACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const body = superStringify({
@@ -149,8 +146,8 @@ export class AirPurifier {
 
   async pushAirPurifierOffChanges(): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushAirPurifierOffChanges Active: ${this.Active},`
-    + ` allowPushOff: ${this.allowPushOff}`);
-    if (this.Active === this.platform.Characteristic.Active.ACTIVE || this.allowPushOn) {
+    + ` disablePushOff: ${this.disablePushOff}`);
+    if (this.Active === this.platform.Characteristic.Active.INACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
       const body = superStringify({
@@ -162,7 +159,9 @@ export class AirPurifier {
     }
   }
 
-  async pushAirConditionerStatusChanges(): Promise<void> {
+  async pushAirPurifierStatusChanges(): Promise<void> {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushAirPurifierStatusChanges Active: ${this.Active},`
+    + ` disablePushOff: ${this.disablePushOff},  disablePushOn: ${this.disablePushOn}`);
     if (!this.Busy) {
       this.Busy = true;
       this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.IDLE;
@@ -170,10 +169,12 @@ export class AirPurifier {
     clearTimeout(this.Timeout);
 
     // Make a new Timeout set to go off in 1000ms (1 second)
-    this.Timeout = setTimeout(this.pushAirConditionerDetailsChanges.bind(this), 1500);
+    this.Timeout = setTimeout(this.pushAirPurifierDetailsChanges.bind(this), 1500);
   }
 
-  async pushAirConditionerDetailsChanges(): Promise<void> {
+  async pushAirPurifierDetailsChanges(): Promise<void> {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushAirPurifierDetailsChanges Active: ${this.Active},`
+    + ` disablePushOff: ${this.disablePushOff},  disablePushOn: ${this.disablePushOn}`);
     this.CurrentAPTemp = this.CurrentTemperature || 24;
     this.CurrentAPMode = this.CurrentMode || 1;
     this.CurrentAPFanSpeed = this.CurrentFanSpeed || 1;
@@ -196,7 +197,7 @@ export class AirPurifier {
     await this.pushChanges(body);
   }
 
-  async pushChanges(body): Promise<void> {
+  async pushChanges(body: Array<body>): Promise<void> {
     if (this.device.connectionType === 'OpenAPI') {
       try {
       // Make Push On request to the API
@@ -278,19 +279,19 @@ export class AirPurifier {
     }
   }
 
-  async allowPushOnChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
-    if (device.allowPushOn) {
-      this.allowPushOn = true;
+  async disablePushOnChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+    if (device.disablePushOn === undefined) {
+      this.disablePushOn = false;
     } else {
-      this.allowPushOn = false;
+      this.disablePushOn = device.disablePushOn;
     }
   }
 
-  async allowPushOffChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
-    if (device.allowPushOff) {
-      this.allowPushOn = true;
+  async disablePushOffChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+    if (device.disablePushOff === undefined) {
+      this.disablePushOff = false;
     } else {
-      this.allowPushOn = false;
+      this.disablePushOff = device.disablePushOff;
     }
   }
 
@@ -414,11 +415,11 @@ export class AirPurifier {
     if (device.customize !== undefined) {
       config['customize'] = device.customize;
     }
-    if (device.allowPushOn !== undefined) {
-      config['allowPushOn'] = device.allowPushOn;
+    if (device.disablePushOn !== undefined) {
+      config['disablePushOn'] = device.disablePushOn;
     }
-    if (device.allowPushOff !== undefined) {
-      config['allowPushOff'] = device.allowPushOff;
+    if (device.disablePushOff !== undefined) {
+      config['disablePushOff'] = device.disablePushOff;
     }
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);

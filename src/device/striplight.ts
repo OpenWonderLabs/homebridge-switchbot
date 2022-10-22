@@ -54,6 +54,7 @@ export class StripLight {
 
   // Others
   cacheKelvin!: number;
+  change!: string;
 
   // Updates
   stripLightUpdateInProgress!: boolean;
@@ -214,9 +215,9 @@ export class StripLight {
   async parseStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} parseStatus enableCloudService: ${this.device.enableCloudService}`);
-    } else/*if (this.BLE) {
+    } else if (this.BLE) {
       await this.BLEparseStatus();
-    } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
+    } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
     } else {
       await this.offlineOff();
@@ -281,9 +282,9 @@ export class StripLight {
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus enableCloudService: ${this.device.enableCloudService}`);
-    } else/*if (this.BLE) {
+    } else if (this.BLE) {
       await this.BLERefreshStatus();
-    } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
+    } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
@@ -474,68 +475,117 @@ export class StripLight {
         + ` Connection, Error Message: ${superStringify(e.message)}`);
           await this.BLEPushConnection();
         });
+      // Push Brightness Update
+      if (this.On) {
+        await this.BLEpushBrightnessChanges();
+      }
+      // Push Hue & Saturation Update
+      if (this.On) {
+        await this.BLEpushRGBChanges();
+      }
     } else {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges.` + `On: ${this.On}, `
         +`OnCached: ${this.accessory.context.On}`);
     }
   }
 
+  async BLEpushBrightnessChanges(): Promise<void> {
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushBrightnessChanges`);
+    if (this.Brightness !== this.accessory.context.Brightness) {
+      const switchbot = await this.platform.connectBLE();
+      // Convert to BLE Address
+      this.device.bleMac = this.device
+        .deviceId!.match(/.{1,2}/g)!
+        .join(':')
+        .toLowerCase();
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+      switchbot
+        .discover({
+          model: 'u',
+          id: this.device.bleMac,
+        })
+        .then((device_list: any) => {
+          this.infoLog(`${this.accessory.displayName} Target Brightness: ${this.Brightness}`);
+          return device_list[0].setBrightness(this.Brightness);
+        })
+        .then(() => {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
+          this.On = false;
+        })
+        .catch(async (e: any) => {
+          this.apiError(e);
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushBrightnessChanges with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${superStringify(e.message)}`);
+          await this.BLEPushConnection();
+        });
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No BLEpushBrightnessChanges.` + `Brightness: ${this.Brightness}, `
+       +`BrightnessCached: ${this.accessory.context.Brightness}`);
+    }
+  }
+
+  async BLEpushRGBChanges(): Promise<void> {
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushRGBChanges`);
+    if (this.Hue !== this.accessory.context.Hue || this.Saturation !== this.accessory.context.Saturation) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${superStringify(this.Hue)}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${superStringify(this.Saturation)}`);
+
+      const [red, green, blue] = hs2rgb(Number(this.Hue), Number(this.Saturation));
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} rgb: ${superStringify([red, green, blue])}`);
+
+      const switchbot = await this.platform.connectBLE();
+      // Convert to BLE Address
+      this.device.bleMac = this.device
+        .deviceId!.match(/.{1,2}/g)!
+        .join(':')
+        .toLowerCase();
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+      switchbot
+        .discover({
+          model: 'u',
+          id: this.device.bleMac,
+        })
+        .then((device_list: any) => {
+          this.infoLog(`${this.accessory.displayName} Target RGB: ${this.Brightness, red, green, blue}`);
+          return device_list[0].setRGB(this.Brightness, red, green, blue);
+        })
+        .then(() => {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
+          this.On = false;
+        })
+        .catch(async (e: any) => {
+          this.apiError(e);
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushRGBChanges with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${superStringify(e.message)}`);
+          await this.BLEPushConnection();
+        });
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No BLEpushRGBChanges. Hue: ${this.Hue}, `
+        + `HueCached: ${this.accessory.context.Hue}, Saturation: ${this.Saturation}, SaturationCached: ${this.accessory.context.Saturation}`);
+    }
+  }
+
   async openAPIpushChanges() {
+    const change = 'openAPIpushChanges';
     try {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${change}`);
       if (this.On !== this.accessory.context.On) {
         // Make Push On request to the API
-        const t = Date.now();
-        const nonce = 'requestID';
-        const data = this.platform.config.credentials?.token + t + nonce;
-        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
-          .update(Buffer.from(data, 'utf-8'))
-          .digest();
-        const sign = signTerm.toString('base64');
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
-
-        let command = '';
-        if (this.On) {
+        const command = this.On ? 'turnOn' : 'turnOff';
+        /*if (this.On) {
           command = 'turnOn';
         } else {
           command = 'turnOff';
-        }
+        }*/
         const body = superStringify({
           'command': `${command}`,
           'parameter': 'default',
           'commandType': 'command',
         });
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
-        const options = {
-          hostname: HostDomain,
-          port: 443,
-          path: `${DevicePath}/${this.device.deviceId}/commands`,
-          method: 'POST',
-          headers: {
-            'Authorization': this.platform.config.credentials?.token,
-            'sign': sign,
-            'nonce': nonce,
-            't': t,
-            'Content-Type': 'application/json',
-            'Content-Length': body.length,
-          },
-        };
-        const req = https.request(options, res => {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges statusCode: ${res.statusCode}`);
-          this.statusCode({ res });
-          res.on('data', d => {
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
-          });
-        });
-        req.on('error', (e: any) => {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
-        });
-        req.write(body);
-        req.end();
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges: ${superStringify(req)}`);
+        await this.request({ body, change });
       } else {
         this.debugLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges.` + `On: ${this.On}, `
+          `${this.device.deviceType}: ${this.accessory.displayName} No ${change}.` + `On: ${this.On}, `
           +`OnCached: ${this.accessory.context.On}`,
         );
       }
@@ -549,15 +599,16 @@ export class StripLight {
       }
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed ${change} with ${this.device.connectionType}`
         + ` Connection, Error Message: ${superStringify(e.message)}`,
       );
     }
   }
 
   async pushHueSaturationChanges(): Promise<void> {
+    const change = 'pushHueSaturationChanges';
     try {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} pushHueSaturationChanges`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${change}`);
       if (this.Hue !== this.accessory.context.Hue || this.Saturation !== this.accessory.context.Saturation) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${superStringify(this.Hue)}`);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${superStringify(this.Saturation)}`);
@@ -565,113 +616,83 @@ export class StripLight {
         const [red, green, blue] = hs2rgb(Number(this.Hue), Number(this.Saturation));
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} rgb: ${superStringify([red, green, blue])}`);
         // Make Push On request to the API
-        const t = Date.now();
-        const nonce = 'requestID';
-        const data = this.platform.config.credentials?.token + t + nonce;
-        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
-          .update(Buffer.from(data, 'utf-8'))
-          .digest();
-        const sign = signTerm.toString('base64');
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
         const body = superStringify({
           'command': 'setColor',
           'parameter': `${red}:${green}:${blue}`,
           'commandType': 'command',
         });
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
-        const options = {
-          hostname: HostDomain,
-          port: 443,
-          path: `${DevicePath}/${this.device.deviceId}/commands`,
-          method: 'POST',
-          headers: {
-            'Authorization': this.platform.config.credentials?.token,
-            'sign': sign,
-            'nonce': nonce,
-            't': t,
-            'Content-Type': 'application/json',
-            'Content-Length': body.length,
-          },
-        };
-        const req = https.request(options, res => {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} pushHueSaturationChanges statusCode: ${res.statusCode}`);
-          this.statusCode({ res });
-          res.on('data', d => {
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
-          });
-        });
-        req.on('error', (e: any) => {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
-        });
-        req.write(body);
-        req.end();
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} pushHueSaturationChanges: ${superStringify(req)}`);
+        await this.request({ body, change });
       } else {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No pushHueSaturationChanges. Hue: ${this.Hue}, `
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No ${change}. Hue: ${this.Hue}, `
         + `HueCached: ${this.accessory.context.Hue}, Saturation: ${this.Saturation}, SaturationCached: ${this.accessory.context.Saturation}`);
       }
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushHueSaturationChanges with ${this.device.connectionType}`
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed ${change} with ${this.device.connectionType}`
           + ` Connection, Error Message: ${superStringify(e.message)}`);
     }
   }
 
   async pushBrightnessChanges(): Promise<void> {
+    const change = 'pushBrightnessChanges';
     try {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} pushBrightnessChanges`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${change}`);
       if (this.Brightness !== this.accessory.context.Brightness) {
         // Make Push On request to the API
-        const t = Date.now();
-        const nonce = 'requestID';
-        const data = this.platform.config.credentials?.token + t + nonce;
-        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
-          .update(Buffer.from(data, 'utf-8'))
-          .digest();
-        const sign = signTerm.toString('base64');
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
         const body = superStringify({
           'command': 'setBrightness',
           'parameter': `${this.Brightness}`,
           'commandType': 'command',
         });
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
-        const options = {
-          hostname: HostDomain,
-          port: 443,
-          path: `${DevicePath}/${this.device.deviceId}/commands`,
-          method: 'POST',
-          headers: {
-            'Authorization': this.platform.config.credentials?.token,
-            'sign': sign,
-            'nonce': nonce,
-            't': t,
-            'Content-Type': 'application/json',
-            'Content-Length': body.length,
-          },
-        };
-        const req = https.request(options, res => {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} pushBrightnessChanges statusCode: ${res.statusCode}`);
-          this.statusCode({ res });
-          res.on('data', d => {
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
-          });
-        });
-        req.on('error', (e: any) => {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
-        });
-        req.write(body);
-        req.end();
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} pushBrightnessChanges: ${superStringify(req)}`);
+        await this.request({ body, change });
       } else {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No pushBrightnessChanges.` + `Brightness: ${this.Brightness}, `
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No ${change},` + `Brightness: ${this.Brightness}, `
           +`BrightnessCached: ${this.accessory.context.Brightness}`);
       }
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushBrightnessChanges with ${this.device.connectionType}`
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed ${change} with ${this.device.connectionType}`
           + ` Connection, Error Message: ${superStringify(e.message)}`);
     }
+  }
+
+  async request({ body, change }: { body: any; change: string; }): Promise<void> {
+    const t = Date.now();
+    const nonce = 'requestID';
+    const data = this.platform.config.credentials?.token + t + nonce;
+    const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+      .update(Buffer.from(data, 'utf-8'))
+      .digest();
+    const sign = signTerm.toString('base64');
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
+    const options = {
+      hostname: HostDomain,
+      port: 443,
+      path: `${DevicePath}/${this.device.deviceId}/commands`,
+      method: 'POST',
+      headers: {
+        'Authorization': this.platform.config.credentials?.token,
+        'sign': sign,
+        'nonce': nonce,
+        't': t,
+        'Content-Type': 'application/json',
+        'Content-Length': body.length,
+      },
+    };
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
+    const req = https.request(options, res => {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${change} statusCode: ${res.statusCode}`);
+      this.statusCode({ res });
+      res.on('data', d => {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
+      });
+    });
+    req.on('error', (e: any) => {
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
+    });
+    req.write(body);
+    req.end();
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${change} req: ${superStringify(req)}`);
   }
 
   /**
@@ -809,7 +830,7 @@ export class StripLight {
     }
   }
 
-  async stopScanning({ switchbot }: { switchbot: any; }): Promise<void> {
+  async stopScanning(switchbot: any) {
     await switchbot.stopScan();
     if (this.connected) {
       await this.BLEparseStatus();
@@ -1004,7 +1025,7 @@ export class StripLight {
     } else {
       this.Brightness = this.accessory.context.Brightness;
     }
-    if (this.Brightness === undefined) {
+    if (this.Saturation === undefined) {
       this.Saturation = 0;
     } else {
       this.Saturation = this.accessory.context.Saturation;
