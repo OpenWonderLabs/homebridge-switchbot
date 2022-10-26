@@ -26,6 +26,7 @@ export class TV {
   // Config
   disablePushOn?: boolean;
   disablePushOff?: boolean;
+  disablePushDetail?: boolean;
   deviceLogging!: string;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
@@ -35,6 +36,7 @@ export class TV {
     this.context();
     this.disablePushOnChanges({ device });
     this.disablePushOffChanges({ device });
+    this.disablePushDetailChanges({ device });
 
     // set accessory information
     accessory
@@ -251,84 +253,111 @@ export class TV {
   }
 
   async pushOkChanges(): Promise<void> {
-    const body = superStringify({
-      'command': 'Ok',
-      'parameter': 'default',
-      'commandType': 'command',
-    });
-    await this.pushTVChanges(body);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOkChanges disablePushDetail: ${this.disablePushDetail}`);
+    if (!this.disablePushDetail) {
+      const body = superStringify({
+        'command': 'Ok',
+        'parameter': 'default',
+        'commandType': 'command',
+      });
+      await this.pushTVChanges(body);
+    }
   }
 
   async pushBackChanges(): Promise<void> {
-    const body = superStringify({
-      'command': 'Back',
-      'parameter': 'default',
-      'commandType': 'command',
-    });
-    await this.pushTVChanges(body);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushBackChanges disablePushDetail: ${this.disablePushDetail}`);
+    if (!this.disablePushDetail) {
+      const body = superStringify({
+        'command': 'Back',
+        'parameter': 'default',
+        'commandType': 'command',
+      });
+      await this.pushTVChanges(body);
+    }
   }
 
   async pushMenuChanges(): Promise<void> {
-    const body = superStringify({
-      'command': 'Menu',
-      'parameter': 'default',
-      'commandType': 'command',
-    });
-    await this.pushTVChanges(body);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushMenuChanges disablePushDetail: ${this.disablePushDetail}`);
+    if (!this.disablePushDetail) {
+      const body = superStringify({
+        'command': 'Menu',
+        'parameter': 'default',
+        'commandType': 'command',
+      });
+      await this.pushTVChanges(body);
+    }
   }
 
   async pushUpChanges(): Promise<void> {
-    const body = superStringify({
-      'command': 'Up',
-      'parameter': 'default',
-      'commandType': 'command',
-    });
-    await this.pushTVChanges(body);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushUpChanges disablePushDetail: ${this.disablePushDetail}`);
+    if (!this.disablePushDetail) {
+      const body = superStringify({
+        'command': 'Up',
+        'parameter': 'default',
+        'commandType': 'command',
+      });
+      await this.pushTVChanges(body);
+    }
   }
 
   async pushDownChanges(): Promise<void> {
-    const body = superStringify({
-      'command': 'Down',
-      'parameter': 'default',
-      'commandType': 'command',
-    });
-    await this.pushTVChanges(body);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushDownChanges disablePushDetail: ${this.disablePushDetail}`);
+    if (!this.disablePushDetail) {
+      const body = superStringify({
+        'command': 'Down',
+        'parameter': 'default',
+        'commandType': 'command',
+      });
+      await this.pushTVChanges(body);
+    }
   }
 
   async pushRightChanges(): Promise<void> {
-    const body = superStringify({
-      'command': 'Right',
-      'parameter': 'default',
-      'commandType': 'command',
-    });
-    await this.pushTVChanges(body);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushRightChanges disablePushDetail: ${this.disablePushDetail}`);
+    if (!this.disablePushDetail) {
+      const body = superStringify({
+        'command': 'Right',
+        'parameter': 'default',
+        'commandType': 'command',
+      });
+      await this.pushTVChanges(body);
+    }
   }
 
   async pushLeftChanges(): Promise<void> {
-    const body = superStringify({
-      'command': 'Left',
-      'parameter': 'default',
-      'commandType': 'command',
-    });
-    await this.pushTVChanges(body);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushLeftChanges disablePushDetail: ${this.disablePushDetail}`);
+    if (!this.disablePushDetail) {
+      const body = superStringify({
+        'command': 'Left',
+        'parameter': 'default',
+        'commandType': 'command',
+      });
+      await this.pushTVChanges(body);
+    }
   }
 
   async pushVolumeUpChanges(): Promise<void> {
-    const body = superStringify({
-      'command': 'volumeAdd',
-      'parameter': 'default',
-      'commandType': 'command',
-    });
-    await this.pushTVChanges(body);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushVolumeUpChanges disablePushDetail: ${this.disablePushDetail}`);
+    if (!this.disablePushDetail) {
+      const body = superStringify({
+        'command': 'volumeAdd',
+        'parameter': 'default',
+        'commandType': 'command',
+      });
+      await this.pushTVChanges(body);
+    }
   }
 
   async pushVolumeDownChanges(): Promise<void> {
-    const body = superStringify({
-      'command': 'volumeSub',
-      'parameter': 'default',
-      'commandType': 'command',
-    });
-    await this.pushTVChanges(body);
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushVolumeDownChanges disablePushDetail: ${this.disablePushDetail}`);
+    if (!this.disablePushDetail) {
+      const body = superStringify({
+        'command': 'volumeSub',
+        'parameter': 'default',
+        'commandType': 'command',
+      });
+      await this.pushTVChanges(body);
+    }
   }
 
   async pushTVChanges(body: Array<body>): Promise<void> {
@@ -416,6 +445,14 @@ export class TV {
       this.disablePushOff = false;
     } else {
       this.disablePushOff = device.disablePushOff;
+    }
+  }
+
+  async disablePushDetailChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+    if (device.disablePushDetail === undefined) {
+      this.disablePushDetail = false;
+    } else {
+      this.disablePushDetail = device.disablePushDetail;
     }
   }
 
@@ -543,6 +580,9 @@ export class TV {
     }
     if (device.disablePushOff !== undefined) {
       config['disablePushOff'] = device.disablePushOff;
+    }
+    if (device.disablePushDetail !== undefined) {
+      config['disablePushDetail'] = device.disablePushDetail;
     }
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);

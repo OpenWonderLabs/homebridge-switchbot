@@ -142,6 +142,7 @@ export interface irDevicesConfig extends irdevice {
   customize?: boolean;
   disablePushOn?: boolean;
   disablePushOff?: boolean;
+  disablePushDetail?: boolean;
   irfan?: irfan;
   irair?: irair;
   irpur?: Record<any, any>;
