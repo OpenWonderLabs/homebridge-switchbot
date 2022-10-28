@@ -103,6 +103,14 @@
   - If using OpenAPI:
     - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
     - Enable Cloud Services for Device on SwitchBot App
+- [SwitchBot Lock](https://us.switch-bot.com/products/switchbot-lock)
+  - Supports OpenAPI Connection Only
+  - If using OpenAPI:
+    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
+    - Enable Cloud Services for Device on SwitchBot App
+- [SwitchBot Robot Vacuum Cleaner S1](https://www.switchbot.jp/products/switchbot-robot-vacuum-cleaner)
+- [SwitchBot Robot Vacuum Cleaner S1 Plus](https://www.switchbot.jp/products/switchbot-robot-vacuum-cleaner)
+  - Supports OpenAPI Connection Only
 - [SwitchBot Plug](https://www.switch-bot.com/products/switchbot-plug)
 - [SwitchBot Plug Mini (US)](https://www.switch-bot.com/products/switchbot-plug-mini)
 - [SwitchBot Plug Mini (JP)](https://www.switchbot.jp/products/switchbot-plug-mini)
