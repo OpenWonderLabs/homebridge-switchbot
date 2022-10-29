@@ -131,6 +131,14 @@
                     {
                       "title": "Plug Mini (JP)",
                       "enum": ["Plug Mini (JP)"]
+                    },
+                    {
+                      "title": "Robot Vacuum Cleaner S1",
+                      "enum": ["Robot Vacuum Cleaner S1"]
+                    },
+                    {
+                      "title": "Robot Vacuum Cleaner S1 Plus",
+                      "enum": ["Robot Vacuum Cleaner S1 Plus"]
                     }
                   ],
                   "condition": {
