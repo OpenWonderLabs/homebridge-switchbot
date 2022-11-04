@@ -913,8 +913,10 @@ export class Curtain {
     if (device.scanDuration) {
       if (this.updateRate > device.scanDuration) {
         this.scanDuration = this.updateRate;
-        this.warnLog(`${this.device.deviceType}: `
+        if (this.BLE) {
+          this.warnLog(`${this.device.deviceType}: `
         + `${this.accessory.displayName} scanDuration is less then updateRate, overriding scanDuration with updateRate`);
+        }
       } else {
         this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
       }
@@ -924,8 +926,10 @@ export class Curtain {
     } else {
       if (this.updateRate > 1) {
         this.scanDuration = this.updateRate;
-        this.warnLog(`${this.device.deviceType}: `
+        if (this.BLE) {
+          this.warnLog(`${this.device.deviceType}: `
         + `${this.accessory.displayName} scanDuration is less then updateRate, overriding scanDuration with updateRate`);
+        }
       } else {
         this.scanDuration = this.accessory.context.scanDuration = 1;
       }
