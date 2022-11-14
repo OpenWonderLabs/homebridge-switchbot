@@ -42,6 +42,7 @@ export class TV {
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Name, `${device.deviceName} ${device.remoteType}`)
+      .setCharacteristic(this.platform.Characteristic.ConfiguredName, `${device.deviceName} ${device.remoteType}`)
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
@@ -114,7 +115,7 @@ export class TV {
     `${accessory.displayName} Speaker`;
 
     this.speakerService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Speaker`);
-
+    this.speakerService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Speaker`);
     this.speakerService
       .setCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.ACTIVE)
       .setCharacteristic(this.platform.Characteristic.VolumeControlType, this.platform.Characteristic.VolumeControlType.ABSOLUTE);

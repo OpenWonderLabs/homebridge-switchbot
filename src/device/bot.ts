@@ -110,6 +110,7 @@ export class Bot {
       this.infoLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Switch`);
 
       this.switchService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      this.switchService.setCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
       this.switchService.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
     } else if (device.bot?.deviceType === 'garagedoor') {
       this.removeFanService(accessory);
@@ -129,6 +130,7 @@ export class Bot {
       this.infoLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Garage Door Opener`);
 
       this.garageDoorService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      this.garageDoorService.setCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
       this.garageDoorService.getCharacteristic(this.platform.Characteristic.TargetDoorState).onSet(this.OnSet.bind(this));
       this.garageDoorService.setCharacteristic(this.platform.Characteristic.ObstructionDetected, false);
     } else if (device.bot?.deviceType === 'door') {
@@ -148,6 +150,7 @@ export class Bot {
       this.infoLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Door`);
 
       this.doorService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      this.doorService.setCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
       this.doorService
         .getCharacteristic(this.platform.Characteristic.TargetPosition)
         .setProps({
@@ -175,6 +178,7 @@ export class Bot {
       this.infoLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Window`);
 
       this.windowService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      this.windowService.setCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
       this.windowService
         .getCharacteristic(this.platform.Characteristic.TargetPosition)
         .setProps({
@@ -203,6 +207,7 @@ export class Bot {
       this.infoLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Window Covering`);
 
       this.windowCoveringService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      this.windowCoveringService.setCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
       this.windowCoveringService
         .getCharacteristic(this.platform.Characteristic.TargetPosition)
         .setProps({
@@ -230,6 +235,7 @@ export class Bot {
       this.infoLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Lock`);
 
       this.lockService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      this.lockService.setCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
       this.lockService.getCharacteristic(this.platform.Characteristic.LockTargetState).onSet(this.OnSet.bind(this));
     } else if (device.bot?.deviceType === 'faucet') {
       this.removeFanService(accessory);
@@ -248,6 +254,7 @@ export class Bot {
       this.infoLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Faucet`);
 
       this.faucetService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      this.faucetService.setCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
       this.faucetService.getCharacteristic(this.platform.Characteristic.Active).onSet(this.OnSet.bind(this));
     } else if (device.bot?.deviceType === 'fan') {
       this.removeLockService(accessory);
@@ -266,6 +273,7 @@ export class Bot {
       this.infoLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Fan`);
 
       this.fanService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      this.fanService.setCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
       this.fanService.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
     } else if (device.bot?.deviceType === 'stateful') {
       this.removeFanService(accessory);
@@ -286,6 +294,7 @@ export class Bot {
       this.infoLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Stateful Programmable Switch`);
 
       this.statefulProgrammableSwitchService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      this.statefulProgrammableSwitchService.setCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
       this.statefulProgrammableSwitchService
         .getCharacteristic(this.platform.Characteristic.ProgrammableSwitchOutputState)
         .onSet(this.OnSet.bind(this));
@@ -306,6 +315,7 @@ export class Bot {
       this.infoLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Outlet`);
 
       this.outletService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      this.outletService.setCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
       this.outletService.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
     }
 
@@ -320,6 +330,7 @@ export class Bot {
       `${accessory.displayName} Battery`;
 
       this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
+      this.batteryService.setCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
     } else {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Battery Service Not Added`);
     }

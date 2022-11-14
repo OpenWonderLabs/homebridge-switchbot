@@ -102,6 +102,7 @@ export class Contact {
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.contactSensorservice.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+    this.contactSensorservice.setCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
 
     // each service must implement at-minimum the "required characteristics" for the given service type
     // see https://developers.homebridge.io/#/service/ContactSensor
@@ -118,6 +119,7 @@ export class Contact {
       `${accessory.displayName} Motion Sensor`;
 
       this.motionService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Motion Sensor`);
+      this.motionService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Motion Sensor`);
     } else {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Motion Sensor Service Not Added`);
     }
@@ -134,6 +136,7 @@ export class Contact {
       `${accessory.displayName} Light Sensor`;
 
       this.lightSensorService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Light Sensor`);
+      this.lightSensorService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Light Sensor`);
     } else {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Light Sensor Service Not Added`);
     }
@@ -149,6 +152,7 @@ export class Contact {
       `${accessory.displayName} Battery`;
 
       this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
+      this.batteryService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Battery`);
     } else {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Battery Service Not Added`);
     }

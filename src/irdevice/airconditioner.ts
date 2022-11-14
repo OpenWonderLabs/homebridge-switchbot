@@ -76,6 +76,7 @@ export class AirConditioner {
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.coolerService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+    this.coolerService.setCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
 
     // handle on / off events using the Active characteristic
     this.coolerService.getCharacteristic(this.platform.Characteristic.Active).onSet(this.ActiveSet.bind(this));

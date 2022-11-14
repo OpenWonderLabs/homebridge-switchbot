@@ -104,7 +104,7 @@ export class Meter {
       `${accessory.displayName} Temperature Sensor`;
 
       this.temperatureservice.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
-
+      this.temperatureservice.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Temperature Sensor`);
       this.temperatureservice
         .getCharacteristic(this.platform.Characteristic.CurrentTemperature)
         .setProps({
@@ -133,7 +133,7 @@ export class Meter {
       `${accessory.displayName} Humidity Sensor`;
 
       this.humidityservice.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
-
+      this.humidityservice.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Humidity Sensor`);
       this.humidityservice
         .getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
         .setProps({
@@ -157,7 +157,7 @@ export class Meter {
       `${accessory.displayName} Battery`;
 
       this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
-
+      this.batteryService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Battery`);
       this.batteryService.setCharacteristic(this.platform.Characteristic.ChargingState, this.platform.Characteristic.ChargingState.NOT_CHARGEABLE);
     } else {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Battery Service Not Added`);

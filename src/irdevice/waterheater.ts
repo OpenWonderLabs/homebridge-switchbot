@@ -53,6 +53,7 @@ export class WaterHeater {
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.valveService.setCharacteristic(this.platform.Characteristic.Name, `${device.deviceName} ${device.remoteType}`);
+    this.valveService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${device.deviceName} ${device.remoteType}`);
 
     // set sleep discovery characteristic
     this.valveService.setCharacteristic(this.platform.Characteristic.ValveType, this.platform.Characteristic.ValveType.GENERIC_VALVE);

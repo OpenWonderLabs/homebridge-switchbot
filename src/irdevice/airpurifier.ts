@@ -71,6 +71,7 @@ export class AirPurifier {
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.airPurifierService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+    this.airPurifierService.setCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
 
     // handle on / off events using the Active characteristic
     this.airPurifierService.getCharacteristic(this.platform.Characteristic.Active).onSet(this.ActiveSet.bind(this));
