@@ -59,7 +59,9 @@ export class Others {
       `${accessory.displayName} Fan`;
 
       this.fanService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Fan`);
-      this.fanService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Fan`);
+      if (!this.fanService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.fanService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Fan`);
+      }
       this.fanService.getCharacteristic(this.platform.Characteristic.Active).onSet(this.ActiveSet.bind(this));
     } else {
       this.debugLog(`${this.device.remoteType}: ${accessory.displayName} Fanv2 Service Not Added, deviceType: ${device.other?.deviceType}`);

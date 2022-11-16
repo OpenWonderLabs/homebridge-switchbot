@@ -63,7 +63,9 @@ export class Fan {
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.fanService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
-    this.fanService.setCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+    if (!this.fanService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+      this.fanService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+    }
 
     // handle on / off events using the Active characteristic
     this.fanService.getCharacteristic(this.platform.Characteristic.Active).onSet(this.ActiveSet.bind(this));

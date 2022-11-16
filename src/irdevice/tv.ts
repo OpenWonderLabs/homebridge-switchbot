@@ -41,14 +41,19 @@ export class TV {
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
-      .setCharacteristic(this.platform.Characteristic.Name, `${device.deviceName} ${device.remoteType}`)
-      .setCharacteristic(this.platform.Characteristic.ConfiguredName, `${device.deviceName} ${device.remoteType}`)
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
       .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
       .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
       .updateValue(this.FirmwareRevision(accessory, device));
+
+    // get the Television service if it exists, otherwise create a new Television service
+    // you can create multiple services for each accessory
+    this.tvService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+    if (!this.tvService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+      this.tvService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+    }
 
     // set the accessory category
     switch (device.remoteType) {
@@ -115,7 +120,9 @@ export class TV {
     `${accessory.displayName} Speaker`;
 
     this.speakerService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Speaker`);
-    this.speakerService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Speaker`);
+    if (!this.speakerService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+      this.speakerService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Speaker`);
+    }
     this.speakerService
       .setCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.ACTIVE)
       .setCharacteristic(this.platform.Characteristic.VolumeControlType, this.platform.Characteristic.VolumeControlType.ABSOLUTE);

@@ -79,7 +79,10 @@ export class Lock {
 
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    this.lockService.setCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+    this.lockService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+    if (!this.lockService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+      this.lockService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+    }
 
     // each service must implement at-minimum the "required characteristics" for the given service type
     // see https://developers.homebridge.io/#/service/LockMechanism
@@ -99,7 +102,9 @@ export class Lock {
       `${accessory.displayName} Contact Sensor`;
 
       this.contactSensorService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Contact Sensor`);
-      this.contactSensorService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Contact Sensor`);
+      if (!this.contactSensorService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.contactSensorService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Contact Sensor`);
+      }
     } else {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Contact Sensor Service Not Added`);
     }
