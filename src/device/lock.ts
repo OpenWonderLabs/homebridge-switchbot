@@ -178,8 +178,6 @@ export class Lock {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.LockTargetState}`);
   }
 
-  //{"deviceId":"DBDC23B53139","deviceType":"Smart Lock","hubDeviceId":"E68B14109DA2","lockState":"locked","doorState":"opened","calibrate":true}
-
   async openAPIparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
     switch (this.lockState) {
