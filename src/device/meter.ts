@@ -217,8 +217,8 @@ export class Meter {
 
     // Current Temperature
     if (!this.device.meter?.hide_temperature) {
-      this.celsius < 0 ? 0 : this.celsius > 100 ? 100 : this.temperature;
-      this.CurrentTemperature = this.temperature;
+      this.celsius < 0 ? 0 : this.celsius > 100 ? 100 : this.celsius;
+      this.CurrentTemperature = this.celsius;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c`);
     }
   }
