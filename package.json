@@ -13,8 +13,8 @@
     "url": "https://github.com/OpenWonderLabs/homebridge-switchbot/issues"
   },
   "engines": {
-    "homebridge": "^1.5.1",
-    "node": "^14.20.1 || ^16.18.0 || ^18.12.0"
+    "homebridge": "^1.6.0 || ^2.0.0-beta.0",
+    "node": "^14.21.1 || ^16.18.1 || ^18.12.1"
   },
   "main": "dist/index.js",
   "scripts": {
@@ -60,17 +60,17 @@
     "super-stringify": "^1.0.0",
     "async-mqtt": "^2.6.3",
     "crypto-js": "^4.1.1",
-    "rxjs": "^7.5.7"
+    "rxjs": "^7.6.0"
   },
   "devDependencies": {
-    "@types/node": "^18.11.9",
+    "@types/node": "^18.11.10",
     "@types/crypto-js": "^4.1.1",
-    "@typescript-eslint/eslint-plugin": "^5.44.0",
-    "@typescript-eslint/parser": "^5.44.0",
-    "eslint": "^8.28.0",
+    "@typescript-eslint/eslint-plugin": "^5.45.0",
+    "@typescript-eslint/parser": "^5.45.0",
+    "eslint": "^8.29.0",
     "eslint-config-prettier": "8.5.0",
     "eslint-plugin-prettier": "4.2.1",
-    "homebridge": "^1.5.1",
+    "homebridge": "^1.6.0",
     "nodemon": "^2.0.20",
     "npm-check-updates": "^16.4.3",
     "prettier": "2.8.0",
