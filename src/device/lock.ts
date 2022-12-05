@@ -42,6 +42,15 @@ export class Lock {
   // Connection
   private readonly BLE = (this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI');
   private readonly OpenAPI = (this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI');
+  battery: any;
+  calibration: any;
+  status: any;
+  update_from_secondary_lock: any;
+  door_open: any;
+  double_lock_mode: any;
+  unclosed_alarm: any;
+  unlocked_alarm: any;
+  auto_lock_paused: any;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
@@ -240,11 +249,20 @@ export class Lock {
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
             + ` BLE Address Found: ${this.address}`);
             this.serviceData = ad.serviceData;
+            this.battery = ad.serviceData.battery;
+            this.calibration = ad.serviceData.calibration;
+            this.status = ad.serviceData.status;
+            this.update_from_secondary_lock = ad.serviceData.update_from_secondary_lock;
+            this.door_open = ad.serviceData.door_open;
+            this.double_lock_mode = ad.serviceData.double_lock_mode;
+            this.unclosed_alarm = ad.serviceData.unclosed_alarm;
+            this.unlocked_alarm = ad.serviceData.unlocked_alarm;
+            this.auto_lock_paused = ad.serviceData.auto_lock_paused;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
             this.debugLog(
-              `${this.device.deviceType}: ${this.accessory.displayName} calibration: ${ad.serviceData.calibration}, ` +
-                `position: ${ad.serviceData.position}, lightLevel: ${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}, ` +
-                `inMotion: ${ad.serviceData.inMotion}`);
+              `${this.device.deviceType}: ${this.accessory.displayName} battery: ${ad.serviceData.battery}, ` +
+                `calibration: ${ad.serviceData.calibration}, status: ${ad.serviceData.status}, battery: ${ad.serviceData.battery}, ` +
+                `door_open: ${ad.serviceData.door_open}`);
 
             if (this.serviceData) {
               this.connected = true;

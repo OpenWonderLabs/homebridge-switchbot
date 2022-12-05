@@ -2,11 +2,12 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [Version 2.3.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.3.0) (2022-10-29)
+## [Beta Version 2.3.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.3.0) (2022-XX-XX)
 
 ## What's Changed
 
 - Added Support for SwitchBot Robot Vacuum Cleaner S1 & SwitchBot Robot Vacuum Cleaner S1 Plus
+- Add Read-only BLE Support for Smart Lock.
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.2.2....v2.3.0
