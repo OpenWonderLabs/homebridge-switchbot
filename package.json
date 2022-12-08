@@ -13,8 +13,8 @@
     "url": "https://github.com/OpenWonderLabs/homebridge-switchbot/issues"
   },
   "engines": {
-    "homebridge": "^1.5.0",
-    "node": "^14.20.1 || ^16.18.0 || ^18.11.0"
+    "homebridge": "^1.6.0 || ^2.0.0-beta.0",
+    "node": "^14.21.1 || ^16.18.1 || ^18.12.1"
   },
   "main": "dist/index.js",
   "scripts": {
@@ -60,26 +60,27 @@
     "super-stringify": "^1.0.0",
     "async-mqtt": "^2.6.3",
     "crypto-js": "^4.1.1",
-    "rxjs": "^7.5.7"
+    "rxjs": "^7.6.0"
   },
   "devDependencies": {
-    "@types/node": "^18.11.3",
+    "@types/node": "^18.11.11",
     "@types/crypto-js": "^4.1.1",
-    "@typescript-eslint/eslint-plugin": "^5.40.1",
-    "@typescript-eslint/parser": "^5.40.1",
-    "eslint": "^8.26.0",
+    "@typescript-eslint/eslint-plugin": "^5.46.0",
+    "@typescript-eslint/parser": "^5.46.0",
+    "eslint": "^8.29.0",
     "eslint-config-prettier": "8.5.0",
     "eslint-plugin-prettier": "4.2.1",
-    "homebridge": "^1.5.0",
+    "homebridge": "^1.6.0",
     "nodemon": "^2.0.20",
-    "npm-check-updates": "^16.3.15",
-    "prettier": "2.7.1",
+    "npm-check-updates": "^16.5.1",
+    "prettier": "2.8.1",
     "rimraf": "^3.0.2",
     "ts-node": "^10.9.1",
-    "typescript": "^4.8.4"
+    "typescript": "^4.9.4"
   },
   "optionalDependencies": {
+    "node-switchbot": "^1.7.0",
     "@abandonware/noble": "^1.9.2-15",
-    "node-switchbot": "^1.6.1"
+    "@abandonware/bluetooth-hci-socket": "^0.5.3-8"
   }
 }

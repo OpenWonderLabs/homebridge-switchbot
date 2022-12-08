@@ -97,6 +97,9 @@ export class Humidifier {
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.humidifierService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+    if (!this.humidifierService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+      this.humidifierService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+    }
 
     // each service must implement at-minimum the "required characteristics" for the given service type
     // see https://developers.homebridge.io/#/service/HumidifierDehumidifier
@@ -141,7 +144,9 @@ export class Humidifier {
       `${accessory.displayName} Temperature Sensor`;
 
       this.temperatureservice.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
-
+      if (!this.temperatureservice.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.temperatureservice.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Temperature Sensor`);
+      }
       this.temperatureservice
         .getCharacteristic(this.platform.Characteristic.CurrentTemperature)
         .setProps({

@@ -83,7 +83,9 @@ export class Plug {
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.outletService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
-
+    if (!this.outletService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+      this.outletService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+    }
     // each service must implement at-minimum the "required characteristics" for the given service type
     // see https://developers.homebridge.io/#/service/Outlet
 

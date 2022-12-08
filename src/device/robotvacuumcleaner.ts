@@ -7,21 +7,21 @@ import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, deviceStatus, HostDomain, DevicePath, switchbot, ad, serviceData } from '../settings';
+import { device, devicesConfig, deviceStatus, ad, serviceData, switchbot, HostDomain, DevicePath } from '../settings';
 
-export class Lock {
+export class RobotVacuumCleaner {
   // Services
-  lockService: Service;
-  contactSensorService?: Service;
+  robotVacuumCleanerService: Service;
+  batteryService?: Service;
 
   // Characteristic Values
-  ContactSensorState!: CharacteristicValue;
-  LockCurrentState!: CharacteristicValue;
-  LockTargetState!: CharacteristicValue;
+  On!: CharacteristicValue;
+  Brightness!: CharacteristicValue;
+  BatteryLevel?: CharacteristicValue;
+  StatusLowBattery?: CharacteristicValue;
 
   // OpenAPI Others
-  doorState!: deviceStatus['doorState'];
-  lockState!: deviceStatus['lockState'];
+  power: deviceStatus['power'];
   deviceStatus!: any; //deviceStatusResponse;
 
   // BLE Others
@@ -29,6 +29,7 @@ export class Lock {
   switchbot!: switchbot;
   address!: ad['address'];
   serviceData!: serviceData;
+  state: serviceData['state'];
 
   // Config
   scanDuration!: number;
@@ -36,21 +37,12 @@ export class Lock {
   deviceRefreshRate!: number;
 
   // Updates
-  lockUpdateInProgress!: boolean;
-  doLockUpdate!: Subject<void>;
+  robotVacuumCleanerUpdateInProgress!: boolean;
+  doRobotVacuumCleanerUpdate!: Subject<void>;
 
   // Connection
   private readonly BLE = (this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI');
   private readonly OpenAPI = (this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI');
-  battery: any;
-  calibration: any;
-  status: any;
-  update_from_secondary_lock: any;
-  door_open: any;
-  double_lock_mode: any;
-  unclosed_alarm: any;
-  unlocked_alarm: any;
-  auto_lock_paused: any;
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
@@ -61,8 +53,8 @@ export class Lock {
     this.context();
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
-    this.doLockUpdate = new Subject();
-    this.lockUpdateInProgress = false;
+    this.doRobotVacuumCleanerUpdate = new Subject();
+    this.robotVacuumCleanerUpdateInProgress = false;
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();
@@ -71,81 +63,81 @@ export class Lock {
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, 'W1601700')
+      .setCharacteristic(this.platform.Characteristic.Model, this.model(device))
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
       .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
       .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
       .updateValue(this.FirmwareRevision(accessory, device));
 
-    // get the LockMechanism service if it exists, otherwise create a new LockMechanism service
+    // get the Lightbulb service if it exists, otherwise create a new Lightbulb service
     // you can create multiple services for each accessory
-    (this.lockService = accessory.getService(this.platform.Service.LockMechanism) || accessory.addService(this.platform.Service.LockMechanism)),
+    (this.robotVacuumCleanerService = accessory.getService(this.platform.Service.Lightbulb) || accessory.addService(this.platform.Service.Lightbulb)),
     `${device.deviceName} ${device.deviceType}`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
-    // accessory.getService('NAME') ?? accessory.addService(this.platform.Service.LockMechanism, 'NAME', 'USER_DEFINED_SUBTYPE');
+    // accessory.getService('NAME') ?? accessory.addService(this.platform.Service.Lightbulb, 'NAME', 'USER_DEFINED_SUBTYPE');
 
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    this.lockService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
-    if (!this.lockService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-      this.lockService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+    this.robotVacuumCleanerService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+    if (!this.robotVacuumCleanerService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+      this.robotVacuumCleanerService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
     }
-
     // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/LockMechanism
+    // see https://developers.homebridge.io/#/service/Lightbulb
 
     // create handlers for required characteristics
-    this.lockService.getCharacteristic(this.platform.Characteristic.LockTargetState).onSet(this.LockTargetStateSet.bind(this));
+    this.robotVacuumCleanerService.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
 
-    // Contact Sensor Service
-    if (device.lock?.hide_contactsensor) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Contact Sensor Service`);
-      this.contactSensorService = this.accessory.getService(this.platform.Service.ContactSensor);
-      accessory.removeService(this.contactSensorService!);
-    } else if (!this.contactSensorService) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Contact Sensor Service`);
-      (this.contactSensorService =
-        this.accessory.getService(this.platform.Service.ContactSensor) || this.accessory.addService(this.platform.Service.ContactSensor)),
-      `${accessory.displayName} Contact Sensor`;
-
-      this.contactSensorService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Contact Sensor`);
-      if (!this.contactSensorService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-        this.contactSensorService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Contact Sensor`);
-      }
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Contact Sensor Service Not Added`);
-    }
+    // handle Brightness events using the Brightness characteristic
+    this.robotVacuumCleanerService
+      .getCharacteristic(this.platform.Characteristic.Brightness)
+      .setProps({
+        minStep: 25,
+        minValue: 0,
+        maxValue: 100,
+        validValues: [0, 25, 50, 75, 100],
+        validValueRanges: [0, 100],
+      })
+      .onGet(() => {
+        return this.Brightness;
+      })
+      .onSet(this.BrightnessSet.bind(this));
 
     // Update Homekit
     this.updateHomeKitCharacteristics();
 
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
-      .pipe(skipWhile(() => this.lockUpdateInProgress))
+      .pipe(skipWhile(() => this.robotVacuumCleanerUpdateInProgress))
       .subscribe(async () => {
         await this.refreshStatus();
       });
 
-    // Watch for Lock change events
+    // Watch for Plug change events
     // We put in a debounce of 100ms so we don't make duplicate calls
-    this.doLockUpdate
+    this.doRobotVacuumCleanerUpdate
       .pipe(
         tap(() => {
-          this.lockUpdateInProgress = true;
+          this.robotVacuumCleanerUpdateInProgress = true;
         }),
         debounceTime(this.platform.config.options!.pushRate! * 1000),
       )
       .subscribe(async () => {
         try {
-          await this.pushChanges();
+          if (this.On !== this.accessory.context.On) {
+            await this.pushChanges();
+          }
+          if (this.On && (this.Brightness !== this.accessory.context.Brightness) ) {
+            await this.openAPIpushBrightnessChanges();
+          }
         } catch (e: any) {
           this.apiError(e);
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
               + ` Error Message: ${superStringify(e.message)}`);
         }
-        this.lockUpdateInProgress = false;
+        this.robotVacuumCleanerUpdateInProgress = false;
       });
   }
 
@@ -157,7 +149,7 @@ export class Lock {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} parseStatus enableCloudService: ${this.device.enableCloudService}`);
     } else/*if (this.BLE) {
       await this.BLEparseStatus();
-    } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
+    } else*/if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
     } else {
       await this.offlineOff();
@@ -168,44 +160,27 @@ export class Lock {
 
   async BLEparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
-    switch (this.lockState) {
-      case 'locked':
-        this.LockCurrentState = this.platform.Characteristic.LockCurrentState.SECURED;
-        this.LockTargetState = this.platform.Characteristic.LockTargetState.SECURED;
+    // State
+    switch (this.state) {
+      case 'on':
+        this.On = true;
         break;
       default:
-        this.LockCurrentState = this.platform.Characteristic.LockCurrentState.UNSECURED;
-        this.LockTargetState = this.platform.Characteristic.LockTargetState.UNSECURED;
+        this.On = false;
     }
-    switch (this.doorState) {
-      case 'opened':
-        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
-        break;
-      default:
-        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
-    }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.LockTargetState}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
   }
 
-  async openAPIparseStatus(): Promise<void> {
+  async openAPIparseStatus() {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
-    switch (this.lockState) {
-      case 'locked':
-        this.LockCurrentState = this.platform.Characteristic.LockCurrentState.SECURED;
-        this.LockTargetState = this.platform.Characteristic.LockTargetState.SECURED;
+    switch (this.power) {
+      case 'on':
+        this.On = true;
         break;
       default:
-        this.LockCurrentState = this.platform.Characteristic.LockCurrentState.UNSECURED;
-        this.LockTargetState = this.platform.Characteristic.LockTargetState.UNSECURED;
+        this.On = false;
     }
-    switch (this.doorState) {
-      case 'opened':
-        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
-        break;
-      default:
-        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
-    }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.LockTargetState}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
   }
 
   /**
@@ -214,9 +189,9 @@ export class Lock {
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus enableCloudService: ${this.device.enableCloudService}`);
-    } else if (this.BLE) {
+    } else/*if (this.BLE) {
       await this.BLERefreshStatus();
-    } else if (this.OpenAPI && this.platform.config.credentials?.token) {
+    } else*/if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
@@ -239,7 +214,7 @@ export class Lock {
     if (switchbot !== false) {
       switchbot
         .startScan({
-          model: 'o',
+          model: this.BLEmodel(),
           id: this.device.bleMac,
         })
         .then(async () => {
@@ -249,20 +224,13 @@ export class Lock {
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
             + ` BLE Address Found: ${this.address}`);
             this.serviceData = ad.serviceData;
-            this.battery = ad.serviceData.battery;
-            this.calibration = ad.serviceData.calibration;
-            this.status = ad.serviceData.status;
-            this.update_from_secondary_lock = ad.serviceData.update_from_secondary_lock;
-            this.door_open = ad.serviceData.door_open;
-            this.double_lock_mode = ad.serviceData.double_lock_mode;
-            this.unclosed_alarm = ad.serviceData.unclosed_alarm;
-            this.unlocked_alarm = ad.serviceData.unlocked_alarm;
-            this.auto_lock_paused = ad.serviceData.auto_lock_paused;
+            this.state = ad.serviceData.state;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
             this.debugLog(
-              `${this.device.deviceType}: ${this.accessory.displayName} battery: ${ad.serviceData.battery}, ` +
-                `calibration: ${ad.serviceData.calibration}, status: ${ad.serviceData.status}, battery: ${ad.serviceData.battery}, ` +
-                `door_open: ${ad.serviceData.door_open}`);
+              `${this.device.deviceType}: ${this.accessory.displayName} state: ${ad.serviceData.state}, ` +
+                `delay: ${ad.serviceData.delay}, timer: ${ad.serviceData.timer}, syncUtcTime: ${ad.serviceData.syncUtcTime} ` +
+                `wifiRssi: ${ad.serviceData.wifiRssi}, overload: ${ad.serviceData.overload}, currentPower: ${ad.serviceData.currentPower}`,
+            );
 
             if (this.serviceData) {
               this.connected = true;
@@ -291,7 +259,7 @@ export class Lock {
     }
   }
 
-  async openAPIRefreshStatus(): Promise<void> {
+  async openAPIRefreshStatus() {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
     try {
       const t = Date.now();
@@ -315,6 +283,7 @@ export class Lock {
       };
       const req = https.request(options, (res) => {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus statusCode: ${res.statusCode}`);
+        this.statusCode({ res });
         let rawData = '';
         res.on('data', (d) => {
           rawData += d;
@@ -324,8 +293,7 @@ export class Lock {
           try {
             this.deviceStatus = JSON.parse(rawData);
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus: ${superStringify(this.deviceStatus)}`);
-            this.lockState = this.deviceStatus.body.lockState;
-            this.doorState = this.deviceStatus.body.doorState;
+            this.power = this.deviceStatus.body.power;
             this.openAPIparseStatus();
             this.updateHomeKitCharacteristics();
           } catch (e: any) {
@@ -346,16 +314,19 @@ export class Lock {
 
   /**
    * Pushes the requested changes to the SwitchBot API
-   * deviceType	commandType	  Command	    command parameter	  Description
-   * Lock   -    "command"     "lock"     "default"	 =        set to ???? state
-   * Lock   -    "command"     "unlock"   "default"	 =        set to ???? state - LockCurrentState
+   * deviceType	              commandType	    Command	    parameter	        Description
+   * Robot Vacuum Cleaner S1   "command"     "start"      "default"	  =     start vacuuming
+   * Robot Vacuum Cleaner S1   "command"     "stop"       "default"	  =     stop vacuuming
+   * Robot Vacuum Cleaner S1   "command"     "dock"       "default"   =     return to charging dock
+   * Robot Vacuum Cleaner S1   "command"     "PowLevel"   "{0-3}"     =     set suction power level: 0 (Quiet), 1 (Standard), 2 (Strong), 3 (MAX)
    */
+
   async pushChanges(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} pushChanges enableCloudService: ${this.device.enableCloudService}`);
-    } else /*if (this.BLE) {
+    } else/* if (this.BLE) {
       await this.BLEpushChanges();
-    } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
+    } else*/if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges();
     } else {
       await this.offlineOff();
@@ -364,7 +335,7 @@ export class Lock {
     }
     // Refresh the status from the API
     interval(15000)
-      .pipe(skipWhile(() => this.lockUpdateInProgress))
+      .pipe(skipWhile(() => this.robotVacuumCleanerUpdateInProgress))
       .pipe(take(1))
       .subscribe(async () => {
         await this.refreshStatus();
@@ -373,9 +344,8 @@ export class Lock {
 
   async BLEpushChanges(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges`);
-    if (this.LockTargetState !== this.accessory.context.LockTargetState) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges LockTargetState: ${this.LockTargetState}`
-      + ` LockTargetStateCached: ${this.accessory.context.LockTargetState}`);
+    if (this.On !== this.accessory.context.On) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges On: ${this.On} OnCached: ${this.accessory.context.On}`);
       const switchbot = await this.platform.connectBLE();
       // Convert to BLE Address
       this.device.bleMac = this.device
@@ -385,12 +355,16 @@ export class Lock {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
       switchbot
         .discover({
-          model: '',
+          model: this.BLEmodel(),
           id: this.device.bleMac,
+        })
+        .then((device_list: any) => {
+          this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
+          return this.turnOnOff(device_list);
         })
         .then(() => {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
-          this.LockTargetState = this.platform.Characteristic.LockTargetState.SECURED;
+          this.On = false;
         })
         .catch(async (e: any) => {
           this.apiError(e);
@@ -400,70 +374,53 @@ export class Lock {
         });
     } else {
       this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges.` + `LockTargetState: ${this.LockTargetState}, `
-        +`LockTargetStateCached: ${this.accessory.context.LockTargetState}`,
+        `${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges.` + `On: ${this.On}, `
+        +`OnCached: ${this.accessory.context.On}`,
       );
     }
   }
 
-  async openAPIpushChanges(): Promise<void> {
+  async openAPIpushChanges() {
     try {
+      // Make Push On request to the API
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges`);
-      if (this.LockTargetState !== this.accessory.context.LockTargetState) {
-        // Make Push On request to the API
-        const t = Date.now();
-        const nonce = 'requestID';
-        const data = this.platform.config.credentials?.token + t + nonce;
-        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
-          .update(Buffer.from(data, 'utf-8'))
-          .digest();
-        const sign = signTerm.toString('base64');
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
-        let command = '';
-        if (this.LockTargetState) {
-          command = 'lock';
-        } else {
-          command = 'unlock';
-        }
-        const body = superStringify({
-          'command': `${command}`,
-          'parameter': 'default',
-          'commandType': 'command',
+      const t = Date.now();
+      const nonce = 'requestID';
+      const data = this.platform.config.credentials?.token + t + nonce;
+      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+        .update(Buffer.from(data, 'utf-8'))
+        .digest();
+      const sign = signTerm.toString('base64');
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
+      const body = await this.commands();
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
+      const options = {
+        hostname: HostDomain,
+        port: 443,
+        path: `${DevicePath}/${this.device.deviceId}/commands`,
+        method: 'POST',
+        headers: {
+          'Authorization': this.platform.config.credentials?.token,
+          'sign': sign,
+          'nonce': nonce,
+          't': t,
+          'Content-Type': 'application/json',
+          'Content-Length': body.length,
+        },
+      };
+      const req = https.request(options, res => {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges statusCode: ${res.statusCode}`);
+        this.statusCode({ res });
+        res.on('data', d => {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
         });
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
-        const options = {
-          hostname: HostDomain,
-          port: 443,
-          path: `${DevicePath}/${this.device.deviceId}/commands`,
-          method: 'POST',
-          headers: {
-            'Authorization': this.platform.config.credentials?.token,
-            'sign': sign,
-            'nonce': nonce,
-            't': t,
-            'Content-Type': 'application/json',
-            'Content-Length': body.length,
-          },
-        };
-        const req = https.request(options, res => {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges statusCode: ${res.statusCode}`);
-          this.statusCode({ res });
-          res.on('data', d => {
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
-          });
-        });
-        req.on('error', (e: any) => {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
-        });
-        req.write(body);
-        req.end();
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges: ${superStringify(req)}`);
-      } else {
-        this.debugLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges.` + `LockTargetState: ${this.LockTargetState}, `
-        +`LockTargetStateCached: ${this.accessory.context.LockTargetState}`,
-        );
-      }
+      });
+      req.on('error', (e: any) => {
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
+      });
+      req.write(body);
+      req.end();
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges: ${superStringify(req)}`);
     } catch (e: any) {
       this.apiError(e);
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
@@ -472,43 +429,158 @@ export class Lock {
     }
   }
 
+  async openAPIpushBrightnessChanges() {
+    try {
+      // Make Push On request to the API
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges`);
+      const t = Date.now();
+      const nonce = 'requestID';
+      const data = this.platform.config.credentials?.token + t + nonce;
+      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
+        .update(Buffer.from(data, 'utf-8'))
+        .digest();
+      const sign = signTerm.toString('base64');
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
+      const body = await this.brightnessCommands();
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
+      const options = {
+        hostname: HostDomain,
+        port: 443,
+        path: `${DevicePath}/${this.device.deviceId}/commands`,
+        method: 'POST',
+        headers: {
+          'Authorization': this.platform.config.credentials?.token,
+          'sign': sign,
+          'nonce': nonce,
+          't': t,
+          'Content-Type': 'application/json',
+          'Content-Length': body.length,
+        },
+      };
+      const req = https.request(options, res => {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges statusCode: ${res.statusCode}`);
+        this.statusCode({ res });
+        res.on('data', d => {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
+        });
+      });
+      req.on('error', (e: any) => {
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
+      });
+      req.write(body);
+      req.end();
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges: ${superStringify(req)}`);
+    } catch (e: any) {
+      this.apiError(e);
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${superStringify(e.message)}`,
+      );
+    }
+  }
+
+  private commands() {
+    let command: string;
+    let parameter: string;
+    if (this.On) {
+      command = 'start';
+      parameter = 'default';
+    } else {
+      command = 'dock';
+      parameter = 'default';
+    }
+    const body = superStringify({
+      'command': `${command}`,
+      'parameter': `${parameter}`,
+      'commandType': 'command',
+    });
+    return body;
+  }
+
+  private brightnessCommands() {
+    let command: string;
+    let parameter: string;
+    if (this.Brightness === 25) {
+      command = 'PowLevel';
+      parameter = '0';
+    } else if (this.Brightness === 50) {
+      command = 'PowLevel';
+      parameter = '1';
+    } else if (this.Brightness === 75) {
+      command = 'PowLevel';
+      parameter = '2';
+    } else if (this.Brightness === 100) {
+      command = 'PowLevel';
+      parameter = '3';
+    } else {
+      command = 'dock';
+      parameter = 'default';
+    }
+    const body = superStringify({
+      'command': `${command}`,
+      'parameter': `${parameter}`,
+      'commandType': 'command',
+    });
+    return body;
+  }
+
   /**
    * Handle requests to set the value of the "On" characteristic
    */
-  async LockTargetStateSet(value: CharacteristicValue): Promise<void> {
-    if (this.LockTargetState === this.accessory.context.LockTargetState) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set LockTargetState: ${value}`);
+  async OnSet(value: CharacteristicValue): Promise<void> {
+    if (this.On === this.accessory.context.On) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set On: ${value}`);
     } else {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set LockTargetState: ${value}`);
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set On: ${value}`);
     }
 
-    this.LockTargetState = value;
-    this.doLockUpdate.next();
+    this.On = value;
+    this.doRobotVacuumCleanerUpdate.next();
+  }
+
+  /**
+   * Handle requests to set the value of the "Brightness" characteristic
+   */
+  async BrightnessSet(value: CharacteristicValue): Promise<void> {
+    if (this.Brightness === this.accessory.context.Brightness) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set Brightness: ${value}`);
+    } else if (this.On) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Brightness: ${value}`);
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Brightness: ${value}`);
+    }
+
+    this.Brightness = value;
+    this.doRobotVacuumCleanerUpdate.next();
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
-    if (!this.device.lock?.hide_contactsensor) {
-      if (this.ContactSensorState === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
-      } else {
-        this.accessory.context.ContactSensorState = this.ContactSensorState;
-        this.contactSensorService?.updateCharacteristic(this.platform.Characteristic.ContactSensorState, this.ContactSensorState);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic ContactSensorState: ${this.ContactSensorState}`);
-      }
-    }
-    if (this.LockTargetState === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LockTargetState: ${this.LockTargetState}`);
+    if (this.On === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
     } else {
-      this.accessory.context.LockTargetState = this.LockTargetState;
-      this.lockService.updateCharacteristic(this.platform.Characteristic.LockTargetState, this.LockTargetState);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic LockTargetState: ${this.LockTargetState}`);
+      this.accessory.context.On = this.On;
+      this.robotVacuumCleanerService.updateCharacteristic(this.platform.Characteristic.On, this.On);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
-    if (this.LockCurrentState === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LockCurrentState: ${this.LockCurrentState}`);
+    if (this.Brightness === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Brightness: ${this.Brightness}`);
     } else {
-      this.accessory.context.LockCurrentState = this.LockCurrentState;
-      this.lockService.updateCharacteristic(this.platform.Characteristic.LockCurrentState, this.LockCurrentState);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic LockCurrentState: ${this.LockCurrentState}`);
+      this.accessory.context.Brightness = this.Brightness;
+      this.robotVacuumCleanerService.updateCharacteristic(this.platform.Characteristic.Brightness, this.Brightness);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic Brightness: ${this.Brightness}`);
+    }
+    if (this.BatteryLevel === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
+    } else {
+      this.accessory.context.BatteryLevel = this.BatteryLevel;
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
+    }
+    if (this.StatusLowBattery === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
+    } else {
+      this.accessory.context.StatusLowBattery = this.StatusLowBattery;
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
     }
   }
 
@@ -522,12 +594,20 @@ export class Lock {
     }
   }
 
+  BLEmodel(): 'g' | 'j' {
+    if (this.device.deviceType === 'Plug Mini (US)') {
+      return 'g';
+    } else {
+      return 'j';
+    }
+  }
+
   async getCustomBLEAddress(switchbot: any) {
     if (this.device.customBLEaddress && this.deviceLogging.includes('debug')) {
       (async () => {
         // Start to monitor advertisement packets
         await switchbot.startScan({
-          model: 'c',
+          model: this.BLEmodel(),
         });
         // Set an event handler
         switchbot.onadvertisement = (ad: any) => {
@@ -553,6 +633,53 @@ export class Lock {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Refresh Status`);
       await this.openAPIRefreshStatus();
     }
+  }
+
+  async turnOnOff(device_list: any): Promise<any> {
+    return await this.retry({
+      max: await this.maxRetry(),
+      fn: () => {
+        if (this.On) {
+          return device_list[0].turnOn({ id: this.device.bleMac });
+        } else {
+          return device_list[0].turnOff({ id: this.device.bleMac });
+        }
+      },
+    });
+  }
+
+  async retry({ max, fn }: { max: number; fn: { (): any; (): Promise<any> } }): Promise<null> {
+    return fn().catch(async (err: any) => {
+      if (max === 0) {
+        throw err;
+      }
+      this.infoLog(err);
+      this.infoLog('Retrying');
+      await this.switchbot.wait(1000);
+      return this.retry({ max: max - 1, fn });
+    });
+  }
+
+  async maxRetry(): Promise<number> {
+    let maxRetry: number;
+    if (this.device.bot?.maxRetry) {
+      maxRetry = this.device.bot?.maxRetry;
+    } else {
+      maxRetry = 5;
+    }
+    return maxRetry;
+  }
+
+  model(device: device & devicesConfig): string {
+    let model: string;
+    if (device.deviceType === 'Robot Vacuum Cleaner S1 Plus') {
+      model = 'W3011010';
+    } else if (device.deviceType === 'Robot Vacuum Cleaner S1') {
+      model = 'W3011000';
+    } else {
+      model = 'N/A';
+    }
+    return model;
   }
 
   async scan(device: device & devicesConfig): Promise<void> {
@@ -610,17 +737,13 @@ export class Lock {
   }
 
   async apiError(e: any): Promise<void> {
-    if (!this.device.lock?.hide_contactsensor) {
-      this.contactSensorService?.updateCharacteristic(this.platform.Characteristic.ContactSensorState, e);
-    }
-    this.lockService.updateCharacteristic(this.platform.Characteristic.LockTargetState, e);
-    this.lockService.updateCharacteristic(this.platform.Characteristic.LockCurrentState, e);
+    this.robotVacuumCleanerService.updateCharacteristic(this.platform.Characteristic.On, e);
   }
 
   FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
     let FirmwareRevision: string;
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-    + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+    +` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
     if (accessory.context.FirmwareRevision) {
@@ -634,10 +757,15 @@ export class Lock {
   }
 
   async context() {
-    if (this.LockTargetState === undefined) {
-      this.LockTargetState = false;
+    if (this.On === undefined) {
+      this.On = false;
     } else {
-      this.LockTargetState = this.accessory.context.On;
+      this.On = this.accessory.context.On;
+    }
+    if (this.Brightness === undefined) {
+      this.Brightness = 0;
+    } else {
+      this.Brightness = this.accessory.context.Brightness;
     }
   }
 
@@ -653,8 +781,8 @@ export class Lock {
 
   async config(device: device & devicesConfig): Promise<void> {
     let config = {};
-    if (device.lock) {
-      config = device.lock;
+    if (device.plug) {
+      config = device.plug;
     }
     if (device.connectionType !== undefined) {
       config['connectionType'] = device.connectionType;
@@ -670,6 +798,9 @@ export class Lock {
     }
     if (device.scanDuration !== undefined) {
       config['scanDuration'] = device.scanDuration;
+    }
+    if (device.offline !== undefined) {
+      config['offline'] = device.offline;
     }
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);

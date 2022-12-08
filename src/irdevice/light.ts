@@ -41,7 +41,7 @@ export class Light {
       .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
       .updateValue(this.FirmwareRevision(accessory, device));
 
-    // get the Television service if it exists, otherwise create a new Television service
+    // get the Light service if it exists, otherwise create a new Light service
     // you can create multiple services for each accessory
     (this.lightBulbService = accessory.getService(this.platform.Service.Lightbulb) || accessory.addService(this.platform.Service.Lightbulb)),
     `${accessory.displayName} ${device.remoteType}`;
@@ -53,6 +53,9 @@ export class Light {
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.lightBulbService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+    if (!this.lightBulbService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+      this.lightBulbService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+    }
 
     // handle on / off events using the On characteristic
     this.lightBulbService.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));

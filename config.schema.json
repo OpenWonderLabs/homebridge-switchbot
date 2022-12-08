@@ -131,6 +131,14 @@
                     {
                       "title": "Plug Mini (JP)",
                       "enum": ["Plug Mini (JP)"]
+                    },
+                    {
+                      "title": "Robot Vacuum Cleaner S1",
+                      "enum": ["Robot Vacuum Cleaner S1"]
+                    },
+                    {
+                      "title": "Robot Vacuum Cleaner S1 Plus",
+                      "enum": ["Robot Vacuum Cleaner S1 Plus"]
                     }
                   ],
                   "condition": {
@@ -812,6 +820,14 @@
                     "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType);"
                   }
                 },
+                "disablePushDetail": {
+                  "title": "Disable Sending <em class='primary-text'> Detail </em> Command(s)",
+                  "description": "Details would be like tempearture for Air Conditioners.",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType);"
+                  }
+                },
                 "irair": {
                   "type": "object",
                   "properties": {
@@ -956,10 +972,10 @@
               }
             ]
           }
-        }
-      }
-    },
+        },
     "required": ["name", "logging"]
+      }
+    }
   },
   "layout": [
     {
@@ -1059,6 +1075,7 @@
             "options.irdevices[].customOff",
             "options.irdevices[].disablePushOn",
             "options.irdevices[].disablePushOff",
+            "options.irdevices[].disablePushDetail",
             "options.irdevices[].irair.hide_automode",
             "options.irdevices[].irfan.rotation_speed",
             "options.irdevices[].irfan.swing_mode",

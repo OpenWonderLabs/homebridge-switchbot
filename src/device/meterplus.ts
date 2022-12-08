@@ -104,7 +104,9 @@ export class MeterPlus {
       `${accessory.displayName} Temperature Sensor`;
 
       this.temperatureservice.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
-
+      if (!this.temperatureservice.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.temperatureservice.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Temperature Sensor`);
+      }
       this.temperatureservice
         .getCharacteristic(this.platform.Characteristic.CurrentTemperature)
         .setProps({
@@ -133,7 +135,9 @@ export class MeterPlus {
       `${accessory.displayName} Humidity Sensor`;
 
       this.humidityservice.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
-
+      if (!this.humidityservice.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.humidityservice.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Humidity Sensor`);
+      }
       this.humidityservice
         .getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
         .setProps({
@@ -157,7 +161,9 @@ export class MeterPlus {
       `${accessory.displayName} Battery`;
 
       this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
-
+      if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.batteryService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Battery`);
+      }
       this.batteryService.setCharacteristic(this.platform.Characteristic.ChargingState, this.platform.Characteristic.ChargingState.NOT_CHARGEABLE);
     } else {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Battery Service Not Added`);
@@ -211,11 +217,12 @@ export class MeterPlus {
 
     // Current Temperature
     if (!this.device.meter?.hide_temperature) {
-      this.celsius < 0 ? 0 : this.celsius > 100 ? 100 : this.temperature;
-      this.CurrentTemperature = this.temperature;
+      this.celsius < 0 ? 0 : this.celsius > 100 ? 100 : this.celsius;
+      this.CurrentTemperature = this.celsius;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c`);
     }
   }
+
 
   async openAPIparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);

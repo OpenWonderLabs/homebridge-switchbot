@@ -111,6 +111,9 @@ export class Curtain {
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.windowCoveringService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+    if (!this.windowCoveringService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+      this.windowCoveringService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+    }
 
     // each service must implement at-minimum the "required characteristics" for the given service type
     // see https://developers.homebridge.io/#/service/WindowCovering
@@ -150,6 +153,9 @@ export class Curtain {
       `${accessory.displayName} Light Sensor`;
 
       this.lightSensorService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Light Sensor`);
+      if (!this.lightSensorService?.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.lightSensorService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Light Sensor`);
+      }
     } else {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Light Sensor Service Not Added`);
     }
@@ -165,6 +171,9 @@ export class Curtain {
       `${accessory.displayName} Battery`;
 
       this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
+      if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.batteryService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Battery`);
+      }
     } else {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Battery Service Not Added`);
     }
@@ -913,8 +922,10 @@ export class Curtain {
     if (device.scanDuration) {
       if (this.updateRate > device.scanDuration) {
         this.scanDuration = this.updateRate;
-        this.warnLog(`${this.device.deviceType}: `
+        if (this.BLE) {
+          this.warnLog(`${this.device.deviceType}: `
         + `${this.accessory.displayName} scanDuration is less then updateRate, overriding scanDuration with updateRate`);
+        }
       } else {
         this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
       }
@@ -924,8 +935,10 @@ export class Curtain {
     } else {
       if (this.updateRate > 1) {
         this.scanDuration = this.updateRate;
-        this.warnLog(`${this.device.deviceType}: `
+        if (this.BLE) {
+          this.warnLog(`${this.device.deviceType}: `
         + `${this.accessory.displayName} scanDuration is less then updateRate, overriding scanDuration with updateRate`);
+        }
       } else {
         this.scanDuration = this.accessory.context.scanDuration = 1;
       }
