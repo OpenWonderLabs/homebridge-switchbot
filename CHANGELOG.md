@@ -88,7 +88,7 @@ All notable changes to this project will be documented in this file. This projec
 ## What's Changed
 
 - Moved from v1.0 to v1.1 of [OpenAPI](https://github.com/OpenWonderLabs/SwitchBotAPI)
-- Publish device(s) as an external accessory.
+- Added Config that allows device(s) to be published as an external accessory.
 - Added `connectionType` config, this replaces the `BLE` config.
   - You can now select Both Connections, Only OpenAPI, Only BLE, or Disable.
     - `Both` will use BLE as the default connection and will use OpenAPI as a backup connection.
