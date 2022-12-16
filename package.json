@@ -79,7 +79,6 @@
     "typescript": "^4.9.4"
   },
   "optionalDependencies": {
-    "node-switchbot": "^1.7.0",
-    "@abandonware/noble": "1.9.2-15"
+    "node-switchbot": "^1.7.1-beta.1"
   }
 }
