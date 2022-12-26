@@ -201,8 +201,13 @@
                         {
                           "title": "Switch",
                           "enum": ["switch"]
+                        },
+                        {
+                          "title": "Multi-Press",
+                          "enum": ["multipress"]
                         }
                       ],
+                      "description": "Press Mode presses one time per 'On' state in the Home App/API. Switch Mode allows you to set how many presses occur when the device is set to 'On'. Multi-Press allows you to queue up multiple button presses. It creates a queue by counting each time the device is set to 'On'. It is most useful for scripting with cURL requests or other API calls. Multi-Press only works when using OpenAPI.",
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Bot' && model.options.devices[arrayIndices].deviceId);"
                       }
@@ -616,7 +621,13 @@
                   }
                 }
               },
-              "required": ["deviceId", "configDeviceType", "configDeviceName", "connectionType", "logging"]
+              "required": [
+                "deviceId",
+                "configDeviceType",
+                "configDeviceName",
+                "connectionType",
+                "logging"
+              ]
             },
             "uniqueItems": true
           },
@@ -938,7 +949,12 @@
                   }
                 }
               },
-              "required": ["deviceId", "configRemoteType", "connectionType", "logging"]
+              "required": [
+                "deviceId",
+                "configRemoteType",
+                "connectionType",
+                "logging"
+              ]
             },
             "uniqueItems": true
           },
@@ -973,7 +989,7 @@
             ]
           }
         },
-    "required": ["name", "logging"]
+        "required": ["name", "logging"]
       }
     }
   },
