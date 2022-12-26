@@ -82,6 +82,7 @@ export type bot = {
   pushRatePress?: number;
   allowPush?: boolean;
   maxRetry?: number;
+  multiPress?: boolean;
 };
 
 export type humidifier = {
