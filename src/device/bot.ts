@@ -598,7 +598,6 @@ export class Bot {
     } else if (this.BLE) {
       await this.BLEpushChanges();
     } else if (this.OpenAPI) {
-      // this.debugLog(`TESTING HERE`);
       await this.openAPIpushChanges();
     } else {
       await this.offlineOff();
