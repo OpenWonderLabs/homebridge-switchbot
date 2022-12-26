@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file. This projec
 
 ## What's Changed
 
+- Added a new Bot Device Type `Multi-Press`, Thanks [@alvst](https://github.com/alvst). [#628](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/628)
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.3.2....v2.4.0
