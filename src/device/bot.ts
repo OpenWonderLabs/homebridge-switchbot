@@ -54,9 +54,7 @@ export class Bot {
   scanDuration!: number;
   deviceLogging!: string;
   deviceRefreshRate!: number;
-
   // Multi-Press
-  multiPress!: boolean;
   multiPressCount!: number;
 
   // Updates
@@ -602,7 +600,6 @@ export class Bot {
     } else if (this.OpenAPI) {
       // this.debugLog(`TESTING HERE`);
       await this.openAPIpushChanges();
-      // console.log(this.multiPressCount);
     } else {
       await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
@@ -683,20 +680,11 @@ export class Bot {
   }
 
   async openAPIpushChanges(): Promise<void> {
-    // console.log('OpenAPIpushChanges Is called')
-    // console.log(this.allowPush)
-    // console.log(this.accessory.context.On)
-    // console.log(this.On)
-    // console.log(this.allowPush)
-    // console.log(this.multiPressCount > 0)
     if (this.multiPressCount > 0) {
       this.debugLog(`${this.device.deviceType}: ${this.multiPressCount} request(s) queued.`);
-      // console.log('multiPressCount > 0')
-      this.On = true; 
+      this.On = true;
     }
-    // console.log(this.On)
     try {
-      // console.log('try block')
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges`);
       if (this.On !== this.accessory.context.On || this.allowPush) {
         // Make Push On request to the API
@@ -823,14 +811,10 @@ export class Bot {
     } else {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set On: ${value}`);
       if (this.device.bot?.mode === 'multipress') {
-        // console.log('Here we go')
-        if (value == true) {
-          // this.debugLog(`TESTING HERE 2`);
+        if (value === true) {
           this.multiPressCount++;
           this.debugLog(`${this.device.deviceType} set to Multi-Press. Multi-Press count: ${this.multiPressCount}`);
         }
-        // console.log(this.multiPressCount);
-        // console.log(value)
 
       }
       this.On = value;
