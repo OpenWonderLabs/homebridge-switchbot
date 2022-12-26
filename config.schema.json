@@ -621,13 +621,7 @@
                   }
                 }
               },
-              "required": [
-                "deviceId",
-                "configDeviceType",
-                "configDeviceName",
-                "connectionType",
-                "logging"
-              ]
+              "required": ["deviceId", "configDeviceType", "configDeviceName", "connectionType", "logging"]
             },
             "uniqueItems": true
           },
@@ -949,12 +943,7 @@
                   }
                 }
               },
-              "required": [
-                "deviceId",
-                "configRemoteType",
-                "connectionType",
-                "logging"
-              ]
+              "required": ["deviceId", "configRemoteType", "connectionType", "logging"]
             },
             "uniqueItems": true
           },
