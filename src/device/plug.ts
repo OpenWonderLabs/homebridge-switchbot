@@ -673,6 +673,9 @@ export class Plug {
     if (device.offline !== undefined) {
       config['offline'] = device.offline;
     }
+    if (device.maxRetry !== undefined) {
+      config['maxRetry'] = device.maxRetry;
+    }
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }
