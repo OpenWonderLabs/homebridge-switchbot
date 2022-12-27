@@ -535,7 +535,7 @@ export class Bot {
   }
 
   async openAPIRefreshStatus(): Promise<void> {
-      try {
+    try {
       const t = Date.now();
       const nonce = 'requestID';
       const data = this.platform.config.credentials?.token + t + nonce;
@@ -1189,8 +1189,8 @@ export class Bot {
 
   async maxRetry(): Promise<number> {
     let maxRetry: number;
-    if (this.device.bot?.maxRetry) {
-      maxRetry = this.device.bot?.maxRetry;
+    if (this.device.maxRetry) {
+      maxRetry = this.device.maxRetry;
     } else {
       maxRetry = 5;
     }
@@ -1393,6 +1393,9 @@ export class Bot {
     }
     if (device.offline !== undefined) {
       config['offline'] = device.offline;
+    }
+    if (device.maxRetry !== undefined) {
+      config['maxRetry'] = device.maxRetry;
     }
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);

@@ -54,6 +54,7 @@ export interface devicesConfig extends device {
   scanDuration?: number;
   hide_device?: boolean;
   offline?: boolean;
+  maxRetry?: number;
   mqttURL?: string;
   mqttOptions?: IClientOptions;
   mqttPubOptions?: IClientOptions;
@@ -81,7 +82,6 @@ export type bot = {
   doublePress?: number;
   pushRatePress?: number;
   allowPush?: boolean;
-  maxRetry?: number;
   multiPress?: boolean;
 };
 
@@ -101,7 +101,6 @@ export type curtain = {
   set_minStep?: number;
   setCloseMode?: string;
   setOpenMode?: string;
-  maxRetry?: number;
 };
 
 export type contact = {

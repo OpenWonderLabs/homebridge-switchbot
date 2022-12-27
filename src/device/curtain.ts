@@ -612,8 +612,8 @@ export class Curtain {
 
   async maxRetry(): Promise<number> {
     let maxRetry: number;
-    if (this.device.curtain?.maxRetry) {
-      maxRetry = this.device.curtain?.maxRetry;
+    if (this.device.maxRetry) {
+      maxRetry = this.device.maxRetry;
     } else {
       maxRetry = 5;
     }
@@ -1107,6 +1107,9 @@ export class Curtain {
     }
     if (device.scanDuration !== undefined) {
       config['scanDuration'] = device.scanDuration;
+    }
+    if (device.maxRetry !== undefined) {
+      config['maxRetry'] = device.maxRetry;
     }
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);

@@ -7,6 +7,9 @@ All notable changes to this project will be documented in this file. This projec
 ## What's Changed
 
 - Added a new Bot Device Type `Multi-Press`, Thanks [@alvst](https://github.com/alvst). [#628](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/628)
+- Added `maxRetry` option for `Curtain` Device Type.
+- Moved `maxRetry` option from `Bot` level to overall `configDeviceType` level.
+  - **If you had this set for your `Bot` you will have to update this config.**
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.3.2....v2.4.0
