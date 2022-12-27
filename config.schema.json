@@ -536,7 +536,7 @@
                   "type": "number",
                   "placeholder": "5",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Bot' || model.options.devices[arrayIndices].configDeviceType === 'Curtain');"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].configDeviceType === 'Bot' || model.options.devices[arrayIndices].configDeviceType === 'Curtain'));"
                   }
                 },
                 "mqttURL": {
@@ -1016,7 +1016,6 @@
             "options.devices[].bot.allowPush",
             "options.devices[].bot.doublePress",
             "options.devices[].bot.pushRatePress",
-            "options.devices[].bot.maxRetry",
             "options.devices[].meter.hide_temperature",
             "options.devices[].meter.hide_humidity",
             "options.devices[].humidifier.set_minStep",
@@ -1041,6 +1040,7 @@
             "options.devices[].colorbulb.set_minStep",
             "options.devices[].colorbulb.adaptiveLightingShift",
             "options.devices[].lock.hide_contactsensor",
+            "options.devices[].maxRetry",
             "options.devices[].mqttURL",
             "options.devices[].mqttOptions",
             "options.devices[].mqttPubOptions",
