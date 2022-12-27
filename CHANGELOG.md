@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 2.4.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.4.0) (2022-12-27)
+
+## What's Changed
+
+- Added a new `Bot` Device Type `Multi-Press`, Thanks [@alvst](https://github.com/alvst). [#628](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/628)
+- Added `maxRetry` option for `Curtain`, `Celing Light`, `Celing Light Pro`, `Plug`, `Plug Mini (US)`, `Plug Mini (JP)`, `Robot Vacuum Cleaner S1 Plus`, `Robot Vacuum Cleaner S1`, `Color Bulb`, and `Strip Light` Device Types, Thanks [@dnicolson](https://github.com/dnicolson). [#631](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/631)
+- Fix max retry option for `Bot`, `Curtain`, `Celing Light`, `Celing Light Pro`, `Plug`, `Plug Mini (US)`, `Plug Mini (JP)`, `Robot Vacuum Cleaner S1 Plus`, `Robot Vacuum Cleaner S1`, `Color Bulb`, and `Strip Light` Device Types, Thanks [@dnicolson](https://github.com/dnicolson). [#630](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/628)
+- Moved `maxRetry` option from `Bot` level to overall `configDeviceType` level.
+  - **If you had this set for your `Bot` you will have to update this config.**
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.3.2....v2.4.0
+
 ## [Version 2.3.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.3.2) (2022-12-16)
 
 ## What's Changed

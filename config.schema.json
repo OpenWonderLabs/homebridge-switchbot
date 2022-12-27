@@ -101,6 +101,14 @@
                       "enum": ["Color Bulb"]
                     },
                     {
+                      "title": "Ceiling Light",
+                      "enum": ["Ceiling Light"]
+                    },
+                    {
+                      "title": "Ceiling Light Pro",
+                      "enum": ["Ceiling Light Pro"]
+                    },
+                    {
                       "title": "Humidifier",
                       "enum": ["Humidifier"]
                     },
@@ -180,7 +188,7 @@
                   }
                 },
                 "scanDuration": {
-                  "title": "BLE Scan Duration (Default is 1 Second)",
+                  "title": "Scan Duration (Default is 1 Second) for BLE",
                   "type": "number",
                   "placeholder": 1,
                   "condition": {
@@ -201,8 +209,13 @@
                         {
                           "title": "Switch",
                           "enum": ["switch"]
+                        },
+                        {
+                          "title": "Multi-Press",
+                          "enum": ["multipress"]
                         }
                       ],
+                      "description": "Press Mode presses one time per 'On' state in the Home App/API. Switch Mode allows you to set how many presses occur when the device is set to 'On'. Multi-Press allows you to queue up multiple button presses. It creates a queue by counting each time the device is set to 'On'. It is most useful for scripting with cURL requests or other API calls. Multi-Press only works when using OpenAPI.",
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Bot' && model.options.devices[arrayIndices].deviceId);"
                       }
@@ -280,14 +293,6 @@
                       "description": "Indicates the number of seconds between pushes for double presses to SwitchBot API",
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Bot' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].bot && model.options.devices[arrayIndices].bot.mode && model.options.devices[arrayIndices].bot.doublePress > 1);"
-                      }
-                    },
-                    "maxRetry": {
-                      "title": "Max Retries",
-                      "type": "number",
-                      "placeholder": "5",
-                      "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Bot' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].bot && model.options.devices[arrayIndices].bot.mode);"
                       }
                     }
                   }
@@ -532,6 +537,14 @@
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Smart Lock' && model.options.devices[arrayIndices].deviceId);"
                       }
                     }
+                  }
+                },
+                "maxRetry": {
+                  "title": "Max Retries for BLE",
+                  "type": "number",
+                  "placeholder": "5",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].connectionType === 'BLE' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI') && (model.options.devices[arrayIndices].configDeviceType === 'Bot' || model.options.devices[arrayIndices].configDeviceType === 'Robot Vacuum Cleaner S1'  || model.options.devices[arrayIndices].configDeviceType === 'Robot Vacuum Cleaner S1 Plus' || model.options.devices[arrayIndices].configDeviceType === 'Strip Light' || model.options.devices[arrayIndices].configDeviceType === 'Plug'  || model.options.devices[arrayIndices].configDeviceType === 'Plug Mini (JP)'  || model.options.devices[arrayIndices].configDeviceType === 'Plug Mini (US)' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Color Bulb' || model.options.devices[arrayIndices].configDeviceType === 'Ceiling Light' || model.options.devices[arrayIndices].configDeviceType === 'Ceiling Light Pro'));"
                   }
                 },
                 "mqttURL": {
@@ -973,7 +986,7 @@
             ]
           }
         },
-    "required": ["name", "logging"]
+        "required": ["name", "logging"]
       }
     }
   },
@@ -1006,12 +1019,12 @@
             "options.devices[].configDeviceType",
             "options.devices[].connectionType",
             "options.devices[].scanDuration",
+            "options.devices[].maxRetry",
             "options.devices[].bot.mode",
             "options.devices[].bot.deviceType",
             "options.devices[].bot.allowPush",
             "options.devices[].bot.doublePress",
             "options.devices[].bot.pushRatePress",
-            "options.devices[].bot.maxRetry",
             "options.devices[].meter.hide_temperature",
             "options.devices[].meter.hide_humidity",
             "options.devices[].humidifier.set_minStep",
