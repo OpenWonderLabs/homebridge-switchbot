@@ -8,6 +8,7 @@ import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { device, devicesConfig, deviceStatus, ad, serviceData, switchbot, HostDomain, DevicePath } from '../settings';
+import { sleep } from '../utils';
 
 /**
  * Platform Accessory
@@ -659,7 +660,6 @@ export class Bot {
             this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
             return await this.retry({
               max: await this.maxRetry(),
-              switchbot,
               fn: () => {
                 if (this.On) {
                   return device_list[0].turnOn({ id: this.device.bleMac });
@@ -1172,15 +1172,15 @@ export class Bot {
     }
   }
 
-  async retry({ max, switchbot, fn }: { max: number; switchbot: any, fn: { (): any; (): Promise<any> } }): Promise<null> {
+  async retry({ max, fn }: { max: number; fn: { (): any; (): Promise<any> } }): Promise<null> {
     return fn().catch(async (err: any) => {
       if (max === 0) {
         throw err;
       }
       this.infoLog(err);
       this.infoLog('Retrying');
-      await switchbot.wait(1000);
-      return this.retry({ max: max - 1, switchbot, fn });
+      await sleep(1000);
+      return this.retry({ max: max - 1, fn });
     });
   }
 
