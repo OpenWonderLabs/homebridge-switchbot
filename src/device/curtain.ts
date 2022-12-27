@@ -10,6 +10,7 @@ import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { device, devicesConfig, serviceData, switchbot, deviceStatus, ad, HostDomain, DevicePath } from '../settings';
+import { sleep } from '../utils';
 
 export class Curtain {
   // Services
@@ -572,7 +573,6 @@ export class Curtain {
             this.infoLog(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
             return await this.retry({
               max: await this.maxRetry(),
-              switchbot,
               fn: () => {
                 return device_list[0].runToPos(100 - Number(this.TargetPosition), adjustedMode);
               },
@@ -598,15 +598,15 @@ export class Curtain {
     }
   }
 
-  async retry({ max, switchbot, fn }: { max: number; switchbot: any, fn: { (): any; (): Promise<any> } }): Promise<null> {
+  async retry({ max, fn }: { max: number; fn: { (): any; (): Promise<any> } }): Promise<null> {
     return fn().catch(async (err: any) => {
       if (max === 0) {
         throw err;
       }
       this.infoLog(err);
       this.infoLog('Retrying');
-      await switchbot.wait(1000);
-      return this.retry({ max: max - 1, switchbot, fn });
+      await sleep(1000);
+      return this.retry({ max: max - 1, fn });
     });
   }
 
