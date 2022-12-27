@@ -903,8 +903,8 @@ export class StripLight {
 
   async maxRetry(): Promise<number> {
     let maxRetry: number;
-    if (this.device.bot?.maxRetry) {
-      maxRetry = this.device.bot?.maxRetry;
+    if (this.device.maxRetry) {
+      maxRetry = this.device.maxRetry;
     } else {
       maxRetry = 5;
     }
