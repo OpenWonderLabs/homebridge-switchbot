@@ -54,6 +54,8 @@ export class Bot {
   scanDuration!: number;
   deviceLogging!: string;
   deviceRefreshRate!: number;
+  // Multi-Press
+  multiPressCount!: number;
 
   // Updates
   botUpdateInProgress!: boolean;
@@ -73,6 +75,8 @@ export class Bot {
     this.config(device);
     this.context();
     this.DoublePress(device);
+
+    this.multiPressCount = 0;
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doBotUpdate = new Subject();
@@ -108,6 +112,7 @@ export class Bot {
       (this.switchService = accessory.getService(this.platform.Service.Switch) || accessory.addService(this.platform.Service.Switch)),
       `${accessory.displayName} Switch`;
       this.infoLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Switch`);
+
 
       this.switchService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
       if (!this.switchService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -530,7 +535,6 @@ export class Bot {
   }
 
   async openAPIRefreshStatus(): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
     try {
       const t = Date.now();
       const nonce = 'requestID';
@@ -685,6 +689,10 @@ export class Bot {
   }
 
   async openAPIpushChanges(): Promise<void> {
+    if (this.multiPressCount > 0) {
+      this.debugLog(`${this.device.deviceType}: ${this.multiPressCount} request(s) queued.`);
+      this.On = true;
+    }
     try {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges`);
       if (this.On !== this.accessory.context.On || this.allowPush) {
@@ -706,7 +714,7 @@ export class Bot {
           command = 'turnOff';
           this.On = false;
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Switch Mode, Turning ${this.On}`);
-        } else if (this.botMode === 'press') {
+        } else if (this.botMode === 'press' || this.botMode === 'multipress') {
           command = 'press';
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Press Mode`);
           this.On = false;
@@ -746,6 +754,14 @@ export class Bot {
         req.write(body);
         req.end();
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges: ${superStringify(req)}`);
+        if (this.device.bot?.mode === 'multipress') {
+          this.multiPressCount--;
+          if (this.multiPressCount > 0) {
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Multi Press Count: ${this.multiPressCount}`);
+            this.On = true;
+            this.openAPIpushChanges();
+          }
+        }
       } else {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges.` + `On: ${this.On}, `
           +`OnCached: ${this.accessory.context.On}`);
@@ -803,6 +819,13 @@ export class Bot {
       }
     } else {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set On: ${value}`);
+      if (this.device.bot?.mode === 'multipress') {
+        if (value === true) {
+          this.multiPressCount++;
+          this.debugLog(`${this.device.deviceType} set to Multi-Press. Multi-Press count: ${this.multiPressCount}`);
+        }
+
+      }
       this.On = value;
     }
     this.doBotUpdate.next();
@@ -1163,8 +1186,8 @@ export class Bot {
 
   async maxRetry(): Promise<number> {
     let maxRetry: number;
-    if (this.device.bot?.maxRetry) {
-      maxRetry = this.device.bot?.maxRetry;
+    if (this.device.maxRetry) {
+      maxRetry = this.device.maxRetry;
     } else {
       maxRetry = 5;
     }
@@ -1181,6 +1204,9 @@ export class Bot {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Bot Mode: ${this.botMode}`);
     } else if (device.bot?.mode === 'press') {
       this.botMode = 'press';
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Bot Mode: ${this.botMode}`);
+    } else if (device.bot?.mode === 'multipress') {
+      this.botMode = 'multipress';
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Bot Mode: ${this.botMode}`);
     } else {
       throw new Error(`${this.device.deviceType}: ${this.accessory.displayName} Bot Mode: ${this.botMode}`);
@@ -1364,6 +1390,9 @@ export class Bot {
     }
     if (device.offline !== undefined) {
       config['offline'] = device.offline;
+    }
+    if (device.maxRetry !== undefined) {
+      config['maxRetry'] = device.maxRetry;
     }
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);
