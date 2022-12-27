@@ -188,7 +188,7 @@
                   }
                 },
                 "scanDuration": {
-                  "title": "BLE Scan Duration (Default is 1 Second)",
+                  "title": "Scan Duration (Default is 1 Second) for BLE",
                   "type": "number",
                   "placeholder": 1,
                   "condition": {
@@ -540,7 +540,7 @@
                   }
                 },
                 "maxRetry": {
-                  "title": "Max Retries",
+                  "title": "Max Retries for BLE",
                   "type": "number",
                   "placeholder": "5",
                   "condition": {
