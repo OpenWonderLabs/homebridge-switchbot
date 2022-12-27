@@ -100,6 +100,7 @@ export type curtain = {
   set_minStep?: number;
   setCloseMode?: string;
   setOpenMode?: string;
+  maxRetry?: number;
 };
 
 export type contact = {

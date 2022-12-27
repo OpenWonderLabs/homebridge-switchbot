@@ -568,9 +568,15 @@ export class Curtain {
       if (switchbot !== false) {
         switchbot
           .discover({ model: 'c', quick: true, id: this.device.bleMac })
-          .then((device_list: any) => {
+          .then(async (device_list: any) => {
             this.infoLog(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
-            return device_list[0].runToPos(100 - Number(this.TargetPosition), adjustedMode);
+            return await this.retry({
+              max: await this.maxRetry(),
+              switchbot,
+              fn: () => {
+                return device_list[0].runToPos(100 - Number(this.TargetPosition), adjustedMode);
+              },
+            });
           })
           .then(() => {
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
@@ -590,6 +596,28 @@ export class Curtain {
           `  CurrentPosition: ${this.CurrentPosition}, TargetPosition  ${this.TargetPosition}`,
       );
     }
+  }
+
+  async retry({ max, switchbot, fn }: { max: number; switchbot: any, fn: { (): any; (): Promise<any> } }): Promise<null> {
+    return fn().catch(async (err: any) => {
+      if (max === 0) {
+        throw err;
+      }
+      this.infoLog(err);
+      this.infoLog('Retrying');
+      await switchbot.wait(1000);
+      return this.retry({ max: max - 1, switchbot, fn });
+    });
+  }
+
+  async maxRetry(): Promise<number> {
+    let maxRetry: number;
+    if (this.device.curtain?.maxRetry) {
+      maxRetry = this.device.curtain?.maxRetry;
+    } else {
+      maxRetry = 5;
+    }
+    return maxRetry;
   }
 
   async openAPIpushChanges(): Promise<void> {
