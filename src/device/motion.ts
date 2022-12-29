@@ -8,6 +8,7 @@ import { SwitchBotPlatform } from '../platform';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { device, devicesConfig, serviceData, switchbot, deviceStatus, ad, HostDomain, DevicePath } from '../settings';
 import { IncomingMessage } from 'http';
+import { sleep } from '../utils';
 
 /**
  * Platform Accessory
@@ -263,40 +264,45 @@ export class Motion {
           id: this.device.bleMac,
         })
         .then(async () => {
-          // Set an event hander
-          this.scanning = true;
-          switchbot.onadvertisement = async (ad: any) => {
-            this.address = ad.address;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
-            + ` BLE Address Found: ${this.address}`);
-            this.serviceData = ad.serviceData;
-            this.movement = ad.serviceData.movement;
-            this.tested = ad.serviceData.tested;
-            this.battery = ad.serviceData.battery;
-            this.led = ad.serviceData.led;
-            this.iot = ad.serviceData.led;
-            this.sense_distance = ad.serviceData.sense_distance;
-            this.lightLevel = ad.serviceData.lightLevel;
-            this.is_light = ad.serviceData.is_light;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
-            this.debugLog(
-              `${this.device.deviceType}: ${this.accessory.displayName} movement: ${ad.serviceData.movement}, is_light: ` +
-                `${ad.serviceData.is_light}, lightLevel: ${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}`,
-            );
+          return await this.retry({
+            max: await this.maxRetry(),
+            fn: async () => {
+              // Set an event hander
+              this.scanning = true;
+              switchbot.onadvertisement = async (ad: any) => {
+                this.address = ad.address;
+                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
+                + ` BLE Address Found: ${this.address}`);
+                this.serviceData = ad.serviceData;
+                this.movement = ad.serviceData.movement;
+                this.tested = ad.serviceData.tested;
+                this.battery = ad.serviceData.battery;
+                this.led = ad.serviceData.led;
+                this.iot = ad.serviceData.led;
+                this.sense_distance = ad.serviceData.sense_distance;
+                this.lightLevel = ad.serviceData.lightLevel;
+                this.is_light = ad.serviceData.is_light;
+                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
+                this.debugLog(
+                  `${this.device.deviceType}: ${this.accessory.displayName} movement: ${ad.serviceData.movement}, is_light: ` +
+                    `${ad.serviceData.is_light}, lightLevel: ${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}`,
+                );
 
-            if (this.serviceData) {
-              this.connected = true;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
-              await this.stopScanning(switchbot);
-              this.scanning = false;
-              this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} scanning: ${this.scanning}`);
-            } else {
-              this.connected = false;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
-            }
-          };
-          // Wait
-          return await switchbot.wait(this.scanDuration * 1000);
+                if (this.serviceData) {
+                  this.connected = true;
+                  this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+                  await this.stopScanning(switchbot);
+                  this.scanning = false;
+                  this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} scanning: ${this.scanning}`);
+                } else {
+                  this.connected = false;
+                  this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+                }
+              };
+              // Wait
+              return await switchbot.wait(this.scanDuration * 1000);
+            },
+          });
         })
         .then(async () => {
           // Stop to monitor
@@ -443,6 +449,28 @@ export class Motion {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Refresh Status`);
       await this.openAPIRefreshStatus();
     }
+  }
+
+  async retry({ max, fn }: { max: number; fn: { (): any; (): Promise<any> } }): Promise<null> {
+    return fn().catch(async (err: any) => {
+      if (max === 0) {
+        throw err;
+      }
+      this.infoLog(err);
+      this.infoLog('Retrying');
+      await sleep(1000);
+      return this.retry({ max: max - 1, fn });
+    });
+  }
+
+  async maxRetry(): Promise<number> {
+    let maxRetry: number;
+    if (this.device.maxRetry) {
+      maxRetry = this.device.maxRetry;
+    } else {
+      maxRetry = 5;
+    }
+    return maxRetry;
   }
 
   minLux(): number {
