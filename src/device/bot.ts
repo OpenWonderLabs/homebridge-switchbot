@@ -695,7 +695,7 @@ export class Bot {
     }
     try {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges`);
-      if (this.On !== this.accessory.context.On || this.allowPush) {
+      if ((this.On !== this.accessory.context.On || this.allowPush) || this.multiPressCount > 0) {
         // Make Push On request to the API
         const t = Date.now();
         const nonce = 'requestID';
