@@ -604,7 +604,7 @@ export class Curtain {
         throw err;
       }
       this.infoLog(err);
-      this.infoLog('Retrying');
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Retrying`);
       await sleep(1000);
       return this.retry({ max: max - 1, fn });
     });
@@ -623,7 +623,7 @@ export class Curtain {
   async openAPIpushChanges(): Promise<void> {
     try {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} OpenAPI pushChanges`);
-      if (this.TargetPosition !== this.CurrentPosition) {
+      if ((this.TargetPosition !== this.CurrentPosition) || this.device.disableCaching) {
         // Make Push On request to the API
         const t = Date.now();
         const nonce = 'requestID';

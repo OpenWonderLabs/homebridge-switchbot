@@ -539,6 +539,13 @@
                     }
                   }
                 },
+                "disableCaching": {
+                  "title": "Disable Caching",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].configDeviceType === 'Curtain');"
+                  }
+                },
                 "maxRetry": {
                   "title": "Max Retries for BLE",
                   "type": "number",
@@ -1019,6 +1026,7 @@
             "options.devices[].configDeviceType",
             "options.devices[].connectionType",
             "options.devices[].scanDuration",
+            "options.devices[].disableCaching",
             "options.devices[].maxRetry",
             "options.devices[].bot.mode",
             "options.devices[].bot.deviceType",

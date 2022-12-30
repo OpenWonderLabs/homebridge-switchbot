@@ -1128,7 +1128,7 @@ export class ColorBulb {
         throw err;
       }
       this.infoLog(err);
-      this.infoLog('Retrying');
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Retrying`);
       await sleep(1000);
       return this.retry({ max: max - 1, fn });
     });

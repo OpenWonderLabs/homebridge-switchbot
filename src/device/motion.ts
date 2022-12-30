@@ -291,6 +291,7 @@ export class Motion {
                 if (this.serviceData) {
                   this.connected = true;
                   this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+                  this.errorLog('1');
                   await this.stopScanning(switchbot);
                   this.scanning = false;
                   this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} scanning: ${this.scanning}`);
@@ -308,6 +309,7 @@ export class Motion {
           // Stop to monitor
           this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} scanning: ${this.scanning}`);
           if (this.scanning) {
+            this.errorLog('2');
             await this.stopScanning(switchbot);
           }
         })
@@ -315,9 +317,11 @@ export class Motion {
           this.apiError(e);
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLERefreshStatus with ${this.device.connectionType}`
                 + ` Connection, Error Message: ${superStringify(e.message)}`);
+          this.errorLog('3');
           await this.BLERefreshConnection(switchbot);
         });
     } else {
+      this.errorLog('4');
       await this.BLERefreshConnection(switchbot);
     }
   }
@@ -457,7 +461,7 @@ export class Motion {
         throw err;
       }
       this.infoLog(err);
-      this.infoLog('Retrying');
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Retrying`);
       await sleep(1000);
       return this.retry({ max: max - 1, fn });
     });
