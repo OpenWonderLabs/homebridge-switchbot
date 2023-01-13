@@ -196,6 +196,8 @@ export type device = {
   hubDeviceId: string;
   //only available for Curtain devices. a list of Curtain device IDs such that the Curtain devices are being paired or grouped.
   curtainDevicesIds?: Array<string>;
+  //only available for Blind Titl devices. a list of Blind Tilt device IDs such that the Blind Tilt devices are being paired or grouped.
+  blindTiltDevicesIds?: Array<string>;
   //only available for Curtain/Lock devices. determines if the open position and the close position of a device have been properly calibrated or not
   calibrate?: boolean;
   //only available for Curtain devices. determines if a Curtain is paired with or grouped with another Curtain or not.
@@ -204,6 +206,12 @@ export type device = {
   master?: boolean;
   //only available for Curtain devices. the opening direction of a Curtain.
   openDirection?: string;
+  //the opening direction of a Blind Tilt device
+  direction?: string;
+  //the current position, 0-100
+  slidePosition?: string;
+  //the version of the device
+  version?: number;
   //BLE Mac Address
   bleMac?: string;
 };

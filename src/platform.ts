@@ -16,6 +16,7 @@ import { Fan } from './irdevice/fan';
 import { Light } from './irdevice/light';
 import { Others } from './irdevice/other';
 import { Camera } from './irdevice/camera';
+import { BlindTilt } from './device/blindtilt';
 import { AirPurifier } from './irdevice/airpurifier';
 import { WaterHeater } from './irdevice/waterheater';
 import { VacuumCleaner } from './irdevice/vacuumcleaner';
@@ -433,6 +434,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       case 'Curtain':
         this.debugLog(`Discovered ${device.deviceType} ${device.deviceName}: ${device.deviceId}`);
         this.createCurtain(device);
+        break;
+      case 'Blind Tilt':
+        this.debugLog(`Discovered ${device.deviceType} ${device.deviceName}: ${device.deviceId}`);
+        this.createBlindTilt(device);
         break;
       case 'Plug':
       case 'Plug Mini (US)':
@@ -875,6 +880,73 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new Contact(this, accessory, device);
+      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
+
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
+      this.accessories.push(accessory);
+    } else {
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+    }
+  }
+
+  private async createBlindTilt(device: device & devicesConfig) {
+    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`);
+
+    // see if an accessory with the same uuid has already been registered and restored from
+    // the cached devices we stored in the `configureAccessory` method above
+    const existingAccessory = this.accessories.find((accessory) => accessory.UUID === uuid);
+
+    if (existingAccessory) {
+      // the accessory already exists
+      if (await this.registerDevice(device)) {
+        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
+        existingAccessory.context.model = device.deviceType;
+        existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.displayName = device.configDeviceName || device.deviceName;
+        existingAccessory.context.firmwareRevision = device.firmware;
+        existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+        existingAccessory.context.connectionType = await this.connectionType(device);
+        this.api.updatePlatformAccessories([existingAccessory]);
+        // create the accessory handler for the restored accessory
+        // this is imported from `platformAccessory.ts`
+        new BlindTilt(this, existingAccessory, device);
+        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`);
+      } else {
+        this.unregisterPlatformAccessories(existingAccessory);
+      }
+    } else if (await this.registerDevice(device)) {
+      // the accessory does not yet exist, so we need to create it
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
+
+      if (device.group && !device.curtain?.disable_group) {
+        this.debugLog('Your Curtains are grouped, '
+        + `, Secondary curtain automatically hidden. Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
+      } else {
+        if (device.master) {
+          this.warnLog(`Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
+        } else {
+          this.errorLog(`Secondary Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
+        }
+      }
+
+      // create a new accessory
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+
+      // store a copy of the device object in the `accessory.context`
+      // the `context` property can be used to store any data about the accessory you may need
+      accessory.context.device = device;
+      accessory.context.model = device.deviceType;
+      accessory.context.deviceID = device.deviceId;
+      accessory.context.firmwareRevision = device.firmware;
+      accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
+      accessory.context.connectionType = await this.connectionType(device);
+      // create the accessory handler for the newly create accessory
+      // this is imported from `platformAccessory.ts`
+      new BlindTilt(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
       // publish device externally or link the accessory to your platform
@@ -1787,36 +1859,42 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   async registerCurtains(device: device & devicesConfig) {
-    this.debugWarnLog(`deviceName: ${device.deviceName} deviceId: ${device.deviceId}, curtainDevicesIds: ${device.curtainDevicesIds}, master: ` +
-    `${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group}, connectionType: ${device.connectionType}`);
+    if (device.deviceType === 'Curtain') {
+      this.debugWarnLog(`deviceName: ${device.deviceName} deviceId: ${device.deviceId}, curtainDevicesIds: ${device.curtainDevicesIds}, master: `
+      + `${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group}, connectionType: ${device.connectionType}`);
+    } else {
+      this.debugWarnLog(`deviceName: ${device.deviceName} deviceId: ${device.deviceId}, blindTiltDevicesIds: ${device.blindTiltDevicesIds}, master: `
+      + `${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group}, connectionType: ${device.connectionType}`);
+    }
 
     let registerCurtain: boolean;
     if (device.master && device.group) {
-      // OpenAPI: Master Curtains in Group
+      // OpenAPI: Master Curtains/Blind Tilt in Group
       registerCurtain = true;
-      this.debugLog(`deviceName: ${device.deviceName} [Curtain Config] device.master: ${device.master}, device.group: ${device.group}`
+      this.debugLog(`deviceName: ${device.deviceName} [${device.deviceType} Config] device.master: ${device.master}, device.group: ${device.group}`
       + ` connectionType; ${device.connectionType}`);
       this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`);
     } else if (!device.master && device.curtain?.disable_group) { //!device.group && device.connectionType === 'BLE'
-      // OpenAPI: Non-Master Curtain that has Disable Grouping Checked
+      // OpenAPI: Non-Master Curtains/Blind Tilts that has Disable Grouping Checked
       registerCurtain = true;
-      this.debugLog(`deviceName: ${device.deviceName} [Curtain Config] device.master: ${device.master}, disable_group: `
+      this.debugLog(`deviceName: ${device.deviceName} [${device.deviceType} Config] device.master: ${device.master}, disable_group: `
       + `${device.curtain?.disable_group}, connectionType; ${device.connectionType}`);
       this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`);
     } else if (device.master && !device.group) {
-      // OpenAPI: Master Curtains not in Group
+      // OpenAPI: Master Curtains/Blind Tilts not in Group
       registerCurtain = true;
-      this.debugLog(`deviceName: ${device.deviceName} [Curtain Config] device.master: ${device.master}, device.group: ${device.group}`
+      this.debugLog(`deviceName: ${device.deviceName} [${device.deviceType} Config] device.master: ${device.master}, device.group: ${device.group}`
       + ` connectionType; ${device.connectionType}`);
       this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`);
     } else if (device.connectionType === 'BLE') {
-      // BLE: Curtains
+      // BLE: Curtains/Blind Tilt
       registerCurtain = true;
-      this.debugLog(`deviceName: ${device.deviceName} [Curtain Config] connectionType: ${device.connectionType}, group: ${device.group}`);
+      this.debugLog(`deviceName: ${device.deviceName} [${device.deviceType} Config] connectionType: ${device.connectionType}, `
+      + ` group: ${device.group}`);
       this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`);
     } else {
       registerCurtain = false;
-      this.debugErrorLog(`deviceName: ${device.deviceName} [Curtain Config] disable_group: ${device.curtain?.disable_group},`
+      this.debugErrorLog(`deviceName: ${device.deviceName} [${device.deviceType} Config] disable_group: ${device.curtain?.disable_group},`
       + ` device.master: ${device.master}, device.group: ${device.group}`);
       this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}, device.connectionType: ${device.connectionType}`);
     }
@@ -1837,9 +1915,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     device.connectionType = await this.connectionType(device);
     let registerDevice: boolean;
     if (!device.hide_device && device.connectionType === 'BLE/OpenAPI') {
-      if (device.deviceType === 'Curtain') {
+      if (device.deviceType === 'Curtain' || device.deviceType === 'Blind Tilt') {
         registerDevice = await this.registerCurtains(device);
-        this.debugWarnLog(`Device: ${device.deviceName} Curtain registerDevice: ${registerDevice}`);
+        this.debugWarnLog(`Device: ${device.deviceName} ${device.deviceType} registerDevice: ${registerDevice}`);
       } else {
         registerDevice = true;
         this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`);
@@ -1847,27 +1925,27 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`);
     } else if (!device.hide_device && device.deviceId && device.configDeviceType && device.configDeviceName
       && device.connectionType === 'BLE') {
-      if (device.deviceType === 'Curtain') {
+      if (device.deviceType === 'Curtain' || device.deviceType === 'Blind Tilt') {
         registerDevice = await this.registerCurtains(device);
-        this.debugWarnLog(`Device: ${device.deviceName} Curtain registerDevice: ${registerDevice}`);
+        this.debugWarnLog(`Device: ${device.deviceName} ${device.deviceType} registerDevice: ${registerDevice}`);
       } else {
         registerDevice = true;
         this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`);
       }
       this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`);
     } else if (!device.hide_device && device.connectionType === 'OpenAPI') {
-      if (device.deviceType === 'Curtain') {
+      if (device.deviceType === 'Curtain' || device.deviceType === 'Blind Tilt') {
         registerDevice = await this.registerCurtains(device);
-        this.debugWarnLog(`Device: ${device.deviceName} Curtain registerDevice: ${registerDevice}`);
+        this.debugWarnLog(`Device: ${device.deviceName} ${device.deviceType} registerDevice: ${registerDevice}`);
       } else {
         registerDevice = true;
         this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`);
       }
       this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`);
     } else if (!device.hide_device && device.connectionType === 'Disabled') {
-      if (device.deviceType === 'Curtain') {
+      if (device.deviceType === 'Curtain' || device.deviceType === 'Blind Tilt') {
         registerDevice = await this.registerCurtains(device);
-        this.debugWarnLog(`Device: ${device.deviceName} Curtain registerDevice: ${registerDevice}`);
+        this.debugWarnLog(`Device: ${device.deviceName} ${device.deviceType} registerDevice: ${registerDevice}`);
       } else {
         registerDevice = true;
         this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`);
