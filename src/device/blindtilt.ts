@@ -159,6 +159,7 @@ export class BlindTilt {
         minStep: this.minStep(device),
         minValue: -90,
         maxValue: 90,
+        validValues: [this.minus90, this.zero, this.plus90],
         validValueRanges: [-90, 90],
       })
       .onSet(this.TargetHorizontalTiltAngleSet.bind(this));
@@ -991,7 +992,7 @@ export class BlindTilt {
     if (device.curtain?.set_minStep) {
       this.set_minStep = device.curtain?.set_minStep;
     } else {
-      this.set_minStep = 1;
+      this.set_minStep = 90;
     }
     return this.set_minStep;
   }
