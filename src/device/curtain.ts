@@ -138,6 +138,8 @@ export class Curtain {
       .getCharacteristic(this.platform.Characteristic.TargetPosition)
       .setProps({
         minStep: this.minStep(device),
+        minValue: 0,
+        maxValue: 100,
         validValueRanges: [0, 100],
       })
       .onSet(this.TargetPositionSet.bind(this));

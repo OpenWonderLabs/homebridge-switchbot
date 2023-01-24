@@ -15,16 +15,16 @@ import { sleep } from '../utils';
 export class BlindTilt {
   // Services
   windowCoveringService: Service;
-  lightSensorService?: Service;
   batteryService?: Service;
 
   // Characteristic Values
   CurrentPosition!: CharacteristicValue;
   PositionState!: CharacteristicValue;
   TargetPosition!: CharacteristicValue;
-  CurrentAmbientLightLevel?: CharacteristicValue;
   BatteryLevel?: CharacteristicValue;
   StatusLowBattery?: CharacteristicValue;
+  CurrentHorizontalTiltAngle!: CharacteristicValue;
+  TargetHorizontalTiltAngle!: CharacteristicValue;
 
   // OpenAPI Others
   deviceStatus!: any; //deviceStatusResponse;
@@ -44,7 +44,6 @@ export class BlindTilt {
   battery: serviceData['battery'];
   position: serviceData['position'];
   inMotion: serviceData['inMotion'];
-  lightLevel: serviceData['lightLevel'];
 
   // Target
   setNewTarget!: boolean;
@@ -142,24 +141,27 @@ export class BlindTilt {
       })
       .onSet(this.TargetPositionSet.bind(this));
 
-    // Light Sensor Service
-    if (device.curtain?.hide_lightsensor) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
-      this.lightSensorService = this.accessory.getService(this.platform.Service.LightSensor);
-      accessory.removeService(this.lightSensorService!);
-    } else if (!this.lightSensorService) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Light Sensor Service`);
-      (this.lightSensorService =
-        this.accessory.getService(this.platform.Service.LightSensor) || this.accessory.addService(this.platform.Service.LightSensor)),
-      `${accessory.displayName} Light Sensor`;
+    this.windowCoveringService
+      .getCharacteristic(this.platform.Characteristic.CurrentHorizontalTiltAngle)
+      .setProps({
+        minStep: this.minStep(device),
+        minValue: -90,
+        maxValue: 90,
+        validValueRanges: [-90, 90],
+      })
+      .onGet(() => {
+        return this.CurrentHorizontalTiltAngle;
+      });
 
-      this.lightSensorService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Light Sensor`);
-      if (!this.lightSensorService?.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-        this.lightSensorService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Light Sensor`);
-      }
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Light Sensor Service Not Added`);
-    }
+    this.windowCoveringService
+      .getCharacteristic(this.platform.Characteristic.TargetHorizontalTiltAngle)
+      .setProps({
+        minStep: this.minStep(device),
+        minValue: -90,
+        maxValue: 90,
+        validValueRanges: [-90, 90],
+      })
+      .onSet(this.TargetHorizontalTiltAngleSet.bind(this));
 
     // Battery Service
     if (!this.BLE) {
@@ -276,63 +278,47 @@ export class BlindTilt {
       `${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition},` +
         ` TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState},`,
     );
-
-    if (!this.device.curtain?.hide_lightsensor) {
-      this.set_minLux = this.minLux();
-      this.set_maxLux = this.maxLux();
-      this.spaceBetweenLevels = 9;
-
-      // Brightness
-      switch (this.lightLevel) {
-        case 1:
-          this.CurrentAmbientLightLevel = this.set_minLux;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
-          break;
-        case 2:
-          this.CurrentAmbientLightLevel = (this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels;
-          this.debugLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel},` +
-              ` Calculation: ${(this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels}`,
-          );
-          break;
-        case 3:
-          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 2;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
-          break;
-        case 4:
-          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 3;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
-          break;
-        case 5:
-          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 4;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
-          break;
-        case 6:
-          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 5;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
-          break;
-        case 7:
-          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 6;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
-          break;
-        case 8:
-          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 7;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
-          break;
-        case 9:
-          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 8;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
-          break;
-        case 10:
-        default:
-          this.CurrentAmbientLightLevel = this.set_maxLux;
-          this.debugLog();
-      }
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel},`
-        + ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
-      );
+    // CurrentHorizontalTiltAngle
+    this.CurrentHorizontalTiltAngle = 100 - Number(this.position);
+    await this.setMinMax();
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentHorizontalTiltAngle ${this.CurrentHorizontalTiltAngle}`);
+    if (this.setNewTarget) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Checking Status ...`);
     }
+
+    if (this.setNewTarget && this.inMotion) {
+      await this.setMinMax();
+      if (this.TargetHorizontalTiltAngle > this.CurrentHorizontalTiltAngle) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Closing,`+
+        ` CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}`);
+        this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
+        this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
+        this.debugLog(`${this.device.deviceType}: ${this.CurrentHorizontalTiltAngle} INCREASING PositionState: ${this.PositionState}`);
+      } else if (this.TargetHorizontalTiltAngle < this.CurrentHorizontalTiltAngle) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Opening,`+
+        ` CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}`);
+        this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
+        this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
+        this.debugLog(`${this.device.deviceType}: ${this.CurrentHorizontalTiltAngle} DECREASING PositionState: ${this.PositionState}`);
+      } else {
+        this.debugLog(`${this.device.deviceType}: ${this.CurrentHorizontalTiltAngle} Standby,`+
+        ` CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}`);
+        this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
+        this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
+        this.debugLog(`${this.device.deviceType}: ${this.CurrentHorizontalTiltAngle} STOPPED PositionState: ${this.PositionState}`);
+      }
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Standby,`+
+      ` CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}`);
+      this.TargetHorizontalTiltAngle = this.CurrentHorizontalTiltAngle;
+      this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Stopped`);
+    }
+    this.debugLog(
+      `${this.device.deviceType}: ${this.accessory.displayName} CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle},` +
+        ` TargetHorizontalTiltAngle: ${this.TargetHorizontalTiltAngle}, PositionState: ${this.PositionState},`,
+    );
+
     // Battery
     this.BatteryLevel = Number(this.battery);
     if (this.BatteryLevel < 10) {
@@ -382,21 +368,46 @@ export class BlindTilt {
       `${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition},` +
           ` TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState},`,
     );
-
-    if (!this.device.curtain?.hide_lightsensor) {
-      this.set_minLux = this.minLux();
-      this.set_maxLux = this.maxLux();
-      // Brightness
-      switch (this.brightness) {
-        case 'dim':
-          this.CurrentAmbientLightLevel = this.set_minLux;
-          break;
-        case 'bright':
-        default:
-          this.CurrentAmbientLightLevel = this.set_maxLux;
-      }
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+    // CurrentHorizontalTiltAngle
+    this.CurrentHorizontalTiltAngle = 100 - Number(this.slidePosition);
+    await this.setMinMax();
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}`);
+    if (this.setNewTarget) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Checking Status ...`);
     }
+
+    if (this.setNewTarget && this.moving) {
+      await this.setMinMax();
+      if (this.TargetHorizontalTiltAngle > this.CurrentHorizontalTiltAngle) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Closing,`
+        + ` CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle} `);
+        this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
+        this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
+        this.debugLog(`${this.device.deviceType}: ${this.CurrentHorizontalTiltAngle} INCREASING PositionState: ${this.PositionState}`);
+      } else if (this.TargetHorizontalTiltAngle < this.CurrentHorizontalTiltAngle) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Opening,`
+        + ` CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle} `);
+        this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
+        this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
+        this.debugLog(`${this.device.deviceType}: ${this.CurrentHorizontalTiltAngle} DECREASING PositionState: ${this.PositionState}`);
+      } else {
+        this.debugLog(`${this.device.deviceType}: ${this.CurrentHorizontalTiltAngle} Standby,`
+        + ` CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}`);
+        this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
+        this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
+        this.debugLog(`${this.device.deviceType}: ${this.CurrentHorizontalTiltAngle} STOPPED PositionState: ${this.PositionState}`);
+      }
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Standby,`
+      + ` CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}`);
+      this.TargetPosition = this.CurrentHorizontalTiltAngle;
+      this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Stopped`);
+    }
+    this.debugLog(
+      `${this.device.deviceType}: ${this.accessory.displayName} CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle},` +
+          ` TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState},`,
+    );
   }
 
   async refreshStatus(): Promise<void> {
@@ -441,12 +452,10 @@ export class BlindTilt {
             this.battery = ad.serviceData.battery;
             this.inMotion = ad.serviceData.inMotion;
             this.position = ad.serviceData.position;
-            this.lightLevel = ad.serviceData.lightLevel;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} calibration: ${ad.serviceData.calibration}, ` +
-                `position: ${ad.serviceData.position}, lightLevel: ${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}, ` +
-                `inMotion: ${ad.serviceData.inMotion}`);
+                `position: ${ad.serviceData.position}, inMotion: ${ad.serviceData.inMotion}, battery: ${ad.serviceData.battery}`);
 
             if (this.serviceData) {
               this.connected = true;
@@ -742,6 +751,56 @@ export class BlindTilt {
     this.doBlindTiltUpdate.next();
   }
 
+  /**
+   * Handle requests to set the value of the "Target Position" characteristic
+   */
+  async TargetHorizontalTiltAngleSet(value: CharacteristicValue): Promise<void> {
+    if (this.TargetHorizontalTiltAngle === this.accessory.context.TargetHorizontalTiltAngle) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set TargetHorizontalTiltAngle: ${value}`);
+    } else {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set TargetHorizontalTiltAngle: ${value}`);
+    }
+
+    this.TargetHorizontalTiltAngle = value;
+    if (this.device.mqttURL) {
+      this.mqttPublish('TargetHorizontalTiltAngle', this.TargetHorizontalTiltAngle);
+    }
+
+    await this.setMinMax();
+    if (value > this.CurrentHorizontalTiltAngle) {
+      this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
+      this.setNewTarget = true;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${value},`
+      + ` CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}`);
+    } else if (value < this.CurrentHorizontalTiltAngle) {
+      this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
+      this.setNewTarget = true;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${value},`
+      + ` CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}`);
+    } else {
+      this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
+      this.setNewTarget = false;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${value},`
+      + ` CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}`);
+    }
+    this.windowCoveringService.setCharacteristic(this.platform.Characteristic.PositionState, this.PositionState);
+    this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
+
+    /**
+     * If Blind Tilt movement time is short, the moving flag from backend is always false.
+     * The minimum time depends on the network control latency.
+     */
+    clearTimeout(this.setNewTargetTimer);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateRate: ${this.updateRate}`);
+    if (this.setNewTarget) {
+      this.setNewTargetTimer = setTimeout(() => {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} setNewTarget ${this.setNewTarget} timeout`);
+        this.setNewTarget = false;
+      }, this.updateRate * 1000);
+    }
+    this.doBlindTiltUpdate.next();
+  }
+
   async updateHomeKitCharacteristics(): Promise<void> {
     await this.setMinMax();
     if (this.CurrentPosition === undefined || Number.isNaN(this.CurrentPosition)) {
@@ -774,18 +833,27 @@ export class BlindTilt {
       this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.TargetPosition, Number(this.TargetPosition));
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic TargetPosition: ${this.TargetPosition}`);
     }
-    if (!this.device.curtain?.hide_lightsensor) {
-      if (this.CurrentAmbientLightLevel === undefined || Number.isNaN(this.CurrentAmbientLightLevel)) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
-      } else {
-        if (this.device.mqttURL) {
-          this.mqttPublish('CurrentAmbientLightLevel', this.CurrentAmbientLightLevel);
-        }
-        this.accessory.context.CurrentAmbientLightLevel = this.CurrentAmbientLightLevel;
-        this.lightSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-        + ` updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+    if (this.CurrentHorizontalTiltAngle === undefined || Number.isNaN(this.CurrentHorizontalTiltAngle)) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}`);
+    } else {
+      if (this.device.mqttURL) {
+        this.mqttPublish('CurrentHorizontalTiltAngle', this.CurrentHorizontalTiltAngle);
       }
+      this.accessory.context.CurrentHorizontalTiltAngle = this.CurrentHorizontalTiltAngle;
+      this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.CurrentHorizontalTiltAngle, Number(this.CurrentPosition));
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
+      +` CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}`);
+    }
+    if (this.TargetHorizontalTiltAngle === undefined || Number.isNaN(this.TargetHorizontalTiltAngle)) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} TargetHorizontalTiltAngle: ${this.TargetHorizontalTiltAngle}`);
+    } else {
+      if (this.device.mqttURL) {
+        this.mqttPublish('TargetHorizontalTiltAngle', this.TargetHorizontalTiltAngle);
+      }
+      this.accessory.context.TargetHorizontalTiltAngle = this.TargetHorizontalTiltAngle;
+      this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.TargetHorizontalTiltAngle, Number(this.TargetHorizontalTiltAngle));
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
+      + ` TargetHorizontalTiltAngle: ${this.TargetHorizontalTiltAngle}`);
     }
     if (this.BLE) {
       if (this.BatteryLevel === undefined) {
@@ -1020,9 +1088,6 @@ export class BlindTilt {
     this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.CurrentPosition, e);
     this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.PositionState, e);
     this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.TargetPosition, e);
-    if (!this.device.curtain?.hide_lightsensor) {
-      this.lightSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, e);
-    }
     if (this.BLE) {
       this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
       this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
@@ -1057,6 +1122,18 @@ export class BlindTilt {
       this.TargetPosition = 0;
     } else {
       this.TargetPosition = this.accessory.context.TargetPosition;
+    }
+
+    if (this.CurrentHorizontalTiltAngle === undefined) {
+      this.CurrentHorizontalTiltAngle = 0;
+    } else {
+      this.CurrentHorizontalTiltAngle = this.accessory.context.CurrentHorizontalTiltAngle;
+    }
+
+    if (this.TargetHorizontalTiltAngle === undefined) {
+      this.TargetHorizontalTiltAngle = 0;
+    } else {
+      this.TargetHorizontalTiltAngle = this.accessory.context.TargetHorizontalTiltAngle;
     }
 
     if (this.PositionState === undefined) {
