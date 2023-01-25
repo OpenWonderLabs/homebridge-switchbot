@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 2.4.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.4.1) (2023-01-XX)
+
+## What's Changed
+
+- Fixed opening and closing curtain states, Thanks [@dnicolson](https://github.com/dnicolson). [#658](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/658)
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.4.0....v2.4.1
+
 ## [Version 2.4.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.4.0) (2022-12-27)
 
 ## What's Changed
