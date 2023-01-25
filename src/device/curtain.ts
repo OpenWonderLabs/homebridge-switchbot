@@ -570,8 +570,12 @@ export class Curtain {
             return await this.retry({
               max: await this.maxRetry(),
               switchbot,
-              fn: () => {
-                return device_list[0].runToPos(100 - Number(this.TargetPosition), adjustedMode);
+              fn: async () => {
+                try {
+                  return await device_list[0].runToPos(100 - Number(this.TargetPosition), adjustedMode);
+                } catch(e: any) {
+                  throw new Error('Connection error');
+                }
               },
             });
           })
