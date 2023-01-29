@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 2.5.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.5.1) (2023-01-28)
+
+## What's Changed
+
+- Fix Blind Tilt Config.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.5.0....v2.5.1
+
 ## [Version 2.5.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.5.0) (2023-01-28)
 
 ## What's Changed
