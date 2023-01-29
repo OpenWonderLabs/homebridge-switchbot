@@ -266,8 +266,8 @@ direction?:	string;	//the opening direction of a Blind Tilt device. (Used by the
 mode?: number; //available for  devices. the fan mode. (Used by the following deviceTypes: Smart Fan)
 speed?: number;//the fan speed. (Used by the following deviceTypes: Smart Fan)
 shaking?: boolean; //determines if the fan is swinging or not. (Used by the following deviceTypes: Smart Fan)
-shakeCenter?: string;//only available for Smart Fan devices. the fan's swing direciton. (Used by the following deviceTypes: Smart Fan)
-shakeRange?: string;//only available for Smart Fan devices. the fan's swing range, 0~120°. (Used by the following deviceTypes: Smart Fan)
+shakeCenter?: string;//the fan's swing direciton. (Used by the following deviceTypes: Smart Fan)
+shakeRange?: string;//the fan's swing range, 0~120°. (Used by the following deviceTypes: Smart Fan)
 };
 
 export type ad = {
