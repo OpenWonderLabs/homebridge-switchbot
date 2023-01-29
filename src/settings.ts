@@ -65,6 +65,7 @@ export interface devicesConfig extends device {
   meter?: meter;
   humidifier?: humidifier;
   curtain?: curtain;
+  blindTilt?: blindTilt;
   contact?: contact;
   motion?: motion;
   colorbulb?: colorbulb;
@@ -103,6 +104,11 @@ export type curtain = {
   set_minStep?: number;
   setCloseMode?: string;
   setOpenMode?: string;
+};
+
+export type blindTilt = {
+  mappingMode?: string;
+  updateRate?: number;
 };
 
 export type contact = {
@@ -259,13 +265,14 @@ deviceName?:	string;	//device name. (Used by the following deviceTypes: Robot Va
 nebulizationEfficiency?:	number;	//atomization efficiency percentage. (Used by the following deviceTypes: Humidifier)
 auto?:	boolean;	//determines if a Humidifier is in Auto Mode or not. (Used by the following deviceTypes: Humidifier)
 childLock?:	boolean;	//determines if a Humidifier's safety lock is on or not. (Used by the following deviceTypes: Humidifier)
-sound?:	boolean;	//determines if a Humidifier is muted or not. (Used by the following deviceTypes: Humidifier)
-lackWater?:	boolean;	//determines if the water tank is empty or not. (Used by the following deviceTypes: Humidifier)
-version?:	number;	//	the version of the device. (Used by the following deviceTypes: Blind Tilt)
-direction?:	string;	//the opening direction of a Blind Tilt device. (Used by the following deviceTypes: Blind Tilt)
+sound?:	boolean;//determines if a Humidifier is muted or not. (Used by the following deviceTypes: Humidifier)
+lackWater?:	boolean;//determines if the water tank is empty or not. (Used by the following deviceTypes: Humidifier)
+version?:	number;//the version of the device. (Used by the following deviceTypes: Blind Tilt)
+direction?:	string;//the opening direction of a Blind Tilt device. (Used by the following deviceTypes: Blind Tilt)
+runStatus?: string;//'static' when not moving. (Used by the following deviceTypes: Blind Tilt)
 mode?: number; //available for  devices. the fan mode. (Used by the following deviceTypes: Smart Fan)
 speed?: number;//the fan speed. (Used by the following deviceTypes: Smart Fan)
-shaking?: boolean; //determines if the fan is swinging or not. (Used by the following deviceTypes: Smart Fan)
+shaking?: boolean;//determines if the fan is swinging or not. (Used by the following deviceTypes: Smart Fan)
 shakeCenter?: string;//the fan's swing direciton. (Used by the following deviceTypes: Smart Fan)
 shakeRange?: string;//the fan's swing range, 0~120°. (Used by the following deviceTypes: Smart Fan)
 };

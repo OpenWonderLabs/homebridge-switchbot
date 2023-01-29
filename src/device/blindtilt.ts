@@ -12,27 +12,42 @@ import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { device, devicesConfig, serviceData, switchbot, deviceStatus, ad, HostDomain, DevicePath } from '../settings';
 import { sleep } from '../utils';
 
+enum BlindTiltMappingMode {
+  OnlyUp = 'only_up',
+  OnlyDown = 'only_down',
+  DownAndUp = 'down_and_up',
+  UpAndDown = 'up_and_down',
+  UseTiltForDirection = 'use_tilt_for_direction',
+}
+
 export class BlindTilt {
   // Services
   windowCoveringService: Service;
+  lightSensorService?: Service;
   batteryService?: Service;
 
   // Characteristic Values
   CurrentPosition!: CharacteristicValue;
   PositionState!: CharacteristicValue;
   TargetPosition!: CharacteristicValue;
-  BatteryLevel!: CharacteristicValue;
+  CurrentAmbientLightLevel?: CharacteristicValue;
+  BatteryLevel?: CharacteristicValue;
   StatusLowBattery?: CharacteristicValue;
+
   CurrentHorizontalTiltAngle!: CharacteristicValue;
   TargetHorizontalTiltAngle!: CharacteristicValue;
 
   // OpenAPI Others
   deviceStatus!: any; //deviceStatusResponse;
   slidePosition: deviceStatus['slidePosition'];
-  moving: deviceStatus['moving'];
-  Battery: deviceStatus['battery'];
   direction: deviceStatus['direction'];
-  version?: deviceStatus['version'];
+  moving: deviceStatus['moving'];
+  runStatus: deviceStatus['runStatus'];
+  brightness: deviceStatus['brightness'];
+  setPositionMode?: string | number;
+  Mode!: string;
+
+  mappingMode: BlindTiltMappingMode = BlindTiltMappingMode.OnlyUp;
 
   // BLE Others
   connected?: boolean;
@@ -44,6 +59,7 @@ export class BlindTilt {
   battery: serviceData['battery'];
   position: serviceData['position'];
   inMotion: serviceData['inMotion'];
+  lightLevel: serviceData['lightLevel'];
 
   // Target
   setNewTarget!: boolean;
@@ -79,6 +95,9 @@ export class BlindTilt {
     this.config(device);
     this.setupMqtt(device);
     this.context();
+
+    this.mappingMode = (device.blindTilt?.mappingMode as BlindTiltMappingMode) ?? BlindTiltMappingMode.OnlyUp;
+    this.debugLog(`Mapping mode: ${this.mappingMode}`);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doBlindTiltUpdate = new Subject();
@@ -143,27 +162,28 @@ export class BlindTilt {
       })
       .onSet(this.TargetPositionSet.bind(this));
 
+    this.CurrentHorizontalTiltAngle = 90;
     this.windowCoveringService
       .getCharacteristic(this.platform.Characteristic.CurrentHorizontalTiltAngle)
       .setProps({
-        minStep: 1,
-        minValue: 0,
-        maxValue: 1,
-        validValues: [0, 1],
-        validValueRanges: [0, 1],
+        minStep: 180,
+        minValue: -90,
+        maxValue: 90,
+        validValues: [-90, 90],
       })
       .onGet(() => {
+        // this.debugLog(`requested CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}`);
         return this.CurrentHorizontalTiltAngle;
       });
 
+    this.TargetHorizontalTiltAngle = 90;
     this.windowCoveringService
       .getCharacteristic(this.platform.Characteristic.TargetHorizontalTiltAngle)
       .setProps({
-        minStep: 1,
-        minValue: 0,
-        maxValue: 1,
-        validValues: [0, 1],
-        validValueRanges: [0, 1],
+        minStep: 180,
+        minValue: -90,
+        maxValue: 90,
+        validValues: [-90, 90],
       })
       .onSet(this.TargetHorizontalTiltAngleSet.bind(this));
 
@@ -267,7 +287,7 @@ export class BlindTilt {
         this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
         this.debugLog(`${this.device.deviceType}: ${this.CurrentPosition} DECREASING PositionState: ${this.PositionState}`);
       } else {
-        this.debugLog(`${this.device.deviceType}: ${this.CurrentPosition} Standby, CurrentPosition: ${this.CurrentPosition}`);
+        this.debugLog(`${this.device.deviceType}: ${this.CurrentPosition} Standby2, CurrentPosition: ${this.CurrentPosition}`);
         this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
         this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
         this.debugLog(`${this.device.deviceType}: ${this.CurrentPosition} STOPPED PositionState: ${this.PositionState}`);
@@ -283,6 +303,62 @@ export class BlindTilt {
         ` TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState},`,
     );
 
+    if (!this.device.curtain?.hide_lightsensor) {
+      this.set_minLux = this.minLux();
+      this.set_maxLux = this.maxLux();
+      this.spaceBetweenLevels = 9;
+
+      // Brightness
+      switch (this.lightLevel) {
+        case 1:
+          this.CurrentAmbientLightLevel = this.set_minLux;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 2:
+          this.CurrentAmbientLightLevel = (this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels;
+          this.debugLog(
+            `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel},` +
+              ` Calculation: ${(this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels}`,
+          );
+          break;
+        case 3:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 2;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 4:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 3;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 5:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 4;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 6:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 5;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 7:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 6;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 8:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 7;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 9:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 8;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 10:
+        default:
+          this.CurrentAmbientLightLevel = this.set_maxLux;
+          this.debugLog();
+      }
+      this.debugLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel},`
+        + ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
+      );
+    }
     // Battery
     this.BatteryLevel = Number(this.battery);
     if (this.BatteryLevel < 10) {
@@ -296,24 +372,28 @@ export class BlindTilt {
 
   async openAPIparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
-    // CurrentPosition
-    if (this.direction === 'Down') {
-      this.CurrentPosition = Number(this.slidePosition) * 2;//100 - Number(this.slidePosition);
-    } else if (this.direction === 'Up') {
-      this.CurrentPosition = Number(this.slidePosition) / 2;
-    } else {
-      this.CurrentPosition = Number(this.slidePosition);
-    }
 
+    const [homekitPosition, homekitTiltAngle] = this.mapDeviceValuesToHomekitValues(Number(this.slidePosition), String(this.direction));
+    this.debugLog(` device: ${this.slidePosition} => HK: ${homekitPosition}`);
+
+    this.CurrentPosition = homekitPosition;
+    // CurrentPosition
     await this.setMinMax();
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition}`);
+
+    if(homekitTiltAngle) {
+      this.CurrentHorizontalTiltAngle = homekitTiltAngle!;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}`);
+    }
+
     if (this.setNewTarget) {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Checking Status ...`);
     }
 
-    if (this.setNewTarget && this.moving) {
+    this.debugLog(`runStatus: ${this.runStatus}`);
+    if (this.setNewTarget || (this.runStatus === undefined || this.runStatus !== 'static')) {
       await this.setMinMax();
-      if (this.TargetPosition > this.CurrentPosition) {
+      if (this.TargetPosition > this.CurrentPosition || (homekitTiltAngle && (this.TargetHorizontalTiltAngle !== this.CurrentHorizontalTiltAngle))) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition} `);
         this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
         this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
@@ -324,29 +404,41 @@ export class BlindTilt {
         this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
         this.debugLog(`${this.device.deviceType}: ${this.CurrentPosition} DECREASING PositionState: ${this.PositionState}`);
       } else {
-        this.debugLog(`${this.device.deviceType}: ${this.CurrentPosition} Standby, CurrentPosition: ${this.CurrentPosition}`);
+        this.debugLog(`${this.device.deviceType}: ${this.CurrentPosition} Standby because reached position,`+
+        ` CurrentPosition: ${this.CurrentPosition}`);
         this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
         this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
         this.debugLog(`${this.device.deviceType}: ${this.CurrentPosition} STOPPED PositionState: ${this.PositionState}`);
       }
     } else {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Standby, CurrentPosition: ${this.CurrentPosition}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Standby because device not moving,`+
+      ` CurrentPosition: ${this.CurrentPosition}`);
       this.TargetPosition = this.CurrentPosition;
+      if(homekitTiltAngle) {
+        this.TargetHorizontalTiltAngle = this.CurrentHorizontalTiltAngle;
+      }
       this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Stopped`);
     }
-    if (this.direction === 'Up') {
-      this.CurrentHorizontalTiltAngle = 0;
-    } else if (this.direction === 'Down') {
-      this.CurrentHorizontalTiltAngle = 1;
-    } else {
-      this.CurrentHorizontalTiltAngle = 0;
-    }
     this.debugLog(
       `${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition},` +
-          ` TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState},` +
-          ` CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}`,
+          ` TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState},`,
     );
+
+    if (!this.device.curtain?.hide_lightsensor) {
+      this.set_minLux = this.minLux();
+      this.set_maxLux = this.maxLux();
+      // Brightness
+      switch (this.brightness) {
+        case 'dim':
+          this.CurrentAmbientLightLevel = this.set_minLux;
+          break;
+        case 'bright':
+        default:
+          this.CurrentAmbientLightLevel = this.set_maxLux;
+      }
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+    }
   }
 
   async refreshStatus(): Promise<void> {
@@ -377,6 +469,7 @@ export class BlindTilt {
     if (switchbot !== false) {
       switchbot
         .startScan({
+          model: 'c',
           id: this.device.bleMac,
         })
         .then(async () => {
@@ -390,10 +483,12 @@ export class BlindTilt {
             this.battery = ad.serviceData.battery;
             this.inMotion = ad.serviceData.inMotion;
             this.position = ad.serviceData.position;
+            this.lightLevel = ad.serviceData.lightLevel;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} calibration: ${ad.serviceData.calibration}, ` +
-                `position: ${ad.serviceData.position}, inMotion: ${ad.serviceData.inMotion}, battery: ${ad.serviceData.battery}`);
+                `position: ${ad.serviceData.position}, lightLevel: ${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}, ` +
+                `inMotion: ${ad.serviceData.inMotion}`);
 
             if (this.serviceData) {
               this.connected = true;
@@ -455,15 +550,11 @@ export class BlindTilt {
           try {
             this.deviceStatus = JSON.parse(rawData);
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${superStringify(this.deviceStatus)}`);
-            this.slidePosition = this.deviceStatus.body.slidePosition;// "slidePosition": 0 = Closed Down | 100 = Closed Up | 50 = Fully Open
+            this.slidePosition = this.deviceStatus.body.slidePosition;
+            this.direction = this.deviceStatus.body.direction;
             this.moving = this.deviceStatus.body.moving;
-            this.Battery = this.deviceStatus.body.battery;
-            this.direction = this.deviceStatus.body.direction; // "Up"/"Down"
-            this.version = this.deviceStatus.body.version;
-            if (this.version) {
-              const firmware = this.version * .10;
-              this.accessory.context.FirmwareRevision = firmware;
-            }
+            this.runStatus = this.deviceStatus.body.runStatus;
+            this.brightness = this.deviceStatus.body.brightness;
             this.openAPIparseStatus();
             this.updateHomeKitCharacteristics();
           } catch (e: any) {
@@ -513,6 +604,12 @@ export class BlindTilt {
         .join(':')
         .toLowerCase();
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+      this.SilentPerformance();
+      const adjustedMode = this.setPositionMode || null;
+      if (adjustedMode === null) {
+        this.Mode = 'Default Mode';
+      }
+      this.debugLog(`${this.accessory.displayName} Mode: ${this.Mode}`);
       if (switchbot !== false) {
         switchbot
           .discover({ model: 'c', quick: true, id: this.device.bleMac })
@@ -521,7 +618,7 @@ export class BlindTilt {
             return await this.retry({
               max: await this.maxRetry(),
               fn: () => {
-                return device_list[0].runToPos(100 - Number(this.TargetPosition));
+                return device_list[0].runToPos(100 - Number(this.TargetPosition), adjustedMode);
               },
             });
           })
@@ -580,35 +677,15 @@ export class BlindTilt {
           .digest();
         const sign = signTerm.toString('base64');
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
-        this.debugLog(`Pushing ${this.TargetPosition}`);
-        let command = '';
-        let parameter = '';
-        if (this.TargetHorizontalTiltAngle === 90 && this.TargetPosition === 100) {
-          command = 'fullyOpen';
-          parameter = 'default';
-        } else if (this.TargetHorizontalTiltAngle === -90 && this.TargetPosition === 100) {
-          command = 'fullyOpen';
-          parameter = 'default';
-        } else if (this.TargetHorizontalTiltAngle === 90 && this.TargetPosition === 0) {
-          command = 'closeUp';
-          parameter = 'default';
-        } else if (this.TargetHorizontalTiltAngle === -90 && this.TargetPosition === 0) {
-          command = 'closeDown';
-          parameter = 'default';
-        } else {
-          let direction = '';
-          const position = this.TargetPosition;
-          if (this.TargetHorizontalTiltAngle === 90) {
-            direction = 'up';
-          } else {
-            direction = 'down';
-          }
-          command = 'setPosition';
-          parameter = `${direction};${position}`;
-        }
+
+
+        const [direction, position] = this.mapHomekitValuesToDeviceValues(Number(this.TargetPosition), Number(this.TargetHorizontalTiltAngle));
+        this.debugLog(`Pushing ${this.TargetPosition} (device = ${direction};${position})`);
+
+        this.debugLog(`${this.accessory.displayName} Mode: ${this.Mode}`);
         const body = superStringify({
-          'command': `${command}`,
-          'parameter': `${parameter}`,
+          'command': 'setPosition',
+          'parameter': `${direction};${position}`,
           'commandType': 'command',
         });
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
@@ -653,6 +730,25 @@ export class BlindTilt {
   }
 
   /**
+   * Handle requests to set the value of the "Target Horizontal Tilt" characteristic
+   */
+  async TargetHorizontalTiltAngleSet(value: CharacteristicValue): Promise<void> {
+    if (this.TargetHorizontalTiltAngle === this.accessory.context.TargetHorizontalTiltAngle) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set TargetHorizontalTiltAngle: ${value}`);
+    } else {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set TargetHorizontalTiltAngle: ${value}`);
+    }
+
+    //value = value < 0 ? -90 : 90;
+    this.TargetHorizontalTiltAngle = value;
+    if(this.device.mqttURL) {
+      this.mqttPublish('TargetHorizontalTiltAngle', this.TargetHorizontalTiltAngle);
+    }
+
+    this.startUpdatingBlindTiltIfNeeded();
+  }
+
+  /**
    * Handle requests to set the value of the "Target Position" characteristic
    */
   async TargetPositionSet(value: CharacteristicValue): Promise<void> {
@@ -666,55 +762,28 @@ export class BlindTilt {
     if (this.device.mqttURL) {
       this.mqttPublish('TargetPosition', this.TargetPosition);
     }
+    this.startUpdatingBlindTiltIfNeeded();
+  }
 
+  async startUpdatingBlindTiltIfNeeded(): Promise<void> {
     await this.setMinMax();
-    if (value > this.CurrentPosition) {
+    this.debugLog('setMinMax');
+    if (this.TargetPosition > this.CurrentPosition || (this.TargetHorizontalTiltAngle !== this.CurrentHorizontalTiltAngle)) {
       this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
       this.setNewTarget = true;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${value}, CurrentPosition: ${this.CurrentPosition}`);
-    } else if (value < this.CurrentPosition) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${this.CurrentPosition},`+
+      ` CurrentPosition: ${this.CurrentPosition}`);
+    } else if (this.TargetPosition < this.CurrentPosition) {
       this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
       this.setNewTarget = true;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${value}, CurrentPosition: ${this.CurrentPosition}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${this.CurrentPosition},`+
+      ` CurrentPosition: ${this.CurrentPosition}`);
     } else {
       this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
       this.setNewTarget = false;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${value}, CurrentPosition: ${this.CurrentPosition}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${this.CurrentPosition},`+
+      ` CurrentPosition: ${this.CurrentPosition}`);
     }
-    this.windowCoveringService.setCharacteristic(this.platform.Characteristic.PositionState, this.PositionState);
-    this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
-
-    /**
-     * If Blind Tilt movement time is short, the moving flag from backend is always false.
-     * The minimum time depends on the network control latency.
-     */
-    clearTimeout(this.setNewTargetTimer);
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateRate: ${this.updateRate}`);
-    if (this.setNewTarget) {
-      this.setNewTargetTimer = setTimeout(() => {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} setNewTarget ${this.setNewTarget} timeout`);
-        this.setNewTarget = false;
-      }, this.updateRate * 1000);
-    }
-    this.doBlindTiltUpdate.next();
-  }
-
-  /**
-   * Handle requests to set the value of the "Target Position" characteristic
-   */
-  async TargetHorizontalTiltAngleSet(value: CharacteristicValue): Promise<void> {
-    if (this.TargetHorizontalTiltAngle === this.accessory.context.TargetHorizontalTiltAngle) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set TargetHorizontalTiltAngle: ${value}`);
-    } else {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set TargetHorizontalTiltAngle: ${value}`);
-    }
-    this.TargetHorizontalTiltAngle = value;
-    this.CurrentHorizontalTiltAngle = this.TargetHorizontalTiltAngle;
-    this.accessory.context.TargetHorizontalTiltAngle = this.TargetHorizontalTiltAngle;
-    if (this.device.mqttURL) {
-      this.mqttPublish('TargetHorizontalTiltAngle', this.TargetHorizontalTiltAngle);
-    }
-
     this.windowCoveringService.setCharacteristic(this.platform.Characteristic.PositionState, this.PositionState);
     this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
 
@@ -735,6 +804,22 @@ export class BlindTilt {
 
   async updateHomeKitCharacteristics(): Promise<void> {
     await this.setMinMax();
+
+    if(this.mappingMode === BlindTiltMappingMode.UseTiltForDirection) {
+      if (this.CurrentHorizontalTiltAngle === undefined || Number.isNaN(this.CurrentHorizontalTiltAngle)) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}`);
+      } else {
+        if (this.device.mqttURL) {
+          this.mqttPublish('CurrentHorizontalTiltAngle', this.CurrentHorizontalTiltAngle);
+        }
+        this.accessory.context.CurrentHorizontalTiltAngle = this.CurrentHorizontalTiltAngle;
+        this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.CurrentHorizontalTiltAngle,
+          Number(this.CurrentHorizontalTiltAngle));
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} 
+        updateCharacteristic CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}`);
+      }
+    }
+
     if (this.CurrentPosition === undefined || Number.isNaN(this.CurrentPosition)) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition: ${this.CurrentPosition}`);
     } else {
@@ -765,28 +850,18 @@ export class BlindTilt {
       this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.TargetPosition, Number(this.TargetPosition));
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic TargetPosition: ${this.TargetPosition}`);
     }
-    if (this.TargetHorizontalTiltAngle === undefined || Number.isNaN(this.TargetHorizontalTiltAngle)) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} TargetHorizontalTiltAngle: ${this.TargetHorizontalTiltAngle}`);
-    } else {
-      if (this.device.mqttURL) {
-        this.mqttPublish('TargetHorizontalTiltAngle', this.TargetHorizontalTiltAngle);
+    if (!this.device.curtain?.hide_lightsensor) {
+      if (this.CurrentAmbientLightLevel === undefined || Number.isNaN(this.CurrentAmbientLightLevel)) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+      } else {
+        if (this.device.mqttURL) {
+          this.mqttPublish('CurrentAmbientLightLevel', this.CurrentAmbientLightLevel);
+        }
+        this.accessory.context.CurrentAmbientLightLevel = this.CurrentAmbientLightLevel;
+        this.lightSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+        + ` updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
       }
-      this.accessory.context.TargetHorizontalTiltAngle = this.TargetHorizontalTiltAngle;
-      this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.TargetHorizontalTiltAngle, Number(this.TargetHorizontalTiltAngle));
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-      + ` TargetHorizontalTiltAngle: ${this.TargetHorizontalTiltAngle}`);
-    }
-    if (this.CurrentHorizontalTiltAngle === undefined || Number.isNaN(this.CurrentHorizontalTiltAngle)) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}`);
-    } else {
-      if (this.device.mqttURL) {
-        this.mqttPublish('CurrentHorizontalTiltAngle', this.CurrentHorizontalTiltAngle);
-      }
-      this.accessory.context.CurrentHorizontalTiltAngle = this.CurrentHorizontalTiltAngle;
-      this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.CurrentHorizontalTiltAngle,
-        Number(this.CurrentHorizontalTiltAngle));
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-      + ` CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}`);
     }
     if (this.BLE) {
       if (this.BatteryLevel === undefined) {
@@ -887,6 +962,26 @@ export class BlindTilt {
     }
   }
 
+  async SilentPerformance() {
+    if (this.TargetPosition > 50) {
+      if (this.device.curtain?.setOpenMode === '1') {
+        this.setPositionMode = 1;
+        this.Mode = 'Silent Mode';
+      } else {
+        this.setPositionMode = 0;
+        this.Mode = 'Performance Mode';
+      }
+    } else {
+      if (this.device.curtain?.setCloseMode === '1') {
+        this.setPositionMode = 1;
+        this.Mode = 'Silent Mode';
+      } else {
+        this.setPositionMode = 0;
+        this.Mode = 'Performance Mode';
+      }
+    }
+  }
+
   async setMinMax(): Promise<void> {
     if (this.device.curtain?.set_min) {
       if (this.CurrentPosition <= this.device.curtain?.set_min) {
@@ -897,6 +992,10 @@ export class BlindTilt {
       if (this.CurrentPosition >= this.device.curtain?.set_max) {
         this.CurrentPosition = 100;
       }
+    }
+
+    if(this.mappingMode === BlindTiltMappingMode.UseTiltForDirection) {
+      this.CurrentHorizontalTiltAngle = this.CurrentHorizontalTiltAngle < 0 ? -90 : 90;
     }
   }
 
@@ -1001,6 +1100,9 @@ export class BlindTilt {
     this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.CurrentPosition, e);
     this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.PositionState, e);
     this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.TargetPosition, e);
+    if (!this.device.curtain?.hide_lightsensor) {
+      this.lightSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, e);
+    }
     if (this.BLE) {
       this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
       this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
@@ -1014,15 +1116,10 @@ export class BlindTilt {
     + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} API version: ${this.version}`);
     if (accessory.context.FirmwareRevision) {
       FirmwareRevision = accessory.context.FirmwareRevision;
     } else if (device.firmware) {
       FirmwareRevision = device.firmware;
-    } else if (this.version) {
-      const firmware = this.version * .10;
-      accessory.context.FirmwareRevision = firmware;
-      FirmwareRevision = superStringify(firmware);
     } else {
       FirmwareRevision = this.platform.version;
     }
@@ -1042,22 +1139,130 @@ export class BlindTilt {
       this.TargetPosition = this.accessory.context.TargetPosition;
     }
 
-    if (this.TargetHorizontalTiltAngle === undefined) {
-      this.TargetHorizontalTiltAngle = 0;
-    } else {
-      this.TargetHorizontalTiltAngle = this.accessory.context.TargetHorizontalTiltAngle;
-    }
-
-    if (this.CurrentHorizontalTiltAngle === undefined) {
-      this.CurrentHorizontalTiltAngle = 0;
-    } else {
-      this.CurrentHorizontalTiltAngle = this.accessory.context.CurrentHorizontalTiltAngle;
-    }
-
     if (this.PositionState === undefined) {
       this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
     } else {
       this.PositionState = this.accessory.context.PositionState;
+    }
+  }
+
+  /**
+   * Maps device values to homekit values
+   *
+   * @param devicePosition the position as reported by the devide
+   * @param direction the direction as reported by the device
+   * @returns [homekit position, homekit tiltAngle]
+   */
+  mapDeviceValuesToHomekitValues(devicePosition: number, deviceDirection: string): [CharacteristicValue, CharacteristicValue?] {
+    // device position 0 => closed down
+    // device position 50 => open
+    // device position 100 => closed up
+
+    // homekit position 0 =>  closed
+    // homekit position 100 => open
+    deviceDirection;
+    switch(this.mappingMode) {
+      case BlindTiltMappingMode.OnlyUp:
+        // we only close upwards, so we see anything that is tilted downwards(<50) as open
+        if(devicePosition < 50) {
+          return [100, undefined]; // fully open in homekit
+        } else {
+          // we range from 50->100, with 100 being closed, so map to homekit by scaling to 0..100 and then reversing
+          return [100 - (devicePosition - 50) * 2, undefined];
+        }
+
+      case BlindTiltMappingMode.OnlyDown:
+        // we only close downwards, so we see anything that is tilted upwards(>50) as upwards
+        if(devicePosition > 50) {
+          return [100, undefined]; // fully open in homekit
+        } else {
+          // we range from 0..50 so scale to homekit and then reverse
+          return [devicePosition * 2, undefined];
+        }
+
+      case BlindTiltMappingMode.DownAndUp:
+        // we close both ways with closed downwards being 0 in homekit and closed upwards in homekit being 100. Open is 50 in homekit
+        return [devicePosition, undefined];
+
+      case BlindTiltMappingMode.UpAndDown:
+        // we close both ways with closed downwards being 1000 in homekit and closed upwards in homekit being 0. Open is 50 in homekit.,
+        // so we reverse the value
+        return [100 - devicePosition, undefined];
+
+      case BlindTiltMappingMode.UseTiltForDirection:
+        // we use tilt for direction, so being closed downwards is 0 in homekit with -90 tilt, while being closed upwards is 0 with 90 tilt.
+        if(devicePosition <= 50) {
+          // downwards tilted, so we range from 0..50, with 0 being closed and 50 being open, so scale.
+          return [devicePosition * 2, -90];
+        } else {
+          // upwards tilted, so we range from 50..100, with 50 being open and 100 being closed, so scale and rever
+          return [100 - (devicePosition - 50) * 2, 90];
+        }
+    }
+  }
+
+  /**
+   * Maps homekit values to device values
+   *
+   * @param homekitPosition the position as reported by homekit
+   * @param homekitTiltAngle? the tilt angle as reported by homekit
+   * @returns [device position, device direction]
+   */
+  mapHomekitValuesToDeviceValues(homekitPosition: number, homekitTiltAngle: number): [string, number] {
+    // homekit position 0 =>  closed
+    // homekit position 100 => open
+
+    // device position [up, 0] = closed upwards
+    // device position [down, 0] = closed downwards
+    // device position [up, 100] = open
+    // device position [down, 100] = open
+
+    switch(this.mappingMode) {
+      case BlindTiltMappingMode.OnlyUp:
+        // invert
+        return ['up', homekitPosition];
+      case BlindTiltMappingMode.OnlyDown:
+        // invert
+        return ['down', homekitPosition];
+
+      case BlindTiltMappingMode.DownAndUp:
+        // homekit 0 = downwards closed,
+        // homekit 50 = open,
+        // homekit 100 = upwards closed
+        if(homekitPosition <= 50) {
+          // homekit 0..50 -> device 100..0 so scale and invert
+          return ['down', 100 - homekitPosition * 2];
+        } else {
+          // homekit 50..100 -> device 0..100, so rebase, scale and invert
+          return ['up', (homekitPosition - 50) * 2];
+        }
+
+      case BlindTiltMappingMode.UpAndDown:
+        // homekit 0 = upwards closed,
+        // homekit 50 = open,
+        // homekit 100 = upwards closed
+        if(homekitPosition <= 50) {
+          // homekit 0..50 -> device 0..100 so scale and invert
+          return ['up', homekitPosition * 2];
+        } else {
+          // homekit 50..100 -> device 100...0 so scale
+          return ['down', 100 - homekitPosition * 2];
+        }
+
+      case BlindTiltMappingMode.UseTiltForDirection:
+        // tilt -90, homekit 0 = closed downwards
+        // tilt -90, homekit 100 = open
+        // tilt 90, homekit 0 = closed upwards
+        // tilt 90, homekit 100 = open
+        if(homekitTiltAngle! <= 0) {
+          // downwards
+          // homekit 0..100 -> device 0..100, so invert
+          return ['down', homekitPosition];
+        } else {
+          // upwards
+          // homekit 0..100 -> device 0..100, so invert
+          return ['up,', homekitPosition];
+        }
     }
   }
 
@@ -1071,19 +1276,19 @@ export class BlindTilt {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
     }
     // updateRate
-    if (device?.curtain?.updateRate) {
-      this.updateRate = device?.curtain?.updateRate;
+    if (device?.blindTilt?.updateRate) {
+      this.updateRate = device?.blindTilt?.updateRate;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config Blind Tilt updateRate: ${this.updateRate}`);
     } else {
-      this.updateRate = 7;
+      this.updateRate = 2;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Default Blind Tilt updateRate: ${this.updateRate}`);
     }
   }
 
   async config(device: device & devicesConfig): Promise<void> {
     let config = {};
-    if (device.curtain) {
-      config = device.curtain;
+    if (device.blindTilt) {
+      config = device.blindTilt;
     }
     if (device.connectionType !== undefined) {
       config['connectionType'] = device.connectionType;
@@ -1106,6 +1311,13 @@ export class BlindTilt {
     if (device.maxRetry !== undefined) {
       config['maxRetry'] = device.maxRetry;
     }
+
+    if(device.blindTilt?.mappingMode === undefined) {
+      config['mappingMode'] = BlindTiltMappingMode.OnlyUp;
+    } else {
+      config['mappingMode'] = device.blindTilt?.mappingMode;
+    }
+
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);
     }

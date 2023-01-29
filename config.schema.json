@@ -446,6 +446,51 @@
                     }
                   }
                 },
+                "blindTilt": {
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "title": "Mapping Mode",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "Middle to Up",
+                          "enum": ["up"]
+                        },
+                        {
+                          "title": "Middle to Down",
+                          "enum": ["only_down"]
+                        },
+                        {
+                          "title": "Down-to-Up",
+                          "enum": ["down_and_up"]
+                        },
+                        {
+                          "title": "Up-to-Down",
+                          "enum": ["up_and_down"]
+                        },
+                        {
+                          "title": "Tilt Direction",
+                          "enum": ["use_tilt_for_direction"]
+                        }
+                      ],
+                      "description": "Defines how the Home app sliders control the blind tilt.",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'BlindTilt' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "updateRate": {
+                      "title": "Curtain Update Rate",
+                      "type": "number",
+                      "minimum": 1,
+                      "placeholder": 5,
+                      "description": "Indicates the number of seconds before refreshing Curtain status while updating slide progress.",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    }
+                  }
+                },
                 "contact": {
                   "type": "object",
                   "properties": {
@@ -1051,6 +1096,8 @@
             "options.devices[].curtain.hide_lightsensor",
             "options.devices[].curtain.set_minlux",
             "options.devices[].curtain.set_maxlux",
+            "options.devices[].blindTilt.mode",
+            "options.devices[].blindTilt.updateRate",
             "options.devices[].contact.hide_lightsensor",
             "options.devices[].contact.set_minlux",
             "options.devices[].contact.set_maxlux",
