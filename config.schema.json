@@ -81,6 +81,10 @@
                       "enum": ["Curtain"]
                     },
                     {
+                      "title": "Blind Tilt",
+                      "enum": ["Blind Tilt"]
+                    },
+                    {
                       "title": "Plug",
                       "enum": ["Plug"]
                     },
@@ -418,7 +422,7 @@
                       }
                     },
                     "hide_lightsensor": {
-                      "title": "Hide Curtain's Light Sensor",
+                      "title": "Hide Light Sensor",
                       "type": "boolean",
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
@@ -438,6 +442,51 @@
                       "placeholder": "6001",
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].curtain.hide_lightsensor);"
+                      }
+                    }
+                  }
+                },
+                "blindTilt": {
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "title": "Mapping Mode",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "Middle to Up",
+                          "enum": ["up"]
+                        },
+                        {
+                          "title": "Middle to Down",
+                          "enum": ["only_down"]
+                        },
+                        {
+                          "title": "Down-to-Up",
+                          "enum": ["down_and_up"]
+                        },
+                        {
+                          "title": "Up-to-Down",
+                          "enum": ["up_and_down"]
+                        },
+                        {
+                          "title": "Tilt Direction",
+                          "enum": ["use_tilt_for_direction"]
+                        }
+                      ],
+                      "description": "Defines how the Home app sliders control the blind tilt.",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'BlindTilt' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "updateRate": {
+                      "title": "Curtain Update Rate",
+                      "type": "number",
+                      "minimum": 1,
+                      "placeholder": 5,
+                      "description": "Indicates the number of seconds before refreshing Curtain status while updating slide progress.",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Curtain' && model.options.devices[arrayIndices].deviceId);"
                       }
                     }
                   }
@@ -539,12 +588,19 @@
                     }
                   }
                 },
+                "disableCaching": {
+                  "title": "Disable Caching",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].configDeviceType === 'Curtain');"
+                  }
+                },
                 "maxRetry": {
                   "title": "Max Retries for BLE",
                   "type": "number",
                   "placeholder": "5",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].connectionType === 'BLE' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI') && (model.options.devices[arrayIndices].configDeviceType === 'Bot' || model.options.devices[arrayIndices].configDeviceType === 'Robot Vacuum Cleaner S1'  || model.options.devices[arrayIndices].configDeviceType === 'Robot Vacuum Cleaner S1 Plus' || model.options.devices[arrayIndices].configDeviceType === 'Strip Light' || model.options.devices[arrayIndices].configDeviceType === 'Plug'  || model.options.devices[arrayIndices].configDeviceType === 'Plug Mini (JP)'  || model.options.devices[arrayIndices].configDeviceType === 'Plug Mini (US)' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Color Bulb' || model.options.devices[arrayIndices].configDeviceType === 'Ceiling Light' || model.options.devices[arrayIndices].configDeviceType === 'Ceiling Light Pro'));"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].connectionType === 'BLE' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI') && (model.options.devices[arrayIndices].configDeviceType === 'Bot' || model.options.devices[arrayIndices].configDeviceType === 'Robot Vacuum Cleaner S1'  || model.options.devices[arrayIndices].configDeviceType === 'Robot Vacuum Cleaner S1 Plus' || model.options.devices[arrayIndices].configDeviceType === 'Strip Light' || model.options.devices[arrayIndices].configDeviceType === 'Plug'  || model.options.devices[arrayIndices].configDeviceType === 'Plug Mini (JP)'  || model.options.devices[arrayIndices].configDeviceType === 'Plug Mini (US)' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Color Bulb' || model.options.devices[arrayIndices].configDeviceType === 'Ceiling Light' || model.options.devices[arrayIndices].configDeviceType === 'Ceiling Light Pro' || model.options.devices[arrayIndices].configDeviceType === 'Motion Sensor'));"
                   }
                 },
                 "mqttURL": {
@@ -1019,6 +1075,7 @@
             "options.devices[].configDeviceType",
             "options.devices[].connectionType",
             "options.devices[].scanDuration",
+            "options.devices[].disableCaching",
             "options.devices[].maxRetry",
             "options.devices[].bot.mode",
             "options.devices[].bot.deviceType",
@@ -1039,6 +1096,8 @@
             "options.devices[].curtain.hide_lightsensor",
             "options.devices[].curtain.set_minlux",
             "options.devices[].curtain.set_maxlux",
+            "options.devices[].blindTilt.mode",
+            "options.devices[].blindTilt.updateRate",
             "options.devices[].contact.hide_lightsensor",
             "options.devices[].contact.set_minlux",
             "options.devices[].contact.set_maxlux",
