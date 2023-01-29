@@ -2,14 +2,18 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [Beta-Version 2.4.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.4.1) (202X-XX-XX)
+## [Version 2.5.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.5.0) (2023-01-28)
 
 ## What's Changed
 
+- Add Intial Support for Blind Tilt (OpenAPI Only), Thanks [@AndreasVerhoeven](https://github.com/AndreasVerhoeven). [#649](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/649)
+@dnicolson
+- Remove incorrect warning message, Thanks [@dnicolson](https://github.com/dnicolson). [#661](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/661)
+- Replace switchbot wait with utility function, Thanks [@dnicolson](https://github.com/dnicolson). [#633](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/633)
 - Enhancements to BLE functionality
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.4.0....v2.4.1
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.4.0....v2.5.0
 
 ## [Version 2.4.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.4.0) (2022-12-27)
 
