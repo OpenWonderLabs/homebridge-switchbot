@@ -107,7 +107,7 @@ export type curtain = {
 };
 
 export type blindTilt = {
-  mappingMode?: string;
+  mode?: string;
   updateRate?: number;
 };
 
