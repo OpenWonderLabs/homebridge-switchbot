@@ -983,13 +983,13 @@ export class BlindTilt {
   }
 
   async setMinMax(): Promise<void> {
-    if (this.device.curtain?.set_min) {
-      if (this.CurrentPosition <= this.device.curtain?.set_min) {
+    if (this.device.blindTilt?.set_min) {
+      if (this.CurrentPosition <= this.device.blindTilt?.set_min) {
         this.CurrentPosition = 0;
       }
     }
-    if (this.device.curtain?.set_max) {
-      if (this.CurrentPosition >= this.device.curtain?.set_max) {
+    if (this.device.blindTilt?.set_max) {
+      if (this.CurrentPosition >= this.device.blindTilt?.set_max) {
         this.CurrentPosition = 100;
       }
     }

@@ -109,6 +109,8 @@ export type curtain = {
 export type blindTilt = {
   mappingMode?: string;
   updateRate?: number;
+  set_max?: number;
+  set_min?: number;
 };
 
 export type contact = {
