@@ -96,7 +96,7 @@ export class BlindTilt {
     this.setupMqtt(device);
     this.context();
 
-    this.mappingMode = (device.blindTilt?.mappingMode as BlindTiltMappingMode) ?? BlindTiltMappingMode.OnlyUp;
+    this.mappingMode = (device.blindTilt?.mode as BlindTiltMappingMode) ?? BlindTiltMappingMode.OnlyUp;
     this.debugLog(`Mapping mode: ${this.mappingMode}`);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
@@ -1312,10 +1312,10 @@ export class BlindTilt {
       config['maxRetry'] = device.maxRetry;
     }
 
-    if(device.blindTilt?.mappingMode === undefined) {
-      config['mappingMode'] = BlindTiltMappingMode.OnlyUp;
+    if(device.blindTilt?.mode === undefined) {
+      config['mode'] = BlindTiltMappingMode.OnlyUp;
     } else {
-      config['mappingMode'] = device.blindTilt?.mappingMode;
+      config['mode'] = device.blindTilt?.mode;
     }
 
     if (Object.entries(config).length !== 0) {
