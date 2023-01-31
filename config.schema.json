@@ -455,7 +455,7 @@
                       "oneOf": [
                         {
                           "title": "Middle to Up",
-                          "enum": ["up"]
+                          "enum": ["only_up"]
                         },
                         {
                           "title": "Middle to Down",
