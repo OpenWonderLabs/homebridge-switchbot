@@ -42,7 +42,6 @@ export class BlindTilt {
   slidePosition: deviceStatus['slidePosition'];
   direction: deviceStatus['direction'];
   moving: deviceStatus['moving'];
-  runStatus: deviceStatus['runStatus'];
   brightness: deviceStatus['brightness'];
   setPositionMode?: string | number;
   Mode!: string;
@@ -390,8 +389,7 @@ export class BlindTilt {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Checking Status ...`);
     }
 
-    this.debugLog(`runStatus: ${this.runStatus}`);
-    if (this.setNewTarget || (this.runStatus === undefined || this.runStatus !== 'static')) {
+    if (this.setNewTarget && this.moving) {
       await this.setMinMax();
       if (this.TargetPosition > this.CurrentPosition || (homekitTiltAngle && (this.TargetHorizontalTiltAngle !== this.CurrentHorizontalTiltAngle))) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition} `);
@@ -553,7 +551,6 @@ export class BlindTilt {
             this.slidePosition = this.deviceStatus.body.slidePosition;
             this.direction = this.deviceStatus.body.direction;
             this.moving = this.deviceStatus.body.moving;
-            this.runStatus = this.deviceStatus.body.runStatus;
             this.brightness = this.deviceStatus.body.brightness;
             this.openAPIparseStatus();
             this.updateHomeKitCharacteristics();
@@ -667,7 +664,11 @@ export class BlindTilt {
   async openAPIpushChanges(): Promise<void> {
     try {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} OpenAPI pushChanges`);
-      if ((this.TargetPosition !== this.CurrentPosition) || this.device.disableCaching) {
+
+      const hasDifferentAndRelevantHorizontalTiltAngle = (
+        this.mappingMode === BlindTiltMappingMode.UseTiltForDirection
+        && this.TargetHorizontalTiltAngle !== this.CurrentHorizontalTiltAngle);
+      if ((this.TargetPosition !== this.CurrentPosition) || hasDifferentAndRelevantHorizontalTiltAngle || this.device.disableCaching) {
         // Make Push On request to the API
         const t = Date.now();
         const nonce = 'requestID';
@@ -683,11 +684,26 @@ export class BlindTilt {
         this.debugLog(`Pushing ${this.TargetPosition} (device = ${direction};${position})`);
 
         this.debugLog(`${this.accessory.displayName} Mode: ${this.Mode}`);
-        const body = superStringify({
-          'command': 'setPosition',
-          'parameter': `${direction};${position}`,
-          'commandType': 'command',
-        });
+
+        let body = '';
+        if(position === 100) {
+          body = superStringify({
+            'command': 'fullyOpen',
+            'commandType': 'command',
+          });
+        } else if(position === 0) {
+          body = superStringify({
+            'command': direction === 'up' ? 'closeUp' : 'closeDown',
+            'commandType': 'command',
+          });
+        } else {
+          body = superStringify({
+            'command': 'setPosition',
+            'parameter': `${direction};${position}`,
+            'commandType': 'command',
+          });
+        }
+
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
         const options = {
           hostname: HostDomain,
@@ -718,7 +734,8 @@ export class BlindTilt {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges: ${superStringify(req)}`);
       } else {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No OpenAPI Changes, CurrentPosition & TargetPosition Are the Same.`
-        +` CurrentPosition: ${this.CurrentPosition}, TargetPosition  ${this.TargetPosition}`,
+        +` CurrentPosition: ${this.CurrentPosition}, TargetPosition  ${this.TargetPosition}`
+        +` CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}, TargetPosition  ${this.TargetHorizontalTiltAngle}`,
         );
       }
     } catch (e: any) {
@@ -1261,7 +1278,7 @@ export class BlindTilt {
         } else {
           // upwards
           // homekit 0..100 -> device 0..100, so invert
-          return ['up,', homekitPosition];
+          return ['up', homekitPosition];
         }
     }
   }
