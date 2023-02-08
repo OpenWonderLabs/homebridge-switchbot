@@ -571,7 +571,7 @@
                       "placeholder": "-1",
                       "description": "The mired for each Adaptive Lighting update will be increased by this value, making the light appear warmer. Set to -1 to remove Adaptive Lighting feature. Must be -1 or more.",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Color Bulb' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Color Bulb' && model.options.devices[arrayIndices].configDeviceType === 'Strip Light') && model.options.devices[arrayIndices].deviceId);"
                       }
                     }
                   }
