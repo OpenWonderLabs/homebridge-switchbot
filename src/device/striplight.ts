@@ -909,8 +909,8 @@ export class StripLight {
   }
 
   minStep(device: device & devicesConfig): number {
-    if (device.colorbulb?.set_minStep) {
-      this.set_minStep = device.colorbulb?.set_minStep;
+    if (device.striplight?.set_minStep) {
+      this.set_minStep = device.striplight?.set_minStep;
     } else {
       this.set_minStep = 1;
     }
@@ -918,8 +918,8 @@ export class StripLight {
   }
 
   async adaptiveLighting(device: device & devicesConfig): Promise<void> {
-    if (device.colorbulb?.adaptiveLightingShift) {
-      this.adaptiveLightingShift = device.colorbulb.adaptiveLightingShift;
+    if (device.striplight?.adaptiveLightingShift) {
+      this.adaptiveLightingShift = device.striplight.adaptiveLightingShift;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
     } else {
       this.adaptiveLightingShift = 0;
@@ -1050,8 +1050,8 @@ export class StripLight {
 
   async config(device: device & devicesConfig): Promise<void> {
     let config = {};
-    if (device.colorbulb) {
-      config = device.colorbulb;
+    if (device.striplight) {
+      config = device.striplight;
     }
     if (device.connectionType !== undefined) {
       config['connectionType'] = device.connectionType;

@@ -302,7 +302,7 @@ export class BlindTilt {
         ` TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState},`,
     );
 
-    if (!this.device.curtain?.hide_lightsensor) {
+    if (!this.device.blindTilt?.hide_lightsensor) {
       this.set_minLux = this.minLux();
       this.set_maxLux = this.maxLux();
       this.spaceBetweenLevels = 9;
@@ -423,7 +423,7 @@ export class BlindTilt {
           ` TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState},`,
     );
 
-    if (!this.device.curtain?.hide_lightsensor) {
+    if (!this.device.blindTilt?.hide_lightsensor) {
       this.set_minLux = this.minLux();
       this.set_maxLux = this.maxLux();
       // Brightness
@@ -867,7 +867,7 @@ export class BlindTilt {
       this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.TargetPosition, Number(this.TargetPosition));
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic TargetPosition: ${this.TargetPosition}`);
     }
-    if (!this.device.curtain?.hide_lightsensor) {
+    if (!this.device.blindTilt?.hide_lightsensor) {
       if (this.CurrentAmbientLightLevel === undefined || Number.isNaN(this.CurrentAmbientLightLevel)) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
       } else {
@@ -981,7 +981,7 @@ export class BlindTilt {
 
   async SilentPerformance() {
     if (this.TargetPosition > 50) {
-      if (this.device.curtain?.setOpenMode === '1') {
+      if (this.device.blindTilt?.setOpenMode === '1') {
         this.setPositionMode = 1;
         this.Mode = 'Silent Mode';
       } else {
@@ -989,7 +989,7 @@ export class BlindTilt {
         this.Mode = 'Performance Mode';
       }
     } else {
-      if (this.device.curtain?.setCloseMode === '1') {
+      if (this.device.blindTilt?.setCloseMode === '1') {
         this.setPositionMode = 1;
         this.Mode = 'Silent Mode';
       } else {
@@ -1017,8 +1017,8 @@ export class BlindTilt {
   }
 
   minStep(device: device & devicesConfig): number {
-    if (device.curtain?.set_minStep) {
-      this.set_minStep = device.curtain?.set_minStep;
+    if (device.blindTilt?.set_minStep) {
+      this.set_minStep = device.blindTilt?.set_minStep;
     } else {
       this.set_minStep = 1;
     }
@@ -1026,8 +1026,8 @@ export class BlindTilt {
   }
 
   minLux(): number {
-    if (this.device.curtain?.set_minLux) {
-      this.set_minLux = this.device.curtain?.set_minLux;
+    if (this.device.blindTilt?.set_minLux) {
+      this.set_minLux = this.device.blindTilt?.set_minLux;
     } else {
       this.set_minLux = 1;
     }
@@ -1035,8 +1035,8 @@ export class BlindTilt {
   }
 
   maxLux(): number {
-    if (this.device.curtain?.set_maxLux) {
-      this.set_maxLux = this.device.curtain?.set_maxLux;
+    if (this.device.blindTilt?.set_maxLux) {
+      this.set_maxLux = this.device.blindTilt?.set_maxLux;
     } else {
       this.set_maxLux = 6001;
     }
