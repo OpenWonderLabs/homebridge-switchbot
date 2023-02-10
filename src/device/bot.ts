@@ -1130,7 +1130,7 @@ export class Bot {
   }
 
   async stopScanning(switchbot: any) {
-    await switchbot.stopScan();
+    switchbot.stopScan();
     if (this.connected) {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
