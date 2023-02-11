@@ -1,7 +1,7 @@
 {
   "displayName": "Homebridge SwitchBot",
   "name": "@switchbot/homebridge-switchbot",
-  "version": "2.5.1",
+  "version": "2.5.2",
   "description": "The [Homebridge](https://homebridge.io) SwitchBot plugin allows you to access your [SwitchBot](https://www.switch-bot.com) device(s) from HomeKit.",
   "author": "SwitchBot <support@wondertechlabs.com> (https://github.com/SwitchBot)",
   "license": "ISC",
@@ -14,7 +14,7 @@
   },
   "engines": {
     "homebridge": "^1.6.0 || ^2.0.0-beta.0",
-    "node": "^14.21.2 || ^16.19.0 || ^18.12.1"
+    "node": "^14.21.2 || ^16.19.0 || ^18.14.0"
   },
   "main": "dist/index.js",
   "scripts": {
@@ -67,12 +67,12 @@
     "@types/crypto-js": "^4.1.1",
     "@typescript-eslint/eslint-plugin": "^5.51.0",
     "@typescript-eslint/parser": "^5.51.0",
-    "eslint": "^8.33.0",
+    "eslint": "^8.34.0",
     "eslint-config-prettier": "8.6.0",
     "eslint-plugin-prettier": "4.2.1",
     "homebridge": "^1.6.0",
     "nodemon": "^2.0.20",
-    "npm-check-updates": "^16.6.5",
+    "npm-check-updates": "^16.7.4",
     "prettier": "2.8.4",
     "rimraf": "^4.1.2",
     "ts-node": "^10.9.1",
