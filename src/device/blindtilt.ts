@@ -1049,7 +1049,7 @@ export class BlindTilt {
         this.scanDuration = this.updateRate;
         if (this.BLE) {
           this.warnLog(`${this.device.deviceType}: `
-        + `${this.accessory.displayName} scanDuration is less then updateRate, overriding scanDuration with updateRate`);
+        + `${this.accessory.displayName} scanDuration is less than updateRate, overriding scanDuration with updateRate`);
         }
       } else {
         this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
@@ -1060,10 +1060,6 @@ export class BlindTilt {
     } else {
       if (this.updateRate > 1) {
         this.scanDuration = this.updateRate;
-        if (this.BLE) {
-          this.warnLog(`${this.device.deviceType}: `
-        + `${this.accessory.displayName} scanDuration is less then updateRate, overriding scanDuration with updateRate`);
-        }
       } else {
         this.scanDuration = this.accessory.context.scanDuration = 1;
       }
