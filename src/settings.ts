@@ -69,6 +69,7 @@ export interface devicesConfig extends device {
   contact?: contact;
   motion?: motion;
   colorbulb?: colorbulb;
+  striplight?: striplight;
   ceilinglight?: ceilinglight;
   plug?: Record<any, any>;
   lock?: lock;
@@ -107,8 +108,16 @@ export type curtain = {
 };
 
 export type blindTilt = {
-  mappingMode?: string;
+  mode?: string;
+  hide_lightsensor?: boolean;
+  set_minLux?: number;
+  set_maxLux?: number;
   updateRate?: number;
+  set_max?: number;
+  set_min?: number;
+  set_minStep?: number;
+  setCloseMode?: string;
+  setOpenMode?: string;
 };
 
 export type contact = {
@@ -125,6 +134,11 @@ export type motion = {
 };
 
 export type colorbulb = {
+  set_minStep?: number;
+  adaptiveLightingShift?: number;
+};
+
+export type striplight = {
   set_minStep?: number;
   adaptiveLightingShift?: number;
 };

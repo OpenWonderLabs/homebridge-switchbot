@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 2.5.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.5.2) (2023-02-10)
+
+## What's Changed
+
+- Fixes mappingMode not being read from the config directly, Thanks [@AndreasVerhoeven](https://github.com/AndreasVerhoeven). [#667](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/667)
+- Fixes only_up mode in settings configuration, Thanks [@AndreasVerhoeven](https://github.com/AndreasVerhoeven). [#669](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/669)
+- Removes runStatus check, fixes some logic, Thanks [@AndreasVerhoeven](https://github.com/AndreasVerhoeven). [#672](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/672)
+- Remove unneeded async, Thanks [@dnicolson](https://github.com/dnicolson). [#675](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/675)
+- Replace switchbot wait with utility function, Thanks [@dnicolson](https://github.com/dnicolson). [#674](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/674)
+- Remove incorrect warning message, Thanks [@dnicolson](https://github.com/dnicolson). [#673](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/673) 
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.5.1....v2.5.2
+
 ## [Version 2.5.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.5.1) (2023-01-28)
 
 ## What's Changed
@@ -15,10 +29,9 @@ All notable changes to this project will be documented in this file. This projec
 ## What's Changed
 
 - Add Intial Support for Blind Tilt (OpenAPI Only), Thanks [@AndreasVerhoeven](https://github.com/AndreasVerhoeven). [#649](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/649)
-@dnicolson
 - Remove incorrect warning message, Thanks [@dnicolson](https://github.com/dnicolson). [#661](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/661)
 - Replace switchbot wait with utility function, Thanks [@dnicolson](https://github.com/dnicolson). [#633](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/633)
-- Enhancements to BLE functionality
+- Enhancements to BLE functionality.
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.4.0....v2.5.0

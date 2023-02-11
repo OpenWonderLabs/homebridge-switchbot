@@ -8,6 +8,7 @@ import { SwitchBotPlatform } from '../platform';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { device, devicesConfig, serviceData, switchbot, deviceStatus, ad, HostDomain, DevicePath } from '../settings';
 import { IncomingMessage } from 'http';
+import { sleep } from '../utils';
 
 /**
  * Platform Accessory
@@ -347,7 +348,7 @@ export class Contact {
             }
           };
           // Wait
-          return await switchbot.wait(this.scanDuration * 1000);
+          return await sleep(this.scanDuration * 1000);
         })
         .then(async () => {
           // Stop to monitor
@@ -470,7 +471,7 @@ export class Contact {
   }
 
   async stopScanning(switchbot: any) {
-    await switchbot.stopScan();
+    switchbot.stopScan();
     if (this.connected) {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
@@ -490,7 +491,7 @@ export class Contact {
         switchbot.onadvertisement = (ad: any) => {
           this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} ad: ${superStringify(ad, null, '  ')}`);
         };
-        await switchbot.wait(10000);
+        await sleep(10000);
         // Stop to monitor
         switchbot.stopScan();
       })();

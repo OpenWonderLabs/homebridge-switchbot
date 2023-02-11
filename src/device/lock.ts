@@ -8,6 +8,7 @@ import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { device, devicesConfig, deviceStatus, HostDomain, DevicePath, switchbot, ad, serviceData } from '../settings';
+import { sleep } from '../utils';
 
 export class Lock {
   // Services
@@ -274,7 +275,7 @@ export class Lock {
             }
           };
           // Wait
-          return await switchbot.wait(this.scanDuration * 1000);
+          return await sleep(this.scanDuration * 1000);
         })
         .then(async () => {
           // Stop to monitor
@@ -513,7 +514,7 @@ export class Lock {
   }
 
   async stopScanning(switchbot: any) {
-    await switchbot.stopScan();
+    switchbot.stopScan();
     if (this.connected) {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
@@ -533,7 +534,7 @@ export class Lock {
         switchbot.onadvertisement = (ad: any) => {
           this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} ad: ${superStringify(ad, null, '  ')}`);
         };
-        await switchbot.wait(10000);
+        await sleep(10000);
         // Stop to monitor
         switchbot.stopScan();
       })();

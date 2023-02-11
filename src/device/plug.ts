@@ -231,7 +231,7 @@ export class Plug {
             }
           };
           // Wait
-          return await switchbot.wait(this.scanDuration * 1000);
+          return await sleep(this.scanDuration * 1000);
         })
         .then(async () => {
           // Stop to monitor
@@ -471,7 +471,7 @@ export class Plug {
   }
 
   async stopScanning(switchbot: any) {
-    await switchbot.stopScan();
+    switchbot.stopScan();
     if (this.connected) {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
@@ -499,7 +499,7 @@ export class Plug {
         switchbot.onadvertisement = (ad: any) => {
           this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} ad: ${superStringify(ad, null, '  ')}`);
         };
-        await switchbot.wait(10000);
+        await sleep(10000);
         // Stop to monitor
         switchbot.stopScan();
       })();

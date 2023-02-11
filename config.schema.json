@@ -455,7 +455,7 @@
                       "oneOf": [
                         {
                           "title": "Middle to Up",
-                          "enum": ["up"]
+                          "enum": ["only_up"]
                         },
                         {
                           "title": "Middle to Down",
@@ -475,6 +475,40 @@
                         }
                       ],
                       "description": "Defines how the Home app sliders control the blind tilt.",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "set_minStep": {
+                      "title": "Set Minimum Step",
+                      "type": "number",
+                      "placeholder": "1",
+                      "description": "Sets the minimum steps that blind tilt allows. So if set to 20, it would allow you to set the blind tilt state to 0, 20, 40, 60, 80, and 100",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "set_min": {
+                      "title": "Set Minimum Open State",
+                      "type": "number",
+                      "placeholder": "0",
+                      "description": "Sets the minimum percentage before needed to set Blind Tilt to Open",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "set_max": {
+                      "title": "Set Maximum Close State",
+                      "type": "number",
+                      "placeholder": "100",
+                      "description": "Sets the maximum percentage before needing to set Blind Tilt to Closed",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "hide_lightsensor": {
+                      "title": "Hide Light Sensor",
+                      "type": "boolean",
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' && model.options.devices[arrayIndices].deviceId);"
                       }
@@ -562,7 +596,7 @@
                       "type": "number",
                       "placeholder": "1",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Color Bulb' || model.options.devices[arrayIndices].configDeviceType === 'Strip Light') && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Color Bulb' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "adaptiveLightingShift": {
@@ -572,6 +606,28 @@
                       "description": "The mired for each Adaptive Lighting update will be increased by this value, making the light appear warmer. Set to -1 to remove Adaptive Lighting feature. Must be -1 or more.",
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Color Bulb' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    }
+                  }
+                },
+                "striplight": {
+                  "type": "object",
+                  "properties": {
+                    "set_minStep": {
+                      "title": "Set Min Step",
+                      "type": "number",
+                      "placeholder": "1",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Strip Light' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "adaptiveLightingShift": {
+                      "title": "Adaptive Lighting Shift",
+                      "type": "number",
+                      "placeholder": "-1",
+                      "description": "The mired for each Adaptive Lighting update will be increased by this value, making the light appear warmer. Set to -1 to remove Adaptive Lighting feature. Must be -1 or more.",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Strip Light' && model.options.devices[arrayIndices].deviceId);"
                       }
                     }
                   }
@@ -1097,6 +1153,10 @@
             "options.devices[].curtain.set_minlux",
             "options.devices[].curtain.set_maxlux",
             "options.devices[].blindTilt.mode",
+            "options.devices[].blindTilt.set_minStep",
+            "options.devices[].blindTilt.set_min",
+            "options.devices[].blindTilt.set_max",
+            "options.devices[].blindTilt.hide_lightsensor",
             "options.devices[].blindTilt.updateRate",
             "options.devices[].contact.hide_lightsensor",
             "options.devices[].contact.set_minlux",
@@ -1107,6 +1167,8 @@
             "options.devices[].motion.set_maxlux",
             "options.devices[].colorbulb.set_minStep",
             "options.devices[].colorbulb.adaptiveLightingShift",
+            "options.devices[].striplight.set_minStep",
+            "options.devices[].striplight.adaptiveLightingShift",
             "options.devices[].lock.hide_contactsensor",
             "options.devices[].mqttURL",
             "options.devices[].mqttOptions",

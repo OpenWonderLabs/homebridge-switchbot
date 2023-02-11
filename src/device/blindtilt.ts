@@ -42,7 +42,6 @@ export class BlindTilt {
   slidePosition: deviceStatus['slidePosition'];
   direction: deviceStatus['direction'];
   moving: deviceStatus['moving'];
-  runStatus: deviceStatus['runStatus'];
   brightness: deviceStatus['brightness'];
   setPositionMode?: string | number;
   Mode!: string;
@@ -96,7 +95,7 @@ export class BlindTilt {
     this.setupMqtt(device);
     this.context();
 
-    this.mappingMode = (device.blindTilt?.mappingMode as BlindTiltMappingMode) ?? BlindTiltMappingMode.OnlyUp;
+    this.mappingMode = (device.blindTilt?.mode as BlindTiltMappingMode) ?? BlindTiltMappingMode.OnlyUp;
     this.debugLog(`Mapping mode: ${this.mappingMode}`);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
@@ -303,7 +302,7 @@ export class BlindTilt {
         ` TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState},`,
     );
 
-    if (!this.device.curtain?.hide_lightsensor) {
+    if (!this.device.blindTilt?.hide_lightsensor) {
       this.set_minLux = this.minLux();
       this.set_maxLux = this.maxLux();
       this.spaceBetweenLevels = 9;
@@ -390,8 +389,7 @@ export class BlindTilt {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Checking Status ...`);
     }
 
-    this.debugLog(`runStatus: ${this.runStatus}`);
-    if (this.setNewTarget || (this.runStatus === undefined || this.runStatus !== 'static')) {
+    if (this.setNewTarget && this.moving) {
       await this.setMinMax();
       if (this.TargetPosition > this.CurrentPosition || (homekitTiltAngle && (this.TargetHorizontalTiltAngle !== this.CurrentHorizontalTiltAngle))) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition} `);
@@ -425,7 +423,7 @@ export class BlindTilt {
           ` TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState},`,
     );
 
-    if (!this.device.curtain?.hide_lightsensor) {
+    if (!this.device.blindTilt?.hide_lightsensor) {
       this.set_minLux = this.minLux();
       this.set_maxLux = this.maxLux();
       // Brightness
@@ -500,7 +498,7 @@ export class BlindTilt {
             }
           };
           // Wait
-          return await switchbot.wait(this.scanDuration * 1000);
+          return await sleep(this.scanDuration * 1000);
         })
         .then(async () => {
           // Stop to monitor
@@ -553,7 +551,6 @@ export class BlindTilt {
             this.slidePosition = this.deviceStatus.body.slidePosition;
             this.direction = this.deviceStatus.body.direction;
             this.moving = this.deviceStatus.body.moving;
-            this.runStatus = this.deviceStatus.body.runStatus;
             this.brightness = this.deviceStatus.body.brightness;
             this.openAPIparseStatus();
             this.updateHomeKitCharacteristics();
@@ -667,7 +664,11 @@ export class BlindTilt {
   async openAPIpushChanges(): Promise<void> {
     try {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} OpenAPI pushChanges`);
-      if ((this.TargetPosition !== this.CurrentPosition) || this.device.disableCaching) {
+
+      const hasDifferentAndRelevantHorizontalTiltAngle = (
+        this.mappingMode === BlindTiltMappingMode.UseTiltForDirection
+        && this.TargetHorizontalTiltAngle !== this.CurrentHorizontalTiltAngle);
+      if ((this.TargetPosition !== this.CurrentPosition) || hasDifferentAndRelevantHorizontalTiltAngle || this.device.disableCaching) {
         // Make Push On request to the API
         const t = Date.now();
         const nonce = 'requestID';
@@ -683,11 +684,26 @@ export class BlindTilt {
         this.debugLog(`Pushing ${this.TargetPosition} (device = ${direction};${position})`);
 
         this.debugLog(`${this.accessory.displayName} Mode: ${this.Mode}`);
-        const body = superStringify({
-          'command': 'setPosition',
-          'parameter': `${direction};${position}`,
-          'commandType': 'command',
-        });
+
+        let body = '';
+        if(position === 100) {
+          body = superStringify({
+            'command': 'fullyOpen',
+            'commandType': 'command',
+          });
+        } else if(position === 0) {
+          body = superStringify({
+            'command': direction === 'up' ? 'closeUp' : 'closeDown',
+            'commandType': 'command',
+          });
+        } else {
+          body = superStringify({
+            'command': 'setPosition',
+            'parameter': `${direction};${position}`,
+            'commandType': 'command',
+          });
+        }
+
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
         const options = {
           hostname: HostDomain,
@@ -718,7 +734,8 @@ export class BlindTilt {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges: ${superStringify(req)}`);
       } else {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No OpenAPI Changes, CurrentPosition & TargetPosition Are the Same.`
-        +` CurrentPosition: ${this.CurrentPosition}, TargetPosition  ${this.TargetPosition}`,
+        +` CurrentPosition: ${this.CurrentPosition}, TargetPosition  ${this.TargetPosition}`
+        +` CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}, TargetPosition  ${this.TargetHorizontalTiltAngle}`,
         );
       }
     } catch (e: any) {
@@ -850,7 +867,7 @@ export class BlindTilt {
       this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.TargetPosition, Number(this.TargetPosition));
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic TargetPosition: ${this.TargetPosition}`);
     }
-    if (!this.device.curtain?.hide_lightsensor) {
+    if (!this.device.blindTilt?.hide_lightsensor) {
       if (this.CurrentAmbientLightLevel === undefined || Number.isNaN(this.CurrentAmbientLightLevel)) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
       } else {
@@ -920,7 +937,7 @@ export class BlindTilt {
   }
 
   async stopScanning(switchbot: any) {
-    await switchbot.stopScan();
+    switchbot.stopScan();
     if (this.connected) {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
@@ -940,7 +957,7 @@ export class BlindTilt {
         switchbot.onadvertisement = (ad: any) => {
           this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} ad: ${superStringify(ad, null, '  ')}`);
         };
-        await switchbot.wait(10000);
+        await sleep(10000);
         // Stop to monitor
         switchbot.stopScan();
       })();
@@ -964,7 +981,7 @@ export class BlindTilt {
 
   async SilentPerformance() {
     if (this.TargetPosition > 50) {
-      if (this.device.curtain?.setOpenMode === '1') {
+      if (this.device.blindTilt?.setOpenMode === '1') {
         this.setPositionMode = 1;
         this.Mode = 'Silent Mode';
       } else {
@@ -972,7 +989,7 @@ export class BlindTilt {
         this.Mode = 'Performance Mode';
       }
     } else {
-      if (this.device.curtain?.setCloseMode === '1') {
+      if (this.device.blindTilt?.setCloseMode === '1') {
         this.setPositionMode = 1;
         this.Mode = 'Silent Mode';
       } else {
@@ -983,13 +1000,13 @@ export class BlindTilt {
   }
 
   async setMinMax(): Promise<void> {
-    if (this.device.curtain?.set_min) {
-      if (this.CurrentPosition <= this.device.curtain?.set_min) {
+    if (this.device.blindTilt?.set_min) {
+      if (this.CurrentPosition <= this.device.blindTilt?.set_min) {
         this.CurrentPosition = 0;
       }
     }
-    if (this.device.curtain?.set_max) {
-      if (this.CurrentPosition >= this.device.curtain?.set_max) {
+    if (this.device.blindTilt?.set_max) {
+      if (this.CurrentPosition >= this.device.blindTilt?.set_max) {
         this.CurrentPosition = 100;
       }
     }
@@ -1000,8 +1017,8 @@ export class BlindTilt {
   }
 
   minStep(device: device & devicesConfig): number {
-    if (device.curtain?.set_minStep) {
-      this.set_minStep = device.curtain?.set_minStep;
+    if (device.blindTilt?.set_minStep) {
+      this.set_minStep = device.blindTilt?.set_minStep;
     } else {
       this.set_minStep = 1;
     }
@@ -1009,8 +1026,8 @@ export class BlindTilt {
   }
 
   minLux(): number {
-    if (this.device.curtain?.set_minLux) {
-      this.set_minLux = this.device.curtain?.set_minLux;
+    if (this.device.blindTilt?.set_minLux) {
+      this.set_minLux = this.device.blindTilt?.set_minLux;
     } else {
       this.set_minLux = 1;
     }
@@ -1018,8 +1035,8 @@ export class BlindTilt {
   }
 
   maxLux(): number {
-    if (this.device.curtain?.set_maxLux) {
-      this.set_maxLux = this.device.curtain?.set_maxLux;
+    if (this.device.blindTilt?.set_maxLux) {
+      this.set_maxLux = this.device.blindTilt?.set_maxLux;
     } else {
       this.set_maxLux = 6001;
     }
@@ -1032,7 +1049,7 @@ export class BlindTilt {
         this.scanDuration = this.updateRate;
         if (this.BLE) {
           this.warnLog(`${this.device.deviceType}: `
-        + `${this.accessory.displayName} scanDuration is less then updateRate, overriding scanDuration with updateRate`);
+        + `${this.accessory.displayName} scanDuration is less than updateRate, overriding scanDuration with updateRate`);
         }
       } else {
         this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
@@ -1043,10 +1060,6 @@ export class BlindTilt {
     } else {
       if (this.updateRate > 1) {
         this.scanDuration = this.updateRate;
-        if (this.BLE) {
-          this.warnLog(`${this.device.deviceType}: `
-        + `${this.accessory.displayName} scanDuration is less then updateRate, overriding scanDuration with updateRate`);
-        }
       } else {
         this.scanDuration = this.accessory.context.scanDuration = 1;
       }
@@ -1261,7 +1274,7 @@ export class BlindTilt {
         } else {
           // upwards
           // homekit 0..100 -> device 0..100, so invert
-          return ['up,', homekitPosition];
+          return ['up', homekitPosition];
         }
     }
   }
@@ -1312,10 +1325,10 @@ export class BlindTilt {
       config['maxRetry'] = device.maxRetry;
     }
 
-    if(device.blindTilt?.mappingMode === undefined) {
-      config['mappingMode'] = BlindTiltMappingMode.OnlyUp;
+    if(device.blindTilt?.mode === undefined) {
+      config['mode'] = BlindTiltMappingMode.OnlyUp;
     } else {
-      config['mappingMode'] = device.blindTilt?.mappingMode;
+      config['mode'] = device.blindTilt?.mode;
     }
 
     if (Object.entries(config).length !== 0) {

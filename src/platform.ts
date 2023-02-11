@@ -411,6 +411,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       case 'Hub Plus':
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
         break;
+      case 'Hub 2':
+        this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
+        break;
       case 'Bot':
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createBot(device);
