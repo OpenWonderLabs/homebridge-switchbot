@@ -8,6 +8,7 @@ import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { device, devicesConfig, serviceData, ad, deviceStatus, HostDomain, DevicePath } from '../settings';
+import { sleep } from '../utils';
 
 /**
  * Platform Accessory
@@ -343,7 +344,7 @@ export class Humidifier {
             }
           };
           // Wait
-          return await switchbot.wait(this.scanDuration * 1000);
+          return await sleep(this.scanDuration * 1000);
         })
         .then(async () => {
           // Stop to monitor
@@ -791,7 +792,7 @@ export class Humidifier {
         switchbot.onadvertisement = (ad: any) => {
           this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} ad: ${superStringify(ad, null, '  ')}`);
         };
-        await switchbot.wait(10000);
+        await sleep(10000);
         // Stop to monitor
         switchbot.stopScan();
       })();
