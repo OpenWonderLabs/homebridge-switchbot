@@ -79,6 +79,6 @@
     "typescript": "^4.9.5"
   },
   "optionalDependencies": {
-    "node-switchbot": "^1.8.1-beta.2"
+    "node-switchbot": "^1.8.1-beta.3"
   }
 }
