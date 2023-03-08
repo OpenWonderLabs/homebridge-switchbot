@@ -528,11 +528,11 @@ export class ColorBulb {
           this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
           return await this.retry({
             max: await this.maxRetry(),
-            fn: () => {
+            fn: async () => {
               if (this.On) {
-                return device_list[0].turnOn({ id: this.device.bleMac });
+                return await device_list[0].turnOn({ id: this.device.bleMac });
               } else {
-                return device_list[0].turnOff({ id: this.device.bleMac });
+                return await device_list[0].turnOff({ id: this.device.bleMac });
               }
             },
           });
@@ -580,9 +580,9 @@ export class ColorBulb {
           model: 'u',
           id: this.device.bleMac,
         })
-        .then((device_list: any) => {
+        .then(async (device_list: any) => {
           this.infoLog(`${this.accessory.displayName} Target Brightness: ${this.Brightness}`);
-          return device_list[0].setBrightness(this.Brightness);
+          return await device_list[0].setBrightness(this.Brightness);
         })
         .then(() => {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
@@ -615,9 +615,9 @@ export class ColorBulb {
           model: 'u',
           id: this.device.bleMac,
         })
-        .then((device_list: any) => {
+        .then(async (device_list: any) => {
           this.infoLog(`${this.accessory.displayName} Target ColorTemperature: ${this.ColorTemperature}`);
-          return device_list[0].setColorTemperature(this.ColorTemperature);
+          return await device_list[0].setColorTemperature(this.ColorTemperature);
         })
         .then(() => {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
@@ -657,9 +657,9 @@ export class ColorBulb {
           model: 'u',
           id: this.device.bleMac,
         })
-        .then((device_list: any) => {
+        .then(async (device_list: any) => {
           this.infoLog(`${this.accessory.displayName} Target RGB: ${this.Brightness, red, green, blue}`);
-          return device_list[0].setRGB(this.Brightness, red, green, blue);
+          return await device_list[0].setRGB(this.Brightness, red, green, blue);
         })
         .then(() => {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);

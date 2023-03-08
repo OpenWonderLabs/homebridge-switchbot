@@ -575,8 +575,8 @@ export class Curtain {
             this.infoLog(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
             return await this.retry({
               max: await this.maxRetry(),
-              fn: () => {
-                return device_list[0].runToPos(100 - Number(this.TargetPosition), adjustedMode);
+              fn: async () => {
+                return await device_list[0].runToPos(100 - Number(this.TargetPosition), adjustedMode);
               },
             });
           })

@@ -630,9 +630,9 @@ export class Bot {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Bot Mode: ${this.botMode}`);
         switchbot
           .discover({ model: 'H', quick: true, id: this.device.bleMac })
-          .then((device_list: { press: (arg0: { id: string | undefined }) => any }[]) => {
+          .then(async (device_list: { press: (arg0: { id: string | undefined }) => any }[]) => {
             this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
-            return device_list[0].press({ id: this.device.bleMac });
+            return await device_list[0].press({ id: this.device.bleMac });
           })
           .then(() => {
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
@@ -660,11 +660,11 @@ export class Bot {
             this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
             return await this.retry({
               max: await this.maxRetry(),
-              fn: () => {
+              fn: async () => {
                 if (this.On) {
-                  return device_list[0].turnOn({ id: this.device.bleMac });
+                  return await device_list[0].turnOn({ id: this.device.bleMac });
                 } else {
-                  return device_list[0].turnOff({ id: this.device.bleMac });
+                  return await device_list[0].turnOff({ id: this.device.bleMac });
                 }
               },
             });

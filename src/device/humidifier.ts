@@ -455,9 +455,9 @@ export class Humidifier {
         quick: true,
         id: this.device.bleMac,
       })
-      .then((device_list: any) => {
+      .then(async (device_list: any) => {
         this.infoLog(`${this.accessory.displayName} Target Position: ${this.Active}`);
-        return device_list[0].percentage(this.RelativeHumidityHumidifierThreshold);
+        return await device_list[0].percentage(this.RelativeHumidityHumidifierThreshold);
       })
       .then(() => {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);

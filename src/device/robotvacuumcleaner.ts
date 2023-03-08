@@ -363,11 +363,11 @@ export class RobotVacuumCleaner {
           this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
           return await this.retry({
             max: await this.maxRetry(),
-            fn: () => {
+            fn: async () => {
               if (this.On) {
-                return device_list[0].turnOn({ id: this.device.bleMac });
+                return await device_list[0].turnOn({ id: this.device.bleMac });
               } else {
-                return device_list[0].turnOff({ id: this.device.bleMac });
+                return await device_list[0].turnOff({ id: this.device.bleMac });
               }
             },
           });
