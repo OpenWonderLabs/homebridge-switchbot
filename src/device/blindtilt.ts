@@ -614,8 +614,8 @@ export class BlindTilt {
             this.infoLog(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
             return await this.retry({
               max: await this.maxRetry(),
-              fn: () => {
-                return device_list[0].runToPos(100 - Number(this.TargetPosition), adjustedMode);
+              fn: async () => {
+                return await device_list[0].runToPos(100 - Number(this.TargetPosition), adjustedMode);
               },
             });
           })
@@ -640,11 +640,11 @@ export class BlindTilt {
   }
 
   async retry({ max, fn }: { max: number; fn: { (): any; (): Promise<any> } }): Promise<null> {
-    return fn().catch(async (err: any) => {
+    return fn().catch(async (e: any) => {
       if (max === 0) {
-        throw err;
+        throw e;
       }
-      this.infoLog(err);
+      this.infoLog(e);
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Retrying`);
       await sleep(1000);
       return this.retry({ max: max - 1, fn });
