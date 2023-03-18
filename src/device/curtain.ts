@@ -257,7 +257,7 @@ export class Curtain {
         this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
         this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
         this.debugLog(`${this.device.deviceType}: ${this.CurrentPosition} INCREASING PositionState: ${this.PositionState}`);
-      } else if (this.TargetPosition < this.CurrentPosition) {
+      } else if (Number(this.TargetPosition) < this.CurrentPosition) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Opening, CurrentPosition: ${this.CurrentPosition}`);
         this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
         this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
@@ -358,12 +358,12 @@ export class Curtain {
 
     if (this.setNewTarget && this.moving) {
       await this.setMinMax();
-      if (this.TargetPosition > this.CurrentPosition) {
+      if (Number(this.TargetPosition) > this.CurrentPosition) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition} `);
         this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
         this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
         this.debugLog(`${this.device.deviceType}: ${this.CurrentPosition} INCREASING PositionState: ${this.PositionState}`);
-      } else if (this.TargetPosition < this.CurrentPosition) {
+      } else if (Number(this.TargetPosition) < this.CurrentPosition) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Opening, CurrentPosition: ${this.CurrentPosition} `);
         this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
         this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);

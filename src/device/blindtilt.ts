@@ -275,12 +275,12 @@ export class BlindTilt {
 
     if (this.setNewTarget && this.inMotion) {
       await this.setMinMax();
-      if (this.TargetPosition > this.CurrentPosition) {
+      if (Number(this.TargetPosition) > this.CurrentPosition) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition}`);
         this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
         this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
         this.debugLog(`${this.device.deviceType}: ${this.CurrentPosition} INCREASING PositionState: ${this.PositionState}`);
-      } else if (this.TargetPosition < this.CurrentPosition) {
+      } else if (Number(this.TargetPosition) < this.CurrentPosition) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Opening, CurrentPosition: ${this.CurrentPosition}`);
         this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
         this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
@@ -980,7 +980,7 @@ export class BlindTilt {
   }
 
   async SilentPerformance() {
-    if (this.TargetPosition > 50) {
+    if (Number(this.TargetPosition) > 50) {
       if (this.device.blindTilt?.setOpenMode === '1') {
         this.setPositionMode = 1;
         this.Mode = 'Silent Mode';
@@ -1006,7 +1006,7 @@ export class BlindTilt {
       }
     }
     if (this.device.blindTilt?.set_max) {
-      if (this.CurrentPosition >= this.device.blindTilt?.set_max) {
+      if (Number(this.CurrentPosition) >= this.device.blindTilt?.set_max) {
         this.CurrentPosition = 100;
       }
     }
