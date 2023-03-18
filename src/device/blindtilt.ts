@@ -1001,7 +1001,7 @@ export class BlindTilt {
 
   async setMinMax(): Promise<void> {
     if (this.device.blindTilt?.set_min) {
-      if (this.CurrentPosition <= this.device.blindTilt?.set_min) {
+      if (Number(this.CurrentPosition) <= this.device.blindTilt?.set_min) {
         this.CurrentPosition = 0;
       }
     }
@@ -1012,7 +1012,7 @@ export class BlindTilt {
     }
 
     if(this.mappingMode === BlindTiltMappingMode.UseTiltForDirection) {
-      this.CurrentHorizontalTiltAngle = this.CurrentHorizontalTiltAngle < 0 ? -90 : 90;
+      this.CurrentHorizontalTiltAngle = Number(this.CurrentHorizontalTiltAngle) < 0 ? -90 : 90;
     }
   }
 

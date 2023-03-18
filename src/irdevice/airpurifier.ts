@@ -188,7 +188,7 @@ export class AirPurifier {
       'commandType': 'command',
     });
     if (this.Active === 1) {
-      if ((this.CurrentTemperature || 24) < (this.LastTemperature || 30)) {
+      if ((Number(this.CurrentTemperature)|| 24) < (this.LastTemperature || 30)) {
         this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.COOLING;
       } else {
         this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.HEATING;

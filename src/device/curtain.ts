@@ -252,7 +252,7 @@ export class Curtain {
 
     if (this.setNewTarget && this.inMotion) {
       await this.setMinMax();
-      if (this.TargetPosition > this.CurrentPosition) {
+      if (Number(this.TargetPosition) > this.CurrentPosition) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition}`);
         this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
         this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
@@ -638,7 +638,7 @@ export class Curtain {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
         this.debugLog(`Pushing ${this.TargetPosition}`);
         const adjustedTargetPosition = 100 - Number(this.TargetPosition);
-        if (this.TargetPosition > 50) {
+        if (Number(this.TargetPosition) > 50) {
           this.setPositionMode = this.device.curtain?.setOpenMode;
         } else {
           this.setPositionMode = this.device.curtain?.setCloseMode;
@@ -890,7 +890,7 @@ export class Curtain {
   }
 
   async SilentPerformance() {
-    if (this.TargetPosition > 50) {
+    if (Number(this.TargetPosition) > 50) {
       if (this.device.curtain?.setOpenMode === '1') {
         this.setPositionMode = 1;
         this.Mode = 'Silent Mode';
@@ -911,12 +911,12 @@ export class Curtain {
 
   async setMinMax(): Promise<void> {
     if (this.device.curtain?.set_min) {
-      if (this.CurrentPosition <= this.device.curtain?.set_min) {
+      if (Number(this.CurrentPosition) <= this.device.curtain?.set_min) {
         this.CurrentPosition = 0;
       }
     }
     if (this.device.curtain?.set_max) {
-      if (this.CurrentPosition >= this.device.curtain?.set_max) {
+      if (Number(this.CurrentPosition) >= this.device.curtain?.set_max) {
         this.CurrentPosition = 100;
       }
     }

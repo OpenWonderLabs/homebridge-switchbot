@@ -441,7 +441,7 @@ export class MeterPlus {
     if (this.device.mqttURL) {
       this.mqttPublish(`{${mqttmessage.join(',')}}`);
     }
-    if (this.CurrentRelativeHumidity > 0) {
+    if (Number(this.CurrentRelativeHumidity) > 0) {
       // reject unreliable data
       if (this.device.history) {
         this.historyService?.addEntry(entry);
