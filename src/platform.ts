@@ -423,6 +423,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.createMeter(device);
         break;
       case 'MeterPlus':
+      case 'WoIOSensor':
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createMeterPlus(device);
         break;
