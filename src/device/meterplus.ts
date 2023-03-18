@@ -32,6 +32,7 @@ export class MeterPlus {
   StatusLowBattery?: CharacteristicValue;
 
   // OpenAPI Others
+  Battery: deviceStatus['battery'];
   Temperature: deviceStatus['temperature'];
   Humidity: deviceStatus['humidity'];
   deviceStatus!: any; //deviceStatusResponse;
@@ -356,11 +357,9 @@ export class MeterPlus {
           try {
             this.deviceStatus = JSON.parse(rawData);
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus: ${superStringify(this.deviceStatus)}`);
-            if (this.device.deviceType === 'WoIOSensor') {
-              this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus: ${superStringify(this.deviceStatus)}`);
-            }
             this.Humidity = this.deviceStatus.body.humidity!;
             this.Temperature = this.deviceStatus.body.temperature!;
+            this.Battery = this.deviceStatus.body.battery!;
             this.parseStatus();
             this.updateHomeKitCharacteristics();
           } catch (e: any) {
