@@ -248,9 +248,6 @@ export class Curtain {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition ${this.CurrentPosition}`);
     if (this.setNewTarget) {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Checking Status ...`);
-    }
-
-    if (this.setNewTarget && this.inMotion) {
       await this.setMinMax();
       if (Number(this.TargetPosition) > this.CurrentPosition) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition}`);
