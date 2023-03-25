@@ -265,7 +265,7 @@ export class Motion {
         })
         .then(async () => {
           return await this.retry({
-            max: await this.maxRetry(),
+            max: this.maxRetry(),
             fn: async () => {
               // Set an event hander
               this.scanning = true;
@@ -467,14 +467,12 @@ export class Motion {
     });
   }
 
-  async maxRetry(): Promise<number> {
-    let maxRetry: number;
+  maxRetry(): number {
     if (this.device.maxRetry) {
-      maxRetry = this.device.maxRetry;
+      return this.device.maxRetry;
     } else {
-      maxRetry = 5;
+      return 5;
     }
-    return maxRetry;
   }
 
   minLux(): number {

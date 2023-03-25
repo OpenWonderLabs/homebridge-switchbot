@@ -570,7 +570,7 @@ export class Curtain {
       this.debugLog(`${this.accessory.displayName} Mode: ${this.Mode}`);
       if (switchbot !== false) {
         await this.retry({
-          max: await this.maxRetry(),
+          max: this.maxRetry(),
           fn: () => {
             return switchbot
               .discover({ model: 'c', quick: true, id: this.device.bleMac })
@@ -613,14 +613,12 @@ export class Curtain {
     });
   }
 
-  async maxRetry(): Promise<number> {
-    let maxRetry: number;
+  maxRetry(): number {
     if (this.device.maxRetry) {
-      maxRetry = this.device.maxRetry;
+      return this.device.maxRetry;
     } else {
-      maxRetry = 5;
+      return 5;
     }
-    return maxRetry;
   }
 
   async openAPIpushChanges(): Promise<void> {
