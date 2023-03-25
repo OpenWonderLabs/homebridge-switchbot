@@ -467,7 +467,7 @@ export class StripLight {
         .then(async (device_list: any) => {
           this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
           return await this.retry({
-            max: await this.maxRetry(),
+            max: this.maxRetry(),
             fn: async () => {
               if (this.On) {
                 return await device_list[0].turnOn({ id: this.device.bleMac });
@@ -898,14 +898,12 @@ export class StripLight {
     });
   }
 
-  async maxRetry(): Promise<number> {
-    let maxRetry: number;
+  maxRetry(): number {
     if (this.device.maxRetry) {
-      maxRetry = this.device.maxRetry;
+      return this.device.maxRetry;
     } else {
-      maxRetry = 5;
+      return 5;
     }
-    return maxRetry;
   }
 
   minStep(device: device & devicesConfig): number {

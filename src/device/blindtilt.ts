@@ -613,7 +613,7 @@ export class BlindTilt {
           .then(async (device_list: any) => {
             this.infoLog(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
             return await this.retry({
-              max: await this.maxRetry(),
+              max: this.maxRetry(),
               fn: async () => {
                 return await device_list[0].runToPos(100 - Number(this.TargetPosition), adjustedMode);
               },
@@ -651,14 +651,12 @@ export class BlindTilt {
     });
   }
 
-  async maxRetry(): Promise<number> {
-    let maxRetry: number;
+  maxRetry(): number {
     if (this.device.maxRetry) {
-      maxRetry = this.device.maxRetry;
+      return this.device.maxRetry;
     } else {
-      maxRetry = 5;
+      return 5;
     }
-    return maxRetry;
   }
 
   async openAPIpushChanges(): Promise<void> {
