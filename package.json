@@ -14,7 +14,7 @@
   },
   "engines": {
     "homebridge": "^1.6.0 || ^2.0.0-beta.0",
-    "node": "^14.21.2 || ^16.19.0 || ^18.15.0"
+    "node": "^16.20.0 || ^18.15.0"
   },
   "main": "dist/index.js",
   "scripts": {
@@ -64,19 +64,19 @@
     "node-switchbot": "1.8.1-beta.10"
   },
   "devDependencies": {
-    "@types/node": "^18.15.3",
+    "@types/node": "^18.15.11",
     "@types/crypto-js": "^4.1.1",
-    "@typescript-eslint/eslint-plugin": "^5.55.0",
-    "@typescript-eslint/parser": "^5.55.0",
-    "eslint": "^8.36.0",
-    "eslint-config-prettier": "8.7.0",
+    "@typescript-eslint/eslint-plugin": "^5.57.1",
+    "@typescript-eslint/parser": "^5.57.1",
+    "eslint": "^8.38.0",
+    "eslint-config-prettier": "8.8.0",
     "eslint-plugin-prettier": "4.2.1",
     "homebridge": "^1.6.0",
-    "nodemon": "^2.0.21",
-    "npm-check-updates": "^16.7.12",
-    "prettier": "2.8.4",
-    "rimraf": "^4.4.0",
+    "nodemon": "^2.0.22",
+    "npm-check-updates": "^16.10.7",
+    "prettier": "2.8.7",
+    "rimraf": "^4.4.1",
     "ts-node": "^10.9.1",
-    "typescript": "^5.0.2"
+    "typescript": "^5.0.4"
   }
 }
