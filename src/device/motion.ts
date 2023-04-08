@@ -265,7 +265,7 @@ export class Motion {
         })
         .then(async () => {
           return await this.retry({
-            max: await this.maxRetry(),
+            max: this.maxRetry(),
             fn: async () => {
               // Set an event hander
               this.scanning = true;
@@ -456,25 +456,23 @@ export class Motion {
   }
 
   async retry({ max, fn }: { max: number; fn: { (): any; (): Promise<any> } }): Promise<null> {
-    return fn().catch(async (err: any) => {
+    return fn().catch(async (e: any) => {
       if (max === 0) {
-        throw err;
+        throw e;
       }
-      this.infoLog(err);
+      this.infoLog(e);
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Retrying`);
       await sleep(1000);
       return this.retry({ max: max - 1, fn });
     });
   }
 
-  async maxRetry(): Promise<number> {
-    let maxRetry: number;
+  maxRetry(): number {
     if (this.device.maxRetry) {
-      maxRetry = this.device.maxRetry;
+      return this.device.maxRetry;
     } else {
-      maxRetry = 5;
+      return 5;
     }
-    return maxRetry;
   }
 
   minLux(): number {

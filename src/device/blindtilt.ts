@@ -275,12 +275,12 @@ export class BlindTilt {
 
     if (this.setNewTarget && this.inMotion) {
       await this.setMinMax();
-      if (this.TargetPosition > this.CurrentPosition) {
+      if (Number(this.TargetPosition) > this.CurrentPosition) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition}`);
         this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
         this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
         this.debugLog(`${this.device.deviceType}: ${this.CurrentPosition} INCREASING PositionState: ${this.PositionState}`);
-      } else if (this.TargetPosition < this.CurrentPosition) {
+      } else if (Number(this.TargetPosition) < this.CurrentPosition) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Opening, CurrentPosition: ${this.CurrentPosition}`);
         this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
         this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
@@ -613,9 +613,9 @@ export class BlindTilt {
           .then(async (device_list: any) => {
             this.infoLog(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
             return await this.retry({
-              max: await this.maxRetry(),
-              fn: () => {
-                return device_list[0].runToPos(100 - Number(this.TargetPosition), adjustedMode);
+              max: this.maxRetry(),
+              fn: async () => {
+                return await device_list[0].runToPos(100 - Number(this.TargetPosition), adjustedMode);
               },
             });
           })
@@ -640,25 +640,23 @@ export class BlindTilt {
   }
 
   async retry({ max, fn }: { max: number; fn: { (): any; (): Promise<any> } }): Promise<null> {
-    return fn().catch(async (err: any) => {
+    return fn().catch(async (e: any) => {
       if (max === 0) {
-        throw err;
+        throw e;
       }
-      this.infoLog(err);
+      this.infoLog(e);
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Retrying`);
       await sleep(1000);
       return this.retry({ max: max - 1, fn });
     });
   }
 
-  async maxRetry(): Promise<number> {
-    let maxRetry: number;
+  maxRetry(): number {
     if (this.device.maxRetry) {
-      maxRetry = this.device.maxRetry;
+      return this.device.maxRetry;
     } else {
-      maxRetry = 5;
+      return 5;
     }
-    return maxRetry;
   }
 
   async openAPIpushChanges(): Promise<void> {
@@ -980,7 +978,7 @@ export class BlindTilt {
   }
 
   async SilentPerformance() {
-    if (this.TargetPosition > 50) {
+    if (Number(this.TargetPosition) > 50) {
       if (this.device.blindTilt?.setOpenMode === '1') {
         this.setPositionMode = 1;
         this.Mode = 'Silent Mode';
@@ -1001,18 +999,18 @@ export class BlindTilt {
 
   async setMinMax(): Promise<void> {
     if (this.device.blindTilt?.set_min) {
-      if (this.CurrentPosition <= this.device.blindTilt?.set_min) {
+      if (Number(this.CurrentPosition) <= this.device.blindTilt?.set_min) {
         this.CurrentPosition = 0;
       }
     }
     if (this.device.blindTilt?.set_max) {
-      if (this.CurrentPosition >= this.device.blindTilt?.set_max) {
+      if (Number(this.CurrentPosition) >= this.device.blindTilt?.set_max) {
         this.CurrentPosition = 100;
       }
     }
 
     if(this.mappingMode === BlindTiltMappingMode.UseTiltForDirection) {
-      this.CurrentHorizontalTiltAngle = this.CurrentHorizontalTiltAngle < 0 ? -90 : 90;
+      this.CurrentHorizontalTiltAngle = Number(this.CurrentHorizontalTiltAngle) < 0 ? -90 : 90;
     }
   }
 

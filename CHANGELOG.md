@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 2.5.3](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.5.3) (2023-04-08)
+
+## What's Changed
+
+- Removed unneeded async, Thanks [@dnicolson](https://github.com/dnicolson). [#699](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/699)
+- Removed inMotion condition, Thanks [@dnicolson](https://github.com/dnicolson). [#703](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/703)
+- Fix async method calls, Thanks [@dnicolson](https://github.com/dnicolson). [#690](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/690)
+- Improve curtain retry functionality, Thanks [@dnicolson](https://github.com/dnicolson). [#694](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/694)
+- Housekeeping and updated dependencies.
+  - This release will end support for Node v14.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.5.2....v2.5.3
+
 ## [Version 2.5.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.5.2) (2023-02-10)
 
 ## What's Changed

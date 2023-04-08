@@ -527,12 +527,12 @@ export class ColorBulb {
         .then(async (device_list: any) => {
           this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
           return await this.retry({
-            max: await this.maxRetry(),
-            fn: () => {
+            max: this.maxRetry(),
+            fn: async () => {
               if (this.On) {
-                return device_list[0].turnOn({ id: this.device.bleMac });
+                return await device_list[0].turnOn({ id: this.device.bleMac });
               } else {
-                return device_list[0].turnOff({ id: this.device.bleMac });
+                return await device_list[0].turnOff({ id: this.device.bleMac });
               }
             },
           });
@@ -580,9 +580,9 @@ export class ColorBulb {
           model: 'u',
           id: this.device.bleMac,
         })
-        .then((device_list: any) => {
+        .then(async (device_list: any) => {
           this.infoLog(`${this.accessory.displayName} Target Brightness: ${this.Brightness}`);
-          return device_list[0].setBrightness(this.Brightness);
+          return await device_list[0].setBrightness(this.Brightness);
         })
         .then(() => {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
@@ -615,9 +615,9 @@ export class ColorBulb {
           model: 'u',
           id: this.device.bleMac,
         })
-        .then((device_list: any) => {
+        .then(async (device_list: any) => {
           this.infoLog(`${this.accessory.displayName} Target ColorTemperature: ${this.ColorTemperature}`);
-          return device_list[0].setColorTemperature(this.ColorTemperature);
+          return await device_list[0].setColorTemperature(this.ColorTemperature);
         })
         .then(() => {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
@@ -657,9 +657,9 @@ export class ColorBulb {
           model: 'u',
           id: this.device.bleMac,
         })
-        .then((device_list: any) => {
+        .then(async (device_list: any) => {
           this.infoLog(`${this.accessory.displayName} Target RGB: ${this.Brightness, red, green, blue}`);
-          return device_list[0].setRGB(this.Brightness, red, green, blue);
+          return await device_list[0].setRGB(this.Brightness, red, green, blue);
         })
         .then(() => {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
@@ -1123,25 +1123,23 @@ export class ColorBulb {
   }
 
   async retry({ max, fn }: { max: number; fn: { (): any; (): Promise<any> } }): Promise<null> {
-    return fn().catch(async (err: any) => {
+    return fn().catch(async (e: any) => {
       if (max === 0) {
-        throw err;
+        throw e;
       }
-      this.infoLog(err);
+      this.infoLog(e);
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Retrying`);
       await sleep(1000);
       return this.retry({ max: max - 1, fn });
     });
   }
 
-  async maxRetry(): Promise<number> {
-    let maxRetry: number;
+  maxRetry(): number {
     if (this.device.maxRetry) {
-      maxRetry = this.device.maxRetry;
+      return this.device.maxRetry;
     } else {
-      maxRetry = 5;
+      return 5;
     }
-    return maxRetry;
   }
 
   minStep(device: device & devicesConfig): number {

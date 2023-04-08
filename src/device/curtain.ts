@@ -248,16 +248,13 @@ export class Curtain {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition ${this.CurrentPosition}`);
     if (this.setNewTarget) {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Checking Status ...`);
-    }
-
-    if (this.setNewTarget && this.inMotion) {
       await this.setMinMax();
-      if (this.TargetPosition > this.CurrentPosition) {
+      if (Number(this.TargetPosition) > this.CurrentPosition) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition}`);
         this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
         this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
         this.debugLog(`${this.device.deviceType}: ${this.CurrentPosition} INCREASING PositionState: ${this.PositionState}`);
-      } else if (this.TargetPosition < this.CurrentPosition) {
+      } else if (Number(this.TargetPosition) < this.CurrentPosition) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Opening, CurrentPosition: ${this.CurrentPosition}`);
         this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
         this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
@@ -358,12 +355,12 @@ export class Curtain {
 
     if (this.setNewTarget && this.moving) {
       await this.setMinMax();
-      if (this.TargetPosition > this.CurrentPosition) {
+      if (Number(this.TargetPosition) > this.CurrentPosition) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition} `);
         this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
         this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
         this.debugLog(`${this.device.deviceType}: ${this.CurrentPosition} INCREASING PositionState: ${this.PositionState}`);
-      } else if (this.TargetPosition < this.CurrentPosition) {
+      } else if (Number(this.TargetPosition) < this.CurrentPosition) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Opening, CurrentPosition: ${this.CurrentPosition} `);
         this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
         this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
@@ -569,26 +566,27 @@ export class Curtain {
       }
       this.debugLog(`${this.accessory.displayName} Mode: ${this.Mode}`);
       if (switchbot !== false) {
-        switchbot
-          .discover({ model: 'c', quick: true, id: this.device.bleMac })
-          .then(async (device_list: any) => {
-            this.infoLog(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
-            return await this.retry({
-              max: await this.maxRetry(),
-              fn: () => {
-                return device_list[0].runToPos(100 - Number(this.TargetPosition), adjustedMode);
-              },
-            });
-          })
-          .then(() => {
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
-          })
-          .catch(async (e: any) => {
-            this.apiError(e);
-            this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
-          + ` Connection, Error Message: ${superStringify(e.message)}`);
-            await this.BLEPushConnection();
-          });
+        await this.retry({
+          max: this.maxRetry(),
+          fn: () => {
+            return switchbot
+              .discover({ model: 'c', quick: true, id: this.device.bleMac })
+              .then(async (device_list: any) => {
+                this.infoLog(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
+                return await device_list[0].runToPos(100 - Number(this.TargetPosition), adjustedMode);
+              })
+              .then(() => {
+                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
+              })
+              .catch(async (e: any) => {
+                this.apiError(e);
+                this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
+                  + ` Connection, Error Message: ${superStringify(e.message)}`);
+                await this.BLEPushConnection();
+                throw new Error('Connection error');
+              });
+          },
+        });
       } else {
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
         await this.BLEPushConnection();
@@ -601,25 +599,23 @@ export class Curtain {
   }
 
   async retry({ max, fn }: { max: number; fn: { (): any; (): Promise<any> } }): Promise<null> {
-    return fn().catch(async (err: any) => {
+    return fn().catch(async (e: any) => {
       if (max === 0) {
-        throw err;
+        throw e;
       }
-      this.infoLog(err);
+      this.infoLog(e);
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Retrying`);
       await sleep(1000);
       return this.retry({ max: max - 1, fn });
     });
   }
 
-  async maxRetry(): Promise<number> {
-    let maxRetry: number;
+  maxRetry(): number {
     if (this.device.maxRetry) {
-      maxRetry = this.device.maxRetry;
+      return this.device.maxRetry;
     } else {
-      maxRetry = 5;
+      return 5;
     }
-    return maxRetry;
   }
 
   async openAPIpushChanges(): Promise<void> {
@@ -637,7 +633,7 @@ export class Curtain {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
         this.debugLog(`Pushing ${this.TargetPosition}`);
         const adjustedTargetPosition = 100 - Number(this.TargetPosition);
-        if (this.TargetPosition > 50) {
+        if (Number(this.TargetPosition) > 50) {
           this.setPositionMode = this.device.curtain?.setOpenMode;
         } else {
           this.setPositionMode = this.device.curtain?.setCloseMode;
@@ -889,7 +885,7 @@ export class Curtain {
   }
 
   async SilentPerformance() {
-    if (this.TargetPosition > 50) {
+    if (Number(this.TargetPosition) > 50) {
       if (this.device.curtain?.setOpenMode === '1') {
         this.setPositionMode = 1;
         this.Mode = 'Silent Mode';
@@ -910,12 +906,12 @@ export class Curtain {
 
   async setMinMax(): Promise<void> {
     if (this.device.curtain?.set_min) {
-      if (this.CurrentPosition <= this.device.curtain?.set_min) {
+      if (Number(this.CurrentPosition) <= this.device.curtain?.set_min) {
         this.CurrentPosition = 0;
       }
     }
     if (this.device.curtain?.set_max) {
-      if (this.CurrentPosition >= this.device.curtain?.set_max) {
+      if (Number(this.CurrentPosition) >= this.device.curtain?.set_max) {
         this.CurrentPosition = 100;
       }
     }
