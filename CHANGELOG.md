@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Beta-Version 2.6.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.6.0) (2023-04-XX)
+
+## What's Changed
+
+- Add Support for Hub 2 Humidity and Temperature Sensor, Thanks [@alvie](https://github.com/alvie). [#700](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/700)
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.5.3....v2.6.0
+
 ## [Version 2.5.3](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.5.3) (2023-04-08)
 
 ## What's Changed
