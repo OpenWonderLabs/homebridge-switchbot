@@ -208,7 +208,7 @@
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].connectionType === 'BLE' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
                   }
                 },
-                "hub": {
+                "hidHub": {
                   "type": "object",
                   "properties": {
                     "hide_temperature": {
@@ -1158,8 +1158,8 @@
             "options.devices[].hide_device",
             "options.devices[].configDeviceType",
             "options.devices[].connectionType",
-            "options.devices[].hub.hide_temperature",
-            "options.devices[].hub.hide_humidity",
+            "options.devices[].hidHub.hide_temperature",
+            "options.devices[].hidHub.hide_humidity",
             "options.devices[].scanDuration",
             "options.devices[].disableCaching",
             "options.devices[].maxRetry",
