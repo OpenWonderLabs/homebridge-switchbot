@@ -1,15 +1,12 @@
 import https from "https";
 import crypto from "crypto";
 import { Context } from "vm";
-import { MqttClient } from "mqtt";
 import { IncomingMessage } from "http";
-import { interval, Subject } from "rxjs";
-import { connectAsync } from "async-mqtt";
+import { interval } from "rxjs";
 import superStringify from "super-stringify";
 import { SwitchBotPlatform } from "../platform";
-import { debounceTime, skipWhile, take, tap } from "rxjs/operators";
 import { Service, PlatformAccessory, CharacteristicValue } from "homebridge";
-import { device, devicesConfig, serviceData, switchbot, deviceStatus, ad, HostDomain, DevicePath } from "../settings";
+import { device, devicesConfig, HostDomain, DevicePath } from "../settings";
 import { sleep } from "../utils";
 
 export class Hub {
@@ -32,12 +29,6 @@ export class Hub {
   scanDuration!: number;
   deviceLogging!: string;
   deviceRefreshRate!: number;
-  setCloseMode!: string;
-  setOpenMode!: string;
-
-  // Updates
-  curtainUpdateInProgress!: boolean;
-  doCurtainUpdate!: Subject<void>;
 
   // Connection
   private readonly BLE = this.device.connectionType === "BLE" || this.device.connectionType === "BLE/OpenAPI";
@@ -47,13 +38,6 @@ export class Hub {
     // default placeholders
     this.logs(device);
     this.refreshRate(device);
-
-    // this is subject we use to track when we need to POST changes to the SwitchBot API
-    this.doCurtainUpdate = new Subject();
-    this.curtainUpdateInProgress = false;
-    console.log(accessory.context.model);
-    console.log(accessory.context.CurrentRelativeHumidity);
-    console.log(accessory);
 
     this.CurrentRelativeHumidity = accessory.context.CurrentRelativeHumidity;
     this.CurrentTemperature = accessory.context.CurrentTemperature;
@@ -100,30 +84,55 @@ export class Hub {
     // each service must implement at-minimum the "required characteristics" for the given service type
     // see https://developers.homebridge.io/#/service/WindowCovering
 
-    // create handlers for required characteristics
-    this.hubTemperatureSensor.setCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
-    this.hubHumiditySensor.setCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
+    // console.log(this.hubHumiditySensor);
+
+    // Humidity Sensor Service
+    if (device.hub?.hide_humidity) {
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Humidity Sensor Service`);
+      this.hubHumiditySensor = this.hubHumiditySensor.setCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, false);
+      accessory.removeService(this.hubHumiditySensor!);
+    } else if (!this.hubHumiditySensor) {
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Humidity Sensor Service`);
+      (this.hubHumiditySensor =
+        accessory.getService(this.platform.Service.HumiditySensor) || accessory.addService(this.platform.Service.HumiditySensor)),
+        `${device.deviceName} ${device.deviceType}`;
+
+      this.hubHumiditySensor.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
+      this.hubHumiditySensor.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Humidity Sensor`);
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Humidity Sensor Service Not Added`);
+    }
+
+    // Temperature Sensor Service
+    if (device.hub?.hide_temperature) {
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Temperature Sensor Service`);
+      this.hubTemperatureSensor = this.hubTemperatureSensor.setCharacteristic(this.platform.Characteristic.CurrentTemperature, false);
+      accessory.removeService(this.hubTemperatureSensor!);
+    } else if (!this.hubTemperatureSensor) {
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Temperature Sensor Service`);
+      (this.hubTemperatureSensor =
+        accessory.getService(this.platform.Service.TemperatureSensor) || accessory.addService(this.platform.Service.TemperatureSensor)),
+        `${device.deviceName} ${device.deviceType}`;
+
+      this.hubTemperatureSensor.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
+      this.hubTemperatureSensor.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Temperature Sensor`);
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Temperature Sensor Service Not Added`);
+    }
 
     // Update Homekit
     this.updateHomeKitCharacteristics();
 
     // Start an update interval
-    interval(this.deviceRefreshRate * 1000)
-      .pipe(skipWhile(() => this.curtainUpdateInProgress))
-      .subscribe(async () => {
-        console.log("refresh");
-        await this.refreshStatus();
-      });
+    interval(this.deviceRefreshRate * 1000).subscribe(async () => {
+      await this.refreshStatus();
+    });
   }
 
   /**
    * Parse the device status from the SwitchBot api
    */
   async parseStatus(): Promise<void> {
-    // if (!this.device.enableCloudService && this.OpenAPI) {
-    //   this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} parseStatus enableCloudService: ${this.device.enableCloudService}`);
-    // } else
-    console.log("this.parseStatus");
     if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
     } else {
@@ -136,18 +145,14 @@ export class Hub {
 
   async openAPIparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
-    console.log(`update temperature and humidity for ${this.accessory.displayName}`);
-    console.log(`temp: ${this.CurrentTemperature}, humidity: ${this.CurrentRelativeHumidity}`);
+    this.infoLog(`update temperature and humidity for ${this.accessory.displayName}`);
+    // this.infoLog(`temp: ${this.CurrentTemperature}, humidity: ${this.CurrentRelativeHumidity}`);
     this.hubTemperatureSensor.setCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
     this.hubHumiditySensor.setCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
-    // CurrentPosition
-    console.log("Todo: openAPIparseStatus");
   }
 
   async refreshStatus(): Promise<void> {
-    console.log("refreshing status");
     if (this.OpenAPI && this.platform.config.credentials?.token) {
-      console.log("refreshing status 2");
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
@@ -190,9 +195,7 @@ export class Hub {
             this.deviceStatus = JSON.parse(rawData);
             this.CurrentTemperature = this.deviceStatus.body.temperature;
             this.CurrentRelativeHumidity = this.deviceStatus.body.humidity;
-            console.log("this.deviceStatus");
-            console.log(this.deviceStatus);
-            console.log(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${superStringify(this.deviceStatus)}`);
+            this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${superStringify(this.deviceStatus)}`);
             this.openAPIparseStatus();
             this.updateHomeKitCharacteristics();
           } catch (e: any) {
@@ -238,10 +241,8 @@ export class Hub {
    */
 
   async updateHomeKitCharacteristics(): Promise<void> {
-    console.log("Todo: updateHomeKitCharacteristics");
-
     this.hubHumiditySensor?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
-    console.log(this.CurrentRelativeHumidity);
+    this.infoLog(this.CurrentRelativeHumidity);
     this.hubTemperatureSensor?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
   }
 
@@ -285,8 +286,8 @@ export class Hub {
   }
 
   async apiError(e: any): Promise<void> {
-    // this.CurrentTemperature.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
-    // this.CurrentRelativeHumidity.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, e);
+    this.hubTemperatureSensor?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
+    this.hubHumiditySensor?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, e);
   }
 
   FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
@@ -325,38 +326,6 @@ export class Hub {
     }
   }
 
-  //   async config(device: device & devicesConfig): Promise<void> {
-  //     let config = {};
-  //     if (device.curtain) {
-  //       config = device.curtain;
-  //     }
-  //     if (device.connectionType !== undefined) {
-  //       config["connectionType"] = device.connectionType;
-  //     }
-  //     if (device.external !== undefined) {
-  //       config["external"] = device.external;
-  //     }
-  //     if (device.mqttURL !== undefined) {
-  //       config["mqttURL"] = device.mqttURL;
-  //     }
-  //     if (device.logging !== undefined) {
-  //       config["logging"] = device.logging;
-  //     }
-  //     if (device.refreshRate !== undefined) {
-  //       config["refreshRate"] = device.refreshRate;
-  //     }
-  //     if (device.scanDuration !== undefined) {
-  //       config["scanDuration"] = device.scanDuration;
-  //     }
-  //     if (device.maxRetry !== undefined) {
-  //       config["maxRetry"] = device.maxRetry;
-  //     }
-  //     if (Object.entries(config).length !== 0) {
-  //       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);
-  //     }
-  //   }
-
-  // !! Do not change below
   async logs(device: device & devicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = "debugMode";

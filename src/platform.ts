@@ -758,7 +758,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     if (existingAccessory) {
       // the accessory already exists
       if (await this.registerDevice(device)) {
-        console.log("existingAccessory", existingAccessory);
+        // console.log("existingAccessory", existingAccessory);
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         existingAccessory.context.model = device.deviceType;
         existingAccessory.context.deviceID = device.deviceId;
@@ -773,7 +773,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         new Hub(this, existingAccessory, device);
         this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`);
       } else {
-        console.log("error");
         this.unregisterPlatformAccessories(existingAccessory);
       }
     } else if (await this.registerDevice(device)) {
@@ -795,7 +794,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.connectionType = await this.connectionType(device);
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
-      new MeterPlus(this, accessory, device);
+      new Hub(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
       // publish device externally or link the accessory to your platform

@@ -96,6 +96,11 @@
                       "title": "Motion Sensor",
                       "enum": ["Motion Sensor"]
                     },
+
+                    {
+                      "title": "Hub 2",
+                      "enum": ["Hub 2"]
+                    },
                     {
                       "title": "Contact Sensor",
                       "enum": ["Contact Sensor"]
@@ -203,20 +208,23 @@
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].connectionType === 'BLE' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
                   }
                 },
-                "hub2settings": {
+                "hub": {
                   "type": "object",
                   "properties": {
                     "hide_temperature": {
-                      "title": "Hide Hub 2's Temperature Sensor",
-                      "type": "boolean"
+                      "title": "Hide Meter's Temperature Sensor",
+                      "type": "boolean",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Hub 2') && model.options.devices[arrayIndices].deviceId);"
+                      }
                     },
                     "hide_humidity": {
-                      "title": "Hide Hub 2's Humidity Sensor",
-                      "type": "boolean"
+                      "title": "Hide Meter's Humidity Sensor",
+                      "type": "boolean",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Hub 2') && model.options.devices[arrayIndices].deviceId);"
+                      }
                     }
-                  },
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].configDeviceType === 'Hub 2' && !model.options.devices[arrayIndices].hide_device);"
                   }
                 },
                 "bot": {
@@ -1150,8 +1158,8 @@
             "options.devices[].hide_device",
             "options.devices[].configDeviceType",
             "options.devices[].connectionType",
-            "options.devices[].hub2settings.hide_temperature",
-            "options.devices[].hub2settings.hide_humidity",
+            "options.devices[].hub.hide_temperature",
+            "options.devices[].hub.hide_humidity",
             "options.devices[].scanDuration",
             "options.devices[].disableCaching",
             "options.devices[].maxRetry",
