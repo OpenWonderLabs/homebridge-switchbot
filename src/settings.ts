@@ -1,25 +1,25 @@
 /* eslint-disable max-len */
-import { MacAddress, PlatformConfig } from "homebridge";
-import { IClientOptions } from "async-mqtt";
+import { MacAddress, PlatformConfig } from 'homebridge';
+import { IClientOptions } from 'async-mqtt';
 /**
  * This is the name of the platform that users will use to register the plugin in the Homebridge config.json
  */
-export const PLATFORM_NAME = "SwitchBot";
+export const PLATFORM_NAME = 'SwitchBot';
 
 /**
  * This must match the name of your plugin as defined the package.json
  */
-export const PLUGIN_NAME = "@switchbot/homebridge-switchbot";
+export const PLUGIN_NAME = '@switchbot/homebridge-switchbot';
 
 /**
  * This is the main url used to access SwitchBot API
  */
-export const HostDomain = "api.switch-bot.com";
+export const HostDomain = 'api.switch-bot.com';
 
 /**
  * This is the main url used to access SwitchBot API
  */
-export const DevicePath = "/v1.1/devices";
+export const DevicePath = '/v1.1/devices';
 
 //Config
 export interface SwitchBotPlatformConfig extends PlatformConfig {
@@ -203,7 +203,7 @@ export type body = {
   command: string;
   parameter: string;
   commandType: string;
-};
+}
 
 //a list of physical devices.
 export type deviceList = {
@@ -256,45 +256,45 @@ export type irdevice = {
 };
 
 export type deviceStatus = {
-  //v1.1 of API
-  deviceId: string; //device ID. (Used by the following deviceTypes: Bot, Curtain, Meter, Meter Plus, Lock, Keypad, Keypad Touch, Motion Sensor, Contact Sensor, Ceiling Light, Ceiling Light Pro, Plug Mini (US), Plug Mini (JP), Strip Light, Color Bulb, Robot Vacuum Cleaner S1, Robot Vacuum Cleaner S1 Plus, Humidifier, Blind Tilt)
-  deviceType: string; //device type. (Used by the following deviceTypes: Bot, Curtain, Meter, Meter Plus, Lock, Keypad, Keypad Touch, Motion Sensor, Contact Sensor, Ceiling Light, Ceiling Light Pro, Plug Mini (US), Plug Mini (JP), Strip Light, Color Bulb, Robot Vacuum Cleaner S1, Robot Vacuum Cleaner S1 Plus, Humidifier, Blind Tilt)
-  hubDeviceId: string; //device's parent Hub ID. 000000000000 when the device itself is a Hub or it is connected through Wi-Fi. (Used by the following deviceTypes: Bot, Curtain, Meter, Meter Plus, Lock, Keypad, Keypad Touch, Motion Sensor, Contact Sensor, Ceiling Light, Ceiling Light Pro, Plug Mini (JP), Strip Light, Color Bulb, Robot Vacuum Cleaner S1, Robot Vacuum Cleaner S1 Plus, Humidifier, Blind Tilt)
-  power?: string; //ON/OFF state. (Used by the following deviceTypes: Bot, Ceiling Light, Ceiling Light Pro, PLug, Plug Mini (US), Plug Mini (JP), Strip Light, Color Bulb, Humidifier)
-  calibrate?: boolean; //determines if device has been calibrated or not. (Used by the following deviceTypes: Curtain, Lock, Blind Tilt)
-  group?: boolean; //determines if a device is paired with or grouped with another device or not. (Used by the following deviceTypes: Curtain, Blind Tilt)
-  moving?: boolean; //determines if a device is moving or not. (Used by the following deviceTypes: Curtain, Blind Tilt)
-  slidePosition?: number; //the current position (0-100) the percentage of the distance between the calibrated open position and closed position. (Used by the following deviceTypes: Curtain, Blind Tilt)
-  temperature?: number; //temperature in celsius (Used by the following deviceTypes: Meter, Meter Plus, Humidifier, IOSensor)
-  humidity?: number; //humidity percentage. (Used by the following deviceTypes: Meter, Meter Plus, Humidifier, IOSensor)
-  lockState?: string; //determines if locked or not. (Used by the following deviceTypes: Lock)
-  doorState?: string; //determines if the door is closed or not. (Used by the following deviceTypes: Lock)
-  moveDetected?: boolean; //determines if motion is detected. (Used by the following deviceTypes: Motion Sensor, Contact Sensor)
-  brightness?: string | number; //the ambient brightness picked up by the sensor. bright or dim. (Used by the following deviceTypes: Motion Sensor, Contact Sensor) | the brightness value, range from 1 to 100. (Used by the following deviceTypes: Ceiling Light, Ceiling Light Pro, Strip Light, Color Bulb)
-  openState?: string; //the open state of the sensor. open, close, or timeOutNotClose. (Used by the following deviceTypes: Contact Sensor)
-  colorTemperature?: number; //the color temperature value, range from 2700 to 6500. (Used by the following deviceTypes: Ceiling Light, Ceiling Light Pro, Color Bulb)
-  voltage?: number; //the voltage of the device, measured in Volt. (Used by the following deviceTypes: Plug Mini (US), Plug Mini (JP))
-  weight?: number; //the power consumed in a day, measured in Watts. (Used by the following deviceTypes: Plug Mini (US), Plug Mini (JP))
-  electricityOfDay?: number; //the duration that the device has been used during a day, measured in minutes. (Used by the following deviceTypes: Plug Mini (US), Plug Mini (JP))
-  electricCurrent?: number; //the current of the device at the moment, measured in Amp. (Used by the following deviceTypes: Plug Mini (US), Plug Mini (JP))
-  color?: string; //the color value, RGB "255:255:255". (Used by the following deviceTypes: Strip Light, Color Bulb)
-  workingStatus?: string; //the working status of the device. StandBy, Clearing, Paused, GotoChargeBase, Charging, ChargeDone, Dormant, InTrouble, InRemoteControl, or InDustCollecting. (Used by the following deviceTypes: Robot Vacuum Cleaner S1, Robot Vacuum Cleaner S1 Plus)
-  onlineStatus?: string; //the connection status of the device. online or offline. (Used by the following deviceTypes: Robot Vacuum Cleaner S1, Robot Vacuum Cleaner S1 Plus)
-  battery?: number; //the current battery level. (Used by the following deviceTypes: Robot Vacuum Cleaner S1, Robot Vacuum Cleaner S1 Plus, Blind Tilt, IOSensor)
-  deviceName?: string; //device name. (Used by the following deviceTypes: Robot Vacuum Cleaner S1 Plus)
-  nebulizationEfficiency?: number; //atomization efficiency percentage. (Used by the following deviceTypes: Humidifier)
-  auto?: boolean; //determines if a Humidifier is in Auto Mode or not. (Used by the following deviceTypes: Humidifier)
-  childLock?: boolean; //determines if a Humidifier's safety lock is on or not. (Used by the following deviceTypes: Humidifier)
-  sound?: boolean; //determines if a Humidifier is muted or not. (Used by the following deviceTypes: Humidifier)
-  lackWater?: boolean; //determines if the water tank is empty or not. (Used by the following deviceTypes: Humidifier)
-  version?: number; //the version of the device. (Used by the following deviceTypes: Blind Tilt)
-  direction?: string; //the opening direction of a Blind Tilt device. (Used by the following deviceTypes: Blind Tilt)
-  runStatus?: string; //'static' when not moving. (Used by the following deviceTypes: Blind Tilt)
-  mode?: number; //available for  devices. the fan mode. (Used by the following deviceTypes: Smart Fan)
-  speed?: number; //the fan speed. (Used by the following deviceTypes: Smart Fan)
-  shaking?: boolean; //determines if the fan is swinging or not. (Used by the following deviceTypes: Smart Fan)
-  shakeCenter?: string; //the fan's swing direciton. (Used by the following deviceTypes: Smart Fan)
-  shakeRange?: string; //the fan's swing range, 0~120°. (Used by the following deviceTypes: Smart Fan)
+//v1.1 of API
+deviceId:	string;	//device ID. (Used by the following deviceTypes: Bot, Curtain, Meter, Meter Plus, Lock, Keypad, Keypad Touch, Motion Sensor, Contact Sensor, Ceiling Light, Ceiling Light Pro, Plug Mini (US), Plug Mini (JP), Strip Light, Color Bulb, Robot Vacuum Cleaner S1, Robot Vacuum Cleaner S1 Plus, Humidifier, Blind Tilt)
+deviceType:	string;	//device type. (Used by the following deviceTypes: Bot, Curtain, Meter, Meter Plus, Lock, Keypad, Keypad Touch, Motion Sensor, Contact Sensor, Ceiling Light, Ceiling Light Pro, Plug Mini (US), Plug Mini (JP), Strip Light, Color Bulb, Robot Vacuum Cleaner S1, Robot Vacuum Cleaner S1 Plus, Humidifier, Blind Tilt)
+hubDeviceId:	string;	//device's parent Hub ID. 000000000000 when the device itself is a Hub or it is connected through Wi-Fi. (Used by the following deviceTypes: Bot, Curtain, Meter, Meter Plus, Lock, Keypad, Keypad Touch, Motion Sensor, Contact Sensor, Ceiling Light, Ceiling Light Pro, Plug Mini (JP), Strip Light, Color Bulb, Robot Vacuum Cleaner S1, Robot Vacuum Cleaner S1 Plus, Humidifier, Blind Tilt)
+power?: string;	//ON/OFF state. (Used by the following deviceTypes: Bot, Ceiling Light, Ceiling Light Pro, PLug, Plug Mini (US), Plug Mini (JP), Strip Light, Color Bulb, Humidifier)
+calibrate?:	boolean;	//determines if device has been calibrated or not. (Used by the following deviceTypes: Curtain, Lock, Blind Tilt)
+group?:	boolean; //determines if a device is paired with or grouped with another device or not. (Used by the following deviceTypes: Curtain, Blind Tilt)
+moving?:	boolean;	//determines if a device is moving or not. (Used by the following deviceTypes: Curtain, Blind Tilt)
+slidePosition?:	number;//the current position (0-100) the percentage of the distance between the calibrated open position and closed position. (Used by the following deviceTypes: Curtain, Blind Tilt)
+temperature?:	number;	//temperature in celsius (Used by the following deviceTypes: Meter, Meter Plus, Humidifier, IOSensor)
+humidity?:	number;	//humidity percentage. (Used by the following deviceTypes: Meter, Meter Plus, Humidifier, IOSensor)
+lockState?:	string;	//determines if locked or not. (Used by the following deviceTypes: Lock)
+doorState?:	string;	//determines if the door is closed or not. (Used by the following deviceTypes: Lock)
+moveDetected?:	boolean;	//determines if motion is detected. (Used by the following deviceTypes: Motion Sensor, Contact Sensor)
+brightness?:	string | number;	//the ambient brightness picked up by the sensor. bright or dim. (Used by the following deviceTypes: Motion Sensor, Contact Sensor) | the brightness value, range from 1 to 100. (Used by the following deviceTypes: Ceiling Light, Ceiling Light Pro, Strip Light, Color Bulb)
+openState?:	string;	//the open state of the sensor. open, close, or timeOutNotClose. (Used by the following deviceTypes: Contact Sensor)
+colorTemperature?:	number;	//the color temperature value, range from 2700 to 6500. (Used by the following deviceTypes: Ceiling Light, Ceiling Light Pro, Color Bulb)
+voltage?:	number;	//the voltage of the device, measured in Volt. (Used by the following deviceTypes: Plug Mini (US), Plug Mini (JP))
+weight?:	number;	//the power consumed in a day, measured in Watts. (Used by the following deviceTypes: Plug Mini (US), Plug Mini (JP))
+electricityOfDay?:	number;	//the duration that the device has been used during a day, measured in minutes. (Used by the following deviceTypes: Plug Mini (US), Plug Mini (JP))
+electricCurrent?:	number;	//the current of the device at the moment, measured in Amp. (Used by the following deviceTypes: Plug Mini (US), Plug Mini (JP))
+color?:	string;	//the color value, RGB "255:255:255". (Used by the following deviceTypes: Strip Light, Color Bulb)
+workingStatus?:	string;	//the working status of the device. StandBy, Clearing, Paused, GotoChargeBase, Charging, ChargeDone, Dormant, InTrouble, InRemoteControl, or InDustCollecting. (Used by the following deviceTypes: Robot Vacuum Cleaner S1, Robot Vacuum Cleaner S1 Plus)
+onlineStatus?:	string;	//the connection status of the device. online or offline. (Used by the following deviceTypes: Robot Vacuum Cleaner S1, Robot Vacuum Cleaner S1 Plus)
+battery?:	number;	//the current battery level. (Used by the following deviceTypes: Robot Vacuum Cleaner S1, Robot Vacuum Cleaner S1 Plus, Blind Tilt, IOSensor)
+deviceName?:	string;	//device name. (Used by the following deviceTypes: Robot Vacuum Cleaner S1 Plus)
+nebulizationEfficiency?:	number;	//atomization efficiency percentage. (Used by the following deviceTypes: Humidifier)
+auto?:	boolean;	//determines if a Humidifier is in Auto Mode or not. (Used by the following deviceTypes: Humidifier)
+childLock?:	boolean;	//determines if a Humidifier's safety lock is on or not. (Used by the following deviceTypes: Humidifier)
+sound?:	boolean;//determines if a Humidifier is muted or not. (Used by the following deviceTypes: Humidifier)
+lackWater?:	boolean;//determines if the water tank is empty or not. (Used by the following deviceTypes: Humidifier)
+version?:	number;//the version of the device. (Used by the following deviceTypes: Blind Tilt)
+direction?:	string;//the opening direction of a Blind Tilt device. (Used by the following deviceTypes: Blind Tilt)
+runStatus?: string;//'static' when not moving. (Used by the following deviceTypes: Blind Tilt)
+mode?: number; //available for  devices. the fan mode. (Used by the following deviceTypes: Smart Fan)
+speed?: number;//the fan speed. (Used by the following deviceTypes: Smart Fan)
+shaking?: boolean;//determines if the fan is swinging or not. (Used by the following deviceTypes: Smart Fan)
+shakeCenter?: string;//the fan's swing direciton. (Used by the following deviceTypes: Smart Fan)
+shakeRange?: string;//the fan's swing range, 0~120°. (Used by the following deviceTypes: Smart Fan)
 };
 
 export type ad = {
