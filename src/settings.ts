@@ -73,6 +73,7 @@ export interface devicesConfig extends device {
   ceilinglight?: ceilinglight;
   plug?: Record<any, any>;
   lock?: lock;
+  hub?: hub;
 }
 
 export type meter = {
@@ -150,6 +151,11 @@ export type ceilinglight = {
 
 export type lock = {
   hide_contactsensor?: boolean;
+};
+
+export type hub = {
+  hide_temperature?: boolean;
+  hide_humidity?: boolean;
 };
 
 export interface irDevicesConfig extends irdevice {
