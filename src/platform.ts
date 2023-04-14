@@ -3,6 +3,7 @@ import { Plug } from './device/plug';
 import { Lock } from './device/lock';
 import { Meter } from './device/meter';
 import { Motion } from './device/motion';
+import { Hub } from './device/hub';
 import { Contact } from './device/contact';
 import { Curtain } from './device/curtain';
 import { IOSensor } from './device/iosensor';
