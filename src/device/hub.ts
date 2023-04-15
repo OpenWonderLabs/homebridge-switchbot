@@ -1,13 +1,13 @@
-import https from "https";
-import crypto from "crypto";
-import { Context } from "vm";
-import { IncomingMessage } from "http";
-import { interval } from "rxjs";
-import superStringify from "super-stringify";
-import { SwitchBotPlatform } from "../platform";
-import { Service, PlatformAccessory, CharacteristicValue } from "homebridge";
-import { device, devicesConfig, HostDomain, DevicePath } from "../settings";
-import { sleep } from "../utils";
+import https from 'https';
+import crypto from 'crypto';
+import { Context } from 'vm';
+import { IncomingMessage } from 'http';
+import { interval } from 'rxjs';
+import superStringify from 'super-stringify';
+import { SwitchBotPlatform } from '../platform';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import { device, devicesConfig, HostDomain, DevicePath } from '../settings';
+import { sleep } from '../utils';
 
 export class Hub {
   // Services
@@ -31,8 +31,8 @@ export class Hub {
   deviceRefreshRate!: number;
 
   // Connection
-  private readonly BLE = this.device.connectionType === "BLE" || this.device.connectionType === "BLE/OpenAPI";
-  private readonly OpenAPI = this.device.connectionType === "OpenAPI" || this.device.connectionType === "BLE/OpenAPI";
+  private readonly BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
+  private readonly OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
 
   constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
     // default placeholders
@@ -48,7 +48,7 @@ export class Hub {
     // set accessory information
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
-      .setCharacteristic(this.platform.Characteristic.Manufacturer, "SwitchBot")
+      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, accessory.context.model)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId)
       .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
@@ -59,11 +59,11 @@ export class Hub {
     // you can create multiple services for each accessory
     (this.hubTemperatureSensor =
       accessory.getService(this.platform.Service.TemperatureSensor) || accessory.addService(this.platform.Service.TemperatureSensor)),
-      `${device.deviceName} ${device.deviceType}`;
+    `${device.deviceName} ${device.deviceType}`;
 
     (this.hubHumiditySensor =
       accessory.getService(this.platform.Service.HumiditySensor) || accessory.addService(this.platform.Service.HumiditySensor)),
-      `${device.deviceName} ${device.deviceType}`;
+    `${device.deviceName} ${device.deviceType}`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -95,7 +95,7 @@ export class Hub {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Humidity Sensor Service`);
       (this.hubHumiditySensor =
         accessory.getService(this.platform.Service.HumiditySensor) || accessory.addService(this.platform.Service.HumiditySensor)),
-        `${device.deviceName} ${device.deviceType}`;
+      `${device.deviceName} ${device.deviceType}`;
 
       this.hubHumiditySensor.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
       this.hubHumiditySensor.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Humidity Sensor`);
@@ -112,7 +112,7 @@ export class Hub {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Temperature Sensor Service`);
       (this.hubTemperatureSensor =
         accessory.getService(this.platform.Service.TemperatureSensor) || accessory.addService(this.platform.Service.TemperatureSensor)),
-        `${device.deviceName} ${device.deviceType}`;
+      `${device.deviceName} ${device.deviceType}`;
 
       this.hubTemperatureSensor.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
       this.hubTemperatureSensor.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Temperature Sensor`);
@@ -164,33 +164,33 @@ export class Hub {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
     try {
       const t = Date.now();
-      const nonce = "requestID";
+      const nonce = 'requestID';
       const data = this.platform.config.credentials?.token + t + nonce;
-      const signTerm = crypto.createHmac("sha256", this.platform.config.credentials?.secret).update(Buffer.from(data, "utf-8")).digest();
-      const sign = signTerm.toString("base64");
+      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
+      const sign = signTerm.toString('base64');
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
       const options = {
         hostname: HostDomain,
         port: 443,
         path: `${DevicePath}/${this.device.deviceId}/status`,
-        method: "GET",
+        method: 'GET',
         headers: {
           Authorization: this.platform.config.credentials?.token,
           sign: sign,
           nonce: nonce,
           t: t,
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
       };
       const req = https.request(options, (res) => {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}: ${res}`);
-        let rawData = "";
-        res.on("data", (d) => {
+        let rawData = '';
+        res.on('data', (d) => {
           rawData += d;
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
         });
-        res.on("end", () => {
+        res.on('end', () => {
           try {
             this.deviceStatus = JSON.parse(rawData);
             this.CurrentTemperature = this.deviceStatus.body.temperature;
@@ -203,7 +203,7 @@ export class Hub {
           }
         });
       });
-      req.on("error", (e: any) => {
+      req.on('error', (e: any) => {
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
       });
       req.end();
@@ -242,7 +242,7 @@ export class Hub {
 
   async updateHomeKitCharacteristics(): Promise<void> {
     this.hubHumiditySensor?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
-    this.infoLog(this.CurrentRelativeHumidity);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
     this.hubTemperatureSensor?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
   }
 
@@ -328,7 +328,7 @@ export class Hub {
 
   async logs(device: device & devicesConfig): Promise<void> {
     if (this.platform.debugMode) {
-      this.deviceLogging = this.accessory.context.logging = "debugMode";
+      this.deviceLogging = this.accessory.context.logging = 'debugMode';
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
     } else if (device.logging) {
       this.deviceLogging = this.accessory.context.logging = device.logging;
@@ -337,7 +337,7 @@ export class Hub {
       this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
     } else {
-      this.deviceLogging = this.accessory.context.logging = "standard";
+      this.deviceLogging = this.accessory.context.logging = 'standard';
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
     }
   }
@@ -359,8 +359,8 @@ export class Hub {
 
   debugWarnLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
-      if (this.deviceLogging?.includes("debug")) {
-        this.platform.log.warn("[DEBUG]", String(...log));
+      if (this.deviceLogging?.includes('debug')) {
+        this.platform.log.warn('[DEBUG]', String(...log));
       }
     }
   }
@@ -373,16 +373,16 @@ export class Hub {
 
   debugErrorLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
-      if (this.deviceLogging?.includes("debug")) {
-        this.platform.log.error("[DEBUG]", String(...log));
+      if (this.deviceLogging?.includes('debug')) {
+        this.platform.log.error('[DEBUG]', String(...log));
       }
     }
   }
 
   debugLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
-      if (this.deviceLogging === "debug") {
-        this.platform.log.info("[DEBUG]", String(...log));
+      if (this.deviceLogging === 'debug') {
+        this.platform.log.info('[DEBUG]', String(...log));
       } else {
         this.platform.log.debug(String(...log));
       }
@@ -390,6 +390,6 @@ export class Hub {
   }
 
   enablingDeviceLogging(): boolean {
-    return this.deviceLogging.includes("debug") || this.deviceLogging === "standard";
+    return this.deviceLogging.includes('debug') || this.deviceLogging === 'standard';
   }
 }

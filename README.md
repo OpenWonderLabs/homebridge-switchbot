@@ -131,8 +131,6 @@
   - If using Bluetooth Low Energy (BLE) only:
     - Must supply `deviceId` & `deviceName` to Device Config
     - Check `Enable Bluetooth Low Energy (BLE) Connection` on Device Config
-- SwitchBot Plug
-  - Supports OpenAPI Connection Only
 
 ## Supported IR Devices
 
