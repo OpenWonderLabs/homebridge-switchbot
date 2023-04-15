@@ -1,13 +1,10 @@
-import https from 'https';
-import crypto from 'crypto';
 import { Context } from 'vm';
-import { IncomingMessage } from 'http';
 import { interval } from 'rxjs';
-import superStringify from 'super-stringify';
-import { SwitchBotPlatform } from '../platform';
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, HostDomain, DevicePath } from '../settings';
+import { request } from 'undici';
 import { sleep } from '../utils';
+import { SwitchBotPlatform } from '../platform';
+import { device, devicesConfig, Devices } from '../settings';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 
 export class Hub {
   // Services
@@ -163,56 +160,25 @@ export class Hub {
   async openAPIRefreshStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
     try {
-      const t = Date.now();
-      const nonce = 'requestID';
-      const data = this.platform.config.credentials?.token + t + nonce;
-      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
-      const sign = signTerm.toString('base64');
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
-      const options = {
-        hostname: HostDomain,
-        port: 443,
-        path: `${DevicePath}/${this.device.deviceId}/status`,
-        method: 'GET',
-        headers: {
-          Authorization: this.platform.config.credentials?.token,
-          sign: sign,
-          nonce: nonce,
-          t: t,
-          'Content-Type': 'application/json',
-        },
-      };
-      const req = https.request(options, (res) => {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${res.statusCode}`);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}: ${res}`);
-        let rawData = '';
-        res.on('data', (d) => {
-          rawData += d;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
-        });
-        res.on('end', () => {
-          try {
-            this.deviceStatus = JSON.parse(rawData);
-            this.CurrentTemperature = this.deviceStatus.body.temperature;
-            this.CurrentRelativeHumidity = this.deviceStatus.body.humidity;
-            this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${superStringify(this.deviceStatus)}`);
-            this.openAPIparseStatus();
-            this.updateHomeKitCharacteristics();
-          } catch (e: any) {
-            this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
-          }
-        });
+      const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/status`, {
+        headers: this.platform.generateHeaders(),
       });
-      req.on('error', (e: any) => {
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
-      });
-      req.end();
+      const deviceStatus = await body.json();
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
+      this.statusCode(statusCode);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
+      this.debugLog(
+        `${this.device.deviceType}: ${this.accessory.displayName
+        } refreshStatus: ${JSON.stringify(deviceStatus)}`,
+      );
+      this.CurrentTemperature = deviceStatus.body.temperature;
+      this.CurrentRelativeHumidity = deviceStatus.body.humidity;
+      this.openAPIparseStatus();
+      this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}` +
-          ` Connection, Error Message: ${superStringify(e.message)}`,
-      );
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
     }
   }
 
@@ -246,36 +212,41 @@ export class Hub {
     this.hubTemperatureSensor?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
   }
 
-  async statusCode({ res }: { res: IncomingMessage }): Promise<void> {
-    switch (res.statusCode) {
+  async statusCode(statusCode: number): Promise<void> {
+    switch (statusCode) {
       case 151:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command not supported by this device type.`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command not supported by this deviceType, statusCode: ${statusCode}`);
         break;
       case 152:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device not found.`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device not found, statusCode: ${statusCode}`);
         break;
       case 160:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command is not supported.`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command is not supported, statusCode: ${statusCode}`);
         break;
       case 161:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device is offline.`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device is offline, statusCode: ${statusCode}`);
         this.offlineOff();
         break;
       case 171:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. `
+          + `Hub: ${this.device.hubDeviceId}`);
         this.offlineOff();
         break;
       case 190:
         this.errorLog(
           `${this.device.deviceType}: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-            ` Or command: ${superStringify(res)} format is invalid`,
+          ` Or command format is invalid, statusCode: ${statusCode}`,
         );
         break;
       case 100:
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Command successfully sent.`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Command successfully sent, statusCode: ${statusCode}`);
+        break;
+      case 200:
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
         break;
       default:
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode.`);
+        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: `
+          + `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
     }
   }
 

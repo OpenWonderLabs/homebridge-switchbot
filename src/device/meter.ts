@@ -1,17 +1,14 @@
-import https from 'https';
-import crypto from 'crypto';
 import { Context } from 'vm';
 import { hostname } from 'os';
+import { request } from 'undici';
+import { sleep } from '../utils';
 import { MqttClient } from 'mqtt';
-import { connectAsync } from 'async-mqtt';
 import { interval, Subject } from 'rxjs';
+import { connectAsync } from 'async-mqtt';
 import { skipWhile } from 'rxjs/operators';
-import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { Service, PlatformAccessory, Units, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, serviceData, ad, switchbot, temperature, deviceStatus, HostDomain, DevicePath } from '../settings';
-import { IncomingMessage } from 'http';
-import { sleep } from '../utils';
+import { device, devicesConfig, serviceData, ad, switchbot, temperature, deviceStatus, Devices } from '../settings';
 
 /**
  * Platform Accessory
@@ -194,7 +191,7 @@ export class Meter {
     } else {
       await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-      + ` ${this.device.connectionType}, parseStatus will not happen.`);
+        + ` ${this.device.connectionType}, parseStatus will not happen.`);
     }
   }
 
@@ -252,7 +249,7 @@ export class Meter {
     } else {
       await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-      + ` ${this.device.connectionType}, refreshStatus will not happen.`);
+        + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
   }
 
@@ -278,7 +275,7 @@ export class Meter {
           switchbot.onadvertisement = async (ad: ad) => {
             this.address = ad.address;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
-            + ` BLE Address Found: ${this.address}`);
+              + ` BLE Address Found: ${this.address}`);
             if (ad.serviceData.humidity! > 0) {
               // reject unreliable data
               this.humidity = ad.serviceData.humidity;
@@ -288,11 +285,11 @@ export class Meter {
             this.celsius = ad.serviceData.temperature!.c;
             this.fahrenheit = ad.serviceData.temperature!.f;
             this.battery = ad.serviceData.battery;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName}, ` +
-                `temperature: ${superStringify(ad.serviceData.temperature?.c)}, humidity: ${ad.serviceData.humidity}, ` +
-                `battery: ${ad.serviceData.battery}`,
+              `temperature: ${JSON.stringify(ad.serviceData.temperature?.c)}, humidity: ${ad.serviceData.humidity}, ` +
+              `battery: ${ad.serviceData.battery}`,
             );
 
             if (this.serviceData) {
@@ -314,7 +311,7 @@ export class Meter {
         .catch(async (e: any) => {
           this.apiError(e);
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLERefreshStatus with ${this.device.connectionType}`
-                + ` Connection, Error Message: ${superStringify(e.message)}`);
+            + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
           await this.BLERefreshConnection(switchbot);
         });
     } else {
@@ -325,53 +322,25 @@ export class Meter {
   async openAPIRefreshStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
     try {
-      const t = Date.now();
-      const nonce = 'requestID';
-      const data = this.platform.config.credentials?.token + t + nonce;
-      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
-      const sign = signTerm.toString('base64');
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
-      const options = {
-        hostname: HostDomain,
-        port: 443,
-        path: `${DevicePath}/${this.device.deviceId}/status`,
-        method: 'GET',
-        headers: {
-          Authorization: this.platform.config.credentials?.token,
-          sign: sign,
-          nonce: nonce,
-          t: t,
-          'Content-Type': 'application/json',
-        },
-      };
-      const req = https.request(options, (res) => {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus statusCode: ${res.statusCode}`);
-        let rawData = '';
-        res.on('data', (d) => {
-          rawData += d;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
-        });
-        res.on('end', () => {
-          try {
-            this.deviceStatus = JSON.parse(rawData);
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus: ${superStringify(this.deviceStatus)}`);
-            this.Humidity = this.deviceStatus.body.humidity!;
-            this.Temperature = this.deviceStatus.body.temperature!;
-            this.openAPIparseStatus();
-            this.updateHomeKitCharacteristics();
-          } catch (e: any) {
-            this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
-          }
-        });
+      const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/status`, {
+        headers: this.platform.generateHeaders(),
       });
-      req.on('error', (e: any) => {
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
-      });
-      req.end();
+      const deviceStatus = await body.json();
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
+      this.statusCode(statusCode);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
+      this.debugLog(
+        `${this.device.deviceType}: ${this.accessory.displayName
+        } refreshStatus: ${JSON.stringify(deviceStatus)}`,
+      );
+      this.Humidity = deviceStatus.body.humidity!;
+      this.Temperature = deviceStatus.body.temperature!;
+      this.openAPIparseStatus();
+      this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.apiError(e);
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
-            + ` Connection, Error Message: ${superStringify(e.message)}`);
+        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
     }
   }
 
@@ -388,7 +357,7 @@ export class Meter {
         this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidity;
         this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-        + ` CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+          + ` CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
         if (this.device.mqttURL) {
           mqttmessage.push(`"humidity": ${this.CurrentRelativeHumidity}`);
         }
@@ -457,7 +426,7 @@ export class Meter {
       ?.join(':');
     const options = this.device.mqttPubOptions || {};
     this.mqttClient?.publish(`homebridge-switchbot/meter/${mac}`, `${message}`, options);
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MQTT message: ${message} options:${superStringify(options)}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MQTT message: ${message} options:${JSON.stringify(options)}`);
   }
 
   /*
@@ -514,7 +483,7 @@ export class Meter {
         });
         // Set an event handler
         switchbot.onadvertisement = (ad: any) => {
-          this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} ad: ${superStringify(ad, null, '  ')}`);
+          this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} ad: ${JSON.stringify(ad, null, '  ')}`);
         };
         await sleep(10000);
         // Stop to monitor
@@ -545,40 +514,41 @@ export class Meter {
     }
   }
 
-  async statusCode({ res }: { res: IncomingMessage }): Promise<void> {
-    switch (res.statusCode) {
+  async statusCode(statusCode: number): Promise<void> {
+    switch (statusCode) {
       case 151:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command not supported by this device type.`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command not supported by this deviceType, statusCode: ${statusCode}`);
         break;
       case 152:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device not found.`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device not found, statusCode: ${statusCode}`);
         break;
       case 160:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command is not supported.`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command is not supported, statusCode: ${statusCode}`);
         break;
       case 161:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device is offline.`);
-        await this.offlineOff();
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device is offline, statusCode: ${statusCode}`);
+        this.offlineOff();
         break;
       case 171:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} is offline. Hub: ${this.device.hubDeviceId}`);
-        await this.offlineOff();
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. `
+          + `Hub: ${this.device.hubDeviceId}`);
+        this.offlineOff();
         break;
       case 190:
         this.errorLog(
           `${this.device.deviceType}: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-            ` Or command: ${superStringify(res)} format is invalid`,
+          ` Or command format is invalid, statusCode: ${statusCode}`,
         );
         break;
       case 100:
-        if (this.platform.debugMode) {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Command successfully sent.`);
-        }
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Command successfully sent, statusCode: ${statusCode}`);
+        break;
+      case 200:
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
         break;
       default:
-        if (this.platform.debugMode) {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode.`);
-        }
+        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: `
+          + `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
     }
   }
 
@@ -605,7 +575,7 @@ export class Meter {
   FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
     let FirmwareRevision: string;
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-    + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+      + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
     if (accessory.context.FirmwareRevision) {
@@ -678,7 +648,7 @@ export class Meter {
       config['scanDuration'] = device.scanDuration;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 

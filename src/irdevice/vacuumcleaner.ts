@@ -1,9 +1,6 @@
-import https from 'https';
-import crypto from 'crypto';
-import { IncomingMessage } from 'http';
-import superStringify from 'super-stringify';
+import { request } from 'undici';
 import { SwitchBotPlatform } from '../platform';
-import { irDevicesConfig, irdevice, HostDomain, DevicePath } from '../settings';
+import { irDevicesConfig, irdevice, Devices } from '../settings';
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 
 /**
@@ -80,11 +77,11 @@ export class VacuumCleaner {
    */
   async pushOnChanges(): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOnChanges On: ${this.On},`
-    + ` disablePushOn: ${this.disablePushOn}`);
+      + ` disablePushOn: ${this.disablePushOn}`);
     if (this.On && !this.disablePushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
-      const body = superStringify({
+      const body = JSON.stringify({
         'command': command,
         'parameter': 'default',
         'commandType': commandType,
@@ -95,11 +92,11 @@ export class VacuumCleaner {
 
   async pushOffChanges(): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOffChanges On: ${this.On},`
-    + ` disablePushOff: ${this.disablePushOff}`);
+      + ` disablePushOff: ${this.disablePushOff}`);
     if (!this.On && !this.disablePushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
-      const body = superStringify({
+      const body = JSON.stringify({
         'command': command,
         'parameter': 'default',
         'commandType': commandType,
@@ -108,57 +105,29 @@ export class VacuumCleaner {
     }
   }
 
-  async pushChanges(body: any[]): Promise<void> {
+  async pushChanges(body: any): Promise<void> {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushChanges`);
     if (this.device.connectionType === 'OpenAPI') {
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
       try {
-      // Make Push On request to the API
-        const t = Date.now();
-        const nonce = 'requestID';
-        const data = this.platform.config.credentials?.token + t + nonce;
-        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
-          .update(Buffer.from(data, 'utf-8'))
-          .digest();
-        const sign = signTerm.toString('base64');
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} sign: ${sign}`);
-        this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API. body: ${body},`);
-        const options = {
-          hostname: HostDomain,
-          port: 443,
-          path: `${DevicePath}/${this.device.deviceId}/commands`,
+        const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/commands`, {
           method: 'POST',
-          headers: {
-            'Authorization': this.platform.config.credentials?.token,
-            'sign': sign,
-            'nonce': nonce,
-            't': t,
-            'Content-Type': 'application/json',
-            'Content-Length': body.length,
-          },
-        };
-        const req = https.request(options, res => {
-          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushchanges statusCode: ${res.statusCode}`);
-          this.statusCode({ res });
-          res.on('data', d => {
-            this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} d: ${d}`);
-          });
+          headers: this.platform.generateHeaders(),
         });
-        req.on('error', (e: any) => {
-          this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} error message: ${e.message}`);
-        });
-        req.write(body);
-        req.end();
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushchanges: ${superStringify(req)}`);
-        this.accessory.context.On = this.On;
+        const deviceStatus = await body.json();
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
+        this.statusCode(statusCode);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
         this.updateHomeKitCharacteristics();
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
-            + ` Error Message: ${superStringify(e.message)}`,
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${JSON.stringify(e.message)}`,
         );
       }
     } else {
       this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-      + ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
+        + ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
     }
   }
 
@@ -218,34 +187,39 @@ export class VacuumCleaner {
     return command;
   }
 
-  async statusCode({ res }: { res: IncomingMessage }): Promise<void> {
-    switch (res.statusCode) {
+  async statusCode(statusCode: number): Promise<void> {
+    switch (statusCode) {
       case 151:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Command not supported by this device type.`);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Command not supported by this deviceType, statusCode: ${statusCode}`);
         break;
       case 152:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device not found.`);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device not found, statusCode: ${statusCode}`);
         break;
       case 160:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Command is not supported.`);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Command is not supported, statusCode: ${statusCode}`);
         break;
       case 161:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device is offline.`);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device is offline, statusCode: ${statusCode}`);
         break;
       case 171:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. `
+          + `Hub: ${this.device.hubDeviceId}`);
         break;
       case 190:
         this.errorLog(
-          `${this.device.remoteType}: ${this.accessory.displayName} Device internal error due to device states not synchronized` +
-            ` with server, Or command: ${superStringify(res)} format is invalid`,
+          `${this.device.remoteType}: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
+          ` Or command format is invalid, statusCode: ${statusCode}`,
         );
         break;
       case 100:
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Command successfully sent.`);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Command successfully sent, statusCode: ${statusCode}`);
+        break;
+      case 200:
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
         break;
       default:
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Unknown statusCode.`);
+        this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Unknown statusCode: `
+          + `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
     }
   }
 
@@ -256,7 +230,7 @@ export class VacuumCleaner {
   FirmwareRevision(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): string {
     let FirmwareRevision: string;
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-    + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+      + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
     if (accessory.context.FirmwareRevision) {
@@ -307,7 +281,7 @@ export class VacuumCleaner {
       config['disablePushOff'] = device.disablePushOff;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);
+      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 

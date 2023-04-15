@@ -14,6 +14,11 @@ export const PLUGIN_NAME = '@switchbot/homebridge-switchbot';
 /**
  * This is the main url used to access SwitchBot API
  */
+export const Devices = 'https://api.switch-bot.com/v1.1/devices';
+
+/**
+ * This is the main url used to access SwitchBot API
+ */
 export const HostDomain = 'api.switch-bot.com';
 
 /**

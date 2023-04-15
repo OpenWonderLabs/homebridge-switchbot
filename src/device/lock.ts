@@ -1,14 +1,11 @@
-import https from 'https';
-import crypto from 'crypto';
 import { Context } from 'vm';
-import { IncomingMessage } from 'http';
+import { request } from 'undici';
+import { sleep } from '../utils';
 import { interval, Subject } from 'rxjs';
-import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, deviceStatus, HostDomain, DevicePath, switchbot, ad, serviceData } from '../settings';
-import { sleep } from '../utils';
+import { device, devicesConfig, deviceStatus, switchbot, ad, serviceData, Devices } from '../settings';
 
 export class Lock {
   // Services
@@ -144,7 +141,7 @@ export class Lock {
         } catch (e: any) {
           this.apiError(e);
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
-              + ` Error Message: ${superStringify(e.message)}`);
+            + ` Error Message: ${JSON.stringify(e.message)}`);
         }
         this.lockUpdateInProgress = false;
       });
@@ -163,7 +160,7 @@ export class Lock {
     } else {
       await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-      + ` ${this.device.connectionType}, parseStatus will not happen.`);
+          + ` ${this.device.connectionType}, parseStatus will not happen.`);
     }
   }
 
@@ -222,7 +219,7 @@ export class Lock {
     } else {
       await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-      + ` ${this.device.connectionType}, refreshStatus will not happen.`);
+        + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
   }
 
@@ -248,7 +245,7 @@ export class Lock {
           switchbot.onadvertisement = async (ad: any) => {
             this.address = ad.address;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
-            + ` BLE Address Found: ${this.address}`);
+              + ` BLE Address Found: ${this.address}`);
             this.serviceData = ad.serviceData;
             this.battery = ad.serviceData.battery;
             this.calibration = ad.serviceData.calibration;
@@ -259,11 +256,11 @@ export class Lock {
             this.unclosed_alarm = ad.serviceData.unclosed_alarm;
             this.unlocked_alarm = ad.serviceData.unlocked_alarm;
             this.auto_lock_paused = ad.serviceData.auto_lock_paused;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} battery: ${ad.serviceData.battery}, ` +
-                `calibration: ${ad.serviceData.calibration}, status: ${ad.serviceData.status}, battery: ${ad.serviceData.battery}, ` +
-                `door_open: ${ad.serviceData.door_open}`);
+              `calibration: ${ad.serviceData.calibration}, status: ${ad.serviceData.status}, battery: ${ad.serviceData.battery}, ` +
+              `door_open: ${ad.serviceData.door_open}`);
 
             if (this.serviceData) {
               this.connected = true;
@@ -284,7 +281,7 @@ export class Lock {
         .catch(async (e: any) => {
           this.apiError(e);
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLERefreshStatus with ${this.device.connectionType}`
-                + ` Connection, Error Message: ${superStringify(e.message)}`);
+            + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
           await this.BLERefreshConnection(switchbot);
         });
     } else {
@@ -295,53 +292,25 @@ export class Lock {
   async openAPIRefreshStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
     try {
-      const t = Date.now();
-      const nonce = 'requestID';
-      const data = this.platform.config.credentials?.token + t + nonce;
-      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
-      const sign = signTerm.toString('base64');
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
-      const options = {
-        hostname: HostDomain,
-        port: 443,
-        path: `${DevicePath}/${this.device.deviceId}/status`,
-        method: 'GET',
-        headers: {
-          Authorization: this.platform.config.credentials?.token,
-          sign: sign,
-          nonce: nonce,
-          t: t,
-          'Content-Type': 'application/json',
-        },
-      };
-      const req = https.request(options, (res) => {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus statusCode: ${res.statusCode}`);
-        let rawData = '';
-        res.on('data', (d) => {
-          rawData += d;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
-        });
-        res.on('end', () => {
-          try {
-            this.deviceStatus = JSON.parse(rawData);
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus: ${superStringify(this.deviceStatus)}`);
-            this.lockState = this.deviceStatus.body.lockState;
-            this.doorState = this.deviceStatus.body.doorState;
-            this.openAPIparseStatus();
-            this.updateHomeKitCharacteristics();
-          } catch (e: any) {
-            this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
-          }
-        });
+      const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/status`, {
+        headers: this.platform.generateHeaders(),
       });
-      req.on('error', (e: any) => {
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
-      });
-      req.end();
+      const deviceStatus = await body.json();
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
+      this.statusCode(statusCode);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
+      this.debugLog(
+        `${this.device.deviceType}: ${this.accessory.displayName
+        } refreshStatus: ${JSON.stringify(deviceStatus)}`,
+      );
+      this.lockState = deviceStatus.body.lockState;
+      this.doorState = deviceStatus.body.doorState;
+      this.openAPIparseStatus();
+      this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.apiError(e);
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
-            + ` Connection, Error Message: ${superStringify(e.message)}`);
+        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
     }
   }
 
@@ -361,7 +330,7 @@ export class Lock {
     } else {
       await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-      + ` ${this.device.connectionType}, pushChanges will not happen.`);
+          + ` ${this.device.connectionType}, pushChanges will not happen.`);
     }
     // Refresh the status from the API
     interval(15000)
@@ -376,7 +345,7 @@ export class Lock {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges`);
     if (this.LockTargetState !== this.accessory.context.LockTargetState) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges LockTargetState: ${this.LockTargetState}`
-      + ` LockTargetStateCached: ${this.accessory.context.LockTargetState}`);
+        + ` LockTargetStateCached: ${this.accessory.context.LockTargetState}`);
       const switchbot = await this.platform.connectBLE();
       // Convert to BLE Address
       this.device.bleMac = this.device
@@ -396,80 +365,50 @@ export class Lock {
         .catch(async (e: any) => {
           this.apiError(e);
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${superStringify(e.message)}`);
+            + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
           await this.BLEPushConnection();
         });
     } else {
       this.debugLog(
         `${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges.` + `LockTargetState: ${this.LockTargetState}, `
-        +`LockTargetStateCached: ${this.accessory.context.LockTargetState}`,
+        + `LockTargetStateCached: ${this.accessory.context.LockTargetState}`,
       );
     }
   }
 
   async openAPIpushChanges(): Promise<void> {
-    try {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges`);
-      if (this.LockTargetState !== this.accessory.context.LockTargetState) {
-        // Make Push On request to the API
-        const t = Date.now();
-        const nonce = 'requestID';
-        const data = this.platform.config.credentials?.token + t + nonce;
-        const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
-          .update(Buffer.from(data, 'utf-8'))
-          .digest();
-        const sign = signTerm.toString('base64');
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
-        let command = '';
-        if (this.LockTargetState) {
-          command = 'lock';
-        } else {
-          command = 'unlock';
-        }
-        const body = superStringify({
-          'command': `${command}`,
-          'parameter': 'default',
-          'commandType': 'command',
-        });
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
-        const options = {
-          hostname: HostDomain,
-          port: 443,
-          path: `${DevicePath}/${this.device.deviceId}/commands`,
-          method: 'POST',
-          headers: {
-            'Authorization': this.platform.config.credentials?.token,
-            'sign': sign,
-            'nonce': nonce,
-            't': t,
-            'Content-Type': 'application/json',
-            'Content-Length': body.length,
-          },
-        };
-        const req = https.request(options, res => {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges statusCode: ${res.statusCode}`);
-          this.statusCode({ res });
-          res.on('data', d => {
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
-          });
-        });
-        req.on('error', (e: any) => {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
-        });
-        req.write(body);
-        req.end();
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges: ${superStringify(req)}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges`);
+    if (this.LockTargetState !== this.accessory.context.LockTargetState) {
+      let command = '';
+      if (this.LockTargetState) {
+        command = 'lock';
       } else {
-        this.debugLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges.` + `LockTargetState: ${this.LockTargetState}, `
-        +`LockTargetStateCached: ${this.accessory.context.LockTargetState}`,
+        command = 'unlock';
+      }
+      const body = JSON.stringify({
+        'command': `${command}`,
+        'parameter': 'default',
+        'commandType': 'command',
+      });
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
+      try {
+        const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/commands`, {
+          method: 'POST',
+          headers: this.platform.generateHeaders(),
+        });
+        const deviceStatus = await body.json();
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
+        this.statusCode(statusCode);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
+      } catch (e: any) {
+        this.apiError(e);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${JSON.stringify(e.message)}`,
         );
       }
-    } catch (e: any) {
-      this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${superStringify(e.message)}`,
-      );
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges.` + `LockTargetState: ${this.LockTargetState}, `
+        + `LockTargetStateCached: ${this.accessory.context.LockTargetState}`);
     }
   }
 
@@ -532,7 +471,7 @@ export class Lock {
         });
         // Set an event handler
         switchbot.onadvertisement = (ad: any) => {
-          this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} ad: ${superStringify(ad, null, '  ')}`);
+          this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} ad: ${JSON.stringify(ad, null, '  ')}`);
         };
         await sleep(10000);
         // Stop to monitor
@@ -570,36 +509,41 @@ export class Lock {
     }
   }
 
-  async statusCode({ res }: { res: IncomingMessage }): Promise<void> {
-    switch (res.statusCode) {
+  async statusCode(statusCode: number): Promise<void> {
+    switch (statusCode) {
       case 151:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command not supported by this device type.`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command not supported by this deviceType, statusCode: ${statusCode}`);
         break;
       case 152:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device not found.`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device not found, statusCode: ${statusCode}`);
         break;
       case 160:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command is not supported.`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command is not supported, statusCode: ${statusCode}`);
         break;
       case 161:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device is offline.`);
-        await this.offlineOff();
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device is offline, statusCode: ${statusCode}`);
+        this.offlineOff();
         break;
       case 171:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline. Hub: ${this.device.hubDeviceId}`);
-        await this.offlineOff();
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. `
+          + `Hub: ${this.device.hubDeviceId}`);
+        this.offlineOff();
         break;
       case 190:
         this.errorLog(
           `${this.device.deviceType}: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-            ` Or command: ${superStringify(res)} format is invalid`,
+          ` Or command format is invalid, statusCode: ${statusCode}`,
         );
         break;
       case 100:
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Command successfully sent.`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Command successfully sent, statusCode: ${statusCode}`);
+        break;
+      case 200:
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
         break;
       default:
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode.`);
+        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: `
+          + `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
     }
   }
 
@@ -621,7 +565,7 @@ export class Lock {
   FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
     let FirmwareRevision: string;
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-    + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+      + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
     if (accessory.context.FirmwareRevision) {
@@ -673,7 +617,7 @@ export class Lock {
       config['scanDuration'] = device.scanDuration;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
