@@ -3,6 +3,8 @@ name: AutoDependabot
 on:
   pull_request:
   push:
+    branches:
+    - latest
 
 jobs:
   automerge:
