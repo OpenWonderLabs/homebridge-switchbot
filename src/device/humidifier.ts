@@ -444,14 +444,15 @@ export class Humidifier {
     if (this.TargetHumidifierDehumidifierState === this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER &&
       this.Active === this.platform.Characteristic.Active.ACTIVE) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Pushing Manual: ${this.RelativeHumidityHumidifierThreshold}!`);
-      const body = JSON.stringify({
+      const bodyChange = JSON.stringify({
         'command': 'setMode',
         'parameter': `${this.RelativeHumidityHumidifierThreshold}`,
         'commandType': 'command',
       });
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
         const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/commands`, {
+          body: bodyChange,
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
@@ -483,14 +484,15 @@ export class Humidifier {
     if (this.TargetHumidifierDehumidifierState === this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER_OR_DEHUMIDIFIER &&
       this.Active === this.platform.Characteristic.Active.ACTIVE) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Pushing Auto`);
-      const body = JSON.stringify({
+      const bodyChange = JSON.stringify({
         'command': 'setMode',
         'parameter': 'auto',
         'commandType': 'command',
       });
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
         const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/commands`, {
+          body: bodyChange,
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
@@ -517,14 +519,15 @@ export class Humidifier {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} pushActiveChanges`);
     if (this.Active === this.platform.Characteristic.Active.INACTIVE) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Pushing Off`);
-      const body = JSON.stringify({
+      const bodyChange = JSON.stringify({
         'command': 'turnOff',
         'parameter': 'default',
         'commandType': 'command',
       });
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
         const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/commands`, {
+          body: bodyChange,
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });

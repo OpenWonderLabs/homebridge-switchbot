@@ -554,14 +554,15 @@ export class StripLight {
         } else {
           command = 'turnOff';
         }*/
-      const body = JSON.stringify({
+      const bodyChange = JSON.stringify({
         'command': `${command}`,
         'parameter': 'default',
         'commandType': 'command',
       });
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
         const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/commands`, {
+          body: bodyChange,
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
@@ -597,14 +598,15 @@ export class StripLight {
       const [red, green, blue] = hs2rgb(Number(this.Hue), Number(this.Saturation));
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} rgb: ${JSON.stringify([red, green, blue])}`);
       // Make Push On request to the API
-      const body = JSON.stringify({
+      const bodyChange = JSON.stringify({
         'command': 'setColor',
         'parameter': `${red}:${green}:${blue}`,
         'commandType': 'command',
       });
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
         const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/commands`, {
+          body: bodyChange,
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
@@ -627,14 +629,15 @@ export class StripLight {
   async pushBrightnessChanges(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} pushBrightnessChanges`);
     if (this.Brightness !== this.accessory.context.Brightness) {
-      const body = JSON.stringify({
+      const bodyChange = JSON.stringify({
         'command': 'setBrightness',
         'parameter': `${this.Brightness}`,
         'commandType': 'command',
       });
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
         const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/commands`, {
+          body: bodyChange,
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });

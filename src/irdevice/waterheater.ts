@@ -86,12 +86,12 @@ export class WaterHeater {
     if (this.Active === this.platform.Characteristic.Active.ACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
-      const body = JSON.stringify({
+      const bodyChange = JSON.stringify({
         'command': command,
         'parameter': 'default',
         'commandType': commandType,
       });
-      await this.pushChanges(body);
+      await this.pushChanges(bodyChange);
     }
   }
 
@@ -101,21 +101,22 @@ export class WaterHeater {
     if (this.Active === this.platform.Characteristic.Active.INACTIVE && !this.disablePushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
-      const body = JSON.stringify({
+      const bodyChange = JSON.stringify({
         'command': command,
         'parameter': 'default',
         'commandType': commandType,
       });
-      await this.pushChanges(body);
+      await this.pushChanges(bodyChange);
     }
   }
 
-  async pushChanges(body: any): Promise<void> {
+  async pushChanges(bodyChange: any): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushChanges`);
     if (this.device.connectionType === 'OpenAPI') {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
         const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/commands`, {
+          body: bodyChange,
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });

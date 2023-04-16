@@ -588,7 +588,7 @@ export class Curtain {
   }
 
   async openAPIpushChanges(): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} OpenAPI pushChanges`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges`);
     if ((this.TargetPosition !== this.CurrentPosition) || this.device.disableCaching) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Pushing ${this.TargetPosition}`);
       const adjustedTargetPosition = 100 - Number(this.TargetPosition);
@@ -606,14 +606,15 @@ export class Curtain {
       }
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Mode: ${this.Mode}`);
       const adjustedMode = this.setPositionMode || 'ff';
-      const body = JSON.stringify({
+      const bodyChange = JSON.stringify({
         'command': 'setPosition',
         'parameter': `0,${adjustedMode},${adjustedTargetPosition}`,
         'commandType': 'command',
       });
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
         const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/commands`, {
+          body: bodyChange,
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
