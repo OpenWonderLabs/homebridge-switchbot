@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file. This projec
 
 ## What's Changed
 
-- Add Support for [SwitchBot Hub 2](https://us.switch-bot.com/pages/switchbot-hub-2) Humidity and Temperature Sensor, Thanks [@alvie](https://github.com/alvie). [#700](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/700)
+- Add Support for [SwitchBot Hub 2](https://us.switch-bot.com/pages/switchbot-hub-2) Humidity and Temperature Sensor, Thanks [@alvie](https://github.com/alvie). [#716](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/716)
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.5.3....v2.6.0
