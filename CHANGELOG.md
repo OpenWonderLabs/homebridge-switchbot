@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 2.6.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.6.1) (2023-04-15)
+
+## What's Changed
+
+- Add Support for [SwitchBot Meter Plus (JP)](https://www.switchbot.jp/products/switchbot-meter-plus), [#642](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/642)
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.6.0....v2.6.1
+
 ## [Version 2.6.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.6.0) (2023-04-15)
 
 ## What's Changed

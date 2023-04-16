@@ -414,6 +414,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.createMeter(device);
         break;
       case 'MeterPlus':
+      case 'Meter Plus (JP)':
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createMeterPlus(device);
         break;
