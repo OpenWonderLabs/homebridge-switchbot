@@ -1,14 +1,11 @@
-import https from 'https';
-import crypto from 'crypto';
 import { Context } from 'vm';
-import { IncomingMessage } from 'http';
+import { request } from 'undici';
+import { sleep } from '../utils';
 import { interval, Subject } from 'rxjs';
-import superStringify from 'super-stringify';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap } from 'homebridge';
-import { device, devicesConfig, switchbot, hs2rgb, rgb2hs, deviceStatus, HostDomain, DevicePath, ad, serviceData, m2hs } from '../settings';
-import { sleep } from '../utils';
+import { device, devicesConfig, switchbot, hs2rgb, rgb2hs, deviceStatus, ad, serviceData, m2hs, Devices } from '../settings';
 
 /**
  * Platform Accessory
@@ -177,7 +174,7 @@ export class StripLight {
       this.accessory.context.adaptiveLighting = true;
       this.debugLog(
         `${this.device.deviceType}: ${this.accessory.displayName} adaptiveLighting: ${this.accessory.context.adaptiveLighting},` +
-            ` adaptiveLightingShift: ${this.adaptiveLightingShift}`,
+        ` adaptiveLightingShift: ${this.adaptiveLightingShift}`,
       );
     }
 
@@ -206,7 +203,7 @@ export class StripLight {
         } catch (e: any) {
           this.apiError(e);
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
-              + ` Error Message: ${superStringify(e.message)}`);
+            + ` Error Message: ${JSON.stringify(e.message)}`);
         }
         this.stripLightUpdateInProgress = false;
       });
@@ -225,7 +222,7 @@ export class StripLight {
     } else {
       await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-      + ` ${this.device.connectionType}, parseStatus will not happen.`);
+        + ` ${this.device.connectionType}, parseStatus will not happen.`);
     }
   }
 
@@ -259,15 +256,15 @@ export class StripLight {
 
     // Color, Hue & Brightness
     if (this.color) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} color: ${superStringify(this.color)}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} color: ${JSON.stringify(this.color)}`);
       const [red, green, blue] = this.color!.split(':');
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} red: ${superStringify(red)}`);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} green: ${superStringify(green)}`);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} blue: ${superStringify(blue)}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} red: ${JSON.stringify(red)}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} green: ${JSON.stringify(green)}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} blue: ${JSON.stringify(blue)}`);
 
       const [hue, saturation] = rgb2hs(Number(red), Number(green), Number(blue));
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-      +` hs: ${superStringify(rgb2hs(Number(red), Number(green), Number(blue)))}`);
+        + ` hs: ${JSON.stringify(rgb2hs(Number(red), Number(green), Number(blue)))}`);
 
       // Hue
       this.Hue = hue;
@@ -292,7 +289,7 @@ export class StripLight {
     } else {
       await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-      + ` ${this.device.connectionType}, refreshStatus will not happen.`);
+        + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
   }
 
@@ -318,8 +315,8 @@ export class StripLight {
           switchbot.onadvertisement = async (ad: any) => {
             this.address = ad.address;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
-            + ` BLE Address Found: ${this.address}`);
-            this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
+              + ` BLE Address Found: ${this.address}`);
+            this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
             this.serviceData = ad.serviceData;
             //this.state = ad.serviceData.state;
             //this.delay = ad.serviceData.delay;
@@ -328,7 +325,7 @@ export class StripLight {
             //this.wifiRssi = ad.serviceData.wifiRssi;
             //this.overload = ad.serviceData.overload;
             //this.currentPower = ad.serviceData.currentPower;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${superStringify(ad.serviceData)}`);
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
             /*this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} state: ${ad.serviceData.state}, ` +
                 `delay: ${ad.serviceData.delay}, timer: ${ad.serviceData.timer}, syncUtcTime: ${ad.serviceData.syncUtcTime} ` +
@@ -348,13 +345,13 @@ export class StripLight {
           return await sleep(this.scanDuration * 1000);
         })
         .then(async () => {
-        // Stop to monitor
+          // Stop to monitor
           await this.stopScanning(switchbot);
         })
         .catch(async (e: any) => {
           this.apiError(e);
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLERefreshStatus with ${this.device.connectionType}`
-                + ` Connection, Error Message: ${superStringify(e.message)}`);
+            + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
           await this.BLERefreshConnection(switchbot);
         });
     } else {
@@ -365,55 +362,26 @@ export class StripLight {
   async openAPIRefreshStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
     try {
-      const t = Date.now();
-      const nonce = 'requestID';
-      const data = this.platform.config.credentials?.token + t + nonce;
-      const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
-      const sign = signTerm.toString('base64');
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
-      const options = {
-        hostname: HostDomain,
-        port: 443,
-        path: `${DevicePath}/${this.device.deviceId}/status`,
-        method: 'GET',
-        headers: {
-          Authorization: this.platform.config.credentials?.token,
-          sign: sign,
-          nonce: nonce,
-          t: t,
-          'Content-Type': 'application/json',
-        },
-      };
-      const req = https.request(options, (res) => {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus statusCode: ${res.statusCode}`);
-        this.statusCode({ res });
-        let rawData = '';
-        res.on('data', (d) => {
-          rawData += d;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
-        });
-        res.on('end', () => {
-          try {
-            this.deviceStatus = JSON.parse(rawData);
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus: ${superStringify(this.deviceStatus)}`);
-            this.power = this.deviceStatus.body.power;
-            this.color = this.deviceStatus.body.color;
-            this.brightness = this.deviceStatus.body.brightness;
-            this.openAPIparseStatus();
-            this.updateHomeKitCharacteristics();
-          } catch (e: any) {
-            this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
-          }
-        });
+      const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/status`, {
+        headers: this.platform.generateHeaders(),
       });
-      req.on('error', (e: any) => {
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
-      });
-      req.end();
+      const deviceStatus = await body.json();
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
+      this.statusCode(statusCode);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
+      this.debugLog(
+        `${this.device.deviceType}: ${this.accessory.displayName
+        } refreshStatus: ${JSON.stringify(deviceStatus)}`,
+      );
+      this.power = deviceStatus.body.power;
+      this.color = deviceStatus.body.color;
+      this.brightness = deviceStatus.body.brightness;
+      this.openAPIparseStatus();
+      this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.apiError(e);
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
-            + ` Connection, Error Message: ${superStringify(e.message)}`);
+        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
     }
   }
 
@@ -437,7 +405,7 @@ export class StripLight {
     } else {
       await this.offlineOff();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-      + ` ${this.device.connectionType}, pushChanges will not happen.`);
+          + ` ${this.device.connectionType}, pushChanges will not happen.`);
     }
     // Refresh the status from the API
     interval(15000)
@@ -484,7 +452,7 @@ export class StripLight {
         .catch(async (e: any) => {
           this.apiError(e);
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${superStringify(e.message)}`);
+            + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
           await this.BLEPushConnection();
         });
       // Push Brightness Update
@@ -497,7 +465,7 @@ export class StripLight {
       }
     } else {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges.` + `On: ${this.On}, `
-        +`OnCached: ${this.accessory.context.On}`);
+        + `OnCached: ${this.accessory.context.On}`);
     }
   }
 
@@ -527,23 +495,23 @@ export class StripLight {
         .catch(async (e: any) => {
           this.apiError(e);
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushBrightnessChanges with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${superStringify(e.message)}`);
+            + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
           await this.BLEPushConnection();
         });
     } else {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No BLEpushBrightnessChanges.` + `Brightness: ${this.Brightness}, `
-       +`BrightnessCached: ${this.accessory.context.Brightness}`);
+        + `BrightnessCached: ${this.accessory.context.Brightness}`);
     }
   }
 
   async BLEpushRGBChanges(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushRGBChanges`);
     if (this.Hue !== this.accessory.context.Hue || this.Saturation !== this.accessory.context.Saturation) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${superStringify(this.Hue)}`);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${superStringify(this.Saturation)}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${JSON.stringify(this.Hue)}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${JSON.stringify(this.Saturation)}`);
 
       const [red, green, blue] = hs2rgb(Number(this.Hue), Number(this.Saturation));
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} rgb: ${superStringify([red, green, blue])}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} rgb: ${JSON.stringify([red, green, blue])}`);
 
       const switchbot = await this.platform.connectBLE();
       // Convert to BLE Address
@@ -568,7 +536,7 @@ export class StripLight {
         .catch(async (e: any) => {
           this.apiError(e);
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushRGBChanges with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${superStringify(e.message)}`);
+            + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
           await this.BLEPushConnection();
         });
     } else {
@@ -578,133 +546,112 @@ export class StripLight {
   }
 
   async openAPIpushChanges() {
-    const change = 'openAPIpushChanges';
-    try {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${change}`);
-      if (this.On !== this.accessory.context.On) {
-        // Make Push On request to the API
-        const command = this.On ? 'turnOn' : 'turnOff';
-        /*if (this.On) {
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges`);
+    if (this.On !== this.accessory.context.On) {
+      const command = this.On ? 'turnOn' : 'turnOff';
+      /*if (this.On) {
           command = 'turnOn';
         } else {
           command = 'turnOff';
         }*/
-        const body = superStringify({
-          'command': `${command}`,
-          'parameter': 'default',
-          'commandType': 'command',
+      const body = JSON.stringify({
+        'command': `${command}`,
+        'parameter': 'default',
+        'commandType': 'command',
+      });
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
+      try {
+        const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/commands`, {
+          method: 'POST',
+          headers: this.platform.generateHeaders(),
         });
-        await this.request({ body, change });
-      } else {
-        this.debugLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} No ${change}.` + `On: ${this.On}, `
-          +`OnCached: ${this.accessory.context.On}`,
+        const deviceStatus = await body.json();
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
+        this.statusCode(statusCode);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
+      } catch (e: any) {
+        this.apiError(e);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${JSON.stringify(e.message)}`,
         );
       }
-      // Push Brightness Update
-      if (this.On) {
-        await this.pushBrightnessChanges();
-      }
-      // Push Hue & Saturation Update
-      if (this.On) {
-        await this.pushHueSaturationChanges();
-      }
-    } catch (e: any) {
-      this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed ${change} with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${superStringify(e.message)}`,
-      );
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges.` + `On: ${this.On}, `
+        + `OnCached: ${this.accessory.context.On}`);
+    }
+    // Push Hue & Saturation Update
+    if (this.On) {
+      await this.pushHueSaturationChanges();
+    }
+    // Push Brightness Update
+    if (this.On) {
+      await this.pushBrightnessChanges();
     }
   }
 
   async pushHueSaturationChanges(): Promise<void> {
-    const change = 'pushHueSaturationChanges';
-    try {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${change}`);
-      if (this.Hue !== this.accessory.context.Hue || this.Saturation !== this.accessory.context.Saturation) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${superStringify(this.Hue)}`);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${superStringify(this.Saturation)}`);
-
-        const [red, green, blue] = hs2rgb(Number(this.Hue), Number(this.Saturation));
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} rgb: ${superStringify([red, green, blue])}`);
-        // Make Push On request to the API
-        const body = superStringify({
-          'command': 'setColor',
-          'parameter': `${red}:${green}:${blue}`,
-          'commandType': 'command',
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} pushHueSaturationChanges`);
+    if (this.Hue !== this.accessory.context.Hue || this.Saturation !== this.accessory.context.Saturation) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${JSON.stringify(this.Hue)}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${JSON.stringify(this.Saturation)}`);
+      const [red, green, blue] = hs2rgb(Number(this.Hue), Number(this.Saturation));
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} rgb: ${JSON.stringify([red, green, blue])}`);
+      // Make Push On request to the API
+      const body = JSON.stringify({
+        'command': 'setColor',
+        'parameter': `${red}:${green}:${blue}`,
+        'commandType': 'command',
+      });
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
+      try {
+        const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/commands`, {
+          method: 'POST',
+          headers: this.platform.generateHeaders(),
         });
-        await this.request({ body, change });
-      } else {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No ${change}. Hue: ${this.Hue}, `
-        + `HueCached: ${this.accessory.context.Hue}, Saturation: ${this.Saturation}, SaturationCached: ${this.accessory.context.Saturation}`);
+        const deviceStatus = await body.json();
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
+        this.statusCode(statusCode);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
+      } catch (e: any) {
+        this.apiError(e);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushHueSaturationChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${JSON.stringify(e.message)}`,
+        );
       }
-    } catch (e: any) {
-      this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed ${change} with ${this.device.connectionType}`
-          + ` Connection, Error Message: ${superStringify(e.message)}`);
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No pushHueSaturationChanges. Hue: ${this.Hue}, `
+        + `HueCached: ${this.accessory.context.Hue}, Saturation: ${this.Saturation}, SaturationCached: ${this.accessory.context.Saturation}`);
     }
   }
 
   async pushBrightnessChanges(): Promise<void> {
-    const change = 'pushBrightnessChanges';
-    try {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${change}`);
-      if (this.Brightness !== this.accessory.context.Brightness) {
-        // Make Push On request to the API
-        const body = superStringify({
-          'command': 'setBrightness',
-          'parameter': `${this.Brightness}`,
-          'commandType': 'command',
-        });
-        await this.request({ body, change });
-      } else {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No ${change},` + `Brightness: ${this.Brightness}, `
-          +`BrightnessCached: ${this.accessory.context.Brightness}`);
-      }
-    } catch (e: any) {
-      this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed ${change} with ${this.device.connectionType}`
-          + ` Connection, Error Message: ${superStringify(e.message)}`);
-    }
-  }
-
-  async request({ body, change }: { body: any; change: string; }): Promise<void> {
-    const t = Date.now();
-    const nonce = 'requestID';
-    const data = this.platform.config.credentials?.token + t + nonce;
-    const signTerm = crypto.createHmac('sha256', this.platform.config.credentials?.secret)
-      .update(Buffer.from(data, 'utf-8'))
-      .digest();
-    const sign = signTerm.toString('base64');
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} sign: ${sign}`);
-    const options = {
-      hostname: HostDomain,
-      port: 443,
-      path: `${DevicePath}/${this.device.deviceId}/commands`,
-      method: 'POST',
-      headers: {
-        'Authorization': this.platform.config.credentials?.token,
-        'sign': sign,
-        'nonce': nonce,
-        't': t,
-        'Content-Type': 'application/json',
-        'Content-Length': body.length,
-      },
-    };
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
-    const req = https.request(options, res => {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${change} statusCode: ${res.statusCode}`);
-      this.statusCode({ res });
-      res.on('data', d => {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} d: ${d}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} pushBrightnessChanges`);
+    if (this.Brightness !== this.accessory.context.Brightness) {
+      const body = JSON.stringify({
+        'command': 'setBrightness',
+        'parameter': `${this.Brightness}`,
+        'commandType': 'command',
       });
-    });
-    req.on('error', (e: any) => {
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} error message: ${e.message}`);
-    });
-    req.write(body);
-    req.end();
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${change} req: ${superStringify(req)}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
+      try {
+        const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/commands`, {
+          method: 'POST',
+          headers: this.platform.generateHeaders(),
+        });
+        const deviceStatus = await body.json();
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
+        this.statusCode(statusCode);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
+      } catch (e: any) {
+        this.apiError(e);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushBrightnessChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${JSON.stringify(e.message)}`,
+        );
+      }
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No pushBrightnessChanges,` + `Brightness: ${this.Brightness}, `
+        + `BrightnessCached: ${this.accessory.context.Brightness}`);
+    }
   }
 
   /**
@@ -862,7 +809,7 @@ export class StripLight {
         });
         // Set an event handler
         switchbot.onadvertisement = (ad: any) => {
-          this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} ad: ${superStringify(ad, null, '  ')}`);
+          this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} ad: ${JSON.stringify(ad, null, '  ')}`);
         };
         await sleep(10000);
         // Stop to monitor
@@ -939,40 +886,41 @@ export class StripLight {
     }
   }
 
-  async statusCode({ res }: { res: IncomingMessage }): Promise<void> {
-    switch (res.statusCode) {
+  async statusCode(statusCode: number): Promise<void> {
+    switch (statusCode) {
       case 151:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command not supported by this device type.`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command not supported by this deviceType, statusCode: ${statusCode}`);
         break;
       case 152:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device not found.`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device not found, statusCode: ${statusCode}`);
         break;
       case 160:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command is not supported.`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command is not supported, statusCode: ${statusCode}`);
         break;
       case 161:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device is offline.`);
-        await this.offlineOff();
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device is offline, statusCode: ${statusCode}`);
+        this.offlineOff();
         break;
       case 171:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} is offline. Hub: ${this.device.hubDeviceId}`);
-        await this.offlineOff();
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. `
+          + `Hub: ${this.device.hubDeviceId}`);
+        this.offlineOff();
         break;
       case 190:
         this.errorLog(
           `${this.device.deviceType}: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-            ` Or command: ${superStringify(res)} format is invalid`,
+          ` Or command format is invalid, statusCode: ${statusCode}`,
         );
         break;
       case 100:
-        if (this.platform.debugMode) {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Command successfully sent.`);
-        }
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Command successfully sent, statusCode: ${statusCode}`);
+        break;
+      case 200:
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
         break;
       default:
-        if (this.platform.debugMode) {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode.`);
-        }
+        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: `
+          + `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
     }
   }
 
@@ -993,7 +941,7 @@ export class StripLight {
   FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
     let FirmwareRevision: string;
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-    +`accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+      + `accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
     if (accessory.context.FirmwareRevision) {
@@ -1073,7 +1021,7 @@ export class StripLight {
       config['maxRetry'] = device.maxRetry;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${superStringify(config)}`);
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 

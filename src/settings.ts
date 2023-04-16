@@ -14,6 +14,11 @@ export const PLUGIN_NAME = '@switchbot/homebridge-switchbot';
 /**
  * This is the main url used to access SwitchBot API
  */
+export const Devices = 'https://api.switch-bot.com/v1.1/devices';
+
+/**
+ * This is the main url used to access SwitchBot API
+ */
 export const HostDomain = 'api.switch-bot.com';
 
 /**
@@ -73,6 +78,7 @@ export interface devicesConfig extends device {
   ceilinglight?: ceilinglight;
   plug?: Record<any, any>;
   lock?: lock;
+  hub?: hub;
 }
 
 export type meter = {
@@ -150,6 +156,11 @@ export type ceilinglight = {
 
 export type lock = {
   hide_contactsensor?: boolean;
+};
+
+export type hub = {
+  hide_temperature?: boolean;
+  hide_humidity?: boolean;
 };
 
 export interface irDevicesConfig extends irdevice {

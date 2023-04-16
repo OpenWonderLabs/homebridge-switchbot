@@ -1,7 +1,7 @@
 {
   "displayName": "Homebridge SwitchBot",
   "name": "@switchbot/homebridge-switchbot",
-  "version": "2.5.3",
+  "version": "2.6.0",
   "description": "The [Homebridge](https://homebridge.io) SwitchBot plugin allows you to access your [SwitchBot](https://www.switch-bot.com) device(s) from HomeKit.",
   "author": "SwitchBot <support@wondertechlabs.com> (https://github.com/SwitchBot)",
   "license": "ISC",
@@ -14,7 +14,7 @@
   },
   "engines": {
     "homebridge": "^1.6.0 || ^2.0.0-beta.0",
-    "node": "^16.20.0 || ^18.15.0"
+    "node": "^16.20.0 || ^18.16.0"
   },
   "main": "dist/index.js",
   "scripts": {
@@ -56,26 +56,26 @@
   ],
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^0.0.19",
-    "fakegato-history": "^0.6.3",
-    "super-stringify": "^1.0.0",
     "async-mqtt": "^2.6.3",
     "crypto-js": "^4.1.1",
+    "fakegato-history": "^0.6.3",
+    "node-switchbot": "1.8.1",
     "rxjs": "^7.8.0",
-    "node-switchbot": "1.8.1"
+    "undici": "^5.21.2"
   },
   "devDependencies": {
-    "@types/node": "^18.15.11",
     "@types/crypto-js": "^4.1.1",
-    "@typescript-eslint/eslint-plugin": "^5.57.1",
-    "@typescript-eslint/parser": "^5.57.1",
+    "@types/node": "^18.15.11",
+    "@typescript-eslint/eslint-plugin": "^5.58.0",
+    "@typescript-eslint/parser": "^5.58.0",
     "eslint": "^8.38.0",
     "eslint-config-prettier": "8.8.0",
     "eslint-plugin-prettier": "4.2.1",
     "homebridge": "^1.6.0",
     "nodemon": "^2.0.22",
-    "npm-check-updates": "^16.10.7",
+    "npm-check-updates": "^16.10.8",
     "prettier": "2.8.7",
-    "rimraf": "^4.4.1",
+    "rimraf": "^5.0.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.4"
   }

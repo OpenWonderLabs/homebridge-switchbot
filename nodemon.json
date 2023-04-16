@@ -2,7 +2,7 @@
   "watch": ["src"],
   "ext": "ts",
   "ignore": [],
-  "exec": "tsc && sudo hb-service restart",
+  "exec": "DEBUG= tsc && homebridge -T -D -P ..",
   "signal": "SIGTERM",
   "env": {
     "NODE_OPTIONS": "--trace-warnings"
