@@ -10,7 +10,7 @@ import { IOSensor } from './device/iosensor';
 import { MeterPlus } from './device/meterplus';
 import { ColorBulb } from './device/colorbulb';
 import { CeilingLight } from './device/ceilinglight';
-import { StripLight } from './device/striplight';
+import { StripLight } from './device/lightstrip';
 import { Humidifier } from './device/humidifier';
 import { RobotVacuumCleaner } from './device/robotvacuumcleaner';
 import { TV } from './irdevice/tv';

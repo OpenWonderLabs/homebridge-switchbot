@@ -64,9 +64,10 @@
 - [SwitchBot Meter](https://www.switch-bot.com/products/switchbot-meter)
 - [SwitchBot Meter Plus (US)](https://www.switch-bot.com/products/switchbot-meter-plus)
 - [SwitchBot Meter Plus (JP)](https://www.switchbot.jp/products/switchbot-meter-plus)
+- [SwitchBot Indoor/Outdoor Thermo-Hygrometer](https://www.switch-bot.com/products/switchbot-indoor-outdoor-thermo-hygrometer)
   - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
   - If using OpenAPI:
-    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
+    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub 2](https://us.switch-bot.com/pages/switchbot-hub-2) Required
     - Enable Cloud Services for Device on SwitchBot App
   - If using Bluetooth Low Energy (BLE) only:
     - Must supply `deviceId` & `deviceName` to Device Config
@@ -74,7 +75,7 @@
 - [SwitchBot Motion Sensor](https://www.switch-bot.com/products/motion-sensor)
   - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
   - If using OpenAPI:
-    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
+    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub 2](https://us.switch-bot.com/pages/switchbot-hub-2) Required
     - Enable Cloud Services for Device on SwitchBot App
   - If using Bluetooth Low Energy (BLE) only:
     - Must supply `deviceId` & `deviceName` to Device Config
@@ -82,7 +83,7 @@
 - [SwitchBot Contact Sensor](https://www.switch-bot.com/products/contact-sensor)
   - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
   - If using OpenAPI:
-    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
+    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub 2](https://us.switch-bot.com/pages/switchbot-hub-2) Required
     - Enable Cloud Services for Device on SwitchBot App
   - If using Bluetooth Low Energy (BLE) only:
     - Must supply `deviceId` & `deviceName` to Device Config
@@ -90,23 +91,28 @@
 - [SwitchBot Curtain](https://www.switch-bot.com/products/switchbot-curtain)
   - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
   - If using OpenAPI:
-    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
+    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub 2](https://us.switch-bot.com/pages/switchbot-hub-2) Required
     - Enable Cloud Services for Device on SwitchBot App
   - If using Bluetooth Low Energy (BLE) only:
     - Must supply `deviceId` & `deviceName` to Device Config
     - Check `Enable Bluetooth Low Energy (BLE) Connection` on Device Config
+- [SwitchBot Blind Tilt](https://us.switch-bot.com/pages/switchbot-blind-tilt)
+- Supports OpenAPI Connection Only
+  - If using OpenAPI:
+    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub 2](https://us.switch-bot.com/pages/switchbot-hub-2) Required
+    - Enable Cloud Services for Device on SwitchBot App
 - [SwitchBot Bulb](https://www.switch-bot.com/products/switchbot-color-bulb)
 - [SwitchBot Ceiling Light](https://www.switchbot.jp/collections/all/products/switchbot-ceiling-light)
 - [SwitchBot Ceiling Light Pro](https://www.switchbot.jp/collections/all/products/switchbot-ceiling-light)
 - [SwitchBot Light Strip](https://www.switch-bot.com/products/switchbot-light-strip)
   - Supports OpenAPI Connection Only
   - If using OpenAPI:
-    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
+    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub 2](https://us.switch-bot.com/pages/switchbot-hub-2) Required
     - Enable Cloud Services for Device on SwitchBot App
 - [SwitchBot Lock](https://us.switch-bot.com/products/switchbot-lock)
   - Supports OpenAPI Connection Only
   - If using OpenAPI:
-    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
+    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub 2](https://us.switch-bot.com/pages/switchbot-hub-2) Required
     - Enable Cloud Services for Device on SwitchBot App
 - [SwitchBot Robot Vacuum Cleaner S1](https://www.switchbot.jp/products/switchbot-robot-vacuum-cleaner)
 - [SwitchBot Robot Vacuum Cleaner S1 Plus](https://www.switchbot.jp/products/switchbot-robot-vacuum-cleaner)
@@ -116,12 +122,12 @@
 - [SwitchBot Plug Mini (JP)](https://www.switchbot.jp/products/switchbot-plug-mini)
   - Supports OpenAPI Connection Only
   - If using OpenAPI:
-    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
+    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub 2](https://us.switch-bot.com/pages/switchbot-hub-2) Required
     - Enable Cloud Services for Device on SwitchBot App
 - [SwitchBot Bot](https://www.switch-bot.com/products/switchbot-bot)
   - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
   - If using OpenAPI:
-    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) Required
+    - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub 2](https://us.switch-bot.com/pages/switchbot-hub-2) Required
     - Enable Cloud Services for Device on SwitchBot App
     - You must set your Bot's Device ID in the Press Mode or Switch Mode Bot Settings (Advanced Settings > Device Settings > Bot Settings)
       - Press Mode - Turns on then instantly turn it off
@@ -131,10 +137,13 @@
   - If using Bluetooth Low Energy (BLE) only:
     - Must supply `deviceId` & `deviceName` to Device Config
     - Check `Enable Bluetooth Low Energy (BLE) Connection` on Device Config
+- [SwitchBot Hub 2](https://us.switch-bot.com/pages/switchbot-hub-2)
+  - Supports OpenAPI Connection Only
+    - Enables Humidity and Temperature Sensor
 
 ## Supported IR Devices
 
-### _(All IR Devices require [Hub Plus](https://www.switch-bot.com/products/switchbot-hub-plus) or [Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini))_
+### _(All IR Devices require [SwitchBot Hub 2](https://us.switch-bot.com/pages/switchbot-hub-2) or [Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini))_
 
 - TV
   - Allows for On/Off and Volume Controls

@@ -2,11 +2,12 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [Beta-Version 2.6.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.6.0) (2023-04-XX)
+## [Version 2.6.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.6.0) (2023-04-15)
 
 ## What's Changed
 
-- Add Support for Hub 2 Humidity and Temperature Sensor, Thanks [@alvie](https://github.com/alvie). [#700](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/700)
+- Add Support for [SwitchBot Hub 2](https://us.switch-bot.com/pages/switchbot-hub-2) Humidity and Temperature Sensor, Thanks [@alvie](https://github.com/alvie). [#700](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/700)
+- Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.5.3....v2.6.0
 
@@ -18,6 +19,7 @@ All notable changes to this project will be documented in this file. This projec
 - Removed inMotion condition, Thanks [@dnicolson](https://github.com/dnicolson). [#703](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/703)
 - Fix async method calls, Thanks [@dnicolson](https://github.com/dnicolson). [#690](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/690)
 - Improve curtain retry functionality, Thanks [@dnicolson](https://github.com/dnicolson). [#694](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/694)
+- Add Support for [SwitchBot Indoor/Outdoor Thermo-Hygrometer](https://www.switch-bot.com/products/switchbot-indoor-outdoor-thermo-hygrometer)
 - Housekeeping and updated dependencies.
   - This release will end support for Node v14.
 
