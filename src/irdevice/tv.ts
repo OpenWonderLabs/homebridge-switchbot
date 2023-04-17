@@ -227,12 +227,12 @@ export class TV {
     if (this.Active === this.platform.Characteristic.Active.ACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
-      const body = JSON.stringify({
+      const bodyChange = JSON.stringify({
         'command': command,
         'parameter': 'default',
         'commandType': commandType,
       });
-      await this.pushTVChanges(body);
+      await this.pushTVChanges(bodyChange);
     }
   }
 
@@ -242,129 +242,130 @@ export class TV {
     if (this.Active === this.platform.Characteristic.Active.INACTIVE && !this.disablePushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
-      const body = JSON.stringify({
+      const bodyChange = JSON.stringify({
         'command': command,
         'parameter': 'default',
         'commandType': commandType,
       });
-      await this.pushTVChanges(body);
+      await this.pushTVChanges(bodyChange);
     }
   }
 
   async pushOkChanges(): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOkChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
-      const body = JSON.stringify({
+      const bodyChange = JSON.stringify({
         'command': 'Ok',
         'parameter': 'default',
         'commandType': 'command',
       });
-      await this.pushTVChanges(body);
+      await this.pushTVChanges(bodyChange);
     }
   }
 
   async pushBackChanges(): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushBackChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
-      const body = JSON.stringify({
+      const bodyChange = JSON.stringify({
         'command': 'Back',
         'parameter': 'default',
         'commandType': 'command',
       });
-      await this.pushTVChanges(body);
+      await this.pushTVChanges(bodyChange);
     }
   }
 
   async pushMenuChanges(): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushMenuChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
-      const body = JSON.stringify({
+      const bodyChange = JSON.stringify({
         'command': 'Menu',
         'parameter': 'default',
         'commandType': 'command',
       });
-      await this.pushTVChanges(body);
+      await this.pushTVChanges(bodyChange);
     }
   }
 
   async pushUpChanges(): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushUpChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
-      const body = JSON.stringify({
+      const bodyChange = JSON.stringify({
         'command': 'Up',
         'parameter': 'default',
         'commandType': 'command',
       });
-      await this.pushTVChanges(body);
+      await this.pushTVChanges(bodyChange);
     }
   }
 
   async pushDownChanges(): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushDownChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
-      const body = JSON.stringify({
+      const bodyChange = JSON.stringify({
         'command': 'Down',
         'parameter': 'default',
         'commandType': 'command',
       });
-      await this.pushTVChanges(body);
+      await this.pushTVChanges(bodyChange);
     }
   }
 
   async pushRightChanges(): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushRightChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
-      const body = JSON.stringify({
+      const bodyChange = JSON.stringify({
         'command': 'Right',
         'parameter': 'default',
         'commandType': 'command',
       });
-      await this.pushTVChanges(body);
+      await this.pushTVChanges(bodyChange);
     }
   }
 
   async pushLeftChanges(): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushLeftChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
-      const body = JSON.stringify({
+      const bodyChange = JSON.stringify({
         'command': 'Left',
         'parameter': 'default',
         'commandType': 'command',
       });
-      await this.pushTVChanges(body);
+      await this.pushTVChanges(bodyChange);
     }
   }
 
   async pushVolumeUpChanges(): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushVolumeUpChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
-      const body = JSON.stringify({
+      const bodyChange = JSON.stringify({
         'command': 'volumeAdd',
         'parameter': 'default',
         'commandType': 'command',
       });
-      await this.pushTVChanges(body);
+      await this.pushTVChanges(bodyChange);
     }
   }
 
   async pushVolumeDownChanges(): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushVolumeDownChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
-      const body = JSON.stringify({
+      const bodyChange = JSON.stringify({
         'command': 'volumeSub',
         'parameter': 'default',
         'commandType': 'command',
       });
-      await this.pushTVChanges(body);
+      await this.pushTVChanges(bodyChange);
     }
   }
 
-  async pushTVChanges(body: any): Promise<void> {
+  async pushTVChanges(bodyChange: any): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushTVChanges`);
     if (this.device.connectionType === 'OpenAPI') {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
         const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/commands`, {
+          body: bodyChange,
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });

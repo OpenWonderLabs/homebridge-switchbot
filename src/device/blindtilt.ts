@@ -629,7 +629,7 @@ export class BlindTilt {
   }
 
   async openAPIpushChanges(): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} OpenAPI pushChanges`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges`);
     const hasDifferentAndRelevantHorizontalTiltAngle = (
       this.mappingMode === BlindTiltMappingMode.UseTiltForDirection
       && this.TargetHorizontalTiltAngle !== this.CurrentHorizontalTiltAngle);
@@ -637,27 +637,28 @@ export class BlindTilt {
       const [direction, position] = this.mapHomekitValuesToDeviceValues(Number(this.TargetPosition), Number(this.TargetHorizontalTiltAngle));
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Pushing ${this.TargetPosition} (device = ${direction};${position})`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Mode: ${this.Mode}`);
-      let body = '';
+      let bodyChange = '';
       if (position === 100) {
-        body = JSON.stringify({
+        bodyChange = JSON.stringify({
           'command': 'fullyOpen',
           'commandType': 'command',
         });
       } else if (position === 0) {
-        body = JSON.stringify({
+        bodyChange = JSON.stringify({
           'command': direction === 'up' ? 'closeUp' : 'closeDown',
           'commandType': 'command',
         });
       } else {
-        body = JSON.stringify({
+        bodyChange = JSON.stringify({
           'command': 'setPosition',
           'parameter': `${direction};${position}`,
           'commandType': 'command',
         });
       }
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
         const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/commands`, {
+          body: bodyChange,
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });

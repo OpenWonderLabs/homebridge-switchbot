@@ -659,7 +659,7 @@ export class Bot {
   }
 
   async openAPIpushChanges(): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} OpenAPI pushChanges`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges`);
     if (this.multiPressCount > 0) {
       this.debugLog(`${this.device.deviceType}: ${this.multiPressCount} request(s) queued.`);
       this.On = true;
@@ -681,14 +681,15 @@ export class Bot {
       } else {
         throw new Error(`${this.device.deviceType}: ${this.accessory.displayName} Device Paramters not set for this Bot.`);
       }
-      const body = JSON.stringify({
+      const bodyChange = JSON.stringify({
         'command': `${command}`,
         'parameter': 'default',
         'commandType': 'command',
       });
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
         const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/commands`, {
+          body: bodyChange,
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });

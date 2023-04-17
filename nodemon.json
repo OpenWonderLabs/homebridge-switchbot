@@ -2,7 +2,7 @@
   "watch": ["src"],
   "ext": "ts",
   "ignore": [],
-  "exec": "DEBUG= tsc && homebridge -T -D -P ..",
+  "exec": "DEBUG= tsc && homebridge -T -D -P -I ..",
   "signal": "SIGTERM",
   "env": {
     "NODE_OPTIONS": "--trace-warnings"
