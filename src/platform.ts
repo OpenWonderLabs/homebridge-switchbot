@@ -292,13 +292,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         const deviceLists = devicesAPI.body.deviceList;
         if (!this.config.options?.devices) {
           this.debugLog(`SwitchBot Device Config Not Set: ${JSON.stringify(this.config.options?.devices)}`);
-          const devices = deviceLists.map((v: any) => v);
-          for (const device of devices) {
-            if (device.deviceType) {
-              if (device.configDeviceName) {
-                device.deviceName = device.configDeviceName;
+          if (devicesAPI.body.length === 0) {
+            this.debugLog(`SwitchBot API Currently Doesn't Have Any Devices With Cloud Services Enabled: ${JSON.stringify(devicesAPI.body)}`);
+          } else {
+            const devices = deviceLists.map((v: any) => v);
+            for (const device of devices) {
+              if (device.deviceType) {
+                if (device.configDeviceName) {
+                  device.deviceName = device.configDeviceName;
+                }
+                this.createDevice(device);
               }
-              this.createDevice(device);
             }
           }
         } else if (this.config.credentials?.token && this.config.options.devices) {
