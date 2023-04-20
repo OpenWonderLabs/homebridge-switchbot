@@ -13,7 +13,7 @@
     "url": "https://github.com/OpenWonderLabs/homebridge-switchbot/issues"
   },
   "engines": {
-    "homebridge": "^1.6.0 || ^2.0.0-beta.0",
+    "homebridge": "^1.6.0 || ^2.0.0-beta.1",
     "node": "^16.20.0 || ^18.16.0 || ^20.0.0"
   },
   "main": "dist/index.js",
@@ -59,9 +59,9 @@
     "async-mqtt": "^2.6.3",
     "crypto-js": "^4.1.1",
     "fakegato-history": "^0.6.3",
-    "node-switchbot": "1.8.2-beta.0",
+    "node-switchbot": "1.8.2-beta.1",
     "rxjs": "^7.8.0",
-    "undici": "^5.21.2"
+    "undici": "^5.22.0"
   },
   "devDependencies": {
     "@types/crypto-js": "^4.1.1",
