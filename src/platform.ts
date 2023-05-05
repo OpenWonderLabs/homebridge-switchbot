@@ -23,7 +23,7 @@ import { AirPurifier } from './irdevice/airpurifier';
 import { WaterHeater } from './irdevice/waterheater';
 import { VacuumCleaner } from './irdevice/vacuumcleaner';
 import { AirConditioner } from './irdevice/airconditioner';
-import {request} from 'undici';
+import { request } from 'undici';
 import crypto, { randomUUID } from 'crypto';
 import { Buffer } from 'buffer';
 import { queueScheduler } from 'rxjs';

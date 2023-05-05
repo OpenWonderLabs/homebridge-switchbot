@@ -750,7 +750,13 @@
                 "logging": {
                   "title": "Device Logging Override Setting",
                   "type": "string",
+                  "required": true,
+                  "default": "",
                   "oneOf": [
+                    {
+                      "title": "Default Logging",
+                      "enum": [""]
+                    },
                     {
                       "title": "Standard Logging",
                       "enum": ["standard"]
@@ -1072,7 +1078,13 @@
                 "logging": {
                   "title": "Device Logging Override Setting",
                   "type": "string",
+                  "required": true,
+                  "default": "",
                   "oneOf": [
+                    {
+                      "title": "Default Logging",
+                      "enum": [""]
+                    },
                     {
                       "title": "Standard Logging",
                       "enum": ["standard"]
@@ -1110,7 +1122,13 @@
           "logging": {
             "title": "Logging Setting",
             "type": "string",
+            "required": true,
+            "default": "",
             "oneOf": [
+              {
+                "title": "Default Logging",
+                "enum": [""]
+              },
               {
                 "title": "Standard Logging",
                 "enum": ["standard"]
