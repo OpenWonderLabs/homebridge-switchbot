@@ -60,22 +60,22 @@
     "crypto-js": "^4.1.1",
     "fakegato-history": "^0.6.3",
     "node-switchbot": "1.8.2-beta.1",
-    "rxjs": "^7.8.0",
-    "undici": "^5.22.0"
+    "rxjs": "^7.8.1",
+    "undici": "^5.22.1"
   },
   "devDependencies": {
     "@types/crypto-js": "^4.1.1",
-    "@types/node": "^18.15.12",
-    "@typescript-eslint/eslint-plugin": "^5.59.0",
-    "@typescript-eslint/parser": "^5.59.0",
-    "eslint": "^8.38.0",
+    "@types/node": "^20.2.5",
+    "@typescript-eslint/eslint-plugin": "^5.59.8",
+    "@typescript-eslint/parser": "^5.59.8",
+    "eslint": "^8.41.0",
     "eslint-config-prettier": "8.8.0",
     "eslint-plugin-prettier": "4.2.1",
-    "homebridge": "^1.6.0",
+    "homebridge": "^1.6.1",
     "nodemon": "^2.0.22",
-    "npm-check-updates": "^16.10.8",
-    "prettier": "2.8.7",
-    "rimraf": "^5.0.0",
+    "npm-check-updates": "^16.10.12",
+    "prettier": "2.8.8",
+    "rimraf": "^5.0.1",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.4"
   }
