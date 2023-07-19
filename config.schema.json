@@ -996,6 +996,52 @@
                       "condition": {
                         "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Air Conditioner' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Air Conditioner') && model.options.irdevices[arrayIndices].deviceId);"
                       }
+                    },
+                    "meterType": {
+                      "title": "Use an existing Switchbot device for temperature/humidity",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "Meter",
+                          "enum": [
+                            "Meter"
+                          ]
+                        },
+                        {
+                          "title": "MeterPlus",
+                          "enum": [
+                            "MeterPlus"
+                          ]
+                        },
+                        {
+                          "title": "Meter Plus (JP)",
+                          "enum": [
+                            "Meter Plus (JP)"
+                          ]
+                        },
+                        {
+                          "title": "Hub 2",
+                          "enum": [
+                            "Hub 2"
+                          ]
+                        },
+                        {
+                          "title": "WoIOSensor",
+                          "enum": [
+                            "WoIOSensor"
+                          ]
+                        }
+                      ],
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Air Conditioner' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Air Conditioner') && model.options.irdevices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "meterId": {
+                      "title": "Device ID of the device to use for temperature/humidity",
+                      "type": "string",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Air Conditioner' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Air Conditioner') && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].irair?.meterType);"
+                      }
                     }
                   }
                 },
@@ -1259,6 +1305,8 @@
             "options.irdevices[].disablePushOff",
             "options.irdevices[].disablePushDetail",
             "options.irdevices[].irair.hide_automode",
+            "options.irdevices[].irair.meterType",
+            "options.irdevices[].irair.meterId",
             "options.irdevices[].irfan.rotation_speed",
             "options.irdevices[].irfan.swing_mode",
             "options.irdevices[].irfan.set_minStep",

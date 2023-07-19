@@ -188,6 +188,9 @@ export type irfan = {
 
 export type irair = {
   hide_automode?: boolean;
+  meterType?: string;
+  meterId?: string;
+  meterUuid?: string;
 };
 
 export type other = {
