@@ -16,6 +16,7 @@ export class AirConditioner {
   Active!: CharacteristicValue;
   RotationSpeed!: CharacteristicValue;
   CurrentTemperature!: CharacteristicValue;
+  CurrentRelativeHumidity?: CharacteristicValue;
   TargetHeaterCoolerState!: CharacteristicValue;
   CurrentHeaterCoolerState!: CharacteristicValue;
   HeatingThresholdTemperature!: CharacteristicValue;
@@ -38,6 +39,7 @@ export class AirConditioner {
   disablePushDetail?: boolean;
   deviceLogging!: string;
   hide_automode?: boolean;
+  meter?: PlatformAccessory;
 
   private readonly valid12 = [1, 2];
   private readonly valid012 = [0, 1, 2];
@@ -106,6 +108,16 @@ export class AirConditioner {
         ` hide_automode: ${this.hide_automode}, TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`,
       );
     }
+    if (this.meter) {
+      this.coolerService
+          .getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
+          .setProps({
+              minStep: 0.1,
+          })
+          .onGet(() => {
+              return this.CurrentRelativeHumidityGet();
+          });
+  }
     this.coolerService
       .getCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState)
       .setProps({
@@ -283,7 +295,10 @@ export class AirConditioner {
   }
 
   async CurrentTemperatureGet(): Promise<CharacteristicValue> {
-    if (this.CurrentTemperature === undefined) {
+    if (this.meter?.context) {
+      this.CurrentTemperature = this.meter.context.CurrentTemperature;
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using CurrentTemperature from ${this.meter.context?.deviceType} (${this.meter.context?.deviceID})`)
+    } else if (this.CurrentTemperature === undefined) {
       this.CurrentTemperature = 24;
     } else {
       this.CurrentTemperature = this.accessory.context.CurrentTemperature;
@@ -291,6 +306,21 @@ export class AirConditioner {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Get CurrentTemperature: ${this.CurrentTemperature}`);
     return this.CurrentTemperature;
   }
+
+  async CurrentRelativeHumidityGet(): Promise<CharacteristicValue> {
+    if (this.meter?.context) {
+        this.CurrentRelativeHumidity = this.meter.context.CurrentRelativeHumidity;
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using CurrentRelativeHumidity from ${this.meter.context?.deviceType} (${this.meter.context?.deviceID})`)
+    }
+    else if (this.CurrentRelativeHumidity === undefined) {
+        this.CurrentRelativeHumidity = 0;
+    }
+    else {
+        this.CurrentRelativeHumidity = this.accessory.context.CurrentRelativeHumidity;
+    }
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Get CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+    return this.CurrentRelativeHumidity as CharacteristicValue;
+}
 
   async RotationSpeedGet(): Promise<number> {
     if (!this.CurrentFanSpeed) {
@@ -471,6 +501,16 @@ export class AirConditioner {
       this.coolerService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
     }
+    if (this.meter) {
+      if (this.CurrentRelativeHumidity === undefined) {
+          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+      }
+      else {
+          this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidity;
+          this.coolerService?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
+          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+      }
+  }
     if (this.TargetHeaterCoolerState === undefined) {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
     } else {
@@ -661,6 +701,17 @@ export class AirConditioner {
       this.hide_automode = this.device.irair?.hide_automode;
       this.accessory.context.hide_automode = this.hide_automode;
     }
+    
+    if (this.device.irair?.meterUuid) {
+      this.meter = this.platform.accessories.find((accessory) => accessory.UUID === this.device.irair?.meterUuid)
+    }
+    if (this.meter) {
+      if (this.CurrentRelativeHumidity === undefined) {
+          this.CurrentRelativeHumidity = 0;
+      } else {
+          this.CurrentRelativeHumidity = this.accessory.context.CurrentRelativeHumidity;
+      }
+  }
   }
 
   async config({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {

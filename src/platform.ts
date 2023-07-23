@@ -23,7 +23,7 @@ import { AirPurifier } from './irdevice/airpurifier';
 import { WaterHeater } from './irdevice/waterheater';
 import { VacuumCleaner } from './irdevice/vacuumcleaner';
 import { AirConditioner } from './irdevice/airconditioner';
-import {request} from 'undici';
+import { request } from 'undici';
 import crypto, { randomUUID } from 'crypto';
 import { Buffer } from 'buffer';
 import { queueScheduler } from 'rxjs';
@@ -295,13 +295,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         const deviceLists = devicesAPI.body.deviceList;
         if (!this.config.options?.devices) {
           this.debugLog(`SwitchBot Device Config Not Set: ${JSON.stringify(this.config.options?.devices)}`);
-          const devices = deviceLists.map((v: any) => v);
-          for (const device of devices) {
-            if (device.deviceType) {
-              if (device.configDeviceName) {
-                device.deviceName = device.configDeviceName;
+          if (devicesAPI.body.length === 0) {
+            this.debugLog(`SwitchBot API Currently Doesn't Have Any Devices With Cloud Services Enabled: ${JSON.stringify(devicesAPI.body)}`);
+          } else {
+            const devices = deviceLists.map((v: any) => v);
+            for (const device of devices) {
+              if (device.deviceType) {
+                if (device.configDeviceName) {
+                  device.deviceName = device.configDeviceName;
+                }
+                this.createDevice(device);
               }
-              this.createDevice(device);
             }
           }
         } else if (this.config.credentials?.token && this.config.options.devices) {
@@ -1638,13 +1642,16 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  private async createAirConditioner(device: irdevice & devicesConfig) {
+  private async createAirConditioner(device: irdevice & devicesConfig & irDevicesConfig) {
     const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.remoteType}`);
 
     // see if an accessory with the same uuid has already been registered and restored from
     // the cached devices we stored in the `configureAccessory` method above
     const existingAccessory = this.accessories.find((accessory) => accessory.UUID === uuid);
 
+    if (device.irair?.meterType && device.irair?.meterId) {
+      device.irair.meterUuid = this.api.hap.uuid.generate(`${device.irair.meterId}-${device.irair.meterType}`);
+    }
     if (existingAccessory) {
       // the accessory already exists
       if (!device.hide_device && device.hubDeviceId) {
