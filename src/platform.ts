@@ -28,6 +28,7 @@ import crypto, { randomUUID } from 'crypto';
 import { Buffer } from 'buffer';
 import { queueScheduler } from 'rxjs';
 import fakegato from 'fakegato-history';
+import { EveHomeKitTypes } from 'homebridge-lib';
 
 import { readFileSync, writeFileSync } from 'fs';
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, Service, Characteristic } from 'homebridge';
@@ -51,6 +52,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   platformLogging?: string;
 
   public readonly fakegatoAPI: any;
+  public readonly eve: any;
 
   constructor(public readonly log: Logger, public readonly config: SwitchBotPlatformConfig, public readonly api: API) {
     this.logs();
@@ -76,8 +78,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       return;
     }
 
-    // import fakegato-history module
+    // import fakegato-history module and EVE characteristics
     this.fakegatoAPI = fakegato(api);
+    this.eve = new EveHomeKitTypes(api);
 
     // When this event is fired it means Homebridge has restored all cached accessories from disk.
     // Dynamic Platform plugins should only register new accessories after this event was fired,
