@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 2.7.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.7.0) (2023-07-25)
+
+## What's Changed
+
+- Will now log if there are no devices discovered by SwitchBot-API.
+- Added the ability to use Tempature from a SwitchBot Meter to be used with an IR Air Conditioner. [#761](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/761), Thanks [@mrlt8](https://github.com/mrlt8)
+- Adds the ability to enable EVE history SwitchBot Curtains. [#766](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/766), Thanks [@banboobee](https://github.com/banboobee)
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.6.2....v2.7.0
+
 ## [Version 2.6.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.6.2) (2023-04-17)
 
 ## What's Changed

@@ -782,7 +782,7 @@ export class CeilingLight {
   }
 
   async stopScanning(switchbot: any) {
-    switchbot.stopScan();
+    await switchbot.stopScan();
     if (this.connected) {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
@@ -805,7 +805,7 @@ export class CeilingLight {
         };
         await sleep(10000);
         // Stop to monitor
-        switchbot.stopScan();
+        await switchbot.stopScan();
       })();
     }
   }
