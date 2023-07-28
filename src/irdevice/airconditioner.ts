@@ -79,18 +79,11 @@ export class AirConditioner {
     }
 
     // handle on / off events using the Active characteristic
-    this.coolerService.getCharacteristic(this.platform.Characteristic.Active).onSet(this.ActiveSet.bind(this));
+    this.coolerService.getCharacteristic(this.platform.Characteristic.Active)
+      .onSet(this.ActiveSet.bind(this));
 
-    this.coolerService
-      .getCharacteristic(this.platform.Characteristic.CurrentTemperature)
-      .setProps({
-        minValue: 0,
-        maxValue: 100,
-        minStep: 0.01,
-      })
-      .onGet(() => {
-        return this.CurrentTemperatureGet();
-      });
+    this.coolerService.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
+      .onGet(this.CurrentTemperatureGet.bind(this));
 
     if (this.hide_automode) {
       this.TargetHeaterCoolerState = 1 || 2;
@@ -107,60 +100,46 @@ export class AirConditioner {
         ` hide_automode: ${this.hide_automode}, TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`,
       );
     }
+
     if (this.meter) {
       this.coolerService
         .getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
-        .setProps({
-          minStep: 0.1,
-        })
-        .onGet(() => {
-          return this.CurrentRelativeHumidityGet();
-        });
+        .onGet(this.CurrentRelativeHumidityGet.bind(this));
     }
-    this.coolerService
-      .getCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState)
+
+    this.coolerService.getCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState)
       .setProps({
         validValues: this.ValidValues,
       })
-      .onGet(async () => {
-        return this.TargetHeaterCoolerStateGet();
-      })
+      .onGet(this.TargetHeaterCoolerStateGet.bind(this))
       .onSet(this.TargetHeaterCoolerStateSet.bind(this));
 
-    this.coolerService.getCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState).onGet(async () => {
-      return this.CurrentHeaterCoolerStateGet();
-    });
+    this.coolerService.getCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState)
+      .onGet(this.CurrentHeaterCoolerStateGet.bind(this));
 
-    this.coolerService
-      .getCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature)
+
+    this.coolerService.getCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature)
       .setProps({
-        minValue: 16,
-        maxValue: 30,
         minStep: 0.5,
       })
       .onGet(this.ThresholdTemperatureGet.bind(this))
       .onSet(this.ThresholdTemperatureSet.bind(this));
 
-    this.coolerService
-      .getCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature)
+    this.coolerService.getCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature)
       .setProps({
-        minValue: 16,
-        maxValue: 30,
         minStep: 0.5,
       })
       .onGet(this.ThresholdTemperatureGet.bind(this))
       .onSet(this.ThresholdTemperatureSet.bind(this));
 
-    this.coolerService
-      .getCharacteristic(this.platform.Characteristic.RotationSpeed)
+    this.coolerService.getCharacteristic(this.platform.Characteristic.RotationSpeed)
       .setProps({
+        format: "int",
         minStep: 1,
         minValue: 1,
         maxValue: 4,
       })
-      .onGet(async () => {
-        return this.RotationSpeedGet();
-      })
+      .onGet(this.RotationSpeedGet.bind(this))
       .onSet(this.RotationSpeedSet.bind(this));
   }
 
@@ -232,6 +211,7 @@ export class AirConditioner {
       this.state = 'off';
     }
     if (this.CurrentMode === 1) {
+      // Remove or make configurable?
       this.ThresholdTemperature = 25;
       this.debugLog(
         `${this.device.remoteType}: ${this.accessory.displayName} CurrentMode: ${this.CurrentMode},`
@@ -242,9 +222,9 @@ export class AirConditioner {
 
     if (this.Active === this.platform.Characteristic.Active.ACTIVE) {
       await this.context();
-      if (this.ThresholdTemperature < this.accessory.context.ThresholdTemperature) {
+      if (this.ThresholdTemperature < this.accessory.context.CurrentTemperature) {
         this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.COOLING;
-      } else if (this.ThresholdTemperature > this.accessory.context.ThresholdTemperature) {
+      } else if (this.ThresholdTemperature > this.accessory.context.CurrentTemperature) {
         this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.HEATING;
       }
     } else {
@@ -318,9 +298,7 @@ export class AirConditioner {
   }
 
   async RotationSpeedGet(): Promise<number> {
-    if (!this.CurrentFanSpeed) {
-      this.RotationSpeed = 4;
-    } else if (this.CurrentFanSpeed === 1) {
+    if (!this.CurrentFanSpeed || this.CurrentFanSpeed === 1) {
       this.RotationSpeed = 4;
     } else {
       this.RotationSpeed = this.CurrentFanSpeed - 1;
@@ -380,30 +358,17 @@ export class AirConditioner {
   }
 
   async TargetHeaterCoolerStateSet(value: CharacteristicValue): Promise<void> {
-    if (this.hide_automode) {
-      if (value === this.platform.Characteristic.TargetHeaterCoolerState.HEAT) {
-        this.TargetHeaterCoolerStateHEAT();
-      } else if (value === this.platform.Characteristic.TargetHeaterCoolerState.COOL) {
-        this.TargetHeaterCoolerStateCOOL();
-      } else {
-        this.errorLog(
-          `${this.device.remoteType}: ${this.accessory.displayName} Set TargetHeaterCoolerState: ${this.TargetHeaterCoolerState},` +
-          ` hide_automode: ${this.hide_automode} `,
-        );
-      }
+    if (!this.hide_automode && value === this.platform.Characteristic.TargetHeaterCoolerState.AUTO) {
+      this.TargetHeaterCoolerStateAUTO();
+    } else if (value === this.platform.Characteristic.TargetHeaterCoolerState.HEAT) {
+      this.TargetHeaterCoolerStateHEAT();
+    } else if (value === this.platform.Characteristic.TargetHeaterCoolerState.COOL) {
+      this.TargetHeaterCoolerStateCOOL();
     } else {
-      if (value === this.platform.Characteristic.TargetHeaterCoolerState.AUTO) {
-        this.TargetHeaterCoolerStateAUTO();
-      } else if (value === this.platform.Characteristic.TargetHeaterCoolerState.HEAT) {
-        this.TargetHeaterCoolerStateHEAT();
-      } else if (value === this.platform.Characteristic.TargetHeaterCoolerState.COOL) {
-        this.TargetHeaterCoolerStateCOOL();
-      } else {
-        this.errorLog(
-          `${this.device.remoteType}: ${this.accessory.displayName} Set TargetHeaterCoolerState: ${this.TargetHeaterCoolerState},` +
-          ` hide_automode: ${this.hide_automode} `,
-        );
-      }
+      this.errorLog(
+        `${this.device.remoteType}: ${this.accessory.displayName} Set TargetHeaterCoolerState: ${this.TargetHeaterCoolerState},` +
+        ` hide_automode: ${this.hide_automode} `,
+      );
     }
     this.pushAirConditionerStatusChanges();
   }
@@ -619,6 +584,7 @@ export class AirConditioner {
     this.coolerService.updateCharacteristic(this.platform.Characteristic.Active, e);
     this.coolerService.updateCharacteristic(this.platform.Characteristic.RotationSpeed, e);
     this.coolerService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
+    this.coolerService.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, e);
     this.coolerService.updateCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState, e);
     this.coolerService.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, e);
     this.coolerService.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, e);
@@ -752,10 +718,8 @@ export class AirConditioner {
   }
 
   debugWarnLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      if (this.deviceLogging?.includes('debug')) {
-        this.platform.log.warn('[DEBUG]', String(...log));
-      }
+    if (this.enablingDeviceLogging() && this.deviceLogging?.includes('debug')) {
+      this.platform.log.warn('[DEBUG]', String(...log));
     }
   }
 
@@ -766,10 +730,8 @@ export class AirConditioner {
   }
 
   debugErrorLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      if (this.deviceLogging?.includes('debug')) {
-        this.platform.log.error('[DEBUG]', String(...log));
-      }
+    if (this.enablingDeviceLogging() && this.deviceLogging?.includes('debug')) {
+      this.platform.log.error('[DEBUG]', String(...log));
     }
   }
 
