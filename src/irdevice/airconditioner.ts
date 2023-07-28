@@ -1,7 +1,7 @@
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { request } from 'undici';
 import { SwitchBotPlatform } from '../platform';
-import { irDevicesConfig, irdevice, Devices } from '../settings';
-import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+import { Devices, irDevicesConfig, irdevice } from '../settings';
 
 /**
  * Platform Accessory
@@ -66,7 +66,7 @@ export class AirConditioner {
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
     (this.coolerService = accessory.getService(this.platform.Service.HeaterCooler) || accessory.addService(this.platform.Service.HeaterCooler)),
-    `${accessory.displayName} ${device.remoteType}`;
+      `${accessory.displayName} ${device.remoteType}`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -110,14 +110,14 @@ export class AirConditioner {
     }
     if (this.meter) {
       this.coolerService
-          .getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
-          .setProps({
-              minStep: 0.1,
-          })
-          .onGet(() => {
-              return this.CurrentRelativeHumidityGet();
-          });
-  }
+        .getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
+        .setProps({
+          minStep: 0.1,
+        })
+        .onGet(() => {
+          return this.CurrentRelativeHumidityGet();
+        });
+    }
     this.coolerService
       .getCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState)
       .setProps({
@@ -309,18 +309,18 @@ export class AirConditioner {
 
   async CurrentRelativeHumidityGet(): Promise<CharacteristicValue> {
     if (this.meter?.context) {
-        this.CurrentRelativeHumidity = this.meter.context.CurrentRelativeHumidity;
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using CurrentRelativeHumidity from ${this.meter.context?.deviceType} (${this.meter.context?.deviceID})`)
+      this.CurrentRelativeHumidity = this.meter.context.CurrentRelativeHumidity;
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using CurrentRelativeHumidity from ${this.meter.context?.deviceType} (${this.meter.context?.deviceID})`)
     }
     else if (this.CurrentRelativeHumidity === undefined) {
-        this.CurrentRelativeHumidity = 0;
+      this.CurrentRelativeHumidity = 0;
     }
     else {
-        this.CurrentRelativeHumidity = this.accessory.context.CurrentRelativeHumidity;
+      this.CurrentRelativeHumidity = this.accessory.context.CurrentRelativeHumidity;
     }
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Get CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
     return this.CurrentRelativeHumidity as CharacteristicValue;
-}
+  }
 
   async RotationSpeedGet(): Promise<number> {
     if (!this.CurrentFanSpeed) {
@@ -503,14 +503,14 @@ export class AirConditioner {
     }
     if (this.meter) {
       if (this.CurrentRelativeHumidity === undefined) {
-          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
       }
       else {
-          this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidity;
-          this.coolerService?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
-          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+        this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidity;
+        this.coolerService?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
       }
-  }
+    }
     if (this.TargetHeaterCoolerState === undefined) {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
     } else {
@@ -701,17 +701,17 @@ export class AirConditioner {
       this.hide_automode = this.device.irair?.hide_automode;
       this.accessory.context.hide_automode = this.hide_automode;
     }
-    
+
     if (this.device.irair?.meterUuid) {
       this.meter = this.platform.accessories.find((accessory) => accessory.UUID === this.device.irair?.meterUuid)
     }
     if (this.meter) {
       if (this.CurrentRelativeHumidity === undefined) {
-          this.CurrentRelativeHumidity = 0;
+        this.CurrentRelativeHumidity = 0;
       } else {
-          this.CurrentRelativeHumidity = this.accessory.context.CurrentRelativeHumidity;
+        this.CurrentRelativeHumidity = this.accessory.context.CurrentRelativeHumidity;
       }
-  }
+    }
   }
 
   async config({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
