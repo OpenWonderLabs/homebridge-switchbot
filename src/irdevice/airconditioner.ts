@@ -284,7 +284,7 @@ export class AirConditioner {
       this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
         + ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-        + ` Connection Type: ${this.device.connectionType}, disablePushDetials: ${this.disablePushDetail}`);
+        + ` Connection Type: ${this.device.connectionType}, disablePushDetails: ${this.disablePushDetail}`);
       this.updateHomeKitCharacteristics();
     }
   }
@@ -434,7 +434,7 @@ export class AirConditioner {
       if (this.ThresholdTemperature < this.accessory.context.CurrentTemperature) {
         this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.COOLING;
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-          + ` Get (COOLLING) CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
+          + ` Get (COOLING) CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
       } else if (this.ThresholdTemperature > this.accessory.context.CurrentTemperature) {
         this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.HEATING;
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
