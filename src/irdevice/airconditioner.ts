@@ -19,8 +19,7 @@ export class AirConditioner {
   CurrentRelativeHumidity?: CharacteristicValue;
   TargetHeaterCoolerState!: CharacteristicValue;
   CurrentHeaterCoolerState!: CharacteristicValue;
-  HeatingThresholdTemperature!: CharacteristicValue;
-  CoolingThresholdTemperature!: CharacteristicValue;
+  ThresholdTemperature!: CharacteristicValue;
 
   // Others
   state!: string;
@@ -137,24 +136,20 @@ export class AirConditioner {
       .setProps({
         minValue: 16,
         maxValue: 30,
-        minStep: 1,
+        minStep: 0.5,
       })
-      .onGet(() => {
-        return this.HeatingThresholdTemperatureGet();
-      })
-      .onSet(this.HeatingThresholdTemperatureSet.bind(this));
+      .onGet(this.ThresholdTemperatureGet.bind(this))
+      .onSet(this.ThresholdTemperatureSet.bind(this));
 
     this.coolerService
       .getCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature)
       .setProps({
         minValue: 16,
         maxValue: 30,
-        minStep: 1,
+        minStep: 0.5,
       })
-      .onGet(() => {
-        return this.CoolingThresholdTemperatureGet();
-      })
-      .onSet(this.CoolingThresholdTemperatureSet.bind(this));
+      .onGet(this.ThresholdTemperatureGet.bind(this))
+      .onSet(this.ThresholdTemperatureSet.bind(this));
 
     this.coolerService
       .getCharacteristic(this.platform.Characteristic.RotationSpeed)
@@ -237,19 +232,19 @@ export class AirConditioner {
       this.state = 'off';
     }
     if (this.CurrentMode === 1) {
-      this.CurrentTemperature = 25;
+      this.ThresholdTemperature = 25;
       this.debugLog(
         `${this.device.remoteType}: ${this.accessory.displayName} CurrentMode: ${this.CurrentMode},`
-        + ` CurrentTemperature: ${this.CurrentTemperature}`,
+        + ` ThresholdTemperature: ${this.ThresholdTemperature}`,
       );
     }
-    const parameter = `${this.CurrentTemperature},${this.CurrentMode},${this.CurrentFanSpeed},${this.state}`;
+    const parameter = `${this.ThresholdTemperature},${this.CurrentMode},${this.CurrentFanSpeed},${this.state}`;
 
     if (this.Active === this.platform.Characteristic.Active.ACTIVE) {
       await this.context();
-      if (this.CurrentTemperature < this.accessory.context.CurrentTemperature) {
+      if (this.ThresholdTemperature < this.accessory.context.ThresholdTemperature) {
         this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.COOLING;
-      } else if (this.CurrentTemperature > this.accessory.context.CurrentTemperature) {
+      } else if (this.ThresholdTemperature > this.accessory.context.ThresholdTemperature) {
         this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.HEATING;
       }
     } else {
@@ -436,11 +431,11 @@ export class AirConditioner {
 
   async CurrentHeaterCoolerStateGet(): Promise<CharacteristicValue> {
     if (this.Active === this.platform.Characteristic.Active.ACTIVE) {
-      if (this.CurrentTemperature < this.accessory.context.CurrentTemperature) {
+      if (this.ThresholdTemperature < this.accessory.context.CurrentTemperature) {
         this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.COOLING;
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
           + ` Get (COOLLING) CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
-      } else if (this.CurrentTemperature > this.accessory.context.CurrentTemperature) {
+      } else if (this.ThresholdTemperature > this.accessory.context.CurrentTemperature) {
         this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.HEATING;
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
           + ` Get (HEATING) CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
@@ -453,29 +448,16 @@ export class AirConditioner {
     return this.CurrentHeaterCoolerState;
   }
 
-  async HeatingThresholdTemperatureGet(): Promise<CharacteristicValue> {
+  async ThresholdTemperatureGet(): Promise<CharacteristicValue> {
     await this.context();
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Get HeatingThresholdTemperature: ${this.HeatingThresholdTemperature}`);
-    return this.HeatingThresholdTemperature;
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Get ThresholdTemperature: ${this.ThresholdTemperature}`);
+    return this.ThresholdTemperature;
   }
 
-  async HeatingThresholdTemperatureSet(value: CharacteristicValue): Promise<void> {
-    this.CurrentTemperature = value;
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set HeatingThresholdTemperature: ${this.HeatingThresholdTemperature},` +
-      ` CurrentTemperatureCached: ${this.accessory.context.CurrentTemperature}`);
-    this.pushAirConditionerStatusChanges();
-  }
-
-  async CoolingThresholdTemperatureGet(): Promise<CharacteristicValue> {
-    await this.context();
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Get CoolingThresholdTemperature: ${this.CoolingThresholdTemperature}`);
-    return this.CoolingThresholdTemperature;
-  }
-
-  async CoolingThresholdTemperatureSet(value: CharacteristicValue): Promise<void> {
-    this.CurrentTemperature = value;
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set CoolingThresholdTemperature: ${this.CoolingThresholdTemperature},` +
-      ` CurrentTemperatureCached: ${this.accessory.context.CurrentTemperature}`);
+  async ThresholdTemperatureSet(value: CharacteristicValue): Promise<void> {
+    this.ThresholdTemperature = value;
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set ThresholdTemperature: ${this.ThresholdTemperature},` +
+      ` ThresholdTemperatureCached: ${this.accessory.context.ThresholdTemperature}`);
     this.pushAirConditionerStatusChanges();
   }
 
@@ -530,24 +512,15 @@ export class AirConditioner {
         + ` updateCharacteristic CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`,
       );
     }
-    if (this.HeatingThresholdTemperature === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} HeatingThresholdTemperature: ${this.HeatingThresholdTemperature}`);
+    if (this.ThresholdTemperature === undefined) {
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} ThresholdTemperature: ${this.ThresholdTemperature}`);
     } else {
-      this.accessory.context.HeatingThresholdTemperature = this.HeatingThresholdTemperature;
-      this.coolerService?.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, this.HeatingThresholdTemperature);
+      this.accessory.context.ThresholdTemperature = this.ThresholdTemperature;
+      this.coolerService?.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, this.ThresholdTemperature);
+      this.coolerService?.updateCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature, this.ThresholdTemperature);
       this.debugLog(
         `${this.device.remoteType}: ${this.accessory.displayName}`
-        + ` updateCharacteristic HeatingThresholdTemperature: ${this.HeatingThresholdTemperature}`,
-      );
-    }
-    if (this.CoolingThresholdTemperature === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} CoolingThresholdTemperature: ${this.CoolingThresholdTemperature}`);
-    } else {
-      this.accessory.context.CoolingThresholdTemperature = this.CoolingThresholdTemperature;
-      this.coolerService?.updateCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature, this.CoolingThresholdTemperature);
-      this.debugLog(
-        `${this.device.remoteType}: ${this.accessory.displayName}`
-        + ` updateCharacteristic CoolingThresholdTemperature: ${this.CoolingThresholdTemperature}`,
+        + ` updateCharacteristic ThresholdTemperature: ${this.ThresholdTemperature}`,
       );
     }
   }
@@ -686,12 +659,8 @@ export class AirConditioner {
       this.CurrentTemperature = this.accessory.context.CurrentTemperature;
     }
 
-    if (this.CoolingThresholdTemperature === undefined) {
-      this.CoolingThresholdTemperature = this.CurrentTemperature;
-    }
-
-    if (this.HeatingThresholdTemperature === undefined) {
-      this.HeatingThresholdTemperature = this.CurrentTemperature;
+    if (this.ThresholdTemperature === undefined) {
+      this.ThresholdTemperature = 24;
     }
 
     if (this.device.irair?.hide_automode) {
