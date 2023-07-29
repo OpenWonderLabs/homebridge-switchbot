@@ -2,13 +2,23 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 2.7.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.7.1) (2023-07-29)
+
+## What's Changed
+
+- Fixed Hub 2 temperature/humidity data for AC, Thanks [@mrlt8](https://github.com/mrlt8) [#779](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/779)
+- Fixed TargetTemperature not being updated in the HomeKit, Thanks [@mrlt8](https://github.com/mrlt8) [#7779](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/779)
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.7.0....v2.7.1
+
 ## [Version 2.7.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.7.0) (2023-07-25)
 
 ## What's Changed
 
 - Will now log if there are no devices discovered by SwitchBot-API.
-- Added the ability to use Tempature from a SwitchBot Meter to be used with an IR Air Conditioner. [#761](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/761), Thanks [@mrlt8](https://github.com/mrlt8)
-- Adds the ability to enable EVE history SwitchBot Curtains. [#766](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/766), Thanks [@banboobee](https://github.com/banboobee)
+- Added the ability to use Tempature from a SwitchBot Meter to be used with an IR Air Conditioner, Thanks [@mrlt8](https://github.com/mrlt8) [#761](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/761)
+- Adds the ability to enable EVE history SwitchBot Curtains, Thanks [@banboobee](https://github.com/banboobee) [#766](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/766)
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.6.2....v2.7.0
@@ -26,7 +36,7 @@ All notable changes to this project will be documented in this file. This projec
 
 ## What's Changed
 
-- Add Support for [SwitchBot Meter Plus (JP)](https://www.switchbot.jp/products/switchbot-meter-plus), [#642](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/642)
+- Add Support for [SwitchBot Meter Plus (JP)](https://www.switchbot.jp/products/switchbot-meter-plus), Thanks [@tikuwas](https://github.com/tikuwas) [#642](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/642)
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.6.0....v2.6.1
 
