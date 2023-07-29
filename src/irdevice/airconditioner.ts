@@ -270,8 +270,10 @@ export class AirConditioner {
   }
 
   async CurrentTemperatureGet(): Promise<CharacteristicValue> {
-    if (this.meter?.context) {
-      this.CurrentTemperature = this.meter.context.CurrentTemperature;
+    if (this.meter) {
+      this.CurrentTemperature = this.meter.context?.CurrentTemperature
+        || this.meter.getService(this.platform.Service.TemperatureSensor)?.getCharacteristic(this.platform.Characteristic.CurrentTemperature).value
+        || 24;
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using CurrentTemperature from ${this.meter.context?.deviceType} (${this.meter.context?.deviceID})`)
     } else if (this.CurrentTemperature === undefined) {
       this.CurrentTemperature = 24;
@@ -283,8 +285,10 @@ export class AirConditioner {
   }
 
   async CurrentRelativeHumidityGet(): Promise<CharacteristicValue> {
-    if (this.meter?.context) {
-      this.CurrentRelativeHumidity = this.meter.context.CurrentRelativeHumidity;
+    if (this.meter) {
+      this.CurrentRelativeHumidity = this.meter.context?.CurrentRelativeHumidity
+        || this.meter.getService(this.platform.Service.HumiditySensor)?.getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity).value
+        || 0;
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using CurrentRelativeHumidity from ${this.meter.context?.deviceType} (${this.meter.context?.deviceID})`)
     }
     else if (this.CurrentRelativeHumidity === undefined) {
@@ -638,7 +642,7 @@ export class AirConditioner {
     }
 
     if (this.device.irair?.meterUuid) {
-      this.meter = this.platform.accessories.find((accessory) => accessory.UUID === this.device.irair?.meterUuid)
+      this.meter = this.platform.accessories.find((accessory) => accessory.UUID === this.device.irair?.meterUuid);
     }
     if (this.meter) {
       if (this.CurrentRelativeHumidity === undefined) {
