@@ -1,10 +1,10 @@
-import { Context } from 'vm';
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { interval } from 'rxjs';
 import { request } from 'undici';
-import { sleep } from '../utils';
+import { Context } from 'vm';
 import { SwitchBotPlatform } from '../platform';
-import { device, devicesConfig, Devices } from '../settings';
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import { Devices, device, devicesConfig } from '../settings';
+import { sleep } from '../utils';
 
 export class Hub {
   // Services
@@ -56,11 +56,11 @@ export class Hub {
     // you can create multiple services for each accessory
     (this.hubTemperatureSensor =
       accessory.getService(this.platform.Service.TemperatureSensor) || accessory.addService(this.platform.Service.TemperatureSensor)),
-    `${device.deviceName} ${device.deviceType}`;
+      `${device.deviceName} ${device.deviceType}`;
 
     (this.hubHumiditySensor =
       accessory.getService(this.platform.Service.HumiditySensor) || accessory.addService(this.platform.Service.HumiditySensor)),
-    `${device.deviceName} ${device.deviceType}`;
+      `${device.deviceName} ${device.deviceType}`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -92,7 +92,7 @@ export class Hub {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Humidity Sensor Service`);
       (this.hubHumiditySensor =
         accessory.getService(this.platform.Service.HumiditySensor) || accessory.addService(this.platform.Service.HumiditySensor)),
-      `${device.deviceName} ${device.deviceType}`;
+        `${device.deviceName} ${device.deviceType}`;
 
       this.hubHumiditySensor.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
       this.hubHumiditySensor.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Humidity Sensor`);
@@ -109,7 +109,7 @@ export class Hub {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Temperature Sensor Service`);
       (this.hubTemperatureSensor =
         accessory.getService(this.platform.Service.TemperatureSensor) || accessory.addService(this.platform.Service.TemperatureSensor)),
-      `${device.deviceName} ${device.deviceType}`;
+        `${device.deviceName} ${device.deviceType}`;
 
       this.hubTemperatureSensor.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
       this.hubTemperatureSensor.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Temperature Sensor`);
@@ -207,9 +207,21 @@ export class Hub {
    */
 
   async updateHomeKitCharacteristics(): Promise<void> {
-    this.hubHumiditySensor?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
-    this.hubTemperatureSensor?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
+    if (this.CurrentRelativeHumidity === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+    } else {
+      this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidity;
+      this.hubHumiditySensor?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+    }
+    
+    if (this.CurrentTemperature === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
+    } else {
+      this.accessory.context.CurrentTemperature = this.CurrentTemperature;
+      this.hubTemperatureSensor?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
+    }
   }
 
   async statusCode(statusCode: number): Promise<void> {
