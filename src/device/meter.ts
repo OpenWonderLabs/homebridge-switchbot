@@ -386,9 +386,7 @@ export class Meter {
         this.accessory.context.CurrentTemperature = this.CurrentTemperature;
         this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
-      }
-      if (!this.device.meter?.hide_humidity && this.CurrentRelativeHumidity){
-        this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
+
       }
     }
 
