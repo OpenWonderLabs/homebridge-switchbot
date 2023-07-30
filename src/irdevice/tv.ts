@@ -26,7 +26,11 @@ export class TV {
   disablePushDetail?: boolean;
   deviceLogging!: string;
 
-  constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
+  constructor(
+    private readonly platform: SwitchBotPlatform,
+    private accessory: PlatformAccessory,
+    public device: irdevice & irDevicesConfig,
+  ) {
     // default placeholders
     this.logs(device);
     this.config(device);
@@ -222,30 +226,32 @@ export class TV {
    * TV           "command"       "channelSub"      "default"	        previous channel
    */
   async pushTvOnChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushTvOnChanges Active: ${this.Active},`
-      + ` disablePushOn: ${this.disablePushOn}`);
+    this.debugLog(
+      `${this.device.remoteType}: ${this.accessory.displayName} pushTvOnChanges Active: ${this.Active},` + ` disablePushOn: ${this.disablePushOn}`,
+    );
     if (this.Active === this.platform.Characteristic.Active.ACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const bodyChange = JSON.stringify({
-        'command': command,
-        'parameter': 'default',
-        'commandType': commandType,
+        command: command,
+        parameter: 'default',
+        commandType: commandType,
       });
       await this.pushTVChanges(bodyChange);
     }
   }
 
   async pushTvOffChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushTvOffChanges Active: ${this.Active},`
-      + ` disablePushOff: ${this.disablePushOff}`);
+    this.debugLog(
+      `${this.device.remoteType}: ${this.accessory.displayName} pushTvOffChanges Active: ${this.Active},` + ` disablePushOff: ${this.disablePushOff}`,
+    );
     if (this.Active === this.platform.Characteristic.Active.INACTIVE && !this.disablePushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
       const bodyChange = JSON.stringify({
-        'command': command,
-        'parameter': 'default',
-        'commandType': commandType,
+        command: command,
+        parameter: 'default',
+        commandType: commandType,
       });
       await this.pushTVChanges(bodyChange);
     }
@@ -255,9 +261,9 @@ export class TV {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOkChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
       const bodyChange = JSON.stringify({
-        'command': 'Ok',
-        'parameter': 'default',
-        'commandType': 'command',
+        command: 'Ok',
+        parameter: 'default',
+        commandType: 'command',
       });
       await this.pushTVChanges(bodyChange);
     }
@@ -267,9 +273,9 @@ export class TV {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushBackChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
       const bodyChange = JSON.stringify({
-        'command': 'Back',
-        'parameter': 'default',
-        'commandType': 'command',
+        command: 'Back',
+        parameter: 'default',
+        commandType: 'command',
       });
       await this.pushTVChanges(bodyChange);
     }
@@ -279,9 +285,9 @@ export class TV {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushMenuChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
       const bodyChange = JSON.stringify({
-        'command': 'Menu',
-        'parameter': 'default',
-        'commandType': 'command',
+        command: 'Menu',
+        parameter: 'default',
+        commandType: 'command',
       });
       await this.pushTVChanges(bodyChange);
     }
@@ -291,9 +297,9 @@ export class TV {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushUpChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
       const bodyChange = JSON.stringify({
-        'command': 'Up',
-        'parameter': 'default',
-        'commandType': 'command',
+        command: 'Up',
+        parameter: 'default',
+        commandType: 'command',
       });
       await this.pushTVChanges(bodyChange);
     }
@@ -303,9 +309,9 @@ export class TV {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushDownChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
       const bodyChange = JSON.stringify({
-        'command': 'Down',
-        'parameter': 'default',
-        'commandType': 'command',
+        command: 'Down',
+        parameter: 'default',
+        commandType: 'command',
       });
       await this.pushTVChanges(bodyChange);
     }
@@ -315,9 +321,9 @@ export class TV {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushRightChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
       const bodyChange = JSON.stringify({
-        'command': 'Right',
-        'parameter': 'default',
-        'commandType': 'command',
+        command: 'Right',
+        parameter: 'default',
+        commandType: 'command',
       });
       await this.pushTVChanges(bodyChange);
     }
@@ -327,9 +333,9 @@ export class TV {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushLeftChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
       const bodyChange = JSON.stringify({
-        'command': 'Left',
-        'parameter': 'default',
-        'commandType': 'command',
+        command: 'Left',
+        parameter: 'default',
+        commandType: 'command',
       });
       await this.pushTVChanges(bodyChange);
     }
@@ -339,9 +345,9 @@ export class TV {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushVolumeUpChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
       const bodyChange = JSON.stringify({
-        'command': 'volumeAdd',
-        'parameter': 'default',
-        'commandType': 'command',
+        command: 'volumeAdd',
+        parameter: 'default',
+        commandType: 'command',
       });
       await this.pushTVChanges(bodyChange);
     }
@@ -351,9 +357,9 @@ export class TV {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushVolumeDownChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
       const bodyChange = JSON.stringify({
-        'command': 'volumeSub',
-        'parameter': 'default',
-        'commandType': 'command',
+        command: 'volumeSub',
+        parameter: 'default',
+        commandType: 'command',
       });
       await this.pushTVChanges(bodyChange);
     }
@@ -376,13 +382,16 @@ export class TV {
         this.updateHomeKitCharacteristics();
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushTVChanges with ${this.device.connectionType}`
-          + ` Connection, Error Message: ${JSON.stringify(e.message)}`,
+        this.errorLog(
+          `${this.device.remoteType}: ${this.accessory.displayName} failed pushTVChanges with ${this.device.connectionType}` +
+          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
         );
       }
     } else {
-      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-        + ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
+      this.warnLog(
+        `${this.device.remoteType}: ${this.accessory.displayName}` +
+        ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`,
+      );
     }
   }
 
@@ -403,7 +412,7 @@ export class TV {
     }
   }
 
-  async disablePushOnChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+  async disablePushOnChanges({ device }: { device: irdevice & irDevicesConfig }): Promise<void> {
     if (device.disablePushOn === undefined) {
       this.disablePushOn = false;
     } else {
@@ -411,7 +420,7 @@ export class TV {
     }
   }
 
-  async disablePushOffChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+  async disablePushOffChanges({ device }: { device: irdevice & irDevicesConfig }): Promise<void> {
     if (device.disablePushOff === undefined) {
       this.disablePushOff = false;
     } else {
@@ -419,7 +428,7 @@ export class TV {
     }
   }
 
-  async disablePushDetailChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+  async disablePushDetailChanges({ device }: { device: irdevice & irDevicesConfig }): Promise<void> {
     if (device.disablePushDetail === undefined) {
       this.disablePushDetail = false;
     } else {
@@ -472,8 +481,10 @@ export class TV {
         this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device is offline, statusCode: ${statusCode}`);
         break;
       case 171:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. `
-          + `Hub: ${this.device.hubDeviceId}`);
+        this.errorLog(
+          `${this.device.remoteType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. ` +
+          `Hub: ${this.device.hubDeviceId}`,
+        );
         break;
       case 190:
         this.errorLog(
@@ -488,8 +499,10 @@ export class TV {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
         break;
       default:
-        this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Unknown statusCode: `
-          + `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
+        this.infoLog(
+          `${this.device.remoteType}: ${this.accessory.displayName} Unknown statusCode: ` +
+          `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`,
+        );
     }
   }
 
@@ -500,8 +513,9 @@ export class TV {
 
   FirmwareRevision(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): string {
     let FirmwareRevision: string;
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-      + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+    this.debugLog(
+      `${this.device.remoteType}: ${this.accessory.displayName}` + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`,
+    );
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
     if (accessory.context.FirmwareRevision) {

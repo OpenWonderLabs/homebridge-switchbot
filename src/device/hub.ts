@@ -10,13 +10,17 @@ export class Hub {
   // Services
   hubTemperatureSensor: Service;
   hubHumiditySensor: Service;
+  hubLightSensor: Service;
 
   // Characteristic Values
   CurrentRelativeHumidity!: number;
   CurrentTemperature!: number;
+  CurrentAmbientLightLevel!: number;
 
   // OpenAPI Others
   deviceStatus!: any; //deviceStatusResponse;
+  lightLevel!: number;
+  spaceBetweenLevels!: number;
 
   // Config
   set_minStep!: number;
@@ -31,7 +35,11 @@ export class Hub {
   private readonly BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
   private readonly OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
 
-  constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
+  constructor(
+    private readonly platform: SwitchBotPlatform,
+    private accessory: PlatformAccessory,
+    public device: device & devicesConfig,
+  ) {
     // default placeholders
     this.logs(device);
     this.refreshRate(device);
@@ -56,11 +64,14 @@ export class Hub {
     // you can create multiple services for each accessory
     (this.hubTemperatureSensor =
       accessory.getService(this.platform.Service.TemperatureSensor) || accessory.addService(this.platform.Service.TemperatureSensor)),
-      `${device.deviceName} ${device.deviceType}`;
+    `${device.deviceName} ${device.deviceType}`;
 
     (this.hubHumiditySensor =
       accessory.getService(this.platform.Service.HumiditySensor) || accessory.addService(this.platform.Service.HumiditySensor)),
-      `${device.deviceName} ${device.deviceType}`;
+    `${device.deviceName} ${device.deviceType}`;
+
+    (this.hubLightSensor = accessory.getService(this.platform.Service.LightSensor) || accessory.addService(this.platform.Service.LightSensor)),
+    `${device.deviceName} ${device.deviceType}`;
 
     // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
     // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
@@ -78,27 +89,13 @@ export class Hub {
       this.hubHumiditySensor.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
     }
 
+    this.hubLightSensor.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+    if (!this.hubLightSensor.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+      this.hubLightSensor.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+    }
+
     // each service must implement at-minimum the "required characteristics" for the given service type
     // see https://developers.homebridge.io/#/service/WindowCovering
-
-    // console.log(this.hubHumiditySensor);
-
-    // Humidity Sensor Service
-    if (device.hub?.hide_humidity) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Humidity Sensor Service`);
-      this.hubHumiditySensor = this.hubHumiditySensor.setCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, false);
-      accessory.removeService(this.hubHumiditySensor!);
-    } else if (!this.hubHumiditySensor) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Humidity Sensor Service`);
-      (this.hubHumiditySensor =
-        accessory.getService(this.platform.Service.HumiditySensor) || accessory.addService(this.platform.Service.HumiditySensor)),
-        `${device.deviceName} ${device.deviceType}`;
-
-      this.hubHumiditySensor.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
-      this.hubHumiditySensor.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Humidity Sensor`);
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Humidity Sensor Service Not Added`);
-    }
 
     // Temperature Sensor Service
     if (device.hub?.hide_temperature) {
@@ -109,12 +106,45 @@ export class Hub {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Temperature Sensor Service`);
       (this.hubTemperatureSensor =
         accessory.getService(this.platform.Service.TemperatureSensor) || accessory.addService(this.platform.Service.TemperatureSensor)),
-        `${device.deviceName} ${device.deviceType}`;
+      `${device.deviceName} ${device.deviceType}`;
 
       this.hubTemperatureSensor.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
       this.hubTemperatureSensor.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Temperature Sensor`);
     } else {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Temperature Sensor Service Not Added`);
+    }
+
+    // Humidity Sensor Service
+    if (device.hub?.hide_humidity) {
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Humidity Sensor Service`);
+      this.hubHumiditySensor = this.hubHumiditySensor.setCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, false);
+      accessory.removeService(this.hubHumiditySensor!);
+    } else if (!this.hubHumiditySensor) {
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Humidity Sensor Service`);
+      (this.hubHumiditySensor =
+        accessory.getService(this.platform.Service.HumiditySensor) || accessory.addService(this.platform.Service.HumiditySensor)),
+      `${device.deviceName} ${device.deviceType}`;
+
+      this.hubHumiditySensor.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
+      this.hubHumiditySensor.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Humidity Sensor`);
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Humidity Sensor Service Not Added`);
+    }
+
+    // Humidity Sensor Service
+    if (device.hub?.hide_lightsensor) {
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
+      this.hubLightSensor = this.hubLightSensor.setCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, false);
+      accessory.removeService(this.hubLightSensor!);
+    } else if (!this.hubLightSensor) {
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Light Sensor Service`);
+      (this.hubLightSensor = accessory.getService(this.platform.Service.LightSensor) || accessory.addService(this.platform.Service.LightSensor)),
+      `${device.deviceName} ${device.deviceType}`;
+
+      this.hubLightSensor.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Light Sensor`);
+      this.hubLightSensor.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Light Sensor`);
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Light Sensor Service Not Added`);
     }
 
     // Update Homekit
@@ -146,6 +176,105 @@ export class Hub {
     // this.infoLog(`temp: ${this.CurrentTemperature}, humidity: ${this.CurrentRelativeHumidity}`);
     this.hubTemperatureSensor.setCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
     this.hubHumiditySensor.setCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
+
+    if (!this.device.curtain?.hide_lightsensor) {
+      this.set_minLux = this.minLux();
+      this.set_maxLux = this.maxLux();
+      this.spaceBetweenLevels = 19;
+
+      // Brightness
+      switch (this.lightLevel) {
+        case 1:
+          this.CurrentAmbientLightLevel = this.set_minLux;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 2:
+          this.CurrentAmbientLightLevel = (this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels;
+          this.debugLog(
+            `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel},` +
+            ` Calculation: ${(this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels}`,
+          );
+          break;
+        case 3:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 2;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 4:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 3;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 5:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 4;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 6:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 5;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 7:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 6;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 8:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 7;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 9:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 8;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 10:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 9;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 11:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 10;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 12:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 11;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 13:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 12;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 14:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 13;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 15:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 14;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 16:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 15;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 17:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 16;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 18:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 17;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 19:
+          this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 18;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          break;
+        case 20:
+        default:
+          this.CurrentAmbientLightLevel = this.set_maxLux;
+          this.debugLog();
+      }
+      this.debugLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel},` +
+        ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
+      );
+    }
+
+    this.hubLightSensor.setCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
   }
 
   async refreshStatus(): Promise<void> {
@@ -167,18 +296,18 @@ export class Hub {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
       this.statusCode(statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName
-        } refreshStatus: ${JSON.stringify(deviceStatus)}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
       this.CurrentTemperature = deviceStatus.body.temperature;
       this.CurrentRelativeHumidity = deviceStatus.body.humidity;
+      this.lightLevel = deviceStatus.body.lightLevel;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+      this.errorLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}` +
+        ` Connection, Error Message: ${JSON.stringify(e.message)}`,
+      );
     }
   }
 
@@ -207,20 +336,31 @@ export class Hub {
    */
 
   async updateHomeKitCharacteristics(): Promise<void> {
-    if (this.CurrentRelativeHumidity === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
-    } else {
-      this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidity;
-      this.hubHumiditySensor?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
-    }
-    
     if (this.CurrentTemperature === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
     } else {
       this.accessory.context.CurrentTemperature = this.CurrentTemperature;
       this.hubTemperatureSensor?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
+    }
+    if (this.CurrentRelativeHumidity === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+    } else {
+      this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidity;
+      this.hubHumiditySensor?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
+      this.debugLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} ` + `updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`,
+      );
+    }
+    if (this.CurrentAmbientLightLevel === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+    } else {
+      this.accessory.context.CurrentAmbientLightLevel = this.CurrentAmbientLightLevel;
+      this.hubHumiditySensor?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
+      this.debugLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} ` +
+        `updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
+      );
     }
   }
 
@@ -240,8 +380,10 @@ export class Hub {
         this.offlineOff();
         break;
       case 171:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. `
-          + `Hub: ${this.device.hubDeviceId}`);
+        this.errorLog(
+          `${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. ` +
+          `Hub: ${this.device.hubDeviceId}`,
+        );
         this.offlineOff();
         break;
       case 190:
@@ -257,8 +399,10 @@ export class Hub {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
         break;
       default:
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: `
-          + `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
+        this.infoLog(
+          `${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: ` +
+          `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`,
+        );
     }
   }
 
@@ -271,6 +415,25 @@ export class Hub {
   async apiError(e: any): Promise<void> {
     this.hubTemperatureSensor?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
     this.hubHumiditySensor?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, e);
+    this.hubLightSensor?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, e);
+  }
+
+  minLux(): number {
+    if (this.device.curtain?.set_minLux) {
+      this.set_minLux = this.device.curtain?.set_minLux;
+    } else {
+      this.set_minLux = 1;
+    }
+    return this.set_minLux;
+  }
+
+  maxLux(): number {
+    if (this.device.curtain?.set_maxLux) {
+      this.set_maxLux = this.device.curtain?.set_maxLux;
+    } else {
+      this.set_maxLux = 6001;
+    }
+    return this.set_maxLux;
   }
 
   FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {

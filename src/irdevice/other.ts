@@ -21,7 +21,11 @@ export class Others {
   deviceLogging!: string;
   otherDeviceType?: string;
 
-  constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
+  constructor(
+    private readonly platform: SwitchBotPlatform,
+    private accessory: PlatformAccessory,
+    public device: irdevice & irDevicesConfig,
+  ) {
     // default placeholders
     this.logs(device);
     this.deviceType(device);
@@ -87,16 +91,18 @@ export class Others {
    * Other -       "command"       "channelSub"      "default"	        =        previous channel
    */
   async pushOnChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOnChanges Active: ${this.Active},`
-      + ` disablePushOn: ${this.disablePushOn}, customize: ${this.device.customize}, customOn: ${this.device.customOn}`);
+    this.debugLog(
+      `${this.device.remoteType}: ${this.accessory.displayName} pushOnChanges Active: ${this.Active},` +
+      ` disablePushOn: ${this.disablePushOn}, customize: ${this.device.customize}, customOn: ${this.device.customOn}`,
+    );
     if (this.device.customize) {
       if (this.Active === this.platform.Characteristic.Active.ACTIVE && !this.disablePushOn) {
         const commandType: string = await this.commandType();
         const command: string = await this.commandOn();
         const bodyChange = JSON.stringify({
-          'command': command,
-          'parameter': 'default',
-          'commandType': commandType,
+          command: command,
+          parameter: 'default',
+          commandType: commandType,
         });
         await this.pushChanges(bodyChange);
       }
@@ -106,16 +112,18 @@ export class Others {
   }
 
   async pushOffChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOffChanges Active: ${this.Active},`
-      + ` disablePushOff: ${this.disablePushOff}, customize: ${this.device.customize}, customOff: ${this.device.customOff}`);
+    this.debugLog(
+      `${this.device.remoteType}: ${this.accessory.displayName} pushOffChanges Active: ${this.Active},` +
+      ` disablePushOff: ${this.disablePushOff}, customize: ${this.device.customize}, customOff: ${this.device.customOff}`,
+    );
     if (this.device.customize) {
       if (this.Active === this.platform.Characteristic.Active.INACTIVE && !this.disablePushOff) {
         const commandType: string = await this.commandType();
         const command: string = await this.commandOff();
         const bodyChange = JSON.stringify({
-          'command': command,
-          'parameter': 'default',
-          'commandType': commandType,
+          command: command,
+          parameter: 'default',
+          commandType: commandType,
         });
         await this.pushChanges(bodyChange);
       }
@@ -141,13 +149,16 @@ export class Others {
         this.updateHomeKitCharacteristics();
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType}`
-          + ` Connection, Error Message: ${JSON.stringify(e.message)}`,
+        this.errorLog(
+          `${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType}` +
+          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
         );
       }
     } else {
-      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-        + ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
+      this.warnLog(
+        `${this.device.remoteType}: ${this.accessory.displayName}` +
+        ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`,
+      );
     }
   }
 
@@ -161,7 +172,7 @@ export class Others {
     }
   }
 
-  async disablePushOnChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+  async disablePushOnChanges({ device }: { device: irdevice & irDevicesConfig }): Promise<void> {
     if (device.disablePushOn === undefined) {
       this.disablePushOn = false;
     } else {
@@ -169,7 +180,7 @@ export class Others {
     }
   }
 
-  async disablePushOffChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+  async disablePushOffChanges({ device }: { device: irdevice & irDevicesConfig }): Promise<void> {
     if (device.disablePushOff === undefined) {
       this.disablePushOff = false;
     } else {
@@ -222,8 +233,10 @@ export class Others {
         this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device is offline, statusCode: ${statusCode}`);
         break;
       case 171:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. `
-          + `Hub: ${this.device.hubDeviceId}`);
+        this.errorLog(
+          `${this.device.remoteType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. ` +
+          `Hub: ${this.device.hubDeviceId}`,
+        );
         break;
       case 190:
         this.errorLog(
@@ -238,8 +251,10 @@ export class Others {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
         break;
       default:
-        this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Unknown statusCode: `
-          + `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
+        this.infoLog(
+          `${this.device.remoteType}: ${this.accessory.displayName} Unknown statusCode: ` +
+          `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`,
+        );
     }
   }
 
@@ -261,8 +276,9 @@ export class Others {
 
   FirmwareRevision(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): string {
     let FirmwareRevision: string;
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-      + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+    this.debugLog(
+      `${this.device.remoteType}: ${this.accessory.displayName}` + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`,
+    );
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
     if (accessory.context.FirmwareRevision) {

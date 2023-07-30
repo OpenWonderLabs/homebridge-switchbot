@@ -80,10 +80,14 @@ export class BlindTilt {
   doBlindTiltUpdate!: Subject<void>;
 
   // Connection
-  private readonly BLE = (this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI');
-  private readonly OpenAPI = (this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI');
+  private readonly BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
+  private readonly OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
 
-  constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
+  constructor(
+    private readonly platform: SwitchBotPlatform,
+    private accessory: PlatformAccessory,
+    public device: device & devicesConfig,
+  ) {
     // default placeholders
     this.logs(device);
     this.refreshRate(device);
@@ -236,8 +240,10 @@ export class BlindTilt {
           await this.pushChanges();
         } catch (e: any) {
           this.apiError(e);
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
-            + ` Error Message: ${JSON.stringify(e.message)}`);
+          this.errorLog(
+            `${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,` +
+            ` Error Message: ${JSON.stringify(e.message)}`,
+          );
         }
         this.blindTiltUpdateInProgress = false;
       });
@@ -255,8 +261,9 @@ export class BlindTilt {
       await this.openAPIparseStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-        + ` ${this.device.connectionType}, parseStatus will not happen.`);
+      this.debugWarnLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` + ` ${this.device.connectionType}, parseStatus will not happen.`,
+      );
     }
   }
 
@@ -351,8 +358,8 @@ export class BlindTilt {
           this.debugLog();
       }
       this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel},`
-        + ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
+        `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel},` +
+        ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
       );
     }
     // Battery
@@ -362,8 +369,9 @@ export class BlindTilt {
     } else {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel},`
-      + ` StatusLowBattery: ${this.StatusLowBattery}`);
+    this.debugLog(
+      `${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel},` + ` StatusLowBattery: ${this.StatusLowBattery}`,
+    );
   }
 
   async openAPIparseStatus(): Promise<void> {
@@ -388,7 +396,7 @@ export class BlindTilt {
 
     if (this.setNewTarget && this.moving) {
       await this.setMinMax();
-      if (this.TargetPosition > this.CurrentPosition || (homekitTiltAngle && (this.TargetHorizontalTiltAngle !== this.CurrentHorizontalTiltAngle))) {
+      if (this.TargetPosition > this.CurrentPosition || (homekitTiltAngle && this.TargetHorizontalTiltAngle !== this.CurrentHorizontalTiltAngle)) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition} `);
         this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
         this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
@@ -399,15 +407,17 @@ export class BlindTilt {
         this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
         this.debugLog(`${this.device.deviceType}: ${this.CurrentPosition} DECREASING PositionState: ${this.PositionState}`);
       } else {
-        this.debugLog(`${this.device.deviceType}: ${this.CurrentPosition} Standby because reached position,` +
-          ` CurrentPosition: ${this.CurrentPosition}`);
+        this.debugLog(
+          `${this.device.deviceType}: ${this.CurrentPosition} Standby because reached position,` + ` CurrentPosition: ${this.CurrentPosition}`,
+        );
         this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
         this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
         this.debugLog(`${this.device.deviceType}: ${this.CurrentPosition} STOPPED PositionState: ${this.PositionState}`);
       }
     } else {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Standby because device not moving,` +
-        ` CurrentPosition: ${this.CurrentPosition}`);
+      this.debugLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} Standby because device not moving,` + ` CurrentPosition: ${this.CurrentPosition}`,
+      );
       this.TargetPosition = this.CurrentPosition;
       if (homekitTiltAngle) {
         this.TargetHorizontalTiltAngle = this.CurrentHorizontalTiltAngle;
@@ -445,8 +455,10 @@ export class BlindTilt {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-        + ` ${this.device.connectionType}, refreshStatus will not happen.`);
+      this.debugWarnLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` +
+        ` ${this.device.connectionType}, refreshStatus will not happen.`,
+      );
     }
   }
 
@@ -471,8 +483,10 @@ export class BlindTilt {
           // Set an event hander
           switchbot.onadvertisement = async (ad: any) => {
             this.address = ad.address;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
-              + ` BLE Address Found: ${this.address}`);
+            this.debugLog(
+              `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
+              ` BLE Address Found: ${this.address}`,
+            );
             this.serviceData = ad.serviceData;
             this.calibration = ad.serviceData.calibration;
             this.battery = ad.serviceData.battery;
@@ -483,7 +497,8 @@ export class BlindTilt {
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} calibration: ${ad.serviceData.calibration}, ` +
               `position: ${ad.serviceData.position}, lightLevel: ${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}, ` +
-              `inMotion: ${ad.serviceData.inMotion}`);
+              `inMotion: ${ad.serviceData.inMotion}`,
+            );
 
             if (this.serviceData) {
               this.connected = true;
@@ -503,8 +518,10 @@ export class BlindTilt {
         })
         .catch(async (e: any) => {
           this.apiError(e);
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLERefreshStatus with ${this.device.connectionType}`
-            + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+          this.errorLog(
+            `${this.device.deviceType}: ${this.accessory.displayName} failed BLERefreshStatus with ${this.device.connectionType}` +
+            ` Connection, Error Message: ${JSON.stringify(e.message)}`,
+          );
           await this.BLERefreshConnection(switchbot);
         });
     } else {
@@ -522,10 +539,7 @@ export class BlindTilt {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
       this.statusCode(statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName
-        } refreshStatus: ${JSON.stringify(deviceStatus)}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
       this.slidePosition = deviceStatus.body.slidePosition;
       this.direction = deviceStatus.body.direction;
       this.moving = deviceStatus.body.moving;
@@ -534,8 +548,10 @@ export class BlindTilt {
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+      this.errorLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}` +
+        ` Connection, Error Message: ${JSON.stringify(e.message)}`,
+      );
     }
   }
 
@@ -548,8 +564,9 @@ export class BlindTilt {
       await this.openAPIpushChanges();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-        + ` ${this.device.connectionType}, pushChanges will not happen.`);
+      this.debugWarnLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` + ` ${this.device.connectionType}, pushChanges will not happen.`,
+      );
     }
     // Refresh the status from the API
     interval(15000)
@@ -593,8 +610,10 @@ export class BlindTilt {
           })
           .catch(async (e: any) => {
             this.apiError(e);
-            this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
-              + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+            this.errorLog(
+              `${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}` +
+              ` Connection, Error Message: ${JSON.stringify(e.message)}`,
+            );
             await this.BLEPushConnection();
           });
       } else {
@@ -602,7 +621,8 @@ export class BlindTilt {
         await this.BLEPushConnection();
       }
     } else {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges, CurrentPosition & TargetPosition Are the Same.` +
+      this.debugLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges, CurrentPosition & TargetPosition Are the Same.` +
         `  CurrentPosition: ${this.CurrentPosition}, TargetPosition  ${this.TargetPosition}`,
       );
     }
@@ -630,29 +650,28 @@ export class BlindTilt {
 
   async openAPIpushChanges(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges`);
-    const hasDifferentAndRelevantHorizontalTiltAngle = (
-      this.mappingMode === BlindTiltMappingMode.UseTiltForDirection
-      && this.TargetHorizontalTiltAngle !== this.CurrentHorizontalTiltAngle);
-    if ((this.TargetPosition !== this.CurrentPosition) || hasDifferentAndRelevantHorizontalTiltAngle || this.device.disableCaching) {
+    const hasDifferentAndRelevantHorizontalTiltAngle =
+      this.mappingMode === BlindTiltMappingMode.UseTiltForDirection && this.TargetHorizontalTiltAngle !== this.CurrentHorizontalTiltAngle;
+    if (this.TargetPosition !== this.CurrentPosition || hasDifferentAndRelevantHorizontalTiltAngle || this.device.disableCaching) {
       const [direction, position] = this.mapHomekitValuesToDeviceValues(Number(this.TargetPosition), Number(this.TargetHorizontalTiltAngle));
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Pushing ${this.TargetPosition} (device = ${direction};${position})`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Mode: ${this.Mode}`);
       let bodyChange = '';
       if (position === 100) {
         bodyChange = JSON.stringify({
-          'command': 'fullyOpen',
-          'commandType': 'command',
+          command: 'fullyOpen',
+          commandType: 'command',
         });
       } else if (position === 0) {
         bodyChange = JSON.stringify({
-          'command': direction === 'up' ? 'closeUp' : 'closeDown',
-          'commandType': 'command',
+          command: direction === 'up' ? 'closeUp' : 'closeDown',
+          commandType: 'command',
         });
       } else {
         bodyChange = JSON.stringify({
-          'command': 'setPosition',
-          'parameter': `${direction};${position}`,
-          'commandType': 'command',
+          command: 'setPosition',
+          parameter: `${direction};${position}`,
+          commandType: 'command',
         });
       }
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
@@ -668,14 +687,16 @@ export class BlindTilt {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
-          + ` Connection, Error Message: ${JSON.stringify(e.message)}`,
+        this.errorLog(
+          `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}` +
+          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
         );
       }
     } else {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No OpenAPI Changes, CurrentPosition & TargetPosition Are the Same.`
-        + ` CurrentPosition: ${this.CurrentPosition}, TargetPosition  ${this.TargetPosition}`
-        + ` CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}, TargetPosition  ${this.TargetHorizontalTiltAngle}`,
+      this.debugLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} No OpenAPI Changes, CurrentPosition & TargetPosition Are the Same.` +
+        ` CurrentPosition: ${this.CurrentPosition}, TargetPosition  ${this.TargetPosition}` +
+        ` CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}, TargetPosition  ${this.TargetHorizontalTiltAngle}`,
       );
     }
   }
@@ -699,7 +720,6 @@ export class BlindTilt {
     this.startUpdatingBlindTiltIfNeeded();
   }
 
-
   /**
    * Handle requests to set the value of the "Target Position" characteristic
    */
@@ -720,21 +740,24 @@ export class BlindTilt {
   async startUpdatingBlindTiltIfNeeded(): Promise<void> {
     await this.setMinMax();
     this.debugLog('setMinMax');
-    if (this.TargetPosition > this.CurrentPosition || (this.TargetHorizontalTiltAngle !== this.CurrentHorizontalTiltAngle)) {
+    if (this.TargetPosition > this.CurrentPosition || this.TargetHorizontalTiltAngle !== this.CurrentHorizontalTiltAngle) {
       this.PositionState = this.platform.Characteristic.PositionState.INCREASING;
       this.setNewTarget = true;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${this.CurrentPosition},` +
-        ` CurrentPosition: ${this.CurrentPosition}`);
+      this.debugLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} value: ${this.CurrentPosition},` + ` CurrentPosition: ${this.CurrentPosition}`,
+      );
     } else if (this.TargetPosition < this.CurrentPosition) {
       this.PositionState = this.platform.Characteristic.PositionState.DECREASING;
       this.setNewTarget = true;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${this.CurrentPosition},` +
-        ` CurrentPosition: ${this.CurrentPosition}`);
+      this.debugLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} value: ${this.CurrentPosition},` + ` CurrentPosition: ${this.CurrentPosition}`,
+      );
     } else {
       this.PositionState = this.platform.Characteristic.PositionState.STOPPED;
       this.setNewTarget = false;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${this.CurrentPosition},` +
-        ` CurrentPosition: ${this.CurrentPosition}`);
+      this.debugLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} value: ${this.CurrentPosition},` + ` CurrentPosition: ${this.CurrentPosition}`,
+      );
     }
     this.windowCoveringService.setCharacteristic(this.platform.Characteristic.PositionState, this.PositionState);
     this.windowCoveringService.getCharacteristic(this.platform.Characteristic.PositionState).updateValue(this.PositionState);
@@ -765,8 +788,10 @@ export class BlindTilt {
           this.mqttPublish('CurrentHorizontalTiltAngle', this.CurrentHorizontalTiltAngle);
         }
         this.accessory.context.CurrentHorizontalTiltAngle = this.CurrentHorizontalTiltAngle;
-        this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.CurrentHorizontalTiltAngle,
-          Number(this.CurrentHorizontalTiltAngle));
+        this.windowCoveringService.updateCharacteristic(
+          this.platform.Characteristic.CurrentHorizontalTiltAngle,
+          Number(this.CurrentHorizontalTiltAngle),
+        );
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} 
         updateCharacteristic CurrentHorizontalTiltAngle: ${this.CurrentHorizontalTiltAngle}`);
       }
@@ -811,8 +836,10 @@ export class BlindTilt {
         }
         this.accessory.context.CurrentAmbientLightLevel = this.CurrentAmbientLightLevel;
         this.lightSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-          + ` updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+        this.debugLog(
+          `${this.device.deviceType}: ${this.accessory.displayName}` +
+          ` updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
+        );
       }
     }
     if (this.BLE) {
@@ -983,8 +1010,10 @@ export class BlindTilt {
       if (this.updateRate > device.scanDuration) {
         this.scanDuration = this.updateRate;
         if (this.BLE) {
-          this.warnLog(`${this.device.deviceType}: `
-            + `${this.accessory.displayName} scanDuration is less than updateRate, overriding scanDuration with updateRate`);
+          this.warnLog(
+            `${this.device.deviceType}: ` +
+            `${this.accessory.displayName} scanDuration is less than updateRate, overriding scanDuration with updateRate`,
+          );
         }
       } else {
         this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
@@ -1020,8 +1049,10 @@ export class BlindTilt {
         this.offlineOff();
         break;
       case 171:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. `
-          + `Hub: ${this.device.hubDeviceId}`);
+        this.errorLog(
+          `${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. ` +
+          `Hub: ${this.device.hubDeviceId}`,
+        );
         this.offlineOff();
         break;
       case 190:
@@ -1037,8 +1068,10 @@ export class BlindTilt {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
         break;
       default:
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: `
-          + `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
+        this.infoLog(
+          `${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: ` +
+          `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`,
+        );
     }
   }
 
@@ -1065,8 +1098,9 @@ export class BlindTilt {
 
   FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
     let FirmwareRevision: string;
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-      + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+    this.debugLog(
+      `${this.device.deviceType}: ${this.accessory.displayName}` + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`,
+    );
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
     if (accessory.context.FirmwareRevision) {
