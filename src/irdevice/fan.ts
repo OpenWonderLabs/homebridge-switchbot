@@ -1,7 +1,7 @@
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { request } from 'undici';
 import { SwitchBotPlatform } from '../platform';
-import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
-import { irdevice, irDevicesConfig, Devices } from '../settings';
+import { Devices, irDevicesConfig, irdevice } from '../settings';
 
 /**
  * Platform Accessory
@@ -236,7 +236,7 @@ export class Fan {
   async pushChanges(bodyChange: any): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushChanges`);
     if (this.device.connectionType === 'OpenAPI') {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
+      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
         const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/commands`, {
           body: bodyChange,
