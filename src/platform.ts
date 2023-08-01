@@ -138,7 +138,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       platformConfig['pushRate'] = this.config.options.pushRate;
     }
     if (Object.entries(platformConfig).length !== 0) {
-      this.infoLog(`Platform Config: ${JSON.stringify(platformConfig)}`);
+      this.debugWarnLog(`Platform Config: ${JSON.stringify(platformConfig)}`);
     }
 
     if (this.config.options) {
@@ -245,7 +245,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } else {
         // eslint-disable-next-line no-useless-escape, max-len
         this.warnLog(
-          'This plugin has been updated to use OpenAPI v1.1, config is set with openToken, "openToken" config has been moved to the "token" config, please restart Homebridge.',
+          'This plugin has been updated to use OpenAPI v1.1, config is set with openToken, '
+          + '"openToken" config has been moved to the "token" config, please restart Homebridge.',
         );
       }
 

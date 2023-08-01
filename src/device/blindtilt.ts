@@ -92,9 +92,9 @@ export class BlindTilt {
     this.logs(device);
     this.refreshRate(device);
     this.scan(device);
-    this.config(device);
     this.setupMqtt(device);
     this.context();
+    this.config(device);
 
     this.mappingMode = (device.blindTilt?.mode as BlindTiltMappingMode) ?? BlindTiltMappingMode.OnlyUp;
     this.debugLog(`Mapping mode: ${this.mappingMode}`);
@@ -1306,7 +1306,7 @@ export class BlindTilt {
     }
 
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 

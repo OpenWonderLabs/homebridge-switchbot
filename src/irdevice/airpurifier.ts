@@ -45,10 +45,10 @@ export class AirPurifier {
   ) {
     // default placeholders
     this.logs(device);
-    this.config(device);
     this.context();
     this.disablePushOnChanges({ device });
     this.disablePushOffChanges({ device });
+    this.config(device);
 
     // set accessory information
     accessory
@@ -420,7 +420,7 @@ export class AirPurifier {
       config['disablePushOff'] = device.disablePushOff;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 

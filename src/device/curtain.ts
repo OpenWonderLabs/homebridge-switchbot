@@ -83,9 +83,9 @@ export class Curtain {
     this.logs(device);
     this.refreshRate(device);
     this.scan(device);
-    this.config(device);
     this.setupMqtt(device);
     this.context();
+    this.config(device);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doCurtainUpdate = new Subject();
@@ -1188,7 +1188,7 @@ export class Curtain {
       config['maxRetry'] = device.maxRetry;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 

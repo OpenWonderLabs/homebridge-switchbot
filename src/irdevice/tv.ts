@@ -33,11 +33,11 @@ export class TV {
   ) {
     // default placeholders
     this.logs(device);
-    this.config(device);
     this.context();
     this.disablePushOnChanges({ device });
     this.disablePushOffChanges({ device });
     this.disablePushDetailChanges({ device });
+    this.config(device);
 
     // set accessory information
     accessory
@@ -574,7 +574,7 @@ export class TV {
       config['disablePushDetail'] = device.disablePushDetail;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 

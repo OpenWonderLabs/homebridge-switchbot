@@ -1,3 +1,4 @@
+/* eslint-disable brace-style */
 import { Context } from 'vm';
 import { request } from 'undici';
 import { sleep } from '../utils';
@@ -72,8 +73,9 @@ export class CeilingLight {
     this.scan(device);
     this.refreshRate(device);
     this.adaptiveLighting(device);
-    this.config(device);
     this.context();
+    this.config(device);
+
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doCeilingLightUpdate = new Subject();
     this.ceilingLightUpdateInProgress = false;
@@ -233,7 +235,8 @@ export class CeilingLight {
   async parseStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} parseStatus enableCloudService: ${this.device.enableCloudService}`);
-    } /*if (this.BLE) {
+    }
+    /*if (this.BLE) {
       await this.BLEparseStatus();
     } else*/ else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
@@ -1038,7 +1041,7 @@ export class CeilingLight {
       config['maxRetry'] = device.maxRetry;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 

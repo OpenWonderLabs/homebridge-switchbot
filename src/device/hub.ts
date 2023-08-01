@@ -43,6 +43,7 @@ export class Hub {
     // default placeholders
     this.logs(device);
     this.refreshRate(device);
+    this.config(device);
 
     this.CurrentRelativeHumidity = accessory.context.CurrentRelativeHumidity;
     this.CurrentTemperature = accessory.context.CurrentTemperature;
@@ -469,6 +470,28 @@ export class Hub {
     } else {
       this.updateRate = 7;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Default Curtain updateRate: ${this.updateRate}`);
+    }
+  }
+
+  async config(device: device & devicesConfig): Promise<void> {
+    let config = {};
+    if (device.hub) {
+      config = device.hub;
+    }
+    if (device.connectionType !== undefined) {
+      config['connectionType'] = device.connectionType;
+    }
+    if (device.external !== undefined) {
+      config['external'] = device.external;
+    }
+    if (device.logging !== undefined) {
+      config['logging'] = device.logging;
+    }
+    if (device.refreshRate !== undefined) {
+      config['refreshRate'] = device.refreshRate;
+    }
+    if (Object.entries(config).length !== 0) {
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 

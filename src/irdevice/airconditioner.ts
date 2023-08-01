@@ -50,11 +50,11 @@ export class AirConditioner {
   ) {
     // default placeholders
     this.logs({ device });
-    this.config({ device });
     this.context();
     this.disablePushOnChanges({ device });
     this.disablePushOffChanges({ device });
     this.disablePushDetailChanges({ device });
+    this.config({ device });
 
     // set accessory information
     accessory
@@ -291,7 +291,8 @@ export class AirConditioner {
         this.meter.getService(this.platform.Service.TemperatureSensor)?.getCharacteristic(this.platform.Characteristic.CurrentTemperature).value ||
         24;
       this.debugLog(
-        `${this.device.remoteType}: ${this.accessory.displayName} Using CurrentTemperature from ${this.meter.context?.deviceType} (${this.meter.context?.deviceID})`,
+        `${this.device.remoteType}: ${this.accessory.displayName} `
+        + `Using CurrentTemperature from ${this.meter.context?.deviceType} (${this.meter.context?.deviceID})`,
       );
     } else if (this.CurrentTemperature === undefined) {
       this.CurrentTemperature = 24;
@@ -309,7 +310,8 @@ export class AirConditioner {
         this.meter.getService(this.platform.Service.HumiditySensor)?.getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity).value ||
         0;
       this.debugLog(
-        `${this.device.remoteType}: ${this.accessory.displayName} Using CurrentRelativeHumidity from ${this.meter.context?.deviceType} (${this.meter.context?.deviceID})`,
+        `${this.device.remoteType}: ${this.accessory.displayName} `
+        + `Using CurrentRelativeHumidity from ${this.meter.context?.deviceType} (${this.meter.context?.deviceID})`,
       );
     } else if (this.CurrentRelativeHumidity === undefined) {
       this.CurrentRelativeHumidity = 0;
@@ -715,7 +717,7 @@ export class AirConditioner {
       config['disablePushDetail'] = device.disablePushDetail;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
