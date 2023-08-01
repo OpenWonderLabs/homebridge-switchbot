@@ -29,6 +29,7 @@ export class Meter {
   StatusLowBattery?: CharacteristicValue;
 
   // OpenAPI Others
+  Battery: deviceStatus['battery'];
   Temperature: deviceStatus['temperature'];
   Humidity: deviceStatus['humidity'];
   deviceStatus!: any; //deviceStatusResponse;
@@ -226,7 +227,7 @@ export class Meter {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
 
     // Battery
-    this.BatteryLevel = Number(this.battery);
+    this.BatteryLevel = Number(this.Battery);
     if (this.BatteryLevel < 15) {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
@@ -349,7 +350,7 @@ export class Meter {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
       this.Humidity = deviceStatus.body.humidity!;
       this.Temperature = deviceStatus.body.temperature!;
-      this.battery = deviceStatus.body.battery!;
+      this.Battery = deviceStatus.body.battery!;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
