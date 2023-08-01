@@ -1,7 +1,7 @@
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { request } from 'undici';
 import { SwitchBotPlatform } from '../platform';
-import { irDevicesConfig, irdevice, Devices } from '../settings';
-import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+import { Devices, irDevicesConfig, irdevice } from '../settings';
 
 /**
  * Platform Accessory
@@ -27,10 +27,10 @@ export class VacuumCleaner {
   ) {
     // default placeholders
     this.logs(device);
-    this.config(device);
     this.context();
     this.disablePushOnChanges({ device });
     this.disablePushOffChanges({ device });
+    this.config(device);
 
     // set accessory information
     accessory
@@ -112,7 +112,7 @@ export class VacuumCleaner {
   async pushChanges(bodyChange: any): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushChanges`);
     if (this.device.connectionType === 'OpenAPI') {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
+      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
         const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/commands`, {
           body: bodyChange,
@@ -294,7 +294,7 @@ export class VacuumCleaner {
       config['disablePushOff'] = device.disablePushOff;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 

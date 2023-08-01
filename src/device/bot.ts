@@ -74,9 +74,9 @@ export class Bot {
     this.refreshRate(device);
     this.PressOrSwitch(device);
     this.allowPushChanges(device);
-    this.config(device);
     this.context();
     this.DoublePress(device);
+    this.config(device);
 
     this.multiPressCount = 0;
 
@@ -1377,7 +1377,7 @@ export class Bot {
       config['maxRetry'] = device.maxRetry;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
