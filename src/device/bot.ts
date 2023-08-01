@@ -33,6 +33,7 @@ export class Bot {
 
   // OpenAPI Others
   Version: deviceStatus['version'];
+  Battery: deviceStatus['battery'];
   power: deviceStatus['power'];
   deviceStatus!: any; //deviceStatusResponse;
 
@@ -114,7 +115,7 @@ export class Bot {
       // Add switchService
       (this.switchService = accessory.getService(this.platform.Service.Switch) || accessory.addService(this.platform.Service.Switch)),
       `${accessory.displayName} Switch`;
-      this.infoLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Switch`);
+      this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Switch`);
 
       this.switchService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
       if (!this.switchService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -136,7 +137,7 @@ export class Bot {
       (this.garageDoorService =
         accessory.getService(this.platform.Service.GarageDoorOpener) || accessory.addService(this.platform.Service.GarageDoorOpener)),
       `${accessory.displayName} Garage Door Opener`;
-      this.infoLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Garage Door Opener`);
+      this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Garage Door Opener`);
 
       this.garageDoorService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
       if (!this.garageDoorService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -158,7 +159,7 @@ export class Bot {
       // Add switchService
       (this.doorService = accessory.getService(this.platform.Service.Door) || accessory.addService(this.platform.Service.Door)),
       `${accessory.displayName} Door`;
-      this.infoLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Door`);
+      this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Door`);
 
       this.doorService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
       if (!this.doorService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -188,7 +189,7 @@ export class Bot {
       // Add switchService
       (this.windowService = accessory.getService(this.platform.Service.Window) || accessory.addService(this.platform.Service.Window)),
       `${accessory.displayName} Window`;
-      this.infoLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Window`);
+      this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Window`);
 
       this.windowService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
       if (!this.windowService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -219,7 +220,7 @@ export class Bot {
       (this.windowCoveringService =
         accessory.getService(this.platform.Service.WindowCovering) || accessory.addService(this.platform.Service.WindowCovering)),
       `${accessory.displayName} Window Covering`;
-      this.infoLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Window Covering`);
+      this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Window Covering`);
 
       this.windowCoveringService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
       if (!this.windowCoveringService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -249,7 +250,7 @@ export class Bot {
       // Add switchService
       (this.lockService = accessory.getService(this.platform.Service.LockMechanism) || accessory.addService(this.platform.Service.LockMechanism)),
       `${accessory.displayName} Lock`;
-      this.infoLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Lock`);
+      this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Lock`);
 
       this.lockService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
       if (!this.lockService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -270,7 +271,7 @@ export class Bot {
       // Add switchService
       (this.faucetService = accessory.getService(this.platform.Service.Faucet) || accessory.addService(this.platform.Service.Faucet)),
       `${accessory.displayName} Faucet`;
-      this.infoLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Faucet`);
+      this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Faucet`);
 
       this.faucetService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
       if (!this.faucetService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -291,7 +292,7 @@ export class Bot {
       // Add switchService
       (this.fanService = accessory.getService(this.platform.Service.Fan) || accessory.addService(this.platform.Service.Fan)),
       `${accessory.displayName} Fan`;
-      this.infoLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Fan`);
+      this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Fan`);
 
       this.fanService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
       if (!this.fanService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -314,7 +315,7 @@ export class Bot {
         accessory.getService(this.platform.Service.StatefulProgrammableSwitch) ||
         accessory.addService(this.platform.Service.StatefulProgrammableSwitch)),
       `${accessory.displayName} Stateful Programmable Switch`;
-      this.infoLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Stateful Programmable Switch`);
+      this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Stateful Programmable Switch`);
 
       this.statefulProgrammableSwitchService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
       if (!this.statefulProgrammableSwitchService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -337,7 +338,7 @@ export class Bot {
       // Add outletService
       (this.outletService = accessory.getService(this.platform.Service.Outlet) || accessory.addService(this.platform.Service.Outlet)),
       `${accessory.displayName} Outlet`;
-      this.infoLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Outlet`);
+      this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Outlet`);
 
       this.outletService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
       if (!this.outletService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -347,19 +348,16 @@ export class Bot {
     }
 
     // Battery Service
-    if (!this.BLE) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Battery Service`);
-      this.batteryService = this.accessory.getService(this.platform.Service.Battery);
-      accessory.removeService(this.batteryService!);
-    } else if (this.BLE && !this.batteryService) {
+    if (!this.batteryService) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Battery Service`);
       (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || this.accessory.addService(this.platform.Service.Battery)),
       `${accessory.displayName} Battery`;
 
       this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
       if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-        this.batteryService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+        this.batteryService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Battery`);
       }
+      this.batteryService.setCharacteristic(this.platform.Characteristic.ChargingState, this.platform.Characteristic.ChargingState.NOT_CHARGEABLE);
     } else {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Battery Service Not Added`);
     }
@@ -462,6 +460,18 @@ export class Bot {
       }
     }
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
+
+    // Battery
+    this.BatteryLevel = Number(this.Battery);
+    if (this.BatteryLevel < 10) {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
+    } else {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    }
+    if (Number.isNaN(this.BatteryLevel)) {
+      this.BatteryLevel = 100;
+    }
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
   }
 
   /**
@@ -559,6 +569,8 @@ export class Bot {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
       this.power = deviceStatus.body.power;
+      this.Battery = deviceStatus.body.battery;
+      this.Version = deviceStatus.body.version;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
@@ -986,23 +998,22 @@ export class Bot {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
       }
     }
-    this.accessory.context.On = this.On;
-    if (this.BLE) {
-      if (this.BatteryLevel === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
-      } else {
-        this.accessory.context.BatteryLevel = this.BatteryLevel;
-        this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
-      }
-      if (this.StatusLowBattery === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
-      } else {
-        this.accessory.context.StatusLowBattery = this.StatusLowBattery;
-        this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
-      }
+    if (this.BatteryLevel === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
+    } else {
+      this.accessory.context.BatteryLevel = this.BatteryLevel;
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
     }
+    if (this.StatusLowBattery === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
+    } else {
+      this.accessory.context.StatusLowBattery = this.StatusLowBattery;
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
+    }
+
+    this.accessory.context.On = this.On;
   }
 
   async removeOutletService(accessory: PlatformAccessory): Promise<void> {
@@ -1290,10 +1301,8 @@ export class Bot {
     } else {
       this.outletService?.updateCharacteristic(this.platform.Characteristic.On, e);
     }
-    if (this.BLE) {
-      this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
-      this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
-    }
+    this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
+    this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
   }
 
   FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {

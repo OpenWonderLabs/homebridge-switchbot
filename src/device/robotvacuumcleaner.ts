@@ -20,6 +20,7 @@ export class RobotVacuumCleaner {
   StatusLowBattery?: CharacteristicValue;
 
   // OpenAPI Others
+  Version: deviceStatus['version'];
   Battery: deviceStatus['battery'];
   power: deviceStatus['power'];
   deviceStatus!: any; //deviceStatusResponse;
@@ -309,6 +310,7 @@ export class RobotVacuumCleaner {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
       this.power = deviceStatus.body.power;
       this.Battery = deviceStatus.body.battery;
+      this.Version = deviceStatus.body.version;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {

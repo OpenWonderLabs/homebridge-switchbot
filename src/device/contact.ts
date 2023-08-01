@@ -408,8 +408,8 @@ export class Contact {
       this.openState = deviceStatus.body.openState;
       this.moveDetected = deviceStatus.body.moveDetected;
       this.brightness = deviceStatus.body.brightness;
-      this.Battery = deviceStatus.body.battery!;
-      this.Version = deviceStatus.body.version!;
+      this.Battery = deviceStatus.body.battery;
+      this.Version = deviceStatus.body.version;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {

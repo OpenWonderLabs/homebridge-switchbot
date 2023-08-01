@@ -567,6 +567,8 @@ export class Curtain {
       this.slidePosition = deviceStatus.body.slidePosition;
       this.moving = deviceStatus.body.moving;
       this.brightness = deviceStatus.body.brightness;
+      this.Battery = deviceStatus.body.battery;
+      this.Version = deviceStatus.body.version;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {

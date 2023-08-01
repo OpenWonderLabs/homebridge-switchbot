@@ -319,8 +319,8 @@ export class Lock {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
       this.lockState = deviceStatus.body.lockState;
       this.doorState = deviceStatus.body.doorState;
-      this.Version = deviceStatus.body.version;
       this.Battery = deviceStatus.body.battery;
+      this.Version = deviceStatus.body.version;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
