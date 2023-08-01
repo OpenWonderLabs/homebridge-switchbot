@@ -286,7 +286,7 @@ export type deviceStatus = {
   childLock?: boolean; //determines if a Humidifier's safety lock is on or not. (Used by the following deviceTypes: Humidifier)
   sound?: boolean; //determines if a Humidifier is muted or not. (Used by the following deviceTypes: Humidifier)
   lackWater?: boolean; //determines if the water tank is empty or not. (Used by the following deviceTypes: Humidifier)
-  version?: number; //the version of the device. (Used by the following deviceTypes: Blind Tilt)
+  version?: number; //the version of the device. (Used by the following deviceTypes: Blind Tilt, Meter, MeterPlus, IOSensor)
   direction?: string; //the opening direction of a Blind Tilt device. (Used by the following deviceTypes: Blind Tilt)
   runStatus?: string; //'static' when not moving. (Used by the following deviceTypes: Blind Tilt)
   mode?: number; //available for  devices. the fan mode. (Used by the following deviceTypes: Smart Fan)

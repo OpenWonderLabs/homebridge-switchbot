@@ -29,6 +29,7 @@ export class Meter {
   StatusLowBattery?: CharacteristicValue;
 
   // OpenAPI Others
+  Version: deviceStatus['version'];
   Battery: deviceStatus['battery'];
   Temperature: deviceStatus['temperature'];
   Humidity: deviceStatus['humidity'];
@@ -351,6 +352,7 @@ export class Meter {
       this.Humidity = deviceStatus.body.humidity!;
       this.Temperature = deviceStatus.body.temperature!;
       this.Battery = deviceStatus.body.battery!;
+      this.Version = deviceStatus.body.ver!;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
@@ -600,10 +602,12 @@ export class Meter {
     );
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
-    if (accessory.context.FirmwareRevision) {
-      FirmwareRevision = accessory.context.FirmwareRevision;
-    } else if (device.firmware) {
+    if (device.firmware) {
       FirmwareRevision = device.firmware;
+    } else if (device.version) {
+      FirmwareRevision = JSON.stringify(device.version);
+    } else if (accessory.context.FirmwareRevision) {
+      FirmwareRevision = accessory.context.FirmwareRevision;
     } else {
       FirmwareRevision = this.platform.version;
     }

@@ -32,6 +32,7 @@ export class Bot {
   StatusLowBattery!: CharacteristicValue;
 
   // OpenAPI Others
+  Version: deviceStatus['version'];
   power: deviceStatus['power'];
   deviceStatus!: any; //deviceStatusResponse;
 
@@ -1302,10 +1303,12 @@ export class Bot {
     );
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
-    if (accessory.context.FirmwareRevision) {
-      FirmwareRevision = accessory.context.FirmwareRevision;
-    } else if (device.firmware) {
+    if (device.firmware) {
       FirmwareRevision = device.firmware;
+    } else if (device.version) {
+      FirmwareRevision = JSON.stringify(device.version);
+    } if (accessory.context.FirmwareRevision) {
+      FirmwareRevision = accessory.context.FirmwareRevision;
     } else {
       FirmwareRevision = this.platform.version;
     }

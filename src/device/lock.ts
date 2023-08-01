@@ -19,6 +19,8 @@ export class Lock {
   LockTargetState!: CharacteristicValue;
 
   // OpenAPI Others
+  Version: deviceStatus['version'];
+  Battery: deviceStatus['battery'];
   doorState!: deviceStatus['doorState'];
   lockState!: deviceStatus['lockState'];
   deviceStatus!: any; //deviceStatusResponse;
@@ -317,6 +319,8 @@ export class Lock {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
       this.lockState = deviceStatus.body.lockState;
       this.doorState = deviceStatus.body.doorState;
+      this.Version = deviceStatus.body.version;
+      this.Battery = deviceStatus.body.battery;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
@@ -598,10 +602,12 @@ export class Lock {
     );
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
-    if (accessory.context.FirmwareRevision) {
-      FirmwareRevision = accessory.context.FirmwareRevision;
-    } else if (device.firmware) {
+    if (device.firmware) {
       FirmwareRevision = device.firmware;
+    } else if (device.version) {
+      FirmwareRevision = JSON.stringify(device.version);
+    } else if (accessory.context.FirmwareRevision) {
+      FirmwareRevision = accessory.context.FirmwareRevision;
     } else {
       FirmwareRevision = this.platform.version;
     }

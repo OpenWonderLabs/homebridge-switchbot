@@ -1,3 +1,4 @@
+/* eslint-disable brace-style */
 import { Context } from 'vm';
 import { request } from 'undici';
 import { sleep } from '../utils';
@@ -19,6 +20,7 @@ export class RobotVacuumCleaner {
   StatusLowBattery?: CharacteristicValue;
 
   // OpenAPI Others
+  Battery: deviceStatus['battery'];
   power: deviceStatus['power'];
   deviceStatus!: any; //deviceStatusResponse;
 
@@ -107,6 +109,21 @@ export class RobotVacuumCleaner {
       })
       .onSet(this.BrightnessSet.bind(this));
 
+    // Battery Service
+    if (!this.batteryService) {
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Battery Service`);
+      (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || this.accessory.addService(this.platform.Service.Battery)),
+      `${accessory.displayName} Battery`;
+
+      this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
+      if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.batteryService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Battery`);
+      }
+      this.batteryService.setCharacteristic(this.platform.Characteristic.ChargingState, this.platform.Characteristic.ChargingState.NOT_CHARGEABLE);
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Battery Service Not Added`);
+    }
+
     // Update Homekit
     this.updateHomeKitCharacteristics();
 
@@ -186,6 +203,15 @@ export class RobotVacuumCleaner {
         this.On = false;
     }
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
+
+    // Battery
+    this.BatteryLevel = Number(this.Battery);
+    if (this.BatteryLevel < 15) {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
+    } else {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    }
+    this.debugLog(`${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
   }
 
   /**
@@ -282,6 +308,7 @@ export class RobotVacuumCleaner {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
       this.power = deviceStatus.body.power;
+      this.Battery = deviceStatus.body.battery;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
