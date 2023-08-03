@@ -358,7 +358,7 @@ export class Hub {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
     } else {
       this.accessory.context.CurrentAmbientLightLevel = this.CurrentAmbientLightLevel;
-      this.hubHumiditySensor?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
+      this.hubLightSensor?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
       this.debugLog(
         `${this.device.deviceType}: ${this.accessory.displayName} ` +
         `updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
