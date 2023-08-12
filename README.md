@@ -97,7 +97,7 @@
     - Must supply `deviceId` & `deviceName` to Device Config
     - Check `Enable Bluetooth Low Energy (BLE) Connection` on Device Config
 - [SwitchBot Blind Tilt](https://us.switch-bot.com/pages/switchbot-blind-tilt)
-- Supports OpenAPI Connection Only
+  - Supports OpenAPI Connection Only
   - If using OpenAPI:
     - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub 2](https://us.switch-bot.com/pages/switchbot-hub-2) Required
     - Enable Cloud Services for Device on SwitchBot App
