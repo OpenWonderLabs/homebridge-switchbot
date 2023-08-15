@@ -293,38 +293,34 @@ export class AirConditioner {
   }
 
   async CurrentTemperatureGet(): Promise<CharacteristicValue> {
-    if (this.meter) {
-      this.CurrentTemperature =
-        this.meter.context?.CurrentTemperature ||
-        this.meter.getService(this.platform.Service.TemperatureSensor)?.getCharacteristic(this.platform.Characteristic.CurrentTemperature).value ||
-        24;
+    if (this.meter?.context?.CurrentTemperature) {
+      this.CurrentTemperature = this.meter.context.CurrentTemperature;
       this.debugLog(
         `${this.device.remoteType}: ${this.accessory.displayName} `
-        + `Using CurrentTemperature from ${this.meter.context?.deviceType} (${this.meter.context?.deviceID})`,
+        + `Using CurrentTemperature from ${this.meter.context.deviceType} (${this.meter.context.deviceID})`,
       );
-    } else if (this.CurrentTemperature === undefined) {
-      this.CurrentTemperature = 24;
     } else {
       this.CurrentTemperature = this.accessory.context.CurrentTemperature;
+    }
+    if (this.CurrentTemperature === undefined) {
+      this.CurrentTemperature = 24;
     }
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Get CurrentTemperature: ${this.CurrentTemperature}`);
     return this.CurrentTemperature;
   }
 
   async CurrentRelativeHumidityGet(): Promise<CharacteristicValue> {
-    if (this.meter) {
-      this.CurrentRelativeHumidity =
-        this.meter.context?.CurrentRelativeHumidity ||
-        this.meter.getService(this.platform.Service.HumiditySensor)?.getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity).value ||
-        0;
+    if (this.meter?.context?.CurrentRelativeHumidity) {
+      this.CurrentRelativeHumidity = this.meter.context.CurrentRelativeHumidity;
       this.debugLog(
         `${this.device.remoteType}: ${this.accessory.displayName} `
-        + `Using CurrentRelativeHumidity from ${this.meter.context?.deviceType} (${this.meter.context?.deviceID})`,
+        + `Using CurrentRelativeHumidity from ${this.meter.context.deviceType} (${this.meter.context.deviceID})`,
       );
-    } else if (this.CurrentRelativeHumidity === undefined) {
-      this.CurrentRelativeHumidity = 0;
     } else {
       this.CurrentRelativeHumidity = this.accessory.context.CurrentRelativeHumidity;
+    }
+    if (this.CurrentRelativeHumidity === undefined) {
+      this.CurrentRelativeHumidity = 0;
     }
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Get CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
     return this.CurrentRelativeHumidity as CharacteristicValue;
