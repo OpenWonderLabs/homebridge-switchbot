@@ -103,6 +103,10 @@ export class AirConditioner {
       );
     }
 
+    if (this.device.irair?.meterType && this.device.irair?.meterId) {
+      const meterUuid = this.platform.api.hap.uuid.generate(`${this.device.irair.meterId}-${this.device.irair.meterType}`);
+      this.meter = this.platform.accessories.find((accessory) => accessory.UUID === meterUuid);
+    }
     if (this.meter) {
       this.coolerService.getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity).onGet(this.CurrentRelativeHumidityGet.bind(this));
     }
@@ -672,9 +676,6 @@ export class AirConditioner {
       this.accessory.context.hide_automode = this.hide_automode;
     }
 
-    if (this.device.irair?.meterUuid) {
-      this.meter = this.platform.accessories.find((accessory) => accessory.UUID === this.device.irair?.meterUuid);
-    }
     if (this.meter) {
       if (this.CurrentRelativeHumidity === undefined) {
         this.CurrentRelativeHumidity = 0;
