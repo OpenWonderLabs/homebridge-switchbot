@@ -654,18 +654,23 @@ export class AirConditioner {
     } else {
       this.Active = this.accessory.context.Active;
     }
-    if (this.CurrentTemperature === undefined) {
-      this.CurrentTemperature = 24;
-    } else if (this.CurrentTemperature) {
-      this.CurrentTemperature;
-    } else if (this.accessory.context.CurrentTemperature === undefined) {
+
+    if (this.CurrentTemperature === undefined && this.accessory.context.CurrentTemperature === undefined) {
       this.CurrentTemperature = 24;
     } else {
-      this.CurrentTemperature = this.accessory.context.CurrentTemperature;
+      this.CurrentTemperature = this.CurrentTemperature || this.accessory.context.CurrentTemperature;
     }
 
-    if (this.ThresholdTemperature === undefined) {
+    if (this.ThresholdTemperature === undefined && this.accessory.context.ThresholdTemperature === undefined) {
       this.ThresholdTemperature = 24;
+    } else {
+      this.ThresholdTemperature = this.ThresholdTemperature || this.accessory.context.ThresholdTemperature;
+    }
+
+    if (this.RotationSpeed === undefined && this.accessory.context.RotationSpeed === undefined) {
+      this.RotationSpeed = 4;
+    } else {
+      this.RotationSpeed = this.RotationSpeed || this.accessory.context.RotationSpeed;
     }
 
     if (this.device.irair?.hide_automode) {
@@ -677,10 +682,10 @@ export class AirConditioner {
     }
 
     if (this.meter) {
-      if (this.CurrentRelativeHumidity === undefined) {
+      if (this.CurrentRelativeHumidity === undefined && this.accessory.context.CurrentRelativeHumidity === undefined) {
         this.CurrentRelativeHumidity = 0;
       } else {
-        this.CurrentRelativeHumidity = this.accessory.context.CurrentRelativeHumidity;
+        this.CurrentRelativeHumidity = this.CurrentRelativeHumidity || this.accessory.context.CurrentRelativeHumidity;
       }
     }
   }
