@@ -336,7 +336,9 @@ export class AirConditioner {
     } else {
       this.CurrentFanSpeed = Number(value) + 1;
     }
-    this.RotationSpeed = this.CurrentFanSpeed;
+    this.RotationSpeed = value;
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}` +
+      `Set RotationSpeed: ${this.RotationSpeed}, CurrentFanSpeed: ${this.CurrentFanSpeed}`);
     this.pushAirConditionerStatusChanges();
   }
 
