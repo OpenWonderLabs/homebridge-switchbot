@@ -294,34 +294,28 @@ export class AirConditioner {
 
   async CurrentTemperatureGet(): Promise<CharacteristicValue> {
     if (this.meter?.context?.CurrentTemperature) {
-      this.CurrentTemperature = this.meter.context.CurrentTemperature;
+      this.accessory.context.CurrentTemperature = this.meter.context.CurrentTemperature;
       this.debugLog(
         `${this.device.remoteType}: ${this.accessory.displayName} `
         + `Using CurrentTemperature from ${this.meter.context.deviceType} (${this.meter.context.deviceID})`,
       );
-    } else {
-      this.CurrentTemperature = this.accessory.context.CurrentTemperature;
     }
-    if (this.CurrentTemperature === undefined) {
-      this.CurrentTemperature = 24;
-    }
+
+    this.CurrentTemperature = this.accessory.context.CurrentTemperature || 24;
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Get CurrentTemperature: ${this.CurrentTemperature}`);
     return this.CurrentTemperature;
   }
 
   async CurrentRelativeHumidityGet(): Promise<CharacteristicValue> {
     if (this.meter?.context?.CurrentRelativeHumidity) {
-      this.CurrentRelativeHumidity = this.meter.context.CurrentRelativeHumidity;
+      this.accessory.context.CurrentRelativeHumidity = this.meter.context.CurrentRelativeHumidity;
       this.debugLog(
         `${this.device.remoteType}: ${this.accessory.displayName} `
         + `Using CurrentRelativeHumidity from ${this.meter.context.deviceType} (${this.meter.context.deviceID})`,
       );
-    } else {
-      this.CurrentRelativeHumidity = this.accessory.context.CurrentRelativeHumidity;
     }
-    if (this.CurrentRelativeHumidity === undefined) {
-      this.CurrentRelativeHumidity = 0;
-    }
+
+    this.CurrentRelativeHumidity = this.accessory.context.CurrentRelativeHumidity || 0;
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Get CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
     return this.CurrentRelativeHumidity as CharacteristicValue;
   }
