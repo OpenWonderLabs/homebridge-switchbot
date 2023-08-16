@@ -563,16 +563,20 @@ export class Bot {
       const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/status`, {
         headers: this.platform.generateHeaders(),
       });
-      const deviceStatus = await body.json();
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
-      this.statusCode(statusCode);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
-      this.power = deviceStatus.body.power;
-      this.Battery = deviceStatus.body.battery;
-      this.Version = deviceStatus.body.version;
-      this.openAPIparseStatus();
-      this.updateHomeKitCharacteristics();
+      if (statusCode === 200) {
+        const deviceStatus = await body.json();
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
+        this.statusCode(statusCode);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
+        this.power = deviceStatus.body.power;
+        this.Battery = deviceStatus.body.battery;
+        this.Version = deviceStatus.body.version;
+        this.openAPIparseStatus();
+        this.updateHomeKitCharacteristics();
+      } else {
+        this.statusCode(statusCode);
+      }
     } catch (e: any) {
       this.apiError(e);
       this.errorLog(
