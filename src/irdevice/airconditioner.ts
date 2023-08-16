@@ -88,15 +88,12 @@ export class AirConditioner {
     this.coolerService.getCharacteristic(this.platform.Characteristic.CurrentTemperature).onGet(this.CurrentTemperatureGet.bind(this));
 
     this.ValidValues = this.hide_automode ? [1, 2] : [0, 1, 2];
-    if (this.device.irair?.meterType && this.device.irair?.meterId) {
-      const meterUuid = this.platform.api.hap.uuid.generate(`${this.device.irair.meterId}-${this.device.irair.meterType}`);
-      this.meter = this.platform.accessories.find((accessory) => accessory.UUID === meterUuid);
-    }
 
     if (this.device.irair?.meterType && this.device.irair?.meterId) {
       const meterUuid = this.platform.api.hap.uuid.generate(`${this.device.irair.meterId}-${this.device.irair.meterType}`);
       this.meter = this.platform.accessories.find((accessory) => accessory.UUID === meterUuid);
     }
+
     if (this.meter) {
       this.coolerService.getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity).onGet(this.CurrentRelativeHumidityGet.bind(this));
     }
