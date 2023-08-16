@@ -92,6 +92,11 @@ export class AirConditioner {
       const meterUuid = this.platform.api.hap.uuid.generate(`${this.device.irair.meterId}-${this.device.irair.meterType}`);
       this.meter = this.platform.accessories.find((accessory) => accessory.UUID === meterUuid);
     }
+
+    if (this.device.irair?.meterType && this.device.irair?.meterId) {
+      const meterUuid = this.platform.api.hap.uuid.generate(`${this.device.irair.meterId}-${this.device.irair.meterType}`);
+      this.meter = this.platform.accessories.find((accessory) => accessory.UUID === meterUuid);
+    }
     if (this.meter) {
       this.coolerService.getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity).onGet(this.CurrentRelativeHumidityGet.bind(this));
     }
@@ -109,6 +114,8 @@ export class AirConditioner {
     this.coolerService
       .getCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature)
       .setProps({
+        minValue: 0,
+        maxValue: 35,
         minStep: 0.5,
       })
       .onGet(this.ThresholdTemperatureGet.bind(this))
@@ -117,6 +124,8 @@ export class AirConditioner {
     this.coolerService
       .getCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature)
       .setProps({
+        minValue: 0,
+        maxValue: 35,
         minStep: 0.5,
       })
       .onGet(this.ThresholdTemperatureGet.bind(this))
@@ -282,39 +291,29 @@ export class AirConditioner {
   }
 
   async CurrentTemperatureGet(): Promise<CharacteristicValue> {
-    if (this.meter) {
-      this.CurrentTemperature =
-        this.meter.context?.CurrentTemperature ||
-        this.meter.getService(this.platform.Service.TemperatureSensor)?.getCharacteristic(this.platform.Characteristic.CurrentTemperature).value ||
-        24;
+    if (this.meter?.context?.CurrentTemperature) {
+      this.accessory.context.CurrentTemperature = this.meter.context.CurrentTemperature;
       this.debugLog(
         `${this.device.remoteType}: ${this.accessory.displayName} `
-        + `Using CurrentTemperature from ${this.meter.context?.deviceType} (${this.meter.context?.deviceID})`,
+        + `Using CurrentTemperature from ${this.meter.context.deviceType} (${this.meter.context.deviceID})`,
       );
-    } else if (this.CurrentTemperature === undefined) {
-      this.CurrentTemperature = 24;
-    } else {
-      this.CurrentTemperature = this.accessory.context.CurrentTemperature;
     }
+
+    this.CurrentTemperature = this.accessory.context.CurrentTemperature || 24;
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Get CurrentTemperature: ${this.CurrentTemperature}`);
     return this.CurrentTemperature;
   }
 
   async CurrentRelativeHumidityGet(): Promise<CharacteristicValue> {
-    if (this.meter) {
-      this.CurrentRelativeHumidity =
-        this.meter.context?.CurrentRelativeHumidity ||
-        this.meter.getService(this.platform.Service.HumiditySensor)?.getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity).value ||
-        0;
+    if (this.meter?.context?.CurrentRelativeHumidity) {
+      this.accessory.context.CurrentRelativeHumidity = this.meter.context.CurrentRelativeHumidity;
       this.debugLog(
         `${this.device.remoteType}: ${this.accessory.displayName} `
-        + `Using CurrentRelativeHumidity from ${this.meter.context?.deviceType} (${this.meter.context?.deviceID})`,
+        + `Using CurrentRelativeHumidity from ${this.meter.context.deviceType} (${this.meter.context.deviceID})`,
       );
-    } else if (this.CurrentRelativeHumidity === undefined) {
-      this.CurrentRelativeHumidity = 0;
-    } else {
-      this.CurrentRelativeHumidity = this.accessory.context.CurrentRelativeHumidity;
     }
+
+    this.CurrentRelativeHumidity = this.accessory.context.CurrentRelativeHumidity || 0;
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Get CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
     return this.CurrentRelativeHumidity as CharacteristicValue;
   }
@@ -335,7 +334,9 @@ export class AirConditioner {
     } else {
       this.CurrentFanSpeed = Number(value) + 1;
     }
-    this.RotationSpeed = this.CurrentFanSpeed;
+    this.RotationSpeed = value;
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}` +
+      `Set RotationSpeed: ${this.RotationSpeed}, CurrentFanSpeed: ${this.CurrentFanSpeed}`);
     this.pushAirConditionerStatusChanges();
   }
 
@@ -636,18 +637,23 @@ export class AirConditioner {
     } else {
       this.Active = this.accessory.context.Active;
     }
-    if (this.CurrentTemperature === undefined) {
-      this.CurrentTemperature = 24;
-    } else if (this.CurrentTemperature) {
-      this.CurrentTemperature;
-    } else if (this.accessory.context.CurrentTemperature === undefined) {
+
+    if (this.CurrentTemperature === undefined && this.accessory.context.CurrentTemperature === undefined) {
       this.CurrentTemperature = 24;
     } else {
-      this.CurrentTemperature = this.accessory.context.CurrentTemperature;
+      this.CurrentTemperature = this.CurrentTemperature || this.accessory.context.CurrentTemperature;
     }
 
-    if (this.ThresholdTemperature === undefined) {
+    if (this.ThresholdTemperature === undefined && this.accessory.context.ThresholdTemperature === undefined) {
       this.ThresholdTemperature = 24;
+    } else {
+      this.ThresholdTemperature = this.ThresholdTemperature || this.accessory.context.ThresholdTemperature;
+    }
+
+    if (this.RotationSpeed === undefined && this.accessory.context.RotationSpeed === undefined) {
+      this.RotationSpeed = 4;
+    } else {
+      this.RotationSpeed = this.RotationSpeed || this.accessory.context.RotationSpeed;
     }
 
     if (this.device.irair?.hide_automode) {
@@ -658,14 +664,11 @@ export class AirConditioner {
       this.accessory.context.hide_automode = this.hide_automode;
     }
 
-    if (this.device.irair?.meterUuid) {
-      this.meter = this.platform.accessories.find((accessory) => accessory.UUID === this.device.irair?.meterUuid);
-    }
     if (this.meter) {
-      if (this.CurrentRelativeHumidity === undefined) {
+      if (this.CurrentRelativeHumidity === undefined && this.accessory.context.CurrentRelativeHumidity === undefined) {
         this.CurrentRelativeHumidity = 0;
       } else {
-        this.CurrentRelativeHumidity = this.accessory.context.CurrentRelativeHumidity;
+        this.CurrentRelativeHumidity = this.CurrentRelativeHumidity || this.accessory.context.CurrentRelativeHumidity;
       }
     }
   }
