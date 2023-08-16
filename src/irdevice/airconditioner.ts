@@ -87,20 +87,10 @@ export class AirConditioner {
 
     this.coolerService.getCharacteristic(this.platform.Characteristic.CurrentTemperature).onGet(this.CurrentTemperatureGet.bind(this));
 
-    if (this.hide_automode) {
-      this.TargetHeaterCoolerState = 1 || 2;
-      this.ValidValues = [1, 2];
-      this.debugLog(
-        `${this.device.remoteType}: ${this.accessory.displayName} ValidValues: ${JSON.stringify(this.ValidValues)},` +
-        ` hide_automode: ${this.hide_automode}, TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`,
-      );
-    } else {
-      this.TargetHeaterCoolerState = 0 || 1 || 2;
-      this.ValidValues = [0, 1, 2];
-      this.debugLog(
-        `${this.device.remoteType}: ${this.accessory.displayName} ValidValues: ${JSON.stringify(this.ValidValues)},` +
-        ` hide_automode: ${this.hide_automode}, TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`,
-      );
+    this.ValidValues = this.hide_automode ? [1, 2] : [0, 1, 2];
+    if (this.device.irair?.meterType && this.device.irair?.meterId) {
+      const meterUuid = this.platform.api.hap.uuid.generate(`${this.device.irair.meterId}-${this.device.irair.meterType}`);
+      this.meter = this.platform.accessories.find((accessory) => accessory.UUID === meterUuid);
     }
 
     if (this.device.irair?.meterType && this.device.irair?.meterId) {
@@ -238,16 +228,7 @@ export class AirConditioner {
     }
     const parameter = `${this.ThresholdTemperature},${this.CurrentMode},${this.CurrentFanSpeed},${this.state}`;
 
-    if (this.Active === this.platform.Characteristic.Active.ACTIVE) {
-      await this.context();
-      if (this.ThresholdTemperature < this.accessory.context.CurrentTemperature) {
-        this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.COOLING;
-      } else if (this.ThresholdTemperature > this.accessory.context.CurrentTemperature) {
-        this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.HEATING;
-      }
-    } else {
-      this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.INACTIVE;
-    }
+    await this.UpdateCurrentHeaterCoolerState();
     const bodyChange = JSON.stringify({
       command: 'setAll',
       parameter: `${parameter}`,
@@ -255,6 +236,23 @@ export class AirConditioner {
     });
 
     await this.pushChanges(bodyChange);
+  }
+
+  private async UpdateCurrentHeaterCoolerState() {
+    if (this.Active === this.platform.Characteristic.Active.ACTIVE) {
+      await this.context();
+      if (this.ThresholdTemperature < this.CurrentTemperature &&
+        this.TargetHeaterCoolerState !== this.platform.Characteristic.TargetHeaterCoolerState.HEAT) {
+        this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.COOLING;
+      } else if (this.ThresholdTemperature > this.CurrentTemperature &&
+        this.TargetHeaterCoolerState !== this.platform.Characteristic.TargetHeaterCoolerState.COOL) {
+        this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.HEATING;
+      } else {
+        this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.IDLE;
+      }
+    } else {
+      this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.INACTIVE;
+    }
   }
 
   async pushChanges(bodyChange: any): Promise<void> {
@@ -360,25 +358,12 @@ export class AirConditioner {
   }
 
   async TargetHeaterCoolerStateGet(): Promise<CharacteristicValue> {
-    if (this.ValidValues === this.valid012) {
-      this.TargetHeaterCoolerState = this.platform.Characteristic.TargetHeaterCoolerState.AUTO;
-      this.debugLog(
-        `${this.device.remoteType}: ${this.accessory.displayName} Get (AUTO) TargetHeaterCoolerState: ${this.CurrentHeaterCoolerState},` +
-        ` ValidValues: ${this.ValidValues}`,
-      );
-    } else if (this.ValidValues === this.valid12) {
-      this.TargetHeaterCoolerState =
-        this.platform.Characteristic.TargetHeaterCoolerState.COOL || this.platform.Characteristic.TargetHeaterCoolerState.HEAT;
-      this.debugLog(
-        `${this.device.remoteType}: ${this.accessory.displayName} Get (COOL/HEAT) TargetHeaterCoolerState: ${this.CurrentHeaterCoolerState},` +
-        ` ValidValues: ${this.ValidValues}`,
-      );
-    } else {
-      this.debugLog(
-        `${this.device.remoteType}: ${this.accessory.displayName} Get TargetHeaterCoolerState: ${this.CurrentHeaterCoolerState},` +
-        ` ValidValues: ${this.ValidValues}`,
-      );
-    }
+    const targetState = this.TargetHeaterCoolerState || this.accessory.context.TargetHeaterCoolerState;
+    this.TargetHeaterCoolerState = this.ValidValues.includes(targetState) ? targetState : this.ValidValues[0];
+    this.debugLog(
+      `${this.device.remoteType}: ${this.accessory.displayName} Get (${this.getTargetHeaterCoolerStateName()})` +
+      ` TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}, ValidValues: ${this.ValidValues},  hide_automode: ${this.hide_automode}`,
+    );
     return this.TargetHeaterCoolerState;
   }
 
@@ -420,25 +405,27 @@ export class AirConditioner {
   }
 
   async CurrentHeaterCoolerStateGet(): Promise<CharacteristicValue> {
-    if (this.Active === this.platform.Characteristic.Active.ACTIVE) {
-      if (this.ThresholdTemperature < this.accessory.context.CurrentTemperature) {
-        this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.COOLING;
-        this.debugLog(
-          `${this.device.remoteType}: ${this.accessory.displayName}` + ` Get (COOLING) CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`,
-        );
-      } else if (this.ThresholdTemperature > this.accessory.context.CurrentTemperature) {
-        this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.HEATING;
-        this.debugLog(
-          `${this.device.remoteType}: ${this.accessory.displayName}` + ` Get (HEATING) CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`,
-        );
-      }
-    } else {
-      this.CurrentHeaterCoolerState = this.platform.Characteristic.CurrentHeaterCoolerState.INACTIVE;
-      this.debugLog(
-        `${this.device.remoteType}: ${this.accessory.displayName}` + ` Get (INACTIVE) CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`,
-      );
-    }
+    await this.UpdateCurrentHeaterCoolerState();
+    this.debugLog(
+      `${this.device.remoteType}: ${this.accessory.displayName}` +
+      ` Get (${this.getTargetHeaterCoolerStateName()}) CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`,
+    );
+
     return this.CurrentHeaterCoolerState;
+  }
+
+
+  private getTargetHeaterCoolerStateName(): string {
+    switch (this.TargetHeaterCoolerState) {
+      case this.platform.Characteristic.TargetHeaterCoolerState.AUTO:
+        return 'AUTO';
+      case this.platform.Characteristic.TargetHeaterCoolerState.HEAT:
+        return 'HEAT';
+      case this.platform.Characteristic.TargetHeaterCoolerState.COOL:
+        return 'COOL';
+      default:
+        return this.TargetHeaterCoolerState.toString();
+    }
   }
 
   async ThresholdTemperatureGet(): Promise<CharacteristicValue> {
