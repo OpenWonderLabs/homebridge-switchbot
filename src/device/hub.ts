@@ -294,9 +294,9 @@ export class Hub {
       const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/status`, {
         headers: this.platform.generateHeaders(),
       });
+      this.statusCode(statusCode);
       const deviceStatus: any = await body.json();
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
-      this.statusCode(statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
       this.CurrentTemperature = deviceStatus.body.temperature;
@@ -405,6 +405,7 @@ export class Hub {
           `${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: ` +
           `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`,
         );
+        throw new Error(`Unknown Status Code: ${statusCode}`);
     }
   }
 

@@ -1,11 +1,11 @@
-import { Context } from 'vm';
-import { request } from 'undici';
-import { sleep } from '../utils';
-import { interval, Subject } from 'rxjs';
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+import { Subject, interval } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
+import { request } from 'undici';
+import { Context } from 'vm';
 import { SwitchBotPlatform } from '../platform';
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, serviceData, switchbot, deviceStatus, ad, Devices } from '../settings';
+import { Devices, ad, device, deviceStatus, devicesConfig, serviceData, switchbot } from '../settings';
+import { sleep } from '../utils';
 
 /**
  * Platform Accessory
@@ -400,9 +400,9 @@ export class Contact {
       const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/status`, {
         headers: this.platform.generateHeaders(),
       });
+      this.statusCode(statusCode);
       const deviceStatus: any = await body.json();
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
-      this.statusCode(statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
       this.openState = deviceStatus.body.openState;
@@ -576,6 +576,7 @@ export class Contact {
           `${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: ` +
           `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`,
         );
+        throw new Error(`Unknown Status Code: ${statusCode}`);
     }
   }
 

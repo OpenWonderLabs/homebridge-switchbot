@@ -1,12 +1,12 @@
 /* eslint-disable brace-style */
-import { Context } from 'vm';
-import { request } from 'undici';
-import { sleep } from '../utils';
-import { interval, Subject } from 'rxjs';
-import { SwitchBotPlatform } from '../platform';
+import { CharacteristicValue, Controller, ControllerConstructor, ControllerServiceMap, PlatformAccessory, Service } from 'homebridge';
+import { Subject, interval } from 'rxjs';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
-import { device, devicesConfig, deviceStatus, switchbot, hs2rgb, rgb2hs, m2hs, serviceData, ad, Devices } from '../settings';
-import { Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap } from 'homebridge';
+import { request } from 'undici';
+import { Context } from 'vm';
+import { SwitchBotPlatform } from '../platform';
+import { Devices, ad, device, deviceStatus, devicesConfig, hs2rgb, m2hs, rgb2hs, serviceData, switchbot } from '../settings';
+import { sleep } from '../utils';
 
 /**
  * Platform Accessory
@@ -406,9 +406,9 @@ export class CeilingLight {
       const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/status`, {
         headers: this.platform.generateHeaders(),
       });
+      this.statusCode(statusCode);
       const deviceStatus: any = await body.json();
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
-      this.statusCode(statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
       this.power = deviceStatus.body.power;
@@ -649,9 +649,9 @@ export class CeilingLight {
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
+        this.statusCode(statusCode);
         const deviceStatus: any = await body.json();
         this.debugLog(`Devices: ${JSON.stringify(deviceStatus.body)}`);
-        this.statusCode(statusCode);
         this.debugLog(`Headers: ${JSON.stringify(headers)}`);
       } catch (e: any) {
         this.apiError(e);
@@ -940,6 +940,7 @@ export class CeilingLight {
           `${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: ` +
           `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`,
         );
+        throw new Error(`Unknown Status Code: ${statusCode}`);
     }
   }
 

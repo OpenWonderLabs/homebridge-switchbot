@@ -1,11 +1,11 @@
-import { Context } from 'vm';
-import { request } from 'undici';
-import { sleep } from '../utils';
-import { interval, Subject } from 'rxjs';
-import { SwitchBotPlatform } from '../platform';
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+import { Subject, interval } from 'rxjs';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, deviceStatus, ad, serviceData, switchbot, Devices } from '../settings';
+import { request } from 'undici';
+import { Context } from 'vm';
+import { SwitchBotPlatform } from '../platform';
+import { Devices, ad, device, deviceStatus, devicesConfig, serviceData, switchbot } from '../settings';
+import { sleep } from '../utils';
 
 export class Plug {
   // Services
@@ -265,9 +265,9 @@ export class Plug {
       const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/status`, {
         headers: this.platform.generateHeaders(),
       });
+      this.statusCode(statusCode);
       const deviceStatus: any = await body.json();
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
-      this.statusCode(statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
       this.power = deviceStatus.body.power;
@@ -383,9 +383,9 @@ export class Plug {
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
+        this.statusCode(statusCode);
         const deviceStatus: any = await body.json();
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
-        this.statusCode(statusCode);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       } catch (e: any) {
         this.apiError(e);
@@ -563,6 +563,7 @@ export class Plug {
           `${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: ` +
           `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`,
         );
+        throw new Error(`Unknown Status Code: ${statusCode}`);
     }
   }
 

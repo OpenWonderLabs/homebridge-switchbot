@@ -1,14 +1,14 @@
-import { Context } from 'vm';
-import { hostname } from 'os';
-import { request } from 'undici';
-import { sleep } from '../utils';
-import { MqttClient } from 'mqtt';
 import { connectAsync } from 'async-mqtt';
-import { interval, Subject } from 'rxjs';
+import { CharacteristicValue, PlatformAccessory, Service, Units } from 'homebridge';
+import { MqttClient } from 'mqtt';
+import { hostname } from 'os';
+import { Subject, interval } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
+import { request } from 'undici';
+import { Context } from 'vm';
 import { SwitchBotPlatform } from '../platform';
-import { Service, PlatformAccessory, Units, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, serviceData, ad, switchbot, temperature, deviceStatus, Devices } from '../settings';
+import { Devices, ad, device, deviceStatus, devicesConfig, serviceData, switchbot, temperature } from '../settings';
+import { sleep } from '../utils';
 
 /**
  * Platform Accessory
@@ -338,9 +338,9 @@ export class IOSensor {
       const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/status`, {
         headers: this.platform.generateHeaders(),
       });
+      this.statusCode(statusCode);
       const deviceStatus: any = await body.json();
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
-      this.statusCode(statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
       this.Humidity = deviceStatus.body.humidity!;
@@ -566,6 +566,7 @@ export class IOSensor {
           `${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: ` +
           `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`,
         );
+        throw new Error(`Unknown Status Code: ${statusCode}`);
     }
   }
 

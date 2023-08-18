@@ -1,13 +1,13 @@
-import { Context } from 'vm';
-import { request } from 'undici';
-import { sleep } from '../utils';
-import { MqttClient } from 'mqtt';
-import { interval, Subject } from 'rxjs';
 import { connectAsync } from 'async-mqtt';
-import { SwitchBotPlatform } from '../platform';
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+import { MqttClient } from 'mqtt';
+import { Subject, interval } from 'rxjs';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, serviceData, switchbot, deviceStatus, ad, Devices } from '../settings';
+import { request } from 'undici';
+import { Context } from 'vm';
+import { SwitchBotPlatform } from '../platform';
+import { Devices, ad, device, deviceStatus, devicesConfig, serviceData, switchbot } from '../settings';
+import { sleep } from '../utils';
 
 enum BlindTiltMappingMode {
   OnlyUp = 'only_up',
@@ -535,9 +535,9 @@ export class BlindTilt {
       const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/status`, {
         headers: this.platform.generateHeaders(),
       });
+      this.statusCode(statusCode);
       const deviceStatus: any = await body.json();
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
-      this.statusCode(statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
       this.slidePosition = deviceStatus.body.slidePosition;
@@ -681,9 +681,9 @@ export class BlindTilt {
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
+        this.statusCode(statusCode);
         const deviceStatus: any = await body.json();
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
-        this.statusCode(statusCode);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       } catch (e: any) {
         this.apiError(e);
@@ -1072,6 +1072,7 @@ export class BlindTilt {
           `${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: ` +
           `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`,
         );
+        throw new Error(`Unknown Status Code: ${statusCode}`);
     }
   }
 

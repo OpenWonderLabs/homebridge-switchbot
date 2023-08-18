@@ -1,38 +1,38 @@
+import { Buffer } from 'buffer';
+import crypto, { randomUUID } from 'crypto';
+import fakegato from 'fakegato-history';
+import { EveHomeKitTypes } from 'homebridge-lib';
+import { queueScheduler } from 'rxjs';
+import { request } from 'undici';
+import { BlindTilt } from './device/blindtilt';
 import { Bot } from './device/bot';
-import { Plug } from './device/plug';
-import { Lock } from './device/lock';
-import { Meter } from './device/meter';
-import { Motion } from './device/motion';
-import { Hub } from './device/hub';
+import { CeilingLight } from './device/ceilinglight';
+import { ColorBulb } from './device/colorbulb';
 import { Contact } from './device/contact';
 import { Curtain } from './device/curtain';
-import { IOSensor } from './device/iosensor';
-import { MeterPlus } from './device/meterplus';
-import { ColorBulb } from './device/colorbulb';
-import { CeilingLight } from './device/ceilinglight';
-import { StripLight } from './device/lightstrip';
+import { Hub } from './device/hub';
 import { Humidifier } from './device/humidifier';
+import { IOSensor } from './device/iosensor';
+import { StripLight } from './device/lightstrip';
+import { Lock } from './device/lock';
+import { Meter } from './device/meter';
+import { MeterPlus } from './device/meterplus';
+import { Motion } from './device/motion';
+import { Plug } from './device/plug';
 import { RobotVacuumCleaner } from './device/robotvacuumcleaner';
-import { TV } from './irdevice/tv';
+import { AirConditioner } from './irdevice/airconditioner';
+import { AirPurifier } from './irdevice/airpurifier';
+import { Camera } from './irdevice/camera';
 import { Fan } from './irdevice/fan';
 import { Light } from './irdevice/light';
 import { Others } from './irdevice/other';
-import { Camera } from './irdevice/camera';
-import { BlindTilt } from './device/blindtilt';
-import { AirPurifier } from './irdevice/airpurifier';
-import { WaterHeater } from './irdevice/waterheater';
+import { TV } from './irdevice/tv';
 import { VacuumCleaner } from './irdevice/vacuumcleaner';
-import { AirConditioner } from './irdevice/airconditioner';
-import { request } from 'undici';
-import crypto, { randomUUID } from 'crypto';
-import { Buffer } from 'buffer';
-import { queueScheduler } from 'rxjs';
-import fakegato from 'fakegato-history';
-import { EveHomeKitTypes } from 'homebridge-lib';
+import { WaterHeater } from './irdevice/waterheater';
 
 import { readFileSync, writeFileSync } from 'fs';
-import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, Service, Characteristic } from 'homebridge';
-import { PLATFORM_NAME, PLUGIN_NAME, irdevice, device, SwitchBotPlatformConfig, devicesConfig, irDevicesConfig, Devices } from './settings';
+import { API, Characteristic, DynamicPlatformPlugin, Logger, PlatformAccessory, Service } from 'homebridge';
+import { Devices, PLATFORM_NAME, PLUGIN_NAME, SwitchBotPlatformConfig, device, devicesConfig, irDevicesConfig, irdevice } from './settings';
 
 /**
  * HomebridgePlatform
@@ -300,42 +300,18 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         const { body, statusCode, headers } = await request(Devices, {
           headers: this.generateHeaders(),
         });
-        if (statusCode === 200) {
-          const devicesAPI: any = await body.json();
-          this.debugLog(`Devices: ${JSON.stringify(devicesAPI.body)}`);
-          this.debugLog(`Headers: ${JSON.stringify(headers)}`);
-          // SwitchBot Devices
-          const deviceLists = devicesAPI.body.deviceList;
-          if (!this.config.options?.devices) {
-            this.debugLog(`SwitchBot Device Config Not Set: ${JSON.stringify(this.config.options?.devices)}`);
-            if (deviceLists.length === 0) {
-              this.debugLog(`SwitchBot API Currently Doesn't Have Any Devices With Cloud Services Enabled: ${JSON.stringify(devicesAPI.body)}`);
-            } else {
-              const devices = deviceLists.map((v: any) => v);
-              for (const device of devices) {
-                if (device.deviceType) {
-                  if (device.configDeviceName) {
-                    device.deviceName = device.configDeviceName;
-                  }
-                  this.createDevice(device);
-                }
-              }
-            }
-          } else if (this.config.credentials?.token && this.config.options.devices) {
-            this.debugLog(`SwitchBot Device Config Set: ${JSON.stringify(this.config.options?.devices)}`);
-            const deviceConfigs = this.config.options?.devices;
-
-            const mergeBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
-              a1.map((itm: { deviceId: string }) => ({
-                ...a2.find(
-                  (item: { deviceId: string }) =>
-                    item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
-                ),
-                ...itm,
-              }));
-
-            const devices = mergeBydeviceId(deviceLists, deviceConfigs);
-            this.debugLog(`SwitchBot Devices: ${JSON.stringify(devices)}`);
+        this.statusCode(statusCode);
+        const devicesAPI: any = await body.json();
+        this.debugLog(`Devices: ${JSON.stringify(devicesAPI.body)}`);
+        this.debugLog(`Headers: ${JSON.stringify(headers)}`);
+        // SwitchBot Devices
+        const deviceLists = devicesAPI.body.deviceList;
+        if (!this.config.options?.devices) {
+          this.debugLog(`SwitchBot Device Config Not Set: ${JSON.stringify(this.config.options?.devices)}`);
+          if (deviceLists.length === 0) {
+            this.debugLog(`SwitchBot API Currently Doesn't Have Any Devices With Cloud Services Enabled: ${JSON.stringify(devicesAPI.body)}`);
+          } else {
+            const devices = deviceLists.map((v: any) => v);
             for (const device of devices) {
               if (device.deviceType) {
                 if (device.configDeviceName) {
@@ -344,51 +320,72 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
                 this.createDevice(device);
               }
             }
-          } else {
-            this.errorLog('SwitchBot Token Supplied, Issue with Auth.');
           }
-          if (devicesAPI.body.deviceList.length !== 0) {
-            this.infoLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
-          } else {
-            this.debugLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
-          }
+        } else if (this.config.credentials?.token && this.config.options.devices) {
+          this.debugLog(`SwitchBot Device Config Set: ${JSON.stringify(this.config.options?.devices)}`);
+          const deviceConfigs = this.config.options?.devices;
 
-          // IR Devices
-          const irDeviceLists = devicesAPI.body.infraredRemoteList;
-          if (!this.config.options?.irdevices) {
-            this.debugLog(`IR Device Config Not Set: ${JSON.stringify(this.config.options?.irdevices)}`);
-            const devices = irDeviceLists.map((v: any) => v);
-            for (const device of devices) {
-              if (device.remoteType) {
-                this.createIRDevice(device);
+          const mergeBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
+            a1.map((itm: { deviceId: string }) => ({
+              ...a2.find(
+                (item: { deviceId: string }) =>
+                  item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
+              ),
+              ...itm,
+            }));
+
+          const devices = mergeBydeviceId(deviceLists, deviceConfigs);
+          this.debugLog(`SwitchBot Devices: ${JSON.stringify(devices)}`);
+          for (const device of devices) {
+            if (device.deviceType) {
+              if (device.configDeviceName) {
+                device.deviceName = device.configDeviceName;
               }
+              this.createDevice(device);
             }
-          } else {
-            this.debugLog(`IR Device Config Set: ${JSON.stringify(this.config.options?.irdevices)}`);
-            const irDeviceConfig = this.config.options?.irdevices;
+          }
+        } else {
+          this.errorLog('SwitchBot Token Supplied, Issue with Auth.');
+        }
+        if (devicesAPI.body.deviceList.length !== 0) {
+          this.infoLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
+        } else {
+          this.debugLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
+        }
 
-            const mergeIRBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
-              a1.map((itm: { deviceId: string }) => ({
-                ...a2.find(
-                  (item: { deviceId: string }) =>
-                    item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
-                ),
-                ...itm,
-              }));
-
-            const devices = mergeIRBydeviceId(irDeviceLists, irDeviceConfig);
-            this.debugLog(`IR Devices: ${JSON.stringify(devices)}`);
-            for (const device of devices) {
+        // IR Devices
+        const irDeviceLists = devicesAPI.body.infraredRemoteList;
+        if (!this.config.options?.irdevices) {
+          this.debugLog(`IR Device Config Not Set: ${JSON.stringify(this.config.options?.irdevices)}`);
+          const devices = irDeviceLists.map((v: any) => v);
+          for (const device of devices) {
+            if (device.remoteType) {
               this.createIRDevice(device);
             }
           }
-          if (devicesAPI.body.infraredRemoteList.length !== 0) {
-            this.infoLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
-          } else {
-            this.debugLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
-          }
         } else {
-          this.statusCode(statusCode);
+          this.debugLog(`IR Device Config Set: ${JSON.stringify(this.config.options?.irdevices)}`);
+          const irDeviceConfig = this.config.options?.irdevices;
+
+          const mergeIRBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
+            a1.map((itm: { deviceId: string }) => ({
+              ...a2.find(
+                (item: { deviceId: string }) =>
+                  item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
+              ),
+              ...itm,
+            }));
+
+          const devices = mergeIRBydeviceId(irDeviceLists, irDeviceConfig);
+          this.debugLog(`IR Devices: ${JSON.stringify(devices)}`);
+          for (const device of devices) {
+            this.createIRDevice(device);
+          }
+        }
+        if (devicesAPI.body.infraredRemoteList.length !== 0) {
+          this.infoLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
+        } else {
+          this.debugLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
         }
       } catch (e: any) {
         this.debugErrorLog(
@@ -2185,6 +2182,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         break;
       default:
         this.infoLog(`Unknown statusCode, statusCode: ${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
+        throw new Error(`Unknown Status Code: ${statusCode}`);
     }
   }
 
