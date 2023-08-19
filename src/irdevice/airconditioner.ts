@@ -2,6 +2,7 @@ import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { request } from 'undici';
 import { SwitchBotPlatform } from '../platform';
 import { Devices, irDevicesConfig, irdevice } from '../settings';
+import { StatusCodeDescription } from '../utils';
 
 /**
  * Platform Accessory
@@ -262,9 +263,9 @@ export class AirConditioner {
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
+        this.statusCode(statusCode);
         const deviceStatus: any = await body.json();
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
-        this.statusCode(statusCode);
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
         this.updateHomeKitCharacteristics();
       } catch (e: any) {
@@ -558,43 +559,23 @@ export class AirConditioner {
     return command;
   }
 
+  /**
+   * Logs the status code and throws an error if the status code is invalid.
+   *
+   * @param statusCode - The status code to be validated.
+   * @throws {Error} If the provided status code is not valid.
+   */
   async statusCode(statusCode: number): Promise<void> {
-    switch (statusCode) {
-      case 151:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Command not supported by this deviceType, statusCode: ${statusCode}`);
-        break;
-      case 152:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device not found, statusCode: ${statusCode}`);
-        break;
-      case 160:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Command is not supported, statusCode: ${statusCode}`);
-        break;
-      case 161:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device is offline, statusCode: ${statusCode}`);
-        break;
-      case 171:
-        this.errorLog(
-          `${this.device.remoteType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. ` +
-          `Hub: ${this.device.hubDeviceId}`,
-        );
-        break;
-      case 190:
-        this.errorLog(
-          `${this.device.remoteType}: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-          ` Or command format is invalid, statusCode: ${statusCode}`,
-        );
-        break;
-      case 100:
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Command successfully sent, statusCode: ${statusCode}`);
-        break;
-      case 200:
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
-        break;
-      default:
-        this.infoLog(
-          `${this.device.remoteType}: ${this.accessory.displayName} Unknown statusCode: ` +
-          `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`,
-        );
+    let statusMsg = `${this.device.remoteType}: ${this.accessory.displayName} ${StatusCodeDescription(statusCode)}`;
+
+    if (statusCode === 100 || statusCode === 200) {
+      this.debugLog(statusMsg);
+    } else {
+      if (statusCode === 171) {
+        statusMsg =`${statusMsg}, Hub: ${this.device.hubDeviceId}`;
+      }
+      this.errorLog(statusMsg);
+      throw new Error(`Invalid Status Code: ${statusCode}`);
     }
   }
 

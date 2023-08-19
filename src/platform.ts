@@ -33,6 +33,7 @@ import { WaterHeater } from './irdevice/waterheater';
 import { readFileSync, writeFileSync } from 'fs';
 import { API, Characteristic, DynamicPlatformPlugin, Logger, PlatformAccessory, Service } from 'homebridge';
 import { Devices, PLATFORM_NAME, PLUGIN_NAME, SwitchBotPlatformConfig, device, devicesConfig, irDevicesConfig, irdevice } from './settings';
+import { StatusCodeDescription } from './utils';
 
 /**
  * HomebridgePlatform
@@ -2151,38 +2152,20 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     this.warnLog(`Removing existing accessory from cache: ${existingAccessory.displayName}`);
   }
 
+  /**
+   * Logs the status code and throws an error if the status code is invalid.
+   *
+   * @param statusCode - The status code to be validated.
+   * @throws {Error} If the provided status code is not valid.
+   */
   async statusCode(statusCode: number): Promise<void> {
-    switch (statusCode) {
-      case 151:
-        this.errorLog(
-          `Command not supported by this device type, statusCode: ${statusCode}, Submit Feature Request Here: ` +
-          'https://tinyurl.com/SwitchBotFeatureRequest',
-        );
-        break;
-      case 152:
-        this.errorLog(`Device not found, statusCode: ${statusCode}`);
-        break;
-      case 160:
-        this.errorLog(`Command is not supported, statusCode: ${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
-        break;
-      case 161:
-        this.errorLog(`Device is offline, statusCode: ${statusCode}`);
-        break;
-      case 171:
-        this.errorLog(`is offline, statusCode: ${statusCode}`);
-        break;
-      case 190:
-        this.errorLog(`Requests reached the daily limit, statusCode: ${statusCode}`);
-        break;
-      case 100:
-        this.debugLog(`Command successfully sent, statusCode: ${statusCode}`);
-        break;
-      case 200:
-        this.debugLog(`Request successful, statusCode: ${statusCode}`);
-        break;
-      default:
-        this.infoLog(`Unknown statusCode, statusCode: ${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
-        throw new Error(`Unknown Status Code: ${statusCode}`);
+    const statusMsg = StatusCodeDescription(statusCode);
+
+    if (statusCode === 100 || statusCode === 200) {
+      this.debugLog(statusMsg);
+    } else {
+      this.errorLog(statusMsg);
+      throw new Error(`Invalid Status Code: ${statusCode}`);
     }
   }
 

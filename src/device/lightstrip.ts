@@ -1,12 +1,12 @@
 /* eslint-disable brace-style */
 import { CharacteristicValue, Controller, ControllerConstructor, ControllerServiceMap, PlatformAccessory, Service } from 'homebridge';
-import { interval, Subject } from 'rxjs';
+import { Subject, interval } from 'rxjs';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { request } from 'undici';
 import { Context } from 'vm';
 import { SwitchBotPlatform } from '../platform';
-import { ad, device, Devices, devicesConfig, deviceStatus, hs2rgb, m2hs, rgb2hs, serviceData, switchbot } from '../settings';
-import { sleep } from '../utils';
+import { Devices, ad, device, deviceStatus, devicesConfig, hs2rgb, m2hs, rgb2hs, serviceData, switchbot } from '../settings';
+import { StatusCodeDescription, sleep } from '../utils';
 
 /**
  * Platform Accessory
@@ -676,9 +676,9 @@ export class StripLight {
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
+        this.statusCode(statusCode);
         const deviceStatus: any = await body.json();
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
-        this.statusCode(statusCode);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       } catch (e: any) {
         this.apiError(e);
@@ -928,46 +928,24 @@ export class StripLight {
     }
   }
 
+  /**
+   * Logs the status code and throws an error if the status code is invalid.
+   *
+   * @param statusCode - The status code to be validated.
+   * @throws {Error} If the provided status code is not valid.
+   */
   async statusCode(statusCode: number): Promise<void> {
-    switch (statusCode) {
-      case 151:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command not supported by this deviceType, statusCode: ${statusCode}`);
-        break;
-      case 152:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device not found, statusCode: ${statusCode}`);
-        break;
-      case 160:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command is not supported, statusCode: ${statusCode}`);
-        break;
-      case 161:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device is offline, statusCode: ${statusCode}`);
+    let statusMsg = `${this.device.deviceType}: ${this.accessory.displayName} ${StatusCodeDescription(statusCode)}`;
+
+    if (statusCode === 100 || statusCode === 200) {
+      this.debugLog(statusMsg);
+    } else {
+      if (statusCode === 161 || statusCode === 171) {
+        statusMsg =`${statusMsg}, Hub: ${this.device.hubDeviceId}`;
         this.offlineOff();
-        break;
-      case 171:
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. ` +
-          `Hub: ${this.device.hubDeviceId}`,
-        );
-        this.offlineOff();
-        break;
-      case 190:
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-          ` Or command format is invalid, statusCode: ${statusCode}`,
-        );
-        break;
-      case 100:
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Command successfully sent, statusCode: ${statusCode}`);
-        break;
-      case 200:
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
-        break;
-      default:
-        this.infoLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: ` +
-          `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`,
-        );
-        throw new Error(`Unknown Status Code: ${statusCode}`);
+      }
+      this.errorLog(statusMsg);
+      throw new Error(`Invalid Status Code: ${statusCode}`);
     }
   }
 
