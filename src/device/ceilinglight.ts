@@ -406,8 +406,9 @@ export class CeilingLight {
       const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/status`, {
         headers: this.platform.generateHeaders(),
       });
-      this.statusCode(statusCode);
+      await this.statusCode(statusCode);
       const deviceStatus: any = await body.json();
+      await this.statusCode(deviceStatus.statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
@@ -528,8 +529,9 @@ export class CeilingLight {
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
-        this.statusCode(statusCode);
+        await this.statusCode(statusCode);
         const deviceStatus: any = await body.json();
+        await this.statusCode(deviceStatus.statusCode);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       } catch (e: any) {
@@ -579,8 +581,9 @@ export class CeilingLight {
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
-        this.statusCode(statusCode);
+        await this.statusCode(statusCode);
         const deviceStatus: any = await body.json();
+        await this.statusCode(deviceStatus.statusCode);
         this.debugLog(`Devices: ${JSON.stringify(deviceStatus.body)}`);
         this.debugLog(`Headers: ${JSON.stringify(headers)}`);
       } catch (e: any) {
@@ -615,8 +618,9 @@ export class CeilingLight {
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
-        this.statusCode(statusCode);
+        await this.statusCode(statusCode);
         const deviceStatus: any = await body.json();
+        await this.statusCode(deviceStatus.statusCode);
         this.debugLog(`Devices: ${JSON.stringify(deviceStatus.body)}`);
         this.debugLog(`Headers: ${JSON.stringify(headers)}`);
       } catch (e: any) {
@@ -649,8 +653,9 @@ export class CeilingLight {
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
-        this.statusCode(statusCode);
+        await this.statusCode(statusCode);
         const deviceStatus: any = await body.json();
+        await this.statusCode(deviceStatus.statusCode);
         this.debugLog(`Devices: ${JSON.stringify(deviceStatus.body)}`);
         this.debugLog(`Headers: ${JSON.stringify(headers)}`);
       } catch (e: any) {
@@ -905,6 +910,7 @@ export class CeilingLight {
    * Logs the status code and throws an error if the status code is invalid.
    *
    * @param statusCode - The status code to be validated.
+   * @returns {Promise<void>} - Resolves if the status code is valid, otherwise rejects with an error.
    * @throws {Error} If the provided status code is not valid.
    */
   async statusCode(statusCode: number): Promise<void> {
@@ -918,7 +924,7 @@ export class CeilingLight {
         this.offlineOff();
       }
       this.errorLog(statusMsg);
-      throw new Error(`Invalid Status Code: ${statusCode}`);
+      return Promise.reject(new Error(`Invalid Status Code: ${statusCode}`));
     }
   }
 

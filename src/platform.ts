@@ -301,8 +301,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         const { body, statusCode, headers } = await request(Devices, {
           headers: this.generateHeaders(),
         });
-        this.statusCode(statusCode);
+        await this.statusCode(statusCode);
         const devicesAPI: any = await body.json();
+        await this.statusCode(devicesAPI.statusCode);
         this.debugLog(`Devices: ${JSON.stringify(devicesAPI.body)}`);
         this.debugLog(`Headers: ${JSON.stringify(headers)}`);
         // SwitchBot Devices
@@ -2156,6 +2157,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
    * Logs the status code and throws an error if the status code is invalid.
    *
    * @param statusCode - The status code to be validated.
+   * @returns {Promise<void>} - Resolves if the status code is valid, otherwise rejects with an error.
    * @throws {Error} If the provided status code is not valid.
    */
   async statusCode(statusCode: number): Promise<void> {
@@ -2165,7 +2167,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.debugLog(statusMsg);
     } else {
       this.errorLog(statusMsg);
-      throw new Error(`Invalid Status Code: ${statusCode}`);
+      return Promise.reject(new Error(`Invalid Status Code: ${statusCode}`));
     }
   }
 
