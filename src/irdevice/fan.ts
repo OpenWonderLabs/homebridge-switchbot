@@ -1,7 +1,7 @@
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { request } from 'undici';
 import { SwitchBotPlatform } from '../platform';
-import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
-import { irdevice, irDevicesConfig, Devices } from '../settings';
+import { Devices, irDevicesConfig, irdevice } from '../settings';
 
 /**
  * Platform Accessory
@@ -30,13 +30,17 @@ export class Fan {
   disablePushOff?: boolean;
   deviceLogging!: string;
 
-  constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: irdevice & irDevicesConfig) {
+  constructor(
+    private readonly platform: SwitchBotPlatform,
+    private accessory: PlatformAccessory,
+    public device: irdevice & irDevicesConfig,
+  ) {
     // default placeholders
     this.logs(device);
-    this.config(device);
     this.context();
     this.disablePushOnChanges({ device });
     this.disablePushOffChanges({ device });
+    this.config(device);
 
     // set accessory information
     accessory
@@ -170,30 +174,33 @@ export class Fan {
    * Fan -        "command"       "highSpeed"      "default"	        =        fan speed to high
    */
   async pushFanOnChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushFanOnChanges Active: ${this.Active},`
-      + ` disablePushOn: ${this.disablePushOn}`);
+    this.debugLog(
+      `${this.device.remoteType}: ${this.accessory.displayName} pushFanOnChanges Active: ${this.Active},` + ` disablePushOn: ${this.disablePushOn}`,
+    );
     if (this.Active === this.platform.Characteristic.Active.ACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const bodyChange = JSON.stringify({
-        'command': command,
-        'parameter': 'default',
-        'commandType': commandType,
+        command: command,
+        parameter: 'default',
+        commandType: commandType,
       });
       await this.pushChanges(bodyChange);
     }
   }
 
   async pushFanOffChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushLightOffChanges Active: ${this.Active},`
-      + ` disablePushOff: ${this.disablePushOff}`);
+    this.debugLog(
+      `${this.device.remoteType}: ${this.accessory.displayName} pushLightOffChanges Active: ${this.Active},` +
+      ` disablePushOff: ${this.disablePushOff}`,
+    );
     if (this.Active === this.platform.Characteristic.Active.INACTIVE && !this.disablePushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
       const bodyChange = JSON.stringify({
-        'command': command,
-        'parameter': 'default',
-        'commandType': commandType,
+        command: command,
+        parameter: 'default',
+        commandType: commandType,
       });
       await this.pushChanges(bodyChange);
     }
@@ -201,27 +208,27 @@ export class Fan {
 
   async pushFanSpeedUpChanges(): Promise<void> {
     const bodyChange = JSON.stringify({
-      'command': 'highSpeed',
-      'parameter': 'default',
-      'commandType': 'command',
+      command: 'highSpeed',
+      parameter: 'default',
+      commandType: 'command',
     });
     await this.pushChanges(bodyChange);
   }
 
   async pushFanSpeedDownChanges(): Promise<void> {
     const bodyChange = JSON.stringify({
-      'command': 'lowSpeed',
-      'parameter': 'default',
-      'commandType': 'command',
+      command: 'lowSpeed',
+      parameter: 'default',
+      commandType: 'command',
     });
     await this.pushChanges(bodyChange);
   }
 
   async pushFanSwingChanges(): Promise<void> {
     const bodyChange = JSON.stringify({
-      'command': 'swing',
-      'parameter': 'default',
-      'commandType': 'command',
+      command: 'swing',
+      parameter: 'default',
+      commandType: 'command',
     });
     await this.pushChanges(bodyChange);
   }
@@ -229,27 +236,30 @@ export class Fan {
   async pushChanges(bodyChange: any): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushChanges`);
     if (this.device.connectionType === 'OpenAPI') {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
+      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
         const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/commands`, {
           body: bodyChange,
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
-        const deviceStatus = await body.json();
+        const deviceStatus: any = await body.json();
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
         this.statusCode(statusCode);
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
         this.updateHomeKitCharacteristics();
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType}`
-          + ` Connection, Error Message: ${JSON.stringify(e.message)}`,
+        this.errorLog(
+          `${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType}` +
+          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
         );
       }
     } else {
-      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-        + ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
+      this.warnLog(
+        `${this.device.remoteType}: ${this.accessory.displayName}` +
+        ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`,
+      );
     }
   }
 
@@ -277,7 +287,7 @@ export class Fan {
     }
   }
 
-  async disablePushOnChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+  async disablePushOnChanges({ device }: { device: irdevice & irDevicesConfig }): Promise<void> {
     if (device.disablePushOn === undefined) {
       this.disablePushOn = false;
     } else {
@@ -285,7 +295,7 @@ export class Fan {
     }
   }
 
-  async disablePushOffChanges({ device }: { device: irdevice & irDevicesConfig; }): Promise<void> {
+  async disablePushOffChanges({ device }: { device: irdevice & irDevicesConfig }): Promise<void> {
     if (device.disablePushOff === undefined) {
       this.disablePushOff = false;
     } else {
@@ -338,8 +348,10 @@ export class Fan {
         this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device is offline, statusCode: ${statusCode}`);
         break;
       case 171:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. `
-          + `Hub: ${this.device.hubDeviceId}`);
+        this.errorLog(
+          `${this.device.remoteType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. ` +
+          `Hub: ${this.device.hubDeviceId}`,
+        );
         break;
       case 190:
         this.errorLog(
@@ -354,8 +366,10 @@ export class Fan {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
         break;
       default:
-        this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Unknown statusCode: `
-          + `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
+        this.infoLog(
+          `${this.device.remoteType}: ${this.accessory.displayName} Unknown statusCode: ` +
+          `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`,
+        );
     }
   }
 
@@ -367,8 +381,9 @@ export class Fan {
 
   FirmwareRevision(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): string {
     let FirmwareRevision: string;
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-      + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+    this.debugLog(
+      `${this.device.remoteType}: ${this.accessory.displayName}` + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`,
+    );
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
     if (accessory.context.FirmwareRevision) {
@@ -388,7 +403,6 @@ export class Fan {
       this.Active = this.accessory.context.Active;
     }
   }
-
 
   async config(device: irdevice & irDevicesConfig): Promise<void> {
     let config = {};
@@ -420,7 +434,7 @@ export class Fan {
       config['disablePushOff'] = device.disablePushOff;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 

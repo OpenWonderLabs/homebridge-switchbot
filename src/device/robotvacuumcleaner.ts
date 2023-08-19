@@ -1,3 +1,4 @@
+/* eslint-disable brace-style */
 import { Context } from 'vm';
 import { request } from 'undici';
 import { sleep } from '../utils';
@@ -19,6 +20,8 @@ export class RobotVacuumCleaner {
   StatusLowBattery?: CharacteristicValue;
 
   // OpenAPI Others
+  Version: deviceStatus['version'];
+  Battery: deviceStatus['battery'];
   power: deviceStatus['power'];
   deviceStatus!: any; //deviceStatusResponse;
 
@@ -39,16 +42,20 @@ export class RobotVacuumCleaner {
   doRobotVacuumCleanerUpdate!: Subject<void>;
 
   // Connection
-  private readonly BLE = (this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI');
-  private readonly OpenAPI = (this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI');
+  private readonly BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
+  private readonly OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
 
-  constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
+  constructor(
+    private readonly platform: SwitchBotPlatform,
+    private accessory: PlatformAccessory,
+    public device: device & devicesConfig,
+  ) {
     // default placeholders
     this.logs(device);
     this.scan(device);
     this.refreshRate(device);
-    this.config(device);
     this.context();
+    this.config(device);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doRobotVacuumCleanerUpdate = new Subject();
@@ -103,6 +110,21 @@ export class RobotVacuumCleaner {
       })
       .onSet(this.BrightnessSet.bind(this));
 
+    // Battery Service
+    if (!this.batteryService) {
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Battery Service`);
+      (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || this.accessory.addService(this.platform.Service.Battery)),
+      `${accessory.displayName} Battery`;
+
+      this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
+      if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.batteryService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Battery`);
+      }
+      this.batteryService.setCharacteristic(this.platform.Characteristic.ChargingState, this.platform.Characteristic.ChargingState.NOT_CHARGEABLE);
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Battery Service Not Added`);
+    }
+
     // Update Homekit
     this.updateHomeKitCharacteristics();
 
@@ -127,13 +149,15 @@ export class RobotVacuumCleaner {
           if (this.On !== this.accessory.context.On) {
             await this.pushChanges();
           }
-          if (this.On && (this.Brightness !== this.accessory.context.Brightness)) {
+          if (this.On && this.Brightness !== this.accessory.context.Brightness) {
             await this.openAPIpushBrightnessChanges();
           }
         } catch (e: any) {
           this.apiError(e);
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
-            + ` Error Message: ${JSON.stringify(e.message)}`);
+          this.errorLog(
+            `${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,` +
+            ` Error Message: ${JSON.stringify(e.message)}`,
+          );
         }
         this.robotVacuumCleanerUpdateInProgress = false;
       });
@@ -145,14 +169,15 @@ export class RobotVacuumCleaner {
   async parseStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} parseStatus enableCloudService: ${this.device.enableCloudService}`);
-    } else/*if (this.BLE) {
+    } /*if (this.BLE) {
       await this.BLEparseStatus();
-    } else*/if (this.OpenAPI && this.platform.config.credentials?.token) {
+    } else*/ else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-          + ` ${this.device.connectionType}, parseStatus will not happen.`);
+      this.debugWarnLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` + ` ${this.device.connectionType}, parseStatus will not happen.`,
+      );
     }
   }
 
@@ -179,6 +204,15 @@ export class RobotVacuumCleaner {
         this.On = false;
     }
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
+
+    // Battery
+    this.BatteryLevel = Number(this.Battery);
+    if (this.BatteryLevel < 15) {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
+    } else {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    }
+    this.debugLog(`${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
   }
 
   /**
@@ -187,14 +221,16 @@ export class RobotVacuumCleaner {
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus enableCloudService: ${this.device.enableCloudService}`);
-    } else/*if (this.BLE) {
+    } /*if (this.BLE) {
       await this.BLERefreshStatus();
-    } else*/if (this.OpenAPI && this.platform.config.credentials?.token) {
+    } else*/ else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-          + ` ${this.device.connectionType}, refreshStatus will not happen.`);
+      this.debugWarnLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` +
+        ` ${this.device.connectionType}, refreshStatus will not happen.`,
+      );
     }
   }
 
@@ -219,8 +255,10 @@ export class RobotVacuumCleaner {
           // Set an event hander
           switchbot.onadvertisement = async (ad: any) => {
             this.address = ad.address;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
-              + ` BLE Address Found: ${this.address}`);
+            this.debugLog(
+              `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
+              ` BLE Address Found: ${this.address}`,
+            );
             this.serviceData = ad.serviceData;
             this.state = ad.serviceData.state;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
@@ -248,8 +286,10 @@ export class RobotVacuumCleaner {
         })
         .catch(async (e: any) => {
           this.apiError(e);
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLERefreshStatus with ${this.device.connectionType}`
-            + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+          this.errorLog(
+            `${this.device.deviceType}: ${this.accessory.displayName} failed BLERefreshStatus with ${this.device.connectionType}` +
+            ` Connection, Error Message: ${JSON.stringify(e.message)}`,
+          );
           await this.BLERefreshConnection(switchbot);
         });
     } else {
@@ -263,21 +303,22 @@ export class RobotVacuumCleaner {
       const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/status`, {
         headers: this.platform.generateHeaders(),
       });
-      const deviceStatus = await body.json();
+      const deviceStatus: any = await body.json();
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
       this.statusCode(statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName
-        } refreshStatus: ${JSON.stringify(deviceStatus)}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
       this.power = deviceStatus.body.power;
+      this.Battery = deviceStatus.body.battery;
+      this.Version = deviceStatus.body.version;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+      this.errorLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}` +
+        ` Connection, Error Message: ${JSON.stringify(e.message)}`,
+      );
     }
   }
 
@@ -293,14 +334,15 @@ export class RobotVacuumCleaner {
   async pushChanges(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} pushChanges enableCloudService: ${this.device.enableCloudService}`);
-    } else/* if (this.BLE) {
+    } /* if (this.BLE) {
       await this.BLEpushChanges();
-    } else*/if (this.OpenAPI && this.platform.config.credentials?.token) {
+    } else*/ else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-          + ` ${this.device.connectionType}, pushChanges will not happen.`);
+      this.debugWarnLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` + ` ${this.device.connectionType}, pushChanges will not happen.`,
+      );
     }
     // Refresh the status from the API
     interval(15000)
@@ -346,14 +388,15 @@ export class RobotVacuumCleaner {
         })
         .catch(async (e: any) => {
           this.apiError(e);
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
-            + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+          this.errorLog(
+            `${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}` +
+            ` Connection, Error Message: ${JSON.stringify(e.message)}`,
+          );
           await this.BLEPushConnection();
         });
     } else {
       this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges.` + `On: ${this.On}, `
-        + `OnCached: ${this.accessory.context.On}`,
+        `${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges.` + `On: ${this.On}, ` + `OnCached: ${this.accessory.context.On}`,
       );
     }
   }
@@ -368,9 +411,9 @@ export class RobotVacuumCleaner {
         command = 'turnOff';
       }
       const bodyChange = JSON.stringify({
-        'command': `${command}`,
-        'parameter': 'default',
-        'commandType': 'command',
+        command: `${command}`,
+        parameter: 'default',
+        commandType: 'command',
       });
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
@@ -379,19 +422,23 @@ export class RobotVacuumCleaner {
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
-        const deviceStatus = await body.json();
+        const deviceStatus: any = await body.json();
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
         this.statusCode(statusCode);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
-          + ` Connection, Error Message: ${JSON.stringify(e.message)}`,
+        this.errorLog(
+          `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}` +
+          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
         );
       }
     } else {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges.` + `On: ${this.On}, `
-        + `OnCached: ${this.accessory.context.On}`);
+      this.debugLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges.` +
+        `On: ${this.On}, ` +
+        `OnCached: ${this.accessory.context.On}`,
+      );
     }
   }
 
@@ -404,14 +451,15 @@ export class RobotVacuumCleaner {
         method: 'POST',
         headers: this.platform.generateHeaders(),
       });
-      const deviceStatus = await body.json();
+      const deviceStatus: any = await body.json();
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
       this.statusCode(statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${JSON.stringify(e.message)}`,
+      this.errorLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}` +
+        ` Connection, Error Message: ${JSON.stringify(e.message)}`,
       );
     }
   }
@@ -427,9 +475,9 @@ export class RobotVacuumCleaner {
       parameter = 'default';
     }
     const body = JSON.stringify({
-      'command': `${command}`,
-      'parameter': `${parameter}`,
-      'commandType': 'command',
+      command: `${command}`,
+      parameter: `${parameter}`,
+      commandType: 'command',
     });
     return body;
   }
@@ -454,9 +502,9 @@ export class RobotVacuumCleaner {
       parameter = 'default';
     }
     const body = JSON.stringify({
-      'command': `${command}`,
-      'parameter': `${parameter}`,
-      'commandType': 'command',
+      command: `${command}`,
+      parameter: `${parameter}`,
+      commandType: 'command',
     });
     return body;
   }
@@ -635,8 +683,10 @@ export class RobotVacuumCleaner {
         this.offlineOff();
         break;
       case 171:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. `
-          + `Hub: ${this.device.hubDeviceId}`);
+        this.errorLog(
+          `${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. ` +
+          `Hub: ${this.device.hubDeviceId}`,
+        );
         this.offlineOff();
         break;
       case 190:
@@ -652,8 +702,10 @@ export class RobotVacuumCleaner {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
         break;
       default:
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: `
-          + `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
+        this.infoLog(
+          `${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: ` +
+          `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`,
+        );
     }
   }
 
@@ -670,8 +722,9 @@ export class RobotVacuumCleaner {
 
   FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
     let FirmwareRevision: string;
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-      + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+    this.debugLog(
+      `${this.device.deviceType}: ${this.accessory.displayName}` + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`,
+    );
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
     if (accessory.context.FirmwareRevision) {
@@ -734,7 +787,7 @@ export class RobotVacuumCleaner {
       config['maxRetry'] = device.maxRetry;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 

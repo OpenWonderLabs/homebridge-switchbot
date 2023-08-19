@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 2.8.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.8.0) (2023-08-19)
+
+## What's Changed
+
+- Add Hub 2 Light-Level Support. [#776](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/776)
+- Enable Meter Battery Level for OpenAPI, Thanks [@mrlt8](https://github.com/mrlt8) [#782](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/782)
+- Enable Meter Plus Battery Level for OpenAPI, Thanks [@mrlt8](https://github.com/mrlt8) [#787](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/787)
+- Enable Battery Level and Version for OpenAPI for BlindTilt, Bot, Ceiling Lights, Color Bulb, Contact, Curtain, Hub, Humidifier, Indoor/Outdoor Sensor, Light Strip, Lock, Meter, Meter Plus, Motion , Plug, Plug Mini, & Robot Vacuum Cleaner
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.7.1....v2.8.0
+
 ## [Version 2.7.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.7.1) (2023-07-29)
 
 ## What's Changed

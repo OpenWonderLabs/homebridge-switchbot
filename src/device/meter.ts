@@ -1,14 +1,14 @@
-import { Context } from 'vm';
-import { hostname } from 'os';
-import { request } from 'undici';
-import { sleep } from '../utils';
-import { MqttClient } from 'mqtt';
-import { interval, Subject } from 'rxjs';
 import { connectAsync } from 'async-mqtt';
+import { CharacteristicValue, PlatformAccessory, Service, Units } from 'homebridge';
+import { MqttClient } from 'mqtt';
+import { hostname } from 'os';
+import { Subject, interval } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
+import { request } from 'undici';
+import { Context } from 'vm';
 import { SwitchBotPlatform } from '../platform';
-import { Service, PlatformAccessory, Units, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, serviceData, ad, switchbot, temperature, deviceStatus, Devices } from '../settings';
+import { Devices, ad, device, deviceStatus, devicesConfig, serviceData, switchbot, temperature } from '../settings';
+import { sleep } from '../utils';
 
 /**
  * Platform Accessory
@@ -29,6 +29,8 @@ export class Meter {
   StatusLowBattery?: CharacteristicValue;
 
   // OpenAPI Others
+  Version: deviceStatus['version'];
+  Battery: deviceStatus['battery'];
   Temperature: deviceStatus['temperature'];
   Humidity: deviceStatus['humidity'];
   deviceStatus!: any; //deviceStatusResponse;
@@ -60,18 +62,22 @@ export class Meter {
   doMeterUpdate: Subject<void>;
 
   // Connection
-  private readonly BLE = (this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI');
-  private readonly OpenAPI = (this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI');
+  private readonly BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
+  private readonly OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
 
-  constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
+  constructor(
+    private readonly platform: SwitchBotPlatform,
+    private accessory: PlatformAccessory,
+    public device: device & devicesConfig,
+  ) {
     // default placeholders
     this.logs(device);
     this.scan(device);
     this.refreshRate(device);
-    this.config(device);
     this.context();
     this.setupHistoryService(device);
     this.setupMqtt(device);
+    this.config(device);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doMeterUpdate = new Subject();
@@ -149,11 +155,7 @@ export class Meter {
     }
 
     // Battery Service
-    if (!this.BLE) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Battery Service`);
-      this.batteryService = this.accessory.getService(this.platform.Service.Battery);
-      accessory.removeService(this.batteryService!);
-    } else if (this.BLE && !this.batteryService) {
+    if (!this.batteryService) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Battery Service`);
       (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || this.accessory.addService(this.platform.Service.Battery)),
       `${accessory.displayName} Battery`;
@@ -190,8 +192,9 @@ export class Meter {
       await this.openAPIparseStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-        + ` ${this.device.connectionType}, parseStatus will not happen.`);
+      this.debugWarnLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` + ` ${this.device.connectionType}, parseStatus will not happen.`,
+      );
     }
   }
 
@@ -223,6 +226,16 @@ export class Meter {
 
   async openAPIparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
+
+    // Battery
+    this.BatteryLevel = Number(this.Battery);
+    if (this.BatteryLevel < 15) {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
+    } else {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    }
+    this.debugLog(`${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
+
     // Current Relative Humidity
     if (!this.device.meter?.hide_humidity) {
       this.CurrentRelativeHumidity = this.Humidity!;
@@ -248,8 +261,10 @@ export class Meter {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-        + ` ${this.device.connectionType}, refreshStatus will not happen.`);
+      this.debugWarnLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` +
+        ` ${this.device.connectionType}, refreshStatus will not happen.`,
+      );
     }
   }
 
@@ -274,8 +289,10 @@ export class Meter {
           // Set an event hander
           switchbot.onadvertisement = async (ad: ad) => {
             this.address = ad.address;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
-              + ` BLE Address Found: ${this.address}`);
+            this.debugLog(
+              `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
+              ` BLE Address Found: ${this.address}`,
+            );
             if (ad.serviceData.humidity! > 0) {
               // reject unreliable data
               this.humidity = ad.serviceData.humidity;
@@ -310,8 +327,10 @@ export class Meter {
         })
         .catch(async (e: any) => {
           this.apiError(e);
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLERefreshStatus with ${this.device.connectionType}`
-            + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+          this.errorLog(
+            `${this.device.deviceType}: ${this.accessory.displayName} failed BLERefreshStatus with ${this.device.connectionType}` +
+            ` Connection, Error Message: ${JSON.stringify(e.message)}`,
+          );
           await this.BLERefreshConnection(switchbot);
         });
     } else {
@@ -325,22 +344,23 @@ export class Meter {
       const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/status`, {
         headers: this.platform.generateHeaders(),
       });
-      const deviceStatus = await body.json();
+      const deviceStatus: any = await body.json();
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
       this.statusCode(statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName
-        } refreshStatus: ${JSON.stringify(deviceStatus)}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
       this.Humidity = deviceStatus.body.humidity!;
       this.Temperature = deviceStatus.body.temperature!;
+      this.Battery = deviceStatus.body.battery;
+      this.Version = deviceStatus.body.version;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+      this.errorLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}` +
+        ` Connection, Error Message: ${JSON.stringify(e.message)}`,
+      );
     }
   }
 
@@ -356,8 +376,10 @@ export class Meter {
       } else {
         this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidity;
         this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-          + ` CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+        this.debugLog(
+          `${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic` +
+          ` CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`,
+        );
         if (this.device.mqttURL) {
           mqttmessage.push(`"humidity": ${this.CurrentRelativeHumidity}`);
         }
@@ -379,31 +401,30 @@ export class Meter {
         this.accessory.context.CurrentTemperature = this.CurrentTemperature;
         this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
+      }
+    }
 
+    if (this.BatteryLevel === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
+    } else {
+      if (this.device.mqttURL) {
+        mqttmessage.push(`"battery": ${this.BatteryLevel}`);
       }
+      this.accessory.context.BatteryLevel = this.BatteryLevel;
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
     }
-    if (this.BLE) {
-      if (this.BatteryLevel === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
-      } else {
-        if (this.device.mqttURL) {
-          mqttmessage.push(`"battery": ${this.BatteryLevel}`);
-        }
-        this.accessory.context.BatteryLevel = this.BatteryLevel;
-        this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
+    if (this.StatusLowBattery === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
+    } else {
+      if (this.device.mqttURL) {
+        mqttmessage.push(`"lowBattery": ${this.StatusLowBattery}`);
       }
-      if (this.StatusLowBattery === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
-      } else {
-        if (this.device.mqttURL) {
-          mqttmessage.push(`"lowBattery": ${this.StatusLowBattery}`);
-        }
-        this.accessory.context.StatusLowBattery = this.StatusLowBattery;
-        this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
-      }
+      this.accessory.context.StatusLowBattery = this.StatusLowBattery;
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
     }
+
     if (this.device.mqttURL) {
       this.mqttPublish(`{${mqttmessage.join(',')}}`);
     }
@@ -530,8 +551,10 @@ export class Meter {
         this.offlineOff();
         break;
       case 171:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. `
-          + `Hub: ${this.device.hubDeviceId}`);
+        this.errorLog(
+          `${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. ` +
+          `Hub: ${this.device.hubDeviceId}`,
+        );
         this.offlineOff();
         break;
       case 190:
@@ -547,8 +570,10 @@ export class Meter {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
         break;
       default:
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: `
-          + `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
+        this.infoLog(
+          `${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: ` +
+          `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`,
+        );
     }
   }
 
@@ -566,22 +591,23 @@ export class Meter {
     if (!this.device.meter?.hide_temperature) {
       this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
     }
-    if (this.BLE) {
-      this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
-      this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
-    }
+    this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
+    this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
   }
 
   FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
     let FirmwareRevision: string;
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-      + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+    this.debugLog(
+      `${this.device.deviceType}: ${this.accessory.displayName}` + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`,
+    );
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
-    if (accessory.context.FirmwareRevision) {
-      FirmwareRevision = accessory.context.FirmwareRevision;
-    } else if (device.firmware) {
+    if (device.firmware) {
       FirmwareRevision = device.firmware;
+    } else if (device.version) {
+      FirmwareRevision = JSON.stringify(device.version);
+    } else if (accessory.context.FirmwareRevision) {
+      FirmwareRevision = accessory.context.FirmwareRevision;
     } else {
       FirmwareRevision = this.platform.version;
     }
@@ -599,18 +625,16 @@ export class Meter {
     } else {
       this.CurrentTemperature = this.accessory.context.CurrentTemperature;
     }
-    if (this.BLE) {
-      if (this.BatteryLevel === undefined) {
-        this.BatteryLevel = 100;
-      } else {
-        this.BatteryLevel = this.accessory.context.BatteryLevel;
-      }
-      if (this.StatusLowBattery === undefined) {
-        this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
-        this.accessory.context.StatusLowBattery = this.StatusLowBattery;
-      } else {
-        this.StatusLowBattery = this.accessory.context.StatusLowBattery;
-      }
+    if (this.BatteryLevel === undefined) {
+      this.BatteryLevel = 100;
+    } else {
+      this.BatteryLevel = this.accessory.context.BatteryLevel;
+    }
+    if (this.StatusLowBattery === undefined) {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+      this.accessory.context.StatusLowBattery = this.StatusLowBattery;
+    } else {
+      this.StatusLowBattery = this.accessory.context.StatusLowBattery;
     }
   }
 
@@ -648,7 +672,7 @@ export class Meter {
       config['scanDuration'] = device.scanDuration;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 

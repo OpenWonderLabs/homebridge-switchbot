@@ -29,6 +29,7 @@ export class IOSensor {
   StatusLowBattery?: CharacteristicValue;
 
   // OpenAPI Others
+  Version: deviceStatus['version'];
   Battery: deviceStatus['battery'];
   Temperature: deviceStatus['temperature'];
   Humidity: deviceStatus['humidity'];
@@ -61,18 +62,22 @@ export class IOSensor {
   doIOSensorUpdate: Subject<void>;
 
   // Connection
-  private readonly BLE = (this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI');
-  private readonly OpenAPI = (this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI');
+  private readonly BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
+  private readonly OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
 
-  constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
+  constructor(
+    private readonly platform: SwitchBotPlatform,
+    private accessory: PlatformAccessory,
+    public device: device & devicesConfig,
+  ) {
     // default placeholders
     this.logs(device);
     this.scan(device);
     this.refreshRate(device);
-    this.config(device);
     this.context();
     this.setupHistoryService(device);
     this.setupMqtt(device);
+    this.config(device);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doIOSensorUpdate = new Subject();
@@ -182,8 +187,9 @@ export class IOSensor {
       await this.openAPIparseStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-        + ` ${this.device.connectionType}, parseStatus will not happen.`);
+      this.debugWarnLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` + ` ${this.device.connectionType}, parseStatus will not happen.`,
+      );
     }
   }
 
@@ -212,7 +218,6 @@ export class IOSensor {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c`);
     }
   }
-
 
   async openAPIparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
@@ -250,8 +255,10 @@ export class IOSensor {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-        + ` ${this.device.connectionType}, refreshStatus will not happen.`);
+      this.debugWarnLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` +
+        ` ${this.device.connectionType}, refreshStatus will not happen.`,
+      );
     }
   }
 
@@ -276,8 +283,10 @@ export class IOSensor {
           // Set an event hander
           switchbot.onadvertisement = async (ad: ad) => {
             this.address = ad.address;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
-              + ` BLE Address Found: ${this.address}`);
+            this.debugLog(
+              `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
+              ` BLE Address Found: ${this.address}`,
+            );
             if (ad.serviceData.humidity! > 0) {
               // reject unreliable data
               this.humidity = ad.serviceData.humidity;
@@ -312,8 +321,10 @@ export class IOSensor {
         })
         .catch(async (e: any) => {
           this.apiError(e);
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLERefreshStatus with ${this.device.connectionType}`
-            + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+          this.errorLog(
+            `${this.device.deviceType}: ${this.accessory.displayName} failed BLERefreshStatus with ${this.device.connectionType}` +
+            ` Connection, Error Message: ${JSON.stringify(e.message)}`,
+          );
           await this.BLERefreshConnection(switchbot);
         });
     } else {
@@ -327,23 +338,23 @@ export class IOSensor {
       const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/status`, {
         headers: this.platform.generateHeaders(),
       });
-      const deviceStatus = await body.json();
+      const deviceStatus: any = await body.json();
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
       this.statusCode(statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName
-        } refreshStatus: ${JSON.stringify(deviceStatus)}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
       this.Humidity = deviceStatus.body.humidity!;
       this.Temperature = deviceStatus.body.temperature!;
-      this.Battery = deviceStatus.body.battery!;
+      this.Battery = deviceStatus.body.battery;
+      this.Version = deviceStatus.body.version;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+      this.errorLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}` +
+        ` Connection, Error Message: ${JSON.stringify(e.message)}`,
+      );
     }
   }
 
@@ -359,8 +370,10 @@ export class IOSensor {
       } else {
         this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidity;
         this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-          + ` updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+        this.debugLog(
+          `${this.device.deviceType}: ${this.accessory.displayName}` +
+          ` updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`,
+        );
         if (this.device.mqttURL) {
           mqttmessage.push(`"humidity": ${this.CurrentRelativeHumidity}`);
         }
@@ -530,8 +543,10 @@ export class IOSensor {
         this.offlineOff();
         break;
       case 171:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. `
-          + `Hub: ${this.device.hubDeviceId}`);
+        this.errorLog(
+          `${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. ` +
+          `Hub: ${this.device.hubDeviceId}`,
+        );
         this.offlineOff();
         break;
       case 190:
@@ -547,8 +562,10 @@ export class IOSensor {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
         break;
       default:
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: `
-          + `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
+        this.infoLog(
+          `${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: ` +
+          `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`,
+        );
     }
   }
 
@@ -572,14 +589,17 @@ export class IOSensor {
 
   FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
     let FirmwareRevision: string;
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-      + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+    this.debugLog(
+      `${this.device.deviceType}: ${this.accessory.displayName}` + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`,
+    );
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
-    if (accessory.context.FirmwareRevision) {
-      FirmwareRevision = accessory.context.FirmwareRevision;
-    } else if (device.firmware) {
+    if (device.firmware) {
       FirmwareRevision = device.firmware;
+    } else if (device.version) {
+      FirmwareRevision = JSON.stringify(device.version);
+    } else if (accessory.context.FirmwareRevision) {
+      FirmwareRevision = accessory.context.FirmwareRevision;
     } else {
       FirmwareRevision = this.platform.version;
     }
@@ -644,7 +664,7 @@ export class IOSensor {
       config['scanDuration'] = device.scanDuration;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 

@@ -1,3 +1,4 @@
+/* eslint-disable brace-style */
 import { Context } from 'vm';
 import { request } from 'undici';
 import { sleep } from '../utils';
@@ -18,6 +19,8 @@ export class Lock {
   LockTargetState!: CharacteristicValue;
 
   // OpenAPI Others
+  Version: deviceStatus['version'];
+  Battery: deviceStatus['battery'];
   doorState!: deviceStatus['doorState'];
   lockState!: deviceStatus['lockState'];
   deviceStatus!: any; //deviceStatusResponse;
@@ -38,8 +41,8 @@ export class Lock {
   doLockUpdate!: Subject<void>;
 
   // Connection
-  private readonly BLE = (this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI');
-  private readonly OpenAPI = (this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI');
+  private readonly BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
+  private readonly OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
   battery: any;
   calibration: any;
   status: any;
@@ -50,13 +53,17 @@ export class Lock {
   unlocked_alarm: any;
   auto_lock_paused: any;
 
-  constructor(private readonly platform: SwitchBotPlatform, private accessory: PlatformAccessory, public device: device & devicesConfig) {
+  constructor(
+    private readonly platform: SwitchBotPlatform,
+    private accessory: PlatformAccessory,
+    public device: device & devicesConfig,
+  ) {
     // default placeholders
     this.logs(device);
     this.scan(device);
     this.refreshRate(device);
-    this.config(device);
     this.context();
+    this.config(device);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doLockUpdate = new Subject();
@@ -140,8 +147,10 @@ export class Lock {
           await this.pushChanges();
         } catch (e: any) {
           this.apiError(e);
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
-            + ` Error Message: ${JSON.stringify(e.message)}`);
+          this.errorLog(
+            `${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,` +
+            ` Error Message: ${JSON.stringify(e.message)}`,
+          );
         }
         this.lockUpdateInProgress = false;
       });
@@ -153,14 +162,15 @@ export class Lock {
   async parseStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} parseStatus enableCloudService: ${this.device.enableCloudService}`);
-    } else/*if (this.BLE) {
+    } /*if (this.BLE) {
       await this.BLEparseStatus();
-    } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
+    } else*/ else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-          + ` ${this.device.connectionType}, parseStatus will not happen.`);
+      this.debugWarnLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` + ` ${this.device.connectionType}, parseStatus will not happen.`,
+      );
     }
   }
 
@@ -218,8 +228,10 @@ export class Lock {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-        + ` ${this.device.connectionType}, refreshStatus will not happen.`);
+      this.debugWarnLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` +
+        ` ${this.device.connectionType}, refreshStatus will not happen.`,
+      );
     }
   }
 
@@ -244,8 +256,10 @@ export class Lock {
           // Set an event hander
           switchbot.onadvertisement = async (ad: any) => {
             this.address = ad.address;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},`
-              + ` BLE Address Found: ${this.address}`);
+            this.debugLog(
+              `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
+              ` BLE Address Found: ${this.address}`,
+            );
             this.serviceData = ad.serviceData;
             this.battery = ad.serviceData.battery;
             this.calibration = ad.serviceData.calibration;
@@ -260,7 +274,8 @@ export class Lock {
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} battery: ${ad.serviceData.battery}, ` +
               `calibration: ${ad.serviceData.calibration}, status: ${ad.serviceData.status}, battery: ${ad.serviceData.battery}, ` +
-              `door_open: ${ad.serviceData.door_open}`);
+              `door_open: ${ad.serviceData.door_open}`,
+            );
 
             if (this.serviceData) {
               this.connected = true;
@@ -280,8 +295,10 @@ export class Lock {
         })
         .catch(async (e: any) => {
           this.apiError(e);
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLERefreshStatus with ${this.device.connectionType}`
-            + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+          this.errorLog(
+            `${this.device.deviceType}: ${this.accessory.displayName} failed BLERefreshStatus with ${this.device.connectionType}` +
+            ` Connection, Error Message: ${JSON.stringify(e.message)}`,
+          );
           await this.BLERefreshConnection(switchbot);
         });
     } else {
@@ -295,22 +312,23 @@ export class Lock {
       const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/status`, {
         headers: this.platform.generateHeaders(),
       });
-      const deviceStatus = await body.json();
+      const deviceStatus: any = await body.json();
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
       this.statusCode(statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName
-        } refreshStatus: ${JSON.stringify(deviceStatus)}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
       this.lockState = deviceStatus.body.lockState;
       this.doorState = deviceStatus.body.doorState;
+      this.Battery = deviceStatus.body.battery;
+      this.Version = deviceStatus.body.version;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+      this.errorLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}` +
+        ` Connection, Error Message: ${JSON.stringify(e.message)}`,
+      );
     }
   }
 
@@ -323,14 +341,15 @@ export class Lock {
   async pushChanges(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} pushChanges enableCloudService: ${this.device.enableCloudService}`);
-    } else /*if (this.BLE) {
+    } /*if (this.BLE) {
       await this.BLEpushChanges();
-    } else*/ if (this.OpenAPI && this.platform.config.credentials?.token) {
+    } else*/ else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-          + ` ${this.device.connectionType}, pushChanges will not happen.`);
+      this.debugWarnLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` + ` ${this.device.connectionType}, pushChanges will not happen.`,
+      );
     }
     // Refresh the status from the API
     interval(15000)
@@ -344,8 +363,10 @@ export class Lock {
   async BLEpushChanges(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges`);
     if (this.LockTargetState !== this.accessory.context.LockTargetState) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges LockTargetState: ${this.LockTargetState}`
-        + ` LockTargetStateCached: ${this.accessory.context.LockTargetState}`);
+      this.debugLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges LockTargetState: ${this.LockTargetState}` +
+        ` LockTargetStateCached: ${this.accessory.context.LockTargetState}`,
+      );
       const switchbot = await this.platform.connectBLE();
       // Convert to BLE Address
       this.device.bleMac = this.device
@@ -364,14 +385,17 @@ export class Lock {
         })
         .catch(async (e: any) => {
           this.apiError(e);
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
-            + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+          this.errorLog(
+            `${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}` +
+            ` Connection, Error Message: ${JSON.stringify(e.message)}`,
+          );
           await this.BLEPushConnection();
         });
     } else {
       this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges.` + `LockTargetState: ${this.LockTargetState}, `
-        + `LockTargetStateCached: ${this.accessory.context.LockTargetState}`,
+        `${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges.` +
+        `LockTargetState: ${this.LockTargetState}, ` +
+        `LockTargetStateCached: ${this.accessory.context.LockTargetState}`,
       );
     }
   }
@@ -386,9 +410,9 @@ export class Lock {
         command = 'unlock';
       }
       const bodyChange = JSON.stringify({
-        'command': `${command}`,
-        'parameter': 'default',
-        'commandType': 'command',
+        command: `${command}`,
+        parameter: 'default',
+        commandType: 'command',
       });
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
@@ -397,19 +421,23 @@ export class Lock {
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
-        const deviceStatus = await body.json();
+        const deviceStatus: any = await body.json();
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
         this.statusCode(statusCode);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
-          + ` Connection, Error Message: ${JSON.stringify(e.message)}`,
+        this.errorLog(
+          `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}` +
+          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
         );
       }
     } else {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges.` + `LockTargetState: ${this.LockTargetState}, `
-        + `LockTargetStateCached: ${this.accessory.context.LockTargetState}`);
+      this.debugLog(
+        `${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges.` +
+        `LockTargetState: ${this.LockTargetState}, ` +
+        `LockTargetStateCached: ${this.accessory.context.LockTargetState}`,
+      );
     }
   }
 
@@ -526,8 +554,10 @@ export class Lock {
         this.offlineOff();
         break;
       case 171:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. `
-          + `Hub: ${this.device.hubDeviceId}`);
+        this.errorLog(
+          `${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. ` +
+          `Hub: ${this.device.hubDeviceId}`,
+        );
         this.offlineOff();
         break;
       case 190:
@@ -543,8 +573,10 @@ export class Lock {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
         break;
       default:
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: `
-          + `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
+        this.infoLog(
+          `${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: ` +
+          `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`,
+        );
     }
   }
 
@@ -565,14 +597,17 @@ export class Lock {
 
   FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
     let FirmwareRevision: string;
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-      + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+    this.debugLog(
+      `${this.device.deviceType}: ${this.accessory.displayName}` + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`,
+    );
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
-    if (accessory.context.FirmwareRevision) {
-      FirmwareRevision = accessory.context.FirmwareRevision;
-    } else if (device.firmware) {
+    if (device.firmware) {
       FirmwareRevision = device.firmware;
+    } else if (device.version) {
+      FirmwareRevision = JSON.stringify(device.version);
+    } else if (accessory.context.FirmwareRevision) {
+      FirmwareRevision = accessory.context.FirmwareRevision;
     } else {
       FirmwareRevision = this.platform.version;
     }
@@ -618,7 +653,7 @@ export class Lock {
       config['scanDuration'] = device.scanDuration;
     }
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
