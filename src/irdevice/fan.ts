@@ -19,9 +19,6 @@ export class Fan {
   SwingMode!: CharacteristicValue;
   RotationDirection!: CharacteristicValue;
 
-  // Others
-  deviceStatus!: any;
-
   // Config
   minStep?: number;
   minValue?: number;

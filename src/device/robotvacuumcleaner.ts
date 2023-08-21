@@ -6,30 +6,26 @@ import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, deviceStatus, ad, serviceData, switchbot, Devices } from '../settings';
+import { device, devicesConfig, deviceStatus, ad, serviceData, Devices } from '../settings';
 
 export class RobotVacuumCleaner {
   // Services
   robotVacuumCleanerService: Service;
-  batteryService?: Service;
+  batteryService: Service;
 
   // Characteristic Values
   On!: CharacteristicValue;
   Brightness!: CharacteristicValue;
-  BatteryLevel?: CharacteristicValue;
-  StatusLowBattery?: CharacteristicValue;
+  BatteryLevel!: CharacteristicValue;
+  StatusLowBattery!: CharacteristicValue;
 
   // OpenAPI Others
   Version: deviceStatus['version'];
   Battery: deviceStatus['battery'];
   power: deviceStatus['power'];
-  deviceStatus!: any; //deviceStatusResponse;
 
   // BLE Others
   connected?: boolean;
-  switchbot!: switchbot;
-  address!: ad['address'];
-  serviceData!: serviceData;
   state: serviceData['state'];
 
   // Config
@@ -111,18 +107,12 @@ export class RobotVacuumCleaner {
       .onSet(this.BrightnessSet.bind(this));
 
     // Battery Service
-    if (!this.batteryService) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Battery Service`);
-      (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || this.accessory.addService(this.platform.Service.Battery)),
-      `${accessory.displayName} Battery`;
+    (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || accessory.addService(this.platform.Service.Battery)),
+    `${accessory.displayName} Battery`;
 
-      this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
-      if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-        this.batteryService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Battery`);
-      }
-      this.batteryService.setCharacteristic(this.platform.Characteristic.ChargingState, this.platform.Characteristic.ChargingState.NOT_CHARGEABLE);
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Battery Service Not Added`);
+    this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
+    if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+      this.batteryService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Battery`);
     }
 
     // Update Homekit
@@ -253,13 +243,11 @@ export class RobotVacuumCleaner {
         })
         .then(async () => {
           // Set an event hander
-          switchbot.onadvertisement = async (ad: any) => {
-            this.address = ad.address;
+          switchbot.onadvertisement = async (ad: ad) => {
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
-              ` BLE Address Found: ${this.address}`,
+              ` BLE Address Found: ${ad.address}`,
             );
-            this.serviceData = ad.serviceData;
             this.state = ad.serviceData.state;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
             this.debugLog(
@@ -268,7 +256,7 @@ export class RobotVacuumCleaner {
               `wifiRssi: ${ad.serviceData.wifiRssi}, overload: ${ad.serviceData.overload}, currentPower: ${ad.serviceData.currentPower}`,
             );
 
-            if (this.serviceData) {
+            if (ad.serviceData) {
               this.connected = true;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
               await this.stopScanning(switchbot);

@@ -8,19 +8,22 @@ import { sleep } from '../utils';
 
 export class Hub {
   // Services
-  hubTemperatureSensor: Service;
-  hubHumiditySensor: Service;
   hubLightSensor: Service;
+  hubHumiditySensor: Service;
+  hubTemperatureSensor: Service;
 
   // Characteristic Values
-  CurrentRelativeHumidity!: number;
-  CurrentTemperature!: number;
-  CurrentAmbientLightLevel!: number;
+  CurrentTemperature!: CharacteristicValue;
+  CurrentRelativeHumidity!: CharacteristicValue;
+  CurrentAmbientLightLevel!: CharacteristicValue;
+
+  // OpenAPI Status
+  OpenAPI_FirmwareRevision: deviceStatus['version'];
+  OpenAPI_CurrentTemperature: deviceStatus['temperature'];
+  OpenAPI_CurrentRelativeHumidity: deviceStatus['humidity'];
+  OpenAPI_CurrentAmbientLightLevel!: deviceStatus['brightness'];
 
   // OpenAPI Others
-  Version: deviceStatus['version'];
-  deviceStatus!: any; //deviceStatusResponse;
-  lightLevel!: number;
   spaceBetweenLevels!: number;
 
   // Config
@@ -174,10 +177,11 @@ export class Hub {
 
   async openAPIparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
-    this.infoLog(`update temperature and humidity for ${this.accessory.displayName}`);
-    // this.infoLog(`temp: ${this.CurrentTemperature}, humidity: ${this.CurrentRelativeHumidity}`);
-    this.hubTemperatureSensor.setCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
-    this.hubHumiditySensor.setCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
+    // Temperature
+    this.CurrentTemperature = Number(this.OpenAPI_CurrentTemperature);
+
+    // Humidity
+    this.CurrentRelativeHumidity = Number(this.OpenAPI_CurrentRelativeHumidity);
 
     if (!this.device.curtain?.hide_lightsensor) {
       this.set_minLux = this.minLux();
@@ -185,85 +189,85 @@ export class Hub {
       this.spaceBetweenLevels = 19;
 
       // Brightness
-      switch (this.lightLevel) {
+      switch (this.OpenAPI_CurrentAmbientLightLevel) {
         case 1:
           this.CurrentAmbientLightLevel = this.set_minLux;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
           break;
         case 2:
           this.CurrentAmbientLightLevel = (this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels;
           this.debugLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel},` +
+            `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel},` +
             ` Calculation: ${(this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels}`,
           );
           break;
         case 3:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 2;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
           break;
         case 4:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 3;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
           break;
         case 5:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 4;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
           break;
         case 6:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 5;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
           break;
         case 7:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 6;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
           break;
         case 8:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 7;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
           break;
         case 9:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 8;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
           break;
         case 10:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 9;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
           break;
         case 11:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 10;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
           break;
         case 12:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 11;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
           break;
         case 13:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 12;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
           break;
         case 14:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 13;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
           break;
         case 15:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 14;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
           break;
         case 16:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 15;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
           break;
         case 17:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 16;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
           break;
         case 18:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 17;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
           break;
         case 19:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 18;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
           break;
         case 20:
         default:
@@ -271,7 +275,7 @@ export class Hub {
           this.debugLog();
       }
       this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel},` +
+        `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel},` +
         ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
       );
     }
@@ -299,9 +303,10 @@ export class Hub {
       this.statusCode(statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
-      this.CurrentTemperature = deviceStatus.body.temperature;
-      this.CurrentRelativeHumidity = deviceStatus.body.humidity;
-      this.lightLevel = deviceStatus.body.lightLevel;
+      this.OpenAPI_CurrentTemperature = deviceStatus.body.temperature;
+      this.OpenAPI_CurrentRelativeHumidity = deviceStatus.body.humidity;
+      this.OpenAPI_CurrentAmbientLightLevel = deviceStatus.body.lightLevel;
+      this.OpenAPI_FirmwareRevision = deviceStatus.body.version;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
@@ -360,9 +365,19 @@ export class Hub {
       this.accessory.context.CurrentAmbientLightLevel = this.CurrentAmbientLightLevel;
       this.hubLightSensor?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
       this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} ` +
-        `updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
+        `${this.device.deviceType}: ${this.accessory.displayName} `
+        + `updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
       );
+    }
+    // FirmwareRevision
+    if (this.OpenAPI_FirmwareRevision === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.OpenAPI_FirmwareRevision}`);
+    } else {
+      this.accessory.context.OpenAPI_FirmwareRevision = this.OpenAPI_FirmwareRevision;
+      this.accessory.getService(this.platform.Service.AccessoryInformation)!
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.OpenAPI_FirmwareRevision);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+        + `updateCharacteristic CurrentTemperature: ${this.OpenAPI_FirmwareRevision}`);
     }
   }
 

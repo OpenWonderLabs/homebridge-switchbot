@@ -6,30 +6,35 @@ import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, deviceStatus, switchbot, ad, serviceData, Devices } from '../settings';
+import { device, devicesConfig, deviceStatus, ad, Devices, serviceData } from '../settings';
 
 export class Lock {
   // Services
   lockService: Service;
+  batteryService: Service;
   contactSensorService?: Service;
 
   // Characteristic Values
-  ContactSensorState!: CharacteristicValue;
-  LockCurrentState!: CharacteristicValue;
+  BatteryLevel!: CharacteristicValue;
   LockTargetState!: CharacteristicValue;
+  LockCurrentState!: CharacteristicValue;
+  StatusLowBattery!: CharacteristicValue;
+  ContactSensorState!: CharacteristicValue;
 
-  // OpenAPI Others
-  Version: deviceStatus['version'];
-  Battery: deviceStatus['battery'];
-  doorState!: deviceStatus['doorState'];
-  lockState!: deviceStatus['lockState'];
-  deviceStatus!: any; //deviceStatusResponse;
+  // OpenAPI Status
+  OpenAPI_Version: deviceStatus['version'];
+  OpenAPI_Battery: deviceStatus['battery'];
+  OpenAPI_LockCurrentState!: deviceStatus['lockState'];
+  OpenAPI_ContactSensorState!: deviceStatus['doorState'];
+
+  // BLE Status
+  BLE_Battery: serviceData['battery'];
+  BLE_LockCurrentState: serviceData['state'];
+  BLE_Calibration: serviceData['calibration'];
+  BLE_ContactSensorState: serviceData['door_open'];
 
   // BLE Others
-  connected?: boolean;
-  switchbot!: switchbot;
-  address!: ad['address'];
-  serviceData!: serviceData;
+  BLE_IsConnected?: boolean;
 
   // Config
   scanDuration!: number;
@@ -43,15 +48,6 @@ export class Lock {
   // Connection
   private readonly BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
   private readonly OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
-  battery: any;
-  calibration: any;
-  status: any;
-  update_from_secondary_lock: any;
-  door_open: any;
-  double_lock_mode: any;
-  unclosed_alarm: any;
-  unlocked_alarm: any;
-  auto_lock_paused: any;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
@@ -123,6 +119,16 @@ export class Lock {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Contact Sensor Service Not Added`);
     }
 
+    // Battery Service
+    (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || accessory.addService(this.platform.Service.Battery)),
+    `${accessory.displayName} Battery`;
+
+    this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
+    if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+      this.batteryService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Battery`);
+    }
+    this.batteryService.setCharacteristic(this.platform.Characteristic.ChargingState, this.platform.Characteristic.ChargingState.NOT_CHARGEABLE);
+
     // Update Homekit
     this.updateHomeKitCharacteristics();
 
@@ -176,7 +182,7 @@ export class Lock {
 
   async BLEparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
-    switch (this.lockState) {
+    switch (this.BLE_LockCurrentState) {
       case 'locked':
         this.LockCurrentState = this.platform.Characteristic.LockCurrentState.SECURED;
         this.LockTargetState = this.platform.Characteristic.LockTargetState.SECURED;
@@ -185,7 +191,7 @@ export class Lock {
         this.LockCurrentState = this.platform.Characteristic.LockCurrentState.UNSECURED;
         this.LockTargetState = this.platform.Characteristic.LockTargetState.UNSECURED;
     }
-    switch (this.doorState) {
+    switch (this.BLE_ContactSensorState) {
       case 'opened':
         this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
         break;
@@ -193,11 +199,21 @@ export class Lock {
         this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.LockTargetState}`);
+    // Battery
+    this.BatteryLevel = Number(this.BLE_Battery);
+    if (this.BatteryLevel < 10) {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
+    } else {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    }
+    this.debugLog(
+      `${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel},` + ` StatusLowBattery: ${this.StatusLowBattery}`,
+    );
   }
 
   async openAPIparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
-    switch (this.lockState) {
+    switch (this.OpenAPI_LockCurrentState) {
       case 'locked':
         this.LockCurrentState = this.platform.Characteristic.LockCurrentState.SECURED;
         this.LockTargetState = this.platform.Characteristic.LockTargetState.SECURED;
@@ -206,7 +222,7 @@ export class Lock {
         this.LockCurrentState = this.platform.Characteristic.LockCurrentState.UNSECURED;
         this.LockTargetState = this.platform.Characteristic.LockTargetState.UNSECURED;
     }
-    switch (this.doorState) {
+    switch (this.OpenAPI_ContactSensorState) {
       case 'opened':
         this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
         break;
@@ -214,6 +230,18 @@ export class Lock {
         this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.LockTargetState}`);
+
+    // Battery
+    this.BatteryLevel = Number(this.OpenAPI_Battery);
+    if (this.BatteryLevel < 10) {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
+    } else {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    }
+    if (Number.isNaN(this.BatteryLevel)) {
+      this.BatteryLevel = 100;
+    }
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
   }
 
   /**
@@ -254,22 +282,15 @@ export class Lock {
         })
         .then(async () => {
           // Set an event hander
-          switchbot.onadvertisement = async (ad: any) => {
-            this.address = ad.address;
+          switchbot.onadvertisement = async (ad: ad) => {
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
-              ` BLE Address Found: ${this.address}`,
+              ` BLE Address Found: ${ad.address}`,
             );
-            this.serviceData = ad.serviceData;
-            this.battery = ad.serviceData.battery;
-            this.calibration = ad.serviceData.calibration;
-            this.status = ad.serviceData.status;
-            this.update_from_secondary_lock = ad.serviceData.update_from_secondary_lock;
-            this.door_open = ad.serviceData.door_open;
-            this.double_lock_mode = ad.serviceData.double_lock_mode;
-            this.unclosed_alarm = ad.serviceData.unclosed_alarm;
-            this.unlocked_alarm = ad.serviceData.unlocked_alarm;
-            this.auto_lock_paused = ad.serviceData.auto_lock_paused;
+            this.BLE_Battery = ad.serviceData.battery;
+            this.BLE_Calibration = ad.serviceData.calibration;
+            this.BLE_LockCurrentState = ad.serviceData.status;
+            this.BLE_ContactSensorState = ad.serviceData.door_open;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} battery: ${ad.serviceData.battery}, ` +
@@ -277,13 +298,13 @@ export class Lock {
               `door_open: ${ad.serviceData.door_open}`,
             );
 
-            if (this.serviceData) {
-              this.connected = true;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+            if (ad.serviceData) {
+              this.BLE_IsConnected = true;
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
               await this.stopScanning(switchbot);
             } else {
-              this.connected = false;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+              this.BLE_IsConnected = false;
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
             }
           };
           // Wait
@@ -317,10 +338,10 @@ export class Lock {
       this.statusCode(statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
-      this.lockState = deviceStatus.body.lockState;
-      this.doorState = deviceStatus.body.doorState;
-      this.Battery = deviceStatus.body.battery;
-      this.Version = deviceStatus.body.version;
+      this.OpenAPI_LockCurrentState = deviceStatus.body.lockState;
+      this.OpenAPI_ContactSensorState = deviceStatus.body.doorState;
+      this.OpenAPI_Battery = deviceStatus.body.battery;
+      this.OpenAPI_Version = deviceStatus.body.version;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
@@ -479,11 +500,25 @@ export class Lock {
       this.lockService.updateCharacteristic(this.platform.Characteristic.LockCurrentState, this.LockCurrentState);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic LockCurrentState: ${this.LockCurrentState}`);
     }
+    if (this.BatteryLevel === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
+    } else {
+      this.accessory.context.BatteryLevel = this.BatteryLevel;
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
+    }
+    if (this.StatusLowBattery === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
+    } else {
+      this.accessory.context.StatusLowBattery = this.StatusLowBattery;
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
+    }
   }
 
   async stopScanning(switchbot: any) {
     await switchbot.stopScan();
-    if (this.connected) {
+    if (this.BLE_IsConnected) {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
     } else {

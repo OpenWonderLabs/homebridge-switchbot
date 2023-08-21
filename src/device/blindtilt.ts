@@ -7,7 +7,7 @@ import { connectAsync } from 'async-mqtt';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, serviceData, switchbot, deviceStatus, ad, Devices } from '../settings';
+import { device, devicesConfig, serviceData, deviceStatus, ad, Devices } from '../settings';
 
 enum BlindTiltMappingMode {
   OnlyUp = 'only_up',
@@ -19,43 +19,44 @@ enum BlindTiltMappingMode {
 
 export class BlindTilt {
   // Services
-  windowCoveringService: Service;
+  batteryService: Service;
   lightSensorService?: Service;
-  batteryService?: Service;
+  windowCoveringService: Service;
 
   // Characteristic Values
-  CurrentPosition!: CharacteristicValue;
+  BatteryLevel!: CharacteristicValue;
   PositionState!: CharacteristicValue;
   TargetPosition!: CharacteristicValue;
+  CurrentPosition!: CharacteristicValue;
+  StatusLowBattery!: CharacteristicValue;
   CurrentAmbientLightLevel?: CharacteristicValue;
-  BatteryLevel?: CharacteristicValue;
-  StatusLowBattery?: CharacteristicValue;
-  CurrentHorizontalTiltAngle!: CharacteristicValue;
   TargetHorizontalTiltAngle!: CharacteristicValue;
+  CurrentHorizontalTiltAngle!: CharacteristicValue;
+
+  // OpenAPI Status
+  OpenAPI_InMotion: deviceStatus['moving'];
+  OpenAPI_BatteryLevel: serviceData['battery'];
+  OpenAPI_Direction: deviceStatus['direction'];
+  OpenAPI_Calibration: serviceData['calibration'];
+  OpenAPI_CurrentPosition: serviceData['position'];
+  OpenAPI_FirmwareRevision: deviceStatus['version'];
+  OpenAPI_CurrentAmbientLightLevel: deviceStatus['brightness'];
 
   // OpenAPI Others
-  Version: deviceStatus['version'];
-  deviceStatus!: any; //deviceStatusResponse;
-  slidePosition: deviceStatus['slidePosition'];
-  direction: deviceStatus['direction'];
-  moving: deviceStatus['moving'];
-  brightness: deviceStatus['brightness'];
-  setPositionMode?: string | number;
   Mode!: string;
-
+  setPositionMode?: string | number;
   mappingMode: BlindTiltMappingMode = BlindTiltMappingMode.OnlyUp;
 
+  // BLE Status
+  BLE_InMotion: serviceData['inMotion'];
+  BLE_BatteryLevel: serviceData['battery'];
+  BLE_Calibration: serviceData['calibration'];
+  BLE_CurrentPosition: serviceData['position'];
+  BLE_CurrentAmbientLightLevel: serviceData['lightLevel'];
+
   // BLE Others
-  connected?: boolean;
-  switchbot!: switchbot;
-  serviceData!: serviceData;
+  BLE_IsConnected?: boolean;
   spaceBetweenLevels!: number;
-  address!: ad['address'];
-  calibration: serviceData['calibration'];
-  battery: serviceData['battery'];
-  position: serviceData['position'];
-  inMotion: serviceData['inMotion'];
-  lightLevel: serviceData['lightLevel'];
 
   // Target
   setNewTarget!: boolean;
@@ -188,21 +189,12 @@ export class BlindTilt {
       .onSet(this.TargetHorizontalTiltAngleSet.bind(this));
 
     // Battery Service
-    if (!this.BLE) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Battery Service`);
-      this.batteryService = this.accessory.getService(this.platform.Service.Battery);
-      accessory.removeService(this.batteryService!);
-    } else if (this.BLE && !this.batteryService) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Battery Service`);
-      (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || this.accessory.addService(this.platform.Service.Battery)),
-      `${accessory.displayName} Battery`;
+    (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || accessory.addService(this.platform.Service.Battery)),
+    `${accessory.displayName} Battery`;
 
-      this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
-      if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-        this.batteryService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Battery`);
-      }
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Battery Service Not Added`);
+    this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
+    if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+      this.batteryService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Battery`);
     }
 
     // Update Homekit
@@ -270,14 +262,14 @@ export class BlindTilt {
   async BLEparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
     // CurrentPosition
-    this.CurrentPosition = 100 - Number(this.position);
+    this.CurrentPosition = 100 - Number(this.BLE_CurrentPosition);
     await this.setMinMax();
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition ${this.CurrentPosition}`);
     if (this.setNewTarget) {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Checking Status ...`);
     }
 
-    if (this.setNewTarget && this.inMotion) {
+    if (this.setNewTarget && this.BLE_InMotion) {
       await this.setMinMax();
       if (Number(this.TargetPosition) > this.CurrentPosition) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition}`);
@@ -312,45 +304,45 @@ export class BlindTilt {
       this.spaceBetweenLevels = 9;
 
       // Brightness
-      switch (this.lightLevel) {
+      switch (this.BLE_CurrentAmbientLightLevel) {
         case 1:
           this.CurrentAmbientLightLevel = this.set_minLux;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.BLE_CurrentAmbientLightLevel}`);
           break;
         case 2:
           this.CurrentAmbientLightLevel = (this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels;
           this.debugLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel},` +
+            `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.BLE_CurrentAmbientLightLevel},` +
             ` Calculation: ${(this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels}`,
           );
           break;
         case 3:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 2;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.BLE_CurrentAmbientLightLevel}`);
           break;
         case 4:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 3;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.BLE_CurrentAmbientLightLevel}`);
           break;
         case 5:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 4;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.BLE_CurrentAmbientLightLevel}`);
           break;
         case 6:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 5;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.BLE_CurrentAmbientLightLevel}`);
           break;
         case 7:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 6;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.BLE_CurrentAmbientLightLevel}`);
           break;
         case 8:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 7;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.BLE_CurrentAmbientLightLevel}`);
           break;
         case 9:
           this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 8;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.BLE_CurrentAmbientLightLevel}`);
           break;
         case 10:
         default:
@@ -358,12 +350,12 @@ export class BlindTilt {
           this.debugLog();
       }
       this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel},` +
+        `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.BLE_CurrentAmbientLightLevel},` +
         ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
       );
     }
     // Battery
-    this.BatteryLevel = Number(this.battery);
+    this.BatteryLevel = Number(this.BLE_BatteryLevel);
     if (this.BatteryLevel < 10) {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
@@ -377,8 +369,9 @@ export class BlindTilt {
   async openAPIparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
 
-    const [homekitPosition, homekitTiltAngle] = this.mapDeviceValuesToHomekitValues(Number(this.slidePosition), String(this.direction));
-    this.debugLog(` device: ${this.slidePosition} => HK: ${homekitPosition}`);
+    const [homekitPosition, homekitTiltAngle] = this.mapDeviceValuesToHomekitValues(Number(this.OpenAPI_CurrentPosition),
+      String(this.OpenAPI_Direction));
+    this.debugLog(` device: ${this.OpenAPI_CurrentPosition} => HK: ${homekitPosition}`);
 
     this.CurrentPosition = homekitPosition;
     // CurrentPosition
@@ -394,7 +387,7 @@ export class BlindTilt {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Checking Status ...`);
     }
 
-    if (this.setNewTarget && this.moving) {
+    if (this.setNewTarget && this.OpenAPI_InMotion) {
       await this.setMinMax();
       if (this.TargetPosition > this.CurrentPosition || (homekitTiltAngle && this.TargetHorizontalTiltAngle !== this.CurrentHorizontalTiltAngle)) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Closing, CurrentPosition: ${this.CurrentPosition} `);
@@ -434,7 +427,7 @@ export class BlindTilt {
       this.set_minLux = this.minLux();
       this.set_maxLux = this.maxLux();
       // Brightness
-      switch (this.brightness) {
+      switch (this.OpenAPI_CurrentAmbientLightLevel) {
         case 'dim':
           this.CurrentAmbientLightLevel = this.set_minLux;
           break;
@@ -481,18 +474,16 @@ export class BlindTilt {
         })
         .then(async () => {
           // Set an event hander
-          switchbot.onadvertisement = async (ad: any) => {
-            this.address = ad.address;
+          switchbot.onadvertisement = async (ad: ad) => {
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
-              ` BLE Address Found: ${this.address}`,
+              ` BLE Address Found: ${ad.address}`,
             );
-            this.serviceData = ad.serviceData;
-            this.calibration = ad.serviceData.calibration;
-            this.battery = ad.serviceData.battery;
-            this.inMotion = ad.serviceData.inMotion;
-            this.position = ad.serviceData.position;
-            this.lightLevel = ad.serviceData.lightLevel;
+            this.BLE_Calibration = ad.serviceData.calibration;
+            this.BLE_BatteryLevel = ad.serviceData.battery;
+            this.BLE_InMotion = ad.serviceData.inMotion;
+            this.BLE_CurrentPosition = ad.serviceData.position;
+            this.BLE_CurrentAmbientLightLevel = ad.serviceData.lightLevel;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} calibration: ${ad.serviceData.calibration}, ` +
@@ -500,13 +491,13 @@ export class BlindTilt {
               `inMotion: ${ad.serviceData.inMotion}`,
             );
 
-            if (this.serviceData) {
-              this.connected = true;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+            if (ad.serviceData) {
+              this.BLE_IsConnected = true;
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
               await this.stopScanning(switchbot);
             } else {
-              this.connected = false;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+              this.BLE_IsConnected = false;
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
             }
           };
           // Wait
@@ -540,10 +531,12 @@ export class BlindTilt {
       this.statusCode(statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
-      this.slidePosition = deviceStatus.body.slidePosition;
-      this.direction = deviceStatus.body.direction;
-      this.moving = deviceStatus.body.moving;
-      this.brightness = deviceStatus.body.brightness;
+      this.OpenAPI_CurrentPosition = deviceStatus.body.slidePosition;
+      this.OpenAPI_Direction = deviceStatus.body.direction;
+      this.OpenAPI_InMotion = deviceStatus.body.moving;
+      this.OpenAPI_CurrentAmbientLightLevel = deviceStatus.body.brightness;
+      this.OpenAPI_BatteryLevel = deviceStatus.body.battery;
+      this.OpenAPI_FirmwareRevision = deviceStatus.body.version;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
@@ -842,27 +835,35 @@ export class BlindTilt {
         );
       }
     }
-    if (this.BLE) {
-      if (this.BatteryLevel === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
-      } else {
-        if (this.device.mqttURL) {
-          this.mqttPublish('BatteryLevel', this.BatteryLevel);
-        }
-        this.accessory.context.BatteryLevel = this.BatteryLevel;
-        this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
+    if (this.BatteryLevel === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
+    } else {
+      if (this.device.mqttURL) {
+        this.mqttPublish('BatteryLevel', this.BatteryLevel);
       }
-      if (this.StatusLowBattery === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
-      } else {
-        if (this.device.mqttURL) {
-          this.mqttPublish('StatusLowBattery', this.StatusLowBattery);
-        }
-        this.accessory.context.StatusLowBattery = this.StatusLowBattery;
-        this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
+      this.accessory.context.BatteryLevel = this.BatteryLevel;
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
+    }
+    if (this.StatusLowBattery === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
+    } else {
+      if (this.device.mqttURL) {
+        this.mqttPublish('StatusLowBattery', this.StatusLowBattery);
       }
+      this.accessory.context.StatusLowBattery = this.StatusLowBattery;
+      this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
+    }
+    // FirmwareRevision
+    if (this.OpenAPI_FirmwareRevision === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.OpenAPI_FirmwareRevision}`);
+    } else {
+      this.accessory.context.OpenAPI_FirmwareRevision = this.OpenAPI_FirmwareRevision;
+      this.accessory.getService(this.platform.Service.AccessoryInformation)!
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.OpenAPI_FirmwareRevision);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+        + `updateCharacteristic CurrentTemperature: ${this.OpenAPI_FirmwareRevision}`);
     }
   }
 
@@ -900,7 +901,7 @@ export class BlindTilt {
 
   async stopScanning(switchbot: any) {
     await switchbot.stopScan();
-    if (this.connected) {
+    if (this.BLE_IsConnected) {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
     } else {

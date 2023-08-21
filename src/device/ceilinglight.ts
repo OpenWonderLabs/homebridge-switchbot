@@ -5,7 +5,7 @@ import { sleep } from '../utils';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
-import { device, devicesConfig, deviceStatus, switchbot, hs2rgb, rgb2hs, m2hs, serviceData, ad, Devices } from '../settings';
+import { device, devicesConfig, deviceStatus, hs2rgb, rgb2hs, m2hs, serviceData, ad, Devices } from '../settings';
 import { Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap } from 'homebridge';
 
 /**
@@ -24,22 +24,20 @@ export class CeilingLight {
   Brightness!: CharacteristicValue;
   ColorTemperature?: CharacteristicValue;
 
-  // OpenAPI Others
-  Version: deviceStatus['version'];
-  power: deviceStatus['power'];
-  color: deviceStatus['color'];
-  brightness: deviceStatus['brightness'];
-  colorTemperature?: deviceStatus['colorTemperature'];
-  deviceStatus!: any;
+  // OpenAPI Status
+  OpenAPI_On: deviceStatus['power'];
+  OpenAPI_RGB: deviceStatus['color'];
+  OpenAPI_Brightness: deviceStatus['brightness'];
+  OpenAPI_FirmwareRevision: deviceStatus['version'];
+  OpenAPI_ColorTemperature?: deviceStatus['colorTemperature'];
+
+  // BLE Status
+  BLE_Delay: serviceData['delay'];
+  BLE_On: serviceData['state'];
+  BLE_WifiRssi: serviceData['wifiRssi'];
 
   // BLE Others
-  connected?: boolean;
-  switchbot!: switchbot;
-  address!: ad['address'];
-  serviceData!: serviceData;
-  state: serviceData['state'];
-  delay: serviceData['delay'];
-  wifiRssi: serviceData['wifiRssi'];
+  BLE_IsConnected?: boolean;
 
   // Config
   set_minStep?: number;
@@ -252,7 +250,7 @@ export class CeilingLight {
   async BLEparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
     // State
-    switch (this.state) {
+    switch (this.BLE_On) {
       case 'on':
         this.On = true;
         break;
@@ -264,7 +262,7 @@ export class CeilingLight {
 
   async openAPIparseStatus() {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
-    switch (this.power) {
+    switch (this.OpenAPI_On) {
       case 'on':
         this.On = true;
         break;
@@ -274,13 +272,13 @@ export class CeilingLight {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
 
     // Brightness
-    this.Brightness = Number(this.brightness);
+    this.Brightness = Number(this.OpenAPI_Brightness);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Brightness: ${this.Brightness}`);
 
     // Color, Hue & Brightness
-    if (this.color) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} color: ${JSON.stringify(this.color)}`);
-      const [red, green, blue] = this.color!.split(':');
+    if (this.OpenAPI_RGB) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} color: ${JSON.stringify(this.OpenAPI_RGB)}`);
+      const [red, green, blue] = this.OpenAPI_RGB!.split(':');
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} red: ${JSON.stringify(red)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} green: ${JSON.stringify(green)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} blue: ${JSON.stringify(blue)}`);
@@ -300,9 +298,9 @@ export class CeilingLight {
     }
 
     // ColorTemperature
-    if (!Number.isNaN(this.colorTemperature)) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} OpenAPI ColorTemperature: ${this.colorTemperature}`);
-      const mired = Math.round(1000000 / this.colorTemperature!);
+    if (!Number.isNaN(this.OpenAPI_ColorTemperature)) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} OpenAPI ColorTemperature: ${this.OpenAPI_ColorTemperature}`);
+      const mired = Math.round(1000000 / this.OpenAPI_ColorTemperature!);
 
       this.ColorTemperature = Number(mired);
 
@@ -349,15 +347,13 @@ export class CeilingLight {
         })
         .then(async () => {
           // Set an event hander
-          switchbot.onadvertisement = async (ad: any) => {
-            this.address = ad.address;
+          switchbot.onadvertisement = async (ad: ad) => {
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
-              ` BLE Address Found: ${this.address}`,
+              ` BLE Address Found: ${ad.address}`,
             );
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-            this.serviceData = ad.serviceData;
-            //this.state = ad.serviceData.state;
+            this.BLE_On = ad.serviceData.state;
             //this.delay = ad.serviceData.delay;
             //this.timer = ad.serviceData.timer;
             //this.syncUtcTime = ad.serviceData.syncUtcTime;
@@ -371,13 +367,13 @@ export class CeilingLight {
                 `wifiRssi: ${ad.serviceData.wifiRssi}, overload: ${ad.serviceData.overload}, currentPower: ${ad.serviceData.currentPower}`,
             );*/
 
-            if (this.serviceData) {
-              this.connected = true;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+            if (ad.serviceData) {
+              this.BLE_IsConnected = true;
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
               await this.stopScanning(switchbot);
             } else {
-              this.connected = false;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+              this.BLE_IsConnected = false;
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
             }
           };
           // Wait
@@ -411,10 +407,11 @@ export class CeilingLight {
       this.statusCode(statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
-      this.power = deviceStatus.body.power;
-      this.color = deviceStatus.body.color;
-      this.brightness = deviceStatus.body.brightness;
-      this.colorTemperature = deviceStatus.body.colorTemperature;
+      this.OpenAPI_On = deviceStatus.body.power;
+      this.OpenAPI_RGB = deviceStatus.body.color;
+      this.OpenAPI_Brightness = deviceStatus.body.brightness;
+      this.OpenAPI_ColorTemperature = deviceStatus.body.colorTemperature;
+      this.OpenAPI_FirmwareRevision = deviceStatus.body.version;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
@@ -802,6 +799,16 @@ export class CeilingLight {
       this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Saturation, this.Saturation);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic Saturation: ${this.Saturation}`);
     }
+    // FirmwareRevision
+    if (this.OpenAPI_FirmwareRevision === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.OpenAPI_FirmwareRevision}`);
+    } else {
+      this.accessory.context.OpenAPI_FirmwareRevision = this.OpenAPI_FirmwareRevision;
+      this.accessory.getService(this.platform.Service.AccessoryInformation)!
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.OpenAPI_FirmwareRevision);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+        + `updateCharacteristic CurrentTemperature: ${this.OpenAPI_FirmwareRevision}`);
+    }
   }
 
   async adaptiveLighting(device: device & devicesConfig): Promise<void> {
@@ -816,7 +823,7 @@ export class CeilingLight {
 
   async stopScanning(switchbot: any) {
     await switchbot.stopScan();
-    if (this.connected) {
+    if (this.BLE_IsConnected) {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
     } else {

@@ -7,7 +7,7 @@ import { skipWhile } from 'rxjs/operators';
 import { request } from 'undici';
 import { Context } from 'vm';
 import { SwitchBotPlatform } from '../platform';
-import { Devices, ad, device, deviceStatus, devicesConfig, serviceData, switchbot, temperature } from '../settings';
+import { Devices, ad, device, deviceStatus, devicesConfig, serviceData, temperature } from '../settings';
 import { sleep } from '../utils';
 
 /**
@@ -17,29 +17,24 @@ import { sleep } from '../utils';
  */
 export class MeterPlus {
   // Services
-  batteryService?: Service;
-  temperatureservice?: Service;
+  batteryService: Service;
   humidityservice?: Service;
+  temperatureservice?: Service;
 
   // Characteristic Values
   CurrentRelativeHumidity!: CharacteristicValue;
   CurrentTemperature?: CharacteristicValue;
-  BatteryLevel?: CharacteristicValue;
-  ChargingState?: CharacteristicValue;
-  StatusLowBattery?: CharacteristicValue;
+  BatteryLevel!: CharacteristicValue;
+  StatusLowBattery!: CharacteristicValue;
 
   // OpenAPI Others
   Version: deviceStatus['version'];
   Battery: deviceStatus['battery'];
   Temperature: deviceStatus['temperature'];
   Humidity: deviceStatus['humidity'];
-  deviceStatus!: any; //deviceStatusResponse;
 
   // BLE Others
   connected?: boolean;
-  switchbot!: switchbot;
-  serviceData!: serviceData;
-  address!: ad['address'];
   temperature!: serviceData['temperature'];
   celsius!: temperature['c'];
   fahrenheit!: temperature['f'];
@@ -155,19 +150,14 @@ export class MeterPlus {
     }
 
     // Battery Service
-    if (!this.batteryService) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Battery Service`);
-      (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || this.accessory.addService(this.platform.Service.Battery)),
-      `${accessory.displayName} Battery`;
+    (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || accessory.addService(this.platform.Service.Battery)),
+    `${accessory.displayName} Battery`;
 
-      this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
-      if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-        this.batteryService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Battery`);
-      }
-      this.batteryService.setCharacteristic(this.platform.Characteristic.ChargingState, this.platform.Characteristic.ChargingState.NOT_CHARGEABLE);
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Battery Service Not Added`);
+    this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
+    if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+      this.batteryService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Battery`);
     }
+    this.batteryService.setCharacteristic(this.platform.Characteristic.ChargingState, this.platform.Characteristic.ChargingState.NOT_CHARGEABLE);
 
     // Retrieve initial values and updateHomekit
     this.updateHomeKitCharacteristics();
@@ -288,16 +278,14 @@ export class MeterPlus {
         .then(async () => {
           // Set an event hander
           switchbot.onadvertisement = async (ad: ad) => {
-            this.address = ad.address;
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
-              ` BLE Address Found: ${this.address}`,
+              ` BLE Address Found: ${ad.address}`,
             );
             if (ad.serviceData.humidity! > 0) {
               // reject unreliable data
               this.humidity = ad.serviceData.humidity;
             }
-            this.serviceData = ad.serviceData;
             this.temperature = ad.serviceData.temperature;
             this.celsius = ad.serviceData.temperature!.c;
             this.fahrenheit = ad.serviceData.temperature!.f;
@@ -309,7 +297,7 @@ export class MeterPlus {
               `battery: ${ad.serviceData.battery}`,
             );
 
-            if (this.serviceData) {
+            if (ad.serviceData) {
               this.connected = true;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
               await this.stopScanning(switchbot);
@@ -425,7 +413,6 @@ export class MeterPlus {
       this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
     }
-
     if (this.device.mqttURL) {
       this.mqttPublish(`{${mqttmessage.join(',')}}`);
     }

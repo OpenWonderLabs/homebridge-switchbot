@@ -5,7 +5,7 @@ import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
 import { SwitchBotPlatform } from '../platform';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, serviceData, switchbot, deviceStatus, ad, Devices } from '../settings';
+import { device, devicesConfig, serviceData, deviceStatus, ad, Devices } from '../settings';
 
 /**
  * Platform Accessory
@@ -16,27 +16,23 @@ export class Motion {
   // Services
   motionSensorService: Service;
   lightSensorService?: Service;
-  batteryService?: Service;
+  batteryService: Service;
 
   // Characteristic Values
   MotionDetected!: CharacteristicValue;
   CurrentAmbientLightLevel!: CharacteristicValue;
-  BatteryLevel?: CharacteristicValue;
-  StatusLowBattery?: CharacteristicValue;
+  BatteryLevel!: CharacteristicValue;
+  StatusLowBattery!: CharacteristicValue;
 
   // OpenAPI Others
   Version: deviceStatus['version'];
   Battery: deviceStatus['battery'];
-  deviceStatus!: any; //deviceStatusResponse;
   moveDetected: deviceStatus['moveDetected'];
   brightness: deviceStatus['brightness'];
 
   // BLE Others
   scanning!: boolean;
   connected?: boolean;
-  switchbot!: switchbot;
-  serviceData!: serviceData;
-  address!: ad['address'];
   battery!: serviceData['battery'];
   movement!: serviceData['movement'];
   lightLevel!: serviceData['lightLevel'];
@@ -126,19 +122,14 @@ export class Motion {
     }
 
     // Battery Service
-    if (!this.batteryService) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Battery Service`);
-      (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || this.accessory.addService(this.platform.Service.Battery)),
-      `${accessory.displayName} Battery`;
+    (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || accessory.addService(this.platform.Service.Battery)),
+    `${accessory.displayName} Battery`;
 
-      this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
-      if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-        this.batteryService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Battery`);
-      }
-      this.batteryService.setCharacteristic(this.platform.Characteristic.ChargingState, this.platform.Characteristic.ChargingState.NOT_CHARGEABLE);
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Battery Service Not Added`);
+    this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
+    if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+      this.batteryService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Battery`);
     }
+    this.batteryService.setCharacteristic(this.platform.Characteristic.ChargingState, this.platform.Characteristic.ChargingState.NOT_CHARGEABLE);
 
     // Retrieve initial values and updateHomekit
     this.updateHomeKitCharacteristics();
@@ -290,28 +281,21 @@ export class Motion {
             fn: async () => {
               // Set an event hander
               this.scanning = true;
-              switchbot.onadvertisement = async (ad: any) => {
-                this.address = ad.address;
+              switchbot.onadvertisement = async (ad: ad) => {
                 this.debugLog(
                   `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
-                  ` BLE Address Found: ${this.address}`,
+                  ` BLE Address Found: ${ad.address}`,
                 );
-                this.serviceData = ad.serviceData;
                 this.movement = ad.serviceData.movement;
-                this.tested = ad.serviceData.tested;
                 this.battery = ad.serviceData.battery;
-                this.led = ad.serviceData.led;
-                this.iot = ad.serviceData.led;
-                this.sense_distance = ad.serviceData.sense_distance;
                 this.lightLevel = ad.serviceData.lightLevel;
-                this.is_light = ad.serviceData.is_light;
                 this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
                 this.debugLog(
-                  `${this.device.deviceType}: ${this.accessory.displayName} movement: ${ad.serviceData.movement}, is_light: ` +
-                  `${ad.serviceData.is_light}, lightLevel: ${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}`,
+                  `${this.device.deviceType}: ${this.accessory.displayName} movement: ${ad.serviceData.movement},`
+                  + ` lightLevel: ${ad.serviceData.lightLevel}, battery: ${ad.serviceData.battery}`,
                 );
 
-                if (this.serviceData) {
+                if (ad.serviceData) {
                   this.connected = true;
                   this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
                   this.debugErrorLog('1');

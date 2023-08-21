@@ -5,7 +5,7 @@ import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, deviceStatus, ad, serviceData, switchbot, Devices } from '../settings';
+import { device, devicesConfig, deviceStatus, ad, serviceData, Devices } from '../settings';
 
 export class Plug {
   // Services
@@ -17,13 +17,9 @@ export class Plug {
   // OpenAPI Others
   Version: deviceStatus['version'];
   power: deviceStatus['power'];
-  deviceStatus!: any; //deviceStatusResponse;
 
   // BLE Others
   connected?: boolean;
-  switchbot!: switchbot;
-  address!: ad['address'];
-  serviceData!: serviceData;
   state: serviceData['state'];
   delay: serviceData['delay'];
   timer: serviceData['timer'];
@@ -209,13 +205,11 @@ export class Plug {
         })
         .then(async () => {
           // Set an event hander
-          switchbot.onadvertisement = async (ad: any) => {
-            this.address = ad.address;
+          switchbot.onadvertisement = async (ad: ad) => {
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
-              ` BLE Address Found: ${this.address}`,
+              ` BLE Address Found: ${ad.address}`,
             );
-            this.serviceData = ad.serviceData;
             this.state = ad.serviceData.state;
             this.delay = ad.serviceData.delay;
             this.timer = ad.serviceData.timer;
@@ -230,7 +224,7 @@ export class Plug {
               `wifiRssi: ${ad.serviceData.wifiRssi}, overload: ${ad.serviceData.overload}, currentPower: ${ad.serviceData.currentPower}`,
             );
 
-            if (this.serviceData) {
+            if (ad.serviceData) {
               this.connected = true;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
               await this.stopScanning(switchbot);

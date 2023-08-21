@@ -28,18 +28,16 @@ export class Humidifier {
   WaterLevel!: CharacteristicValue;
 
   // OpenAPI
-  auto: deviceStatus['auto'];
-  power: deviceStatus['power'];
-  humidity: deviceStatus['humidity'];
-  lackWater: deviceStatus['lackWater'];
-  temperature: deviceStatus['temperature'];
-  nebulizationEfficiency: deviceStatus['nebulizationEfficiency'];
-  deviceStatus!: any; //deviceStatusResponse;
+  OpenAPI_Active: deviceStatus['power'];
+  OpenAPI_WaterLevel: deviceStatus['lackWater'];
+  OpenAPI_FirmwareRevision: deviceStatus['version'];
+  OpenAPI_CurrentTemperature: deviceStatus['temperature'];
+  OpenAPI_CurrentRelativeHumidity: deviceStatus['humidity'];
+  OpenAPI_CurrentHumidifierDehumidifierState: deviceStatus['auto'];
+  OpenAPI_RelativeHumidityHumidifierThreshold: deviceStatus['nebulizationEfficiency'];
 
   // BLE Others
   connected?: boolean;
-  serviceData!: serviceData;
-  address!: ad['address'];
   onState!: serviceData['onState'];
   autoMode!: serviceData['autoMode'];
   percentage!: serviceData['percentage'];
@@ -233,15 +231,15 @@ export class Humidifier {
   async openAPIparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
     // Current Relative Humidity
-    this.CurrentRelativeHumidity = this.humidity!;
+    this.CurrentRelativeHumidity = this.OpenAPI_CurrentTemperature!;
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
     // Current Temperature
     if (!this.device.humidifier?.hide_temperature) {
-      this.CurrentTemperature = this.temperature!;
+      this.CurrentTemperature = this.OpenAPI_CurrentTemperature!;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
     }
     // Target Humidifier Dehumidifier State
-    switch (this.auto) {
+    switch (this.OpenAPI_CurrentHumidifierDehumidifierState) {
       case true:
         this.TargetHumidifierDehumidifierState = this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER_OR_DEHUMIDIFIER;
         this.CurrentHumidifierDehumidifierState = this.platform.Characteristic.CurrentHumidifierDehumidifierState.HUMIDIFYING;
@@ -249,10 +247,10 @@ export class Humidifier {
         break;
       default:
         this.TargetHumidifierDehumidifierState = this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER;
-        if (this.nebulizationEfficiency! > 100) {
+        if (this.OpenAPI_RelativeHumidityHumidifierThreshold! > 100) {
           this.RelativeHumidityHumidifierThreshold = 100;
         } else {
-          this.RelativeHumidityHumidifierThreshold = this.nebulizationEfficiency!;
+          this.RelativeHumidityHumidifierThreshold = this.OpenAPI_RelativeHumidityHumidifierThreshold!;
         }
         if (this.CurrentRelativeHumidity > this.RelativeHumidityHumidifierThreshold) {
           this.CurrentHumidifierDehumidifierState = this.platform.Characteristic.CurrentHumidifierDehumidifierState.IDLE;
@@ -273,7 +271,7 @@ export class Humidifier {
       `${this.device.deviceType}: ${this.accessory.displayName}` + ` CurrentHumidifierDehumidifierState: ${this.CurrentHumidifierDehumidifierState}`,
     );
     // Active
-    switch (this.power) {
+    switch (this.OpenAPI_Active) {
       case 'on':
         this.Active = this.platform.Characteristic.Active.ACTIVE;
         break;
@@ -282,7 +280,7 @@ export class Humidifier {
     }
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Active: ${this.Active}`);
     // Water Level
-    if (this.lackWater) {
+    if (this.OpenAPI_WaterLevel) {
       this.WaterLevel = 0;
     } else {
       this.WaterLevel = 100;
@@ -329,12 +327,10 @@ export class Humidifier {
         .then(async () => {
           // Set an event hander
           switchbot.onadvertisement = async (ad: ad) => {
-            this.address = ad.address;
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
-              ` BLE Address Found: ${this.address}`,
+              ` BLE Address Found: ${ad.address}`,
             );
-            this.serviceData = ad.serviceData;
             this.autoMode = ad.serviceData.autoMode;
             this.onState = ad.serviceData.onState;
             this.percentage = ad.serviceData.percentage;
@@ -344,7 +340,7 @@ export class Humidifier {
               `autoMode: ${ad.serviceData.autoMode}, onState: ${ad.serviceData.onState}, percentage: ${ad.serviceData.percentage}`,
             );
 
-            if (this.serviceData) {
+            if (ad.serviceData) {
               this.connected = true;
               this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
               await this.stopScanning(switchbot);
@@ -384,12 +380,13 @@ export class Humidifier {
       this.statusCode(statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
-      this.auto = deviceStatus.body.auto;
-      this.power = deviceStatus.body.power;
-      this.lackWater = deviceStatus.body.lackWater;
-      this.humidity = deviceStatus.body.humidity;
-      this.temperature = deviceStatus.body.temperature;
-      this.nebulizationEfficiency = deviceStatus.body.nebulizationEfficiency;
+      this.OpenAPI_CurrentHumidifierDehumidifierState = deviceStatus.body.auto;
+      this.OpenAPI_Active = deviceStatus.body.power;
+      this.OpenAPI_WaterLevel = deviceStatus.body.lackWater;
+      this.OpenAPI_CurrentRelativeHumidity = deviceStatus.body.humidity;
+      this.OpenAPI_CurrentTemperature = deviceStatus.body.temperature;
+      this.OpenAPI_RelativeHumidityHumidifierThreshold = deviceStatus.body.nebulizationEfficiency;
+      this.OpenAPI_FirmwareRevision = deviceStatus.body.version;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
@@ -702,6 +699,16 @@ export class Humidifier {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
         this.accessory.context.CurrentTemperature = this.CurrentTemperature;
       }
+    }
+    // FirmwareRevision
+    if (this.OpenAPI_FirmwareRevision === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.OpenAPI_FirmwareRevision}`);
+    } else {
+      this.accessory.context.OpenAPI_FirmwareRevision = this.OpenAPI_FirmwareRevision;
+      this.accessory.getService(this.platform.Service.AccessoryInformation)!
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.OpenAPI_FirmwareRevision);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+        + `updateCharacteristic CurrentTemperature: ${this.OpenAPI_FirmwareRevision}`);
     }
   }
 

@@ -5,7 +5,7 @@ import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, deviceStatus, ad, serviceData, switchbot, Devices } from '../settings';
+import { device, devicesConfig, deviceStatus, ad, serviceData, Devices } from '../settings';
 
 /**
  * Platform Accessory
@@ -21,7 +21,7 @@ export class Bot {
   windowService?: Service;
   switchService?: Service;
   outletService?: Service;
-  batteryService?: Service;
+  batteryService: Service;
   garageDoorService?: Service;
   windowCoveringService?: Service;
   statefulProgrammableSwitchService?: Service;
@@ -31,31 +31,28 @@ export class Bot {
   BatteryLevel!: CharacteristicValue;
   StatusLowBattery!: CharacteristicValue;
 
-  // OpenAPI Others
-  Version: deviceStatus['version'];
-  Battery: deviceStatus['battery'];
-  power: deviceStatus['power'];
-  deviceStatus!: any; //deviceStatusResponse;
+  // OpenAPI Status
+  OpenAPI_On: deviceStatus['power'];
+  OpenAPI_BatteryLevel: deviceStatus['battery'];
+  OpenAPI_FirmwareRevision: deviceStatus['version'];
 
-  // BLE Others
-  connected?: boolean;
-  switchbot!: switchbot;
-  serviceData!: serviceData;
-  address!: ad['address'];
-  mode!: serviceData['mode'];
-  state!: serviceData['state'];
-  battery!: serviceData['battery'];
+  // BLE Status
+  BLE_On!: serviceData['state'];
+  BLE_Mode!: serviceData['mode'];
+  BLE_BatteryLevel!: serviceData['battery'];
+
+  //BLE Others
+  BLE_IsConnected?: boolean;
 
   // Config
   botMode!: string;
   allowPush?: boolean;
   doublePress!: number;
-  pushRatePress!: number;
   scanDuration!: number;
+  pushRatePress!: number;
   deviceLogging!: string;
-  deviceRefreshRate!: number;
-  // Multi-Press
   multiPressCount!: number;
+  deviceRefreshRate!: number;
 
   // Updates
   botUpdateInProgress!: boolean;
@@ -348,19 +345,14 @@ export class Bot {
     }
 
     // Battery Service
-    if (!this.batteryService) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Battery Service`);
-      (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || this.accessory.addService(this.platform.Service.Battery)),
-      `${accessory.displayName} Battery`;
+    (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || accessory.addService(this.platform.Service.Battery)),
+    `${accessory.displayName} Battery`;
 
-      this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
-      if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-        this.batteryService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Battery`);
-      }
-      this.batteryService.setCharacteristic(this.platform.Characteristic.ChargingState, this.platform.Characteristic.ChargingState.NOT_CHARGEABLE);
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Battery Service Not Added`);
+    this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
+    if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+      this.batteryService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Battery`);
     }
+    this.batteryService.setCharacteristic(this.platform.Characteristic.ChargingState, this.platform.Characteristic.ChargingState.NOT_CHARGEABLE);
 
     // Retrieve initial values and updateHomekit
     this.updateHomeKitCharacteristics();
@@ -424,19 +416,19 @@ export class Bot {
   async BLEparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
     // BLEmode (true if Switch Mode) | (false if Press Mode)
-    if (this.mode) {
+    if (this.BLE_Mode) {
       this.accessory.context.On = this.On;
       if (this.On === undefined) {
-        this.On = Boolean(this.state);
+        this.On = Boolean(this.BLE_On);
       }
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Switch Mode, mode: ${this.mode}, On: ${this.On}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Switch Mode, mode: ${this.BLE_Mode}, On: ${this.On}`);
     } else {
       this.On = false;
       this.accessory.context.On = this.On;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Press Mode, mode: ${this.mode}, On: ${this.On}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Press Mode, mode: ${this.BLE_Mode}, On: ${this.On}`);
     }
 
-    this.BatteryLevel = Number(this.battery);
+    this.BatteryLevel = Number(this.BLE_BatteryLevel);
     if (this.BatteryLevel < 10) {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
@@ -462,7 +454,7 @@ export class Bot {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
 
     // Battery
-    this.BatteryLevel = Number(this.Battery);
+    this.BatteryLevel = Number(this.OpenAPI_BatteryLevel);
     if (this.BatteryLevel < 10) {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
@@ -513,28 +505,26 @@ export class Bot {
         .then(async () => {
           // Set an event hander
           switchbot.onadvertisement = async (ad: ad) => {
-            this.address = ad.address;
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
-              ` BLE Address Found: ${this.address}`,
+              ` BLE Address Found: ${ad.address}`,
             );
-            this.serviceData = ad.serviceData;
-            this.mode = ad.serviceData.mode;
-            this.state = ad.serviceData.state;
-            this.battery = ad.serviceData.battery;
+            this.BLE_Mode = ad.serviceData.mode;
+            this.BLE_On = ad.serviceData.state;
+            this.BLE_BatteryLevel = ad.serviceData.battery;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName}, model: ${ad.serviceData.model}, modelName: ` +
               `${ad.serviceData.modelName}, mode: ${ad.serviceData.mode}, state: ${ad.serviceData.state}, battery: ${ad.serviceData.battery}`,
             );
 
-            if (this.serviceData) {
-              this.connected = true;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+            if (ad.serviceData) {
+              this.BLE_IsConnected = true;
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
               await this.stopScanning(switchbot);
             } else {
-              this.connected = false;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+              this.BLE_IsConnected = false;
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
             }
           };
           // Wait
@@ -569,9 +559,9 @@ export class Bot {
         this.statusCode(statusCode);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
-        this.power = deviceStatus.body.power;
-        this.Battery = deviceStatus.body.battery;
-        this.Version = deviceStatus.body.version;
+        this.OpenAPI_On = deviceStatus.body.power;
+        this.OpenAPI_BatteryLevel = deviceStatus.body.battery;
+        this.OpenAPI_FirmwareRevision = deviceStatus.body.version;
         this.openAPIparseStatus();
         this.updateHomeKitCharacteristics();
       } else {
@@ -1002,6 +992,8 @@ export class Bot {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
       }
     }
+    this.accessory.context.On = this.On;
+    // Battery
     if (this.BatteryLevel === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
     } else {
@@ -1016,8 +1008,16 @@ export class Bot {
       this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
     }
-
-    this.accessory.context.On = this.On;
+    // FirmwareRevision
+    if (this.OpenAPI_FirmwareRevision === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.OpenAPI_FirmwareRevision}`);
+    } else {
+      this.accessory.context.OpenAPI_FirmwareRevision = this.OpenAPI_FirmwareRevision;
+      this.accessory.getService(this.platform.Service.AccessoryInformation)!
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.OpenAPI_FirmwareRevision);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+        + `updateCharacteristic CurrentTemperature: ${this.OpenAPI_FirmwareRevision}`);
+    }
   }
 
   async removeOutletService(accessory: PlatformAccessory): Promise<void> {
@@ -1121,7 +1121,7 @@ export class Bot {
 
   async stopScanning(switchbot: any) {
     await switchbot.stopScan();
-    if (this.connected) {
+    if (this.BLE_IsConnected) {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
     } else {

@@ -17,9 +17,6 @@ export class TV {
   Active!: CharacteristicValue;
   ActiveIdentifier!: CharacteristicValue;
 
-  // Others
-  deviceStatus!: any;
-
   // Config
   disablePushOn?: boolean;
   disablePushOff?: boolean;
