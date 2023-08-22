@@ -305,9 +305,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           this.debugLog(`Devices: ${JSON.stringify(devicesAPI.body)}`);
           this.debugLog(`Headers: ${JSON.stringify(headers)}`);
           // SwitchBot Devices
+          this.debugWarnLog(`devicesAPI: ${JSON.stringify(devicesAPI)}`);
+          this.debugWarnLog(`devicesAPI Length: ${devicesAPI.length}`);
           const deviceLists = devicesAPI.body.deviceList;
+          this.debugWarnLog(`DeviceLists: ${JSON.stringify(deviceLists)}`);
           this.debugWarnLog(`DeviceLists Length: ${deviceLists.length}`);
-          this.debugWarnLog(`DeviceLists Length: ${devicesAPI.body.length}`);
           if (!this.config.options?.devices) {
             this.debugLog(`SwitchBot Device Config Not Set: ${JSON.stringify(this.config.options?.devices)}`);
             if (deviceLists.length === 0) {
