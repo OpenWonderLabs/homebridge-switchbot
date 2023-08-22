@@ -83,21 +83,7 @@ export class Hub {
     // accessory.getService('NAME') ?? accessory.addService(this.platform.Service.WindowCovering, 'NAME', 'USER_DEFINED_SUBTYPE');
 
     // set the service name, this is what is displayed as the default name on the Home app
-    // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    this.hubTemperatureSensor.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
-    if (!this.hubTemperatureSensor.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-      this.hubTemperatureSensor.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
-    }
-
-    this.hubHumiditySensor.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
-    if (!this.hubHumiditySensor.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-      this.hubHumiditySensor.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
-    }
-
-    this.hubLightSensor.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
-    if (!this.hubLightSensor.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-      this.hubLightSensor.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
-    }
+    // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method
 
     // each service must implement at-minimum the "required characteristics" for the given service type
     // see https://developers.homebridge.io/#/service/WindowCovering
@@ -113,8 +99,10 @@ export class Hub {
         accessory.getService(this.platform.Service.TemperatureSensor) || accessory.addService(this.platform.Service.TemperatureSensor)),
       `${device.deviceName} ${device.deviceType}`;
 
-      this.hubTemperatureSensor.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
-      this.hubTemperatureSensor.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Temperature Sensor`);
+      this.hubTemperatureSensor.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      if (!this.hubTemperatureSensor.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.hubTemperatureSensor.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+      }
     } else {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Temperature Sensor Service Not Added`);
     }
@@ -130,8 +118,10 @@ export class Hub {
         accessory.getService(this.platform.Service.HumiditySensor) || accessory.addService(this.platform.Service.HumiditySensor)),
       `${device.deviceName} ${device.deviceType}`;
 
-      this.hubHumiditySensor.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
-      this.hubHumiditySensor.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Humidity Sensor`);
+      this.hubHumiditySensor.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      if (!this.hubHumiditySensor.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.hubHumiditySensor.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+      }
     } else {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Humidity Sensor Service Not Added`);
     }
@@ -146,8 +136,10 @@ export class Hub {
       (this.hubLightSensor = accessory.getService(this.platform.Service.LightSensor) || accessory.addService(this.platform.Service.LightSensor)),
       `${device.deviceName} ${device.deviceType}`;
 
-      this.hubLightSensor.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Light Sensor`);
-      this.hubLightSensor.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Light Sensor`);
+      this.hubLightSensor.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      if (!this.hubLightSensor.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.hubLightSensor.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+      }
     } else {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Light Sensor Service Not Added`);
     }
