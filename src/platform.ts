@@ -300,10 +300,12 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         const { body, statusCode, headers } = await request(Devices, {
           headers: this.generateHeaders(),
         });
+        this.debugWarnLog(`body: ${JSON.stringify(body)}`);
+        this.debugWarnLog(`body: ${JSON.stringify(statusCode)}`);
+        this.debugWarnLog(`body: ${JSON.stringify(headers)}`);
         if (statusCode === 200) {
           const devicesAPI: any = await body.json();
           this.debugLog(`Devices: ${JSON.stringify(devicesAPI.body)}`);
-          this.debugLog(`Headers: ${JSON.stringify(headers)}`);
           // SwitchBot Devices
           this.debugWarnLog(`devicesAPI: ${JSON.stringify(devicesAPI)}`);
           this.debugWarnLog(`devicesAPI Length: ${devicesAPI.length}`);
