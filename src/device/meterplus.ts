@@ -230,13 +230,13 @@ export class MeterPlus {
 
     // Current Relative Humidity
     if (!this.device.meter?.hide_humidity) {
-      this.CurrentRelativeHumidity = this.BLE_CurrentRelativeHumidity!;
+      this.CurrentRelativeHumidity = this.OpenAPI_CurrentRelativeHumidity!;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Humidity: ${this.CurrentRelativeHumidity}%`);
     }
 
     // Current Temperature
     if (!this.device.meter?.hide_temperature) {
-      this.CurrentTemperature = this.BLE_CurrentTemperature!;
+      this.CurrentTemperature = this.OpenAPI_CurrentTemperature!;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c`);
     }
   }
