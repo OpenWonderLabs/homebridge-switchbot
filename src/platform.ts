@@ -323,25 +323,29 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
             }
           } else if (this.config.credentials?.token && this.config.options.devices) {
             this.debugLog(`SwitchBot Device Config Set: ${JSON.stringify(this.config.options?.devices)}`);
-            const deviceConfigs = this.config.options?.devices;
+            if (deviceLists.length === 0) {
+              this.debugLog(`SwitchBot API Currently Doesn't Have Any Devices With Cloud Services Enabled: ${JSON.stringify(devicesAPI.body)}`);
+            } else {
+              const deviceConfigs = this.config.options?.devices;
 
-            const mergeBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
-              a1.map((itm: { deviceId: string }) => ({
-                ...a2.find(
-                  (item: { deviceId: string }) =>
-                    item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
-                ),
-                ...itm,
-              }));
+              const mergeBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
+                a1.map((itm: { deviceId: string }) => ({
+                  ...a2.find(
+                    (item: { deviceId: string }) =>
+                      item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
+                  ),
+                  ...itm,
+                }));
 
-            const devices = mergeBydeviceId(deviceLists, deviceConfigs);
-            this.debugLog(`SwitchBot Devices: ${JSON.stringify(devices)}`);
-            for (const device of devices) {
-              if (device.deviceType) {
-                if (device.configDeviceName) {
-                  device.deviceName = device.configDeviceName;
+              const devices = mergeBydeviceId(deviceLists, deviceConfigs);
+              this.debugLog(`SwitchBot Devices: ${JSON.stringify(devices)}`);
+              for (const device of devices) {
+                if (device.deviceType) {
+                  if (device.configDeviceName) {
+                    device.deviceName = device.configDeviceName;
+                  }
+                  this.createDevice(device);
                 }
-                this.createDevice(device);
               }
             }
           } else {
