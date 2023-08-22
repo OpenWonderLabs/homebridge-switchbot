@@ -24,17 +24,18 @@ export class StripLight {
   Brightness!: CharacteristicValue;
   ColorTemperature?: CharacteristicValue;
 
-  // OpenAPI Others
-  Version: deviceStatus['version'];
-  power: deviceStatus['power'];
-  color: deviceStatus['color'];
-  brightness: deviceStatus['brightness'];
+  // OpenAPI Status
+  OpenAPI_On: deviceStatus['power'];
+  OpenAPI_RGB: deviceStatus['color'];
+  OpenAPI_Brightness: deviceStatus['brightness'];
+  OpenAPI_FirmwareRevision: deviceStatus['version'];
+
+  // BLE Status
+  BLE_On: serviceData['state'];
+  BLE_Brightness: serviceData['brightness'];
 
   // BLE Others
-  connected?: boolean;
-  state: serviceData['state'];
-  delay: serviceData['delay'];
-  wifiRssi: serviceData['wifiRssi'];
+  BLE_IsConnected?: boolean;
 
   // Config
   set_minStep?: number;
@@ -234,7 +235,7 @@ export class StripLight {
   async BLEparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
     // State
-    switch (this.state) {
+    switch (this.BLE_On) {
       case 'on':
         this.On = true;
         break;
@@ -246,7 +247,7 @@ export class StripLight {
 
   async openAPIparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
-    switch (this.power) {
+    switch (this.OpenAPI_On) {
       case 'on':
         this.On = true;
         break;
@@ -256,13 +257,13 @@ export class StripLight {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
 
     // Brightness
-    this.Brightness = Number(this.brightness);
+    this.Brightness = Number(this.OpenAPI_Brightness);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Brightness: ${this.Brightness}`);
 
     // Color, Hue & Brightness
-    if (this.color) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} color: ${JSON.stringify(this.color)}`);
-      const [red, green, blue] = this.color!.split(':');
+    if (this.OpenAPI_RGB) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} color: ${JSON.stringify(this.OpenAPI_RGB)}`);
+      const [red, green, blue] = this.OpenAPI_RGB!.split(':');
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} red: ${JSON.stringify(red)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} green: ${JSON.stringify(green)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} blue: ${JSON.stringify(blue)}`);
@@ -326,13 +327,6 @@ export class StripLight {
               ` BLE Address Found: ${ad.address}`,
             );
             this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-            //this.state = ad.serviceData.state;
-            //this.delay = ad.serviceData.delay;
-            //this.timer = ad.serviceData.timer;
-            //this.syncUtcTime = ad.serviceData.syncUtcTime;
-            //this.wifiRssi = ad.serviceData.wifiRssi;
-            //this.overload = ad.serviceData.overload;
-            //this.currentPower = ad.serviceData.currentPower;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
             /*this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} state: ${ad.serviceData.state}, ` +
@@ -341,12 +335,12 @@ export class StripLight {
             );*/
 
             if (ad.serviceData) {
-              this.connected = true;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+              this.BLE_IsConnected = true;
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
               await this.stopScanning(switchbot);
             } else {
-              this.connected = false;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+              this.BLE_IsConnected = false;
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
             }
           };
           // Wait
@@ -380,9 +374,10 @@ export class StripLight {
       this.statusCode(statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
-      this.power = deviceStatus.body.power;
-      this.color = deviceStatus.body.color;
-      this.brightness = deviceStatus.body.brightness;
+      this.OpenAPI_On = deviceStatus.body.power;
+      this.OpenAPI_RGB = deviceStatus.body.color;
+      this.OpenAPI_Brightness = deviceStatus.body.brightness;
+      this.OpenAPI_FirmwareRevision = deviceStatus.body.version;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
@@ -823,11 +818,21 @@ export class StripLight {
       this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Saturation, this.Saturation);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic Saturation: ${this.Saturation}`);
     }
+    // FirmwareRevision
+    if (this.OpenAPI_FirmwareRevision === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.OpenAPI_FirmwareRevision}`);
+    } else {
+      this.accessory.context.OpenAPI_FirmwareRevision = this.OpenAPI_FirmwareRevision;
+      this.accessory.getService(this.platform.Service.AccessoryInformation)!
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.OpenAPI_FirmwareRevision);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+        + `updateCharacteristic CurrentTemperature: ${this.OpenAPI_FirmwareRevision}`);
+    }
   }
 
   async stopScanning(switchbot: any) {
     await switchbot.stopScan();
-    if (this.connected) {
+    if (this.BLE_IsConnected) {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
     } else {

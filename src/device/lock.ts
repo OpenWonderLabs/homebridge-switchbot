@@ -22,13 +22,13 @@ export class Lock {
   ContactSensorState!: CharacteristicValue;
 
   // OpenAPI Status
-  OpenAPI_Version: deviceStatus['version'];
-  OpenAPI_Battery: deviceStatus['battery'];
+  OpenAPI_BatteryLevel: deviceStatus['battery'];
+  OpenAPI_FirmwareRevision: deviceStatus['version'];
   OpenAPI_LockCurrentState!: deviceStatus['lockState'];
   OpenAPI_ContactSensorState!: deviceStatus['doorState'];
 
   // BLE Status
-  BLE_Battery: serviceData['battery'];
+  BLE_BatteryLevel: serviceData['battery'];
   BLE_LockCurrentState: serviceData['state'];
   BLE_Calibration: serviceData['calibration'];
   BLE_ContactSensorState: serviceData['door_open'];
@@ -200,7 +200,7 @@ export class Lock {
     }
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.LockTargetState}`);
     // Battery
-    this.BatteryLevel = Number(this.BLE_Battery);
+    this.BatteryLevel = Number(this.BLE_BatteryLevel);
     if (this.BatteryLevel < 10) {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
@@ -232,7 +232,7 @@ export class Lock {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.LockTargetState}`);
 
     // Battery
-    this.BatteryLevel = Number(this.OpenAPI_Battery);
+    this.BatteryLevel = Number(this.OpenAPI_BatteryLevel);
     if (this.BatteryLevel < 10) {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
@@ -287,7 +287,7 @@ export class Lock {
               `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
               ` BLE Address Found: ${ad.address}`,
             );
-            this.BLE_Battery = ad.serviceData.battery;
+            this.BLE_BatteryLevel = ad.serviceData.battery;
             this.BLE_Calibration = ad.serviceData.calibration;
             this.BLE_LockCurrentState = ad.serviceData.status;
             this.BLE_ContactSensorState = ad.serviceData.door_open;
@@ -340,8 +340,8 @@ export class Lock {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
       this.OpenAPI_LockCurrentState = deviceStatus.body.lockState;
       this.OpenAPI_ContactSensorState = deviceStatus.body.doorState;
-      this.OpenAPI_Battery = deviceStatus.body.battery;
-      this.OpenAPI_Version = deviceStatus.body.version;
+      this.OpenAPI_BatteryLevel = deviceStatus.body.battery;
+      this.OpenAPI_FirmwareRevision = deviceStatus.body.version;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
@@ -513,6 +513,16 @@ export class Lock {
       this.accessory.context.StatusLowBattery = this.StatusLowBattery;
       this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
+    }
+    // FirmwareRevision
+    if (this.OpenAPI_FirmwareRevision === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.OpenAPI_FirmwareRevision}`);
+    } else {
+      this.accessory.context.OpenAPI_FirmwareRevision = this.OpenAPI_FirmwareRevision;
+      this.accessory.getService(this.platform.Service.AccessoryInformation)!
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.OpenAPI_FirmwareRevision);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+        + `updateCharacteristic CurrentTemperature: ${this.OpenAPI_FirmwareRevision}`);
     }
   }
 

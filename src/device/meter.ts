@@ -18,28 +18,30 @@ import { sleep } from '../utils';
 export class Meter {
   // Services
   batteryService: Service;
-  temperatureservice?: Service;
   humidityservice?: Service;
+  temperatureservice?: Service;
 
   // Characteristic Values
-  CurrentRelativeHumidity!: CharacteristicValue;
-  CurrentTemperature?: CharacteristicValue;
   BatteryLevel!: CharacteristicValue;
   StatusLowBattery!: CharacteristicValue;
+  CurrentTemperature?: CharacteristicValue;
+  CurrentRelativeHumidity!: CharacteristicValue;
 
-  // OpenAPI Others
-  Version: deviceStatus['version'];
-  Battery: deviceStatus['battery'];
-  Temperature: deviceStatus['temperature'];
-  Humidity: deviceStatus['humidity'];
+  // OpenAPI Status
+  OpenAPI_BatteryLevel: deviceStatus['battery'];
+  OpenAPI_FirmwareRevision: deviceStatus['version'];
+  OpenAPI_CurrentTemperature: deviceStatus['temperature'];
+  OpenAPI_CurrentRelativeHumidity: deviceStatus['humidity'];
+
+  // BLE Status
+  BLE_Celsius!: temperature['c'];
+  BLE_Fahrenheit!: temperature['f'];
+  BLE_BatteryLevel!: serviceData['battery'];
+  BLE_CurrentTemperature!: serviceData['temperature'];
+  BLE_CurrentRelativeHumidity!: serviceData['humidity'];
 
   // BLE Others
-  connected?: boolean;
-  temperature!: serviceData['temperature'];
-  celsius!: temperature['c'];
-  fahrenheit!: temperature['f'];
-  battery!: serviceData['battery'];
-  humidity!: serviceData['humidity'];
+  BLE_IsConnected?: boolean;
 
   //MQTT stuff
   mqttClient: MqttClient | null = null;
@@ -192,7 +194,7 @@ export class Meter {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
 
     // Battery
-    this.BatteryLevel = Number(this.battery);
+    this.BatteryLevel = Number(this.BLE_BatteryLevel);
     if (this.BatteryLevel < 15) {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
@@ -202,14 +204,14 @@ export class Meter {
 
     // Humidity
     if (!this.device.meter?.hide_humidity) {
-      this.CurrentRelativeHumidity = this.humidity!;
+      this.CurrentRelativeHumidity = this.BLE_CurrentRelativeHumidity!;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Humidity: ${this.CurrentRelativeHumidity}%`);
     }
 
     // Current Temperature
     if (!this.device.meter?.hide_temperature) {
-      this.celsius < 0 ? 0 : this.celsius > 100 ? 100 : this.celsius;
-      this.CurrentTemperature = this.celsius;
+      this.BLE_Celsius < 0 ? 0 : this.BLE_Celsius > 100 ? 100 : this.BLE_Celsius;
+      this.CurrentTemperature = this.BLE_Celsius;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c`);
     }
   }
@@ -218,7 +220,7 @@ export class Meter {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
 
     // Battery
-    this.BatteryLevel = Number(this.Battery);
+    this.BatteryLevel = Number(this.OpenAPI_BatteryLevel);
     if (this.BatteryLevel < 15) {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
@@ -228,13 +230,13 @@ export class Meter {
 
     // Current Relative Humidity
     if (!this.device.meter?.hide_humidity) {
-      this.CurrentRelativeHumidity = this.Humidity!;
+      this.CurrentRelativeHumidity = this.OpenAPI_CurrentRelativeHumidity!;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Humidity: ${this.CurrentRelativeHumidity}%`);
     }
 
     // Current Temperature
     if (!this.device.meter?.hide_temperature) {
-      this.CurrentTemperature = this.Temperature!;
+      this.CurrentTemperature = this.OpenAPI_CurrentTemperature!;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c`);
     }
   }
@@ -284,12 +286,12 @@ export class Meter {
             );
             if (ad.serviceData.humidity! > 0) {
               // reject unreliable data
-              this.humidity = ad.serviceData.humidity;
+              this.BLE_CurrentRelativeHumidity = ad.serviceData.humidity;
             }
-            this.temperature = ad.serviceData.temperature;
-            this.celsius = ad.serviceData.temperature!.c;
-            this.fahrenheit = ad.serviceData.temperature!.f;
-            this.battery = ad.serviceData.battery;
+            this.BLE_CurrentTemperature = ad.serviceData.temperature;
+            this.BLE_Celsius = ad.serviceData.temperature!.c;
+            this.BLE_Fahrenheit = ad.serviceData.temperature!.f;
+            this.BLE_BatteryLevel = ad.serviceData.battery;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName}, ` +
@@ -298,12 +300,12 @@ export class Meter {
             );
 
             if (ad.serviceData) {
-              this.connected = true;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+              this.BLE_IsConnected = true;
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
               await this.stopScanning(switchbot);
             } else {
-              this.connected = false;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+              this.BLE_IsConnected = false;
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
             }
           };
           // Wait
@@ -337,10 +339,10 @@ export class Meter {
       this.statusCode(statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
-      this.Humidity = deviceStatus.body.humidity!;
-      this.Temperature = deviceStatus.body.temperature!;
-      this.Battery = deviceStatus.body.battery;
-      this.Version = deviceStatus.body.version;
+      this.OpenAPI_CurrentRelativeHumidity = deviceStatus.body.humidity!;
+      this.OpenAPI_CurrentTemperature = deviceStatus.body.temperature!;
+      this.OpenAPI_BatteryLevel = deviceStatus.body.battery;
+      this.OpenAPI_FirmwareRevision = deviceStatus.body.version;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
@@ -422,6 +424,16 @@ export class Meter {
         this.historyService?.addEntry(entry);
       }
     }
+    // FirmwareRevision
+    if (this.OpenAPI_FirmwareRevision === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.OpenAPI_FirmwareRevision}`);
+    } else {
+      this.accessory.context.OpenAPI_FirmwareRevision = this.OpenAPI_FirmwareRevision;
+      this.accessory.getService(this.platform.Service.AccessoryInformation)!
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.OpenAPI_FirmwareRevision);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+        + `updateCharacteristic CurrentTemperature: ${this.OpenAPI_FirmwareRevision}`);
+    }
   }
 
   /*
@@ -475,7 +487,7 @@ export class Meter {
 
   async stopScanning(switchbot: any) {
     await switchbot.stopScan();
-    if (this.connected) {
+    if (this.BLE_IsConnected) {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
     } else {

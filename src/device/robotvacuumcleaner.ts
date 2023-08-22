@@ -10,8 +10,8 @@ import { device, devicesConfig, deviceStatus, ad, serviceData, Devices } from '.
 
 export class RobotVacuumCleaner {
   // Services
-  robotVacuumCleanerService: Service;
   batteryService: Service;
+  robotVacuumCleanerService: Service;
 
   // Characteristic Values
   On!: CharacteristicValue;
@@ -19,14 +19,16 @@ export class RobotVacuumCleaner {
   BatteryLevel!: CharacteristicValue;
   StatusLowBattery!: CharacteristicValue;
 
-  // OpenAPI Others
-  Version: deviceStatus['version'];
-  Battery: deviceStatus['battery'];
-  power: deviceStatus['power'];
+  // OpenAPI Status
+  OpenAPI_On: deviceStatus['power'];
+  OpenAPI_BatteryLevel: deviceStatus['battery'];
+  OpenAPI_FirmwareRevision: deviceStatus['version'];
+
+  // BLE Status
+  BLE_On: serviceData['state'];
 
   // BLE Others
-  connected?: boolean;
-  state: serviceData['state'];
+  BLE_IsConnected?: boolean;
 
   // Config
   scanDuration!: number;
@@ -174,7 +176,7 @@ export class RobotVacuumCleaner {
   async BLEparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
     // State
-    switch (this.state) {
+    switch (this.BLE_On) {
       case 'on':
         this.On = true;
         break;
@@ -186,7 +188,7 @@ export class RobotVacuumCleaner {
 
   async openAPIparseStatus() {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
-    switch (this.power) {
+    switch (this.OpenAPI_On) {
       case 'on':
         this.On = true;
         break;
@@ -196,7 +198,7 @@ export class RobotVacuumCleaner {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
 
     // Battery
-    this.BatteryLevel = Number(this.Battery);
+    this.BatteryLevel = Number(this.OpenAPI_BatteryLevel);
     if (this.BatteryLevel < 15) {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
@@ -248,7 +250,7 @@ export class RobotVacuumCleaner {
               `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
               ` BLE Address Found: ${ad.address}`,
             );
-            this.state = ad.serviceData.state;
+            this.BLE_On = ad.serviceData.state;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} state: ${ad.serviceData.state}, ` +
@@ -257,12 +259,12 @@ export class RobotVacuumCleaner {
             );
 
             if (ad.serviceData) {
-              this.connected = true;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+              this.BLE_IsConnected = true;
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
               await this.stopScanning(switchbot);
             } else {
-              this.connected = false;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+              this.BLE_IsConnected = false;
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
             }
           };
           // Wait
@@ -296,9 +298,9 @@ export class RobotVacuumCleaner {
       this.statusCode(statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
-      this.power = deviceStatus.body.power;
-      this.Battery = deviceStatus.body.battery;
-      this.Version = deviceStatus.body.version;
+      this.OpenAPI_On = deviceStatus.body.power;
+      this.OpenAPI_BatteryLevel = deviceStatus.body.battery;
+      this.OpenAPI_FirmwareRevision = deviceStatus.body.version;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
@@ -556,11 +558,21 @@ export class RobotVacuumCleaner {
       this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
     }
+    // FirmwareRevision
+    if (this.OpenAPI_FirmwareRevision === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.OpenAPI_FirmwareRevision}`);
+    } else {
+      this.accessory.context.OpenAPI_FirmwareRevision = this.OpenAPI_FirmwareRevision;
+      this.accessory.getService(this.platform.Service.AccessoryInformation)!
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.OpenAPI_FirmwareRevision);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+        + `updateCharacteristic CurrentTemperature: ${this.OpenAPI_FirmwareRevision}`);
+    }
   }
 
   async stopScanning(switchbot: any) {
     await switchbot.stopScan();
-    if (this.connected) {
+    if (this.BLE_IsConnected) {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
     } else {

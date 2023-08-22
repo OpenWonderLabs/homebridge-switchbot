@@ -18,10 +18,10 @@ export class TV {
   ActiveIdentifier!: CharacteristicValue;
 
   // Config
+  deviceLogging!: string;
   disablePushOn?: boolean;
   disablePushOff?: boolean;
   disablePushDetail?: boolean;
-  deviceLogging!: string;
 
   constructor(
     private readonly platform: SwitchBotPlatform,

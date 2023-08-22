@@ -25,22 +25,24 @@ export class Motion {
   StatusLowBattery!: CharacteristicValue;
 
   // OpenAPI Others
-  Version: deviceStatus['version'];
-  Battery: deviceStatus['battery'];
-  moveDetected: deviceStatus['moveDetected'];
-  brightness: deviceStatus['brightness'];
+  OpenAPI_BatteryLevel: deviceStatus['battery'];
+  OpenAPI_FirmwareRevision: deviceStatus['version'];
+  OpenAPI_MotionDetected: deviceStatus['moveDetected'];
+  OpenAPI_CurrentAmbientLightLevel: deviceStatus['brightness'];
+
+  // Status
+  BLE_BatteryLevel!: serviceData['battery'];
+  BLE_MotionDetected!: serviceData['movement'];
+  BLE_CurrentAmbientLightLevel!: serviceData['lightLevel'];
 
   // BLE Others
   scanning!: boolean;
-  connected?: boolean;
-  battery!: serviceData['battery'];
-  movement!: serviceData['movement'];
-  lightLevel!: serviceData['lightLevel'];
-  is_light!: any; //serviceData['is_light'];
+  BLE_IsConnected?: boolean;
+  /*is_light!: any; //serviceData['is_light'];
   tested!: any;
   led!: any;
   iot!: any;
-  sense_distance!: any;
+  sense_distance!: any;*/
 
   // Config
   set_minLux!: number;
@@ -163,7 +165,7 @@ export class Motion {
   async BLEparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
     // Movement
-    this.MotionDetected = this.movement!;
+    this.MotionDetected = this.BLE_MotionDetected!;
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
     if (this.MotionDetected !== this.accessory.context.MotionDetected && this.MotionDetected) {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Detected Motion`);
@@ -172,7 +174,7 @@ export class Motion {
     if (!this.device.motion?.hide_lightsensor) {
       this.set_minLux = this.minLux();
       this.set_maxLux = this.maxLux();
-      switch (this.lightLevel) {
+      switch (this.BLE_CurrentAmbientLightLevel) {
         case 'dark':
         case 1:
           this.CurrentAmbientLightLevel = this.set_minLux;
@@ -181,7 +183,7 @@ export class Motion {
           this.CurrentAmbientLightLevel = this.set_maxLux;
       }
       this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.lightLevel},` +
+        `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.BLE_CurrentAmbientLightLevel},` +
         ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
       );
       if (this.CurrentAmbientLightLevel !== this.accessory.context.CurrentAmbientLightLevel) {
@@ -189,10 +191,10 @@ export class Motion {
       }
     }
     // Battery
-    if (this.battery === undefined) {
-      this.battery = 100;
+    if (this.BLE_BatteryLevel === undefined) {
+      this.BLE_BatteryLevel = 100;
     }
-    this.BatteryLevel = this.battery!;
+    this.BatteryLevel = this.BLE_BatteryLevel!;
     if (this.BatteryLevel < 10) {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
@@ -206,13 +208,13 @@ export class Motion {
   async openAPIparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
     // Motion State
-    this.MotionDetected = this.moveDetected!;
+    this.MotionDetected = this.OpenAPI_MotionDetected!;
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MotionDetected: ${this.MotionDetected}`);
     // Light Level
     if (!this.device.motion?.hide_lightsensor) {
       this.set_minLux = this.minLux();
       this.set_maxLux = this.maxLux();
-      switch (this.brightness) {
+      switch (this.OpenAPI_CurrentAmbientLightLevel) {
         case 'dim':
           this.CurrentAmbientLightLevel = this.set_minLux;
           break;
@@ -223,10 +225,10 @@ export class Motion {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
     }
     // Battery
-    if (this.battery === undefined) {
-      this.battery = 100;
+    if (this.OpenAPI_BatteryLevel === undefined) {
+      this.OpenAPI_BatteryLevel = 100;
     }
-    this.BatteryLevel = this.Battery!;
+    this.BatteryLevel = this.OpenAPI_BatteryLevel!;
     if (this.BatteryLevel < 10) {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
@@ -286,9 +288,9 @@ export class Motion {
                   `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
                   ` BLE Address Found: ${ad.address}`,
                 );
-                this.movement = ad.serviceData.movement;
-                this.battery = ad.serviceData.battery;
-                this.lightLevel = ad.serviceData.lightLevel;
+                this.BLE_MotionDetected = ad.serviceData.movement;
+                this.BLE_BatteryLevel = ad.serviceData.battery;
+                this.BLE_CurrentAmbientLightLevel = ad.serviceData.lightLevel;
                 this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
                 this.debugLog(
                   `${this.device.deviceType}: ${this.accessory.displayName} movement: ${ad.serviceData.movement},`
@@ -296,15 +298,15 @@ export class Motion {
                 );
 
                 if (ad.serviceData) {
-                  this.connected = true;
-                  this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+                  this.BLE_IsConnected = true;
+                  this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
                   this.debugErrorLog('1');
                   await this.stopScanning(switchbot);
                   this.scanning = false;
                   this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} scanning: ${this.scanning}`);
                 } else {
-                  this.connected = false;
-                  this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+                  this.BLE_IsConnected = false;
+                  this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
                 }
               };
               // Wait
@@ -346,10 +348,10 @@ export class Motion {
       this.statusCode(statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
-      this.moveDetected = deviceStatus.body.moveDetected;
-      this.brightness = deviceStatus.body.brightness;
-      this.Battery = deviceStatus.body.battery;
-      this.Version = deviceStatus.body.version;
+      this.OpenAPI_MotionDetected = deviceStatus.body.moveDetected;
+      this.OpenAPI_CurrentAmbientLightLevel = deviceStatus.body.brightness;
+      this.OpenAPI_BatteryLevel = deviceStatus.body.battery;
+      this.OpenAPI_FirmwareRevision = deviceStatus.body.version;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
@@ -398,11 +400,21 @@ export class Motion {
         );
       }
     }
+    // FirmwareRevision
+    if (this.OpenAPI_FirmwareRevision === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.OpenAPI_FirmwareRevision}`);
+    } else {
+      this.accessory.context.OpenAPI_FirmwareRevision = this.OpenAPI_FirmwareRevision;
+      this.accessory.getService(this.platform.Service.AccessoryInformation)!
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.OpenAPI_FirmwareRevision);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+        + `updateCharacteristic CurrentTemperature: ${this.OpenAPI_FirmwareRevision}`);
+    }
   }
 
   async stopScanning(switchbot: any) {
     await switchbot.stopScan();
-    if (this.connected) {
+    if (this.BLE_IsConnected) {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
     } else {

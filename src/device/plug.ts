@@ -15,18 +15,12 @@ export class Plug {
   On!: CharacteristicValue;
 
   // OpenAPI Others
-  Version: deviceStatus['version'];
-  power: deviceStatus['power'];
+  OpenAPI_On: deviceStatus['power'];
+  OpenAPI_FirmwareRevision: deviceStatus['version'];
 
   // BLE Others
-  connected?: boolean;
-  state: serviceData['state'];
-  delay: serviceData['delay'];
-  timer: serviceData['timer'];
-  wifiRssi: serviceData['wifiRssi'];
-  overload: serviceData['overload'];
-  syncUtcTime: serviceData['syncUtcTime'];
-  currentPower: serviceData['currentPower'];
+  BLE_IsConnected?: boolean;
+  BLE_On: serviceData['state'];
 
   // Config
   scanDuration!: number;
@@ -145,7 +139,7 @@ export class Plug {
   async BLEparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
     // State
-    switch (this.state) {
+    switch (this.BLE_On) {
       case 'on':
         this.On = true;
         break;
@@ -157,7 +151,7 @@ export class Plug {
 
   async openAPIparseStatus() {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
-    switch (this.power) {
+    switch (this.OpenAPI_On) {
       case 'on':
         this.On = true;
         break;
@@ -210,13 +204,7 @@ export class Plug {
               `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
               ` BLE Address Found: ${ad.address}`,
             );
-            this.state = ad.serviceData.state;
-            this.delay = ad.serviceData.delay;
-            this.timer = ad.serviceData.timer;
-            this.syncUtcTime = ad.serviceData.syncUtcTime;
-            this.wifiRssi = ad.serviceData.wifiRssi;
-            this.overload = ad.serviceData.overload;
-            this.currentPower = ad.serviceData.currentPower;
+            this.BLE_On = ad.serviceData.state;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} state: ${ad.serviceData.state}, ` +
@@ -225,12 +213,12 @@ export class Plug {
             );
 
             if (ad.serviceData) {
-              this.connected = true;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+              this.BLE_IsConnected = true;
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
               await this.stopScanning(switchbot);
             } else {
-              this.connected = false;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+              this.BLE_IsConnected = false;
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
             }
           };
           // Wait
@@ -264,7 +252,7 @@ export class Plug {
       this.statusCode(statusCode);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
-      this.power = deviceStatus.body.power;
+      this.OpenAPI_On = deviceStatus.body.power;
       this.openAPIparseStatus();
       this.updateHomeKitCharacteristics();
     } catch (e: any) {
@@ -419,11 +407,21 @@ export class Plug {
       this.outletService.updateCharacteristic(this.platform.Characteristic.On, this.On);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
+    // FirmwareRevision
+    if (this.OpenAPI_FirmwareRevision === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.OpenAPI_FirmwareRevision}`);
+    } else {
+      this.accessory.context.OpenAPI_FirmwareRevision = this.OpenAPI_FirmwareRevision;
+      this.accessory.getService(this.platform.Service.AccessoryInformation)!
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.OpenAPI_FirmwareRevision);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+        + `updateCharacteristic CurrentTemperature: ${this.OpenAPI_FirmwareRevision}`);
+    }
   }
 
   async stopScanning(switchbot: any) {
     await switchbot.stopScan();
-    if (this.connected) {
+    if (this.BLE_IsConnected) {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
     } else {

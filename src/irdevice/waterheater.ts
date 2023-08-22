@@ -16,9 +16,9 @@ export class WaterHeater {
   Active!: CharacteristicValue;
 
   // Config
+  deviceLogging!: string;
   disablePushOn?: boolean;
   disablePushOff?: boolean;
-  deviceLogging!: string;
 
   constructor(
     private readonly platform: SwitchBotPlatform,

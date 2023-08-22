@@ -16,10 +16,10 @@ export class AirConditioner {
   Active!: CharacteristicValue;
   RotationSpeed!: CharacteristicValue;
   CurrentTemperature!: CharacteristicValue;
+  ThresholdTemperature!: CharacteristicValue;
   CurrentRelativeHumidity?: CharacteristicValue;
   TargetHeaterCoolerState!: CharacteristicValue;
   CurrentHeaterCoolerState!: CharacteristicValue;
-  ThresholdTemperature!: CharacteristicValue;
 
   // Others
   state!: string;
@@ -33,12 +33,12 @@ export class AirConditioner {
   static MODE_HEAT: number;
 
   // Config
-  disablePushOn?: boolean;
-  disablePushOff?: boolean;
-  disablePushDetail?: boolean;
   deviceLogging!: string;
   hide_automode?: boolean;
+  disablePushOn?: boolean;
+  disablePushOff?: boolean;
   meter?: PlatformAccessory;
+  disablePushDetail?: boolean;
 
   private readonly valid12 = [1, 2];
   private readonly valid012 = [0, 1, 2];

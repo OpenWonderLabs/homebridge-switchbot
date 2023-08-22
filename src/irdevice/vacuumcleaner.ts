@@ -16,9 +16,9 @@ export class VacuumCleaner {
   On!: CharacteristicValue;
 
   // Config
+  deviceLogging!: string;
   disablePushOn?: boolean;
   disablePushOff?: boolean;
-  deviceLogging!: string;
 
   constructor(
     private readonly platform: SwitchBotPlatform,

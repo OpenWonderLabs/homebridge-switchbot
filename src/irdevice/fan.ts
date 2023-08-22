@@ -14,18 +14,18 @@ export class Fan {
 
   // Characteristic Values
   Active!: CharacteristicValue;
-  ActiveIdentifier!: CharacteristicValue;
-  RotationSpeed!: CharacteristicValue;
   SwingMode!: CharacteristicValue;
+  RotationSpeed!: CharacteristicValue;
+  ActiveIdentifier!: CharacteristicValue;
   RotationDirection!: CharacteristicValue;
 
   // Config
   minStep?: number;
   minValue?: number;
   maxValue?: number;
+  deviceLogging!: string;
   disablePushOn?: boolean;
   disablePushOff?: boolean;
-  deviceLogging!: string;
 
   constructor(
     private readonly platform: SwitchBotPlatform,

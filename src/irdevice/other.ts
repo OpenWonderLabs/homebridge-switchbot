@@ -16,10 +16,10 @@ export class Others {
   Active!: CharacteristicValue;
 
   // Config
-  disablePushOn?: boolean;
-  disablePushOff?: boolean;
   deviceLogging!: string;
+  disablePushOn?: boolean;
   otherDeviceType?: string;
+  disablePushOff?: boolean;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
