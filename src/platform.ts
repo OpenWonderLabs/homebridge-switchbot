@@ -301,10 +301,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           headers: this.generateHeaders(),
         });
         this.debugWarnLog(`body: ${JSON.stringify(body)}`);
-        this.debugWarnLog(`body: ${JSON.stringify(statusCode)}`);
-        this.debugWarnLog(`body: ${JSON.stringify(headers)}`);
+        this.debugWarnLog(`statusCode: ${JSON.stringify(statusCode)}`);
+        this.debugWarnLog(`headers: ${JSON.stringify(headers)}`);
         const devicesAPI: any = await body.json();
-        if (statusCode === 200 && devicesAPI.statusCode === 200) {
+        if ((statusCode === 200 || statusCode === 100) && devicesAPI.statusCode === 200) {
           this.debugLog(`Devices: ${JSON.stringify(devicesAPI.body)}`);
           // SwitchBot Devices
           this.debugWarnLog(`devicesAPI: ${JSON.stringify(devicesAPI)}`);
@@ -398,7 +398,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
             this.debugLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
           }
         } else {
-          this.statusCode(statusCode);
           this.statusCode(devicesAPI.statusCode);
         }
       } catch (e: any) {
@@ -2195,7 +2194,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.debugLog(`Request successful, statusCode: ${statusCode}`);
         break;
       default:
-        this.infoLog(`Unknown statusCode, statusCode: ${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
+        this.errorLog(`Unknown statusCode, statusCode: ${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
     }
   }
 

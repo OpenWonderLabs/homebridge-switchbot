@@ -553,10 +553,12 @@ export class Bot {
       const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/status`, {
         headers: this.platform.generateHeaders(),
       });
-      if (statusCode === 200) {
-        const deviceStatus: any = await body.json();
+      this.debugWarnLog(`body: ${JSON.stringify(body)}`);
+      this.debugWarnLog(`statusCode: ${JSON.stringify(statusCode)}`);
+      this.debugWarnLog(`headers: ${JSON.stringify(headers)}`);
+      const deviceStatus: any = await body.json();
+      if (statusCode === 200 && deviceStatus.statusCode === 200) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
-        this.statusCode(statusCode);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
         this.OpenAPI_On = deviceStatus.body.power;
@@ -565,7 +567,7 @@ export class Bot {
         this.openAPIparseStatus();
         this.updateHomeKitCharacteristics();
       } else {
-        this.statusCode(statusCode);
+        this.statusCode(deviceStatus.statusCode);
       }
     } catch (e: any) {
       this.apiError(e);
@@ -719,17 +721,23 @@ export class Bot {
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
+        this.debugWarnLog(`body: ${JSON.stringify(body)}`);
+        this.debugWarnLog(`statusCode: ${JSON.stringify(statusCode)}`);
+        this.debugWarnLog(`headers: ${JSON.stringify(headers)}`);
         const deviceStatus: any = await body.json();
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
-        this.statusCode(statusCode);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
-        if (this.device.bot?.mode === 'multipress') {
-          this.multiPressCount--;
-          if (this.multiPressCount > 0) {
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Multi Press Count: ${this.multiPressCount}`);
-            this.On = true;
-            this.openAPIpushChanges();
+        if (statusCode === 200 && deviceStatus.statusCode === 200) {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
+          if (this.device.bot?.mode === 'multipress') {
+            this.multiPressCount--;
+            if (this.multiPressCount > 0) {
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Multi Press Count: ${this.multiPressCount}`);
+              this.On = true;
+              this.openAPIpushChanges();
+            }
           }
+        } else {
+          this.statusCode(deviceStatus.statusCode);
         }
       } catch (e: any) {
         this.apiError(e);
