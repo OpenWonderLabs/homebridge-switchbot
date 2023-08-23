@@ -4,14 +4,15 @@ on:
   pull_request:
   push:
     branches:
-    - latest
+    - beta-*.*.*
 
 jobs:
   automerge:
-    name: Auto-merge dependabot updates
+    name: Auto-merge patch updates
     runs-on: ubuntu-latest
     steps:
       - uses: mitto98/dependabot-automerge-action@master
         with:
           token: ${{ github.token }}
-          merge: true
+          merge-patch: true
+          
