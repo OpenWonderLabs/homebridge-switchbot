@@ -399,6 +399,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
             this.debugLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
           }
         } else {
+          this.statusCode(statusCode);
           this.statusCode(devicesAPI.statusCode);
         }
       } catch (e: any) {

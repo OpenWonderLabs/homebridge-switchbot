@@ -553,20 +553,23 @@ export class Bot {
       const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/status`, {
         headers: this.platform.generateHeaders(),
       });
-      this.debugWarnLog(`body: ${JSON.stringify(body)}`);
-      this.debugWarnLog(`statusCode: ${JSON.stringify(statusCode)}`);
-      this.debugWarnLog(`headers: ${JSON.stringify(headers)}`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} body: ${JSON.stringify(body)}`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} headers: ${JSON.stringify(headers)}`);
       const deviceStatus: any = await body.json();
-      if (statusCode === 200 && deviceStatus.statusCode === 200) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
+      if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
+        this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+          + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
         this.OpenAPI_On = deviceStatus.body.power;
         this.OpenAPI_BatteryLevel = deviceStatus.body.battery;
         this.OpenAPI_FirmwareRevision = deviceStatus.body.version;
         this.openAPIparseStatus();
         this.updateHomeKitCharacteristics();
       } else {
+        this.statusCode(statusCode);
         this.statusCode(deviceStatus.statusCode);
       }
     } catch (e: any) {
@@ -721,13 +724,16 @@ export class Bot {
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
-        this.debugWarnLog(`body: ${JSON.stringify(body)}`);
-        this.debugWarnLog(`statusCode: ${JSON.stringify(statusCode)}`);
-        this.debugWarnLog(`headers: ${JSON.stringify(headers)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} body: ${JSON.stringify(body)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${JSON.stringify(statusCode)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} headers: ${JSON.stringify(headers)}`);
         const deviceStatus: any = await body.json();
-        if (statusCode === 200 && deviceStatus.statusCode === 200) {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
+        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
+          this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+          + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
           if (this.device.bot?.mode === 'multipress') {
             this.multiPressCount--;
             if (this.multiPressCount > 0) {
@@ -737,6 +743,7 @@ export class Bot {
             }
           }
         } else {
+          this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);
         }
       } catch (e: any) {
