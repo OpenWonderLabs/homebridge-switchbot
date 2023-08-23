@@ -304,12 +304,12 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.debugWarnLog(`statusCode: ${JSON.stringify(statusCode)}`);
         this.debugWarnLog(`headers: ${JSON.stringify(headers)}`);
         const devicesAPI: any = await body.json();
-        this.debugWarnLog(`sdevicesAPI.tatusCode: ${JSON.stringify(devicesAPI.statusCode)}`);
+        this.debugWarnLog(`devicesAPI: ${JSON.stringify(devicesAPI)}`);
+        this.debugWarnLog(`devicesAPI Length: ${devicesAPI.length}`);
+        this.debugLog(`devicesAPI Body: ${JSON.stringify(devicesAPI.body)}`);
+        this.debugWarnLog(`devicesAPI StatusCode: ${JSON.stringify(devicesAPI.statusCode)}`);
         if (devicesAPI.statusCode === 200) {
-          this.debugLog(`Devices: ${JSON.stringify(devicesAPI.body)}`);
           // SwitchBot Devices
-          this.debugWarnLog(`devicesAPI: ${JSON.stringify(devicesAPI)}`);
-          this.debugWarnLog(`devicesAPI Length: ${devicesAPI.length}`);
           const deviceLists = devicesAPI.body.deviceList;
           this.debugWarnLog(`DeviceLists: ${JSON.stringify(deviceLists)}`);
           this.debugWarnLog(`DeviceLists Length: ${deviceLists.length}`);
