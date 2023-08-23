@@ -11,7 +11,7 @@ jobs:
     name: Auto-merge dependabot updates
     runs-on: ubuntu-latest
     steps:
-      - uses: mitto98/dependabot-automerge-action@master
+      - uses: mitto98/dependabot-automerge-action@v1
         with:
           token: ${{ github.token }}
           merge: true
