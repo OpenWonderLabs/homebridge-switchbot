@@ -2087,7 +2087,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         registerDevice = true;
         this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`);
       }
-      this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`);
+      if (registerDevice === true) {
+        this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`);
+      } else {
+        this.debugErrorLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will not display in HomeKit`);
+      }
     } else if (!device.hide_device && device.deviceId && device.configDeviceType && device.configDeviceName && device.connectionType === 'BLE') {
       if (device.deviceType === 'Curtain' || device.deviceType === 'Blind Tilt') {
         registerDevice = await this.registerCurtains(device);
@@ -2096,7 +2100,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         registerDevice = true;
         this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`);
       }
-      this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`);
+      if (registerDevice === true) {
+        this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`);
+      } else {
+        this.debugErrorLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will not display in HomeKit`);
+      }
     } else if (!device.hide_device && device.connectionType === 'OpenAPI') {
       if (device.deviceType === 'Curtain' || device.deviceType === 'Blind Tilt') {
         registerDevice = await this.registerCurtains(device);
@@ -2105,7 +2113,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         registerDevice = true;
         this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`);
       }
-      this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`);
+      if (registerDevice === true) {
+        this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`);
+      } else {
+        this.debugErrorLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will not display in HomeKit`);
+      }
     } else if (!device.hide_device && device.connectionType === 'Disabled') {
       if (device.deviceType === 'Curtain' || device.deviceType === 'Blind Tilt') {
         registerDevice = await this.registerCurtains(device);

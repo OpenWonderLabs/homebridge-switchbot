@@ -725,7 +725,7 @@ export class Bot {
           headers: this.platform.generateHeaders(),
         });
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} body: ${JSON.stringify(body)}`);
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${JSON.stringify(statusCode)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} headers: ${JSON.stringify(headers)}`);
         const deviceStatus: any = await body.json();
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
@@ -733,18 +733,18 @@ export class Bot {
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
         if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
           this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-          + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
-          if (this.device.bot?.mode === 'multipress') {
-            this.multiPressCount--;
-            if (this.multiPressCount > 0) {
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Multi Press Count: ${this.multiPressCount}`);
-              this.On = true;
-              this.openAPIpushChanges();
-            }
-          }
+            + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);
+        }
+        if (this.device.bot?.mode === 'multipress') {
+          this.multiPressCount--;
+          if (this.multiPressCount > 0) {
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Multi Press Count: ${this.multiPressCount}`);
+            this.On = true;
+            this.openAPIpushChanges();
+          }
         }
       } catch (e: any) {
         this.apiError(e);

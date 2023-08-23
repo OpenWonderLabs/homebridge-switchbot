@@ -437,6 +437,8 @@ export class ColorBulb {
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
       if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
+        this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+          + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
         this.OpenAPI_On = deviceStatus.body.power;
         this.OpenAPI_RGB = deviceStatus.body.color;
         this.OpenAPI_Brightness = deviceStatus.body.brightness;
@@ -445,6 +447,7 @@ export class ColorBulb {
         this.openAPIparseStatus();
         this.updateHomeKitCharacteristics();
       } else {
+        this.statusCode(statusCode);
         this.statusCode(deviceStatus.statusCode);
       }
     } catch (e: any) {
@@ -701,7 +704,13 @@ export class ColorBulb {
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
-        this.statusCode(deviceStatus.statusCode);
+        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
+          this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+            + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+        } else {
+          this.statusCode(statusCode);
+          this.statusCode(deviceStatus.statusCode);
+        }
       } catch (e: any) {
         this.apiError(e);
         this.errorLog(
@@ -756,7 +765,13 @@ export class ColorBulb {
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
-        this.statusCode(deviceStatus.statusCode);
+        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
+          this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+            + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+        } else {
+          this.statusCode(statusCode);
+          this.statusCode(deviceStatus.statusCode);
+        }
       } catch (e: any) {
         this.apiError(e);
         this.errorLog(
@@ -796,7 +811,13 @@ export class ColorBulb {
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
-        this.statusCode(deviceStatus.statusCode);
+        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
+          this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+            + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+        } else {
+          this.statusCode(statusCode);
+          this.statusCode(deviceStatus.statusCode);
+        }
       } catch (e: any) {
         this.apiError(e);
         this.errorLog(
@@ -834,7 +855,13 @@ export class ColorBulb {
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
-        this.statusCode(deviceStatus.statusCode);
+        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
+          this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+            + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+        } else {
+          this.statusCode(statusCode);
+          this.statusCode(deviceStatus.statusCode);
+        }
       } catch (e: any) {
         this.apiError(e);
         this.errorLog(

@@ -550,18 +550,27 @@ export class Curtain {
       const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/status`, {
         headers: this.platform.generateHeaders(),
       });
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} body: ${JSON.stringify(body)}`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} headers: ${JSON.stringify(headers)}`);
       const deviceStatus: any = await body.json();
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
-      this.statusCode(statusCode);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
-      this.OpenAPI_CurrentPosition = deviceStatus.body.slidePosition;
-      this.OpenAPI_InMotion = deviceStatus.body.moving;
-      this.OpenAPI_CurrentAmbientLightLevel = deviceStatus.body.brightness;
-      this.OpenAPI_BatterLevel = deviceStatus.body.battery;
-      this.OpenAPI_FirmwareRevision = deviceStatus.body.version;
-      this.openAPIparseStatus();
-      this.updateHomeKitCharacteristics();
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
+      if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
+        this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+          + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+        this.OpenAPI_CurrentPosition = deviceStatus.body.slidePosition;
+        this.OpenAPI_InMotion = deviceStatus.body.moving;
+        this.OpenAPI_CurrentAmbientLightLevel = deviceStatus.body.brightness;
+        this.OpenAPI_BatterLevel = deviceStatus.body.battery;
+        this.OpenAPI_FirmwareRevision = deviceStatus.body.version;
+        this.openAPIparseStatus();
+        this.updateHomeKitCharacteristics();
+      } else {
+        this.statusCode(statusCode);
+        this.statusCode(deviceStatus.statusCode);
+      }
     } catch (e: any) {
       this.apiError(e);
       this.errorLog(
@@ -696,10 +705,20 @@ export class Curtain {
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} body: ${JSON.stringify(body)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} headers: ${JSON.stringify(headers)}`);
         const deviceStatus: any = await body.json();
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
-        this.statusCode(statusCode);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
+        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
+          this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+            + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+        } else {
+          this.statusCode(statusCode);
+          this.statusCode(deviceStatus.statusCode);
+        }
       } catch (e: any) {
         this.apiError(e);
         this.errorLog(
