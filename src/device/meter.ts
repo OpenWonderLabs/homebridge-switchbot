@@ -402,7 +402,6 @@ export class Meter {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
       }
     }
-
     if (this.BatteryLevel === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
     } else {
