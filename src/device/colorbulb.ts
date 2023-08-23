@@ -5,7 +5,7 @@ import { sleep } from '../utils';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
-import { device, devicesConfig, deviceStatus, switchbot, hs2rgb, rgb2hs, m2hs, serviceData, ad, Devices } from '../settings';
+import { device, devicesConfig, deviceStatus, hs2rgb, rgb2hs, m2hs, serviceData, ad, Devices } from '../settings';
 import { Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap } from 'homebridge';
 
 /**
@@ -24,32 +24,26 @@ export class ColorBulb {
   Brightness!: CharacteristicValue;
   ColorTemperature?: CharacteristicValue;
 
-  // OpenAPI Others
-  Version: deviceStatus['version'];
-  power: deviceStatus['power'];
-  color: deviceStatus['color'];
-  brightness: deviceStatus['brightness'];
-  colorTemperature?: deviceStatus['colorTemperature'];
-  deviceStatus!: any;
+  // OpenAPI Status
+  OpenAPI_On: deviceStatus['power'];
+  OpenAPI_RGB: deviceStatus['color'];
+  OpenAPI_Brightness: deviceStatus['brightness'];
+  OpenAPI_FirmwareRevision: deviceStatus['version'];
+  OpenAPI_ColorTemperature?: deviceStatus['colorTemperature'];
+
+  // BLE Status
+  BLE_Red: serviceData['red'];
+  BLE_On: serviceData['state'];
+  BLE_Blue: serviceData['blue'];
+  BLE_Power: serviceData['power'];
+  BLE_Green: serviceData['green'];
+  BLE_Delay: serviceData['delay'];
+  BLE_WifiRssi: serviceData['wifiRssi'];
+  BLE_Brightness: serviceData['brightness'];
+  BLE_ColorTemperature: serviceData['color_temperature'];
 
   // BLE Others
-  connected?: boolean;
-  switchbot!: switchbot;
-  address!: ad['address'];
-  serviceData!: serviceData;
-  powerState: serviceData['power'];
-  state: serviceData['state'];
-  red: serviceData['red'];
-  green: serviceData['green'];
-  blue: serviceData['blue'];
-  delay: serviceData['delay'];
-  wifiRssi: serviceData['wifiRssi'];
-  brightnessBLE: serviceData['brightness'];
-  color_temperature: serviceData['color_temperature'];
-  preset: any; //serviceData['preset'];
-  color_mode: any; //serviceData['color_mode'];
-  speed: any; //serviceData['speed'];
-  loop_index: any; //serviceData['loop_index'];
+  BLE_IsConnected?: boolean;
 
   // Config
   set_minStep?: number;
@@ -116,12 +110,6 @@ export class ColorBulb {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} adaptiveLighting: ${this.accessory.context.adaptiveLighting}`);
     }
 
-    // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
-    // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
-    // accessory.getService('NAME') ?? accessory.addService(this.platform.Service.Outlet, 'NAME', 'USER_DEFINED_SUBTYPE');
-
-    // set the service name, this is what is displayed as the default name on the Home app
-    // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.lightBulbService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
     if (!this.lightBulbService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
       this.lightBulbService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
@@ -250,7 +238,7 @@ export class ColorBulb {
   async BLEparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
     // State
-    switch (this.state) {
+    switch (this.BLE_On) {
       case true:
         this.On = true;
         break;
@@ -260,18 +248,18 @@ export class ColorBulb {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
 
     // Brightness
-    this.Brightness = Number(this.brightnessBLE);
+    this.Brightness = Number(this.BLE_Brightness);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Brightness: ${this.Brightness}`);
 
     // Color, Hue & Brightness
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} red: ${this.red}`);
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} green: ${this.green}`);
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} blue: ${this.blue}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} red: ${this.BLE_Red}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} green: ${this.BLE_Green}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} blue: ${this.BLE_Blue}`);
 
-    const [hue, saturation] = rgb2hs(Number(this.red), Number(this.green), Number(this.blue));
+    const [hue, saturation] = rgb2hs(Number(this.BLE_Red), Number(this.BLE_Green), Number(this.BLE_Blue));
     this.debugLog(
       `${this.device.deviceType}: ${this.accessory.displayName}` +
-      ` hs: ${JSON.stringify(rgb2hs(Number(this.red), Number(this.green), Number(this.blue)))}`,
+      ` hs: ${JSON.stringify(rgb2hs(Number(this.BLE_Red), Number(this.BLE_Green), Number(this.BLE_Blue)))}`,
     );
 
     // Hue
@@ -283,9 +271,9 @@ export class ColorBulb {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${this.Saturation}`);
 
     // ColorTemperature
-    if (this.color_temperature) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE ColorTemperature: ${this.color_temperature}`);
-      this.ColorTemperature = this.color_temperature!;
+    if (this.BLE_ColorTemperature) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE ColorTemperature: ${this.BLE_ColorTemperature}`);
+      this.ColorTemperature = this.BLE_ColorTemperature!;
 
       this.ColorTemperature = Math.max(Math.min(this.ColorTemperature, 500), 140);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
@@ -294,7 +282,7 @@ export class ColorBulb {
 
   async openAPIparseStatus() {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
-    switch (this.power) {
+    switch (this.OpenAPI_On) {
       case 'on':
         this.On = true;
         break;
@@ -304,13 +292,13 @@ export class ColorBulb {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
 
     // Brightness
-    this.Brightness = Number(this.brightness);
+    this.Brightness = Number(this.OpenAPI_Brightness);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Brightness: ${this.Brightness}`);
 
     // Color, Hue & Brightness
-    if (this.color) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} color: ${JSON.stringify(this.color)}`);
-      const [red, green, blue] = this.color!.split(':');
+    if (this.OpenAPI_RGB) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} color: ${JSON.stringify(this.OpenAPI_RGB)}`);
+      const [red, green, blue] = this.OpenAPI_RGB!.split(':');
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} red: ${JSON.stringify(red)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} green: ${JSON.stringify(green)}`);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} blue: ${JSON.stringify(blue)}`);
@@ -330,9 +318,9 @@ export class ColorBulb {
     }
 
     // ColorTemperature
-    if (!Number.isNaN(this.colorTemperature)) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} OpenAPI ColorTemperature: ${this.colorTemperature}`);
-      const mired = Math.round(1000000 / this.colorTemperature!);
+    if (!Number.isNaN(this.OpenAPI_ColorTemperature)) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} OpenAPI ColorTemperature: ${this.OpenAPI_ColorTemperature}`);
+      const mired = Math.round(1000000 / this.OpenAPI_ColorTemperature!);
 
       this.ColorTemperature = Number(mired);
 
@@ -379,26 +367,20 @@ export class ColorBulb {
         })
         .then(async () => {
           // Set an event hander
-          switchbot.onadvertisement = async (ad: any) => {
-            this.address = ad.address;
+          switchbot.onadvertisement = async (ad: ad) => {
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
-              ` BLE Address Found: ${this.address}`,
+              ` BLE Address Found: ${ad.address}`,
             );
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-            this.serviceData = ad.serviceData;
-            this.powerState = ad.serviceData.power;
-            this.state = ad.serviceData.state;
-            this.red = ad.serviceData.red;
-            this.green = ad.serviceData.green;
-            this.blue = ad.serviceData.blue;
-            this.color_temperature = ad.serviceData.color_temperature;
-            this.brightnessBLE = ad.serviceData.brightness;
-            this.delay = ad.serviceData.delay;
-            this.preset = ad.serviceData.preset;
-            this.color_mode = ad.serviceData.color_mode;
-            this.speed = ad.serviceData.speed;
-            this.loop_index = ad.serviceData.loop_index;
+            this.BLE_Power = ad.serviceData.power;
+            this.BLE_On = ad.serviceData.state;
+            this.BLE_Red = ad.serviceData.red;
+            this.BLE_Green = ad.serviceData.green;
+            this.BLE_Blue = ad.serviceData.blue;
+            this.BLE_ColorTemperature = ad.serviceData.color_temperature;
+            this.BLE_Brightness = ad.serviceData.brightness;
+            this.BLE_Delay = ad.serviceData.delay;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
             /*this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} state: ${ad.serviceData.state}, ` +
@@ -406,13 +388,13 @@ export class ColorBulb {
                 `wifiRssi: ${ad.serviceData.wifiRssi}, overload: ${ad.serviceData.overload}, currentPower: ${ad.serviceData.currentPower}`,
             );*/
 
-            if (this.serviceData) {
-              this.connected = true;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+            if (ad.serviceData) {
+              this.BLE_IsConnected = true;
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
               await this.stopScanning(switchbot);
             } else {
-              this.connected = false;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.connected}`);
+              this.BLE_IsConnected = false;
+              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
             }
           };
           // Wait
@@ -441,17 +423,27 @@ export class ColorBulb {
       const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/status`, {
         headers: this.platform.generateHeaders(),
       });
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} body: ${JSON.stringify(body)}`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} headers: ${JSON.stringify(headers)}`);
       const deviceStatus: any = await body.json();
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
-      this.statusCode(statusCode);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus: ${JSON.stringify(deviceStatus)}`);
-      this.power = deviceStatus.body.power;
-      this.color = deviceStatus.body.color;
-      this.brightness = deviceStatus.body.brightness;
-      this.colorTemperature = deviceStatus.body.colorTemperature;
-      this.openAPIparseStatus();
-      this.updateHomeKitCharacteristics();
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
+      if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
+        this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+          + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+        this.OpenAPI_On = deviceStatus.body.power;
+        this.OpenAPI_RGB = deviceStatus.body.color;
+        this.OpenAPI_Brightness = deviceStatus.body.brightness;
+        this.OpenAPI_ColorTemperature = deviceStatus.body.colorTemperature;
+        this.OpenAPI_FirmwareRevision = deviceStatus.body.version;
+        this.openAPIparseStatus();
+        this.updateHomeKitCharacteristics();
+      } else {
+        this.statusCode(statusCode);
+        this.statusCode(deviceStatus.statusCode);
+      }
     } catch (e: any) {
       this.apiError(e);
       this.errorLog(
@@ -699,10 +691,20 @@ export class ColorBulb {
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} body: ${JSON.stringify(body)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} headers: ${JSON.stringify(headers)}`);
         const deviceStatus: any = await body.json();
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Devices: ${JSON.stringify(deviceStatus.body)}`);
-        this.statusCode(statusCode);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Headers: ${JSON.stringify(headers)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
+        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
+          this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+            + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+        } else {
+          this.statusCode(statusCode);
+          this.statusCode(deviceStatus.statusCode);
+        }
       } catch (e: any) {
         this.apiError(e);
         this.errorLog(
@@ -750,10 +752,20 @@ export class ColorBulb {
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} body: ${JSON.stringify(body)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} headers: ${JSON.stringify(headers)}`);
         const deviceStatus: any = await body.json();
-        this.debugLog(`Devices: ${JSON.stringify(deviceStatus.body)}`);
-        this.statusCode(statusCode);
-        this.debugLog(`Headers: ${JSON.stringify(headers)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
+        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
+          this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+            + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+        } else {
+          this.statusCode(statusCode);
+          this.statusCode(deviceStatus.statusCode);
+        }
       } catch (e: any) {
         this.apiError(e);
         this.errorLog(
@@ -786,10 +798,20 @@ export class ColorBulb {
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} body: ${JSON.stringify(body)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} headers: ${JSON.stringify(headers)}`);
         const deviceStatus: any = await body.json();
-        this.debugLog(`Devices: ${JSON.stringify(deviceStatus.body)}`);
-        this.statusCode(statusCode);
-        this.debugLog(`Headers: ${JSON.stringify(headers)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
+        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
+          this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+            + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+        } else {
+          this.statusCode(statusCode);
+          this.statusCode(deviceStatus.statusCode);
+        }
       } catch (e: any) {
         this.apiError(e);
         this.errorLog(
@@ -820,10 +842,20 @@ export class ColorBulb {
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} body: ${JSON.stringify(body)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} headers: ${JSON.stringify(headers)}`);
         const deviceStatus: any = await body.json();
-        this.debugLog(`Devices: ${JSON.stringify(deviceStatus.body)}`);
-        this.statusCode(statusCode);
-        this.debugLog(`Headers: ${JSON.stringify(headers)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
+        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
+        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
+          this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+            + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+        } else {
+          this.statusCode(statusCode);
+          this.statusCode(deviceStatus.statusCode);
+        }
       } catch (e: any) {
         this.apiError(e);
         this.errorLog(
@@ -973,6 +1005,16 @@ export class ColorBulb {
       this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Saturation, this.Saturation);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic Saturation: ${this.Saturation}`);
     }
+    // FirmwareRevision
+    if (this.OpenAPI_FirmwareRevision === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.OpenAPI_FirmwareRevision}`);
+    } else {
+      this.accessory.context.OpenAPI_FirmwareRevision = this.OpenAPI_FirmwareRevision;
+      this.accessory.getService(this.platform.Service.AccessoryInformation)!
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.OpenAPI_FirmwareRevision);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+        + `updateCharacteristic FirmwareRevision: ${this.OpenAPI_FirmwareRevision}`);
+    }
   }
 
   async adaptiveLighting(device: device & devicesConfig): Promise<void> {
@@ -987,7 +1029,7 @@ export class ColorBulb {
 
   async stopScanning(switchbot: any) {
     await switchbot.stopScan();
-    if (this.connected) {
+    if (this.BLE_IsConnected) {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
     } else {

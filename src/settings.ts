@@ -312,6 +312,10 @@ export type serviceData = {
   mode?: boolean;
   //Bot/ColorBulb State
   state?: string | boolean;
+  //Lock door open
+  door_open?: string;
+  //Lock Status
+  status?: string;
   //ColorBulb Power
   power?: boolean;
   //ColorBulb R
@@ -342,7 +346,7 @@ export type serviceData = {
   //Contact ((lightLevel == 0) ? 'dark' : 'bright')
   //Curtain (light sensor level (1-10))
   //Light Level
-  lightLevel?: number | string;
+  lightLevel?: number | string | boolean;
   //Contact DoorState
   doorState?: number | string;
   //Is Curtain Calibrated

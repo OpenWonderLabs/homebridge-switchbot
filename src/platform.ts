@@ -300,12 +300,19 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         const { body, statusCode, headers } = await request(Devices, {
           headers: this.generateHeaders(),
         });
-        if (statusCode === 200) {
-          const devicesAPI: any = await body.json();
-          this.debugLog(`Devices: ${JSON.stringify(devicesAPI.body)}`);
-          this.debugLog(`Headers: ${JSON.stringify(headers)}`);
+        this.debugWarnLog(`body: ${JSON.stringify(body)}`);
+        this.debugWarnLog(`statusCode: ${statusCode}`);
+        this.debugWarnLog(`headers: ${JSON.stringify(headers)}`);
+        const devicesAPI: any = await body.json();
+        this.debugWarnLog(`devicesAPI: ${JSON.stringify(devicesAPI)}`);
+        this.debugWarnLog(`devicesAPI Body: ${JSON.stringify(devicesAPI.body)}`);
+        this.debugWarnLog(`devicesAPI StatusCode: ${devicesAPI.statusCode}`);
+        if ((statusCode === 200 || statusCode === 100) && (devicesAPI.statusCode === 200 || devicesAPI.statusCode === 100)) {
+          this.debugErrorLog(`statusCode: ${statusCode} & devicesAPI StatusCode: ${devicesAPI.statusCode}`);
           // SwitchBot Devices
           const deviceLists = devicesAPI.body.deviceList;
+          this.debugWarnLog(`DeviceLists: ${JSON.stringify(deviceLists)}`);
+          this.debugWarnLog(`DeviceLists Length: ${deviceLists.length}`);
           if (!this.config.options?.devices) {
             this.debugLog(`SwitchBot Device Config Not Set: ${JSON.stringify(this.config.options?.devices)}`);
             if (deviceLists.length === 0) {
@@ -323,25 +330,29 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
             }
           } else if (this.config.credentials?.token && this.config.options.devices) {
             this.debugLog(`SwitchBot Device Config Set: ${JSON.stringify(this.config.options?.devices)}`);
-            const deviceConfigs = this.config.options?.devices;
+            if (deviceLists.length === 0) {
+              this.debugLog(`SwitchBot API Currently Doesn't Have Any Devices With Cloud Services Enabled: ${JSON.stringify(devicesAPI.body)}`);
+            } else {
+              const deviceConfigs = this.config.options?.devices;
 
-            const mergeBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
-              a1.map((itm: { deviceId: string }) => ({
-                ...a2.find(
-                  (item: { deviceId: string }) =>
-                    item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
-                ),
-                ...itm,
-              }));
+              const mergeBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
+                a1.map((itm: { deviceId: string }) => ({
+                  ...a2.find(
+                    (item: { deviceId: string }) =>
+                      item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
+                  ),
+                  ...itm,
+                }));
 
-            const devices = mergeBydeviceId(deviceLists, deviceConfigs);
-            this.debugLog(`SwitchBot Devices: ${JSON.stringify(devices)}`);
-            for (const device of devices) {
-              if (device.deviceType) {
-                if (device.configDeviceName) {
-                  device.deviceName = device.configDeviceName;
+              const devices = mergeBydeviceId(deviceLists, deviceConfigs);
+              this.debugLog(`SwitchBot Devices: ${JSON.stringify(devices)}`);
+              for (const device of devices) {
+                if (device.deviceType) {
+                  if (device.configDeviceName) {
+                    device.deviceName = device.configDeviceName;
+                  }
+                  this.createDevice(device);
                 }
-                this.createDevice(device);
               }
             }
           } else {
@@ -389,6 +400,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           }
         } else {
           this.statusCode(statusCode);
+          this.statusCode(devicesAPI.statusCode);
         }
       } catch (e: any) {
         this.debugErrorLog(
@@ -2075,7 +2087,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         registerDevice = true;
         this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`);
       }
-      this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`);
+      if (registerDevice === true) {
+        this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`);
+      } else {
+        this.debugErrorLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will not display in HomeKit`);
+      }
     } else if (!device.hide_device && device.deviceId && device.configDeviceType && device.configDeviceName && device.connectionType === 'BLE') {
       if (device.deviceType === 'Curtain' || device.deviceType === 'Blind Tilt') {
         registerDevice = await this.registerCurtains(device);
@@ -2084,7 +2100,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         registerDevice = true;
         this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`);
       }
-      this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`);
+      if (registerDevice === true) {
+        this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`);
+      } else {
+        this.debugErrorLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will not display in HomeKit`);
+      }
     } else if (!device.hide_device && device.connectionType === 'OpenAPI') {
       if (device.deviceType === 'Curtain' || device.deviceType === 'Blind Tilt') {
         registerDevice = await this.registerCurtains(device);
@@ -2093,7 +2113,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         registerDevice = true;
         this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`);
       }
-      this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`);
+      if (registerDevice === true) {
+        this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`);
+      } else {
+        this.debugErrorLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will not display in HomeKit`);
+      }
     } else if (!device.hide_device && device.connectionType === 'Disabled') {
       if (device.deviceType === 'Curtain' || device.deviceType === 'Blind Tilt') {
         registerDevice = await this.registerCurtains(device);
@@ -2184,7 +2208,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.debugLog(`Request successful, statusCode: ${statusCode}`);
         break;
       default:
-        this.infoLog(`Unknown statusCode, statusCode: ${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
+        this.errorLog(`Unknown statusCode, statusCode: ${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
     }
   }
 
