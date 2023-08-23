@@ -77,12 +77,6 @@ export class RobotVacuumCleaner {
     (this.robotVacuumCleanerService = accessory.getService(this.platform.Service.Lightbulb) || accessory.addService(this.platform.Service.Lightbulb)),
     `${device.deviceName} ${device.deviceType}`;
 
-    // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
-    // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
-    // accessory.getService('NAME') ?? accessory.addService(this.platform.Service.Lightbulb, 'NAME', 'USER_DEFINED_SUBTYPE');
-
-    // set the service name, this is what is displayed as the default name on the Home app
-    // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.robotVacuumCleanerService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
     if (!this.robotVacuumCleanerService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
       this.robotVacuumCleanerService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);

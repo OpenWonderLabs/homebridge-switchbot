@@ -18,8 +18,8 @@ import { sleep } from '../utils';
 export class Meter {
   // Services
   batteryService: Service;
-  humidityservice?: Service;
-  temperatureservice?: Service;
+  humidityService?: Service;
+  temperatureService?: Service;
 
   // Characteristic Values
   BatteryLevel!: CharacteristicValue;
@@ -96,19 +96,19 @@ export class Meter {
     // Temperature Sensor Service
     if (device.meter?.hide_temperature) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Temperature Sensor Service`);
-      this.temperatureservice = this.accessory.getService(this.platform.Service.TemperatureSensor);
-      accessory.removeService(this.temperatureservice!);
-    } else if (!this.temperatureservice) {
+      this.temperatureService = this.accessory.getService(this.platform.Service.TemperatureSensor);
+      accessory.removeService(this.temperatureService!);
+    } else if (!this.temperatureService) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Temperature Sensor Service`);
-      (this.temperatureservice =
+      (this.temperatureService =
         this.accessory.getService(this.platform.Service.TemperatureSensor) || this.accessory.addService(this.platform.Service.TemperatureSensor)),
       `${accessory.displayName} Temperature Sensor`;
 
-      this.temperatureservice.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
-      if (!this.temperatureservice.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-        this.temperatureservice.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Temperature Sensor`);
+      this.temperatureService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
+      if (!this.temperatureService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.temperatureService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Temperature Sensor`);
       }
-      this.temperatureservice
+      this.temperatureService
         .getCharacteristic(this.platform.Characteristic.CurrentTemperature)
         .setProps({
           unit: Units['CELSIUS'],
@@ -127,19 +127,19 @@ export class Meter {
     // Humidity Sensor Service
     if (device.meter?.hide_humidity) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Humidity Sensor Service`);
-      this.humidityservice = this.accessory.getService(this.platform.Service.HumiditySensor);
-      accessory.removeService(this.humidityservice!);
-    } else if (!this.humidityservice) {
+      this.humidityService = this.accessory.getService(this.platform.Service.HumiditySensor);
+      accessory.removeService(this.humidityService!);
+    } else if (!this.humidityService) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Humidity Sensor Service`);
-      (this.humidityservice =
+      (this.humidityService =
         this.accessory.getService(this.platform.Service.HumiditySensor) || this.accessory.addService(this.platform.Service.HumiditySensor)),
       `${accessory.displayName} Humidity Sensor`;
 
-      this.humidityservice.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
-      if (!this.humidityservice.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-        this.humidityservice.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Humidity Sensor`);
+      this.humidityService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
+      if (!this.humidityService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.humidityService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Humidity Sensor`);
       }
-      this.humidityservice
+      this.humidityService
         .getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
         .setProps({
           minStep: 0.1,
@@ -374,7 +374,7 @@ export class Meter {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
       } else {
         this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidity;
-        this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
+        this.humidityService?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
         this.debugLog(
           `${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic` +
           ` CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`,
@@ -398,7 +398,7 @@ export class Meter {
           entry['temp'] = this.CurrentTemperature;
         }
         this.accessory.context.CurrentTemperature = this.CurrentTemperature;
-        this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
+        this.temperatureService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
       }
     }
@@ -594,10 +594,10 @@ export class Meter {
 
   async apiError(e: any): Promise<void> {
     if (!this.device.meter?.hide_humidity) {
-      this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, e);
+      this.humidityService?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, e);
     }
     if (!this.device.meter?.hide_temperature) {
-      this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
+      this.temperatureService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
     }
     this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
     this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);

@@ -271,7 +271,9 @@ export class Hub {
         ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
         );
       }
-      this.lightSensorService.setCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
+      if (!this.device.hub?.hide_lightsensor) {
+        this.lightSensorService?.setCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
+      }
     }
   }
 

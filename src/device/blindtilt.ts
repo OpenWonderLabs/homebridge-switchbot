@@ -124,19 +124,10 @@ export class BlindTilt {
       accessory.getService(this.platform.Service.WindowCovering) || accessory.addService(this.platform.Service.WindowCovering)),
     `${device.deviceName} ${device.deviceType}`;
 
-    // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
-    // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
-    // accessory.getService('NAME') ?? accessory.addService(this.platform.Service.WindowCovering, 'NAME', 'USER_DEFINED_SUBTYPE');
-
-    // set the service name, this is what is displayed as the default name on the Home app
-    // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.windowCoveringService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
     if (!this.windowCoveringService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
       this.windowCoveringService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
     }
-
-    // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/WindowCovering
 
     // create handlers for required characteristics
     this.windowCoveringService.setCharacteristic(this.platform.Characteristic.PositionState, this.PositionState);
