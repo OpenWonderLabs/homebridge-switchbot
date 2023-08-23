@@ -2,10 +2,11 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [Version 2.8.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.8.1) (2023-08-XX)
+## [Version 2.8.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.8.1) (2023-08-22)
 
 ## What's Changed
 
+- Added additional logging to catch statusCodes like 190 (Requests reached the daily limit).
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.8.0....v2.8.1
