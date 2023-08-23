@@ -862,7 +862,7 @@ export class Curtain {
       this.accessory.getService(this.platform.Service.AccessoryInformation)!
         .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.OpenAPI_FirmwareRevision);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-        + `updateCharacteristic CurrentTemperature: ${this.OpenAPI_FirmwareRevision}`);
+        + `updateCharacteristic FirmwareRevision: ${this.OpenAPI_FirmwareRevision}`);
     }
   }
 
