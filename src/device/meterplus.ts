@@ -23,9 +23,10 @@ export class MeterPlus {
 
   // Characteristic Values
   BatteryLevel!: CharacteristicValue;
+  FirmwareRevision!: CharacteristicValue;
   StatusLowBattery!: CharacteristicValue;
   CurrentTemperature?: CharacteristicValue;
-  CurrentRelativeHumidity!: CharacteristicValue;
+  CurrentRelativeHumidity?: CharacteristicValue;
 
   // OpenAPI Status
   OpenAPI_BatteryLevel: deviceStatus['battery'];
@@ -89,9 +90,9 @@ export class MeterPlus {
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, this.model(device))
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.setFirmwareRevision(accessory, device))
       .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-      .updateValue(this.FirmwareRevision(accessory, device));
+      .updateValue(this.setFirmwareRevision(accessory, device));
 
     // Temperature Sensor Service
     if (device.meter?.hide_temperature) {
@@ -145,7 +146,7 @@ export class MeterPlus {
           minStep: 0.1,
         })
         .onGet(() => {
-          return this.CurrentRelativeHumidity;
+          return this.CurrentRelativeHumidity!;
         });
     } else {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Humidity Sensor Service Not Added`);
@@ -219,7 +220,7 @@ export class MeterPlus {
   async openAPIparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
 
-    // Battery
+    // BatteryLevel
     this.BatteryLevel = Number(this.OpenAPI_BatteryLevel);
     if (this.BatteryLevel < 15) {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
@@ -228,17 +229,20 @@ export class MeterPlus {
     }
     this.debugLog(`${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
 
-    // Current Relative Humidity
+    // CurrentRelativeHumidity
     if (!this.device.meter?.hide_humidity) {
       this.CurrentRelativeHumidity = this.OpenAPI_CurrentRelativeHumidity!;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Humidity: ${this.CurrentRelativeHumidity}%`);
     }
 
-    // Current Temperature
+    // CurrentTemperature
     if (!this.device.meter?.hide_temperature) {
       this.CurrentTemperature = this.OpenAPI_CurrentTemperature!;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c`);
     }
+
+    // FirmwareRevision
+    this.FirmwareRevision = JSON.stringify(this.OpenAPI_FirmwareRevision);
   }
 
   /**
@@ -369,6 +373,8 @@ export class MeterPlus {
   async updateHomeKitCharacteristics(): Promise<void> {
     const mqttmessage: string[] = [];
     const entry = { time: Math.round(new Date().valueOf() / 1000) };
+
+    // CurrentRelativeHumidity
     if (!this.device.meter?.hide_humidity) {
       if (this.CurrentRelativeHumidity === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
@@ -387,6 +393,7 @@ export class MeterPlus {
         }
       }
     }
+    // CurrentTemperature
     if (!this.device.meter?.hide_temperature) {
       if (this.CurrentTemperature === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
@@ -402,7 +409,7 @@ export class MeterPlus {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
       }
     }
-
+    // BatteryLevel
     if (this.BatteryLevel === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
     } else {
@@ -413,7 +420,7 @@ export class MeterPlus {
       this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
     }
-
+    // StatusLowBattery
     if (this.StatusLowBattery === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
     } else {
@@ -424,6 +431,21 @@ export class MeterPlus {
       this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
     }
+    // FirmwareRevision
+    if (this.FirmwareRevision === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.FirmwareRevision}`);
+    } else {
+      if (this.device.mqttURL) {
+        mqttmessage.push(`"FirmwareRevision": ${this.FirmwareRevision}`);
+      }
+      this.accessory.context.FirmwareRevision = this.FirmwareRevision;
+      this.accessory.getService(this.platform.Service.AccessoryInformation)!
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+        + `updateCharacteristic FirmwareRevision: ${this.FirmwareRevision}`);
+    }
+
+    // MQTT
     if (this.device.mqttURL) {
       this.mqttPublish(`{${mqttmessage.join(',')}}`);
     }
@@ -432,16 +454,6 @@ export class MeterPlus {
       if (this.device.history) {
         this.historyService?.addEntry(entry);
       }
-    }
-    // FirmwareRevision
-    if (this.OpenAPI_FirmwareRevision === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.OpenAPI_FirmwareRevision}`);
-    } else {
-      this.accessory.context.OpenAPI_FirmwareRevision = this.OpenAPI_FirmwareRevision;
-      this.accessory.getService(this.platform.Service.AccessoryInformation)!
-        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.OpenAPI_FirmwareRevision);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-        + `updateCharacteristic FirmwareRevision: ${this.OpenAPI_FirmwareRevision}`);
     }
   }
 
@@ -614,23 +626,23 @@ export class MeterPlus {
     this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
   }
 
-  FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
-    let FirmwareRevision: string;
+  setFirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
     this.debugLog(
       `${this.device.deviceType}: ${this.accessory.displayName}` + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`,
     );
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
     if (device.firmware) {
-      FirmwareRevision = device.firmware;
+      this.FirmwareRevision = device.firmware;
     } else if (device.version) {
-      FirmwareRevision = JSON.stringify(device.version);
+      this.FirmwareRevision = JSON.stringify(device.version);
     } else if (accessory.context.FirmwareRevision) {
-      FirmwareRevision = accessory.context.FirmwareRevision;
+      this.FirmwareRevision = accessory.context.FirmwareRevision;
     } else {
-      FirmwareRevision = this.platform.version;
+      this.FirmwareRevision = this.platform.version;
     }
-    return FirmwareRevision;
+    this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
+    return this.FirmwareRevision;
   }
 
   async context() {

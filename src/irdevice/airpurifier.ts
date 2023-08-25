@@ -18,6 +18,7 @@ export class AirPurifier {
   CurrentAPTemp!: CharacteristicValue;
   CurrentAPMode!: CharacteristicValue;
   RotationSpeed!: CharacteristicValue;
+  FirmwareRevision!: CharacteristicValue;
   CurrentAPFanSpeed!: CharacteristicValue;
   CurrentTemperature!: CharacteristicValue;
   CurrentAirPurifierState!: CharacteristicValue;
@@ -46,8 +47,8 @@ export class AirPurifier {
     // default placeholders
     this.logs(device);
     this.context();
-    this.disablePushOnChanges({ device });
-    this.disablePushOffChanges({ device });
+    this.disablePushOnChanges(device);
+    this.disablePushOffChanges(device);
     this.config(device);
 
     // set accessory information
@@ -56,9 +57,9 @@ export class AirPurifier {
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.setFirmwareRevision(accessory, device))
       .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-      .updateValue(this.FirmwareRevision(accessory, device));
+      .updateValue(this.setFirmwareRevision(accessory, device));
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
@@ -243,6 +244,7 @@ export class AirPurifier {
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
+    // Active
     if (this.Active === undefined) {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Active}`);
     } else {
@@ -250,6 +252,7 @@ export class AirPurifier {
       this.airPurifierService?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
     }
+    // CurrentAirPurifierState
     if (this.CurrentAirPurifierState === undefined) {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} CurrentAirPurifierState: ${this.CurrentAirPurifierState}`);
     } else {
@@ -259,6 +262,7 @@ export class AirPurifier {
         `${this.device.remoteType}: ${this.accessory.displayName}` + ` updateCharacteristic CurrentAirPurifierState: ${this.CurrentAirPurifierState}`,
       );
     }
+    // CurrentHeaterCoolerState
     if (this.CurrentHeaterCoolerState === undefined) {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
     } else {
@@ -269,9 +273,19 @@ export class AirPurifier {
         ` updateCharacteristic CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`,
       );
     }
+    // FirmwareRevision
+    if (this.FirmwareRevision === undefined) {
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} FirmwareRevision: ${this.FirmwareRevision}`);
+    } else {
+      this.accessory.context.FirmwareRevision = this.FirmwareRevision;
+      this.accessory.getService(this.platform.Service.AccessoryInformation)!
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} `
+        + `updateCharacteristic FirmwareRevision: ${this.FirmwareRevision}`);
+    }
   }
 
-  async disablePushOnChanges({ device }: { device: irdevice & irDevicesConfig }): Promise<void> {
+  async disablePushOnChanges(device: irdevice & irDevicesConfig): Promise<void> {
     if (device.disablePushOn === undefined) {
       this.disablePushOn = false;
     } else {
@@ -279,7 +293,7 @@ export class AirPurifier {
     }
   }
 
-  async disablePushOffChanges({ device }: { device: irdevice & irDevicesConfig }): Promise<void> {
+  async disablePushOffChanges(device: irdevice & irDevicesConfig): Promise<void> {
     if (device.disablePushOff === undefined) {
       this.disablePushOff = false;
     } else {
@@ -364,21 +378,21 @@ export class AirPurifier {
     this.airPurifierService.updateCharacteristic(this.platform.Characteristic.Active, e);
   }
 
-  FirmwareRevision(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): string {
-    let FirmwareRevision: string;
+  setFirmwareRevision(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): string {
     this.debugLog(
       `${this.device.remoteType}: ${this.accessory.displayName}` + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`,
     );
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
     if (accessory.context.FirmwareRevision) {
-      FirmwareRevision = accessory.context.FirmwareRevision;
+      this.FirmwareRevision = accessory.context.FirmwareRevision;
     } else if (device.firmware) {
-      FirmwareRevision = device.firmware;
+      this.FirmwareRevision = device.firmware;
     } else {
-      FirmwareRevision = this.platform.version;
+      this.FirmwareRevision = this.platform.version!;
     }
-    return FirmwareRevision;
+    this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
+    return JSON.stringify(this.FirmwareRevision);
   }
 
   private context() {

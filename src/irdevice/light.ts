@@ -14,6 +14,7 @@ export class Light {
 
   // Characteristic Values
   On!: CharacteristicValue;
+  FirmwareRevision!: CharacteristicValue;
 
   // Config
   deviceLogging!: string;
@@ -28,8 +29,8 @@ export class Light {
     // default placeholders
     this.logs(device);
     this.context();
-    this.disablePushOnChanges({ device });
-    this.disablePushOffChanges({ device });
+    this.disablePushOnChanges(device);
+    this.disablePushOffChanges(device);
     this.config(device);
 
     // set accessory information
@@ -38,9 +39,9 @@ export class Light {
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.setFirmwareRevision(accessory, device))
       .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-      .updateValue(this.FirmwareRevision(accessory, device));
+      .updateValue(this.setFirmwareRevision(accessory, device));
 
     // get the Light service if it exists, otherwise create a new Light service
     // you can create multiple services for each accessory
@@ -173,6 +174,7 @@ export class Light {
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
+    // On
     if (this.On === undefined) {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.On}`);
     } else {
@@ -180,9 +182,19 @@ export class Light {
       this.lightBulbService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
+    // FirmwareRevision
+    if (this.FirmwareRevision === undefined) {
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} FirmwareRevision: ${this.FirmwareRevision}`);
+    } else {
+      this.accessory.context.FirmwareRevision = this.FirmwareRevision;
+      this.accessory.getService(this.platform.Service.AccessoryInformation)!
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} `
+        + `updateCharacteristic FirmwareRevision: ${this.FirmwareRevision}`);
+    }
   }
 
-  async disablePushOnChanges({ device }: { device: irdevice & irDevicesConfig }): Promise<void> {
+  async disablePushOnChanges(device: irdevice & irDevicesConfig): Promise<void> {
     if (device.disablePushOn === undefined) {
       this.disablePushOn = false;
     } else {
@@ -190,7 +202,7 @@ export class Light {
     }
   }
 
-  async disablePushOffChanges({ device }: { device: irdevice & irDevicesConfig }): Promise<void> {
+  async disablePushOffChanges(device: irdevice & irDevicesConfig): Promise<void> {
     if (device.disablePushOff === undefined) {
       this.disablePushOff = false;
     } else {
@@ -272,21 +284,21 @@ export class Light {
     this.lightBulbService.updateCharacteristic(this.platform.Characteristic.On, e);
   }
 
-  FirmwareRevision(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): string {
-    let FirmwareRevision: string;
+  setFirmwareRevision(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): string {
     this.debugLog(
       `${this.device.remoteType}: ${this.accessory.displayName}` + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`,
     );
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
     if (accessory.context.FirmwareRevision) {
-      FirmwareRevision = accessory.context.FirmwareRevision;
+      this.FirmwareRevision = accessory.context.FirmwareRevision;
     } else if (device.firmware) {
-      FirmwareRevision = device.firmware;
+      this.FirmwareRevision = device.firmware;
     } else {
-      FirmwareRevision = this.platform.version;
+      this.FirmwareRevision = this.platform.version!;
     }
-    return FirmwareRevision;
+    this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
+    return JSON.stringify(this.FirmwareRevision);
   }
 
   async context() {
