@@ -15,6 +15,7 @@ export class AirConditioner {
   // Characteristic Values
   Active!: CharacteristicValue;
   RotationSpeed!: CharacteristicValue;
+  FirmwareRevision!: CharacteristicValue;
   CurrentTemperature!: CharacteristicValue;
   ThresholdTemperature!: CharacteristicValue;
   CurrentRelativeHumidity?: CharacteristicValue;
@@ -49,12 +50,12 @@ export class AirConditioner {
     public device: irdevice & irDevicesConfig,
   ) {
     // default placeholders
-    this.logs({ device });
+    this.logs(device);
     this.context();
-    this.disablePushOnChanges({ device });
-    this.disablePushOffChanges({ device });
-    this.disablePushDetailChanges({ device });
-    this.config({ device });
+    this.disablePushOnChanges(device);
+    this.disablePushOffChanges(device);
+    this.disablePushDetailChanges(device);
+    this.config(device);
 
     // set accessory information
     accessory
@@ -62,9 +63,9 @@ export class AirConditioner {
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision({ accessory, device }))
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.setFirmwareRevision(accessory, device))
       .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-      .updateValue(this.FirmwareRevision({ accessory, device }));
+      .updateValue(this.setFirmwareRevision(accessory, device));
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
@@ -445,6 +446,7 @@ export class AirConditioner {
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
+    // Active
     if (this.Active === undefined) {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Active}`);
     } else {
@@ -452,6 +454,7 @@ export class AirConditioner {
       this.coolerService?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
     }
+    // RotationSpeed
     if (this.RotationSpeed === undefined) {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} RotationSpeed: ${this.RotationSpeed}`);
     } else {
@@ -459,6 +462,7 @@ export class AirConditioner {
       this.coolerService?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.RotationSpeed);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic RotationSpeed: ${this.RotationSpeed}`);
     }
+    // CurrentTemperature
     if (this.CurrentTemperature === undefined) {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
     } else {
@@ -466,6 +470,7 @@ export class AirConditioner {
       this.coolerService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
     }
+    // CurrentRelativeHumidity
     if (this.meter) {
       if (this.CurrentRelativeHumidity === undefined) {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
@@ -477,6 +482,7 @@ export class AirConditioner {
         );
       }
     }
+    // TargetHeaterCoolerState
     if (this.TargetHeaterCoolerState === undefined) {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`);
     } else {
@@ -486,6 +492,7 @@ export class AirConditioner {
         `${this.device.remoteType}: ${this.accessory.displayName}` + ` updateCharacteristic TargetHeaterCoolerState: ${this.TargetHeaterCoolerState}`,
       );
     }
+    // CurrentHeaterCoolerState
     if (this.CurrentHeaterCoolerState === undefined) {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
     } else {
@@ -496,6 +503,7 @@ export class AirConditioner {
         ` updateCharacteristic CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`,
       );
     }
+    // ThresholdTemperature
     if (this.ThresholdTemperature === undefined) {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} ThresholdTemperature: ${this.ThresholdTemperature}`);
     } else {
@@ -506,9 +514,19 @@ export class AirConditioner {
         `${this.device.remoteType}: ${this.accessory.displayName}` + ` updateCharacteristic ThresholdTemperature: ${this.ThresholdTemperature}`,
       );
     }
+    // FirmwareRevision
+    if (this.FirmwareRevision === undefined) {
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} FirmwareRevision: ${this.FirmwareRevision}`);
+    } else {
+      this.accessory.context.FirmwareRevision = this.FirmwareRevision;
+      this.accessory.getService(this.platform.Service.AccessoryInformation)!
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} `
+        + `updateCharacteristic FirmwareRevision: ${this.FirmwareRevision}`);
+    }
   }
 
-  async disablePushOnChanges({ device }: { device: irdevice & irDevicesConfig }): Promise<void> {
+  async disablePushOnChanges(device: irdevice & irDevicesConfig): Promise<void> {
     if (device.disablePushOn === undefined) {
       this.disablePushOn = false;
     } else {
@@ -516,7 +534,7 @@ export class AirConditioner {
     }
   }
 
-  async disablePushOffChanges({ device }: { device: irdevice & irDevicesConfig }): Promise<void> {
+  async disablePushOffChanges(device: irdevice & irDevicesConfig): Promise<void> {
     if (device.disablePushOff === undefined) {
       this.disablePushOff = false;
     } else {
@@ -524,7 +542,7 @@ export class AirConditioner {
     }
   }
 
-  async disablePushDetailChanges({ device }: { device: irdevice & irDevicesConfig }): Promise<void> {
+  async disablePushDetailChanges(device: irdevice & irDevicesConfig): Promise<void> {
     if (device.disablePushDetail === undefined) {
       this.disablePushDetail = false;
     } else {
@@ -613,21 +631,21 @@ export class AirConditioner {
     this.coolerService.updateCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature, e);
   }
 
-  FirmwareRevision({ accessory, device }: { accessory: PlatformAccessory; device: irdevice & irDevicesConfig }): string {
-    let FirmwareRevision: string;
+  setFirmwareRevision(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): string {
     this.debugLog(
       `${this.device.remoteType}: ${this.accessory.displayName}` + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`,
     );
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
     if (accessory.context.FirmwareRevision) {
-      FirmwareRevision = accessory.context.FirmwareRevision;
+      this.FirmwareRevision = accessory.context.FirmwareRevision;
     } else if (device.firmware) {
-      FirmwareRevision = device.firmware;
+      this.FirmwareRevision = device.firmware;
     } else {
-      FirmwareRevision = this.platform.version;
+      this.FirmwareRevision = this.platform.version!;
     }
-    return FirmwareRevision;
+    this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
+    return JSON.stringify(this.FirmwareRevision);
   }
 
   async context(): Promise<void> {
@@ -674,7 +692,7 @@ export class AirConditioner {
     }
   }
 
-  async config({ device }: { device: irdevice & irDevicesConfig }): Promise<void> {
+  async config(device: irdevice & irDevicesConfig): Promise<void> {
     let config = {};
     if (device.irair) {
       config = device.irair;
@@ -711,7 +729,7 @@ export class AirConditioner {
     }
   }
 
-  async logs({ device }: { device: irdevice & irDevicesConfig }): Promise<void> {
+  async logs(device: irdevice & irDevicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);

@@ -16,6 +16,7 @@ export class TV {
   // Characteristic Values
   Active!: CharacteristicValue;
   ActiveIdentifier!: CharacteristicValue;
+  FirmwareRevision!: CharacteristicValue;
 
   // Config
   deviceLogging!: string;
@@ -31,9 +32,9 @@ export class TV {
     // default placeholders
     this.logs(device);
     this.context();
-    this.disablePushOnChanges({ device });
-    this.disablePushOffChanges({ device });
-    this.disablePushDetailChanges({ device });
+    this.disablePushOnChanges(device);
+    this.disablePushOffChanges(device);
+    this.disablePushDetailChanges(device);
     this.config(device);
 
     // set accessory information
@@ -43,9 +44,9 @@ export class TV {
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.setFirmwareRevision(accessory, device))
       .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-      .updateValue(this.FirmwareRevision(accessory, device));
+      .updateValue(this.setFirmwareRevision(accessory, device));
 
     // set the accessory category
     switch (device.remoteType) {
@@ -397,6 +398,7 @@ export class TV {
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
+    // Active
     if (this.Active === undefined) {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Active}`);
     } else {
@@ -404,6 +406,7 @@ export class TV {
       this.tvService?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
     }
+    // ActiveIdentifier
     if (this.ActiveIdentifier === undefined) {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} ActiveIdentifier: ${this.ActiveIdentifier}`);
     } else {
@@ -411,9 +414,19 @@ export class TV {
       this.tvService?.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, this.ActiveIdentifier);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}` + ` updateCharacteristic ActiveIdentifier: ${this.ActiveIdentifier}`);
     }
+    // FirmwareRevision
+    if (this.FirmwareRevision === undefined) {
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} FirmwareRevision: ${this.FirmwareRevision}`);
+    } else {
+      this.accessory.context.FirmwareRevision = this.FirmwareRevision;
+      this.accessory.getService(this.platform.Service.AccessoryInformation)!
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} `
+        + `updateCharacteristic FirmwareRevision: ${this.FirmwareRevision}`);
+    }
   }
 
-  async disablePushOnChanges({ device }: { device: irdevice & irDevicesConfig }): Promise<void> {
+  async disablePushOnChanges(device: irdevice & irDevicesConfig): Promise<void> {
     if (device.disablePushOn === undefined) {
       this.disablePushOn = false;
     } else {
@@ -421,7 +434,7 @@ export class TV {
     }
   }
 
-  async disablePushOffChanges({ device }: { device: irdevice & irDevicesConfig }): Promise<void> {
+  async disablePushOffChanges(device: irdevice & irDevicesConfig): Promise<void> {
     if (device.disablePushOff === undefined) {
       this.disablePushOff = false;
     } else {
@@ -429,7 +442,7 @@ export class TV {
     }
   }
 
-  async disablePushDetailChanges({ device }: { device: irdevice & irDevicesConfig }): Promise<void> {
+  async disablePushDetailChanges(device: irdevice & irDevicesConfig): Promise<void> {
     if (device.disablePushDetail === undefined) {
       this.disablePushDetail = false;
     } else {
@@ -512,21 +525,21 @@ export class TV {
     this.tvService.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, e);
   }
 
-  FirmwareRevision(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): string {
-    let FirmwareRevision: string;
+  setFirmwareRevision(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): string {
     this.debugLog(
       `${this.device.remoteType}: ${this.accessory.displayName}` + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`,
     );
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
     if (accessory.context.FirmwareRevision) {
-      FirmwareRevision = accessory.context.FirmwareRevision;
+      this.FirmwareRevision = accessory.context.FirmwareRevision;
     } else if (device.firmware) {
-      FirmwareRevision = device.firmware;
+      this.FirmwareRevision = device.firmware;
     } else {
-      FirmwareRevision = this.platform.version;
+      this.FirmwareRevision = this.platform.version!;
     }
-    return FirmwareRevision;
+    this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
+    return JSON.stringify(this.FirmwareRevision);
   }
 
   async context() {

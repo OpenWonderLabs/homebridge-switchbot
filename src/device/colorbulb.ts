@@ -22,6 +22,7 @@ export class ColorBulb {
   Hue!: CharacteristicValue;
   Saturation!: CharacteristicValue;
   Brightness!: CharacteristicValue;
+  FirmwareRevision!: CharacteristicValue;
   ColorTemperature?: CharacteristicValue;
 
   // OpenAPI Status
@@ -94,9 +95,9 @@ export class ColorBulb {
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, 'W1401400')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.setFirmwareRevision(accessory, device))
       .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-      .updateValue(this.FirmwareRevision(accessory, device));
+      .updateValue(this.setFirmwareRevision(accessory, device));
 
     // get the Lightbulb service if it exists, otherwise create a new Lightbulb service
     // you can create multiple services for each accessory
@@ -327,6 +328,9 @@ export class ColorBulb {
       this.ColorTemperature = Math.max(Math.min(this.ColorTemperature, 500), 140);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
     }
+
+    // FirmwareRevision
+    this.FirmwareRevision = JSON.stringify(this.OpenAPI_FirmwareRevision);
   }
 
   /**
@@ -970,6 +974,7 @@ export class ColorBulb {
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
+    // On
     if (this.On === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
     } else {
@@ -977,6 +982,7 @@ export class ColorBulb {
       this.lightBulbService.updateCharacteristic(this.platform.Characteristic.On, this.On);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
+    // Brightness
     if (this.Brightness === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Brightness: ${this.Brightness}`);
     } else {
@@ -984,6 +990,7 @@ export class ColorBulb {
       this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Brightness, this.Brightness);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic Brightness: ${this.Brightness}`);
     }
+    // ColorTemperature
     if (this.ColorTemperature === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
     } else {
@@ -991,6 +998,7 @@ export class ColorBulb {
       this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, this.ColorTemperature);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic ColorTemperature: ${this.ColorTemperature}`);
     }
+    // Hue
     if (this.Hue === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${this.Hue}`);
     } else {
@@ -998,6 +1006,7 @@ export class ColorBulb {
       this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Hue, this.Hue);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic Hue: ${this.Hue}`);
     }
+    // Saturation
     if (this.Saturation === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${this.Saturation}`);
     } else {
@@ -1006,14 +1015,14 @@ export class ColorBulb {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic Saturation: ${this.Saturation}`);
     }
     // FirmwareRevision
-    if (this.OpenAPI_FirmwareRevision === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.OpenAPI_FirmwareRevision}`);
+    if (this.FirmwareRevision === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.FirmwareRevision}`);
     } else {
-      this.accessory.context.OpenAPI_FirmwareRevision = this.OpenAPI_FirmwareRevision;
+      this.accessory.context.FirmwareRevision = this.FirmwareRevision;
       this.accessory.getService(this.platform.Service.AccessoryInformation)!
-        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.OpenAPI_FirmwareRevision);
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-        + `updateCharacteristic FirmwareRevision: ${this.OpenAPI_FirmwareRevision}`);
+        + `updateCharacteristic FirmwareRevision: ${this.FirmwareRevision}`);
     }
   }
 
@@ -1171,23 +1180,23 @@ export class ColorBulb {
     this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, e);
   }
 
-  FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
-    let FirmwareRevision: string;
+  setFirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
     this.debugLog(
       `${this.device.deviceType}: ${this.accessory.displayName}` + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`,
     );
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
     if (device.firmware) {
-      FirmwareRevision = device.firmware;
+      this.FirmwareRevision = device.firmware;
     } else if (device.version) {
-      FirmwareRevision = JSON.stringify(device.version);
+      this.FirmwareRevision = JSON.stringify(device.version);
     } if (accessory.context.FirmwareRevision) {
-      FirmwareRevision = accessory.context.FirmwareRevision;
+      this.FirmwareRevision = accessory.context.FirmwareRevision;
     } else {
-      FirmwareRevision = this.platform.version;
+      this.FirmwareRevision = this.platform.version;
     }
-    return FirmwareRevision;
+    this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
+    return this.FirmwareRevision;
   }
 
   async context() {

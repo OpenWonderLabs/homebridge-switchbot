@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 2.8.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.8.2) (2023-08-27)
+
+## What's Changed
+
+- Fixed issue with `BatteryLevel` & `FirmwareRevision` not displaying correctly for certain deviceTypes.
+- Fixed config issue where Eve History was not showing for WoIOSensor.
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.8.1....v2.8.2
+
 ## [Version 2.8.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.8.1) (2023-08-22)
 
 ## What's Changed

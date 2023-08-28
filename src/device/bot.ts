@@ -29,6 +29,7 @@ export class Bot {
   // Characteristic Values
   On!: CharacteristicValue;
   BatteryLevel!: CharacteristicValue;
+  FirmwareRevision!: CharacteristicValue;
   StatusLowBattery!: CharacteristicValue;
 
   // OpenAPI Status
@@ -92,9 +93,9 @@ export class Bot {
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-BOT-S1')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.setFirmwareRevision(accessory, device))
       .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-      .updateValue(this.FirmwareRevision(accessory, device));
+      .updateValue(this.setFirmwareRevision(accessory, device));
 
     // get the service if it exists, otherwise create a new service
     // you can create multiple services for each accessory
@@ -437,7 +438,8 @@ export class Bot {
     if (Number.isNaN(this.BatteryLevel)) {
       this.BatteryLevel = 100;
     }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel},`
+    + ` StatusLowBattery: ${this.StatusLowBattery}`);
   }
 
   async openAPIparseStatus(): Promise<void> {
@@ -463,7 +465,11 @@ export class Bot {
     if (Number.isNaN(this.BatteryLevel)) {
       this.BatteryLevel = 100;
     }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel},`
+    + ` StatusLowBattery: ${this.StatusLowBattery}`);
+
+    // FirmwareRevision
+    this.FirmwareRevision = JSON.stringify(this.OpenAPI_FirmwareRevision);
   }
 
   /**
@@ -822,6 +828,7 @@ export class Bot {
    * Updates the status for each of the HomeKit Characteristics
    */
   async updateHomeKitCharacteristics(): Promise<void> {
+    // State
     if (this.device.bot?.deviceType === 'garagedoor') {
       if (this.On === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
@@ -1008,7 +1015,7 @@ export class Bot {
       }
     }
     this.accessory.context.On = this.On;
-    // Battery
+    // BatteryLevel
     if (this.BatteryLevel === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
     } else {
@@ -1016,6 +1023,7 @@ export class Bot {
       this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
     }
+    // StatusLowBattery
     if (this.StatusLowBattery === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
     } else {
@@ -1024,14 +1032,14 @@ export class Bot {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
     }
     // FirmwareRevision
-    if (this.OpenAPI_FirmwareRevision === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.OpenAPI_FirmwareRevision}`);
+    if (this.FirmwareRevision === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.FirmwareRevision}`);
     } else {
-      this.accessory.context.OpenAPI_FirmwareRevision = this.OpenAPI_FirmwareRevision;
+      this.accessory.context.FirmwareRevision = this.FirmwareRevision;
       this.accessory.getService(this.platform.Service.AccessoryInformation)!
-        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.OpenAPI_FirmwareRevision);
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-        + `updateCharacteristic FirmwareRevision: ${this.OpenAPI_FirmwareRevision}`);
+        + `updateCharacteristic FirmwareRevision: ${this.FirmwareRevision}`);
     }
   }
 
@@ -1324,23 +1332,23 @@ export class Bot {
     this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
   }
 
-  FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
-    let FirmwareRevision: string;
+  setFirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
     this.debugLog(
       `${this.device.deviceType}: ${this.accessory.displayName}` + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`,
     );
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
     if (device.firmware) {
-      FirmwareRevision = device.firmware;
+      this.FirmwareRevision = device.firmware;
     } else if (device.version) {
-      FirmwareRevision = JSON.stringify(device.version);
+      this.FirmwareRevision = JSON.stringify(device.version);
     } if (accessory.context.FirmwareRevision) {
-      FirmwareRevision = accessory.context.FirmwareRevision;
+      this.FirmwareRevision = accessory.context.FirmwareRevision;
     } else {
-      FirmwareRevision = this.platform.version;
+      this.FirmwareRevision = this.platform.version;
     }
-    return FirmwareRevision;
+    this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
+    return this.FirmwareRevision;
   }
 
   async context() {

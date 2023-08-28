@@ -14,19 +14,20 @@ export class Curtain {
   // Services
   batteryService: Service;
   lightSensorService?: Service;
-  windowCoveringService: Service;
+  windowCoveringService!: Service;
 
   // Characteristic Values
   BatteryLevel!: CharacteristicValue;
   PositionState!: CharacteristicValue;
   TargetPosition!: CharacteristicValue;
   CurrentPosition!: CharacteristicValue;
+  FirmwareRevision!: CharacteristicValue;
   StatusLowBattery!: CharacteristicValue;
   CurrentAmbientLightLevel?: CharacteristicValue;
 
   // OpenAPI Status
   OpenAPI_InMotion: deviceStatus['moving'];
-  OpenAPI_BatterLevel: deviceStatus['battery'];
+  OpenAPI_BatteryLevel: deviceStatus['battery'];
   OpenAPI_FirmwareRevision: deviceStatus['version'];
   OpenAPI_CurrentPosition: deviceStatus['slidePosition'];
   OpenAPI_CurrentAmbientLightLevel: deviceStatus['brightness'];
@@ -36,8 +37,8 @@ export class Curtain {
   setPositionMode?: string | number;
 
   // BLE Status
-  BLE_Battery: serviceData['battery'];
   BLE_InMotion: serviceData['inMotion'];
+  BLE_BatteryLevel: serviceData['battery'];
   BLE_Calibration: serviceData['calibration'];
   BLE_CurrentPosition: serviceData['position'];
   BLE_CurrentAmbientLightLevel: serviceData['lightLevel'];
@@ -102,9 +103,9 @@ export class Curtain {
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, 'W0701600')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision(accessory, device))
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.setFirmwareRevision(accessory, device))
       .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-      .updateValue(this.FirmwareRevision(accessory, device));
+      .updateValue(this.setFirmwareRevision(accessory, device));
 
     // get the WindowCovering service if it exists, otherwise create a new WindowCovering service
     // you can create multiple services for each accessory
@@ -391,7 +392,7 @@ export class Curtain {
       );
     }
     // Battery
-    this.BatteryLevel = Number(this.BLE_Battery);
+    this.BatteryLevel = Number(this.BLE_BatteryLevel);
     if (this.BatteryLevel < 10) {
       this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
@@ -441,10 +442,10 @@ export class Curtain {
       ` TargetPosition: ${this.TargetPosition}, PositionState: ${this.PositionState},`,
     );
 
+    // Brightness
     if (!this.device.curtain?.hide_lightsensor) {
       this.set_minLux = this.minLux();
       this.set_maxLux = this.maxLux();
-      // Brightness
       switch (this.OpenAPI_CurrentAmbientLightLevel) {
         case 'dim':
           this.CurrentAmbientLightLevel = this.set_minLux;
@@ -455,6 +456,22 @@ export class Curtain {
       }
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
     }
+
+    // BatteryLevel
+    this.BatteryLevel = Number(this.OpenAPI_BatteryLevel);
+    if (this.BatteryLevel < 10) {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
+    } else {
+      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    }
+    if (Number.isNaN(this.BatteryLevel)) {
+      this.BatteryLevel = 100;
+    }
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel},`
+    + ` StatusLowBattery: ${this.StatusLowBattery}`);
+
+    // FirmwareRevision
+    this.FirmwareRevision = JSON.stringify(this.OpenAPI_FirmwareRevision);
   }
 
   async refreshStatus(): Promise<void> {
@@ -498,7 +515,7 @@ export class Curtain {
               ` BLE Address Found: ${ad.address}`,
             );
             this.BLE_Calibration = ad.serviceData.calibration;
-            this.BLE_Battery = ad.serviceData.battery;
+            this.BLE_BatteryLevel = ad.serviceData.battery;
             this.BLE_InMotion = ad.serviceData.inMotion;
             this.BLE_CurrentPosition = ad.serviceData.position;
             this.BLE_CurrentAmbientLightLevel = ad.serviceData.lightLevel;
@@ -557,7 +574,7 @@ export class Curtain {
         this.OpenAPI_CurrentPosition = deviceStatus.body.slidePosition;
         this.OpenAPI_InMotion = deviceStatus.body.moving;
         this.OpenAPI_CurrentAmbientLightLevel = deviceStatus.body.brightness;
-        this.OpenAPI_BatterLevel = deviceStatus.body.battery;
+        this.OpenAPI_BatteryLevel = deviceStatus.body.battery;
         this.OpenAPI_FirmwareRevision = deviceStatus.body.version;
         this.openAPIparseStatus();
         this.updateHomeKitCharacteristics();
@@ -849,14 +866,17 @@ export class Curtain {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
     }
     // FirmwareRevision
-    if (this.OpenAPI_FirmwareRevision === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.OpenAPI_FirmwareRevision}`);
+    if (this.FirmwareRevision === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.FirmwareRevision}`);
     } else {
-      this.accessory.context.OpenAPI_FirmwareRevision = this.OpenAPI_FirmwareRevision;
+      if (this.device.mqttURL) {
+        this.mqttPublish('FirmwareRevision', this.FirmwareRevision);
+      }
+      this.accessory.context.FirmwareRevision = this.FirmwareRevision;
       this.accessory.getService(this.platform.Service.AccessoryInformation)!
-        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.OpenAPI_FirmwareRevision);
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-        + `updateCharacteristic FirmwareRevision: ${this.OpenAPI_FirmwareRevision}`);
+        + `updateCharacteristic FirmwareRevision: ${this.FirmwareRevision}`);
     }
   }
 
@@ -1089,23 +1109,23 @@ export class Curtain {
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
-  FirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
-    let FirmwareRevision: string;
+  setFirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
     this.debugLog(
       `${this.device.deviceType}: ${this.accessory.displayName}` + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`,
     );
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
     if (device.firmware) {
-      FirmwareRevision = device.firmware;
+      this.FirmwareRevision = device.firmware;
     } else if (device.version) {
-      FirmwareRevision = JSON.stringify(device.version);
+      this.FirmwareRevision = JSON.stringify(device.version);
     } if (accessory.context.FirmwareRevision) {
-      FirmwareRevision = accessory.context.FirmwareRevision;
+      this.FirmwareRevision = accessory.context.FirmwareRevision;
     } else {
-      FirmwareRevision = this.platform.version;
+      this.FirmwareRevision = this.platform.version;
     }
-    return FirmwareRevision;
+    this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
+    return this.FirmwareRevision;
   }
 
   async context() {
