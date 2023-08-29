@@ -278,7 +278,7 @@ export class StripLight {
     }
 
     // FirmwareRevision
-    this.FirmwareRevision = JSON.stringify(this.OpenAPI_FirmwareRevision);
+    this.FirmwareRevision = this.OpenAPI_FirmwareRevision!;
   }
 
   /**
@@ -1034,7 +1034,7 @@ export class StripLight {
     if (device.firmware) {
       this.FirmwareRevision = device.firmware;
     } else if (device.version) {
-      this.FirmwareRevision = JSON.stringify(device.version);
+      this.FirmwareRevision = device.version;
     } else if (accessory.context.FirmwareRevision) {
       this.FirmwareRevision = accessory.context.FirmwareRevision;
     } else {

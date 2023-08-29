@@ -637,15 +637,15 @@ export class AirConditioner {
     );
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
-    if (accessory.context.FirmwareRevision) {
-      this.FirmwareRevision = accessory.context.FirmwareRevision;
-    } else if (device.firmware) {
+    if (device.firmware) {
       this.FirmwareRevision = device.firmware;
+    } else if (accessory.context.FirmwareRevision) {
+      this.FirmwareRevision = accessory.context.FirmwareRevision;
     } else {
-      this.FirmwareRevision = this.platform.version!;
+      this.FirmwareRevision = this.platform.version;
     }
     this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
-    return JSON.stringify(this.FirmwareRevision);
+    return String(this.FirmwareRevision);
   }
 
   async context(): Promise<void> {

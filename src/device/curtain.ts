@@ -471,7 +471,7 @@ export class Curtain {
     + ` StatusLowBattery: ${this.StatusLowBattery}`);
 
     // FirmwareRevision
-    this.FirmwareRevision = JSON.stringify(this.OpenAPI_FirmwareRevision);
+    this.FirmwareRevision = this.OpenAPI_FirmwareRevision!;
   }
 
   async refreshStatus(): Promise<void> {
@@ -1118,7 +1118,7 @@ export class Curtain {
     if (device.firmware) {
       this.FirmwareRevision = device.firmware;
     } else if (device.version) {
-      this.FirmwareRevision = JSON.stringify(device.version);
+      this.FirmwareRevision = device.version;
     } if (accessory.context.FirmwareRevision) {
       this.FirmwareRevision = accessory.context.FirmwareRevision;
     } else {

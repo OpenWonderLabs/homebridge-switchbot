@@ -202,7 +202,7 @@ export class RobotVacuumCleaner {
     this.debugLog(`${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
 
     // FirmwareRevision
-    this.FirmwareRevision = JSON.stringify(this.OpenAPI_FirmwareRevision);
+    this.FirmwareRevision = this.OpenAPI_FirmwareRevision!;
   }
 
   /**
@@ -757,10 +757,12 @@ export class RobotVacuumCleaner {
     );
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
-    if (accessory.context.FirmwareRevision) {
-      this.FirmwareRevision = accessory.context.FirmwareRevision;
-    } else if (device.firmware) {
+    if (device.firmware) {
       this.FirmwareRevision = device.firmware;
+    } else if (device.version) {
+      this.FirmwareRevision = device.version;
+    } else if (accessory.context.FirmwareRevision) {
+      this.FirmwareRevision = accessory.context.FirmwareRevision;
     } else {
       this.FirmwareRevision = this.platform.version;
     }
