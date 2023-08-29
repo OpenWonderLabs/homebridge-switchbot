@@ -262,6 +262,8 @@
                     "deviceType": {
                       "title": "What Type of Device do you want to display in the Home App?",
                       "type": "string",
+                      "required": true,
+                      "default": "",
                       "oneOf": [
                         {
                           "title": "Default",
@@ -1095,6 +1097,8 @@
                     "deviceType": {
                       "title": "What Type of Device do you want to display in the Home App?",
                       "type": "string",
+                      "required": true,
+                      "default": "",
                       "oneOf": [
                         {
                           "title": "Default",
