@@ -1103,8 +1103,44 @@
                       "type": "string",
                       "oneOf": [
                         {
+                          "title": "Outlet",
+                          "enum": ["outlet"]
+                        },
+                        {
+                          "title": "Garage Door",
+                          "enum": ["garagedoor"]
+                        },
+                        {
+                          "title": "Door",
+                          "enum": ["door"]
+                        },
+                        {
+                          "title": "Lock",
+                          "enum": ["lock"]
+                        },
+                        {
+                          "title": "Faucet",
+                          "enum": ["faucet"]
+                        },
+                        {
                           "title": "Fan",
-                          "enum": ["Fan"]
+                          "enum": ["fan"]
+                        },
+                        {
+                          "title": "Window",
+                          "enum": ["window"]
+                        },
+                        {
+                          "title": "Window Covering",
+                          "enum": ["windowcovering"]
+                        },
+                        {
+                          "title": "Stateful Programmable Switch (Only Works in 3rd Party Home Apps)",
+                          "enum": ["stateful"]
+                        },
+                        {
+                          "title": "Switch",
+                          "enum": ["switch"]
                         }
                       ],
                       "condition": {
