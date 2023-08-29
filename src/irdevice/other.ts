@@ -852,15 +852,15 @@ export class Others {
   }
 
   async deviceType(device: irdevice & irDevicesConfig): Promise<void> {
-    if (device.other?.deviceType) {
+    if (this.accessory.context.deviceType) {
+      this.otherDeviceType = this.accessory.context.deviceType;
+      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Type: ${this.otherDeviceType}, from Accesory Cache.`);
+    } else if (device.other?.deviceType) {
       this.otherDeviceType = this.accessory.context.deviceType = device.other.deviceType;
-      if (this.deviceLogging.includes('debug') || this.deviceLogging === 'standard') {
-        this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Type: ${this.otherDeviceType}`);
-      }
+      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Type: ${this.otherDeviceType}`);
     } else {
       this.otherDeviceType = 'outlet';
-      this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} No Device Type Set, deviceType: ${this.device.other?.deviceType}`);
-      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using default deviceType: ${this.otherDeviceType}`);
+      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName} no deviceType set, using default deviceType: ${this.otherDeviceType}`);
     }
   }
 
