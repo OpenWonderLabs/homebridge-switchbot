@@ -238,32 +238,36 @@ export class Curtain {
       storage: 'fs',
       filename: `${hostname().split('.')[0]}_${mac}_persist.json`,
     });
-    const motion: Service =
-      this.accessory.getService(this.platform.Service.MotionSensor) ||
-      this.accessory.addService(this.platform.Service.MotionSensor, `${this.accessory.displayName} Motion`);
-    motion.addOptionalCharacteristic(this.platform.eve.Characteristics.LastActivation);
-    motion.getCharacteristic(this.platform.eve.Characteristics.LastActivation).onGet(() => {
-      const lastActivation = this.accessory.context.lastActivation
-        ? Math.max(0, this.accessory.context.lastActivation - this.historyService.getInitialTime())
-        : 0;
-      return lastActivation;
-    });
-    await this.setMinMax();
-    motion.getCharacteristic(this.platform.Characteristic.MotionDetected).on('change', (event: CharacteristicChange) => {
-      if (event.newValue !== event.oldValue) {
-        const sensor = this.accessory.getService(this.platform.Service.MotionSensor);
-        const entry = {
-          time: Math.round(new Date().valueOf() / 1000),
-          motion: event.newValue,
-        };
-        this.accessory.context.lastActivation = entry.time;
-        sensor?.updateCharacteristic(
-          this.platform.eve.Characteristics.LastActivation,
-          Math.max(0, this.accessory.context.lastActivation - this.historyService.getInitialTime()),
-        );
-        this.historyService.addEntry(entry);
-      }
-    });
+
+    if (device.curtain?.hide_motionsensor !== true) {
+      const motion: Service =
+        this.accessory.getService(this.platform.Service.MotionSensor) ||
+        this.accessory.addService(this.platform.Service.MotionSensor, `${this.accessory.displayName} Motion`);
+      motion.addOptionalCharacteristic(this.platform.eve.Characteristics.LastActivation);
+      motion.getCharacteristic(this.platform.eve.Characteristics.LastActivation).onGet(() => {
+        const lastActivation = this.accessory.context.lastActivation
+          ? Math.max(0, this.accessory.context.lastActivation - this.historyService.getInitialTime())
+          : 0;
+        return lastActivation;
+      });
+      await this.setMinMax();
+      motion.getCharacteristic(this.platform.Characteristic.MotionDetected).on('change', (event: CharacteristicChange) => {
+        if (event.newValue !== event.oldValue) {
+          const sensor = this.accessory.getService(this.platform.Service.MotionSensor);
+          const entry = {
+            time: Math.round(new Date().valueOf() / 1000),
+            motion: event.newValue,
+          };
+          this.accessory.context.lastActivation = entry.time;
+          sensor?.updateCharacteristic(
+            this.platform.eve.Characteristics.LastActivation,
+            Math.max(0, this.accessory.context.lastActivation - this.historyService.getInitialTime()),
+          );
+          this.historyService.addEntry(entry);
+        }
+      });
+    }
+
     this.updateHistory();
   }
 
@@ -986,7 +990,7 @@ export class Curtain {
         this.CurrentPosition = 100;
       }
     }
-    if (this.device.history) {
+    if (this.device.history && this.device.curtain?.hide_motionsensor !== true) {
       const motion = this.accessory.getService(this.platform.Service.MotionSensor);
       const state = Number(this.CurrentPosition) > 0 ? 1 : 0;
       motion?.updateCharacteristic(this.platform.Characteristic.MotionDetected, state);
