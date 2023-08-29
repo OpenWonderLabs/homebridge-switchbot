@@ -858,7 +858,9 @@ export class Others {
         this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Type: ${this.otherDeviceType}`);
       }
     } else {
+      this.otherDeviceType = 'outlet';
       this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} No Device Type Set, deviceType: ${this.device.other?.deviceType}`);
+      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using default deviceType: ${this.otherDeviceType}`);
     }
   }
 
