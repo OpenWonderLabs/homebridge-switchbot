@@ -852,7 +852,7 @@ export class Others {
   }
 
   async deviceType(device: irdevice & irDevicesConfig): Promise<void> {
-    if (this.accessory.context.deviceType) {
+    if (!device.other?.deviceType && this.accessory.context.deviceType) {
       this.otherDeviceType = this.accessory.context.deviceType;
       this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Type: ${this.otherDeviceType}, from Accesory Cache.`);
     } else if (device.other?.deviceType) {

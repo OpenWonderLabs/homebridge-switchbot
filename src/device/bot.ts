@@ -1353,7 +1353,7 @@ export class Bot {
   }
 
   async deviceType(device: device & devicesConfig): Promise<void> {
-    if (this.accessory.context.deviceType) {
+    if (!device.bot?.deviceType && this.accessory.context.deviceType) {
       this.botDeviceType = this.accessory.context.deviceType;
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Type: ${this.botDeviceType}, from Accesory Cache.`);
     } else if (device.bot?.deviceType) {
