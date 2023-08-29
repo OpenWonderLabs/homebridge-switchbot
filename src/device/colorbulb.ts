@@ -1185,11 +1185,14 @@ export class ColorBulb {
       `${this.device.deviceType}: ${this.accessory.displayName}` + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`,
     );
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
+    this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} device.version: ${device.version}`);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
     if (device.firmware) {
-      this.FirmwareRevision = device.firmware;
+      accessory.context.FirmwareRevision = device.firmware;
+      this.FirmwareRevision = accessory.context.FirmwareRevision;
     } else if (device.version) {
-      this.FirmwareRevision = device.version;
+      accessory.context.FirmwareRevision = device.version;
+      this.FirmwareRevision = accessory.context.FirmwareRevision;
     } if (accessory.context.FirmwareRevision) {
       this.FirmwareRevision = accessory.context.FirmwareRevision;
     } else {
