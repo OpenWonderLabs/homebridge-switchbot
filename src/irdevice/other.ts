@@ -856,7 +856,9 @@ export class Others {
       this.otherDeviceType = this.accessory.context.deviceType;
       this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Type: ${this.otherDeviceType}, from Accesory Cache.`);
     } else if (device.other?.deviceType) {
-      this.otherDeviceType = this.accessory.context.deviceType = device.other.deviceType;
+      this.accessory.context.deviceType = device.other.deviceType;
+      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Accesory Cache: ${this.accessory.context.deviceType}`);
+      this.otherDeviceType = this.accessory.context.deviceType;
       this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Type: ${this.otherDeviceType}`);
     } else {
       this.otherDeviceType = 'outlet';
