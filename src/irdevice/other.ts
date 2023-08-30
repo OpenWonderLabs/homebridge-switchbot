@@ -659,7 +659,9 @@ export class Others {
 
   async commandType(): Promise<string> {
     let commandType: string;
-    if (this.device.customize) {
+    if (this.device.commandType && this.device.customize) {
+      commandType = this.device.commandType;
+    } else if (this.device.customize) {
       commandType = 'customize';
     } else {
       commandType = 'command';

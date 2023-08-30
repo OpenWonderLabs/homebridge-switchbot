@@ -978,6 +978,15 @@
                     "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType && model.options.irdevices[arrayIndices].customize);"
                   }
                 },
+                "commandType": {
+                  "title": "Command Type",
+                  "type": "string",
+                  "description": "Customize your command type, Default: command",
+                  "placeholder": "tag",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType && model.options.irdevices[arrayIndices].customize);"
+                  }
+                },
                 "disablePushOn": {
                   "title": "Disable Sending <em class='primary-text'> On </em> Command",
                   "type": "boolean",
@@ -1347,6 +1356,7 @@
             "options.irdevices[].customize",
             "options.irdevices[].customOn",
             "options.irdevices[].customOff",
+            "options.irdevices[].commandType",
             "options.irdevices[].disablePushOn",
             "options.irdevices[].disablePushOff",
             "options.irdevices[].disablePushDetail",
