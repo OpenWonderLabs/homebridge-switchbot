@@ -349,6 +349,13 @@ export class Others {
       this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Set On: ${value}`);
       this.On = value;
     }
+
+    //pushChanges
+    if (this.On) {
+      await this.pushOnChanges();
+    } else {
+      await this.pushOffChanges();
+    }
   }
 
   /**
