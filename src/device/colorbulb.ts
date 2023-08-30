@@ -105,7 +105,6 @@ export class ColorBulb {
         .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
         .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
         .updateValue(accessory.context.FirmwareRevision);
-      this.lightBulbService.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
     } else {
       this.setFirmwareRevision(accessory, device);
     }
@@ -1214,7 +1213,6 @@ export class ColorBulb {
       .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
       .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
       .updateValue(this.FirmwareRevision);
-    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
   }
 
   async context() {
