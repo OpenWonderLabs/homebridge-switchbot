@@ -102,8 +102,10 @@ export class ColorBulb {
       accessory
         .getService(this.platform.Service.AccessoryInformation)!
         .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
         .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
         .updateValue(accessory.context.FirmwareRevision);
+      this.lightBulbService.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
     } else {
       this.setFirmwareRevision(accessory, device);
     }
@@ -1028,8 +1030,7 @@ export class ColorBulb {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.FirmwareRevision}`);
     } else {
       this.accessory.context.FirmwareRevision = this.FirmwareRevision;
-      this.accessory.getService(this.platform.Service.AccessoryInformation)!
-        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      this.lightBulbService.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
         + `updateCharacteristic FirmwareRevision: ${this.FirmwareRevision}`);
     }
@@ -1210,8 +1211,10 @@ export class ColorBulb {
     this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
+      .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
       .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
       .updateValue(this.FirmwareRevision);
+    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
   }
 
   async context() {
