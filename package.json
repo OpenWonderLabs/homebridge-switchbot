@@ -66,7 +66,7 @@
   "optionalDependencies": {
     "@abandonware/bluetooth-hci-socket": "^0.5.3-10",
     "@abandonware/noble": "^1.9.2-23",
-    "node-switchbot": "^1.9.0-beta.1"
+    "node-switchbot": "^1.9.0-beta.2"
   },
   "devDependencies": {
     "@types/crypto-js": "^4.1.1",
