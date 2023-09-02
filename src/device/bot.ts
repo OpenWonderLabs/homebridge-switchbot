@@ -94,10 +94,20 @@ export class Bot {
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-BOT-S1')
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.setFirmwareRevision(accessory, device))
-      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-      .updateValue(this.setFirmwareRevision(accessory, device));
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
+
+    if (accessory.context.FirmwareRevision) {
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+        + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+      accessory
+        .getService(this.platform.Service.AccessoryInformation)!
+        .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
+        .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
+        .updateValue(accessory.context.FirmwareRevision);
+    } else {
+      this.setFirmwareRevision(accessory, device);
+    }
 
     // deviceType
     if (this.botDeviceType === 'switch') {
@@ -1037,8 +1047,28 @@ export class Bot {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.FirmwareRevision}`);
     } else {
       this.accessory.context.FirmwareRevision = this.FirmwareRevision;
-      this.accessory.getService(this.platform.Service.AccessoryInformation)!
-        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      this.batteryService.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      if (this.botDeviceType === 'garagedoor') {
+        this.garageDoorService!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      } else if (this.botDeviceType === 'door') {
+        this.doorService!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      } else if (this.botDeviceType === 'window') {
+        this.windowService!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      } else if (this.botDeviceType === 'windowcovering') {
+        this.windowCoveringService!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      } else if (this.botDeviceType === 'lock') {
+        this.lockService!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      } else if (this.botDeviceType === 'faucet') {
+        this.faucetService!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      } else if (this.botDeviceType === 'fan') {
+        this.fanService!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      } else if (this.botDeviceType === 'stateful') {
+        this.statefulProgrammableSwitchService!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      } else if (this.botDeviceType === 'switch') {
+        this.switchService!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      } else {
+        this.outletService!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      }
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
         + `updateCharacteristic FirmwareRevision: ${this.FirmwareRevision}`);
     }
@@ -1333,23 +1363,30 @@ export class Bot {
     this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
   }
 
-  setFirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
-    this.debugLog(
-      `${this.device.deviceType}: ${this.accessory.displayName}` + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`,
-    );
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
+  async setFirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig) {
+    await this.refreshStatus();
     if (device.firmware) {
-      this.FirmwareRevision = device.firmware;
-    } else if (device.version) {
-      this.FirmwareRevision = device.version;
-    } if (accessory.context.FirmwareRevision) {
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
+      accessory.context.FirmwareRevision = device.firmware;
       this.FirmwareRevision = accessory.context.FirmwareRevision;
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware, FirmwareRevision: ${this.FirmwareRevision}`);
+    } else if (device.version) {
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} device.version: ${device.version}`);
+      accessory.context.FirmwareRevision = device.version;
+      this.FirmwareRevision = accessory.context.FirmwareRevision;
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} device.version, FirmwareRevision: ${this.FirmwareRevision}`);
     } else {
-      this.FirmwareRevision = this.platform.version;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
+      accessory.context.FirmwareRevision = this.platform.version;
+      this.FirmwareRevision = accessory.context.FirmwareRevision;
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version, FirmwareRevision: ${this.FirmwareRevision}`);
     }
-    this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
-    return this.FirmwareRevision;
+    this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
+    accessory
+      .getService(this.platform.Service.AccessoryInformation)!
+      .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
+      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
+      .updateValue(this.FirmwareRevision);
   }
 
   async deviceType(device: device & devicesConfig): Promise<void> {

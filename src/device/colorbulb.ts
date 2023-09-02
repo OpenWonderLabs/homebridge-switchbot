@@ -97,7 +97,7 @@ export class ColorBulb {
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
     if (accessory.context.FirmwareRevision) {
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName}`
         + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
       accessory
         .getService(this.platform.Service.AccessoryInformation)!

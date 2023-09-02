@@ -38,10 +38,20 @@ export class WaterHeater {
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.setFirmwareRevision(accessory, device))
-      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-      .updateValue(this.setFirmwareRevision(accessory, device));
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
+
+    if (accessory.context.FirmwareRevision) {
+      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+        + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+      accessory
+        .getService(this.platform.Service.AccessoryInformation)!
+        .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
+        .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
+        .updateValue(accessory.context.FirmwareRevision);
+    } else {
+      this.setFirmwareRevision(accessory, device);
+    }
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
@@ -264,21 +274,26 @@ export class WaterHeater {
     this.valveService.updateCharacteristic(this.platform.Characteristic.Active, e);
   }
 
-  setFirmwareRevision(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): string {
-    this.debugLog(
-      `${this.device.remoteType}: ${this.accessory.displayName}` + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`,
-    );
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
+
+
+  async setFirmwareRevision(accessory: PlatformAccessory, device: irdevice & irDevicesConfig) {
     if (device.firmware) {
-      this.FirmwareRevision = device.firmware;
-    } else if (accessory.context.FirmwareRevision) {
+      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
+      accessory.context.FirmwareRevision = device.firmware;
       this.FirmwareRevision = accessory.context.FirmwareRevision;
+      this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware, FirmwareRevision: ${this.FirmwareRevision}`);
     } else {
-      this.FirmwareRevision = this.platform.version;
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
+      accessory.context.FirmwareRevision = this.platform.version;
+      this.FirmwareRevision = accessory.context.FirmwareRevision;
+      this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version, FirmwareRevision: ${this.FirmwareRevision}`);
     }
-    this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
-    return String(this.FirmwareRevision);
+    this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
+    accessory
+      .getService(this.platform.Service.AccessoryInformation)!
+      .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
+      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
+      .updateValue(this.FirmwareRevision);
   }
 
   async context(): Promise<void> {
