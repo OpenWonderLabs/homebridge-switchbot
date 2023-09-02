@@ -290,7 +290,7 @@ export class IOSensor {
     if (switchbot !== false) {
       switchbot
         .startScan({
-          model: 'i',
+          model: 'w',
           id: this.device.bleMac,
         })
         .then(async () => {
