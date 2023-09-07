@@ -425,6 +425,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   private createDevice(device: device & devicesConfig) {
+    if (!device.deviceType) {
+      device.deviceType = device.configDeviceType;
+      this.errorLog(`API has displaying no deviceType: ${device.deviceType}, So using configDeviceType: ${device.configDeviceType}`);
+    }
     switch (device.deviceType!) {
       case 'Humidifier':
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
