@@ -61,7 +61,7 @@
     "fakegato-history": "^0.6.4",
     "homebridge-lib": "^6.5.0",
     "rxjs": "^7.8.1",
-    "undici": "^5.23.0"
+    "undici": "^5.24.0"
   },
   "optionalDependencies": {
     "@abandonware/bluetooth-hci-socket": "^0.5.3-10",
@@ -78,7 +78,7 @@
     "eslint-plugin-prettier": "5.0.0",
     "homebridge": "^1.6.1",
     "nodemon": "^3.0.1",
-    "npm-check-updates": "^16.13.2",
+    "npm-check-updates": "^16.13.3",
     "prettier": "3.0.3",
     "rimraf": "^5.0.1",
     "ts-node": "^10.9.1",
