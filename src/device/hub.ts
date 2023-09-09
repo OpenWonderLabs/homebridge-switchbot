@@ -1,10 +1,12 @@
+import { connectAsync } from 'async-mqtt';
 import { CharacteristicValue, PlatformAccessory, Service, Units } from 'homebridge';
+import { MqttClient } from 'mqtt';
+import { hostname } from 'os';
 import { interval } from 'rxjs';
 import { request } from 'undici';
 import { Context } from 'vm';
 import { SwitchBotPlatform } from '../platform';
 import { Devices, device, deviceStatus, devicesConfig } from '../settings';
-import { sleep } from '../utils';
 
 export class Hub {
   // Services
@@ -27,6 +29,12 @@ export class Hub {
   // OpenAPI Others
   spaceBetweenLevels!: number;
 
+  //MQTT stuff
+  mqttClient: MqttClient | null = null;
+
+  // EVE history service handler
+  historyService?: any;
+
   // Config
   set_minStep!: number;
   updateRate!: number;
@@ -48,6 +56,9 @@ export class Hub {
     // default placeholders
     this.logs(device);
     this.refreshRate(device);
+    this.context(accessory, device);
+    this.setupHistoryService(device);
+    this.setupMqtt(device);
     this.config(device);
 
     this.CurrentRelativeHumidity = accessory.context.CurrentRelativeHumidity;
@@ -134,7 +145,7 @@ export class Hub {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Humidity Sensor Service Not Added`);
     }
 
-    // Humidity Sensor Service
+    // Light Sensor Service
     if (device.hub?.hide_lightsensor) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
       this.lightSensorService = this.accessory.getService(this.platform.Service.LightSensor);
@@ -151,13 +162,14 @@ export class Hub {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Light Sensor Service Not Added`);
     }
 
-    // Update Homekit
+    // Retrieve initial values and update Homekit
     this.updateHomeKitCharacteristics();
 
     // Start an update interval
-    interval(this.deviceRefreshRate * 1000).subscribe(async () => {
-      await this.refreshStatus();
-    });
+    interval(this.deviceRefreshRate * 1000)
+      .subscribe(async () => {
+        await this.refreshStatus();
+      });
   }
 
   /**
@@ -176,14 +188,16 @@ export class Hub {
 
   async openAPIparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
-    // Temperature
-    if (!this.device.hub?.hide_temperature) {
-      this.CurrentTemperature = Number(this.OpenAPI_CurrentTemperature);
-    }
-
-    // Humidity
+    // CurrentRelativeHumidity
     if (!this.device.hub?.hide_humidity) {
       this.CurrentRelativeHumidity = Number(this.OpenAPI_CurrentRelativeHumidity);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Humidity: ${this.CurrentRelativeHumidity}%`);
+    }
+
+    // CurrentTemperature
+    if (!this.device.hub?.hide_temperature) {
+      this.CurrentTemperature = Number(this.OpenAPI_CurrentTemperature);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c`);
     }
 
     // Brightness
@@ -201,7 +215,7 @@ export class Hub {
             this.CurrentAmbientLightLevel = (this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels;
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel},` +
-            ` Calculation: ${(this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels}`,
+              ` Calculation: ${(this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels}`,
             );
             break;
           case 3:
@@ -279,7 +293,7 @@ export class Hub {
         }
         this.debugLog(
           `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel},` +
-        ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
+          ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
         );
       }
       if (!this.device.hub?.hide_lightsensor) {
@@ -335,49 +349,46 @@ export class Hub {
     }
   }
 
-  async retry({ max, fn }: { max: number; fn: { (): any; (): Promise<any> } }): Promise<null> {
-    return fn().catch(async (e: any) => {
-      if (max === 0) {
-        throw e;
-      }
-      this.infoLog(e);
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Retrying`);
-      await sleep(1000);
-      return this.retry({ max: max - 1, fn });
-    });
-  }
-
-  maxRetry(): number {
-    if (this.device.maxRetry) {
-      return this.device.maxRetry;
-    } else {
-      return 5;
-    }
-  }
-
   /**
    * Handle requests to set the value of the "Target Position" characteristic
    */
 
   async updateHomeKitCharacteristics(): Promise<void> {
-    if (!this.device.hub?.hide_temperature) {
-      if (this.CurrentTemperature === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
-      } else {
-        this.accessory.context.CurrentTemperature = this.CurrentTemperature;
-        this.temperatureService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
-      }
-    }
+    const mqttmessage: string[] = [];
+    const entry = { time: Math.round(new Date().valueOf() / 1000) };
+
+    // CurrentRelativeHumidity
     if (!this.device.hub?.hide_humidity) {
       if (this.CurrentRelativeHumidity === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
       } else {
+        if (this.device.mqttURL) {
+          mqttmessage.push(`"humidity": ${this.CurrentRelativeHumidity}`);
+        }
+        if (this.device.history) {
+          entry['humidity'] = this.CurrentRelativeHumidity;
+        }
         this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidity;
         this.humidityService?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-          + `updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`,
-        );
+          + `updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+      }
+    }
+
+    // CurrentTemperature
+    if (!this.device.hub?.hide_temperature) {
+      if (this.CurrentTemperature === undefined) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
+      } else {
+        if (this.device.mqttURL) {
+          mqttmessage.push(`"temperature": ${this.CurrentTemperature}`);
+        }
+        if (this.device.history) {
+          entry['temp'] = this.CurrentTemperature;
+        }
+        this.accessory.context.CurrentTemperature = this.CurrentTemperature;
+        this.temperatureService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
       }
     }
     if (!this.device.hub?.hide_lightsensor) {
@@ -388,7 +399,7 @@ export class Hub {
         this.lightSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
         this.debugLog(
           `${this.device.deviceType}: ${this.accessory.displayName} `
-        + `updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
+          + `updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
         );
       }
     }
@@ -411,6 +422,66 @@ export class Hub {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
         + `updateCharacteristic FirmwareRevision: ${this.FirmwareRevision}`);
     }
+
+    // MQTT
+    if (this.device.mqttURL) {
+      this.mqttPublish(`{${mqttmessage.join(',')}}`);
+    }
+    if (Number(this.CurrentRelativeHumidity) > 0) {
+      // reject unreliable data
+      if (this.device.history) {
+        this.historyService?.addEntry(entry);
+      }
+    }
+  }
+
+  /*
+   * Publish MQTT message for topics of
+   * 'homebridge-switchbot/meter/xx:xx:xx:xx:xx:xx'
+   */
+  mqttPublish(message: any) {
+    const mac = this.device.deviceId
+      ?.toLowerCase()
+      .match(/[\s\S]{1,2}/g)
+      ?.join(':');
+    const options = this.device.mqttPubOptions || {};
+    this.mqttClient?.publish(`homebridge-switchbot/meter/${mac}`, `${message}`, options);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MQTT message: ${message} options:${JSON.stringify(options)}`);
+  }
+
+  /*
+   * Setup MQTT hadler if URL is specifed.
+   */
+  async setupMqtt(device: device & devicesConfig): Promise<void> {
+    if (device.mqttURL) {
+      try {
+        this.mqttClient = await connectAsync(device.mqttURL, device.mqttOptions || {});
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MQTT connection has been established successfully.`);
+        this.mqttClient.on('error', (e: Error) => {
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Failed to publish MQTT messages. ${e}`);
+        });
+      } catch (e) {
+        this.mqttClient = null;
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Failed to establish MQTT connection. ${e}`);
+      }
+    }
+  }
+
+  /*
+   * Setup EVE history graph feature if enabled.
+   */
+  async setupHistoryService(device: device & devicesConfig): Promise<void> {
+    const mac = this.device
+      .deviceId!.match(/.{1,2}/g)!
+      .join(':')
+      .toLowerCase();
+    this.historyService = device.history
+      ? new this.platform.fakegatoAPI('room', this.accessory, {
+        log: this.platform.log,
+        storage: 'fs',
+        filename: `${hostname().split('.')[0]}_${mac}_persist.json`,
+      })
+      : null;
   }
 
   async statusCode(statusCode: number): Promise<void> {
@@ -457,6 +528,7 @@ export class Hub {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
+      await this.context(this.accessory, this.device);
       await this.updateHomeKitCharacteristics();
     }
   }
@@ -498,16 +570,11 @@ export class Hub {
       accessory.context.FirmwareRevision = device.firmware;
       this.FirmwareRevision = accessory.context.FirmwareRevision;
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware, FirmwareRevision: ${this.FirmwareRevision}`);
-    } else if (device.version) {
+    } else {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} device.version: ${device.version}`);
       accessory.context.FirmwareRevision = device.version;
       this.FirmwareRevision = accessory.context.FirmwareRevision;
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} device.version, FirmwareRevision: ${this.FirmwareRevision}`);
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
-      accessory.context.FirmwareRevision = this.platform.version;
-      this.FirmwareRevision = accessory.context.FirmwareRevision;
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version, FirmwareRevision: ${this.FirmwareRevision}`);
     }
     this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
     accessory
@@ -515,6 +582,25 @@ export class Hub {
       .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
       .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
       .updateValue(this.FirmwareRevision);
+  }
+
+  async context(accessory, device) {
+    if (this.CurrentRelativeHumidity === undefined) {
+      this.CurrentRelativeHumidity = 0;
+    } else {
+      this.CurrentRelativeHumidity = this.accessory.context.CurrentRelativeHumidity;
+    }
+    if (this.CurrentTemperature === undefined) {
+      this.CurrentTemperature = 0;
+    } else {
+      this.CurrentTemperature = this.accessory.context.CurrentTemperature;
+    }
+    if (this.FirmwareRevision === undefined) {
+      this.FirmwareRevision = this.platform.version;
+    } else {
+      this.setFirmwareRevision(accessory, device);
+      this.FirmwareRevision = this.accessory.context.FirmwareRevision;
+    }
   }
 
   async refreshRate(device: device & devicesConfig): Promise<void> {

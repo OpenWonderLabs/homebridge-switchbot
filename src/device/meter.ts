@@ -2,19 +2,13 @@ import { connectAsync } from 'async-mqtt';
 import { CharacteristicValue, PlatformAccessory, Service, Units } from 'homebridge';
 import { MqttClient } from 'mqtt';
 import { hostname } from 'os';
-import { Subject, interval } from 'rxjs';
-import { skipWhile } from 'rxjs/operators';
+import { interval } from 'rxjs';
 import { request } from 'undici';
 import { Context } from 'vm';
 import { SwitchBotPlatform } from '../platform';
 import { Devices, ad, device, deviceStatus, devicesConfig, serviceData, temperature } from '../settings';
 import { sleep } from '../utils';
 
-/**
- * Platform Accessory
- * An instance of this class is created for each accessory your platform registers
- * Each accessory may expose multiple services of different service types.
- */
 export class Meter {
   // Services
   batteryService: Service;
@@ -55,10 +49,6 @@ export class Meter {
   deviceLogging!: string;
   deviceRefreshRate!: number;
 
-  // Updates
-  meterUpdateInProgress!: boolean;
-  doMeterUpdate: Subject<void>;
-
   // Connection
   private readonly BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
   private readonly OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
@@ -77,9 +67,8 @@ export class Meter {
     this.setupMqtt(device);
     this.config(device);
 
-    // this is subject we use to track when we need to POST changes to the SwitchBot API
-    this.doMeterUpdate = new Subject();
-    this.meterUpdateInProgress = false;
+    this.CurrentRelativeHumidity = accessory.context.CurrentRelativeHumidity;
+    this.CurrentTemperature = accessory.context.CurrentTemperature;
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();
@@ -172,12 +161,11 @@ export class Meter {
     }
     this.batteryService.setCharacteristic(this.platform.Characteristic.ChargingState, this.platform.Characteristic.ChargingState.NOT_CHARGEABLE);
 
-    // Retrieve initial values and updateHomekit
+    // Retrieve initial values and update Homekit
     this.updateHomeKitCharacteristics();
 
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
-      .pipe(skipWhile(() => this.meterUpdateInProgress))
       .subscribe(async () => {
         await this.refreshStatus();
       });
@@ -402,18 +390,16 @@ export class Meter {
       if (this.CurrentRelativeHumidity === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
       } else {
-        this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidity;
-        this.humidityService?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
-        this.debugLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic` +
-          ` CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`,
-        );
         if (this.device.mqttURL) {
           mqttmessage.push(`"humidity": ${this.CurrentRelativeHumidity}`);
         }
         if (this.device.history) {
           entry['humidity'] = this.CurrentRelativeHumidity;
         }
+        this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidity;
+        this.humidityService?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+        + `updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
       }
     }
     // CurrentTemperature
