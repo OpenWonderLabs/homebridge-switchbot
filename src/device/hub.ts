@@ -391,10 +391,18 @@ export class Hub {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
       }
     }
+
+    // CurrentAmbientLightLevel
     if (!this.device.hub?.hide_lightsensor) {
       if (this.CurrentAmbientLightLevel === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
       } else {
+        if (this.device.mqttURL) {
+          mqttmessage.push(`"light": ${this.CurrentAmbientLightLevel}`);
+        }
+        if (this.device.history) {
+          entry['lux'] = this.CurrentAmbientLightLevel;
+        }
         this.accessory.context.CurrentAmbientLightLevel = this.CurrentAmbientLightLevel;
         this.lightSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
         this.debugLog(
@@ -476,7 +484,7 @@ export class Hub {
       .join(':')
       .toLowerCase();
     this.historyService = device.history
-      ? new this.platform.fakegatoAPI('room', this.accessory, {
+      ? new this.platform.fakegatoAPI('custom', this.accessory, {
         log: this.platform.log,
         storage: 'fs',
         filename: `${hostname().split('.')[0]}_${mac}_persist.json`,
@@ -594,6 +602,11 @@ export class Hub {
       this.CurrentTemperature = 0;
     } else {
       this.CurrentTemperature = this.accessory.context.CurrentTemperature;
+    }
+    if (this.CurrentAmbientLightLevel === undefined) {
+      this.CurrentAmbientLightLevel = this.set_minLux;
+    } else {
+      this.CurrentAmbientLightLevel = this.accessory.context.CurrentAmbientLightLevel;
     }
     if (this.FirmwareRevision === undefined) {
       this.FirmwareRevision = this.platform.version;
