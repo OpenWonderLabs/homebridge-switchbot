@@ -46,7 +46,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   // this is used to track restored cached accessories
   public readonly accessories: PlatformAccessory[] = [];
 
-  version = process.env.npm_package_version || '2.1.1';
+  version = process.env.npm_package_version || '2.9.0';
   debugMode!: boolean;
   platformLogging?: string;
 
