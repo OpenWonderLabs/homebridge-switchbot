@@ -50,6 +50,7 @@ export class Bot {
   allowPush?: boolean;
   doublePress!: number;
   scanDuration!: number;
+  botDeviceType!: string;
   pushRatePress!: number;
   deviceLogging!: string;
   multiPressCount!: number;
@@ -70,6 +71,7 @@ export class Bot {
   ) {
     // default placeholders
     this.logs(device);
+    this.deviceType(device);
     this.scan(device);
     this.refreshRate(device);
     this.PressOrSwitch(device);
@@ -92,14 +94,23 @@ export class Bot {
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, 'SWITCHBOT-BOT-S1')
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.setFirmwareRevision(accessory, device))
-      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-      .updateValue(this.setFirmwareRevision(accessory, device));
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
-    // get the service if it exists, otherwise create a new service
-    // you can create multiple services for each accessory
-    if (device.bot?.deviceType === 'switch') {
+    if (accessory.context.FirmwareRevision) {
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+        + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+      accessory
+        .getService(this.platform.Service.AccessoryInformation)!
+        .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
+        .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
+        .updateValue(accessory.context.FirmwareRevision);
+    } else {
+      this.setFirmwareRevision(accessory, device);
+    }
+
+    // deviceType
+    if (this.botDeviceType === 'switch') {
       this.removeFanService(accessory);
       this.removeLockService(accessory);
       this.removeDoorService(accessory);
@@ -120,7 +131,7 @@ export class Bot {
         this.switchService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
       }
       this.switchService.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
-    } else if (device.bot?.deviceType === 'garagedoor') {
+    } else if (this.botDeviceType === 'garagedoor') {
       this.removeFanService(accessory);
       this.removeLockService(accessory);
       this.removeDoorService(accessory);
@@ -143,7 +154,7 @@ export class Bot {
       }
       this.garageDoorService.getCharacteristic(this.platform.Characteristic.TargetDoorState).onSet(this.OnSet.bind(this));
       this.garageDoorService.setCharacteristic(this.platform.Characteristic.ObstructionDetected, false);
-    } else if (device.bot?.deviceType === 'door') {
+    } else if (this.botDeviceType === 'door') {
       this.removeFanService(accessory);
       this.removeLockService(accessory);
       this.removeOutletService(accessory);
@@ -173,7 +184,7 @@ export class Bot {
         })
         .onSet(this.OnSet.bind(this));
       this.doorService.setCharacteristic(this.platform.Characteristic.PositionState, this.platform.Characteristic.PositionState.STOPPED);
-    } else if (device.bot?.deviceType === 'window') {
+    } else if (this.botDeviceType === 'window') {
       this.removeFanService(accessory);
       this.removeLockService(accessory);
       this.removeDoorService(accessory);
@@ -203,7 +214,7 @@ export class Bot {
         })
         .onSet(this.OnSet.bind(this));
       this.windowService.setCharacteristic(this.platform.Characteristic.PositionState, this.platform.Characteristic.PositionState.STOPPED);
-    } else if (device.bot?.deviceType === 'windowcovering') {
+    } else if (this.botDeviceType === 'windowcovering') {
       this.removeFanService(accessory);
       this.removeLockService(accessory);
       this.removeDoorService(accessory);
@@ -234,7 +245,7 @@ export class Bot {
         })
         .onSet(this.OnSet.bind(this));
       this.windowCoveringService.setCharacteristic(this.platform.Characteristic.PositionState, this.platform.Characteristic.PositionState.STOPPED);
-    } else if (device.bot?.deviceType === 'lock') {
+    } else if (this.botDeviceType === 'lock') {
       this.removeFanService(accessory);
       this.removeDoorService(accessory);
       this.removeOutletService(accessory);
@@ -255,7 +266,7 @@ export class Bot {
         this.lockService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
       }
       this.lockService.getCharacteristic(this.platform.Characteristic.LockTargetState).onSet(this.OnSet.bind(this));
-    } else if (device.bot?.deviceType === 'faucet') {
+    } else if (this.botDeviceType === 'faucet') {
       this.removeFanService(accessory);
       this.removeLockService(accessory);
       this.removeDoorService(accessory);
@@ -276,7 +287,7 @@ export class Bot {
         this.faucetService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
       }
       this.faucetService.getCharacteristic(this.platform.Characteristic.Active).onSet(this.OnSet.bind(this));
-    } else if (device.bot?.deviceType === 'fan') {
+    } else if (this.botDeviceType === 'fan') {
       this.removeLockService(accessory);
       this.removeDoorService(accessory);
       this.removeFaucetService(accessory);
@@ -297,7 +308,7 @@ export class Bot {
         this.fanService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
       }
       this.fanService.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
-    } else if (device.bot?.deviceType === 'stateful') {
+    } else if (this.botDeviceType === 'stateful') {
       this.removeFanService(accessory);
       this.removeLockService(accessory);
       this.removeDoorService(accessory);
@@ -469,7 +480,7 @@ export class Bot {
     + ` StatusLowBattery: ${this.StatusLowBattery}`);
 
     // FirmwareRevision
-    this.FirmwareRevision = JSON.stringify(this.OpenAPI_FirmwareRevision);
+    this.FirmwareRevision = this.OpenAPI_FirmwareRevision!;
   }
 
   /**
@@ -640,7 +651,7 @@ export class Bot {
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
             this.accessory.context.On = this.On;
             setTimeout(() => {
-              if (this.device.bot?.deviceType === 'switch') {
+              if (this.botDeviceType === 'switch') {
                 this.switchService?.getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);
               } else {
                 this.outletService?.getCharacteristic(this.platform.Characteristic.On).updateValue(this.On);
@@ -772,7 +783,7 @@ export class Bot {
    * Handle requests to set the "On" characteristic
    */
   async OnSet(value: CharacteristicValue): Promise<void> {
-    if (this.device.bot?.deviceType === 'garagedoor') {
+    if (this.botDeviceType === 'garagedoor') {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set TargetDoorState: ${value}`);
       if (value === this.platform.Characteristic.TargetDoorState.CLOSED) {
         this.On = false;
@@ -780,9 +791,9 @@ export class Bot {
         this.On = true;
       }
     } else if (
-      this.device.bot?.deviceType === 'door' ||
-      this.device.bot?.deviceType === 'window' ||
-      this.device.bot?.deviceType === 'windowcovering'
+      this.botDeviceType === 'door' ||
+      this.botDeviceType === 'window' ||
+      this.botDeviceType === 'windowcovering'
     ) {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set TargetPosition: ${value}`);
       if (value === 0) {
@@ -790,21 +801,21 @@ export class Bot {
       } else {
         this.On = true;
       }
-    } else if (this.device.bot?.deviceType === 'lock') {
+    } else if (this.botDeviceType === 'lock') {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set LockTargetState: ${value}`);
       if (value === this.platform.Characteristic.LockTargetState.SECURED) {
         this.On = false;
       } else {
         this.On = true;
       }
-    } else if (this.device.bot?.deviceType === 'faucet') {
+    } else if (this.botDeviceType === 'faucet') {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Active: ${value}`);
       if (value === this.platform.Characteristic.Active.INACTIVE) {
         this.On = false;
       } else {
         this.On = true;
       }
-    } else if (this.device.bot?.deviceType === 'stateful') {
+    } else if (this.botDeviceType === 'stateful') {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set ProgrammableSwitchOutputState: ${value}`);
       if (value === 0) {
         this.On = false;
@@ -829,7 +840,7 @@ export class Bot {
    */
   async updateHomeKitCharacteristics(): Promise<void> {
     // State
-    if (this.device.bot?.deviceType === 'garagedoor') {
+    if (this.botDeviceType === 'garagedoor') {
       if (this.On === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
       } else {
@@ -860,7 +871,7 @@ export class Bot {
         }
       }
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Garage Door On: ${this.On}`);
-    } else if (this.device.bot?.deviceType === 'door') {
+    } else if (this.botDeviceType === 'door') {
       if (this.On === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
       } else {
@@ -877,7 +888,7 @@ export class Bot {
         }
       }
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Door On: ${this.On}`);
-    } else if (this.device.bot?.deviceType === 'window') {
+    } else if (this.botDeviceType === 'window') {
       if (this.On === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
       } else {
@@ -894,7 +905,7 @@ export class Bot {
         }
       }
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Window On: ${this.On}`);
-    } else if (this.device.bot?.deviceType === 'windowcovering') {
+    } else if (this.botDeviceType === 'windowcovering') {
       if (this.On === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
       } else {
@@ -917,7 +928,7 @@ export class Bot {
         }
       }
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Window Covering On: ${this.On}`);
-    } else if (this.device.bot?.deviceType === 'lock') {
+    } else if (this.botDeviceType === 'lock') {
       if (this.On === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
       } else {
@@ -946,7 +957,7 @@ export class Bot {
         }
       }
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Lock On: ${this.On}`);
-    } else if (this.device.bot?.deviceType === 'faucet') {
+    } else if (this.botDeviceType === 'faucet') {
       if (this.On === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
       } else {
@@ -959,7 +970,7 @@ export class Bot {
         }
       }
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Faucet On: ${this.On}`);
-    } else if (this.device.bot?.deviceType === 'fan') {
+    } else if (this.botDeviceType === 'fan') {
       if (this.On === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
       } else {
@@ -972,7 +983,7 @@ export class Bot {
         }
       }
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Fan On: ${this.On}`);
-    } else if (this.device.bot?.deviceType === 'stateful') {
+    } else if (this.botDeviceType === 'stateful') {
       if (this.On === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
       } else {
@@ -999,7 +1010,7 @@ export class Bot {
         }
       }
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatefulProgrammableSwitch On: ${this.On}`);
-    } else if (this.device.bot?.deviceType === 'switch') {
+    } else if (this.botDeviceType === 'switch') {
       if (this.On === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
       } else {
@@ -1036,8 +1047,28 @@ export class Bot {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.FirmwareRevision}`);
     } else {
       this.accessory.context.FirmwareRevision = this.FirmwareRevision;
-      this.accessory.getService(this.platform.Service.AccessoryInformation)!
-        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      this.batteryService.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      if (this.botDeviceType === 'garagedoor') {
+        this.garageDoorService!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      } else if (this.botDeviceType === 'door') {
+        this.doorService!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      } else if (this.botDeviceType === 'window') {
+        this.windowService!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      } else if (this.botDeviceType === 'windowcovering') {
+        this.windowCoveringService!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      } else if (this.botDeviceType === 'lock') {
+        this.lockService!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      } else if (this.botDeviceType === 'faucet') {
+        this.faucetService!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      } else if (this.botDeviceType === 'fan') {
+        this.fanService!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      } else if (this.botDeviceType === 'stateful') {
+        this.statefulProgrammableSwitchService!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      } else if (this.botDeviceType === 'switch') {
+        this.switchService!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      } else {
+        this.outletService!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      }
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
         + `updateCharacteristic FirmwareRevision: ${this.FirmwareRevision}`);
     }
@@ -1297,33 +1328,33 @@ export class Bot {
   }
 
   async apiError(e: any): Promise<void> {
-    if (this.device.bot?.deviceType === 'garagedoor') {
+    if (this.botDeviceType === 'garagedoor') {
       this.garageDoorService?.updateCharacteristic(this.platform.Characteristic.TargetDoorState, e);
       this.garageDoorService?.updateCharacteristic(this.platform.Characteristic.CurrentDoorState, e);
       this.garageDoorService?.updateCharacteristic(this.platform.Characteristic.ObstructionDetected, e);
-    } else if (this.device.bot?.deviceType === 'door') {
+    } else if (this.botDeviceType === 'door') {
       this.doorService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, e);
       this.doorService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, e);
       this.doorService?.updateCharacteristic(this.platform.Characteristic.PositionState, e);
-    } else if (this.device.bot?.deviceType === 'window') {
+    } else if (this.botDeviceType === 'window') {
       this.windowService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, e);
       this.windowService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, e);
       this.windowService?.updateCharacteristic(this.platform.Characteristic.PositionState, e);
-    } else if (this.device.bot?.deviceType === 'windowcovering') {
+    } else if (this.botDeviceType === 'windowcovering') {
       this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, e);
       this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, e);
       this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.PositionState, e);
-    } else if (this.device.bot?.deviceType === 'lock') {
+    } else if (this.botDeviceType === 'lock') {
       this.doorService?.updateCharacteristic(this.platform.Characteristic.LockTargetState, e);
       this.doorService?.updateCharacteristic(this.platform.Characteristic.LockCurrentState, e);
-    } else if (this.device.bot?.deviceType === 'faucet') {
+    } else if (this.botDeviceType === 'faucet') {
       this.faucetService?.updateCharacteristic(this.platform.Characteristic.Active, e);
-    } else if (this.device.bot?.deviceType === 'fan') {
+    } else if (this.botDeviceType === 'fan') {
       this.fanService?.updateCharacteristic(this.platform.Characteristic.On, e);
-    } else if (this.device.bot?.deviceType === 'stateful') {
+    } else if (this.botDeviceType === 'stateful') {
       this.statefulProgrammableSwitchService?.updateCharacteristic(this.platform.Characteristic.ProgrammableSwitchEvent, e);
       this.statefulProgrammableSwitchService?.updateCharacteristic(this.platform.Characteristic.ProgrammableSwitchOutputState, e);
-    } else if (this.device.bot?.deviceType === 'switch') {
+    } else if (this.botDeviceType === 'switch') {
       this.switchService?.updateCharacteristic(this.platform.Characteristic.On, e);
     } else {
       this.outletService?.updateCharacteristic(this.platform.Characteristic.On, e);
@@ -1332,23 +1363,46 @@ export class Bot {
     this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
   }
 
-  setFirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
-    this.debugLog(
-      `${this.device.deviceType}: ${this.accessory.displayName}` + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`,
-    );
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
+  async setFirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig) {
+    await this.refreshStatus();
     if (device.firmware) {
-      this.FirmwareRevision = device.firmware;
-    } else if (device.version) {
-      this.FirmwareRevision = JSON.stringify(device.version);
-    } if (accessory.context.FirmwareRevision) {
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
+      accessory.context.FirmwareRevision = device.firmware;
       this.FirmwareRevision = accessory.context.FirmwareRevision;
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware, FirmwareRevision: ${this.FirmwareRevision}`);
+    } else if (device.version) {
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} device.version: ${device.version}`);
+      accessory.context.FirmwareRevision = device.version;
+      this.FirmwareRevision = accessory.context.FirmwareRevision;
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} device.version, FirmwareRevision: ${this.FirmwareRevision}`);
     } else {
-      this.FirmwareRevision = this.platform.version;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
+      accessory.context.FirmwareRevision = this.platform.version;
+      this.FirmwareRevision = accessory.context.FirmwareRevision;
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version, FirmwareRevision: ${this.FirmwareRevision}`);
     }
-    this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
-    return this.FirmwareRevision;
+    this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
+    accessory
+      .getService(this.platform.Service.AccessoryInformation)!
+      .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
+      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
+      .updateValue(this.FirmwareRevision);
+  }
+
+  async deviceType(device: device & devicesConfig): Promise<void> {
+    if (!device.bot?.deviceType && this.accessory.context.deviceType) {
+      this.botDeviceType = this.accessory.context.deviceType;
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Type: ${this.botDeviceType}, from Accesory Cache.`);
+    } else if (device.bot?.deviceType) {
+      this.accessory.context.deviceType = device.bot.deviceType;
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Accesory Cache: ${this.accessory.context.deviceType}`);
+      this.botDeviceType = this.accessory.context.deviceType;
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Type: ${this.botDeviceType}`);
+    } else {
+      this.botDeviceType = 'outlet';
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} No Device Type Set, deviceType: ${this.device.bot?.deviceType}`);
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using default deviceType: ${this.botDeviceType}`);
+    }
   }
 
   async context() {

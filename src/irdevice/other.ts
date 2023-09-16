@@ -11,9 +11,18 @@ import { Devices, irDevicesConfig, irdevice } from '../settings';
 export class Others {
   // Services
   fanService?: Service;
+  doorService?: Service;
+  lockService?: Service;
+  faucetService?: Service;
+  windowService?: Service;
+  switchService?: Service;
+  outletService?: Service;
+  garageDoorService?: Service;
+  windowCoveringService?: Service;
+  statefulProgrammableSwitchService?: Service;
 
   // Characteristic Values
-  Active!: CharacteristicValue;
+  On?: CharacteristicValue;
   FirmwareRevision!: CharacteristicValue;
 
   // Config
@@ -40,41 +49,319 @@ export class Others {
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.setFirmwareRevision(accessory, device))
-      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-      .updateValue(this.setFirmwareRevision(accessory, device));
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
 
-    // get the Television service if it exists, otherwise create a new Television service
-    // you can create multiple services for each accessory
-    if (this.otherDeviceType !== 'Fan') {
-      this.debugLog(`${this.device.remoteType}: ${accessory.displayName} Removing Fanv2 Service`);
-
-      if (this.otherDeviceType === undefined) {
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} No Device Type Set, deviceType: ${device.other?.deviceType}`);
-      }
-      this.fanService = this.accessory.getService(this.platform.Service.Fanv2);
-      accessory.removeService(this.fanService!);
-    } else if (!this.fanService && this.otherDeviceType === 'Fan') {
-      this.debugLog(`${this.device.remoteType}: ${accessory.displayName} Add Fanv2 Service`);
-      (this.fanService = this.accessory.getService(this.platform.Service.Fanv2) || this.accessory.addService(this.platform.Service.Fanv2)),
-      `${accessory.displayName} Fan`;
-
-      this.fanService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Fan`);
-      if (!this.fanService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-        this.fanService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Fan`);
-      }
-      this.fanService.getCharacteristic(this.platform.Characteristic.Active).onSet(this.ActiveSet.bind(this));
+    if (accessory.context.FirmwareRevision) {
+      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+        + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+      accessory
+        .getService(this.platform.Service.AccessoryInformation)!
+        .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
+        .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
+        .updateValue(accessory.context.FirmwareRevision);
     } else {
-      this.debugLog(`${this.device.remoteType}: ${accessory.displayName} Fanv2 Service Not Added, deviceType: ${device.other?.deviceType}`);
+      this.setFirmwareRevision(accessory, device);
+    }
+
+    // deviceType
+    if (this.otherDeviceType === 'switch') {
+      this.removeFanService(accessory);
+      this.removeLockService(accessory);
+      this.removeDoorService(accessory);
+      this.removeFaucetService(accessory);
+      this.removeOutletService(accessory);
+      this.removeWindowService(accessory);
+      this.removeGarageDoorService(accessory);
+      this.removeWindowCoveringService(accessory);
+      this.removeStatefulProgrammableSwitchService(accessory);
+
+      // Add switchService
+      (this.switchService = accessory.getService(this.platform.Service.Switch) || accessory.addService(this.platform.Service.Switch)),
+      `${accessory.displayName} Switch`;
+      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Switch`);
+
+      this.switchService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      if (!this.switchService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.switchService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+      }
+      this.switchService.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
+    } else if (this.otherDeviceType === 'garagedoor') {
+      this.removeFanService(accessory);
+      this.removeLockService(accessory);
+      this.removeDoorService(accessory);
+      this.removeFaucetService(accessory);
+      this.removeOutletService(accessory);
+      this.removeSwitchService(accessory);
+      this.removeWindowService(accessory);
+      this.removeWindowCoveringService(accessory);
+      this.removeStatefulProgrammableSwitchService(accessory);
+
+      // Add switchService
+      (this.garageDoorService =
+    accessory.getService(this.platform.Service.GarageDoorOpener) || accessory.addService(this.platform.Service.GarageDoorOpener)),
+      `${accessory.displayName} Garage Door Opener`;
+      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Garage Door Opener`);
+
+      this.garageDoorService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      if (!this.garageDoorService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.garageDoorService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+      }
+      this.garageDoorService.getCharacteristic(this.platform.Characteristic.TargetDoorState).onSet(this.OnSet.bind(this));
+      this.garageDoorService.setCharacteristic(this.platform.Characteristic.ObstructionDetected, false);
+    } else if (this.otherDeviceType === 'door') {
+      this.removeFanService(accessory);
+      this.removeLockService(accessory);
+      this.removeOutletService(accessory);
+      this.removeFaucetService(accessory);
+      this.removeSwitchService(accessory);
+      this.removeWindowService(accessory);
+      this.removeGarageDoorService(accessory);
+      this.removeWindowCoveringService(accessory);
+      this.removeStatefulProgrammableSwitchService(accessory);
+
+      // Add switchService
+      (this.doorService = accessory.getService(this.platform.Service.Door) || accessory.addService(this.platform.Service.Door)),
+      `${accessory.displayName} Door`;
+      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Door`);
+
+      this.doorService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      if (!this.doorService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.doorService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+      }
+      this.doorService
+        .getCharacteristic(this.platform.Characteristic.TargetPosition)
+        .setProps({
+          validValues: [0, 100],
+          minValue: 0,
+          maxValue: 100,
+          minStep: 100,
+        })
+        .onSet(this.OnSet.bind(this));
+      this.doorService.setCharacteristic(this.platform.Characteristic.PositionState, this.platform.Characteristic.PositionState.STOPPED);
+    } else if (this.otherDeviceType === 'window') {
+      this.removeFanService(accessory);
+      this.removeLockService(accessory);
+      this.removeDoorService(accessory);
+      this.removeOutletService(accessory);
+      this.removeFaucetService(accessory);
+      this.removeSwitchService(accessory);
+      this.removeGarageDoorService(accessory);
+      this.removeWindowCoveringService(accessory);
+      this.removeStatefulProgrammableSwitchService(accessory);
+
+      // Add switchService
+      (this.windowService = accessory.getService(this.platform.Service.Window) || accessory.addService(this.platform.Service.Window)),
+      `${accessory.displayName} Window`;
+      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Window`);
+
+      this.windowService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      if (!this.windowService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.windowService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+      }
+      this.windowService
+        .getCharacteristic(this.platform.Characteristic.TargetPosition)
+        .setProps({
+          validValues: [0, 100],
+          minValue: 0,
+          maxValue: 100,
+          minStep: 100,
+        })
+        .onSet(this.OnSet.bind(this));
+      this.windowService.setCharacteristic(this.platform.Characteristic.PositionState, this.platform.Characteristic.PositionState.STOPPED);
+    } else if (this.otherDeviceType === 'windowcovering') {
+      this.removeFanService(accessory);
+      this.removeLockService(accessory);
+      this.removeDoorService(accessory);
+      this.removeOutletService(accessory);
+      this.removeFaucetService(accessory);
+      this.removeSwitchService(accessory);
+      this.removeWindowService(accessory);
+      this.removeGarageDoorService(accessory);
+      this.removeStatefulProgrammableSwitchService(accessory);
+
+      // Add switchService
+      (this.windowCoveringService =
+    accessory.getService(this.platform.Service.WindowCovering) || accessory.addService(this.platform.Service.WindowCovering)),
+      `${accessory.displayName} Window Covering`;
+      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Window Covering`);
+
+      this.windowCoveringService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      if (!this.windowCoveringService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.windowCoveringService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+      }
+      this.windowCoveringService
+        .getCharacteristic(this.platform.Characteristic.TargetPosition)
+        .setProps({
+          validValues: [0, 100],
+          minValue: 0,
+          maxValue: 100,
+          minStep: 100,
+        })
+        .onSet(this.OnSet.bind(this));
+      this.windowCoveringService.setCharacteristic(this.platform.Characteristic.PositionState, this.platform.Characteristic.PositionState.STOPPED);
+    } else if (this.otherDeviceType === 'lock') {
+      this.removeFanService(accessory);
+      this.removeDoorService(accessory);
+      this.removeOutletService(accessory);
+      this.removeSwitchService(accessory);
+      this.removeFaucetService(accessory);
+      this.removeWindowService(accessory);
+      this.removeGarageDoorService(accessory);
+      this.removeWindowCoveringService(accessory);
+      this.removeStatefulProgrammableSwitchService(accessory);
+
+      // Add switchService
+      (this.lockService = accessory.getService(this.platform.Service.LockMechanism) || accessory.addService(this.platform.Service.LockMechanism)),
+      `${accessory.displayName} Lock`;
+      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Lock`);
+
+      this.lockService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      if (!this.lockService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.lockService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+      }
+      this.lockService.getCharacteristic(this.platform.Characteristic.LockTargetState).onSet(this.OnSet.bind(this));
+    } else if (this.otherDeviceType === 'faucet') {
+      this.removeFanService(accessory);
+      this.removeLockService(accessory);
+      this.removeDoorService(accessory);
+      this.removeOutletService(accessory);
+      this.removeSwitchService(accessory);
+      this.removeWindowService(accessory);
+      this.removeGarageDoorService(accessory);
+      this.removeWindowCoveringService(accessory);
+      this.removeStatefulProgrammableSwitchService(accessory);
+
+      // Add switchService
+      (this.faucetService = accessory.getService(this.platform.Service.Faucet) || accessory.addService(this.platform.Service.Faucet)),
+      `${accessory.displayName} Faucet`;
+      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Faucet`);
+
+      this.faucetService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      if (!this.faucetService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.faucetService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+      }
+      this.faucetService.getCharacteristic(this.platform.Characteristic.Active).onSet(this.OnSet.bind(this));
+    } else if (this.otherDeviceType === 'fan') {
+      this.removeLockService(accessory);
+      this.removeDoorService(accessory);
+      this.removeFaucetService(accessory);
+      this.removeOutletService(accessory);
+      this.removeSwitchService(accessory);
+      this.removeWindowService(accessory);
+      this.removeGarageDoorService(accessory);
+      this.removeWindowCoveringService(accessory);
+      this.removeStatefulProgrammableSwitchService(accessory);
+
+      // Add switchService
+      (this.fanService = accessory.getService(this.platform.Service.Fan) || accessory.addService(this.platform.Service.Fan)),
+      `${accessory.displayName} Fan`;
+      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Fan`);
+
+      this.fanService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      if (!this.fanService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.fanService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+      }
+      this.fanService.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
+    } else if (this.otherDeviceType === 'stateful') {
+      this.removeFanService(accessory);
+      this.removeLockService(accessory);
+      this.removeDoorService(accessory);
+      this.removeFaucetService(accessory);
+      this.removeOutletService(accessory);
+      this.removeSwitchService(accessory);
+      this.removeWindowService(accessory);
+      this.removeGarageDoorService(accessory);
+      this.removeWindowCoveringService(accessory);
+
+      // Add switchService
+      (this.statefulProgrammableSwitchService =
+    accessory.getService(this.platform.Service.StatefulProgrammableSwitch) ||
+    accessory.addService(this.platform.Service.StatefulProgrammableSwitch)),
+      `${accessory.displayName} Stateful Programmable Switch`;
+      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Stateful Programmable Switch`);
+
+      this.statefulProgrammableSwitchService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      if (!this.statefulProgrammableSwitchService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.statefulProgrammableSwitchService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+      }
+      this.statefulProgrammableSwitchService
+        .getCharacteristic(this.platform.Characteristic.ProgrammableSwitchOutputState)
+        .onSet(this.OnSet.bind(this));
+    } else {
+      this.removeFanService(accessory);
+      this.removeLockService(accessory);
+      this.removeDoorService(accessory);
+      this.removeFaucetService(accessory);
+      this.removeSwitchService(accessory);
+      this.removeWindowService(accessory);
+      this.removeGarageDoorService(accessory);
+      this.removeWindowCoveringService(accessory);
+      this.removeStatefulProgrammableSwitchService(accessory);
+
+      // Add outletService
+      (this.outletService = accessory.getService(this.platform.Service.Outlet) || accessory.addService(this.platform.Service.Outlet)),
+      `${accessory.displayName} Outlet`;
+      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Outlet`);
+
+      this.outletService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      if (!this.outletService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.outletService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+      }
+      this.outletService.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
     }
   }
 
-  async ActiveSet(value: CharacteristicValue): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${value}`);
+  /**
+   * Handle requests to set the "On" characteristic
+   */
+  async OnSet(value: CharacteristicValue): Promise<void> {
+    if (this.otherDeviceType === 'garagedoor') {
+      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Set TargetDoorState: ${value}`);
+      if (value === this.platform.Characteristic.TargetDoorState.CLOSED) {
+        this.On = false;
+      } else {
+        this.On = true;
+      }
+    } else if (
+      this.otherDeviceType === 'door' ||
+      this.otherDeviceType === 'window' ||
+      this.otherDeviceType === 'windowcovering'
+    ) {
+      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Set TargetPosition: ${value}`);
+      if (value === 0) {
+        this.On = false;
+      } else {
+        this.On = true;
+      }
+    } else if (this.otherDeviceType === 'lock') {
+      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Set LockTargetState: ${value}`);
+      if (value === this.platform.Characteristic.LockTargetState.SECURED) {
+        this.On = false;
+      } else {
+        this.On = true;
+      }
+    } else if (this.otherDeviceType === 'faucet') {
+      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Active: ${value}`);
+      if (value === this.platform.Characteristic.Active.INACTIVE) {
+        this.On = false;
+      } else {
+        this.On = true;
+      }
+    } else if (this.otherDeviceType === 'stateful') {
+      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Set ProgrammableSwitchOutputState: ${value}`);
+      if (value === 0) {
+        this.On = false;
+      } else {
+        this.On = true;
+      }
+    } else {
+      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Set On: ${value}`);
+      this.On = value;
+    }
 
-    this.Active = value;
-    if (this.Active) {
+    //pushChanges
+    if (this.On) {
       await this.pushOnChanges();
     } else {
       await this.pushOffChanges();
@@ -93,11 +380,11 @@ export class Others {
    */
   async pushOnChanges(): Promise<void> {
     this.debugLog(
-      `${this.device.remoteType}: ${this.accessory.displayName} pushOnChanges Active: ${this.Active},` +
+      `${this.device.remoteType}: ${this.accessory.displayName} pushOnChanges On: ${this.On},` +
       ` disablePushOn: ${this.disablePushOn}, customize: ${this.device.customize}, customOn: ${this.device.customOn}`,
     );
     if (this.device.customize) {
-      if (this.Active === this.platform.Characteristic.Active.ACTIVE && !this.disablePushOn) {
+      if (this.On && !this.disablePushOn) {
         const commandType: string = await this.commandType();
         const command: string = await this.commandOn();
         const bodyChange = JSON.stringify({
@@ -114,11 +401,11 @@ export class Others {
 
   async pushOffChanges(): Promise<void> {
     this.debugLog(
-      `${this.device.remoteType}: ${this.accessory.displayName} pushOffChanges Active: ${this.Active},` +
+      `${this.device.remoteType}: ${this.accessory.displayName} pushOffChanges On: ${this.On},` +
       ` disablePushOff: ${this.disablePushOff}, customize: ${this.device.customize}, customOff: ${this.device.customOff}`,
     );
     if (this.device.customize) {
-      if (this.Active === this.platform.Characteristic.Active.INACTIVE && !this.disablePushOff) {
+      if (!this.On && !this.disablePushOff) {
         const commandType: string = await this.commandType();
         const command: string = await this.commandOff();
         const bodyChange = JSON.stringify({
@@ -174,13 +461,190 @@ export class Others {
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
-    // Active
-    if (this.Active === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Active}`);
+    if (this.otherDeviceType === 'garagedoor') {
+      if (this.On === undefined) {
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.On}`);
+      } else {
+        if (this.On) {
+          this.garageDoorService?.updateCharacteristic(
+            this.platform.Characteristic.TargetDoorState,
+            this.platform.Characteristic.TargetDoorState.OPEN,
+          );
+          this.garageDoorService?.updateCharacteristic(
+            this.platform.Characteristic.CurrentDoorState,
+            this.platform.Characteristic.CurrentDoorState.OPEN,
+          );
+          this.debugLog(
+            `${this.device.remoteType}: ` + `${this.accessory.displayName} updateCharacteristic TargetDoorState: Open, CurrentDoorState: Open`,
+          );
+        } else {
+          this.garageDoorService?.updateCharacteristic(
+            this.platform.Characteristic.TargetDoorState,
+            this.platform.Characteristic.TargetDoorState.CLOSED,
+          );
+          this.garageDoorService?.updateCharacteristic(
+            this.platform.Characteristic.CurrentDoorState,
+            this.platform.Characteristic.CurrentDoorState.CLOSED,
+          );
+          this.debugLog(
+            `${this.device.remoteType}: ` + `${this.accessory.displayName} updateCharacteristic TargetDoorState: Open, CurrentDoorState: Open`,
+          );
+        }
+      }
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Garage Door On: ${this.On}`);
+    } else if (this.otherDeviceType === 'door') {
+      if (this.On === undefined) {
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.On}`);
+      } else {
+        if (this.On) {
+          this.doorService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, 100);
+          this.doorService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, 100);
+          this.doorService?.updateCharacteristic(this.platform.Characteristic.PositionState, this.platform.Characteristic.PositionState.STOPPED);
+          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic TargetPosition: 100, CurrentPosition: 100`);
+        } else {
+          this.doorService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, 0);
+          this.doorService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, 0);
+          this.doorService?.updateCharacteristic(this.platform.Characteristic.PositionState, this.platform.Characteristic.PositionState.STOPPED);
+          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic TargetPosition: 0, CurrentPosition: 0`);
+        }
+      }
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Door On: ${this.On}`);
+    } else if (this.otherDeviceType === 'window') {
+      if (this.On === undefined) {
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.On}`);
+      } else {
+        if (this.On) {
+          this.windowService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, 100);
+          this.windowService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, 100);
+          this.windowService?.updateCharacteristic(this.platform.Characteristic.PositionState, this.platform.Characteristic.PositionState.STOPPED);
+          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic TargetPosition: 100, CurrentPosition: 100`);
+        } else {
+          this.windowService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, 0);
+          this.windowService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, 0);
+          this.windowService?.updateCharacteristic(this.platform.Characteristic.PositionState, this.platform.Characteristic.PositionState.STOPPED);
+          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic TargetPosition: 0, CurrentPosition: 0`);
+        }
+      }
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Window On: ${this.On}`);
+    } else if (this.otherDeviceType === 'windowcovering') {
+      if (this.On === undefined) {
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.On}`);
+      } else {
+        if (this.On) {
+          this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, 100);
+          this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, 100);
+          this.windowCoveringService?.updateCharacteristic(
+            this.platform.Characteristic.PositionState,
+            this.platform.Characteristic.PositionState.STOPPED,
+          );
+          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic TargetPosition: 100, CurrentPosition: 100`);
+        } else {
+          this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, 0);
+          this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, 0);
+          this.windowCoveringService?.updateCharacteristic(
+            this.platform.Characteristic.PositionState,
+            this.platform.Characteristic.PositionState.STOPPED,
+          );
+          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic TargetPosition: 0, CurrentPosition: 0`);
+        }
+      }
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Window Covering On: ${this.On}`);
+    } else if (this.otherDeviceType === 'lock') {
+      if (this.On === undefined) {
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.On}`);
+      } else {
+        if (this.On) {
+          this.lockService?.updateCharacteristic(
+            this.platform.Characteristic.LockTargetState,
+            this.platform.Characteristic.LockTargetState.UNSECURED,
+          );
+          this.lockService?.updateCharacteristic(
+            this.platform.Characteristic.LockCurrentState,
+            this.platform.Characteristic.LockCurrentState.UNSECURED,
+          );
+          this.debugLog(
+            `${this.device.remoteType}: ` +
+            `${this.accessory.displayName} updateCharacteristic LockTargetState: UNSECURED, LockCurrentState: UNSECURED`,
+          );
+        } else {
+          this.lockService?.updateCharacteristic(this.platform.Characteristic.LockTargetState, this.platform.Characteristic.LockTargetState.SECURED);
+          this.lockService?.updateCharacteristic(
+            this.platform.Characteristic.LockCurrentState,
+            this.platform.Characteristic.LockCurrentState.SECURED,
+          );
+          this.debugLog(
+            `${this.device.remoteType}: ` + `${this.accessory.displayName} updateCharacteristic LockTargetState: SECURED, LockCurrentState: SECURED`,
+          );
+        }
+      }
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Lock On: ${this.On}`);
+    } else if (this.otherDeviceType === 'faucet') {
+      if (this.On === undefined) {
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.On}`);
+      } else {
+        if (this.On) {
+          this.faucetService?.updateCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.ACTIVE);
+          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.On}`);
+        } else {
+          this.faucetService?.updateCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.INACTIVE);
+          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.On}`);
+        }
+      }
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Faucet On: ${this.On}`);
+    } else if (this.otherDeviceType === 'fan') {
+      if (this.On === undefined) {
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.On}`);
+      } else {
+        if (this.On) {
+          this.fanService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
+          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+        } else {
+          this.fanService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
+          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+        }
+      }
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Fan On: ${this.On}`);
+    } else if (this.otherDeviceType === 'stateful') {
+      if (this.On === undefined) {
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.On}`);
+      } else {
+        if (this.On) {
+          this.statefulProgrammableSwitchService?.updateCharacteristic(
+            this.platform.Characteristic.ProgrammableSwitchEvent,
+            this.platform.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
+          );
+          this.statefulProgrammableSwitchService?.updateCharacteristic(this.platform.Characteristic.ProgrammableSwitchOutputState, 1);
+          this.debugLog(
+            `${this.device.remoteType}: ` +
+            `${this.accessory.displayName} updateCharacteristic ProgrammableSwitchEvent: SINGLE, ProgrammableSwitchOutputState: 1`,
+          );
+        } else {
+          this.statefulProgrammableSwitchService?.updateCharacteristic(
+            this.platform.Characteristic.ProgrammableSwitchEvent,
+            this.platform.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
+          );
+          this.statefulProgrammableSwitchService?.updateCharacteristic(this.platform.Characteristic.ProgrammableSwitchOutputState, 0);
+          this.debugLog(
+            `${this.device.remoteType}: ` +
+            `${this.accessory.displayName} updateCharacteristic ProgrammableSwitchEvent: SINGLE, ProgrammableSwitchOutputState: 0`,
+          );
+        }
+      }
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} StatefulProgrammableSwitch On: ${this.On}`);
+    } else if (this.otherDeviceType === 'switch') {
+      if (this.On === undefined) {
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.On}`);
+      } else {
+        this.switchService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+      }
     } else {
-      this.accessory.context.Active = this.Active;
-      this.fanService?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
+      if (this.On === undefined) {
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.On}`);
+      } else {
+        this.outletService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+      }
     }
     // FirmwareRevision
     if (this.FirmwareRevision === undefined) {
@@ -212,7 +676,9 @@ export class Others {
 
   async commandType(): Promise<string> {
     let commandType: string;
-    if (this.device.customize) {
+    if (this.device.commandType && this.device.customize) {
+      commandType = this.device.commandType;
+    } else if (this.device.customize) {
       commandType = 'customize';
     } else {
       commandType = 'command';
@@ -281,43 +747,171 @@ export class Others {
   }
 
   async apiError(e: any): Promise<void> {
-    this.fanService?.updateCharacteristic(this.platform.Characteristic.Active, e);
-    //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+    if (this.otherDeviceType === 'garagedoor') {
+      this.garageDoorService?.updateCharacteristic(this.platform.Characteristic.TargetDoorState, e);
+      this.garageDoorService?.updateCharacteristic(this.platform.Characteristic.CurrentDoorState, e);
+      this.garageDoorService?.updateCharacteristic(this.platform.Characteristic.ObstructionDetected, e);
+    } else if (this.otherDeviceType === 'door') {
+      this.doorService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, e);
+      this.doorService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, e);
+      this.doorService?.updateCharacteristic(this.platform.Characteristic.PositionState, e);
+    } else if (this.otherDeviceType === 'window') {
+      this.windowService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, e);
+      this.windowService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, e);
+      this.windowService?.updateCharacteristic(this.platform.Characteristic.PositionState, e);
+    } else if (this.otherDeviceType === 'windowcovering') {
+      this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, e);
+      this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, e);
+      this.windowCoveringService?.updateCharacteristic(this.platform.Characteristic.PositionState, e);
+    } else if (this.otherDeviceType === 'lock') {
+      this.doorService?.updateCharacteristic(this.platform.Characteristic.LockTargetState, e);
+      this.doorService?.updateCharacteristic(this.platform.Characteristic.LockCurrentState, e);
+    } else if (this.otherDeviceType === 'faucet') {
+      this.faucetService?.updateCharacteristic(this.platform.Characteristic.Active, e);
+    } else if (this.otherDeviceType === 'fan') {
+      this.fanService?.updateCharacteristic(this.platform.Characteristic.On, e);
+    } else if (this.otherDeviceType === 'stateful') {
+      this.statefulProgrammableSwitchService?.updateCharacteristic(this.platform.Characteristic.ProgrammableSwitchEvent, e);
+      this.statefulProgrammableSwitchService?.updateCharacteristic(this.platform.Characteristic.ProgrammableSwitchOutputState, e);
+    } else if (this.otherDeviceType === 'switch') {
+      this.switchService?.updateCharacteristic(this.platform.Characteristic.On, e);
+    } else {
+      this.outletService?.updateCharacteristic(this.platform.Characteristic.On, e);
+    }
+  }
+
+  async removeOutletService(accessory: PlatformAccessory): Promise<void> {
+    // If outletService still pressent, then remove first
+    this.outletService = this.accessory.getService(this.platform.Service.Outlet);
+    if (this.outletService) {
+      this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Outlet Service`);
+    }
+    accessory.removeService(this.outletService!);
+  }
+
+  async removeGarageDoorService(accessory: PlatformAccessory): Promise<void> {
+    // If garageDoorService still pressent, then remove first
+    this.garageDoorService = this.accessory.getService(this.platform.Service.GarageDoorOpener);
+    if (this.garageDoorService) {
+      this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Garage Door Service`);
+    }
+    accessory.removeService(this.garageDoorService!);
+  }
+
+  async removeDoorService(accessory: PlatformAccessory): Promise<void> {
+    // If doorService still pressent, then remove first
+    this.doorService = this.accessory.getService(this.platform.Service.Door);
+    if (this.doorService) {
+      this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Door Service`);
+    }
+    accessory.removeService(this.doorService!);
+  }
+
+  async removeLockService(accessory: PlatformAccessory): Promise<void> {
+    // If lockService still pressent, then remove first
+    this.lockService = this.accessory.getService(this.platform.Service.LockMechanism);
+    if (this.lockService) {
+      this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Lock Service`);
+    }
+    accessory.removeService(this.lockService!);
+  }
+
+  async removeFaucetService(accessory: PlatformAccessory): Promise<void> {
+    // If faucetService still pressent, then remove first
+    this.faucetService = this.accessory.getService(this.platform.Service.Faucet);
+    if (this.faucetService) {
+      this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Faucet Service`);
+    }
+    accessory.removeService(this.faucetService!);
+  }
+
+  async removeFanService(accessory: PlatformAccessory): Promise<void> {
+    // If fanService still pressent, then remove first
+    this.fanService = this.accessory.getService(this.platform.Service.Fan);
+    if (this.fanService) {
+      this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Fan Service`);
+    }
+    accessory.removeService(this.fanService!);
+  }
+
+  async removeWindowService(accessory: PlatformAccessory): Promise<void> {
+    // If windowService still pressent, then remove first
+    this.windowService = this.accessory.getService(this.platform.Service.Window);
+    if (this.windowService) {
+      this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Window Service`);
+    }
+    accessory.removeService(this.windowService!);
+  }
+
+  async removeWindowCoveringService(accessory: PlatformAccessory): Promise<void> {
+    // If windowCoveringService still pressent, then remove first
+    this.windowCoveringService = this.accessory.getService(this.platform.Service.WindowCovering);
+    if (this.windowCoveringService) {
+      this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Window Covering Service`);
+    }
+    accessory.removeService(this.windowCoveringService!);
+  }
+
+  async removeStatefulProgrammableSwitchService(accessory: PlatformAccessory): Promise<void> {
+    // If statefulProgrammableSwitchService still pressent, then remove first
+    this.statefulProgrammableSwitchService = this.accessory.getService(this.platform.Service.StatefulProgrammableSwitch);
+    if (this.statefulProgrammableSwitchService) {
+      this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Stateful Programmable Switch Service`);
+    }
+    accessory.removeService(this.statefulProgrammableSwitchService!);
+  }
+
+  async removeSwitchService(accessory: PlatformAccessory): Promise<void> {
+    // If switchService still pressent, then remove first
+    this.switchService = this.accessory.getService(this.platform.Service.Switch);
+    if (this.switchService) {
+      this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Switch Service`);
+    }
+    accessory.removeService(this.switchService!);
   }
 
   async deviceType(device: irdevice & irDevicesConfig): Promise<void> {
-    if (device.other?.deviceType) {
-      this.otherDeviceType = this.accessory.context.deviceType = device.other.deviceType;
-      if (this.deviceLogging.includes('debug') || this.deviceLogging === 'standard') {
-        this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Type: ${this.otherDeviceType}`);
-      }
+    if (!device.other?.deviceType && this.accessory.context.deviceType) {
+      this.otherDeviceType = this.accessory.context.deviceType;
+      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Type: ${this.otherDeviceType}, from Accesory Cache.`);
+    } else if (device.other?.deviceType) {
+      this.accessory.context.deviceType = device.other.deviceType;
+      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Accesory Cache: ${this.accessory.context.deviceType}`);
+      this.otherDeviceType = this.accessory.context.deviceType;
+      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Type: ${this.otherDeviceType}`);
     } else {
-      this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} No Device Type Set, deviceType: ${this.device.other?.deviceType}`);
+      this.otherDeviceType = 'outlet';
+      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName} no deviceType set, using default deviceType: ${this.otherDeviceType}`);
     }
   }
 
-  setFirmwareRevision(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): string {
-    this.debugLog(
-      `${this.device.remoteType}: ${this.accessory.displayName}` + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`,
-    );
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
-    if (accessory.context.FirmwareRevision) {
+
+
+  async setFirmwareRevision(accessory: PlatformAccessory, device: irdevice & irDevicesConfig) {
+    if (device.firmware) {
+      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
+      accessory.context.FirmwareRevision = device.firmware;
       this.FirmwareRevision = accessory.context.FirmwareRevision;
-    } else if (device.firmware) {
-      this.FirmwareRevision = device.firmware;
+      this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware, FirmwareRevision: ${this.FirmwareRevision}`);
     } else {
-      this.FirmwareRevision = this.platform.version!;
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
+      accessory.context.FirmwareRevision = this.platform.version;
+      this.FirmwareRevision = accessory.context.FirmwareRevision;
+      this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version, FirmwareRevision: ${this.FirmwareRevision}`);
     }
-    this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
-    return JSON.stringify(this.FirmwareRevision);
+    this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
+    accessory
+      .getService(this.platform.Service.AccessoryInformation)!
+      .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
+      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
+      .updateValue(this.FirmwareRevision);
   }
 
   async context() {
-    if (this.Active === undefined) {
-      this.Active = this.platform.Characteristic.Active.INACTIVE;
+    if (this.On === undefined) {
+      this.On = true;
     } else {
-      this.Active = this.accessory.context.Active;
+      this.On = this.accessory.context.On;
     }
   }
 

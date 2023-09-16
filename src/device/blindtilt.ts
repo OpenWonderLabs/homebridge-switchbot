@@ -114,10 +114,20 @@ export class BlindTilt {
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, 'W2701600')
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.setFirmwareRevision(accessory, device))
-      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-      .updateValue(this.setFirmwareRevision(accessory, device));
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
+
+    if (accessory.context.FirmwareRevision) {
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+        + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+      accessory
+        .getService(this.platform.Service.AccessoryInformation)!
+        .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
+        .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
+        .updateValue(accessory.context.FirmwareRevision);
+    } else {
+      this.setFirmwareRevision(accessory, device);
+    }
 
     // get the WindowCovering service if it exists, otherwise create a new WindowCovering service
     // you can create multiple services for each accessory
@@ -444,7 +454,7 @@ export class BlindTilt {
     + ` StatusLowBattery: ${this.StatusLowBattery}`);
 
     // FirmwareRevision
-    this.FirmwareRevision = JSON.stringify(this.OpenAPI_FirmwareRevision);
+    this.FirmwareRevision = this.OpenAPI_FirmwareRevision!;
   }
 
   async refreshStatus(): Promise<void> {
@@ -895,8 +905,11 @@ export class BlindTilt {
         this.mqttPublish('FirmwareRevision', this.FirmwareRevision);
       }
       this.accessory.context.FirmwareRevision = this.FirmwareRevision;
-      this.accessory.getService(this.platform.Service.AccessoryInformation)!
-        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      this.batteryService.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      if (!this.device.blindTilt?.hide_lightsensor) {
+        this.lightSensorService!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      }
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
         + `updateCharacteristic FirmwareRevision: ${this.FirmwareRevision}`);
     }
@@ -1132,23 +1145,30 @@ export class BlindTilt {
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
-  setFirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
-    this.debugLog(
-      `${this.device.deviceType}: ${this.accessory.displayName}` + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`,
-    );
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
+  async setFirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig) {
+    await this.refreshStatus();
     if (device.firmware) {
-      this.FirmwareRevision = device.firmware;
-    } else if (device.version) {
-      this.FirmwareRevision = JSON.stringify(device.version);
-    } else if (accessory.context.FirmwareRevision) {
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
+      accessory.context.FirmwareRevision = device.firmware;
       this.FirmwareRevision = accessory.context.FirmwareRevision;
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware, FirmwareRevision: ${this.FirmwareRevision}`);
+    } else if (device.version) {
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} device.version: ${device.version}`);
+      accessory.context.FirmwareRevision = device.version;
+      this.FirmwareRevision = accessory.context.FirmwareRevision;
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} device.version, FirmwareRevision: ${this.FirmwareRevision}`);
     } else {
-      this.FirmwareRevision = this.platform.version;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
+      accessory.context.FirmwareRevision = this.platform.version;
+      this.FirmwareRevision = accessory.context.FirmwareRevision;
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version, FirmwareRevision: ${this.FirmwareRevision}`);
     }
-    this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
-    return this.FirmwareRevision;
+    this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
+    accessory
+      .getService(this.platform.Service.AccessoryInformation)!
+      .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
+      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
+      .updateValue(this.FirmwareRevision);
   }
 
   async context() {

@@ -2,8 +2,7 @@ import { connectAsync } from 'async-mqtt';
 import { CharacteristicValue, PlatformAccessory, Service, Units } from 'homebridge';
 import { MqttClient } from 'mqtt';
 import { hostname } from 'os';
-import { Subject, interval } from 'rxjs';
-import { skipWhile } from 'rxjs/operators';
+import { interval } from 'rxjs';
 import { request } from 'undici';
 import { Context } from 'vm';
 import { SwitchBotPlatform } from '../platform';
@@ -18,8 +17,8 @@ import { sleep } from '../utils';
 export class MeterPlus {
   // Services
   batteryService: Service;
-  humidityservice?: Service;
-  temperatureservice?: Service;
+  humidityService?: Service;
+  temperatureService?: Service;
 
   // Characteristic Values
   BatteryLevel!: CharacteristicValue;
@@ -55,10 +54,6 @@ export class MeterPlus {
   deviceLogging!: string;
   deviceRefreshRate!: number;
 
-  // Updates
-  meterUpdateInProgress!: boolean;
-  doMeterUpdate: Subject<void>;
-
   // Connection
   private readonly BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
   private readonly OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
@@ -72,14 +67,10 @@ export class MeterPlus {
     this.logs(device);
     this.scan(device);
     this.refreshRate(device);
-    this.context();
+    this.context(accessory, device);
     this.setupHistoryService(device);
     this.setupMqtt(device);
     this.config(device);
-
-    // this is subject we use to track when we need to POST changes to the SwitchBot API
-    this.doMeterUpdate = new Subject();
-    this.meterUpdateInProgress = false;
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();
@@ -89,27 +80,37 @@ export class MeterPlus {
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, this.model(device))
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.setFirmwareRevision(accessory, device))
-      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-      .updateValue(this.setFirmwareRevision(accessory, device));
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
+
+    if (accessory.context.FirmwareRevision) {
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+        + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
+      accessory
+        .getService(this.platform.Service.AccessoryInformation)!
+        .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
+        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
+        .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
+        .updateValue(accessory.context.FirmwareRevision);
+    } else {
+      this.setFirmwareRevision(accessory, device);
+    }
 
     // Temperature Sensor Service
     if (device.meter?.hide_temperature) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Temperature Sensor Service`);
-      this.temperatureservice = this.accessory.getService(this.platform.Service.TemperatureSensor);
-      accessory.removeService(this.temperatureservice!);
-    } else if (!this.temperatureservice) {
+      this.temperatureService = this.accessory.getService(this.platform.Service.TemperatureSensor);
+      accessory.removeService(this.temperatureService!);
+    } else if (!this.temperatureService) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Temperature Sensor Service`);
-      (this.temperatureservice =
+      (this.temperatureService =
         this.accessory.getService(this.platform.Service.TemperatureSensor) || this.accessory.addService(this.platform.Service.TemperatureSensor)),
       `${accessory.displayName} Temperature Sensor`;
 
-      this.temperatureservice.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
-      if (!this.temperatureservice.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-        this.temperatureservice.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Temperature Sensor`);
+      this.temperatureService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
+      if (!this.temperatureService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.temperatureService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Temperature Sensor`);
       }
-      this.temperatureservice
+      this.temperatureService
         .getCharacteristic(this.platform.Characteristic.CurrentTemperature)
         .setProps({
           unit: Units['CELSIUS'],
@@ -128,19 +129,19 @@ export class MeterPlus {
     // Humidity Sensor Service
     if (device.meter?.hide_humidity) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Humidity Sensor Service`);
-      this.humidityservice = this.accessory.getService(this.platform.Service.HumiditySensor);
-      accessory.removeService(this.humidityservice!);
-    } else if (!this.humidityservice) {
+      this.humidityService = this.accessory.getService(this.platform.Service.HumiditySensor);
+      accessory.removeService(this.humidityService!);
+    } else if (!this.humidityService) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Humidity Sensor Service`);
-      (this.humidityservice =
+      (this.humidityService =
         this.accessory.getService(this.platform.Service.HumiditySensor) || this.accessory.addService(this.platform.Service.HumiditySensor)),
       `${accessory.displayName} Humidity Sensor`;
 
-      this.humidityservice.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
-      if (!this.humidityservice.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-        this.humidityservice.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Humidity Sensor`);
+      this.humidityService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
+      if (!this.humidityService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.humidityService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Humidity Sensor`);
       }
-      this.humidityservice
+      this.humidityService
         .getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
         .setProps({
           minStep: 0.1,
@@ -167,7 +168,6 @@ export class MeterPlus {
 
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
-      .pipe(skipWhile(() => this.meterUpdateInProgress))
       .subscribe(async () => {
         await this.refreshStatus();
       });
@@ -255,7 +255,7 @@ export class MeterPlus {
     + ` StatusLowBattery: ${this.StatusLowBattery}`);
 
     // FirmwareRevision
-    this.FirmwareRevision = JSON.stringify(this.OpenAPI_FirmwareRevision);
+    this.FirmwareRevision = this.OpenAPI_FirmwareRevision!;
   }
 
   /**
@@ -392,18 +392,18 @@ export class MeterPlus {
       if (this.CurrentRelativeHumidity === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
       } else {
-        this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidity;
-        this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
-        this.debugLog(
-          `${this.device.deviceType}: ${this.accessory.displayName}` +
-          ` updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`,
-        );
         if (this.device.mqttURL) {
           mqttmessage.push(`"humidity": ${this.CurrentRelativeHumidity}`);
         }
         if (this.device.history) {
           entry['humidity'] = this.CurrentRelativeHumidity;
         }
+        this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidity;
+        this.humidityService?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
+        this.debugLog(
+          `${this.device.deviceType}: ${this.accessory.displayName}` +
+          ` updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`,
+        );
       }
     }
     // CurrentTemperature
@@ -418,7 +418,7 @@ export class MeterPlus {
           entry['temp'] = this.CurrentTemperature;
         }
         this.accessory.context.CurrentTemperature = this.CurrentTemperature;
-        this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
+        this.temperatureService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
       }
     }
@@ -452,8 +452,14 @@ export class MeterPlus {
         mqttmessage.push(`"FirmwareRevision": ${this.FirmwareRevision}`);
       }
       this.accessory.context.FirmwareRevision = this.FirmwareRevision;
-      this.accessory.getService(this.platform.Service.AccessoryInformation)!
-        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+
+      this.batteryService.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      if (!this.device.meter?.hide_humidity) {
+      this.humidityService!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      }
+      if (!this.device.meter?.hide_temperature) {
+      this.temperatureService!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
+      }
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
         + `updateCharacteristic FirmwareRevision: ${this.FirmwareRevision}`);
     }
@@ -623,42 +629,44 @@ export class MeterPlus {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      await this.context();
+      await this.context(this.accessory, this.device);
       await this.updateHomeKitCharacteristics();
     }
   }
 
   async apiError(e: any): Promise<void> {
     if (!this.device.meter?.hide_humidity) {
-      this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, e);
+      this.humidityService?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, e);
     }
     if (!this.device.meter?.hide_temperature) {
-      this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
+      this.temperatureService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
     }
     this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
     this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
   }
 
-  setFirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig): CharacteristicValue {
-    this.debugLog(
-      `${this.device.deviceType}: ${this.accessory.displayName}` + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`,
-    );
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
+  async setFirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig) {
+    await this.refreshStatus();
     if (device.firmware) {
-      this.FirmwareRevision = device.firmware;
-    } else if (device.version) {
-      this.FirmwareRevision = JSON.stringify(device.version);
-    } else if (accessory.context.FirmwareRevision) {
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
+      accessory.context.FirmwareRevision = device.firmware;
       this.FirmwareRevision = accessory.context.FirmwareRevision;
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware, FirmwareRevision: ${this.FirmwareRevision}`);
     } else {
-      this.FirmwareRevision = this.platform.version;
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} device.version: ${device.version}`);
+      accessory.context.FirmwareRevision = device.version;
+      this.FirmwareRevision = accessory.context.FirmwareRevision;
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} device.version, FirmwareRevision: ${this.FirmwareRevision}`);
     }
-    this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
-    return this.FirmwareRevision;
+    this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
+    accessory
+      .getService(this.platform.Service.AccessoryInformation)!
+      .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
+      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
+      .updateValue(this.FirmwareRevision);
   }
 
-  async context() {
+  async context(accessory, device) {
     if (this.CurrentRelativeHumidity === undefined) {
       this.CurrentRelativeHumidity = 0;
     } else {
@@ -679,6 +687,12 @@ export class MeterPlus {
       this.accessory.context.StatusLowBattery = this.StatusLowBattery;
     } else {
       this.StatusLowBattery = this.accessory.context.StatusLowBattery;
+    }
+    if (this.FirmwareRevision === undefined) {
+      this.FirmwareRevision = this.platform.version;
+    } else {
+      this.setFirmwareRevision(accessory, device);
+      this.FirmwareRevision = this.accessory.context.FirmwareRevision;
     }
   }
 

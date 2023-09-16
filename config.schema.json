@@ -240,7 +240,13 @@
                     "mode": {
                       "title": "Mode",
                       "type": "string",
+                      "required": true,
+                      "default": "",
                       "oneOf": [
+                        {
+                          "title": "Default",
+                          "enum": [""]
+                        },
                         {
                           "title": "Press",
                           "enum": ["press"]
@@ -262,7 +268,13 @@
                     "deviceType": {
                       "title": "What Type of Device do you want to display in the Home App?",
                       "type": "string",
+                      "required": true,
+                      "default": "",
                       "oneOf": [
+                        {
+                          "title": "Default",
+                          "enum": [""]
+                        },
                         {
                           "title": "Outlet",
                           "enum": ["outlet"]
@@ -306,7 +318,7 @@
                       ],
                       "placeholder": "outlet",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Bot' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].bot && model.options.devices[arrayIndices].bot.mode);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Bot' && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "allowPush": {
@@ -699,28 +711,28 @@
                   "type": "string",
                   "placeholder": "192.168.7.1",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
                   }
                 },
                 "mqttOptions": {
                   "title": "MQTT Options",
                   "type": "string",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].mqttURL && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].mqttURL && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
                   }
                 },
                 "mqttPubOptions": {
                   "title": "MQTT Pub Options",
                   "type": "string",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].mqttURL && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].mqttURL && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
                   }
                 },
                 "history": {
                   "title": "EVE History",
                   "type": "boolean",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
                   }
                 },
                 "firmware": {
@@ -972,6 +984,15 @@
                     "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType && model.options.irdevices[arrayIndices].customize);"
                   }
                 },
+                "commandType": {
+                  "title": "Command Type",
+                  "type": "string",
+                  "description": "Customize your command type, Default: command",
+                  "placeholder": "tag",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType && model.options.irdevices[arrayIndices].customize);"
+                  }
+                },
                 "disablePushOn": {
                   "title": "Disable Sending <em class='primary-text'> On </em> Command",
                   "type": "boolean",
@@ -1010,33 +1031,23 @@
                       "oneOf": [
                         {
                           "title": "Meter",
-                          "enum": [
-                            "Meter"
-                          ]
+                          "enum": ["Meter"]
                         },
                         {
                           "title": "MeterPlus",
-                          "enum": [
-                            "MeterPlus"
-                          ]
+                          "enum": ["MeterPlus"]
                         },
                         {
                           "title": "Meter Plus (JP)",
-                          "enum": [
-                            "Meter Plus (JP)"
-                          ]
+                          "enum": ["Meter Plus (JP)"]
                         },
                         {
                           "title": "Hub 2",
-                          "enum": [
-                            "Hub 2"
-                          ]
+                          "enum": ["Hub 2"]
                         },
                         {
                           "title": "WoIOSensor",
-                          "enum": [
-                            "WoIOSensor"
-                          ]
+                          "enum": ["WoIOSensor"]
                         }
                       ],
                       "condition": {
@@ -1101,10 +1112,52 @@
                     "deviceType": {
                       "title": "What Type of Device do you want to display in the Home App?",
                       "type": "string",
+                      "required": true,
+                      "default": "",
                       "oneOf": [
                         {
+                          "title": "Default",
+                          "enum": [""]
+                        },
+                        {
+                          "title": "Outlet",
+                          "enum": ["outlet"]
+                        },
+                        {
+                          "title": "Garage Door",
+                          "enum": ["garagedoor"]
+                        },
+                        {
+                          "title": "Door",
+                          "enum": ["door"]
+                        },
+                        {
+                          "title": "Lock",
+                          "enum": ["lock"]
+                        },
+                        {
+                          "title": "Faucet",
+                          "enum": ["faucet"]
+                        },
+                        {
                           "title": "Fan",
-                          "enum": ["Fan"]
+                          "enum": ["fan"]
+                        },
+                        {
+                          "title": "Window",
+                          "enum": ["window"]
+                        },
+                        {
+                          "title": "Window Covering",
+                          "enum": ["windowcovering"]
+                        },
+                        {
+                          "title": "Stateful Programmable Switch (Only Works in 3rd Party Home Apps)",
+                          "enum": ["stateful"]
+                        },
+                        {
+                          "title": "Switch",
+                          "enum": ["switch"]
                         }
                       ],
                       "condition": {
@@ -1309,6 +1362,7 @@
             "options.irdevices[].customize",
             "options.irdevices[].customOn",
             "options.irdevices[].customOff",
+            "options.irdevices[].commandType",
             "options.irdevices[].disablePushOn",
             "options.irdevices[].disablePushOff",
             "options.irdevices[].disablePushDetail",

@@ -415,6 +415,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       for (const device of devices) {
         device.deviceType = device.configDeviceType;
         device.deviceName = device.configDeviceName;
+        if (!device.deviceType) {
+          device.deviceType = device.configDeviceType;
+          this.errorLog(`API has displaying no deviceType: ${device.deviceType}, So using configDeviceType: ${device.configDeviceType}`);
+        }
         if (device.deviceType) {
           this.createDevice(device);
         }
