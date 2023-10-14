@@ -61,7 +61,7 @@
     "fakegato-history": "^0.6.4",
     "homebridge-lib": "^6.6.1",
     "rxjs": "^7.8.1",
-    "undici": "^5.25.4"
+    "undici": "^5.26.3"
   },
   "optionalDependencies": {
     "@abandonware/bluetooth-hci-socket": "^0.5.3-10",
@@ -70,15 +70,15 @@
   },
   "devDependencies": {
     "@types/crypto-js": "^4.1.2",
-    "@types/node": "^20.8.2",
-    "@typescript-eslint/eslint-plugin": "^6.7.4",
-    "@typescript-eslint/parser": "^6.7.4",
-    "eslint": "^8.50.0",
+    "@types/node": "^20.8.6",
+    "@typescript-eslint/eslint-plugin": "^6.7.5",
+    "@typescript-eslint/parser": "^6.7.5",
+    "eslint": "^8.51.0",
     "eslint-config-prettier": "9.0.0",
-    "eslint-plugin-prettier": "5.0.0",
+    "eslint-plugin-prettier": "5.0.1",
     "homebridge": "^1.6.1",
     "nodemon": "^3.0.1",
-    "npm-check-updates": "^16.14.4",
+    "npm-check-updates": "^16.14.6",
     "prettier": "3.0.3",
     "rimraf": "^5.0.5",
     "ts-node": "^10.9.1",
