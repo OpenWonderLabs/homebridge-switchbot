@@ -49,20 +49,8 @@ export class Others {
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
-
-    if (accessory.context.FirmwareRevision) {
-      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-        + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
-      accessory
-        .getService(this.platform.Service.AccessoryInformation)!
-        .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
-        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
-        .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-        .updateValue(accessory.context.FirmwareRevision);
-    } else {
-      this.setFirmwareRevision(accessory, device);
-    }
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId)
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
 
     // deviceType
     if (this.otherDeviceType === 'switch') {
@@ -77,8 +65,9 @@ export class Others {
       this.removeStatefulProgrammableSwitchService(accessory);
 
       // Add switchService
-      (this.switchService = accessory.getService(this.platform.Service.Switch) || accessory.addService(this.platform.Service.Switch)),
-      `${accessory.displayName} Switch`;
+      const switchService = `${accessory.displayName} Switch`;
+      (this.switchService = accessory.getService(this.platform.Service.Switch)
+        || accessory.addService(this.platform.Service.Switch)), switchService;
       this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Switch`);
 
       this.switchService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -97,10 +86,10 @@ export class Others {
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
 
-      // Add switchService
-      (this.garageDoorService =
-    accessory.getService(this.platform.Service.GarageDoorOpener) || accessory.addService(this.platform.Service.GarageDoorOpener)),
-      `${accessory.displayName} Garage Door Opener`;
+      // Add garageDoorService
+      const garageDoorService = `${accessory.displayName} Garage Door Opener`;
+      (this.garageDoorService = accessory.getService(this.platform.Service.GarageDoorOpener)
+        || accessory.addService(this.platform.Service.GarageDoorOpener)), garageDoorService;
       this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Garage Door Opener`);
 
       this.garageDoorService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -120,9 +109,10 @@ export class Others {
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
 
-      // Add switchService
-      (this.doorService = accessory.getService(this.platform.Service.Door) || accessory.addService(this.platform.Service.Door)),
-      `${accessory.displayName} Door`;
+      // Add doorService
+      const doorService = `${accessory.displayName} Door`;
+      (this.doorService = accessory.getService(this.platform.Service.Door)
+        || accessory.addService(this.platform.Service.Door)), doorService;
       this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Door`);
 
       this.doorService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -150,9 +140,10 @@ export class Others {
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
 
-      // Add switchService
-      (this.windowService = accessory.getService(this.platform.Service.Window) || accessory.addService(this.platform.Service.Window)),
-      `${accessory.displayName} Window`;
+      // Add windowService
+      const windowService = `${accessory.displayName} Window`;
+      (this.windowService = accessory.getService(this.platform.Service.Window)
+        || accessory.addService(this.platform.Service.Window)), windowService;
       this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Window`);
 
       this.windowService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -180,10 +171,10 @@ export class Others {
       this.removeGarageDoorService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
 
-      // Add switchService
-      (this.windowCoveringService =
-    accessory.getService(this.platform.Service.WindowCovering) || accessory.addService(this.platform.Service.WindowCovering)),
-      `${accessory.displayName} Window Covering`;
+      // Add windowCoveringService
+      const windowCoveringService = `${accessory.displayName} Window Covering`;
+      (this.windowCoveringService = accessory.getService(this.platform.Service.WindowCovering)
+        || accessory.addService(this.platform.Service.WindowCovering)), windowCoveringService;
       this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Window Covering`);
 
       this.windowCoveringService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -211,9 +202,10 @@ export class Others {
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
 
-      // Add switchService
-      (this.lockService = accessory.getService(this.platform.Service.LockMechanism) || accessory.addService(this.platform.Service.LockMechanism)),
-      `${accessory.displayName} Lock`;
+      // Add lockService
+      const lockService = `${accessory.displayName} Lock`;
+      (this.lockService = accessory.getService(this.platform.Service.LockMechanism)
+        || accessory.addService(this.platform.Service.LockMechanism)), lockService;
       this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Lock`);
 
       this.lockService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -232,9 +224,10 @@ export class Others {
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
 
-      // Add switchService
-      (this.faucetService = accessory.getService(this.platform.Service.Faucet) || accessory.addService(this.platform.Service.Faucet)),
-      `${accessory.displayName} Faucet`;
+      // Add faucetService
+      const faucetService = `${accessory.displayName} Faucet`;
+      (this.faucetService = accessory.getService(this.platform.Service.Faucet)
+        || accessory.addService(this.platform.Service.Faucet)), faucetService;
       this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Faucet`);
 
       this.faucetService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -253,9 +246,10 @@ export class Others {
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
 
-      // Add switchService
-      (this.fanService = accessory.getService(this.platform.Service.Fan) || accessory.addService(this.platform.Service.Fan)),
-      `${accessory.displayName} Fan`;
+      // Add fanService
+      const fanService = `${accessory.displayName} Fan`;
+      (this.fanService = accessory.getService(this.platform.Service.Fan)
+        || accessory.addService(this.platform.Service.Fan)), fanService;
       this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Fan`);
 
       this.fanService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -274,11 +268,10 @@ export class Others {
       this.removeGarageDoorService(accessory);
       this.removeWindowCoveringService(accessory);
 
-      // Add switchService
-      (this.statefulProgrammableSwitchService =
-    accessory.getService(this.platform.Service.StatefulProgrammableSwitch) ||
-    accessory.addService(this.platform.Service.StatefulProgrammableSwitch)),
-      `${accessory.displayName} Stateful Programmable Switch`;
+      // Add statefulProgrammableSwitchService
+      const statefulProgrammableSwitchService = `${accessory.displayName} Stateful Programmable Switch`;
+      (this.statefulProgrammableSwitchService = accessory.getService(this.platform.Service.StatefulProgrammableSwitch)
+        || accessory.addService(this.platform.Service.StatefulProgrammableSwitch)), statefulProgrammableSwitchService;
       this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Stateful Programmable Switch`);
 
       this.statefulProgrammableSwitchService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -300,8 +293,9 @@ export class Others {
       this.removeStatefulProgrammableSwitchService(accessory);
 
       // Add outletService
-      (this.outletService = accessory.getService(this.platform.Service.Outlet) || accessory.addService(this.platform.Service.Outlet)),
-      `${accessory.displayName} Outlet`;
+      const outletService = `${accessory.displayName} Outlet`;
+      (this.outletService = accessory.getService(this.platform.Service.Outlet)
+        || accessory.addService(this.platform.Service.Outlet)), outletService;
       this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Outlet`);
 
       this.outletService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -646,16 +640,6 @@ export class Others {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
       }
     }
-    // FirmwareRevision
-    if (this.FirmwareRevision === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} FirmwareRevision: ${this.FirmwareRevision}`);
-    } else {
-      this.accessory.context.FirmwareRevision = this.FirmwareRevision;
-      this.accessory.getService(this.platform.Service.AccessoryInformation)!
-        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} `
-        + `updateCharacteristic FirmwareRevision: ${this.FirmwareRevision}`);
-    }
   }
 
   async disablePushOnChanges(device: irdevice & irDevicesConfig): Promise<void> {
@@ -885,33 +869,15 @@ export class Others {
     }
   }
 
-
-
-  async setFirmwareRevision(accessory: PlatformAccessory, device: irdevice & irDevicesConfig) {
-    if (device.firmware) {
-      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
-      accessory.context.FirmwareRevision = device.firmware;
-      this.FirmwareRevision = accessory.context.FirmwareRevision;
-      this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware, FirmwareRevision: ${this.FirmwareRevision}`);
-    } else {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
-      accessory.context.FirmwareRevision = this.platform.version;
-      this.FirmwareRevision = accessory.context.FirmwareRevision;
-      this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version, FirmwareRevision: ${this.FirmwareRevision}`);
-    }
-    this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
-    accessory
-      .getService(this.platform.Service.AccessoryInformation)!
-      .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
-      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-      .updateValue(this.FirmwareRevision);
-  }
-
   async context() {
     if (this.On === undefined) {
       this.On = true;
     } else {
       this.On = this.accessory.context.On;
+    }
+    if (this.FirmwareRevision === undefined) {
+      this.FirmwareRevision = this.platform.version;
+      this.accessory.context.FirmwareRevision = this.FirmwareRevision;
     }
   }
 

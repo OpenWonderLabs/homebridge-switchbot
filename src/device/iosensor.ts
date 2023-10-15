@@ -1,4 +1,3 @@
-import { Context } from 'vm';
 import { hostname } from 'os';
 import { request } from 'undici';
 import { sleep } from '../utils';
@@ -89,20 +88,8 @@ export class IOSensor {
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, 'WoIOSensor')
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
-
-    if (accessory.context.FirmwareRevision) {
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-        + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
-      accessory
-        .getService(this.platform.Service.AccessoryInformation)!
-        .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
-        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
-        .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-        .updateValue(accessory.context.FirmwareRevision);
-    } else {
-      this.setFirmwareRevision(accessory, device);
-    }
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId)
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
 
     // Temperature Sensor Service
     if (device.meter?.hide_temperature) {
@@ -111,9 +98,9 @@ export class IOSensor {
       accessory.removeService(this.temperatureservice!);
     } else if (!this.temperatureservice) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Temperature Sensor Service`);
-      (this.temperatureservice =
-        this.accessory.getService(this.platform.Service.TemperatureSensor) || this.accessory.addService(this.platform.Service.TemperatureSensor)),
-      `${accessory.displayName} Temperature Sensor`;
+      const temperatureservice = `${accessory.displayName} Temperature Sensor`;
+      (this.temperatureservice = this.accessory.getService(this.platform.Service.TemperatureSensor)
+      || this.accessory.addService(this.platform.Service.TemperatureSensor)), temperatureservice;
 
       this.temperatureservice.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
       if (!this.temperatureservice.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -142,9 +129,9 @@ export class IOSensor {
       accessory.removeService(this.humidityservice!);
     } else if (!this.humidityservice) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Humidity Sensor Service`);
-      (this.humidityservice =
-        this.accessory.getService(this.platform.Service.HumiditySensor) || this.accessory.addService(this.platform.Service.HumiditySensor)),
-      `${accessory.displayName} Humidity Sensor`;
+      const humidityservice = `${accessory.displayName} Humidity Sensor`;
+      (this.humidityservice = this.accessory.getService(this.platform.Service.HumiditySensor)
+      || this.accessory.addService(this.platform.Service.HumiditySensor)), humidityservice;
 
       this.humidityservice.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
       if (!this.humidityservice.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -163,8 +150,9 @@ export class IOSensor {
     }
 
     // Battery Service
-    (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || accessory.addService(this.platform.Service.Battery)),
-    `${accessory.displayName} Battery`;
+    const batteryService = `${accessory.displayName} Battery`;
+    (this.batteryService = this.accessory.getService(this.platform.Service.Battery)
+    || accessory.addService(this.platform.Service.Battery)), batteryService;
 
     this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
     if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -261,10 +249,11 @@ export class IOSensor {
       this.BatteryLevel = 100;
     }
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel},`
-    + ` StatusLowBattery: ${this.StatusLowBattery}`);
+      + ` StatusLowBattery: ${this.StatusLowBattery}`);
 
     // FirmwareRevision
     this.FirmwareRevision = this.OpenAPI_FirmwareRevision!;
+    this.accessory.context.FirmwareRevision = this.FirmwareRevision;
   }
 
   /**
@@ -457,22 +446,6 @@ export class IOSensor {
         this.historyService?.addEntry(entry);
       }
     }
-
-    // FirmwareRevision
-    if (this.FirmwareRevision === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.FirmwareRevision}`);
-    } else {
-      this.accessory.context.FirmwareRevision = this.FirmwareRevision;
-      this.batteryService.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
-      if (this.device.meter?.hide_humidity) {
-        this.humidityservice!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
-      }
-      if (this.device.meter?.hide_temperature) {
-        this.temperatureservice!.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
-      }
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-        + `updateCharacteristic FirmwareRevision: ${this.FirmwareRevision}`);
-    }
   }
 
   /*
@@ -634,32 +607,6 @@ export class IOSensor {
     this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
   }
 
-  async setFirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig) {
-    await this.refreshStatus();
-    if (device.firmware) {
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
-      accessory.context.FirmwareRevision = device.firmware;
-      this.FirmwareRevision = accessory.context.FirmwareRevision;
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware, FirmwareRevision: ${this.FirmwareRevision}`);
-    } else if (device.version) {
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} device.version: ${device.version}`);
-      accessory.context.FirmwareRevision = device.version;
-      this.FirmwareRevision = accessory.context.FirmwareRevision;
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} device.version, FirmwareRevision: ${this.FirmwareRevision}`);
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
-      accessory.context.FirmwareRevision = this.platform.version;
-      this.FirmwareRevision = accessory.context.FirmwareRevision;
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version, FirmwareRevision: ${this.FirmwareRevision}`);
-    }
-    this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
-    accessory
-      .getService(this.platform.Service.AccessoryInformation)!
-      .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
-      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-      .updateValue(this.FirmwareRevision);
-  }
-
   async context() {
     if (this.CurrentRelativeHumidity === undefined) {
       this.CurrentRelativeHumidity = 0;
@@ -681,6 +628,10 @@ export class IOSensor {
       this.accessory.context.StatusLowBattery = this.StatusLowBattery;
     } else {
       this.StatusLowBattery = this.accessory.context.StatusLowBattery;
+    }
+    if (this.FirmwareRevision === undefined) {
+      this.FirmwareRevision = this.platform.version;
+      this.accessory.context.FirmwareRevision = this.FirmwareRevision;
     }
   }
 

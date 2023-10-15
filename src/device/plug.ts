@@ -1,4 +1,3 @@
-import { Context } from 'vm';
 import { request } from 'undici';
 import { sleep } from '../utils';
 import { interval, Subject } from 'rxjs';
@@ -60,25 +59,14 @@ export class Plug {
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, this.model(device))
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
-
-    if (accessory.context.FirmwareRevision) {
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-        + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
-      accessory
-        .getService(this.platform.Service.AccessoryInformation)!
-        .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
-        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
-        .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-        .updateValue(accessory.context.FirmwareRevision);
-    } else {
-      this.setFirmwareRevision(accessory, device);
-    }
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId)
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
 
     // get the Outlet service if it exists, otherwise create a new Outlet service
     // you can create multiple services for each accessory
-    (this.outletService = accessory.getService(this.platform.Service.Outlet) || accessory.addService(this.platform.Service.Outlet)),
-    `${device.deviceName} ${device.deviceType}`;
+    const outletService = `${accessory.displayName} ${device.deviceType}`;
+    (this.outletService = accessory.getService(this.platform.Service.Outlet)
+    || accessory.addService(this.platform.Service.Outlet)), outletService;
 
     this.outletService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
     if (!this.outletService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -167,6 +155,7 @@ export class Plug {
 
     // FirmwareRevision
     this.FirmwareRevision = this.OpenAPI_FirmwareRevision!;
+    this.accessory.context.FirmwareRevision = this.FirmwareRevision;
   }
 
   /**
@@ -435,15 +424,6 @@ export class Plug {
       this.outletService.updateCharacteristic(this.platform.Characteristic.On, this.On);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
-    // FirmwareRevision
-    if (this.FirmwareRevision === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} FirmwareRevision: ${this.FirmwareRevision}`);
-    } else {
-      this.accessory.context.FirmwareRevision = this.FirmwareRevision;
-      this.outletService.updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-        + `updateCharacteristic FirmwareRevision: ${this.FirmwareRevision}`);
-    }
   }
 
   async stopScanning(switchbot: any) {
@@ -595,32 +575,6 @@ export class Plug {
 
   async apiError(e: any): Promise<void> {
     this.outletService.updateCharacteristic(this.platform.Characteristic.On, e);
-  }
-
-  async setFirmwareRevision(accessory: PlatformAccessory<Context>, device: device & devicesConfig) {
-    await this.refreshStatus();
-    if (device.firmware) {
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
-      accessory.context.FirmwareRevision = device.firmware;
-      this.FirmwareRevision = accessory.context.FirmwareRevision;
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} device.firmware, FirmwareRevision: ${this.FirmwareRevision}`);
-    } else if (device.version) {
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} device.version: ${device.version}`);
-      accessory.context.FirmwareRevision = device.version;
-      this.FirmwareRevision = accessory.context.FirmwareRevision;
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} device.version, FirmwareRevision: ${this.FirmwareRevision}`);
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
-      accessory.context.FirmwareRevision = this.platform.version;
-      this.FirmwareRevision = accessory.context.FirmwareRevision;
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} this.platform.version, FirmwareRevision: ${this.FirmwareRevision}`);
-    }
-    this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
-    accessory
-      .getService(this.platform.Service.AccessoryInformation)!
-      .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
-      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-      .updateValue(this.FirmwareRevision);
   }
 
   async context() {

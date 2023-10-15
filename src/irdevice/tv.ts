@@ -43,50 +43,39 @@ export class TV {
       .setCharacteristic(this.platform.Characteristic.Name, `${device.deviceName} ${device.remoteType}`)
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId!);
-
-    if (accessory.context.FirmwareRevision) {
-      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-        + ` accessory.context.FirmwareRevision: ${accessory.context.FirmwareRevision}`);
-      accessory
-        .getService(this.platform.Service.AccessoryInformation)!
-        .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
-        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
-        .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-        .updateValue(accessory.context.FirmwareRevision);
-    } else {
-      this.setFirmwareRevision(accessory, device);
-    }
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId)
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
 
     // set the accessory category
+    const tvServiceCategory = `${accessory.displayName} ${device.remoteType}`;
     switch (device.remoteType) {
       case 'Speaker':
       case 'DIY Speaker':
         accessory.category = this.platform.api.hap.Categories.SPEAKER;
-        (this.tvService = accessory.getService(this.platform.Service.Television) || accessory.addService(this.platform.Service.Television)),
-        `${accessory.displayName} ${device.remoteType}`;
+        (this.tvService = accessory.getService(this.platform.Service.Television)
+          || accessory.addService(this.platform.Service.Television)), tvServiceCategory;
         break;
       case 'IPTV':
       case 'DIY IPTV':
         accessory.category = this.platform.api.hap.Categories.TV_STREAMING_STICK;
-        (this.tvService = accessory.getService(this.platform.Service.Television) || accessory.addService(this.platform.Service.Television)),
-        `${accessory.displayName} ${device.remoteType}`;
+        (this.tvService = accessory.getService(this.platform.Service.Television)
+          || accessory.addService(this.platform.Service.Television)), tvServiceCategory;
         break;
       case 'DVD':
       case 'DIY DVD':
       case 'Set Top Box':
       case 'DIY Set Top Box':
         accessory.category = this.platform.api.hap.Categories.TV_SET_TOP_BOX;
-        (this.tvService = accessory.getService(this.platform.Service.Television) || accessory.addService(this.platform.Service.Television)),
-        `${accessory.displayName} ${device.remoteType}`;
+        (this.tvService = accessory.getService(this.platform.Service.Television)
+          || accessory.addService(this.platform.Service.Television)), tvServiceCategory;
         break;
       default:
         accessory.category = this.platform.api.hap.Categories.TELEVISION;
 
         // get the Television service if it exists, otherwise create a new Television service
         // you can create multiple services for each accessory
-        (this.tvService = accessory.getService(this.platform.Service.Television) || accessory.addService(this.platform.Service.Television)),
-        `${accessory.displayName} ${device.remoteType}`;
+        (this.tvService = accessory.getService(this.platform.Service.Television)
+          || accessory.addService(this.platform.Service.Television)), tvServiceCategory;
     }
 
     this.tvService.getCharacteristic(this.platform.Characteristic.ConfiguredName);
@@ -112,9 +101,9 @@ export class TV {
      * Create a speaker service to allow volume control
      */
     // create a new Television Speaker service
-    (this.speakerService =
-      accessory.getService(this.platform.Service.TelevisionSpeaker) || accessory.addService(this.platform.Service.TelevisionSpeaker)),
-    `${accessory.displayName} Speaker`;
+    const speakerService = `${accessory.displayName} Speaker`;
+    (this.speakerService = accessory.getService(this.platform.Service.TelevisionSpeaker)
+      || accessory.addService(this.platform.Service.TelevisionSpeaker)), speakerService;
 
     this.speakerService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Speaker`);
     if (!this.speakerService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -424,16 +413,6 @@ export class TV {
       this.tvService?.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, this.ActiveIdentifier);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}` + ` updateCharacteristic ActiveIdentifier: ${this.ActiveIdentifier}`);
     }
-    // FirmwareRevision
-    if (this.FirmwareRevision === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} FirmwareRevision: ${this.FirmwareRevision}`);
-    } else {
-      this.accessory.context.FirmwareRevision = this.FirmwareRevision;
-      this.accessory.getService(this.platform.Service.AccessoryInformation)!
-        .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, this.FirmwareRevision);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} `
-        + `updateCharacteristic FirmwareRevision: ${this.FirmwareRevision}`);
-    }
   }
 
   async disablePushOnChanges(device: irdevice & irDevicesConfig): Promise<void> {
@@ -535,28 +514,6 @@ export class TV {
     this.tvService.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, e);
   }
 
-
-
-  async setFirmwareRevision(accessory: PlatformAccessory, device: irdevice & irDevicesConfig) {
-    if (device.firmware) {
-      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware: ${device.firmware}`);
-      accessory.context.FirmwareRevision = device.firmware;
-      this.FirmwareRevision = accessory.context.FirmwareRevision;
-      this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} device.firmware, FirmwareRevision: ${this.FirmwareRevision}`);
-    } else {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version: ${this.platform.version}`);
-      accessory.context.FirmwareRevision = this.platform.version;
-      this.FirmwareRevision = accessory.context.FirmwareRevision;
-      this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} this.platform.version, FirmwareRevision: ${this.FirmwareRevision}`);
-    }
-    this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} setFirmwareRevision: ${this.FirmwareRevision}`);
-    accessory
-      .getService(this.platform.Service.AccessoryInformation)!
-      .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
-      .getCharacteristic(this.platform.Characteristic.FirmwareRevision)
-      .updateValue(this.FirmwareRevision);
-  }
-
   async context() {
     if (this.Active === undefined) {
       this.Active = this.platform.Characteristic.Active.INACTIVE;
@@ -567,6 +524,10 @@ export class TV {
       this.ActiveIdentifier = 1;
     } else {
       this.ActiveIdentifier = this.accessory.context.ActiveIdentifier;
+    }
+    if (this.FirmwareRevision === undefined) {
+      this.FirmwareRevision = this.platform.version;
+      this.accessory.context.FirmwareRevision = this.FirmwareRevision;
     }
   }
 
