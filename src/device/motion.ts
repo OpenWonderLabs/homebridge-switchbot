@@ -83,8 +83,9 @@ export class Motion {
 
     // get the Battery service if it exists, otherwise create a new Motion service
     // you can create multiple services for each accessory
-    (this.motionSensorService = accessory.getService(this.platform.Service.MotionSensor) || accessory.addService(this.platform.Service.MotionSensor)),
-    `${accessory.displayName} Motion Sensor`;
+    const motionSensorService = `${accessory.displayName} Motion Sensor`;
+    (this.motionSensorService = accessory.getService(this.platform.Service.MotionSensor)
+      || accessory.addService(this.platform.Service.MotionSensor)), motionSensorService;
 
     this.motionSensorService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
     if (!this.motionSensorService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -100,9 +101,9 @@ export class Motion {
       accessory.removeService(this.lightSensorService!);
     } else if (!this.lightSensorService) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Light Sensor Service`);
-      (this.lightSensorService =
-        this.accessory.getService(this.platform.Service.LightSensor) || this.accessory.addService(this.platform.Service.LightSensor)),
-      `${accessory.displayName} Light Sensor`;
+      const lightSensorService = `${accessory.displayName} Light Sensor`;
+      (this.lightSensorService = this.accessory.getService(this.platform.Service.LightSensor)
+        || this.accessory.addService(this.platform.Service.LightSensor)), lightSensorService;
 
       this.lightSensorService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Light Sensor`);
       this.lightSensorService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Light Sensor`);
@@ -111,8 +112,9 @@ export class Motion {
     }
 
     // Battery Service
-    (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || accessory.addService(this.platform.Service.Battery)),
-    `${accessory.displayName} Battery`;
+    const batteryService = `${accessory.displayName} Battery`;
+    (this.batteryService = this.accessory.getService(this.platform.Service.Battery)
+      || accessory.addService(this.platform.Service.Battery)), batteryService;
 
     this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
     if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -223,7 +225,7 @@ export class Motion {
       this.BatteryLevel = 100;
     }
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel},`
-    + ` StatusLowBattery: ${this.StatusLowBattery}`);
+      + ` StatusLowBattery: ${this.StatusLowBattery}`);
 
     // FirmwareRevision
     this.FirmwareRevision = this.OpenAPI_FirmwareRevision!;

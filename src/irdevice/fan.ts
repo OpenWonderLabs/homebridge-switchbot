@@ -50,8 +50,9 @@ export class Fan {
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
-    (this.fanService = accessory.getService(this.platform.Service.Fanv2) || accessory.addService(this.platform.Service.Fanv2)),
-    `${accessory.displayName} Fan`;
+    const fanService = `${accessory.displayName} Fan`;
+    (this.fanService = accessory.getService(this.platform.Service.Fanv2)
+      || accessory.addService(this.platform.Service.Fanv2)), fanService;
 
     this.fanService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
     if (!this.fanService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {

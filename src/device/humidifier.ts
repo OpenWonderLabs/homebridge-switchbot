@@ -84,9 +84,9 @@ export class Humidifier {
 
     // get the service if it exists, otherwise create a new service
     // you can create multiple services for each accessory
-    (this.humidifierService =
-      accessory.getService(this.platform.Service.HumidifierDehumidifier) || accessory.addService(this.platform.Service.HumidifierDehumidifier)),
-    `${accessory.displayName} Humidifier`;
+    const humidifierService = `${accessory.displayName} Humidifier`;
+    (this.humidifierService = accessory.getService(this.platform.Service.HumidifierDehumidifier)
+      || accessory.addService(this.platform.Service.HumidifierDehumidifier)), humidifierService;
 
     this.humidifierService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
     if (!this.humidifierService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -131,9 +131,9 @@ export class Humidifier {
       accessory.removeService(this.temperatureservice!);
     } else if (!this.temperatureservice && !this.BLE) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Temperature Sensor Service`);
-      (this.temperatureservice =
-        this.accessory.getService(this.platform.Service.TemperatureSensor) || this.accessory.addService(this.platform.Service.TemperatureSensor)),
-      `${accessory.displayName} Temperature Sensor`;
+      const temperatureservice = `${accessory.displayName} Temperature Sensor`;
+      (this.temperatureservice = this.accessory.getService(this.platform.Service.TemperatureSensor)
+        || this.accessory.addService(this.platform.Service.TemperatureSensor)), temperatureservice;
 
       this.temperatureservice.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
       if (!this.temperatureservice.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -408,8 +408,8 @@ export class Humidifier {
   async pushChanges(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} pushChanges enableCloudService: ${this.device.enableCloudService}`);
-    /*} else if (this.BLE) {
-      await this.BLEpushChanges();*/
+      /*} else if (this.BLE) {
+        await this.BLEpushChanges();*/
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges();
     } else {

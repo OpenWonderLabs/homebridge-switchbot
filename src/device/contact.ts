@@ -87,9 +87,9 @@ export class Contact {
 
     // get the Contact service if it exists, otherwise create a new Contact service
     // you can create multiple services for each accessory
-    (this.contactSensorservice =
-      accessory.getService(this.platform.Service.ContactSensor) || accessory.addService(this.platform.Service.ContactSensor)),
-    `${accessory.displayName} Contact Sensor`;
+    const contactSensorservice = `${accessory.displayName} Contact Sensor`;
+    (this.contactSensorservice = accessory.getService(this.platform.Service.ContactSensor)
+      || accessory.addService(this.platform.Service.ContactSensor)), contactSensorservice;
 
     this.contactSensorservice.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
     if (!this.contactSensorservice.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -103,9 +103,9 @@ export class Contact {
       accessory.removeService(this.motionService!);
     } else if (!this.motionService) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Motion Sensor Service`);
-      (this.motionService =
-        this.accessory.getService(this.platform.Service.MotionSensor) || this.accessory.addService(this.platform.Service.MotionSensor)),
-      `${accessory.displayName} Motion Sensor`;
+      const motionService = `${accessory.displayName} Motion Sensor`;
+      (this.motionService = this.accessory.getService(this.platform.Service.MotionSensor)
+        || this.accessory.addService(this.platform.Service.MotionSensor)), motionService;
 
       this.motionService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Motion Sensor`);
       this.motionService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Motion Sensor`);
@@ -120,9 +120,10 @@ export class Contact {
       accessory.removeService(this.lightSensorService!);
     } else if (!this.lightSensorService) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Light Sensor Service`);
-      (this.lightSensorService =
-        this.accessory.getService(this.platform.Service.LightSensor) || this.accessory.addService(this.platform.Service.LightSensor)),
-      `${accessory.displayName} Light Sensor`;
+
+      const lightSensorService = `${accessory.displayName} Light Sensor`;
+      (this.lightSensorService = this.accessory.getService(this.platform.Service.LightSensor)
+        || this.accessory.addService(this.platform.Service.LightSensor)), lightSensorService;
 
       this.lightSensorService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Light Sensor`);
       this.lightSensorService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Light Sensor`);
@@ -131,8 +132,9 @@ export class Contact {
     }
 
     // Battery Service
-    (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || accessory.addService(this.platform.Service.Battery)),
-    `${accessory.displayName} Battery`;
+    const batteryService = `${accessory.displayName} Battery`;
+    (this.batteryService = this.accessory.getService(this.platform.Service.Battery)
+      || accessory.addService(this.platform.Service.Battery)), batteryService;
 
     this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
     if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {

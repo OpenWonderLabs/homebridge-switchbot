@@ -98,9 +98,9 @@ export class IOSensor {
       accessory.removeService(this.temperatureservice!);
     } else if (!this.temperatureservice) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Temperature Sensor Service`);
-      (this.temperatureservice =
-        this.accessory.getService(this.platform.Service.TemperatureSensor) || this.accessory.addService(this.platform.Service.TemperatureSensor)),
-      `${accessory.displayName} Temperature Sensor`;
+      const temperatureservice = `${accessory.displayName} Temperature Sensor`;
+      (this.temperatureservice = this.accessory.getService(this.platform.Service.TemperatureSensor)
+      || this.accessory.addService(this.platform.Service.TemperatureSensor)), temperatureservice;
 
       this.temperatureservice.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
       if (!this.temperatureservice.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -129,9 +129,9 @@ export class IOSensor {
       accessory.removeService(this.humidityservice!);
     } else if (!this.humidityservice) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Humidity Sensor Service`);
-      (this.humidityservice =
-        this.accessory.getService(this.platform.Service.HumiditySensor) || this.accessory.addService(this.platform.Service.HumiditySensor)),
-      `${accessory.displayName} Humidity Sensor`;
+      const humidityservice = `${accessory.displayName} Humidity Sensor`;
+      (this.humidityservice = this.accessory.getService(this.platform.Service.HumiditySensor)
+      || this.accessory.addService(this.platform.Service.HumiditySensor)), humidityservice;
 
       this.humidityservice.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
       if (!this.humidityservice.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -150,8 +150,9 @@ export class IOSensor {
     }
 
     // Battery Service
-    (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || accessory.addService(this.platform.Service.Battery)),
-    `${accessory.displayName} Battery`;
+    const batteryService = `${accessory.displayName} Battery`;
+    (this.batteryService = this.accessory.getService(this.platform.Service.Battery)
+    || accessory.addService(this.platform.Service.Battery)), batteryService;
 
     this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
     if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -248,7 +249,7 @@ export class IOSensor {
       this.BatteryLevel = 100;
     }
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel},`
-    + ` StatusLowBattery: ${this.StatusLowBattery}`);
+      + ` StatusLowBattery: ${this.StatusLowBattery}`);
 
     // FirmwareRevision
     this.FirmwareRevision = this.OpenAPI_FirmwareRevision!;

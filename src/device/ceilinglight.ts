@@ -91,8 +91,9 @@ export class CeilingLight {
 
     // get the Lightbulb service if it exists, otherwise create a new Lightbulb service
     // you can create multiple services for each accessory
-    (this.lightBulbService = accessory.getService(this.platform.Service.Lightbulb) || accessory.addService(this.platform.Service.Lightbulb)),
-    `${accessory.displayName} ${device.deviceType}`;
+    const lightBulbService = `${accessory.displayName} ${device.deviceType}`;
+    (this.lightBulbService = accessory.getService(this.platform.Service.Lightbulb)
+      || accessory.addService(this.platform.Service.Lightbulb)), lightBulbService;
 
     if (this.adaptiveLightingShift === -1 && this.accessory.context.adaptiveLighting) {
       this.accessory.removeService(this.lightBulbService);
@@ -310,8 +311,8 @@ export class CeilingLight {
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus enableCloudService: ${this.device.enableCloudService}`);
-    /*} else if (this.BLE) {
-      await this.BLERefreshStatus();*/
+      /*} else if (this.BLE) {
+        await this.BLERefreshStatus();*/
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
@@ -441,8 +442,8 @@ export class CeilingLight {
   async pushChanges(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} pushChanges enableCloudService: ${this.device.enableCloudService}`);
-    /*} else if (this.BLE) {
-      await this.BLEpushChanges();*/
+      /*} else if (this.BLE) {
+        await this.BLEpushChanges();*/
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges();
     } else {

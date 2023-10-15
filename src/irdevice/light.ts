@@ -43,8 +43,9 @@ export class Light {
 
     // get the Light service if it exists, otherwise create a new Light service
     // you can create multiple services for each accessory
-    (this.lightBulbService = accessory.getService(this.platform.Service.Lightbulb) || accessory.addService(this.platform.Service.Lightbulb)),
-    `${accessory.displayName} ${device.remoteType}`;
+    const lightBulbService = `${accessory.displayName} ${device.remoteType}`;
+    (this.lightBulbService = accessory.getService(this.platform.Service.Lightbulb)
+      || accessory.addService(this.platform.Service.Lightbulb)), lightBulbService;
 
     this.lightBulbService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
     if (!this.lightBulbService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {

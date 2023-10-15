@@ -47,34 +47,35 @@ export class TV {
       .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
 
     // set the accessory category
+    const tvServiceCategory = `${accessory.displayName} ${device.remoteType}`;
     switch (device.remoteType) {
       case 'Speaker':
       case 'DIY Speaker':
         accessory.category = this.platform.api.hap.Categories.SPEAKER;
-        (this.tvService = accessory.getService(this.platform.Service.Television) || accessory.addService(this.platform.Service.Television)),
-        `${accessory.displayName} ${device.remoteType}`;
+        (this.tvService = accessory.getService(this.platform.Service.Television)
+          || accessory.addService(this.platform.Service.Television)), tvServiceCategory;
         break;
       case 'IPTV':
       case 'DIY IPTV':
         accessory.category = this.platform.api.hap.Categories.TV_STREAMING_STICK;
-        (this.tvService = accessory.getService(this.platform.Service.Television) || accessory.addService(this.platform.Service.Television)),
-        `${accessory.displayName} ${device.remoteType}`;
+        (this.tvService = accessory.getService(this.platform.Service.Television)
+          || accessory.addService(this.platform.Service.Television)), tvServiceCategory;
         break;
       case 'DVD':
       case 'DIY DVD':
       case 'Set Top Box':
       case 'DIY Set Top Box':
         accessory.category = this.platform.api.hap.Categories.TV_SET_TOP_BOX;
-        (this.tvService = accessory.getService(this.platform.Service.Television) || accessory.addService(this.platform.Service.Television)),
-        `${accessory.displayName} ${device.remoteType}`;
+        (this.tvService = accessory.getService(this.platform.Service.Television)
+          || accessory.addService(this.platform.Service.Television)), tvServiceCategory;
         break;
       default:
         accessory.category = this.platform.api.hap.Categories.TELEVISION;
 
         // get the Television service if it exists, otherwise create a new Television service
         // you can create multiple services for each accessory
-        (this.tvService = accessory.getService(this.platform.Service.Television) || accessory.addService(this.platform.Service.Television)),
-        `${accessory.displayName} ${device.remoteType}`;
+        (this.tvService = accessory.getService(this.platform.Service.Television)
+          || accessory.addService(this.platform.Service.Television)), tvServiceCategory;
     }
 
     this.tvService.getCharacteristic(this.platform.Characteristic.ConfiguredName);
@@ -100,9 +101,9 @@ export class TV {
      * Create a speaker service to allow volume control
      */
     // create a new Television Speaker service
-    (this.speakerService =
-      accessory.getService(this.platform.Service.TelevisionSpeaker) || accessory.addService(this.platform.Service.TelevisionSpeaker)),
-    `${accessory.displayName} Speaker`;
+    const speakerService = `${accessory.displayName} Speaker`;
+    (this.speakerService = accessory.getService(this.platform.Service.TelevisionSpeaker)
+      || accessory.addService(this.platform.Service.TelevisionSpeaker)), speakerService;
 
     this.speakerService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Speaker`);
     if (!this.speakerService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {

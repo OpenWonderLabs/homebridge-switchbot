@@ -43,8 +43,9 @@ export class VacuumCleaner {
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
-    (this.switchService = accessory.getService(this.platform.Service.Switch) || accessory.addService(this.platform.Service.Switch)),
-    `${accessory.displayName} ${device.remoteType}`;
+    const switchService = `${accessory.displayName} ${device.remoteType}`;
+    (this.switchService = accessory.getService(this.platform.Service.Switch)
+      || accessory.addService(this.platform.Service.Switch)), switchService;
 
     this.switchService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
     if (!this.switchService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {

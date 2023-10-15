@@ -109,8 +109,9 @@ export class Bot {
       this.removeStatefulProgrammableSwitchService(accessory);
 
       // Add switchService
-      (this.switchService = accessory.getService(this.platform.Service.Switch) || accessory.addService(this.platform.Service.Switch)),
-      `${accessory.displayName} Switch`;
+      const switchService = `${accessory.displayName} Switch`;
+      (this.switchService = accessory.getService(this.platform.Service.Switch)
+        || accessory.addService(this.platform.Service.Switch)), switchService;
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Switch`);
 
       this.switchService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -129,10 +130,10 @@ export class Bot {
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
 
-      // Add switchService
-      (this.garageDoorService =
-        accessory.getService(this.platform.Service.GarageDoorOpener) || accessory.addService(this.platform.Service.GarageDoorOpener)),
-      `${accessory.displayName} Garage Door Opener`;
+      // Add garageDoorService
+      const garageDoorService = `${accessory.displayName} Garage Door Opener`;
+      (this.garageDoorService = accessory.getService(this.platform.Service.GarageDoorOpener)
+        || accessory.addService(this.platform.Service.GarageDoorOpener)), garageDoorService;
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Garage Door Opener`);
 
       this.garageDoorService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -152,9 +153,10 @@ export class Bot {
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
 
-      // Add switchService
-      (this.doorService = accessory.getService(this.platform.Service.Door) || accessory.addService(this.platform.Service.Door)),
-      `${accessory.displayName} Door`;
+      // Add doorService
+      const doorService = `${accessory.displayName} Door`;
+      (this.doorService = accessory.getService(this.platform.Service.Door)
+        || accessory.addService(this.platform.Service.Door)), doorService;
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Door`);
 
       this.doorService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -182,9 +184,10 @@ export class Bot {
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
 
-      // Add switchService
-      (this.windowService = accessory.getService(this.platform.Service.Window) || accessory.addService(this.platform.Service.Window)),
-      `${accessory.displayName} Window`;
+      // Add windowService
+      const windowService = `${accessory.displayName} Window`;
+      (this.windowService = accessory.getService(this.platform.Service.Window)
+        || accessory.addService(this.platform.Service.Window)), windowService;
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Window`);
 
       this.windowService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -212,10 +215,10 @@ export class Bot {
       this.removeGarageDoorService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
 
-      // Add switchService
-      (this.windowCoveringService =
-        accessory.getService(this.platform.Service.WindowCovering) || accessory.addService(this.platform.Service.WindowCovering)),
-      `${accessory.displayName} Window Covering`;
+      // Add windowCoveringService
+      const windowCoveringService = `${accessory.displayName} Window Covering`;
+      (this.windowCoveringService = accessory.getService(this.platform.Service.WindowCovering)
+        || accessory.addService(this.platform.Service.WindowCovering)), windowCoveringService;
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Window Covering`);
 
       this.windowCoveringService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -243,9 +246,10 @@ export class Bot {
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
 
-      // Add switchService
-      (this.lockService = accessory.getService(this.platform.Service.LockMechanism) || accessory.addService(this.platform.Service.LockMechanism)),
-      `${accessory.displayName} Lock`;
+      // Add lockService
+      const lockService = `${accessory.displayName} Lock`;
+      (this.lockService = accessory.getService(this.platform.Service.LockMechanism)
+        || accessory.addService(this.platform.Service.LockMechanism)), lockService;
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Lock`);
 
       this.lockService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -264,9 +268,10 @@ export class Bot {
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
 
-      // Add switchService
-      (this.faucetService = accessory.getService(this.platform.Service.Faucet) || accessory.addService(this.platform.Service.Faucet)),
-      `${accessory.displayName} Faucet`;
+      // Add faucetService
+      const faucetService = `${accessory.displayName} Faucet`;
+      (this.faucetService = accessory.getService(this.platform.Service.Faucet)
+        || accessory.addService(this.platform.Service.Faucet)), faucetService;
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Faucet`);
 
       this.faucetService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -285,9 +290,10 @@ export class Bot {
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
 
-      // Add switchService
-      (this.fanService = accessory.getService(this.platform.Service.Fan) || accessory.addService(this.platform.Service.Fan)),
-      `${accessory.displayName} Fan`;
+      // Add fanService
+      const fanService = `${accessory.displayName} Fan`;
+      (this.fanService = accessory.getService(this.platform.Service.Fan)
+        || accessory.addService(this.platform.Service.Fan)), fanService;
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Fan`);
 
       this.fanService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -306,11 +312,10 @@ export class Bot {
       this.removeGarageDoorService(accessory);
       this.removeWindowCoveringService(accessory);
 
-      // Add switchService
-      (this.statefulProgrammableSwitchService =
-        accessory.getService(this.platform.Service.StatefulProgrammableSwitch) ||
-        accessory.addService(this.platform.Service.StatefulProgrammableSwitch)),
-      `${accessory.displayName} Stateful Programmable Switch`;
+      // Add statefulProgrammableSwitchService
+      const statefulProgrammableSwitchService = `${accessory.displayName} Stateful Programmable Switch`;
+      (this.statefulProgrammableSwitchService = accessory.getService(this.platform.Service.StatefulProgrammableSwitch) ||
+        accessory.addService(this.platform.Service.StatefulProgrammableSwitch)), statefulProgrammableSwitchService;
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Stateful Programmable Switch`);
 
       this.statefulProgrammableSwitchService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -332,8 +337,9 @@ export class Bot {
       this.removeStatefulProgrammableSwitchService(accessory);
 
       // Add outletService
-      (this.outletService = accessory.getService(this.platform.Service.Outlet) || accessory.addService(this.platform.Service.Outlet)),
-      `${accessory.displayName} Outlet`;
+      const outletService = `${accessory.displayName} Outlet`;
+      (this.outletService = accessory.getService(this.platform.Service.Outlet)
+        || accessory.addService(this.platform.Service.Outlet)), outletService;
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Outlet`);
 
       this.outletService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -343,9 +349,10 @@ export class Bot {
       this.outletService.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
     }
 
-    // Battery Service
-    (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || accessory.addService(this.platform.Service.Battery)),
-    `${accessory.displayName} Battery`;
+    // batteryService
+    const batteryService = `${accessory.displayName} Battery`;
+    (this.batteryService = this.accessory.getService(this.platform.Service.Battery)
+      || accessory.addService(this.platform.Service.Battery)), batteryService;
 
     this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
     if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -437,7 +444,7 @@ export class Bot {
       this.BatteryLevel = 100;
     }
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel},`
-    + ` StatusLowBattery: ${this.StatusLowBattery}`);
+      + ` StatusLowBattery: ${this.StatusLowBattery}`);
   }
 
   async openAPIparseStatus(): Promise<void> {
@@ -464,7 +471,7 @@ export class Bot {
       this.BatteryLevel = 100;
     }
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel},`
-    + ` StatusLowBattery: ${this.StatusLowBattery}`);
+      + ` StatusLowBattery: ${this.StatusLowBattery}`);
 
     // FirmwareRevision
     this.FirmwareRevision = this.OpenAPI_FirmwareRevision!;

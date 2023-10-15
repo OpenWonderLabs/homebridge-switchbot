@@ -67,8 +67,9 @@ export class AirConditioner {
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
-    (this.coolerService = accessory.getService(this.platform.Service.HeaterCooler) || accessory.addService(this.platform.Service.HeaterCooler)),
-    `${accessory.displayName} ${device.remoteType}`;
+    const coolerService = `${accessory.displayName} ${device.remoteType}`;
+    (this.coolerService = accessory.getService(this.platform.Service.HeaterCooler)
+      || accessory.addService(this.platform.Service.HeaterCooler)), coolerService;
 
     this.coolerService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
     if (!this.coolerService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {

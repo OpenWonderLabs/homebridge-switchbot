@@ -43,8 +43,9 @@ export class WaterHeater {
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
-    (this.valveService = accessory.getService(this.platform.Service.Valve) || accessory.addService(this.platform.Service.Valve)),
-    `${accessory.displayName} ${device.remoteType}`;
+    const valveService = `${accessory.displayName} ${device.remoteType}`;
+    (this.valveService = accessory.getService(this.platform.Service.Valve)
+      || accessory.addService(this.platform.Service.Valve)), valveService;
 
     this.valveService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
     if (!this.valveService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {

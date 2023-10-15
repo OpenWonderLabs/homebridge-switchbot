@@ -61,8 +61,9 @@ export class AirPurifier {
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
-    (this.airPurifierService = accessory.getService(this.platform.Service.AirPurifier) || accessory.addService(this.platform.Service.AirPurifier)),
-    `${accessory.displayName} Air Purifier`;
+    const airPurifierService = `${accessory.displayName} Air Purifier`;
+    (this.airPurifierService = accessory.getService(this.platform.Service.AirPurifier)
+      || accessory.addService(this.platform.Service.AirPurifier)), airPurifierService;
 
     this.airPurifierService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
     if (!this.airPurifierService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {

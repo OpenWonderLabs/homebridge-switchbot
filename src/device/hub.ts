@@ -81,9 +81,9 @@ export class Hub {
       accessory.removeService(this.temperatureService!);
     } else if (!this.temperatureService) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Temperature Sensor Service`);
-      (this.temperatureService =
-        this.accessory.getService(this.platform.Service.TemperatureSensor) || this.accessory.addService(this.platform.Service.TemperatureSensor)),
-      `${accessory.displayName} Temperature Sensor`;
+      const temperatureService = `${accessory.displayName} Temperature Sensor`;
+      (this.temperatureService = this.accessory.getService(this.platform.Service.TemperatureSensor)
+        || this.accessory.addService(this.platform.Service.TemperatureSensor)), temperatureService;
 
       this.temperatureService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
       if (!this.temperatureService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -112,9 +112,9 @@ export class Hub {
       accessory.removeService(this.humidityService!);
     } else if (!this.humidityService) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Humidity Sensor Service`);
-      (this.humidityService =
-        this.accessory.getService(this.platform.Service.HumiditySensor) || this.accessory.addService(this.platform.Service.HumiditySensor)),
-      `${accessory.displayName} Humidity Sensor`;
+      const humidityService = `${accessory.displayName} Humidity Sensor`;
+      (this.humidityService = this.accessory.getService(this.platform.Service.HumiditySensor)
+        || this.accessory.addService(this.platform.Service.HumiditySensor)), humidityService;
 
       this.humidityService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
       if (!this.humidityService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -139,9 +139,9 @@ export class Hub {
       accessory.removeService(this.lightSensorService!);
     } else if (!this.lightSensorService) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Light Sensor Service`);
-      (this.lightSensorService =
-        this.accessory.getService(this.platform.Service.LightSensor) || this.accessory.addService(this.platform.Service.LightSensor)),
-      `${accessory.displayName} Light Sensor`;
+      const lightSensorService = `${accessory.displayName} Light Sensor`;
+      (this.lightSensorService = this.accessory.getService(this.platform.Service.LightSensor)
+        || this.accessory.addService(this.platform.Service.LightSensor)), lightSensorService;
 
       this.lightSensorService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Light Sensor`);
       this.lightSensorService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Light Sensor`);

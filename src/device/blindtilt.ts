@@ -118,9 +118,10 @@ export class BlindTilt {
 
     // get the WindowCovering service if it exists, otherwise create a new WindowCovering service
     // you can create multiple services for each accessory
+    const windowCoveringService = `${device.deviceName} ${device.deviceType}`;
     (this.windowCoveringService =
-      accessory.getService(this.platform.Service.WindowCovering) || accessory.addService(this.platform.Service.WindowCovering)),
-    `${device.deviceName} ${device.deviceType}`;
+      accessory.getService(this.platform.Service.WindowCovering)
+      || accessory.addService(this.platform.Service.WindowCovering)), windowCoveringService;
 
     this.windowCoveringService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
     if (!this.windowCoveringService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -178,8 +179,9 @@ export class BlindTilt {
       .onSet(this.TargetHorizontalTiltAngleSet.bind(this));
 
     // Battery Service
-    (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || accessory.addService(this.platform.Service.Battery)),
-    `${accessory.displayName} Battery`;
+    const batteryService = `${accessory.displayName} Battery`;
+    (this.batteryService = this.accessory.getService(this.platform.Service.Battery)
+      || accessory.addService(this.platform.Service.Battery)), batteryService;
 
     this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
     if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -438,7 +440,7 @@ export class BlindTilt {
       this.BatteryLevel = 100;
     }
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel},`
-    + ` StatusLowBattery: ${this.StatusLowBattery}`);
+      + ` StatusLowBattery: ${this.StatusLowBattery}`);
 
     // FirmwareRevision
     this.FirmwareRevision = this.OpenAPI_FirmwareRevision!;

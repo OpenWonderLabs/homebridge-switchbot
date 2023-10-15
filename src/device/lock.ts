@@ -77,8 +77,9 @@ export class Lock {
 
     // get the LockMechanism service if it exists, otherwise create a new LockMechanism service
     // you can create multiple services for each accessory
-    (this.lockService = accessory.getService(this.platform.Service.LockMechanism) || accessory.addService(this.platform.Service.LockMechanism)),
-    `${device.deviceName} ${device.deviceType}`;
+    const lockService = `${accessory.displayName} ${device.deviceType}`;
+    (this.lockService = accessory.getService(this.platform.Service.LockMechanism)
+      || accessory.addService(this.platform.Service.LockMechanism)), lockService;
 
     this.lockService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
     if (!this.lockService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -98,9 +99,9 @@ export class Lock {
       accessory.removeService(this.contactSensorService!);
     } else if (!this.contactSensorService) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Contact Sensor Service`);
-      (this.contactSensorService =
-        this.accessory.getService(this.platform.Service.ContactSensor) || this.accessory.addService(this.platform.Service.ContactSensor)),
-      `${accessory.displayName} Contact Sensor`;
+      const contactSensorService = `${accessory.displayName} Contact Sensor`;
+      (this.contactSensorService = this.accessory.getService(this.platform.Service.ContactSensor)
+        || this.accessory.addService(this.platform.Service.ContactSensor)), contactSensorService;
 
       this.contactSensorService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Contact Sensor`);
       if (!this.contactSensorService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -111,8 +112,9 @@ export class Lock {
     }
 
     // Battery Service
-    (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || accessory.addService(this.platform.Service.Battery)),
-    `${accessory.displayName} Battery`;
+    const batteryService = `${accessory.displayName} Battery`;
+    (this.batteryService = this.accessory.getService(this.platform.Service.Battery)
+      || accessory.addService(this.platform.Service.Battery)), batteryService;
 
     this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
     if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -159,8 +161,8 @@ export class Lock {
   async parseStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} parseStatus enableCloudService: ${this.device.enableCloudService}`);
-    /* } else if (this.BLE) {
-      await this.BLEparseStatus();*/
+      /* } else if (this.BLE) {
+        await this.BLEparseStatus();*/
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
     } else {
@@ -367,8 +369,8 @@ export class Lock {
   async pushChanges(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} pushChanges enableCloudService: ${this.device.enableCloudService}`);
-    /*} else if (this.BLE) {
-      await this.BLEpushChanges();*/
+      /*} else if (this.BLE) {
+        await this.BLEpushChanges();*/
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges();
     } else {

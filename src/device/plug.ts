@@ -64,8 +64,9 @@ export class Plug {
 
     // get the Outlet service if it exists, otherwise create a new Outlet service
     // you can create multiple services for each accessory
-    (this.outletService = accessory.getService(this.platform.Service.Outlet) || accessory.addService(this.platform.Service.Outlet)),
-    `${device.deviceName} ${device.deviceType}`;
+    const outletService = `${accessory.displayName} ${device.deviceType}`;
+    (this.outletService = accessory.getService(this.platform.Service.Outlet)
+    || accessory.addService(this.platform.Service.Outlet)), outletService;
 
     this.outletService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
     if (!this.outletService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {

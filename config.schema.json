@@ -36,7 +36,11 @@
             "default": "Keep your Token & Secret a secret!"
           }
         },
-        "required": ["token", "secret", "notice"]
+        "required": [
+          "token",
+          "secret",
+          "notice"
+        ]
       },
       "options": {
         "type": "object",
@@ -74,92 +78,135 @@
                   "oneOf": [
                     {
                       "title": "Bot",
-                      "enum": ["Bot"]
+                      "enum": [
+                        "Bot"
+                      ]
                     },
                     {
                       "title": "Curtain",
-                      "enum": ["Curtain"]
+                      "enum": [
+                        "Curtain"
+                      ]
                     },
                     {
                       "title": "Blind Tilt",
-                      "enum": ["Blind Tilt"]
+                      "enum": [
+                        "Blind Tilt"
+                      ]
                     },
                     {
                       "title": "Plug",
-                      "enum": ["Plug"]
+                      "enum": [
+                        "Plug"
+                      ]
                     },
                     {
                       "title": "Meter",
-                      "enum": ["Meter"]
+                      "enum": [
+                        "Meter"
+                      ]
                     },
                     {
                       "title": "Motion Sensor",
-                      "enum": ["Motion Sensor"]
+                      "enum": [
+                        "Motion Sensor"
+                      ]
                     },
-
                     {
                       "title": "Hub 2",
-                      "enum": ["Hub 2"]
+                      "enum": [
+                        "Hub 2"
+                      ]
                     },
                     {
                       "title": "Contact Sensor",
-                      "enum": ["Contact Sensor"]
+                      "enum": [
+                        "Contact Sensor"
+                      ]
                     },
                     {
                       "title": "Color Bulb",
-                      "enum": ["Color Bulb"]
+                      "enum": [
+                        "Color Bulb"
+                      ]
                     },
                     {
                       "title": "Ceiling Light",
-                      "enum": ["Ceiling Light"]
+                      "enum": [
+                        "Ceiling Light"
+                      ]
                     },
                     {
                       "title": "Ceiling Light Pro",
-                      "enum": ["Ceiling Light Pro"]
+                      "enum": [
+                        "Ceiling Light Pro"
+                      ]
                     },
                     {
                       "title": "Humidifier",
-                      "enum": ["Humidifier"]
+                      "enum": [
+                        "Humidifier"
+                      ]
                     },
                     {
                       "title": "Smart Fan",
-                      "enum": ["Smart Fan"]
+                      "enum": [
+                        "Smart Fan"
+                      ]
                     },
                     {
                       "title": "Smart Lock",
-                      "enum": ["Smart Lock"]
+                      "enum": [
+                        "Smart Lock"
+                      ]
                     },
                     {
                       "title": "Strip Light",
-                      "enum": ["Strip Light"]
+                      "enum": [
+                        "Strip Light"
+                      ]
                     },
                     {
                       "title": "Meter Plus (US)",
-                      "enum": ["MeterPlus"]
+                      "enum": [
+                        "MeterPlus"
+                      ]
                     },
                     {
                       "title": "Meter Plus (JP)",
-                      "enum": ["Meter Plus (JP)"]
+                      "enum": [
+                        "Meter Plus (JP)"
+                      ]
                     },
                     {
                       "title": "Indoor/Outdoor Sensor",
-                      "enum": ["WoIOSensor"]
+                      "enum": [
+                        "WoIOSensor"
+                      ]
                     },
                     {
                       "title": "Plug Mini (US)",
-                      "enum": ["Plug Mini (US)"]
+                      "enum": [
+                        "Plug Mini (US)"
+                      ]
                     },
                     {
                       "title": "Plug Mini (JP)",
-                      "enum": ["Plug Mini (JP)"]
+                      "enum": [
+                        "Plug Mini (JP)"
+                      ]
                     },
                     {
                       "title": "Robot Vacuum Cleaner S1",
-                      "enum": ["Robot Vacuum Cleaner S1"]
+                      "enum": [
+                        "Robot Vacuum Cleaner S1"
+                      ]
                     },
                     {
                       "title": "Robot Vacuum Cleaner S1 Plus",
-                      "enum": ["Robot Vacuum Cleaner S1 Plus"]
+                      "enum": [
+                        "Robot Vacuum Cleaner S1 Plus"
+                      ]
                     }
                   ],
                   "condition": {
@@ -172,19 +219,27 @@
                   "oneOf": [
                     {
                       "title": "BLE/OpenAPI",
-                      "enum": ["BLE/OpenAPI"]
+                      "enum": [
+                        "BLE/OpenAPI"
+                      ]
                     },
                     {
                       "title": "OpenAPI",
-                      "enum": ["OpenAPI"]
+                      "enum": [
+                        "OpenAPI"
+                      ]
                     },
                     {
                       "title": "BLE",
-                      "enum": ["BLE"]
+                      "enum": [
+                        "BLE"
+                      ]
                     },
                     {
                       "title": "Disable",
-                      "enum": ["Disabled"]
+                      "enum": [
+                        "Disabled"
+                      ]
                     }
                   ],
                   "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
@@ -245,19 +300,27 @@
                       "oneOf": [
                         {
                           "title": "Default",
-                          "enum": [""]
+                          "enum": [
+                            ""
+                          ]
                         },
                         {
                           "title": "Press",
-                          "enum": ["press"]
+                          "enum": [
+                            "press"
+                          ]
                         },
                         {
                           "title": "Switch",
-                          "enum": ["switch"]
+                          "enum": [
+                            "switch"
+                          ]
                         },
                         {
                           "title": "Multi-Press",
-                          "enum": ["multipress"]
+                          "enum": [
+                            "multipress"
+                          ]
                         }
                       ],
                       "description": "Press Mode presses one time per 'On' state in the Home App/API. Switch Mode allows you to set how many presses occur when the device is set to 'On'. Multi-Press allows you to queue up multiple button presses. It creates a queue by counting each time the device is set to 'On'. It is most useful for scripting with cURL requests or other API calls. Multi-Press only works when using OpenAPI.",
@@ -273,47 +336,69 @@
                       "oneOf": [
                         {
                           "title": "Default",
-                          "enum": [""]
+                          "enum": [
+                            ""
+                          ]
                         },
                         {
                           "title": "Outlet",
-                          "enum": ["outlet"]
+                          "enum": [
+                            "outlet"
+                          ]
                         },
                         {
                           "title": "Garage Door",
-                          "enum": ["garagedoor"]
+                          "enum": [
+                            "garagedoor"
+                          ]
                         },
                         {
                           "title": "Door",
-                          "enum": ["door"]
+                          "enum": [
+                            "door"
+                          ]
                         },
                         {
                           "title": "Lock",
-                          "enum": ["lock"]
+                          "enum": [
+                            "lock"
+                          ]
                         },
                         {
                           "title": "Faucet",
-                          "enum": ["faucet"]
+                          "enum": [
+                            "faucet"
+                          ]
                         },
                         {
                           "title": "Fan",
-                          "enum": ["fan"]
+                          "enum": [
+                            "fan"
+                          ]
                         },
                         {
                           "title": "Window",
-                          "enum": ["window"]
+                          "enum": [
+                            "window"
+                          ]
                         },
                         {
                           "title": "Window Covering",
-                          "enum": ["windowcovering"]
+                          "enum": [
+                            "windowcovering"
+                          ]
                         },
                         {
                           "title": "Stateful Programmable Switch (Only Works in 3rd Party Home Apps)",
-                          "enum": ["stateful"]
+                          "enum": [
+                            "stateful"
+                          ]
                         },
                         {
                           "title": "Switch",
-                          "enum": ["switch"]
+                          "enum": [
+                            "switch"
+                          ]
                         }
                       ],
                       "placeholder": "outlet",
@@ -440,11 +525,15 @@
                       "oneOf": [
                         {
                           "title": "Performance Mode",
-                          "enum": ["0"]
+                          "enum": [
+                            "0"
+                          ]
                         },
                         {
                           "title": "Silent Mode",
-                          "enum": ["1"]
+                          "enum": [
+                            "1"
+                          ]
                         }
                       ],
                       "condition": {
@@ -457,11 +546,15 @@
                       "oneOf": [
                         {
                           "title": "Performance Mode",
-                          "enum": ["0"]
+                          "enum": [
+                            "0"
+                          ]
                         },
                         {
                           "title": "Silent Mode",
-                          "enum": ["1"]
+                          "enum": [
+                            "1"
+                          ]
                         }
                       ],
                       "condition": {
@@ -502,23 +595,33 @@
                       "oneOf": [
                         {
                           "title": "Middle to Up",
-                          "enum": ["only_up"]
+                          "enum": [
+                            "only_up"
+                          ]
                         },
                         {
                           "title": "Middle to Down",
-                          "enum": ["only_down"]
+                          "enum": [
+                            "only_down"
+                          ]
                         },
                         {
                           "title": "Down-to-Up",
-                          "enum": ["down_and_up"]
+                          "enum": [
+                            "down_and_up"
+                          ]
                         },
                         {
                           "title": "Up-to-Down",
-                          "enum": ["up_and_down"]
+                          "enum": [
+                            "up_and_down"
+                          ]
                         },
                         {
                           "title": "Tilt Direction",
-                          "enum": ["use_tilt_for_direction"]
+                          "enum": [
+                            "use_tilt_for_direction"
+                          ]
                         }
                       ],
                       "description": "Defines how the Home app sliders control the blind tilt.",
@@ -774,19 +877,27 @@
                   "oneOf": [
                     {
                       "title": "Default Logging",
-                      "enum": [""]
+                      "enum": [
+                        ""
+                      ]
                     },
                     {
                       "title": "Standard Logging",
-                      "enum": ["standard"]
+                      "enum": [
+                        "standard"
+                      ]
                     },
                     {
                       "title": "No Logging",
-                      "enum": ["none"]
+                      "enum": [
+                        "none"
+                      ]
                     },
                     {
                       "title": "Debug Logging",
-                      "enum": ["debug"]
+                      "enum": [
+                        "debug"
+                      ]
                     }
                   ],
                   "condition": {
@@ -794,7 +905,13 @@
                   }
                 }
               },
-              "required": ["deviceId", "configDeviceType", "configDeviceName", "connectionType", "logging"]
+              "required": [
+                "deviceId",
+                "configDeviceType",
+                "configDeviceName",
+                "connectionType",
+                "logging"
+              ]
             },
             "uniqueItems": true
           },
@@ -831,111 +948,165 @@
                   "oneOf": [
                     {
                       "title": "Air Conditioner (IR)",
-                      "enum": ["Air Conditioner"]
+                      "enum": [
+                        "Air Conditioner"
+                      ]
                     },
                     {
                       "title": "DIY Air Conditioner (IR)",
-                      "enum": ["DIY Air Conditioner"]
+                      "enum": [
+                        "DIY Air Conditioner"
+                      ]
                     },
                     {
                       "title": "TV (IR)",
-                      "enum": ["TV"]
+                      "enum": [
+                        "TV"
+                      ]
                     },
                     {
                       "title": "DIY TV (IR)",
-                      "enum": ["DIY TV"]
+                      "enum": [
+                        "DIY TV"
+                      ]
                     },
                     {
                       "title": "Light (IR)",
-                      "enum": ["Light"]
+                      "enum": [
+                        "Light"
+                      ]
                     },
                     {
                       "title": "DIY Light (IR)",
-                      "enum": ["DIY Light"]
+                      "enum": [
+                        "DIY Light"
+                      ]
                     },
                     {
                       "title": "IPTV (IR)",
-                      "enum": ["IPTV"]
+                      "enum": [
+                        "IPTV"
+                      ]
                     },
                     {
                       "title": "DIY IPTV (IR)",
-                      "enum": ["DIY IPTV"]
+                      "enum": [
+                        "DIY IPTV"
+                      ]
                     },
                     {
                       "title": "Set Top Box (IR)",
-                      "enum": ["Set Top Box"]
+                      "enum": [
+                        "Set Top Box"
+                      ]
                     },
                     {
                       "title": "DIY Set Top Box (IR)",
-                      "enum": ["DIY Set Top Box"]
+                      "enum": [
+                        "DIY Set Top Box"
+                      ]
                     },
                     {
                       "title": "DVD (IR)",
-                      "enum": ["DVD"]
+                      "enum": [
+                        "DVD"
+                      ]
                     },
                     {
                       "title": "DIY DVD (IR)",
-                      "enum": ["DIY DVD"]
+                      "enum": [
+                        "DIY DVD"
+                      ]
                     },
                     {
                       "title": "Fan (IR)",
-                      "enum": ["Fan"]
+                      "enum": [
+                        "Fan"
+                      ]
                     },
                     {
                       "title": "DIY Fan (IR)",
-                      "enum": ["DIY Fan"]
+                      "enum": [
+                        "DIY Fan"
+                      ]
                     },
                     {
                       "title": "Projector (IR)",
-                      "enum": ["Projector"]
+                      "enum": [
+                        "Projector"
+                      ]
                     },
                     {
                       "title": "DIY Projector (IR)",
-                      "enum": ["DIY Projector"]
+                      "enum": [
+                        "DIY Projector"
+                      ]
                     },
                     {
                       "title": "Camera (IR)",
-                      "enum": ["Camera"]
+                      "enum": [
+                        "Camera"
+                      ]
                     },
                     {
                       "title": "DIY Camera (IR)",
-                      "enum": ["DIY Camera"]
+                      "enum": [
+                        "DIY Camera"
+                      ]
                     },
                     {
                       "title": "Air Purifier (IR)",
-                      "enum": ["Air Purifier"]
+                      "enum": [
+                        "Air Purifier"
+                      ]
                     },
                     {
                       "title": "DIY Air Purifier (IR)",
-                      "enum": ["DIY Air Purifier"]
+                      "enum": [
+                        "DIY Air Purifier"
+                      ]
                     },
                     {
                       "title": "Speaker (IR)",
-                      "enum": ["Speaker"]
+                      "enum": [
+                        "Speaker"
+                      ]
                     },
                     {
                       "title": "DIY Speaker (IR)",
-                      "enum": ["DIY Speaker"]
+                      "enum": [
+                        "DIY Speaker"
+                      ]
                     },
                     {
                       "title": "Water Heater (IR)",
-                      "enum": ["Water Heater"]
+                      "enum": [
+                        "Water Heater"
+                      ]
                     },
                     {
                       "title": "DIY Water Heater (IR)",
-                      "enum": ["DIY Water Heater"]
+                      "enum": [
+                        "DIY Water Heater"
+                      ]
                     },
                     {
                       "title": "Vacuum Cleaner (IR)",
-                      "enum": ["Vacuum Cleaner"]
+                      "enum": [
+                        "Vacuum Cleaner"
+                      ]
                     },
                     {
                       "title": "DIY Vacuum Cleaner (IR)",
-                      "enum": ["DIY Vacuum Cleaner"]
+                      "enum": [
+                        "DIY Vacuum Cleaner"
+                      ]
                     },
                     {
                       "title": "Others (IR)",
-                      "enum": ["Others"]
+                      "enum": [
+                        "Others"
+                      ]
                     }
                   ],
                   "condition": {
@@ -948,11 +1119,15 @@
                   "oneOf": [
                     {
                       "title": "OpenAPI",
-                      "enum": ["OpenAPI"]
+                      "enum": [
+                        "OpenAPI"
+                      ]
                     },
                     {
                       "title": "Disable",
-                      "enum": ["Disabled"]
+                      "enum": [
+                        "Disabled"
+                      ]
                     }
                   ],
                   "description": "Enables OpenAPI, if disabled will leave device in HomeKit and commands will not be sent to OpenAPI.",
@@ -1031,23 +1206,33 @@
                       "oneOf": [
                         {
                           "title": "Meter",
-                          "enum": ["Meter"]
+                          "enum": [
+                            "Meter"
+                          ]
                         },
                         {
                           "title": "MeterPlus",
-                          "enum": ["MeterPlus"]
+                          "enum": [
+                            "MeterPlus"
+                          ]
                         },
                         {
                           "title": "Meter Plus (JP)",
-                          "enum": ["Meter Plus (JP)"]
+                          "enum": [
+                            "Meter Plus (JP)"
+                          ]
                         },
                         {
                           "title": "Hub 2",
-                          "enum": ["Hub 2"]
+                          "enum": [
+                            "Hub 2"
+                          ]
                         },
                         {
                           "title": "WoIOSensor",
-                          "enum": ["WoIOSensor"]
+                          "enum": [
+                            "WoIOSensor"
+                          ]
                         }
                       ],
                       "condition": {
@@ -1117,47 +1302,69 @@
                       "oneOf": [
                         {
                           "title": "Default",
-                          "enum": [""]
+                          "enum": [
+                            ""
+                          ]
                         },
                         {
                           "title": "Outlet",
-                          "enum": ["outlet"]
+                          "enum": [
+                            "outlet"
+                          ]
                         },
                         {
                           "title": "Garage Door",
-                          "enum": ["garagedoor"]
+                          "enum": [
+                            "garagedoor"
+                          ]
                         },
                         {
                           "title": "Door",
-                          "enum": ["door"]
+                          "enum": [
+                            "door"
+                          ]
                         },
                         {
                           "title": "Lock",
-                          "enum": ["lock"]
+                          "enum": [
+                            "lock"
+                          ]
                         },
                         {
                           "title": "Faucet",
-                          "enum": ["faucet"]
+                          "enum": [
+                            "faucet"
+                          ]
                         },
                         {
                           "title": "Fan",
-                          "enum": ["fan"]
+                          "enum": [
+                            "fan"
+                          ]
                         },
                         {
                           "title": "Window",
-                          "enum": ["window"]
+                          "enum": [
+                            "window"
+                          ]
                         },
                         {
                           "title": "Window Covering",
-                          "enum": ["windowcovering"]
+                          "enum": [
+                            "windowcovering"
+                          ]
                         },
                         {
                           "title": "Stateful Programmable Switch (Only Works in 3rd Party Home Apps)",
-                          "enum": ["stateful"]
+                          "enum": [
+                            "stateful"
+                          ]
                         },
                         {
                           "title": "Switch",
-                          "enum": ["switch"]
+                          "enum": [
+                            "switch"
+                          ]
                         }
                       ],
                       "condition": {
@@ -1189,19 +1396,27 @@
                   "oneOf": [
                     {
                       "title": "Default Logging",
-                      "enum": [""]
+                      "enum": [
+                        ""
+                      ]
                     },
                     {
                       "title": "Standard Logging",
-                      "enum": ["standard"]
+                      "enum": [
+                        "standard"
+                      ]
                     },
                     {
                       "title": "No Logging",
-                      "enum": ["none"]
+                      "enum": [
+                        "none"
+                      ]
                     },
                     {
                       "title": "Debug Logging",
-                      "enum": ["debug"]
+                      "enum": [
+                        "debug"
+                      ]
                     }
                   ],
                   "condition": {
@@ -1209,7 +1424,12 @@
                   }
                 }
               },
-              "required": ["deviceId", "configRemoteType", "connectionType", "logging"]
+              "required": [
+                "deviceId",
+                "configRemoteType",
+                "connectionType",
+                "logging"
+              ]
             },
             "uniqueItems": true
           },
@@ -1233,24 +1453,35 @@
             "oneOf": [
               {
                 "title": "Default Logging",
-                "enum": [""]
+                "enum": [
+                  ""
+                ]
               },
               {
                 "title": "Standard Logging",
-                "enum": ["standard"]
+                "enum": [
+                  "standard"
+                ]
               },
               {
                 "title": "No Logging",
-                "enum": ["none"]
+                "enum": [
+                  "none"
+                ]
               },
               {
                 "title": "Debug Logging",
-                "enum": ["debug"]
+                "enum": [
+                  "debug"
+                ]
               }
             ]
           }
         },
-        "required": ["name", "logging"]
+        "required": [
+          "name",
+          "logging"
+        ]
       }
     }
   },
@@ -1260,7 +1491,10 @@
       "title": "SwitchBot Account Info",
       "expandable": true,
       "expanded": false,
-      "items": ["credentials.token", "credentials.secret"]
+      "items": [
+        "credentials.token",
+        "credentials.secret"
+      ]
     },
     {
       "type": "fieldset",

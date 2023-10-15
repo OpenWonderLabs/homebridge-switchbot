@@ -71,8 +71,9 @@ export class RobotVacuumCleaner {
 
     // get the Lightbulb service if it exists, otherwise create a new Lightbulb service
     // you can create multiple services for each accessory
-    (this.robotVacuumCleanerService = accessory.getService(this.platform.Service.Lightbulb) || accessory.addService(this.platform.Service.Lightbulb)),
-    `${device.deviceName} ${device.deviceType}`;
+    const robotVacuumCleanerService = `${accessory.displayName} ${device.deviceType}`;
+    (this.robotVacuumCleanerService = accessory.getService(this.platform.Service.Lightbulb)
+      || accessory.addService(this.platform.Service.Lightbulb)), robotVacuumCleanerService;
 
     this.robotVacuumCleanerService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
     if (!this.robotVacuumCleanerService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -100,8 +101,9 @@ export class RobotVacuumCleaner {
       .onSet(this.BrightnessSet.bind(this));
 
     // Battery Service
-    (this.batteryService = this.accessory.getService(this.platform.Service.Battery) || accessory.addService(this.platform.Service.Battery)),
-    `${accessory.displayName} Battery`;
+    const batteryService = `${accessory.displayName} Battery`;
+    (this.batteryService = this.accessory.getService(this.platform.Service.Battery)
+      || accessory.addService(this.platform.Service.Battery)), batteryService;
 
     this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
     if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
@@ -152,8 +154,8 @@ export class RobotVacuumCleaner {
   async parseStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} parseStatus enableCloudService: ${this.device.enableCloudService}`);
-    /*} else if (this.BLE) {
-      await this.BLEparseStatus();*/
+      /*} else if (this.BLE) {
+        await this.BLEparseStatus();*/
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
     } else {
@@ -208,8 +210,8 @@ export class RobotVacuumCleaner {
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus enableCloudService: ${this.device.enableCloudService}`);
-    /*} else if (this.BLE) {
-      await this.BLERefreshStatus();*/
+      /*} else if (this.BLE) {
+        await this.BLERefreshStatus();*/
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
@@ -328,8 +330,8 @@ export class RobotVacuumCleaner {
   async pushChanges(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} pushChanges enableCloudService: ${this.device.enableCloudService}`);
-    /*} else if (this.BLE) {
-      await this.BLEpushChanges();*/
+      /*} else if (this.BLE) {
+        await this.BLEpushChanges();*/
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges();
     } else {
