@@ -1,5 +1,7 @@
 {
-  "watch": ["src"],
+  "watch": [
+    "src"
+  ],
   "ext": "ts",
   "ignore": [],
   "exec": "DEBUG= tsc && homebridge -T -D -P -I -U ~/.homebridge-dev ..",
