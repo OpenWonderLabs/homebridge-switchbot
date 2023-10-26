@@ -8,5 +8,7 @@ on:
 jobs:
   stale:
     uses: OpenWonderLabs/.github/.github/workflows/stale.yml@latest
+    with:
+      days-before-issue-stale: 15
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
