@@ -35,6 +35,10 @@ export type options = {
   logging?: string;
   devices?: Array<devicesConfig>;
   irdevices?: Array<irDevicesConfig>;
+  webhookURL?: string;
+  mqttURL?: string;
+  mqttOptions?: IClientOptions;
+  mqttPubOptions?: IClientOptions;
 };
 
 export interface devicesConfig extends device {
@@ -56,6 +60,7 @@ export interface devicesConfig extends device {
   mqttOptions?: IClientOptions;
   mqttPubOptions?: IClientOptions;
   history?: boolean;
+  webhook?: boolean;
   bot?: bot;
   meter?: meter;
   humidifier?: humidifier;
