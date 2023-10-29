@@ -422,7 +422,7 @@ export class Hub {
       .match(/[\s\S]{1,2}/g)
       ?.join(':');
     const options = this.device.mqttPubOptions || {};
-    this.mqttClient?.publish(`homebridge-switchbot/meter/${mac}`, `${message}`, options);
+    this.mqttClient?.publish(`homebridge-switchbot/hub/${mac}`, `${message}`, options);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MQTT message: ${message} options:${JSON.stringify(options)}`);
   }
 
