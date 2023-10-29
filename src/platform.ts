@@ -57,7 +57,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
   public readonly fakegatoAPI: any;
   public readonly eve: any;
-  public readonly webhookEventHandler: {[x: string]: (context: {[x: string]: any}) => void} = {};
+  public readonly webhookEventHandler: { [x: string]: (context: { [x: string]: any }) => void } = {};
 
   constructor(
     public readonly log: Logger,
@@ -123,24 +123,24 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     if (this.config.options?.mqttURL) {
       try {
         this.mqttClient = await connectAsync(this.config.options?.mqttURL, this.config.options.mqttOptions || {});
-        this.debugLog(`MQTT connection has been established successfully.`);
+        this.debugLog('MQTT connection has been established successfully.');
         this.mqttClient.on('error', (e: Error) => {
           this.errorLog(`Failed to publish MQTT messages. ${e}`);
         });
-	if (!this.config.options?.webhookURL) {
-	  // receive webhook events via MQTT
+        if (!this.config.options?.webhookURL) {
+          // receive webhook events via MQTT
           this.infoLog(`Webhook is configured to be received through ${this.config.options.mqttURL}/homebridge-switchbot/webhook.`);
-	  this.mqttClient.subscribe(`homebridge-switchbot/webhook/+`);
-	  this.mqttClient.on('message', async (topic: string, message) => {
-	    try {
-	      this.debugLog(`Received Webhook via MQTT: ${topic}=${message}`)
-	      const context = JSON.parse(message.toString());
-	      await this.webhookEventHandler[context.deviceMac]?.(context);
-	    } catch (e: any) {
-	      this.errorLog(`Failed to handle webhook event. Error:${e}`);
-	    }
-	  })
-	}
+          this.mqttClient.subscribe('homebridge-switchbot/webhook/+');
+          this.mqttClient.on('message', async (topic: string, message) => {
+            try {
+              this.debugLog(`Received Webhook via MQTT: ${topic}=${message}`);
+              const context = JSON.parse(message.toString());
+              await this.webhookEventHandler[context.deviceMac]?.(context);
+            } catch (e: any) {
+              this.errorLog(`Failed to handle webhook event. Error:${e}`);
+            }
+          });
+        }
       } catch (e) {
         this.mqttClient = null;
         this.errorLog(`Failed to establish MQTT connection. ${e}`);
@@ -154,143 +154,144 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       const url = this.config.options?.webhookURL;
 
       try {
-	const xurl = new URL(url);
-	const port = Number(xurl.port);
-	const path = xurl.pathname;
-	this.webhookEventListener = http.createServer((request: http.IncomingMessage, response: http.ServerResponse) => {
-	  try {
-	    if (request.url === path && request.method === 'POST') {
-	      request.on('data', async (data) => {
-		try {
-		  const body = JSON.parse(data);
-		  this.debugLog(`Received Webhook: ${JSON.stringify(body)}`)
-		  if (this.config.options?.mqttURL) {
-		    const mac = body.context.deviceMac
-	              ?.toLowerCase()
-		      .match(/[\s\S]{1,2}/g)
-	              ?.join(':');
-		    const options = this.config.options?.mqttPubOptions || {};
-		    this.mqttClient?.publish(`homebridge-switchbot/webhook/${mac}`, `${JSON.stringify(body.context)}`, options);
-		  }
-		  await this.webhookEventHandler[body.context.deviceMac]?.(body.context);
-		} catch (e: any) {
-		  this.errorLog(`Failed to handle webhook event. Error:${e}`);
-		}
-	      })
-	      response.writeHead(200, {'Content-Type': 'text/plain'});
-	      response.end(`OK`);
-	    }
-	    // else {
-	    //   response.writeHead(403, {'Content-Type': 'text/plain'});
-	    //   response.end(`NG`);
-	    // }
-	  } catch (e: any) {
-	    this.errorLog(`Failed to handle webhook event. Error:${e}`);
-	  }
-	}).listen(port ? port : 80);
+        const xurl = new URL(url);
+        const port = Number(xurl.port);
+        const path = xurl.pathname;
+        this.webhookEventListener = http.createServer((request: http.IncomingMessage, response: http.ServerResponse) => {
+          try {
+            if (request.url === path && request.method === 'POST') {
+              request.on('data', async (data) => {
+                try {
+                  const body = JSON.parse(data);
+                  this.debugLog(`Received Webhook: ${JSON.stringify(body)}`);
+                  if (this.config.options?.mqttURL) {
+                    const mac = body.context.deviceMac
+                      ?.toLowerCase()
+                      .match(/[\s\S]{1,2}/g)
+                      ?.join(':');
+                    const options = this.config.options?.mqttPubOptions || {};
+                    this.mqttClient?.publish(`homebridge-switchbot/webhook/${mac}`, `${JSON.stringify(body.context)}`, options);
+                  }
+                  await this.webhookEventHandler[body.context.deviceMac]?.(body.context);
+                } catch (e: any) {
+                  this.errorLog(`Failed to handle webhook event. Error:${e}`);
+                }
+              });
+              response.writeHead(200, { 'Content-Type': 'text/plain' });
+              response.end('OK');
+            }
+            // else {
+            //   response.writeHead(403, {'Content-Type': 'text/plain'});
+            //   response.end(`NG`);
+            // }
+          } catch (e: any) {
+            this.errorLog(`Failed to handle webhook event. Error:${e}`);
+          }
+        }).listen(port ? port : 80);
       } catch (e: any) {
-	this.errorLog(`Failed to create webhook listener. Error:${e.message}`);
-	return;
+        this.errorLog(`Failed to create webhook listener. Error:${e.message}`);
+        return;
       }
-      
+
       try {
-	const {body, statusCode, headers} = await request(
-	  'https://api.switch-bot.com/v1.1/webhook/setupWebhook', {
-	    method: 'POST',
+        const { body, statusCode, headers } = await request(
+          'https://api.switch-bot.com/v1.1/webhook/setupWebhook', {
+            method: 'POST',
             headers: this.generateHeaders(),
-	    body: JSON.stringify({
-	      'action': 'setupWebhook',
-	      'url': url,
-	      'deviceList': 'ALL',
-	    })
-	  })
-	const response: any = await body.json();
+            body: JSON.stringify({
+              'action': 'setupWebhook',
+              'url': url,
+              'deviceList': 'ALL',
+            }),
+          });
+        const response: any = await body.json();
         this.debugLog(`setupWebhook: url:${url}`);
         this.debugLog(`setupWebhook: body:${JSON.stringify(response)}`);
         this.debugLog(`setupWebhook: statusCode:${statusCode}`);
         this.debugLog(`setupWebhook: headers:${JSON.stringify(headers)}`);
-	if (statusCode !== 200 || response?.statusCode !== 100) {
-          this.errorLog(`Failed to configure webhook. Existing webhook well be overridden. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`);
-	}
-      } catch(e: any) {
+        if (statusCode !== 200 || response?.statusCode !== 100) {
+          this.errorLog(`Failed to configure webhook. Existing webhook well be overridden. HTTP:${statusCode} API:${response?.statusCode} `
+            + `message:${response?.message}`);
+        }
+      } catch (e: any) {
         this.errorLog(`Failed to configure webhook. Error: ${e.message}`);
       }
 
       try {
-	const {body, statusCode, headers} = await request(
-	  'https://api.switch-bot.com/v1.1/webhook/updateWebhook', {
-	    method: 'POST',
+        const { body, statusCode, headers } = await request(
+          'https://api.switch-bot.com/v1.1/webhook/updateWebhook', {
+            method: 'POST',
             headers: this.generateHeaders(),
-	    body: JSON.stringify({
-	      'action': 'updateWebhook',
-	      'config': {
-		'url': url,
-		'enable': true,
-	      }
-	    })
-	  })
-	const response: any = await body.json();
+            body: JSON.stringify({
+              'action': 'updateWebhook',
+              'config': {
+                'url': url,
+                'enable': true,
+              },
+            }),
+          });
+        const response: any = await body.json();
         this.debugLog(`updateWebhook: url:${url}`);
         this.debugLog(`updateWebhook: body:${JSON.stringify(response)}`);
         this.debugLog(`updateWebhook: statusCode:${statusCode}`);
         this.debugLog(`updateWebhook: headers:${JSON.stringify(headers)}`);
-	if (statusCode !== 200 || response?.statusCode !== 100) {
+        if (statusCode !== 200 || response?.statusCode !== 100) {
           this.errorLog(`Failed to update webhook. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`);
-	}
-      } catch(e: any) {
+        }
+      } catch (e: any) {
         this.errorLog(`Failed to update webhook. Error:${e.message}`);
       }
 
       try {
-	const {body, statusCode, headers} = await request(
-	  'https://api.switch-bot.com/v1.1/webhook/queryWebhook', {
-	    method: 'POST',
+        const { body, statusCode, headers } = await request(
+          'https://api.switch-bot.com/v1.1/webhook/queryWebhook', {
+            method: 'POST',
             headers: this.generateHeaders(),
-	    body: JSON.stringify({
-	      'action': 'queryUrl',
-	    })
-	  })
-	const response: any = await body.json();
+            body: JSON.stringify({
+              'action': 'queryUrl',
+            }),
+          });
+        const response: any = await body.json();
         this.debugLog(`queryWebhook: body:${JSON.stringify(response)}`);
         this.debugLog(`queryWebhook: statusCode:${statusCode}`);
         this.debugLog(`queryWebhook: headers:${JSON.stringify(headers)}`);
-	if (statusCode !== 200 || response?.statusCode !== 100) {
+        if (statusCode !== 200 || response?.statusCode !== 100) {
           this.errorLog(`Failed to query webhook. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`);
-	} else {
+        } else {
           this.infoLog(`Listening webhook on ${response?.body?.urls[0]}`);
-	}
+        }
       } catch (e: any) {
         this.errorLog(`Failed to query webhook. Error:${e}`);
       }
 
       this.api.on('shutdown', async () => {
-	try {
-	  const {body, statusCode, headers} = await request(
-	    'https://api.switch-bot.com/v1.1/webhook/deleteWebhook', {
-	      method: 'POST',
+        try {
+          const { body, statusCode, headers } = await request(
+            'https://api.switch-bot.com/v1.1/webhook/deleteWebhook', {
+              method: 'POST',
               headers: this.generateHeaders(),
-	      body: JSON.stringify({
-		'action': 'deleteWebhook',
-		'url': url,
-	      })
-	    })
-	  const response: any = await body.json();
+              body: JSON.stringify({
+                'action': 'deleteWebhook',
+                'url': url,
+              }),
+            });
+          const response: any = await body.json();
           this.debugLog(`deleteWebhook: url:${url}`);
           this.debugLog(`deleteWebhook: body:${JSON.stringify(response)}`);
           this.debugLog(`deleteWebhook: statusCode:${statusCode}`);
           this.debugLog(`deleteWebhook: headers:${JSON.stringify(headers)}`);
-	  if (statusCode !== 200 || response?.statusCode !== 100) {
+          if (statusCode !== 200 || response?.statusCode !== 100) {
             this.errorLog(`Failed to delete webhook. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`);
-	  } else {
-            this.infoLog(`Unregistered webhook to close listening.`);
-	  }
-	} catch (e: any) {
+          } else {
+            this.infoLog('Unregistered webhook to close listening.');
+          }
+        } catch (e: any) {
           this.errorLog(`Failed to delete webhook. Error:${e.message}`);
-	}
-      })
+        }
+      });
     }
   }
-  
+
   /**
    * This function is invoked when homebridge restores cached accessories from disk at startup.
    * It should be used to setup event handlers for characteristics and update respective values.
