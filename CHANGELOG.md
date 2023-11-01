@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 2.10.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.10.0) (2023-10-31)
+
+## What's Changed
+
+- Added webhook event listener for Meter, Meter Plus, & Hub 2, Thanks [@banboobee](https://github.com/banboobee) [#850](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/850)
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.9.2....v2.10.0>
+
 ## [Version 2.9.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.9.2) (2023-10-26)
 
 ## What's Changed

@@ -157,6 +157,30 @@ export class Hub {
       .subscribe(async () => {
         await this.refreshStatus();
       });
+
+    //regisiter webhook event handler
+    if (this.device.webhook) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
+        try {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
+          if (context.scale === 'CELSIUS') {
+            const { temperature, humidity } = context;
+            const { CurrentTemperature, CurrentRelativeHumidity } = this;
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
+                '(temperature, humidity) = ' +
+                `Webhook:(${temperature}, ${humidity}), ` +
+                `current:(${CurrentTemperature}, ${CurrentRelativeHumidity})`);
+            this.CurrentRelativeHumidity = humidity;
+            this.CurrentTemperature = temperature;
+            this.updateHomeKitCharacteristics();
+          }
+        } catch (e: any) {
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+              + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+        }
+      };
+    }
   }
 
   /**
@@ -422,7 +446,7 @@ export class Hub {
       .match(/[\s\S]{1,2}/g)
       ?.join(':');
     const options = this.device.mqttPubOptions || {};
-    this.mqttClient?.publish(`homebridge-switchbot/meter/${mac}`, `${message}`, options);
+    this.mqttClient?.publish(`homebridge-switchbot/hub/${mac}`, `${message}`, options);
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MQTT message: ${message} options:${JSON.stringify(options)}`);
   }
 
