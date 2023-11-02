@@ -88,6 +88,27 @@ export class Plug {
         await this.refreshStatus();
       });
 
+    //regisiter webhook event handler
+    if (this.device.webhook) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
+        try {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
+          const { powerState } = context;
+          const { On } = this;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
+                      '(powerState) = ' +
+                      `Webhook:(${powerState}), ` +
+                      `current:(${On})`);
+          this.On = powerState === 'ON' ? true : false;
+          this.updateHomeKitCharacteristics();
+        } catch (e: any) {
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+                    + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+        }
+      };
+    }
+
     // Watch for Plug change events
     // We put in a debounce of 100ms so we don't make duplicate calls
     this.doPlugUpdate

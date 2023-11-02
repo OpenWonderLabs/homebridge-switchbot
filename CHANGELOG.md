@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 2.10.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.10.1) (2023-11-01)
+
+## What's Changed
+
+- Added webhook event listener for Bot, Ceiling Light, Color Bulb, Contact, Curtain, IOSensor, Light Strip, Lock, Motion, Plug, & Robot Vacuum Cleaner
+- Added Webhook config to Plugin Config UI.
+
+**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.10.0....v2.10.1>
+
 ## [Version 2.10.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.10.0) (2023-10-31)
 
 ## What's Changed

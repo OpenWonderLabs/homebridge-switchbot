@@ -132,6 +132,27 @@ export class Lock {
         await this.refreshStatus();
       });
 
+    //regisiter webhook event handler
+    if (this.device.webhook) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
+        try {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
+          const { lockState } = context;
+          const { LockCurrentState } = this;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
+                    '(lockState) = ' +
+                    `Webhook:(${lockState}), ` +
+                    `current:(${LockCurrentState})`);
+          this.LockCurrentState = lockState === 'LOCKED' ? 1 : 0;
+          this.updateHomeKitCharacteristics();
+        } catch (e: any) {
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+                  + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+        }
+      };
+    }
+
     // Watch for Lock change events
     // We put in a debounce of 100ms so we don't make duplicate calls
     this.doLockUpdate

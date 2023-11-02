@@ -164,6 +164,30 @@ export class Humidifier {
         this.refreshStatus();
       });
 
+    //regisiter webhook event handler
+    if (this.device.webhook) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
+        try {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
+          if (context.scale === 'CELSIUS') {
+            const { temperature, humidity } = context;
+            const { CurrentTemperature, CurrentRelativeHumidity } = this;
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
+                    '(temperature, humidity) = ' +
+                    `Webhook:(${temperature}, ${humidity}), ` +
+                    `current:(${CurrentTemperature}, ${CurrentRelativeHumidity})`);
+            this.CurrentRelativeHumidity = humidity;
+            this.CurrentTemperature = temperature;
+            this.updateHomeKitCharacteristics();
+          }
+        } catch (e: any) {
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+                  + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+        }
+      };
+    }
+
     // Watch for Humidifier change events
     // We put in a debounce of 100ms so we don't make duplicate calls
     this.doHumidifierUpdate

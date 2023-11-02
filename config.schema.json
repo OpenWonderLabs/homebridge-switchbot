@@ -247,6 +247,13 @@
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType !== 'Hub 2');"
                   }
                 },
+                "webhook": {
+                  "title": "Enable Webhook",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].connectionType === 'OpenAPI' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
+                  }
+                },
                 "customBLEaddress": {
                   "title": "Custom BLE Address",
                   "type": "string",
@@ -1433,6 +1440,11 @@
             },
             "uniqueItems": true
           },
+          "webhookURL": {
+            "title": "Webhook URL",
+            "type": "string",
+            "placeholder": "http://${FQDN}:${PORT}/${PATH}"
+          },
           "refreshRate": {
             "title": "Refresh Rate",
             "type": "number",
@@ -1516,6 +1528,7 @@
             "options.devices[].hide_device",
             "options.devices[].configDeviceType",
             "options.devices[].connectionType",
+            "options.devices[].webhook",
             "options.devices[].hub.hide_temperature",
             "options.devices[].hub.hide_humidity",
             "options.devices[].hub.hide_lightsensor",
@@ -1621,6 +1634,7 @@
       "expandable": true,
       "expanded": false,
       "items": [
+        "options.webhookURL",
         {
           "type": "help",
           "helpvalue": "<h5>Refresh Rate</h5><em class='primary-text'>Refresh Rate indicates the number of seconds between polls of SwitchBot API.</em>"

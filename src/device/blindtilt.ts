@@ -198,6 +198,29 @@ export class BlindTilt {
         await this.refreshStatus();
       });
 
+    //regisiter webhook event handler
+    if (this.device.webhook) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
+        try {
+          this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Please Submit Logs: ` + 'https://tinyurl.com/SwitchBotBug');
+          /*const { temperature, humidity } = context;
+            const { CurrentTemperature, CurrentRelativeHumidity } = this;
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
+                    '(temperature, humidity) = ' +
+                    `Webhook:(${temperature}, ${humidity}), ` +
+                    `current:(${CurrentTemperature}, ${CurrentRelativeHumidity})`);
+            this.CurrentRelativeHumidity = humidity;
+            this.CurrentTemperature = temperature;
+            this.updateHomeKitCharacteristics();*/
+        } catch (e: any) {
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+                  + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+        }
+      };
+    }
+
     // update slide progress
     interval(this.updateRate * 1000)
       //.pipe(skipWhile(() => this.blindTiltUpdateInProgress))
