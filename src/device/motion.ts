@@ -131,6 +131,27 @@ export class Motion {
       .subscribe(async () => {
         await this.refreshStatus();
       });
+
+    //regisiter webhook event handler
+    if (this.device.webhook) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
+        try {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
+          const { detectionState } = context;
+          const { MotionDetected } = this;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
+                    '(detectionState) = ' +
+                    `Webhook:(${detectionState}), ` +
+                    `current:(${MotionDetected})`);
+          this.MotionDetected = detectionState === 'DETECTED' ? true : false;
+          this.updateHomeKitCharacteristics();
+        } catch (e: any) {
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+                  + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+        }
+      };
+    }
   }
 
   /**

@@ -370,6 +370,29 @@ export class Bot {
         await this.refreshStatus();
       });
 
+    //regisiter webhook event handler
+    if (this.device.webhook) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
+        try {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
+          const { power, battery, deviceMode } = context;
+          const { On, BatteryLevel, botMode } = this;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
+                    '(power, battery, deviceMode) = ' +
+                    `Webhook:(${power}, ${battery}, ${deviceMode}), ` +
+                    `current:(${On}, ${BatteryLevel}, ${botMode})`);
+          this.On = power;
+          this.BatteryLevel = battery;
+          this.botMode = deviceMode;
+          this.updateHomeKitCharacteristics();
+        } catch (e: any) {
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+                  + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+        }
+      };
+    }
+
     // Watch for Bot change events
     // We put in a debounce of 1000ms so we don't make duplicate calls
     this.doBotUpdate

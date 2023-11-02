@@ -151,6 +151,31 @@ export class Contact {
       .subscribe(async () => {
         await this.refreshStatus();
       });
+
+    //regisiter webhook event handler
+    if (this.device.webhook) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
+        try {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
+          const { detectionState, brightness, openState } = context;
+          const { MotionDetected, CurrentAmbientLightLevel, ContactSensorState } = this;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
+                    '(detectionState, brightness, openState) = ' +
+                    `Webhook:(${detectionState}, ${brightness}, ${openState}), ` +
+                    `current:(${MotionDetected}, ${CurrentAmbientLightLevel}, ${ContactSensorState})`);
+          this.set_minLux = this.minLux();
+          this.set_maxLux = this.maxLux();
+          this.MotionDetected = detectionState === 'DETECTED' ? true : false;
+          this.CurrentAmbientLightLevel = brightness === 'bright' ? this.set_maxLux : this.set_minLux;
+          this.ContactSensorState = openState === 'open' ? 1 : 0;
+          this.updateHomeKitCharacteristics();
+        } catch (e: any) {
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+                  + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+        }
+      };
+    }
   }
 
   /**

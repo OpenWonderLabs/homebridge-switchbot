@@ -183,6 +183,48 @@ export class StripLight {
         await this.refreshStatus();
       });
 
+    //regisiter webhook event handler
+    if (this.device.webhook) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
+        try {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
+          const { powerState, brightness, color, colorTemperature } = context;
+          const { On, Brightness, Hue, Saturation, ColorTemperature } = this;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
+              '(powerState, brightness, color, colorTemperature) = ' +
+              `Webhook:(${powerState}, ${brightness}, ${color}, ${colorTemperature}), ` +
+              `current:(${On}, ${Brightness}, ${Hue}, ${Saturation}, ${ColorTemperature})`);
+          this.On = powerState === 'ON' ? true : false;
+          this.Brightness = brightness;
+
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} color: ${JSON.stringify(color)}`);
+          const [red, green, blue] = color!.split(':');
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} red: ${JSON.stringify(red)}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} green: ${JSON.stringify(green)}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} blue: ${JSON.stringify(blue)}`);
+
+          const [hue, saturation] = rgb2hs(Number(red), Number(green), Number(blue));
+          this.debugLog(
+            `${this.device.deviceType}: ${this.accessory.displayName}` + ` hs: ${JSON.stringify(rgb2hs(Number(red), Number(green), Number(blue)))}`,
+          );
+
+          // Hue
+          this.Hue = hue;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${this.Hue}`);
+
+          // Saturation
+          this.Saturation = saturation;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${this.Saturation}`);
+
+          this.updateHomeKitCharacteristics();
+        } catch (e: any) {
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+              + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+        }
+      };
+    }
+
     // Watch for Bulb change events
     // We put in a debounce of 1000ms so we don't make duplicate calls
     this.doStripLightUpdate

@@ -185,6 +185,29 @@ export class CeilingLight {
         await this.refreshStatus();
       });
 
+    //regisiter webhook event handler
+    if (this.device.webhook) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
+        try {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
+          const { powerState, brightness, colorTemperature } = context;
+          const { On, Brightness, ColorTemperature } = this;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
+              '(powerState, brightness, colorTemperature) = ' +
+              `Webhook:(${powerState}, ${brightness}, ${colorTemperature}), ` +
+              `current:(${On}, ${Brightness}, ${ColorTemperature})`);
+          this.On = powerState === 'ON' ? true : false;
+          this.Brightness = brightness;
+          this.ColorTemperature = colorTemperature;
+          this.updateHomeKitCharacteristics();
+        } catch (e: any) {
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+              + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+        }
+      };
+    }
+
     // Watch for Bulb change events
     // We put in a debounce of 100ms so we don't make duplicate calls
     this.doCeilingLightUpdate

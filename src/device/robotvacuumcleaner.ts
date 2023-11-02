@@ -120,6 +120,28 @@ export class RobotVacuumCleaner {
         await this.refreshStatus();
       });
 
+    //regisiter webhook event handler
+    if (this.device.webhook) {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
+        try {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
+          const { onlineStatus, battery } = context;
+          const { On, BatteryLevel } = this;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
+                        '(onlineStatus, battery) = ' +
+                        `Webhook:(${onlineStatus}, ${battery}), ` +
+                        `current:(${On}, ${BatteryLevel})`);
+          this.On = onlineStatus === 'online' ? true : false;
+          this.BatteryLevel = battery;
+          this.updateHomeKitCharacteristics();
+        } catch (e: any) {
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+                      + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+        }
+      };
+    }
+
     // Watch for Plug change events
     // We put in a debounce of 100ms so we don't make duplicate calls
     this.doRobotVacuumCleanerUpdate
