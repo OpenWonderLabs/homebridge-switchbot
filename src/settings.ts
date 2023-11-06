@@ -151,6 +151,7 @@ export type ceilinglight = {
 
 export type lock = {
   hide_contactsensor?: boolean;
+  activate_latchbutton?: boolean;
 };
 
 export type hub = {

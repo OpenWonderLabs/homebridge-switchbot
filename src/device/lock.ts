@@ -11,6 +11,7 @@ export class Lock {
   lockService: Service;
   batteryService: Service;
   contactSensorService?: Service;
+  latchButtonService?: Service;
 
   // Characteristic Values
   BatteryLevel!: CharacteristicValue;
@@ -89,8 +90,45 @@ export class Lock {
     // each service must implement at-minimum the "required characteristics" for the given service type
     // see https://developers.homebridge.io/#/service/LockMechanism
 
+
     // create handlers for required characteristics
     this.lockService.getCharacteristic(this.platform.Characteristic.LockTargetState).onSet(this.LockTargetStateSet.bind(this));
+
+
+    // Latch Button Service
+    if (device.lock?.activate_latchbutton === false) { // remove the service when this variable is false
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Latch Button Service`);
+      this.latchButtonService = accessory.getService(this.platform.Service.Switch);
+      if (this.latchButtonService) {
+        accessory.removeService(this.latchButtonService);
+        this.latchButtonService = undefined; // Reset the service variable to undefined
+      }
+    }
+    else
+    if (!this.latchButtonService) {
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Adding Latch Button Service`);
+      const latchServiceName = `${accessory.displayName} Latch`;
+      this.latchButtonService = accessory.getService(this.platform.Service.Switch)
+          || accessory.addService(this.platform.Service.Switch, latchServiceName, 'LatchButtonServiceIdentifier');
+
+      this.latchButtonService.setCharacteristic(this.platform.Characteristic.Name, latchServiceName);
+
+      if (!this.latchButtonService.testCharacteristic(this.platform.Characteristic.On)) {
+        this.latchButtonService.addCharacteristic(this.platform.Characteristic.On);
+      }
+
+      this.latchButtonService.getCharacteristic(this.platform.Characteristic.On)
+          .on('set', (value, callback) => {
+            if (typeof value === 'boolean') {
+              this.handleLatchCharacteristic(value, callback);
+            } else {
+              callback(new Error('Wrong characteristic value type'));
+            }
+          });
+    } else {
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Latch Button Service already exists`);
+    }
+
 
     // Contact Sensor Service
     if (device.lock?.hide_contactsensor) {
@@ -175,6 +213,49 @@ export class Lock {
         this.lockUpdateInProgress = false;
       });
   }
+
+  /**
+   * Method for handling the LatchCharacteristic
+   */
+  private handleLatchCharacteristic(value: boolean, callback: Function) {
+    this.debugLog(`handleLatchCharacteristic called with value: ${value}`);
+
+    if (value) {
+      this.debugLog('Attempting to open the latch');
+
+      this.openAPIpushChanges(value).then(() => {
+        this.debugLog('Latch opened successfully');
+        this.debugLog(`LatchButtonService is: ${this.latchButtonService ? 'available' : 'not available'}`);
+
+        // simulate button press to turn the switch back off
+        if (this.latchButtonService) {
+          const latchButtonService = this.latchButtonService;
+          // Simulate a button press by waiting a short period before turning the switch off
+          setTimeout(() => {
+            latchButtonService.getCharacteristic(this.platform.Characteristic.On).updateValue(false);
+            this.debugLog('Latch button switched off automatically.');
+          }, 500); // 500 ms delay
+        }
+        callback(null);
+      }).catch((error) => {
+        // Log the error if the operation failed
+        this.debugLog(`Error opening latch: ${error}`);
+
+        // Ensure we turn the switch back off even in case of an error
+        if (this.latchButtonService) {
+          this.latchButtonService.getCharacteristic(this.platform.Characteristic.On).updateValue(false);
+          this.debugLog('Latch button switched off after an error.');
+        }
+
+        callback(error);
+      });
+
+    } else {
+      this.debugLog('Switch is off, nothing to do');
+      callback(null);
+    }
+  }
+
 
   /**
    * Parse the device status from the SwitchBot api
@@ -449,14 +530,16 @@ export class Lock {
     }
   }
 
-  async openAPIpushChanges(): Promise<void> {
+  async openAPIpushChanges(LatchUnlock?): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges`);
-    if (this.LockTargetState !== this.accessory.context.LockTargetState) {
+
+    if ((this.LockTargetState !== this.accessory.context.LockTargetState) || LatchUnlock) {
+      // Determine the command based on the LockTargetState or the forceUnlock parameter
       let command = '';
-      if (this.LockTargetState) {
-        command = 'lock';
-      } else {
+      if (LatchUnlock) {
         command = 'unlock';
+      } else {
+        command = this.LockTargetState ? 'lock' : 'unlock';
       }
       const bodyChange = JSON.stringify({
         command: `${command}`,
