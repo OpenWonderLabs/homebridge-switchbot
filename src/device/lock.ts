@@ -90,10 +90,21 @@ export class Lock {
     // each service must implement at-minimum the "required characteristics" for the given service type
     // see https://developers.homebridge.io/#/service/LockMechanism
 
+
     // create handlers for required characteristics
     this.lockService.getCharacteristic(this.platform.Characteristic.LockTargetState).onSet(this.LockTargetStateSet.bind(this));
 
+
     // Latch Button Service
+    if (device.lock?.activate_latchbutton === false) { // remove the service when this variable is false
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Latch Button Service`);
+      this.latchButtonService = accessory.getService(this.platform.Service.Switch);
+      if (this.latchButtonService) {
+        accessory.removeService(this.latchButtonService);
+        this.latchButtonService = undefined; // Reset the service variable to undefined
+      }
+    }
+    else
     if (!this.latchButtonService) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Adding Latch Button Service`);
       const latchServiceName = `${accessory.displayName} Latch`;
