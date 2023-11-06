@@ -1580,6 +1580,7 @@
             "options.devices[].striplight.set_minStep",
             "options.devices[].striplight.adaptiveLightingShift",
             "options.devices[].lock.hide_contactsensor",
+            "options.devices[].lock.activate_latchbutton",
             "options.devices[].mqttURL",
             "options.devices[].mqttOptions",
             "options.devices[].mqttPubOptions",
