@@ -214,18 +214,31 @@ export class Lock {
 
       this.openAPIpushChanges(value).then(() => {
         this.debugLog('Latch opened successfully');
+        this.debugLog(`LatchButtonService is: ${this.latchButtonService ? 'available' : 'not available'}`);
 
-        // Success, turn the switch back off
+        // simulate button press to turn the switch back off
         if (this.latchButtonService) {
-          this.latchButtonService.getCharacteristic(this.platform.Characteristic.On).updateValue(false);
+          const latchButtonService = this.latchButtonService;
+          // Simulate a button press by waiting a short period before turning the switch off
+          setTimeout(() => {
+            latchButtonService.getCharacteristic(this.platform.Characteristic.On).updateValue(false);
+            this.debugLog('Latch button switched off automatically.');
+          }, 500); // 500 ms delay
         }
         callback(null);
       }).catch((error) => {
         // Log the error if the operation failed
         this.debugLog(`Error opening latch: ${error}`);
-        // Return the error
+
+        // Ensure we turn the switch back off even in case of an error
+        if (this.latchButtonService) {
+          this.latchButtonService.getCharacteristic(this.platform.Characteristic.On).updateValue(false);
+          this.debugLog('Latch button switched off after an error.');
+        }
+
         callback(error);
       });
+
     } else {
       this.debugLog('Switch is off, nothing to do');
       callback(null);
