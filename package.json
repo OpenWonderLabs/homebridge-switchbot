@@ -39,7 +39,8 @@
     }
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://npm.pkg.github.com/"
   },
   "keywords": [
     "homebridge-plugin",
@@ -68,7 +69,7 @@
     "node-switchbot": "^1.9.0"
   },
   "devDependencies": {
-    "@types/node": "^20.8.10",
+    "@types/node": "^20.9.0",
     "@typescript-eslint/eslint-plugin": "^6.10.0",
     "@typescript-eslint/parser": "^6.10.0",
     "eslint": "^8.53.0",
