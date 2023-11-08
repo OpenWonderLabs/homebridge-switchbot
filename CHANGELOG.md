@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 2.11.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.11.0) (2023-11-07)
+
+## What's Changed
+
+- Added Latch Switch to activate Latch on Lock, Thanks [@quebulm](https://github.com/quebulm) [#859](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/859)
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.10.1...v2.11.0>
+
 ## [Version 2.10.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.10.1) (2023-11-01)
 
 ## What's Changed
