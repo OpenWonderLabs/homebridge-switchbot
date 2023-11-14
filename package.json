@@ -64,8 +64,8 @@
     "undici": "^5.27.2"
   },
   "optionalDependencies": {
-    "@abandonware/bluetooth-hci-socket": "^1.2.0",
-    "@abandonware/noble": "^1.13.5",
+    "@abandonware/bluetooth-hci-socket": "^0.5.3-10",
+    "@abandonware/noble": "^1.9.2-23",
     "node-switchbot": "^1.9.0"
   },
   "devDependencies": {
