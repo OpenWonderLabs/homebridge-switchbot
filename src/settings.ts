@@ -179,7 +179,7 @@ export interface irDevicesConfig extends irdevice {
   irair?: irair;
   irpur?: Record<any, any>;
   ircam?: Record<any, any>;
-  irlight?: Record<any, any>;
+  irlight?: irlight;
   irvc?: Record<any, any>;
   irwh?: Record<any, any>;
   irtv?: Record<any, any>;
@@ -192,6 +192,10 @@ export type irfan = {
   set_minStep?: number; //set_minStep
   set_max?: number; //set_max
   set_min?: number; //set_min
+};
+
+export type irlight = {
+  stateless?: boolean;
 };
 
 export type irair = {
