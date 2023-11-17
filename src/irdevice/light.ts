@@ -10,10 +10,16 @@ import { Devices, irDevicesConfig, irdevice } from '../settings';
  */
 export class Light {
   // Services
-  lightBulbService!: Service;
+  lightBulbService?: Service;
+  ProgrammableSwitchServiceOn?: Service;
+  ProgrammableSwitchServiceOff?: Service;
 
   // Characteristic Values
   On!: CharacteristicValue;
+  ProgrammableSwitchEventOn?: CharacteristicValue;
+  ProgrammableSwitchOutputStateOn?: CharacteristicValue;
+  ProgrammableSwitchEventOff?: CharacteristicValue;
+  ProgrammableSwitchOutputStateOff?: CharacteristicValue;
   FirmwareRevision!: CharacteristicValue;
 
   // Config
@@ -41,19 +47,74 @@ export class Light {
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId)
       .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
 
-    // get the Light service if it exists, otherwise create a new Light service
-    // you can create multiple services for each accessory
-    const lightBulbService = `${accessory.displayName} ${device.remoteType}`;
-    (this.lightBulbService = accessory.getService(this.platform.Service.Lightbulb)
-      || accessory.addService(this.platform.Service.Lightbulb)), lightBulbService;
+    if (!device.irlight?.stateless) {
+      // get the Light service if it exists, otherwise create a new Light service
+      // you can create multiple services for each accessory
+      const lightBulbService = `${accessory.displayName} ${device.remoteType}`;
+      (this.lightBulbService = accessory.getService(this.platform.Service.Lightbulb)
+        || accessory.addService(this.platform.Service.Lightbulb)), lightBulbService;
 
-    this.lightBulbService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
-    if (!this.lightBulbService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-      this.lightBulbService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+
+      this.lightBulbService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
+      if (!this.lightBulbService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.lightBulbService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+      }
+
+      // handle on / off events using the On characteristic
+      this.lightBulbService.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
+    } else {
+
+      // create a new Stateful Programmable Switch service
+      const ProgrammableSwitchServiceOn = `${accessory.displayName} ${device.remoteType} On`;
+      (this.ProgrammableSwitchServiceOn = accessory.getService(this.platform.Service.StatefulProgrammableSwitch)
+        || accessory.addService(this.platform.Service.StatefulProgrammableSwitch)), ProgrammableSwitchServiceOn;
+
+
+      this.ProgrammableSwitchServiceOn.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} On`);
+      if (!this.ProgrammableSwitchServiceOn.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.ProgrammableSwitchServiceOn.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} On`);
+      }
+
+      this.ProgrammableSwitchServiceOn.getCharacteristic(this.platform.Characteristic.ProgrammableSwitchEvent).setProps({
+        validValueRanges: [0, 0],
+        minValue: 0,
+        maxValue: 0,
+        validValues: [0],
+      })
+        .onGet(() => {
+          return this.ProgrammableSwitchEventOn!;
+        });
+
+      this.ProgrammableSwitchServiceOn.getCharacteristic(this.platform.Characteristic.ProgrammableSwitchOutputState)
+        .onSet(this.ProgrammableSwitchOutputStateSetOn.bind(this));
+
+
+
+      // create a new Stateful Programmable Switch service
+      const ProgrammableSwitchServiceOff = `${accessory.displayName} ${device.remoteType} Off`;
+      (this.ProgrammableSwitchServiceOff = accessory.getService(this.platform.Service.StatefulProgrammableSwitch)
+        || accessory.addService(this.platform.Service.StatefulProgrammableSwitch)), ProgrammableSwitchServiceOff;
+
+
+      this.ProgrammableSwitchServiceOff.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Off`);
+      if (!this.ProgrammableSwitchServiceOff.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+        this.ProgrammableSwitchServiceOff.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Off`);
+      }
+
+      this.ProgrammableSwitchServiceOff.getCharacteristic(this.platform.Characteristic.ProgrammableSwitchEvent).setProps({
+        validValueRanges: [0, 0],
+        minValue: 0,
+        maxValue: 0,
+        validValues: [0],
+      })
+        .onGet(() => {
+          return this.ProgrammableSwitchEventOff!;
+        });
+
+      this.ProgrammableSwitchServiceOff.getCharacteristic(this.platform.Characteristic.ProgrammableSwitchOutputState)
+        .onSet(this.ProgrammableSwitchOutputStateSetOff.bind(this));
     }
 
-    // handle on / off events using the On characteristic
-    this.lightBulbService.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
   }
 
   async OnSet(value: CharacteristicValue): Promise<void> {
@@ -70,6 +131,36 @@ export class Light {
      * they are updated, so we are only updating the accessory state after calling the above.
      */
   }
+
+  async ProgrammableSwitchOutputStateSetOn(value: CharacteristicValue): Promise<void> {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${value}`);
+
+    this.ProgrammableSwitchOutputStateOn = value;
+    if (this.ProgrammableSwitchOutputStateOn === 1) {
+      this.On = true;
+      await this.pushLightOnChanges();
+    }
+    /**
+     * pushLightOnChanges and pushLightOffChanges above assume they are measuring the state of the accessory BEFORE
+     * they are updated, so we are only updating the accessory state after calling the above.
+     */
+  }
+
+  async ProgrammableSwitchOutputStateSetOff(value: CharacteristicValue): Promise<void> {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${value}`);
+
+    this.ProgrammableSwitchOutputStateOff = value;
+    if (this.ProgrammableSwitchOutputStateOff === 1) {
+      this.On = false;
+      await this.pushLightOffChanges();
+    }
+    /**
+     * pushLightOnChanges and pushLightOffChanges above assume they are measuring the state of the accessory BEFORE
+     * they are updated, so we are only updating the accessory state after calling the above.
+     */
+  }
+
+
 
   /**
    * Pushes the requested changes to the SwitchBot API
@@ -113,7 +204,7 @@ export class Light {
     }
   }
 
-  async pushLightBrightnessUpChanges(): Promise<void> {
+  /*async pushLightBrightnessUpChanges(): Promise<void> {
     const bodyChange = JSON.stringify({
       command: 'brightnessUp',
       parameter: 'default',
@@ -129,7 +220,7 @@ export class Light {
       commandType: 'command',
     });
     await this.pushChanges(bodyChange);
-  }
+  }*/
 
   async pushChanges(bodyChange: any): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushChanges`);
@@ -173,13 +264,38 @@ export class Light {
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
-    // On
-    if (this.On === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.On}`);
+    if (this.device.irlight?.stateless) {
+      // On
+      if (this.On === undefined) {
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.On}`);
+      } else {
+        this.accessory.context.On = this.On;
+        this.lightBulbService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+      }
     } else {
-      this.accessory.context.On = this.On;
-      this.lightBulbService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+      // On Stateful Programmable Switch
+      if (this.ProgrammableSwitchOutputStateOn === undefined) {
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+          + ` ProgrammableSwitchOutputStateOn: ${this.ProgrammableSwitchOutputStateOn}`);
+      } else {
+        this.accessory.context.ProgrammableSwitchOutputStateOn = this.ProgrammableSwitchOutputStateOn;
+        this.ProgrammableSwitchServiceOn?.updateCharacteristic(this.platform.Characteristic.ProgrammableSwitchOutputState,
+          this.ProgrammableSwitchOutputStateOn);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
+          + ` ProgrammableSwitchOutputStateOn: ${this.ProgrammableSwitchOutputStateOn}`);
+      }
+      // Off Stateful Programmable Switch
+      if (this.ProgrammableSwitchOutputStateOff === undefined) {
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+          + ` ProgrammableSwitchOutputStateOff: ${this.ProgrammableSwitchOutputStateOff}`);
+      } else {
+        this.accessory.context.ProgrammableSwitchOutputStateOff = this.ProgrammableSwitchOutputStateOff;
+        this.ProgrammableSwitchServiceOff?.updateCharacteristic(this.platform.Characteristic.ProgrammableSwitchOutputState,
+          this.ProgrammableSwitchOutputStateOff);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
+          + ` ProgrammableSwitchOutputStateOff: ${this.ProgrammableSwitchOutputStateOff}`);
+      }
     }
   }
 
@@ -270,7 +386,14 @@ export class Light {
   }
 
   async apiError(e: any): Promise<void> {
-    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.On, e);
+    if (this.device.irlight?.stateless) {
+      this.lightBulbService?.updateCharacteristic(this.platform.Characteristic.On, e);
+    } else {
+      this.ProgrammableSwitchServiceOn?.updateCharacteristic(this.platform.Characteristic.ProgrammableSwitchEvent, e);
+      this.ProgrammableSwitchServiceOn?.updateCharacteristic(this.platform.Characteristic.ProgrammableSwitchOutputState, e);
+      this.ProgrammableSwitchServiceOff?.updateCharacteristic(this.platform.Characteristic.ProgrammableSwitchEvent, e);
+      this.ProgrammableSwitchServiceOff?.updateCharacteristic(this.platform.Characteristic.ProgrammableSwitchOutputState, e);
+    }
   }
 
   async context() {

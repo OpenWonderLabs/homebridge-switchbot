@@ -1306,6 +1306,18 @@
                     }
                   }
                 },
+                "irlight": {
+                  "type": "object",
+                  "properties": {
+                    "stateless": {
+                      "title": "Enable Stateless Buttons",
+                      "type": "boolean",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Light' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Light (IR)') && model.options.irdevices[arrayIndices].deviceId);"
+                      }
+                    }
+                  }
+                },
                 "other": {
                   "type": "object",
                   "properties": {
@@ -1630,6 +1642,7 @@
             "options.irdevices[].irfan.set_minStep",
             "options.irdevices[].irfan.set_min",
             "options.irdevices[].irfan.set_max",
+            "options.irdevices[].irlight.stateless",
             "options.irdevices[].firmware",
             "options.irdevices[].external",
             "options.irdevices[].logging"

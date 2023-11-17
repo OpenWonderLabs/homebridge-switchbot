@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 2.12.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.12.0) (2023-11-17)
+
+## What's Changed
+
+- Add Support for Stateless button on IR Lights [#863](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/863)
+- Fix noble [#864](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/864)
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.11.0...v2.12.0
+
 ## [Version 2.11.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.11.0) (2023-11-07)
 
 ## What's Changed
@@ -9,7 +19,7 @@ All notable changes to this project will be documented in this file. This projec
 - Added Latch Switch to activate Latch on Lock, Thanks [@quebulm](https://github.com/quebulm) [#859](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/859)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.10.1...v2.11.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.10.1...v2.11.0
 
 ## [Version 2.10.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.10.1) (2023-11-01)
 
@@ -18,7 +28,7 @@ All notable changes to this project will be documented in this file. This projec
 - Added webhook event listener for Bot, Ceiling Light, Color Bulb, Contact, Curtain, IOSensor, Light Strip, Lock, Motion, Plug, & Robot Vacuum Cleaner
 - Added Webhook config to Plugin Config UI.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.10.0...v2.10.1>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.10.0...v2.10.1
 
 ## [Version 2.10.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.10.0) (2023-10-31)
 
@@ -27,7 +37,7 @@ All notable changes to this project will be documented in this file. This projec
 - Added webhook event listener for Meter, Meter Plus, & Hub 2, Thanks [@banboobee](https://github.com/banboobee) [#850](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/850)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.9.2...v2.10.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.9.2...v2.10.0
 
 ## [Version 2.9.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.9.2) (2023-10-26)
 
@@ -35,7 +45,7 @@ All notable changes to this project will be documented in this file. This projec
 
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.9.1...v2.9.2>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.9.1...v2.9.2
 
 ## [Version 2.9.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.9.1) (2023-10-14)
 
@@ -44,7 +54,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fix issue with `FirmwareRevision` causing Homebridge Crash. Fixes [#839](https://github.com/OpenWonderLabs/homebridge-switchbot/discussions/839), [#832](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/832), [#829](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/829), & [#828](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/828)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.9.0...v2.9.1>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.9.0...v2.9.1
 
 ## [Version 2.9.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.9.0) (2023-09-16)
 
@@ -53,7 +63,7 @@ All notable changes to this project will be documented in this file. This projec
 - Add other `deviceTypes` for IR Type `Other`.
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.8.2...v2.9.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.8.2...v2.9.0
 
 ## [Version 2.8.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.8.2) (2023-08-27)
 
@@ -63,7 +73,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fixed config issue where Eve History was not showing for WoIOSensor.
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.8.1...v2.8.2>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.8.1...v2.8.2
 
 ## [Version 2.8.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.8.1) (2023-08-22)
 
@@ -72,7 +82,7 @@ All notable changes to this project will be documented in this file. This projec
 - Added additional logging to catch statusCodes like 190 (Requests reached the daily limit).
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.8.0...v2.8.1>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.8.0...v2.8.1
 
 ## [Version 2.8.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.8.0) (2023-08-19)
 
@@ -84,7 +94,7 @@ All notable changes to this project will be documented in this file. This projec
 - Enable Battery Level and Version for OpenAPI for BlindTilt, Bot, Ceiling Lights, Color Bulb, Contact, Curtain, Hub, Humidifier, Indoor/Outdoor Sensor, Light Strip, Lock, Meter, Meter Plus, Motion , Plug, Plug Mini, & Robot Vacuum Cleaner
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.7.1...v2.8.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.7.1...v2.8.0
 
 ## [Version 2.7.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.7.1) (2023-07-29)
 
@@ -94,7 +104,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fixed TargetTemperature not being updated in the HomeKit, Thanks [@mrlt8](https://github.com/mrlt8) [#7779](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/779)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.7.0...v2.7.1>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.7.0...v2.7.1
 
 ## [Version 2.7.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.7.0) (2023-07-25)
 
@@ -105,7 +115,7 @@ All notable changes to this project will be documented in this file. This projec
 - Adds the ability to enable EVE history SwitchBot Curtains, Thanks [@banboobee](https://github.com/banboobee) [#766](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/766)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.6.2...v2.7.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.6.2...v2.7.0
 
 ## [Version 2.6.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.6.2) (2023-04-17)
 
@@ -114,7 +124,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fix for Commands not being sent, [#721](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/721)
 - Housekeeping.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.6.1...v2.6.2>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.6.1...v2.6.2
 
 ## [Version 2.6.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.6.1) (2023-04-15)
 
@@ -122,7 +132,7 @@ All notable changes to this project will be documented in this file. This projec
 
 - Add Support for [SwitchBot Meter Plus (JP)](https://www.switchbot.jp/products/switchbot-meter-plus), Thanks [@tikuwas](https://github.com/tikuwas) [#642](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/642)
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.6.0...v2.6.1>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.6.0...v2.6.1
 
 ## [Version 2.6.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.6.0) (2023-04-15)
 
@@ -131,7 +141,7 @@ All notable changes to this project will be documented in this file. This projec
 - Add Support for [SwitchBot Hub 2](https://us.switch-bot.com/pages/switchbot-hub-2) Humidity and Temperature Sensor, Thanks [@alvie](https://github.com/alvie). [#716](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/716)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.5.3...v2.6.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.5.3...v2.6.0
 
 ## [Version 2.5.3](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.5.3) (2023-04-08)
 
@@ -145,7 +155,7 @@ All notable changes to this project will be documented in this file. This projec
 - Housekeeping and updated dependencies.
   - This release will end support for Node v14.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.5.2...v2.5.3>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.5.2...v2.5.3
 
 ## [Version 2.5.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.5.2) (2023-02-10)
 
@@ -159,7 +169,7 @@ All notable changes to this project will be documented in this file. This projec
 - Remove incorrect warning message, Thanks [@dnicolson](https://github.com/dnicolson). [#673](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/673)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.5.1...v2.5.2>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.5.1...v2.5.2
 
 ## [Version 2.5.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.5.1) (2023-01-28)
 
@@ -167,7 +177,7 @@ All notable changes to this project will be documented in this file. This projec
 
 - Fix Blind Tilt Config.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.5.0...v2.5.1>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.5.0...v2.5.1
 
 ## [Version 2.5.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.5.0) (2023-01-28)
 
@@ -179,7 +189,7 @@ All notable changes to this project will be documented in this file. This projec
 - Enhancements to BLE functionality.
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.4.0...v2.5.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.4.0...v2.5.0
 
 ## [Version 2.4.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.4.0) (2022-12-27)
 
@@ -192,7 +202,7 @@ All notable changes to this project will be documented in this file. This projec
   - **If you had this set for your `Bot` you will have to update this config.**
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.3.2...v2.4.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.3.2...v2.4.0
 
 ## [Version 2.3.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.3.2) (2022-12-16)
 
@@ -200,7 +210,7 @@ All notable changes to this project will be documented in this file. This projec
 
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.3.1...v2.3.2>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.3.1...v2.3.2
 
 ## [Version 2.3.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.3.1) (2022-12-11)
 
@@ -209,7 +219,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fixed TypeError: Cannot read properties of undefined (reading 'setCharacteristic'). [#610](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/610)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.3.0...v2.3.1>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.3.0...v2.3.1
 
 ## [Version 2.3.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.3.0) (2022-12-08)
 
@@ -221,7 +231,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fixed issue where Meter did not parsing temperature. [#571](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/571)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.2.2...v2.3.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.2.2...v2.3.0
 
 ## [Version 2.2.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.2.2) (2022-10-22)
 
@@ -234,7 +244,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fix for node-switchbot showing not installed.
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.2.1...v2.2.2>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.2.1...v2.2.2
 
 ## [Version 2.2.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.2.1) (2022-10-18)
 
@@ -242,7 +252,7 @@ All notable changes to this project will be documented in this file. This projec
 
 - Fix for node-switchbot showing not installed.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.2.0...v2.2.1>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.2.0...v2.2.1
 
 ## [Version 2.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.2.0) (2022-10-18)
 
@@ -253,7 +263,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fixed Issue where IR TVs would not default to External Device. [#520](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/518)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.1.2...v2.2.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.1.2...v2.2.0
 
 ## [Version 2.1.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.1.2) (2022-10-14)
 
@@ -262,7 +272,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fix issue with IR Devices not having a default `ConnectionType`. [#527](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/527)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.1.1...v2.1.2>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.1.1...v2.1.2
 
 ## [Version 2.1.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.1.1) (2022-10-14)
 
@@ -274,7 +284,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fix issue with IR Devices not having a default `ConnectionType`. [#527](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/527)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.1.0...v2.1.1>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.1.0...v2.1.1
 
 ## [Version 2.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.1.0) (2022-10-13)
 
@@ -290,7 +300,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fixed issue were Plugin was waiting 15 seconds before sending command to SwitchBot API. [#509](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/509)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.0.0...v2.1.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.0.0...v2.1.0
 
 ## [Version 2.0.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.0.0) (2022-10-12)
 
@@ -309,7 +319,7 @@ All notable changes to this project will be documented in this file. This projec
 = Fixes excesive logging from node-switchbot. [#435](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/435), [#444](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/444), [#446](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/446)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.15.0...v2.0.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.15.0...v2.0.0
 
 ## [Version 1.15.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.15.0) (2022-08-27)
 
@@ -318,7 +328,7 @@ All notable changes to this project will be documented in this file. This projec
 - Added BLE support for PlugMini (US) & PlugMini (JP)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.14.2...v1.15.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.14.2...v1.15.0
 
 ## [Version 1.14.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.14.2) (2022-08-20)
 
@@ -326,7 +336,7 @@ All notable changes to this project will be documented in this file. This projec
 
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.14.1...v1.14.2>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.14.1...v1.14.2
 
 ## [Version 1.14.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.14.1) (2022-06-28)
 
@@ -335,7 +345,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fixed some logging.
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.14.0...v1.14.1>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.14.0...v1.14.1
 
 ## [Version 1.14.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.14.0) (2022-06-25)
 
@@ -344,7 +354,7 @@ All notable changes to this project will be documented in this file. This projec
 - Added support for Smart Lock commands over OpenAPI. Thanks [tom-todd](https://github.com/tom-todd) [#382](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/337) & [#387](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/337)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.13.0...v1.14.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.13.0...v1.14.0
 
 ## [Version 1.13.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.13.0) (2022-05-04)
 
@@ -358,7 +368,7 @@ All notable changes to this project will be documented in this file. This projec
   - Still unable to control Locks because of API limitations.
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.8...v1.13.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.8...v1.13.0
 
 ## [Version 1.12.8](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.8) (2022-03-19)
 
@@ -366,7 +376,7 @@ All notable changes to this project will be documented in this file. This projec
 
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.7...v1.12.8>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.7...v1.12.8
 
 ## [Version 1.12.7](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.7) (2022-03-07)
 
@@ -378,7 +388,7 @@ All notable changes to this project will be documented in this file. This projec
 - Seperated Meter and Meter Plus for BLE purposes.
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.6...v1.12.7>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.6...v1.12.7
 
 ## [Version 1.12.6](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.6) (2022-03-04)
 
@@ -387,7 +397,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fix for Curtain v3.3 and above, from v1.2.0 node-switchbot update.
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.5...v1.12.6>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.5...v1.12.6
 
 ## [Version 1.12.5](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.5) (2022-02-15)
 
@@ -395,7 +405,7 @@ All notable changes to this project will be documented in this file. This projec
 
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.4...v1.12.5>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.4...v1.12.5
 
 ## [Version 1.12.4](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.4) (2022-02-12)
 
@@ -404,7 +414,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fix support for Meter Plus
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.3...v1.12.4>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.3...v1.12.4
 
 ## [Version 1.12.3](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.3) (2022-02-05)
 
@@ -412,7 +422,7 @@ All notable changes to this project will be documented in this file. This projec
 
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.2...v1.12.3>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.2...v1.12.3
 
 ## [Version 1.12.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.2) (2022-02-02)
 
@@ -420,7 +430,7 @@ All notable changes to this project will be documented in this file. This projec
 
 - Fix: Issue where `PositionState` was not being sent back to Home App. Fixes [#123](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/123) Thanks [@dnicolson](https://github.com/dnicolson)!
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.1...v1.12.2>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.1...v1.12.2
 
 ## [Version 1.12.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.1) (2022-02-01)
 
@@ -428,7 +438,7 @@ All notable changes to this project will be documented in this file. This projec
 
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.0...v1.12.1>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.0...v1.12.1
 
 ## [Version 1.12.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.0) (2022-01-29)
 
@@ -436,7 +446,7 @@ All notable changes to this project will be documented in this file. This projec
 
 - Add option `maxRetry` for bots so you can set the number of retries for sending on or off for Bot.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.11.2...v1.12.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.11.2...v1.12.0
 
 ## [Version 1.11.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.11.2) (2022-01-29)
 
@@ -444,7 +454,7 @@ All notable changes to this project will be documented in this file. This projec
 
 - Fix: Use `updateRate` instead of `refreshRate` when overriding `scanDuration`.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.11.1...v1.11.2>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.11.1...v1.11.2
 
 ## [Version 1.11.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.11.1) (2022-01-29)
 
@@ -455,7 +465,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fix: `This plugin generated a warning from the characteristic 'Hue': characteristic value expected valid finite number and received "undefined" (undefined)`.
 - Fix: `This plugin generated a warning from the characteristic 'Saturation': characteristic value expected valid finite number and received "undefined" (undefined)`.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.11.0...v1.11.1>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.11.0...v1.11.1
 
 ## [Version 1.11.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.11.0) (2022-01-29)
 
@@ -470,7 +480,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fixed: Curtain `set_min` and `set_max` options not work correctly with minimum and maximum curtain state. [#123](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/123)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.10.1...v1.11.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.10.1...v1.11.0
 
 ## [Version 1.10.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.10.1) (2022-01-26)
 
@@ -479,7 +489,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fixed: Option `pushOn` was not push `On` commands.
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.10.0...v1.10.1>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.10.0...v1.10.1
 
 ## [Version 1.10.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.10.0) (2022-01-21)
 
@@ -488,7 +498,7 @@ All notable changes to this project will be documented in this file. This projec
 - Add option `pushOn`, this will allow the `On` commands to be sent along side `Status` change commands.
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.9.0...v1.10.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.9.0...v1.10.0
 
 ## [Version 1.9.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.9.0) (2022-01-20)
 
@@ -497,7 +507,7 @@ All notable changes to this project will be documented in this file. This projec
 - Add option `allowPush`, this will allow commands to be sent even if device state is already in state that is being pushed.
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.8.2...v1.9.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.8.2...v1.9.0
 
 ## [Version 1.8.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.8.2) (2022-01-15)
 
@@ -505,7 +515,7 @@ All notable changes to this project will be documented in this file. This projec
 
 - Fixed Bug: Only log config if it is set.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.8.1...v1.8.2>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.8.1...v1.8.2
 
 ## [Version 1.8.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.8.1) (2022-01-15)
 
@@ -513,7 +523,7 @@ All notable changes to this project will be documented in this file. This projec
 
 - Fixed Bug: Cannot set properties of undefined (setting 'logging')
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.8.0...v1.8.1>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.8.0...v1.8.1
 
 ## [Version 1.8.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.8.0) (2022-01-14)
 
@@ -533,7 +543,7 @@ All notable changes to this project will be documented in this file. This projec
   - You will have to update your config for it to pickup the new `updateRate`.
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.7.0...v1.8.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.7.0...v1.8.0
 
 ## [Version 1.7.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.7.0) (2022-01-05)
 
@@ -547,7 +557,7 @@ All notable changes to this project will be documented in this file. This projec
 - Added option to display Bot a WindowCovering.
 - Added option to display Bot a Garage Door Opener. [#179](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/179)
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.6.3...v1.7.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.6.3...v1.7.0
 
 ## [Version 1.6.3](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.6.3) (2022-01-03)
 
@@ -555,7 +565,7 @@ All notable changes to this project will be documented in this file. This projec
 
 - Quick Fix for for issue not tested in `v1.6.2`.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.6.2...v1.6.3>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.6.2...v1.6.3
 
 ## [Version 1.6.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.6.2) (2022-01-03)
 
@@ -566,7 +576,7 @@ All notable changes to this project will be documented in this file. This projec
   - So If `node-switchbot` doesn't get installed successfully then BLE will not work.
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.6.1...v1.6.2>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.6.1...v1.6.2
 
 ## [Version 1.6.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.6.1) (2022-01-02)
 
@@ -579,7 +589,7 @@ All notable changes to this project will be documented in this file. This projec
   - So If `node-switchbot` doesn't get installed successfully then BLE will not work.
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.6.0...v1.6.1>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.6.0...v1.6.1
 
 ## [Version 1.6.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.6.0) (2021-12-31)
 
@@ -592,7 +602,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fixed Bug: Bot Status not working Correction with Switch and Press. [#105](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/105), [#130](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/130), [#132](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/132), [#165](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/165), [#174](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/174)
 - Fixed some issues with the New Logging Options release with v1.5.0, now logging when configured.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.5.0...v1.6.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.5.0...v1.6.0
 
 ## [Version 1.5.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.5.0) (2021-12-27)
 
@@ -616,7 +626,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fixed Bug: Air conditioner temperature not able to change. [#43](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/43)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.4.0...v1.5.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.4.0...v1.5.0
 
 ## [Version 1.4.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.4.0) (2021-12-15)
 
@@ -628,7 +638,7 @@ All notable changes to this project will be documented in this file. This projec
 - Removed Meter Unit Config Option as it was confusing and probably never used.
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.3.0...v1.4.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.3.0...v1.4.0
 
 ## [Version 1.3.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.3.0) (2021-12-02)
 
@@ -638,7 +648,7 @@ All notable changes to this project will be documented in this file. This projec
 - Added Option `Adaptive Lighting Shift` to be able us this value to increase the mired for the Adaptive Lighting update, making the light appear warmer.
 - Fixed Bug: Color Bulb can't change color and is not dimmable. [#97](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/97)
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.5...v1.3.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.5...v1.3.0
 
 ## [Version 1.2.5](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.5) (2021-11-25)
 
@@ -646,7 +656,7 @@ All notable changes to this project will be documented in this file. This projec
 
 - Fixed Bug: Where `set_minLux` & `set_maxLux` config settings not effecting OpenAPI Lux.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.4...v1.2.5>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.4...v1.2.5
 
 ## [Version 1.2.4](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.4) (2021-11-24)
 
@@ -654,7 +664,7 @@ All notable changes to this project will be documented in this file. This projec
 
 - Fixed Bug: Cannot read properties of undefined (reading 'updateCharacteristic').
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.3...v1.2.4>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.3...v1.2.4
 
 ## [Version 1.2.3](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.3) (2021-11-24)
 
@@ -662,7 +672,7 @@ All notable changes to this project will be documented in this file. This projec
 
 - When BLE Connection isn't established, allow for OpenAPI to kick in if `openToken` is supplied.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.2...v1.2.3>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.2...v1.2.3
 
 ## [Version 1.2.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.2) (2021-11-24)
 
@@ -671,7 +681,7 @@ All notable changes to this project will be documented in this file. This projec
 - Allow the `configDeviceName` to override `deviceName`.
 - Added Logging when BLE Connection wasn't established.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.1...v1.2.2>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.1...v1.2.2
 
 ## [Version 1.2.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.1) (2021-11-24)
 
@@ -681,7 +691,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fixed Bug: Meter not working with BLE. [#110](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/110)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.0...v1.2.1>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.0...v1.2.1
 
 ## [Version 1.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.0) (2021-11-19)
 
@@ -696,7 +706,7 @@ All notable changes to this project will be documented in this file. This projec
 - Add `Saturation` and `Hue` to Colorbulb.
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.1.0...v1.2.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.1.0...v1.2.0
 
 ## [Version 1.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.1.0) (2021-11-16)
 
@@ -708,7 +718,7 @@ All notable changes to this project will be documented in this file. This projec
 - Add option to Hide Curtain's Light Sensor. [#91](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/91)
 - Add option to Hide Contact Sensor's Motion Sensor or Light Sensor.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.0.2...v1.1.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.0.2...v1.1.0
 
 ## [Version 1.0.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.0.2) (2021-11-15)
 
@@ -717,7 +727,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fixed Bug: `failed to discover devices. cannot read property 'touppercase' of undefined`. [#84](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/84)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.0.1...v1.0.2>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.0.1...v1.0.2
 
 ## [Version 1.0.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.0.1) (2021-11-14)
 
@@ -726,7 +736,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fixed `Cannot read properties of undefined (reading 'updateCharacteristic')` on Bots. [#77](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/77)
 - Fixed Temperature not being retrieved for Switchbot Meter. [#78](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/78)
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.0.0...v1.0.1>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.0.0...v1.0.1
 
 ## [Version 1.0.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.0.0) (2021-11-13)
 
@@ -738,7 +748,7 @@ All notable changes to this project will be documented in this file. This projec
 - Adds Motion Sensor to Contact Sensors
 - Adds Support Color Bulbs
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v0.1.1...v1.0.0>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v0.1.1...v1.0.0
 
 ## [Version 0.1.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v0.1.1) (2021-09-11)
 
@@ -746,7 +756,7 @@ All notable changes to this project will be documented in this file. This projec
 
 - Fix Contact Sensor adding as Motion Sensor instead of Contact Sensor
 
-**Full Changelog**: <https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v0.1.0...v0.1.1>
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v0.1.0...v0.1.1
 
 ## [Version 0.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v0.1.0) (2021-09-10)
 
