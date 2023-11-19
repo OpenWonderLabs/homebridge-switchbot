@@ -129,7 +129,7 @@
   - If using OpenAPI:
     - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub 2](https://us.switch-bot.com/pages/switchbot-hub-2) Required
     - Enable Cloud Services for Device on SwitchBot App
-    - You must set your Bot's Device ID in the Press Mode or Switch Mode Bot Settings (Advanced Settings > Device Settings > Bot Settings)
+    - You must set your Bot's Device ID for either Press Mode or Switch Mode in Plugin Config (SwitchBot Device Settings > Bot Settings)
       - Press Mode - Turns on then instantly turn it off
       - Switch Mode - Turns on and keep it on until it is turned off
         - This can get out of sync, since API doesn't give me a status
