@@ -802,7 +802,6 @@
                     "activate_latchbutton": {
                       "title": "Activate Latch Button",
                       "type": "boolean",
-                      "default": false,
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Smart Lock' && model.options.devices[arrayIndices].deviceId);"
                       }
