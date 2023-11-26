@@ -251,7 +251,7 @@
                   "title": "Enable Webhook",
                   "type": "boolean",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].connectionType === 'OpenAPI' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
+                    "functionBody": "return (model.options && model.options.devices && model.options.webhookURL && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].connectionType === 'OpenAPI' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
                   }
                 },
                 "customBLEaddress": {
@@ -802,7 +802,6 @@
                     "activate_latchbutton": {
                       "title": "Activate Latch Button",
                       "type": "boolean",
-                      "default": false,
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Smart Lock' && model.options.devices[arrayIndices].deviceId);"
                       }
@@ -1313,7 +1312,7 @@
                       "title": "Enable Stateless Buttons",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Light' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Light (IR)') && model.options.irdevices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Light' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Light') && model.options.irdevices[arrayIndices].deviceId);"
                       }
                     }
                   }
