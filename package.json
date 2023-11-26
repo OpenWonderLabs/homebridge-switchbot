@@ -1,10 +1,11 @@
 {
-  "displayName": "Homebridge SwitchBot",
+  "displayName": "SwitchBot",
   "name": "@switchbot/homebridge-switchbot",
   "version": "2.12.0",
   "description": "The [Homebridge](https://homebridge.io) SwitchBot plugin allows you to access your [SwitchBot](https://www.switch-bot.com) device(s) from HomeKit.",
   "author": "SwitchBot <support@wondertechlabs.com> (https://github.com/SwitchBot)",
   "license": "ISC",
+  "pluginIcon": "branding/icon.png",
   "repository": {
     "type": "git",
     "url": "git://github.com/OpenWonderLabs/homebridge-switchbot.git"
@@ -63,9 +64,9 @@
     "undici": "^5.27.2"
   },
   "optionalDependencies": {
-    "@abandonware/bluetooth-hci-socket": "^0.5.3-10",
+    "node-switchbot": "^1.9.1",
     "@abandonware/noble": "^1.9.2-23",
-    "node-switchbot": "^1.9.0"
+    "@abandonware/bluetooth-hci-socket": "^0.5.3-10"
   },
   "devDependencies": {
     "@types/node": "^20.9.1",

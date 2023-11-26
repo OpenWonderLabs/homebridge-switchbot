@@ -64,7 +64,7 @@ export class Light {
       this.lightBulbService.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
     } else {
 
-      // create a new Stateful Programmable Switch service
+      // create a new Stateful Programmable Switch On service
       const ProgrammableSwitchServiceOn = `${accessory.displayName} ${device.remoteType} On`;
       (this.ProgrammableSwitchServiceOn = accessory.getService(this.platform.Service.StatefulProgrammableSwitch)
         || accessory.addService(this.platform.Service.StatefulProgrammableSwitch)), ProgrammableSwitchServiceOn;
@@ -90,7 +90,7 @@ export class Light {
 
 
 
-      // create a new Stateful Programmable Switch service
+      // create a new Stateful Programmable Switch Off service
       const ProgrammableSwitchServiceOff = `${accessory.displayName} ${device.remoteType} Off`;
       (this.ProgrammableSwitchServiceOff = accessory.getService(this.platform.Service.StatefulProgrammableSwitch)
         || accessory.addService(this.platform.Service.StatefulProgrammableSwitch)), ProgrammableSwitchServiceOff;
