@@ -5,7 +5,6 @@
   "description": "The [Homebridge](https://homebridge.io) SwitchBot plugin allows you to access your [SwitchBot](https://www.switch-bot.com) device(s) from HomeKit.",
   "author": "SwitchBot <support@wondertechlabs.com> (https://github.com/SwitchBot)",
   "license": "ISC",
-  "pluginIcon": "branding/icon.png",
   "repository": {
     "type": "git",
     "url": "git://github.com/OpenWonderLabs/homebridge-switchbot.git"
