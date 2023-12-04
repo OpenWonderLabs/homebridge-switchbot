@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Version 2.13.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.13.0) (2023-12-04)
+
+## What's Changed
+
+- Add support for turning on `WoSweeperMini`, also known as `SwitchBot Mini Robot Vacuum K10+`
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.12.1...v2.13.0
+
 ## [Version 2.12.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.12.1) (2023-11-26)
 
 ## What's Changed
