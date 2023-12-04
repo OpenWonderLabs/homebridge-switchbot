@@ -24,7 +24,7 @@
     "lint": "eslint src/**.ts",
     "watch": "npm run build && npm link && nodemon",
     "build": "rimraf ./dist && tsc",
-    "prepublishOnly": "npm run update && npm run lint && npm run build",
+    "prepublishOnly": "npm run lint && npm run build",
     "postpublish": "npm run clean",
     "clean": "rimraf ./dist",
     "test": "eslint src/**.ts"
@@ -61,7 +61,7 @@
     "fakegato-history": "^0.6.4",
     "homebridge-lib": "^6.7.1",
     "rxjs": "^7.8.1",
-    "undici": "^5.28.1"
+    "undici": "^5.28.2"
   },
   "optionalDependencies": {
     "node-switchbot": "^1.9.1",
@@ -69,12 +69,12 @@
     "@abandonware/bluetooth-hci-socket": "^0.5.3-10"
   },
   "devDependencies": {
-    "@types/node": "^20.10.1",
-    "@typescript-eslint/eslint-plugin": "^6.13.1",
-    "@typescript-eslint/parser": "^6.13.1",
-    "eslint": "^8.54.0",
+    "@types/node": "^20.10.3",
+    "@typescript-eslint/eslint-plugin": "^6.13.2",
+    "@typescript-eslint/parser": "^6.13.2",
+    "eslint": "^8.55.0",
     "homebridge": "^1.7.0",
-    "nodemon": "^3.0.1",
+    "nodemon": "^3.0.2",
     "npm-check-updates": "^16.14.11",
     "rimraf": "^5.0.5",
     "ts-node": "^10.9.1",
