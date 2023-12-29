@@ -1,3 +1,9 @@
+/* Copyright(C) 2017-2023, donavanbecker (https://github.com/donavanbecker). All rights reserved.
+ *
+ * protect-platform.ts: homebridge-cloudflared-tunnel platform class.
+ */
+import { API, DynamicPlatformPlugin, Logging, PlatformAccessory } from 'homebridge';
+import { PLATFORM_NAME, PLUGIN_NAME, irdevice, device, SwitchBotPlatformConfig, devicesConfig, irDevicesConfig, Devices } from './settings.js';
 import { Bot } from './device/bot';
 import { Plug } from './device/plug';
 import { Lock } from './device/lock';
@@ -23,19 +29,17 @@ import { AirPurifier } from './irdevice/airpurifier';
 import { WaterHeater } from './irdevice/waterheater';
 import { VacuumCleaner } from './irdevice/vacuumcleaner';
 import { AirConditioner } from './irdevice/airconditioner';
-import { request } from 'undici';
-import crypto, { randomUUID } from 'crypto';
+import * as http from 'http';
 import { Buffer } from 'buffer';
+import { request } from 'undici';
+import { MqttClient } from 'mqtt';
 import { queueScheduler } from 'rxjs';
 import fakegato from 'fakegato-history';
-import { EveHomeKitTypes } from 'homebridge-lib';
-import { MqttClient } from 'mqtt';
 import { connectAsync } from 'async-mqtt';
-import * as http from 'http';
-
+import crypto, { randomUUID } from 'crypto';
 import { readFileSync, writeFileSync } from 'fs';
-import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, Service, Characteristic } from 'homebridge';
-import { PLATFORM_NAME, PLUGIN_NAME, irdevice, device, SwitchBotPlatformConfig, devicesConfig, irDevicesConfig, Devices } from './settings';
+import { EveHomeKitTypes } from 'homebridge-lib';
+
 
 /**
  * HomebridgePlatform
@@ -43,15 +47,15 @@ import { PLATFORM_NAME, PLUGIN_NAME, irdevice, device, SwitchBotPlatformConfig, 
  * parse the user config and discover/register accessories with Homebridge.
  */
 export class SwitchBotPlatform implements DynamicPlatformPlugin {
-  public readonly Service: typeof Service = this.api.hap.Service;
-  public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
+  public accessories: PlatformAccessory[];
+  public readonly api: API;
+  public readonly log: Logging;
 
-  // this is used to track restored cached accessories
-  public readonly accessories: PlatformAccessory[] = [];
-
-  version = process.env.npm_package_version || '2.9.0';
+  version = process.env.npm_package_version || '2.13.0';
+  Logging?: string;
   debugMode!: boolean;
   platformLogging?: string;
+  config!: SwitchBotPlatformConfig;
   webhookEventListener: http.Server | null = null;
   mqttClient: MqttClient | null = null;
 
@@ -59,17 +63,28 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   public readonly eve: any;
   public readonly webhookEventHandler: { [x: string]: (context: { [x: string]: any }) => void } = {};
 
-  constructor(
-    public readonly log: Logger,
-    public readonly config: SwitchBotPlatformConfig,
-    public readonly api: API,
-  ) {
+  constructor(log: Logging, config: SwitchBotPlatformConfig, api: API) {
     this.logs();
-    this.debugLog('Finished initializing platform:', this.config.name);
+    this.debugLog(`Finished initializing platform: ${config.name}`);
+
+    this.accessories = [];
+    this.api = api;
+    this.log = log;
     // only load if configured
     if (!this.config) {
       return;
     }
+
+    // Plugin options into our config variables.
+    this.config = {
+      platform: 'SwitchBotPlatform',
+      url: config.url as string,
+      port: config.port as number,
+      hostname: config.hostname as string,
+      protocol: config.protocol as string,
+      verifyTLS: config.verifyTLS as boolean,
+      logging: config.logging as string,
+    };
 
     // HOOBS notice
     if (__dirname.includes('hoobs')) {

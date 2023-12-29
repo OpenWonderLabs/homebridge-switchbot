@@ -3,9 +3,13 @@
   "name": "@switchbot/homebridge-switchbot",
   "version": "2.14.0",
   "description": "The SwitchBot plugin allows you to access your SwitchBot device(s) from HomeKit.",
-  "author": "SwitchBot <support@wondertechlabs.com> (https://github.com/SwitchBot)",
+  "author": {
+    "name": "SwitchBot <support@wondertechlabs.com>",
+    "url": "https://github.com/SwitchBot"
+  },
+  "type": "module",
   "license": "ISC",
-  "icon": "https://raw.githubusercontent.com/OpenWonderLabs/homebridge-switchbot/beta-2.12.1/branding/icon.png",
+  "icon": "https://raw.githubusercontent.com/OpenWonderLabs/homebridge-switchbot/latest/branding/icon.png",
   "repository": {
     "type": "git",
     "url": "git://github.com/OpenWonderLabs/homebridge-switchbot.git"

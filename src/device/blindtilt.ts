@@ -18,9 +18,9 @@ enum BlindTiltMappingMode {
 
 export class BlindTilt {
   // Services
-  batteryService: Service;
+  batteryService!: Service;
   lightSensorService?: Service;
-  windowCoveringService: Service;
+  windowCoveringService!: Service;
 
   // Characteristic Values
   BatteryLevel!: CharacteristicValue;
@@ -90,7 +90,7 @@ export class BlindTilt {
     public device: device & devicesConfig,
   ) {
     // default placeholders
-    this.logs(device);
+    logs(device);
     this.refreshRate(device);
     this.scan(device);
     this.setupMqtt(device);
@@ -107,6 +107,11 @@ export class BlindTilt {
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();
+
+    // Connection
+    private readonly BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
+    private readonly OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
+  }
 
     // set accessory information
     accessory
