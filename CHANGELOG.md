@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [2.14.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.14.0) (2024-1-6)
+
+### What's Changed
+
+- Added Curtain Hold Command to OpenAPI.
+  - This will only Works in 3rd Party Home App, Like [Eve](https://apps.apple.com/us/app/eve-for-homekit/id917695792) or [Home+ 5](https://apps.apple.com/us/app/home-5/id995994352)
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.13.2...v2.14.0
+
 ## [2.13.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.13.2) (2024-1-5)
 
 ### What's Changed

@@ -17,6 +17,7 @@ export class Curtain {
 
   // Characteristic Values
   BatteryLevel!: CharacteristicValue;
+  HoldPosition!: CharacteristicValue;
   PositionState!: CharacteristicValue;
   TargetPosition!: CharacteristicValue;
   CurrentPosition!: CharacteristicValue;
@@ -142,6 +143,16 @@ export class Curtain {
         validValueRanges: [0, 100],
       })
       .onSet(this.TargetPositionSet.bind(this));
+
+    this.windowCoveringService
+      .getCharacteristic(this.platform.Characteristic.HoldPosition)
+      .setProps({
+        minStep: this.minStep(device),
+        minValue: 0,
+        maxValue: 100,
+        validValueRanges: [0, 100],
+      })
+      .onSet(this.HoldPositionSet.bind(this));
 
     // Light Sensor Service
     if (device.curtain?.hide_lightsensor) {
@@ -707,6 +718,9 @@ export class Curtain {
   }
 
   async openAPIpushChanges(): Promise<void> {
+    let command: string;
+    let parameter: string;
+    let commandType: string;
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges`);
     if (this.TargetPosition !== this.CurrentPosition || this.device.disableCaching) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Pushing ${this.TargetPosition}`);
@@ -725,10 +739,19 @@ export class Curtain {
       }
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Mode: ${this.Mode}`);
       const adjustedMode = this.setPositionMode || 'ff';
+      if (this.HoldPosition) {
+        command = 'pause';
+        parameter = 'default';
+        commandType = 'command';
+      } else {
+        command = 'setPosition';
+        parameter = `0,${adjustedMode},${adjustedTargetPosition}`;
+        commandType = 'command';
+      }
       const bodyChange = JSON.stringify({
-        command: 'setPosition',
-        parameter: `0,${adjustedMode},${adjustedTargetPosition}`,
-        commandType: 'command',
+        command: command,
+        parameter: parameter,
+        commandType: commandType,
       });
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
@@ -776,9 +799,14 @@ export class Curtain {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set TargetPosition: ${value}`);
     }
 
+    // Set HoldPosition to false when TargetPosition is changed
+    this.HoldPosition = false;
+    this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.HoldPosition, this.HoldPosition);
+
     this.TargetPosition = value;
     if (this.device.mqttURL) {
       this.mqttPublish('TargetPosition', this.TargetPosition);
+      this.mqttPublish('HoldPosition', this.HoldPosition);
     }
 
     await this.setMinMax();
@@ -813,6 +841,15 @@ export class Curtain {
     this.doCurtainUpdate.next();
   }
 
+  /**
+   * Handle requests to set the value of the "Target Position" characteristic
+   */
+  async HoldPositionSet(value: CharacteristicValue): Promise<void> {
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} HoldPosition: ${value}`);
+    this.HoldPosition = value;
+    this.doCurtainUpdate.next();
+  }
+
   async updateHomeKitCharacteristics(): Promise<void> {
     await this.setMinMax();
     if (this.CurrentPosition === undefined || Number.isNaN(this.CurrentPosition)) {
@@ -844,6 +881,16 @@ export class Curtain {
       this.accessory.context.TargetPosition = this.TargetPosition;
       this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.TargetPosition, Number(this.TargetPosition));
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic TargetPosition: ${this.TargetPosition}`);
+    }
+    if (this.HoldPosition === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} HoldPosition: ${this.HoldPosition}`);
+    } else {
+      if (this.device.mqttURL) {
+        this.mqttPublish('HoldPosition', this.HoldPosition);
+      }
+      this.accessory.context.HoldPosition = this.HoldPosition;
+      this.windowCoveringService.updateCharacteristic(this.platform.Characteristic.HoldPosition, this.HoldPosition);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic HoldPosition: ${this.HoldPosition}`);
     }
     if (!this.device.curtain?.hide_lightsensor) {
       if (this.CurrentAmbientLightLevel === undefined || Number.isNaN(this.CurrentAmbientLightLevel)) {
