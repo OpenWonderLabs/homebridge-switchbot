@@ -2,7 +2,15 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [Version 2.13.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.13.1) (2023-12-15)
+## [2.13.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.13.2) (2024-1-5)
+
+## What's Changed
+
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.13.1...v2.13.2
+
+## [2.13.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.13.1) (2023-12-15)
 
 ## What's Changed
 
@@ -10,7 +18,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.13.0...v2.13.1
 
-## [Version 2.13.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.13.0) (2023-12-04)
+## [2.13.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.13.0) (2023-12-04)
 
 ## What's Changed
 
@@ -19,7 +27,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.12.1...v2.13.0
 
-## [Version 2.12.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.12.1) (2023-11-26)
+## [2.12.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.12.1) (2023-11-26)
 
 ## What's Changed
 
@@ -27,7 +35,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.12.0...v2.12.1
 
-## [Version 2.12.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.12.0) (2023-11-17)
+## [2.12.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.12.0) (2023-11-17)
 
 ## What's Changed
 
@@ -37,7 +45,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.11.0...v2.12.0
 
-## [Version 2.11.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.11.0) (2023-11-07)
+## [2.11.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.11.0) (2023-11-07)
 
 ## What's Changed
 
@@ -46,7 +54,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.10.1...v2.11.0
 
-## [Version 2.10.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.10.1) (2023-11-01)
+## [2.10.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.10.1) (2023-11-01)
 
 ## What's Changed
 
@@ -55,7 +63,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.10.0...v2.10.1
 
-## [Version 2.10.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.10.0) (2023-10-31)
+## [2.10.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.10.0) (2023-10-31)
 
 ## What's Changed
 
@@ -64,7 +72,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.9.2...v2.10.0
 
-## [Version 2.9.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.9.2) (2023-10-26)
+## [2.9.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.9.2) (2023-10-26)
 
 ## What's Changed
 
@@ -72,7 +80,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.9.1...v2.9.2
 
-## [Version 2.9.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.9.1) (2023-10-14)
+## [2.9.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.9.1) (2023-10-14)
 
 ## What's Changed
 
@@ -81,7 +89,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.9.0...v2.9.1
 
-## [Version 2.9.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.9.0) (2023-09-16)
+## [2.9.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.9.0) (2023-09-16)
 
 ## What's Changed
 
@@ -90,7 +98,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.8.2...v2.9.0
 
-## [Version 2.8.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.8.2) (2023-08-27)
+## [2.8.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.8.2) (2023-08-27)
 
 ## What's Changed
 
@@ -100,7 +108,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.8.1...v2.8.2
 
-## [Version 2.8.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.8.1) (2023-08-22)
+## [2.8.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.8.1) (2023-08-22)
 
 ## What's Changed
 
@@ -109,7 +117,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.8.0...v2.8.1
 
-## [Version 2.8.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.8.0) (2023-08-19)
+## [2.8.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.8.0) (2023-08-19)
 
 ## What's Changed
 
@@ -121,7 +129,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.7.1...v2.8.0
 
-## [Version 2.7.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.7.1) (2023-07-29)
+## [2.7.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.7.1) (2023-07-29)
 
 ## What's Changed
 
@@ -131,7 +139,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.7.0...v2.7.1
 
-## [Version 2.7.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.7.0) (2023-07-25)
+## [2.7.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.7.0) (2023-07-25)
 
 ## What's Changed
 
@@ -142,7 +150,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.6.2...v2.7.0
 
-## [Version 2.6.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.6.2) (2023-04-17)
+## [2.6.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.6.2) (2023-04-17)
 
 ## What's Changed
 
@@ -151,7 +159,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.6.1...v2.6.2
 
-## [Version 2.6.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.6.1) (2023-04-15)
+## [2.6.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.6.1) (2023-04-15)
 
 ## What's Changed
 
@@ -159,7 +167,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.6.0...v2.6.1
 
-## [Version 2.6.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.6.0) (2023-04-15)
+## [2.6.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.6.0) (2023-04-15)
 
 ## What's Changed
 
@@ -168,7 +176,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.5.3...v2.6.0
 
-## [Version 2.5.3](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.5.3) (2023-04-08)
+## [2.5.3](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.5.3) (2023-04-08)
 
 ## What's Changed
 
@@ -182,7 +190,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.5.2...v2.5.3
 
-## [Version 2.5.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.5.2) (2023-02-10)
+## [2.5.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.5.2) (2023-02-10)
 
 ## What's Changed
 
@@ -196,7 +204,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.5.1...v2.5.2
 
-## [Version 2.5.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.5.1) (2023-01-28)
+## [2.5.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.5.1) (2023-01-28)
 
 ## What's Changed
 
@@ -204,7 +212,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.5.0...v2.5.1
 
-## [Version 2.5.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.5.0) (2023-01-28)
+## [2.5.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.5.0) (2023-01-28)
 
 ## What's Changed
 
@@ -216,7 +224,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.4.0...v2.5.0
 
-## [Version 2.4.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.4.0) (2022-12-27)
+## [2.4.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.4.0) (2022-12-27)
 
 ## What's Changed
 
@@ -229,7 +237,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.3.2...v2.4.0
 
-## [Version 2.3.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.3.2) (2022-12-16)
+## [2.3.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.3.2) (2022-12-16)
 
 ## What's Changed
 
@@ -237,7 +245,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.3.1...v2.3.2
 
-## [Version 2.3.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.3.1) (2022-12-11)
+## [2.3.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.3.1) (2022-12-11)
 
 ## What's Changed
 
@@ -246,7 +254,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.3.0...v2.3.1
 
-## [Version 2.3.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.3.0) (2022-12-08)
+## [2.3.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.3.0) (2022-12-08)
 
 ## What's Changed
 
@@ -258,7 +266,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.2.2...v2.3.0
 
-## [Version 2.2.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.2.2) (2022-10-22)
+## [2.2.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.2.2) (2022-10-22)
 
 ## What's Changed
 
@@ -271,7 +279,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.2.1...v2.2.2
 
-## [Version 2.2.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.2.1) (2022-10-18)
+## [2.2.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.2.1) (2022-10-18)
 
 ## What's Changed
 
@@ -279,7 +287,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.2.0...v2.2.1
 
-## [Version 2.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.2.0) (2022-10-18)
+## [2.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.2.0) (2022-10-18)
 
 ## What's Changed
 
@@ -290,7 +298,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.1.2...v2.2.0
 
-## [Version 2.1.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.1.2) (2022-10-14)
+## [2.1.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.1.2) (2022-10-14)
 
 ## What's Changed
 
@@ -299,7 +307,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.1.1...v2.1.2
 
-## [Version 2.1.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.1.1) (2022-10-14)
+## [2.1.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.1.1) (2022-10-14)
 
 ## What's Changed
 
@@ -311,7 +319,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.1.0...v2.1.1
 
-## [Version 2.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.1.0) (2022-10-13)
+## [2.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.1.0) (2022-10-13)
 
 ## What's Changed
 
@@ -327,7 +335,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.0.0...v2.1.0
 
-## [Version 2.0.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.0.0) (2022-10-12)
+## [2.0.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.0.0) (2022-10-12)
 
 ## What's Changed
 
@@ -346,7 +354,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.15.0...v2.0.0
 
-## [Version 1.15.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.15.0) (2022-08-27)
+## [1.15.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.15.0) (2022-08-27)
 
 ## What's Changed
 
@@ -355,7 +363,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.14.2...v1.15.0
 
-## [Version 1.14.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.14.2) (2022-08-20)
+## [1.14.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.14.2) (2022-08-20)
 
 ## What's Changed
 
@@ -363,7 +371,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.14.1...v1.14.2
 
-## [Version 1.14.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.14.1) (2022-06-28)
+## [1.14.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.14.1) (2022-06-28)
 
 ## What's Changed
 
@@ -372,7 +380,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.14.0...v1.14.1
 
-## [Version 1.14.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.14.0) (2022-06-25)
+## [1.14.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.14.0) (2022-06-25)
 
 ## What's Changed
 
@@ -381,7 +389,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.13.0...v1.14.0
 
-## [Version 1.13.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.13.0) (2022-05-04)
+## [1.13.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.13.0) (2022-05-04)
 
 ## What's Changed
 
@@ -395,7 +403,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.8...v1.13.0
 
-## [Version 1.12.8](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.8) (2022-03-19)
+## [1.12.8](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.8) (2022-03-19)
 
 ## What's Changed
 
@@ -403,7 +411,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.7...v1.12.8
 
-## [Version 1.12.7](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.7) (2022-03-07)
+## [1.12.7](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.7) (2022-03-07)
 
 ## What's Changed
 
@@ -415,7 +423,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.6...v1.12.7
 
-## [Version 1.12.6](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.6) (2022-03-04)
+## [1.12.6](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.6) (2022-03-04)
 
 ## What's Changed
 
@@ -424,7 +432,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.5...v1.12.6
 
-## [Version 1.12.5](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.5) (2022-02-15)
+## [1.12.5](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.5) (2022-02-15)
 
 ## What's Changed
 
@@ -432,7 +440,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.4...v1.12.5
 
-## [Version 1.12.4](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.4) (2022-02-12)
+## [1.12.4](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.4) (2022-02-12)
 
 ## What's Changed
 
@@ -441,7 +449,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.3...v1.12.4
 
-## [Version 1.12.3](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.3) (2022-02-05)
+## [1.12.3](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.3) (2022-02-05)
 
 ## What's Changed
 
@@ -449,7 +457,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.2...v1.12.3
 
-## [Version 1.12.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.2) (2022-02-02)
+## [1.12.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.2) (2022-02-02)
 
 ## What's Changed
 
@@ -457,7 +465,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.1...v1.12.2
 
-## [Version 1.12.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.1) (2022-02-01)
+## [1.12.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.1) (2022-02-01)
 
 ## What's Changed
 
@@ -465,7 +473,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.0...v1.12.1
 
-## [Version 1.12.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.0) (2022-01-29)
+## [1.12.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.12.0) (2022-01-29)
 
 ## What's Changed
 
@@ -473,7 +481,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.11.2...v1.12.0
 
-## [Version 1.11.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.11.2) (2022-01-29)
+## [1.11.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.11.2) (2022-01-29)
 
 ## What's Changed
 
@@ -481,7 +489,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.11.1...v1.11.2
 
-## [Version 1.11.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.11.1) (2022-01-29)
+## [1.11.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.11.1) (2022-01-29)
 
 ## What's Changed
 
@@ -492,7 +500,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.11.0...v1.11.1
 
-## [Version 1.11.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.11.0) (2022-01-29)
+## [1.11.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.11.0) (2022-01-29)
 
 ## What's Changed
 
@@ -507,7 +515,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.10.1...v1.11.0
 
-## [Version 1.10.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.10.1) (2022-01-26)
+## [1.10.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.10.1) (2022-01-26)
 
 ## What's Changed
 
@@ -516,7 +524,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.10.0...v1.10.1
 
-## [Version 1.10.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.10.0) (2022-01-21)
+## [1.10.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.10.0) (2022-01-21)
 
 ## What's Changed
 
@@ -525,7 +533,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.9.0...v1.10.0
 
-## [Version 1.9.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.9.0) (2022-01-20)
+## [1.9.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.9.0) (2022-01-20)
 
 ## What's Changed
 
@@ -534,7 +542,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.8.2...v1.9.0
 
-## [Version 1.8.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.8.2) (2022-01-15)
+## [1.8.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.8.2) (2022-01-15)
 
 ## What's Changed
 
@@ -542,7 +550,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.8.1...v1.8.2
 
-## [Version 1.8.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.8.1) (2022-01-15)
+## [1.8.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.8.1) (2022-01-15)
 
 ## What's Changed
 
@@ -550,7 +558,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.8.0...v1.8.1
 
-## [Version 1.8.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.8.0) (2022-01-14)
+## [1.8.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.8.0) (2022-01-14)
 
 ## What's Changed
 
@@ -570,7 +578,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.7.0...v1.8.0
 
-## [Version 1.7.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.7.0) (2022-01-05)
+## [1.7.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.7.0) (2022-01-05)
 
 ## What's Changed
 
@@ -584,7 +592,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.6.3...v1.7.0
 
-## [Version 1.6.3](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.6.3) (2022-01-03)
+## [1.6.3](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.6.3) (2022-01-03)
 
 ## What's Changed
 
@@ -592,7 +600,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.6.2...v1.6.3
 
-## [Version 1.6.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.6.2) (2022-01-03)
+## [1.6.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.6.2) (2022-01-03)
 
 ## What's Changed
 
@@ -603,7 +611,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.6.1...v1.6.2
 
-## [Version 1.6.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.6.1) (2022-01-02)
+## [1.6.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.6.1) (2022-01-02)
 
 ## What's Changed
 
@@ -616,7 +624,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.6.0...v1.6.1
 
-## [Version 1.6.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.6.0) (2021-12-31)
+## [1.6.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.6.0) (2021-12-31)
 
 ## What's Changed
 
@@ -629,7 +637,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.5.0...v1.6.0
 
-## [Version 1.5.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.5.0) (2021-12-27)
+## [1.5.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.5.0) (2021-12-27)
 
 ## What's Changed
 
@@ -653,7 +661,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.4.0...v1.5.0
 
-## [Version 1.4.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.4.0) (2021-12-15)
+## [1.4.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.4.0) (2021-12-15)
 
 ## What's Changed
 
@@ -665,7 +673,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.3.0...v1.4.0
 
-## [Version 1.3.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.3.0) (2021-12-02)
+## [1.3.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.3.0) (2021-12-02)
 
 ## What's Changed
 
@@ -675,7 +683,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.5...v1.3.0
 
-## [Version 1.2.5](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.5) (2021-11-25)
+## [1.2.5](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.5) (2021-11-25)
 
 ## What's Changed
 
@@ -683,7 +691,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.4...v1.2.5
 
-## [Version 1.2.4](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.4) (2021-11-24)
+## [1.2.4](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.4) (2021-11-24)
 
 ## What's Changed
 
@@ -691,7 +699,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.3...v1.2.4
 
-## [Version 1.2.3](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.3) (2021-11-24)
+## [1.2.3](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.3) (2021-11-24)
 
 ## What's Changed
 
@@ -699,7 +707,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.2...v1.2.3
 
-## [Version 1.2.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.2) (2021-11-24)
+## [1.2.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.2) (2021-11-24)
 
 ## What's Changed
 
@@ -708,7 +716,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.1...v1.2.2
 
-## [Version 1.2.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.1) (2021-11-24)
+## [1.2.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.1) (2021-11-24)
 
 ## What's Changed
 
@@ -718,7 +726,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.0...v1.2.1
 
-## [Version 1.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.0) (2021-11-19)
+## [1.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.2.0) (2021-11-19)
 
 ## What's Changed
 
@@ -733,7 +741,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.1.0...v1.2.0
 
-## [Version 1.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.1.0) (2021-11-16)
+## [1.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.1.0) (2021-11-16)
 
 ## What's Changed
 
@@ -745,7 +753,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.0.2...v1.1.0
 
-## [Version 1.0.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.0.2) (2021-11-15)
+## [1.0.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.0.2) (2021-11-15)
 
 ## What's Changed
 
@@ -754,7 +762,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.0.1...v1.0.2
 
-## [Version 1.0.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.0.1) (2021-11-14)
+## [1.0.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.0.1) (2021-11-14)
 
 ## What's Changed
 
@@ -763,7 +771,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.0.0...v1.0.1
 
-## [Version 1.0.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.0.0) (2021-11-13)
+## [1.0.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v1.0.0) (2021-11-13)
 
 ## What's Changed
 
@@ -775,7 +783,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v0.1.1...v1.0.0
 
-## [Version 0.1.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v0.1.1) (2021-09-11)
+## [0.1.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v0.1.1) (2021-09-11)
 
 ## What's Changed
 
@@ -783,7 +791,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v0.1.0...v0.1.1
 
-## [Version 0.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v0.1.0) (2021-09-10)
+## [0.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v0.1.0) (2021-09-10)
 
 ## What's Changed
 

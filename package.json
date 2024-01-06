@@ -1,7 +1,7 @@
 {
   "displayName": "SwitchBot",
   "name": "@switchbot/homebridge-switchbot",
-  "version": "2.13.1",
+  "version": "2.13.2",
   "description": "The SwitchBot plugin allows you to access your SwitchBot device(s) from HomeKit.",
   "author": "SwitchBot <support@wondertechlabs.com> (https://github.com/SwitchBot)",
   "license": "ISC",
@@ -21,6 +21,7 @@
   "scripts": {
     "check": "npm install && npm outdated",
     "update": "ncu -u && npm update && npm install",
+    "updateDependencies": "npm run check && npm run update",
     "lint": "eslint src/**.ts",
     "watch": "npm run build && npm link && nodemon",
     "build": "rimraf ./dist && tsc",
@@ -61,18 +62,18 @@
     "fakegato-history": "^0.6.4",
     "homebridge-lib": "^6.7.3",
     "rxjs": "^7.8.1",
-    "undici": "^6.0.1"
+    "undici": "^6.2.1"
   },
   "optionalDependencies": {
-    "node-switchbot": "^1.9.1",
+    "node-switchbot": "^1.10.0",
     "@abandonware/noble": "^1.9.2-23",
     "@abandonware/bluetooth-hci-socket": "^0.5.3-10"
   },
   "devDependencies": {
-    "@types/node": "^20.10.4",
-    "@typescript-eslint/eslint-plugin": "^6.14.0",
-    "@typescript-eslint/parser": "^6.14.0",
-    "eslint": "^8.55.0",
+    "@types/node": "^20.10.6",
+    "@typescript-eslint/eslint-plugin": "^6.17.0",
+    "@typescript-eslint/parser": "^6.17.0",
+    "eslint": "^8.56.0",
     "homebridge": "^1.7.0",
     "nodemon": "^3.0.2",
     "npm-check-updates": "^16.14.12",
