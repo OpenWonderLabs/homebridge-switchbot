@@ -1,0 +1,13 @@
+name: Changelog to Release
+
+on:
+  workflow_dispatch:
+  push:
+    paths: [CHANGELOG.md]
+    branches: [latest]
+
+jobs:
+    changerelease:
+        uses: OpenWonderLabs/.github/.github/workflows/changerelease.yml@latest
+        secrets:
+            token: ${{ secrets.GITHUB_TOKEN }}
