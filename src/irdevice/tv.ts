@@ -1,7 +1,7 @@
-import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+import { CharacteristicValue, PlatformAccessory, Service, API, Logging, HAP } from 'homebridge';
 import { request } from 'undici';
 import { SwitchBotPlatform } from '../platform';
-import { Devices, irDevicesConfig, irdevice } from '../settings';
+import { Devices, irDevicesConfig, irdevice, SwitchBotPlatformConfig } from '../settings';
 
 /**
  * Platform Accessory
@@ -9,6 +9,10 @@ import { Devices, irDevicesConfig, irdevice } from '../settings';
  * Each accessory may expose multiple services of different service types.
  */
 export class TV {
+  public readonly api: API;
+  public readonly log: Logging;
+  public readonly config!: SwitchBotPlatformConfig;
+  protected readonly hap: HAP;
   // Services
   tvService!: Service;
   speakerService: Service;
@@ -29,22 +33,26 @@ export class TV {
     private accessory: PlatformAccessory,
     public device: irdevice & irDevicesConfig,
   ) {
+    this.api = this.platform.api;
+    this.log = this.platform.log;
+    this.config = this.platform.config;
+    this.hap = this.api.hap;
     // default placeholders
-    this.logs(device);
+    this.deviceLogs(device);
     this.context();
     this.disablePushOnChanges(device);
     this.disablePushOffChanges(device);
     this.disablePushDetailChanges(device);
-    this.config(device);
+    this.deviceConfig(device);
 
     // set accessory information
     accessory
-      .getService(this.platform.Service.AccessoryInformation)!
-      .setCharacteristic(this.platform.Characteristic.Name, `${device.deviceName} ${device.remoteType}`)
-      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
+      .getService(this.hap.Service.AccessoryInformation)!
+      .setCharacteristic(this.hap.Characteristic.Name, `${device.deviceName} ${device.remoteType}`)
+      .setCharacteristic(this.hap.Characteristic.Manufacturer, 'SwitchBot')
+      .setCharacteristic(this.hap.Characteristic.Model, device.remoteType)
+      .setCharacteristic(this.hap.Characteristic.SerialNumber, device.deviceId)
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
 
     // set the accessory category
     const tvServiceCategory = `${accessory.displayName} ${device.remoteType}`;
@@ -52,74 +60,74 @@ export class TV {
       case 'Speaker':
       case 'DIY Speaker':
         accessory.category = this.platform.api.hap.Categories.SPEAKER;
-        (this.tvService = accessory.getService(this.platform.Service.Television)
-          || accessory.addService(this.platform.Service.Television)), tvServiceCategory;
+        (this.tvService = accessory.getService(this.hap.Service.Television)
+          || accessory.addService(this.hap.Service.Television)), tvServiceCategory;
         break;
       case 'IPTV':
       case 'DIY IPTV':
         accessory.category = this.platform.api.hap.Categories.TV_STREAMING_STICK;
-        (this.tvService = accessory.getService(this.platform.Service.Television)
-          || accessory.addService(this.platform.Service.Television)), tvServiceCategory;
+        (this.tvService = accessory.getService(this.hap.Service.Television)
+          || accessory.addService(this.hap.Service.Television)), tvServiceCategory;
         break;
       case 'DVD':
       case 'DIY DVD':
       case 'Set Top Box':
       case 'DIY Set Top Box':
         accessory.category = this.platform.api.hap.Categories.TV_SET_TOP_BOX;
-        (this.tvService = accessory.getService(this.platform.Service.Television)
-          || accessory.addService(this.platform.Service.Television)), tvServiceCategory;
+        (this.tvService = accessory.getService(this.hap.Service.Television)
+          || accessory.addService(this.hap.Service.Television)), tvServiceCategory;
         break;
       default:
         accessory.category = this.platform.api.hap.Categories.TELEVISION;
 
         // get the Television service if it exists, otherwise create a new Television service
         // you can create multiple services for each accessory
-        (this.tvService = accessory.getService(this.platform.Service.Television)
-          || accessory.addService(this.platform.Service.Television)), tvServiceCategory;
+        (this.tvService = accessory.getService(this.hap.Service.Television)
+          || accessory.addService(this.hap.Service.Television)), tvServiceCategory;
     }
 
-    this.tvService.getCharacteristic(this.platform.Characteristic.ConfiguredName);
+    this.tvService.getCharacteristic(this.hap.Characteristic.ConfiguredName);
 
     // set sleep discovery characteristic
     this.tvService.setCharacteristic(
-      this.platform.Characteristic.SleepDiscoveryMode,
-      this.platform.Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE,
+      this.hap.Characteristic.SleepDiscoveryMode,
+      this.hap.Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE,
     );
 
     // handle on / off events using the Active characteristic
-    this.tvService.getCharacteristic(this.platform.Characteristic.Active).onSet(this.ActiveSet.bind(this));
+    this.tvService.getCharacteristic(this.hap.Characteristic.Active).onSet(this.ActiveSet.bind(this));
 
-    this.tvService.setCharacteristic(this.platform.Characteristic.ActiveIdentifier, 1);
+    this.tvService.setCharacteristic(this.hap.Characteristic.ActiveIdentifier, 1);
 
     // handle input source changes
-    this.tvService.getCharacteristic(this.platform.Characteristic.ActiveIdentifier).onSet(this.ActiveIdentifierSet.bind(this));
+    this.tvService.getCharacteristic(this.hap.Characteristic.ActiveIdentifier).onSet(this.ActiveIdentifierSet.bind(this));
 
     // handle remote control input
-    this.tvService.getCharacteristic(this.platform.Characteristic.RemoteKey).onSet(this.RemoteKeySet.bind(this));
+    this.tvService.getCharacteristic(this.hap.Characteristic.RemoteKey).onSet(this.RemoteKeySet.bind(this));
 
     /**
      * Create a speaker service to allow volume control
      */
     // create a new Television Speaker service
     const speakerService = `${accessory.displayName} Speaker`;
-    (this.speakerService = accessory.getService(this.platform.Service.TelevisionSpeaker)
-      || accessory.addService(this.platform.Service.TelevisionSpeaker)), speakerService;
+    (this.speakerService = accessory.getService(this.hap.Service.TelevisionSpeaker)
+      || accessory.addService(this.hap.Service.TelevisionSpeaker)), speakerService;
 
-    this.speakerService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Speaker`);
-    if (!this.speakerService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-      this.speakerService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Speaker`);
+    this.speakerService.setCharacteristic(this.hap.Characteristic.Name, `${accessory.displayName} Speaker`);
+    if (!this.speakerService.testCharacteristic(this.hap.Characteristic.ConfiguredName)) {
+      this.speakerService.addCharacteristic(this.hap.Characteristic.ConfiguredName, `${accessory.displayName} Speaker`);
     }
     this.speakerService
-      .setCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.ACTIVE)
-      .setCharacteristic(this.platform.Characteristic.VolumeControlType, this.platform.Characteristic.VolumeControlType.ABSOLUTE);
+      .setCharacteristic(this.hap.Characteristic.Active, this.hap.Characteristic.Active.ACTIVE)
+      .setCharacteristic(this.hap.Characteristic.VolumeControlType, this.hap.Characteristic.VolumeControlType.ABSOLUTE);
 
     // handle volume control
-    this.speakerService.getCharacteristic(this.platform.Characteristic.VolumeSelector).onSet(this.VolumeSelectorSet.bind(this));
+    this.speakerService.getCharacteristic(this.hap.Characteristic.VolumeSelector).onSet(this.VolumeSelectorSet.bind(this));
   }
 
   async VolumeSelectorSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} VolumeSelector: ${value}`);
-    if (value === this.platform.Characteristic.VolumeSelector.INCREMENT) {
+    if (value === this.hap.Characteristic.VolumeSelector.INCREMENT) {
       this.pushVolumeUpChanges();
     } else {
       this.pushVolumeDownChanges();
@@ -128,61 +136,61 @@ export class TV {
 
   async RemoteKeySet(value: CharacteristicValue): Promise<void> {
     switch (value) {
-      case this.platform.Characteristic.RemoteKey.REWIND: {
+      case this.hap.Characteristic.RemoteKey.REWIND: {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: REWIND`);
         break;
       }
-      case this.platform.Characteristic.RemoteKey.FAST_FORWARD: {
+      case this.hap.Characteristic.RemoteKey.FAST_FORWARD: {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: FAST_FORWARD`);
         break;
       }
-      case this.platform.Characteristic.RemoteKey.NEXT_TRACK: {
+      case this.hap.Characteristic.RemoteKey.NEXT_TRACK: {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: NEXT_TRACK`);
         break;
       }
-      case this.platform.Characteristic.RemoteKey.PREVIOUS_TRACK: {
+      case this.hap.Characteristic.RemoteKey.PREVIOUS_TRACK: {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: PREVIOUS_TRACK`);
         break;
       }
-      case this.platform.Characteristic.RemoteKey.ARROW_UP: {
+      case this.hap.Characteristic.RemoteKey.ARROW_UP: {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: ARROW_UP`);
         //this.pushUpChanges();
         break;
       }
-      case this.platform.Characteristic.RemoteKey.ARROW_DOWN: {
+      case this.hap.Characteristic.RemoteKey.ARROW_DOWN: {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: ARROW_DOWN`);
         //this.pushDownChanges();
         break;
       }
-      case this.platform.Characteristic.RemoteKey.ARROW_LEFT: {
+      case this.hap.Characteristic.RemoteKey.ARROW_LEFT: {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: ARROW_LEFT`);
         //this.pushLeftChanges();
         break;
       }
-      case this.platform.Characteristic.RemoteKey.ARROW_RIGHT: {
+      case this.hap.Characteristic.RemoteKey.ARROW_RIGHT: {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: ARROW_RIGHT`);
         //this.pushRightChanges();
         break;
       }
-      case this.platform.Characteristic.RemoteKey.SELECT: {
+      case this.hap.Characteristic.RemoteKey.SELECT: {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: SELECT`);
         //this.pushOkChanges();
         break;
       }
-      case this.platform.Characteristic.RemoteKey.BACK: {
+      case this.hap.Characteristic.RemoteKey.BACK: {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: BACK`);
         //this.pushBackChanges();
         break;
       }
-      case this.platform.Characteristic.RemoteKey.EXIT: {
+      case this.hap.Characteristic.RemoteKey.EXIT: {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: EXIT`);
         break;
       }
-      case this.platform.Characteristic.RemoteKey.PLAY_PAUSE: {
+      case this.hap.Characteristic.RemoteKey.PLAY_PAUSE: {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: PLAY_PAUSE`);
         break;
       }
-      case this.platform.Characteristic.RemoteKey.INFORMATION: {
+      case this.hap.Characteristic.RemoteKey.INFORMATION: {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: INFORMATION`);
         //this.pushMenuChanges();
         break;
@@ -199,7 +207,7 @@ export class TV {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active (value): ${value}`);
 
     this.Active = value;
-    if (this.Active === this.platform.Characteristic.Active.ACTIVE) {
+    if (this.Active === this.hap.Characteristic.Active.ACTIVE) {
       await this.pushTvOnChanges();
     } else {
       await this.pushTvOffChanges();
@@ -220,7 +228,7 @@ export class TV {
     this.debugLog(
       `${this.device.remoteType}: ${this.accessory.displayName} pushTvOnChanges Active: ${this.Active},` + ` disablePushOn: ${this.disablePushOn}`,
     );
-    if (this.Active === this.platform.Characteristic.Active.ACTIVE && !this.disablePushOn) {
+    if (this.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const bodyChange = JSON.stringify({
@@ -236,7 +244,7 @@ export class TV {
     this.debugLog(
       `${this.device.remoteType}: ${this.accessory.displayName} pushTvOffChanges Active: ${this.Active},` + ` disablePushOff: ${this.disablePushOff}`,
     );
-    if (this.Active === this.platform.Characteristic.Active.INACTIVE && !this.disablePushOff) {
+    if (this.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
       const bodyChange = JSON.stringify({
@@ -402,7 +410,7 @@ export class TV {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Active}`);
     } else {
       this.accessory.context.Active = this.Active;
-      this.tvService?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
+      this.tvService?.updateCharacteristic(this.hap.Characteristic.Active, this.Active);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
     }
     // ActiveIdentifier
@@ -410,7 +418,7 @@ export class TV {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} ActiveIdentifier: ${this.ActiveIdentifier}`);
     } else {
       this.accessory.context.ActiveIdentifier = this.ActiveIdentifier;
-      this.tvService?.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, this.ActiveIdentifier);
+      this.tvService?.updateCharacteristic(this.hap.Characteristic.ActiveIdentifier, this.ActiveIdentifier);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}` + ` updateCharacteristic ActiveIdentifier: ${this.ActiveIdentifier}`);
     }
   }
@@ -510,13 +518,13 @@ export class TV {
   }
 
   async apiError(e: any): Promise<void> {
-    this.tvService.updateCharacteristic(this.platform.Characteristic.Active, e);
-    this.tvService.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, e);
+    this.tvService.updateCharacteristic(this.hap.Characteristic.Active, e);
+    this.tvService.updateCharacteristic(this.hap.Characteristic.ActiveIdentifier, e);
   }
 
   async context() {
     if (this.Active === undefined) {
-      this.Active = this.platform.Characteristic.Active.INACTIVE;
+      this.Active = this.hap.Characteristic.Active.INACTIVE;
     } else {
       this.Active = this.accessory.context.Active;
     }
@@ -531,7 +539,7 @@ export class TV {
     }
   }
 
-  async config(device: irdevice & irDevicesConfig): Promise<void> {
+  async deviceConfig(device: irdevice & irDevicesConfig): Promise<void> {
     let config = {};
     if (device.irtv) {
       config = device.irtv;
@@ -568,7 +576,7 @@ export class TV {
     }
   }
 
-  async logs(device: irdevice & irDevicesConfig): Promise<void> {
+  async deviceLogs(device: irdevice & irDevicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);

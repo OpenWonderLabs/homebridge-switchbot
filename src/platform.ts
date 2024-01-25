@@ -64,9 +64,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   public readonly webhookEventHandler: { [x: string]: (context: { [x: string]: any }) => void } = {};
 
   constructor(log: Logging, config: SwitchBotPlatformConfig, api: API) {
-    this.logs();
-    this.debugLog(`Finished initializing platform: ${config.name}`);
-
     this.accessories = [];
     this.api = api;
     this.log = log;
@@ -85,6 +82,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       verifyTLS: config.verifyTLS as boolean,
       logging: config.logging as string,
     };
+    this.logs();
+    this.debugLog(`Finished initializing platform: ${config.name}`);
 
     // HOOBS notice
     if (__dirname.includes('hoobs')) {

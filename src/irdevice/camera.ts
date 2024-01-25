@@ -1,7 +1,7 @@
-import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+import { CharacteristicValue, PlatformAccessory, Service, API, Logging, HAP } from 'homebridge';
 import { request } from 'undici';
 import { SwitchBotPlatform } from '../platform';
-import { Devices, irDevicesConfig, irdevice } from '../settings';
+import { Devices, irDevicesConfig, irdevice, SwitchBotPlatformConfig } from '../settings';
 
 /**
  * Platform Accessory
@@ -9,6 +9,10 @@ import { Devices, irDevicesConfig, irdevice } from '../settings';
  * Each accessory may expose multiple services of different service types.
  */
 export class Camera {
+  public readonly api: API;
+  public readonly log: Logging;
+  public readonly config!: SwitchBotPlatformConfig;
+  protected readonly hap: HAP;
   // Services
   switchService!: Service;
 
@@ -26,34 +30,38 @@ export class Camera {
     private accessory: PlatformAccessory,
     public device: irdevice & irDevicesConfig,
   ) {
+    this.api = this.platform.api;
+    this.log = this.platform.log;
+    this.config = this.platform.config;
+    this.hap = this.api.hap;
     // default placeholders
-    this.logs(device);
+    this.deviceLogs(device);
     this.context();
     this.disablePushOnChanges(device);
     this.disablePushOffChanges(device);
-    this.config(device);
+    this.deviceConfig(device);
 
     // set accessory information
     accessory
-      .getService(this.platform.Service.AccessoryInformation)!
-      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
+      .getService(this.hap.Service.AccessoryInformation)!
+      .setCharacteristic(this.hap.Characteristic.Manufacturer, 'SwitchBot')
+      .setCharacteristic(this.hap.Characteristic.Model, device.remoteType)
+      .setCharacteristic(this.hap.Characteristic.SerialNumber, device.deviceId)
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
     const switchService = `${accessory.displayName} Camera`;
-    (this.switchService = accessory.getService(this.platform.Service.Switch)
-      || accessory.addService(this.platform.Service.Switch)), switchService;
+    (this.switchService = accessory.getService(this.hap.Service.Switch)
+      || accessory.addService(this.hap.Service.Switch)), switchService;
 
-    this.switchService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
-    if (!this.switchService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-      this.switchService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+    this.switchService.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
+    if (!this.switchService.testCharacteristic(this.hap.Characteristic.ConfiguredName)) {
+      this.switchService.addCharacteristic(this.hap.Characteristic.ConfiguredName, accessory.displayName);
     }
 
     // handle on / off events using the On characteristic
-    this.switchService.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
+    this.switchService.getCharacteristic(this.hap.Characteristic.On).onSet(this.OnSet.bind(this));
   }
 
   async OnSet(value: CharacteristicValue): Promise<void> {
@@ -153,7 +161,7 @@ export class Camera {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.On}`);
     } else {
       this.accessory.context.On = this.On;
-      this.switchService?.updateCharacteristic(this.platform.Characteristic.On, this.On);
+      this.switchService?.updateCharacteristic(this.hap.Characteristic.On, this.On);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
   }
@@ -245,7 +253,7 @@ export class Camera {
   }
 
   async apiError(e: any): Promise<void> {
-    this.switchService.updateCharacteristic(this.platform.Characteristic.On, e);
+    this.switchService.updateCharacteristic(this.hap.Characteristic.On, e);
   }
 
   async context() {
@@ -260,7 +268,7 @@ export class Camera {
     }
   }
 
-  async config(device: irdevice & irDevicesConfig): Promise<void> {
+  async deviceConfig(device: irdevice & irDevicesConfig): Promise<void> {
     let config = {};
     if (device.ircam) {
       config = device.ircam;
@@ -294,7 +302,7 @@ export class Camera {
     }
   }
 
-  async logs(device: irdevice & irDevicesConfig): Promise<void> {
+  async deviceLogs(device: irdevice & irDevicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);

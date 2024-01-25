@@ -3,10 +3,14 @@ import { sleep } from '../utils';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, deviceStatus, ad, Devices, serviceData } from '../settings';
+import { Service, PlatformAccessory, CharacteristicValue, API, Logging, HAP } from 'homebridge';
+import { device, devicesConfig, deviceStatus, ad, Devices, serviceData, SwitchBotPlatformConfig } from '../settings';
 
 export class Lock {
+  public readonly api: API;
+  public readonly log: Logging;
+  public readonly config!: SwitchBotPlatformConfig;
+  protected readonly hap: HAP;
   // Services
   lockService: Service;
   batteryService: Service;
@@ -46,20 +50,27 @@ export class Lock {
   doLockUpdate!: Subject<void>;
 
   // Connection
-  private readonly BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
-  private readonly OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
+  private readonly OpenAPI: boolean;
+  private readonly BLE: boolean;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
     public device: device & devicesConfig,
   ) {
+    this.api = this.platform.api;
+    this.log = this.platform.log;
+    this.config = this.platform.config;
+    this.hap = this.api.hap;
+    // Connection
+    this.BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
+    this.OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
     // default placeholders
-    this.logs(device);
+    this.deviceLogs(device);
     this.scan(device);
     this.refreshRate(device);
     this.context();
-    this.config(device);
+    this.deviceConfig(device);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doLockUpdate = new Subject();
@@ -70,21 +81,21 @@ export class Lock {
 
     // set accessory information
     accessory
-      .getService(this.platform.Service.AccessoryInformation)!
-      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, 'W1601700')
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
+      .getService(this.hap.Service.AccessoryInformation)!
+      .setCharacteristic(this.hap.Characteristic.Manufacturer, 'SwitchBot')
+      .setCharacteristic(this.hap.Characteristic.Model, 'W1601700')
+      .setCharacteristic(this.hap.Characteristic.SerialNumber, device.deviceId)
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
 
     // get the LockMechanism service if it exists, otherwise create a new LockMechanism service
     // you can create multiple services for each accessory
     const lockService = `${accessory.displayName} ${device.deviceType}`;
-    (this.lockService = accessory.getService(this.platform.Service.LockMechanism)
-      || accessory.addService(this.platform.Service.LockMechanism)), lockService;
+    (this.lockService = accessory.getService(this.hap.Service.LockMechanism)
+      || accessory.addService(this.hap.Service.LockMechanism)), lockService;
 
-    this.lockService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
-    if (!this.lockService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-      this.lockService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+    this.lockService.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
+    if (!this.lockService.testCharacteristic(this.hap.Characteristic.ConfiguredName)) {
+      this.lockService.addCharacteristic(this.hap.Characteristic.ConfiguredName, accessory.displayName);
     }
 
     // each service must implement at-minimum the "required characteristics" for the given service type
@@ -92,32 +103,31 @@ export class Lock {
 
 
     // create handlers for required characteristics
-    this.lockService.getCharacteristic(this.platform.Characteristic.LockTargetState).onSet(this.LockTargetStateSet.bind(this));
+    this.lockService.getCharacteristic(this.hap.Characteristic.LockTargetState).onSet(this.LockTargetStateSet.bind(this));
 
 
     // Latch Button Service
     if (device.lock?.activate_latchbutton === false) { // remove the service when this variable is false
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Latch Button Service`);
-      this.latchButtonService = accessory.getService(this.platform.Service.Switch);
+      this.latchButtonService = accessory.getService(this.hap.Service.Switch);
       if (this.latchButtonService) {
         accessory.removeService(this.latchButtonService);
         this.latchButtonService = undefined; // Reset the service variable to undefined
       }
-    }
-    else
-    if (!this.latchButtonService) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Adding Latch Button Service`);
-      const latchServiceName = `${accessory.displayName} Latch`;
-      this.latchButtonService = accessory.getService(this.platform.Service.Switch)
-          || accessory.addService(this.platform.Service.Switch, latchServiceName, 'LatchButtonServiceIdentifier');
+    } else
+      if (!this.latchButtonService) {
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Adding Latch Button Service`);
+        const latchServiceName = `${accessory.displayName} Latch`;
+        this.latchButtonService = accessory.getService(this.hap.Service.Switch)
+          || accessory.addService(this.hap.Service.Switch, latchServiceName, 'LatchButtonServiceIdentifier');
 
-      this.latchButtonService.setCharacteristic(this.platform.Characteristic.Name, latchServiceName);
+        this.latchButtonService.setCharacteristic(this.hap.Characteristic.Name, latchServiceName);
 
-      if (!this.latchButtonService.testCharacteristic(this.platform.Characteristic.On)) {
-        this.latchButtonService.addCharacteristic(this.platform.Characteristic.On);
-      }
+        if (!this.latchButtonService.testCharacteristic(this.hap.Characteristic.On)) {
+          this.latchButtonService.addCharacteristic(this.hap.Characteristic.On);
+        }
 
-      this.latchButtonService.getCharacteristic(this.platform.Characteristic.On)
+        this.latchButtonService.getCharacteristic(this.hap.Characteristic.On)
           .on('set', (value, callback) => {
             if (typeof value === 'boolean') {
               this.handleLatchCharacteristic(value, callback);
@@ -125,25 +135,25 @@ export class Lock {
               callback(new Error('Wrong characteristic value type'));
             }
           });
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Latch Button Service already exists`);
-    }
+      } else {
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Latch Button Service already exists`);
+      }
 
 
     // Contact Sensor Service
     if (device.lock?.hide_contactsensor) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Contact Sensor Service`);
-      this.contactSensorService = this.accessory.getService(this.platform.Service.ContactSensor);
+      this.contactSensorService = this.accessory.getService(this.hap.Service.ContactSensor);
       accessory.removeService(this.contactSensorService!);
     } else if (!this.contactSensorService) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Contact Sensor Service`);
       const contactSensorService = `${accessory.displayName} Contact Sensor`;
-      (this.contactSensorService = this.accessory.getService(this.platform.Service.ContactSensor)
-        || this.accessory.addService(this.platform.Service.ContactSensor)), contactSensorService;
+      (this.contactSensorService = this.accessory.getService(this.hap.Service.ContactSensor)
+        || this.accessory.addService(this.hap.Service.ContactSensor)), contactSensorService;
 
-      this.contactSensorService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Contact Sensor`);
-      if (!this.contactSensorService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-        this.contactSensorService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Contact Sensor`);
+      this.contactSensorService.setCharacteristic(this.hap.Characteristic.Name, `${accessory.displayName} Contact Sensor`);
+      if (!this.contactSensorService.testCharacteristic(this.hap.Characteristic.ConfiguredName)) {
+        this.contactSensorService.addCharacteristic(this.hap.Characteristic.ConfiguredName, `${accessory.displayName} Contact Sensor`);
       }
     } else {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Contact Sensor Service Not Added`);
@@ -151,14 +161,14 @@ export class Lock {
 
     // Battery Service
     const batteryService = `${accessory.displayName} Battery`;
-    (this.batteryService = this.accessory.getService(this.platform.Service.Battery)
-      || accessory.addService(this.platform.Service.Battery)), batteryService;
+    (this.batteryService = this.accessory.getService(this.hap.Service.Battery)
+      || accessory.addService(this.hap.Service.Battery)), batteryService;
 
-    this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
-    if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-      this.batteryService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Battery`);
+    this.batteryService.setCharacteristic(this.hap.Characteristic.Name, `${accessory.displayName} Battery`);
+    if (!this.batteryService.testCharacteristic(this.hap.Characteristic.ConfiguredName)) {
+      this.batteryService.addCharacteristic(this.hap.Characteristic.ConfiguredName, `${accessory.displayName} Battery`);
     }
-    this.batteryService.setCharacteristic(this.platform.Characteristic.ChargingState, this.platform.Characteristic.ChargingState.NOT_CHARGEABLE);
+    this.batteryService.setCharacteristic(this.hap.Characteristic.ChargingState, this.hap.Characteristic.ChargingState.NOT_CHARGEABLE);
 
     // Update Homekit
     this.updateHomeKitCharacteristics();
@@ -179,14 +189,14 @@ export class Lock {
           const { lockState } = context;
           const { LockCurrentState } = this;
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-                    '(lockState) = ' +
-                    `Webhook:(${lockState}), ` +
-                    `current:(${LockCurrentState})`);
+            '(lockState) = ' +
+            `Webhook:(${lockState}), ` +
+            `current:(${LockCurrentState})`);
           this.LockCurrentState = lockState === 'LOCKED' ? 1 : 0;
           this.updateHomeKitCharacteristics();
         } catch (e: any) {
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-                  + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+            + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
         }
       };
     }
@@ -217,7 +227,7 @@ export class Lock {
   /**
    * Method for handling the LatchCharacteristic
    */
-  private handleLatchCharacteristic(value: boolean, callback: Function) {
+  async handleLatchCharacteristic(value: boolean, callback) {
     this.debugLog(`handleLatchCharacteristic called with value: ${value}`);
 
     if (value) {
@@ -232,7 +242,7 @@ export class Lock {
           const latchButtonService = this.latchButtonService;
           // Simulate a button press by waiting a short period before turning the switch off
           setTimeout(() => {
-            latchButtonService.getCharacteristic(this.platform.Characteristic.On).updateValue(false);
+            latchButtonService.getCharacteristic(this.hap.Characteristic.On).updateValue(false);
             this.debugLog('Latch button switched off automatically.');
           }, 500); // 500 ms delay
         }
@@ -243,7 +253,7 @@ export class Lock {
 
         // Ensure we turn the switch back off even in case of an error
         if (this.latchButtonService) {
-          this.latchButtonService.getCharacteristic(this.platform.Characteristic.On).updateValue(false);
+          this.latchButtonService.getCharacteristic(this.hap.Characteristic.On).updateValue(false);
           this.debugLog('Latch button switched off after an error.');
         }
 
@@ -279,27 +289,27 @@ export class Lock {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
     switch (this.BLE_LockCurrentState) {
       case 'locked':
-        this.LockCurrentState = this.platform.Characteristic.LockCurrentState.SECURED;
-        this.LockTargetState = this.platform.Characteristic.LockTargetState.SECURED;
+        this.LockCurrentState = this.hap.Characteristic.LockCurrentState.SECURED;
+        this.LockTargetState = this.hap.Characteristic.LockTargetState.SECURED;
         break;
       default:
-        this.LockCurrentState = this.platform.Characteristic.LockCurrentState.UNSECURED;
-        this.LockTargetState = this.platform.Characteristic.LockTargetState.UNSECURED;
+        this.LockCurrentState = this.hap.Characteristic.LockCurrentState.UNSECURED;
+        this.LockTargetState = this.hap.Characteristic.LockTargetState.UNSECURED;
     }
     switch (this.BLE_ContactSensorState) {
       case 'opened':
-        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
+        this.ContactSensorState = this.hap.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
         break;
       default:
-        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+        this.ContactSensorState = this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.LockTargetState}`);
     // Battery
     this.BatteryLevel = Number(this.BLE_BatteryLevel);
     if (this.BatteryLevel < 10) {
-      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
+      this.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
-      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+      this.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     }
     this.debugLog(
       `${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel},` + ` StatusLowBattery: ${this.StatusLowBattery}`,
@@ -310,28 +320,28 @@ export class Lock {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
     switch (this.OpenAPI_LockCurrentState) {
       case 'locked':
-        this.LockCurrentState = this.platform.Characteristic.LockCurrentState.SECURED;
-        this.LockTargetState = this.platform.Characteristic.LockTargetState.SECURED;
+        this.LockCurrentState = this.hap.Characteristic.LockCurrentState.SECURED;
+        this.LockTargetState = this.hap.Characteristic.LockTargetState.SECURED;
         break;
       default:
-        this.LockCurrentState = this.platform.Characteristic.LockCurrentState.UNSECURED;
-        this.LockTargetState = this.platform.Characteristic.LockTargetState.UNSECURED;
+        this.LockCurrentState = this.hap.Characteristic.LockCurrentState.UNSECURED;
+        this.LockTargetState = this.hap.Characteristic.LockTargetState.UNSECURED;
     }
     switch (this.OpenAPI_ContactSensorState) {
       case 'opened':
-        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
+        this.ContactSensorState = this.hap.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
         break;
       default:
-        this.ContactSensorState = this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+        this.ContactSensorState = this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.LockTargetState}`);
 
     // Battery
     this.BatteryLevel = Number(this.OpenAPI_BatteryLevel);
     if (this.BatteryLevel < 10) {
-      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
+      this.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
-      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+      this.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     }
     if (Number.isNaN(this.BatteryLevel)) {
       this.BatteryLevel = 100;
@@ -511,7 +521,7 @@ export class Lock {
         })
         .then(() => {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
-          this.LockTargetState = this.platform.Characteristic.LockTargetState.SECURED;
+          this.LockTargetState = this.hap.Characteristic.LockTargetState.SECURED;
         })
         .catch(async (e: any) => {
           this.apiError(e);
@@ -603,7 +613,7 @@ export class Lock {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensorState}`);
       } else {
         this.accessory.context.ContactSensorState = this.ContactSensorState;
-        this.contactSensorService?.updateCharacteristic(this.platform.Characteristic.ContactSensorState, this.ContactSensorState);
+        this.contactSensorService?.updateCharacteristic(this.hap.Characteristic.ContactSensorState, this.ContactSensorState);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic ContactSensorState: ${this.ContactSensorState}`);
       }
     }
@@ -611,28 +621,28 @@ export class Lock {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LockTargetState: ${this.LockTargetState}`);
     } else {
       this.accessory.context.LockTargetState = this.LockTargetState;
-      this.lockService.updateCharacteristic(this.platform.Characteristic.LockTargetState, this.LockTargetState);
+      this.lockService.updateCharacteristic(this.hap.Characteristic.LockTargetState, this.LockTargetState);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic LockTargetState: ${this.LockTargetState}`);
     }
     if (this.LockCurrentState === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LockCurrentState: ${this.LockCurrentState}`);
     } else {
       this.accessory.context.LockCurrentState = this.LockCurrentState;
-      this.lockService.updateCharacteristic(this.platform.Characteristic.LockCurrentState, this.LockCurrentState);
+      this.lockService.updateCharacteristic(this.hap.Characteristic.LockCurrentState, this.LockCurrentState);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic LockCurrentState: ${this.LockCurrentState}`);
     }
     if (this.BatteryLevel === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
     } else {
       this.accessory.context.BatteryLevel = this.BatteryLevel;
-      this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
+      this.batteryService?.updateCharacteristic(this.hap.Characteristic.BatteryLevel, this.BatteryLevel);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
     }
     if (this.StatusLowBattery === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.StatusLowBattery}`);
     } else {
       this.accessory.context.StatusLowBattery = this.StatusLowBattery;
-      this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
+      this.batteryService?.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, this.StatusLowBattery);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
     }
   }
@@ -745,10 +755,10 @@ export class Lock {
 
   async apiError(e: any): Promise<void> {
     if (!this.device.lock?.hide_contactsensor) {
-      this.contactSensorService?.updateCharacteristic(this.platform.Characteristic.ContactSensorState, e);
+      this.contactSensorService?.updateCharacteristic(this.hap.Characteristic.ContactSensorState, e);
     }
-    this.lockService.updateCharacteristic(this.platform.Characteristic.LockTargetState, e);
-    this.lockService.updateCharacteristic(this.platform.Characteristic.LockCurrentState, e);
+    this.lockService.updateCharacteristic(this.hap.Characteristic.LockTargetState, e);
+    this.lockService.updateCharacteristic(this.hap.Characteristic.LockCurrentState, e);
   }
 
   async context() {
@@ -773,7 +783,7 @@ export class Lock {
     }
   }
 
-  async config(device: device & devicesConfig): Promise<void> {
+  async deviceConfig(device: device & devicesConfig): Promise<void> {
     let config = {};
     if (device.lock) {
       config = device.lock;
@@ -798,7 +808,7 @@ export class Lock {
     }
   }
 
-  async logs(device: device & devicesConfig): Promise<void> {
+  async deviceLogs(device: device & devicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);

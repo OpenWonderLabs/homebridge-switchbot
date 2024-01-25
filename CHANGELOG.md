@@ -2,7 +2,16 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [2.14.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.14.0) (2024-1-6)
+## [Beta 3.0.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.0.0) (2024-XX-XX)
+
+### What's Changed
+
+- Moved from CommonJS to ES Module
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.14.0...v3.0.0
+
+## [2.14.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.14.0) (2024-01-06)
 
 ### What's Changed
 
@@ -11,7 +20,7 @@ All notable changes to this project will be documented in this file. This projec
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.13.2...v2.14.0
 
-## [2.13.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.13.2) (2024-1-5)
+## [2.13.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v2.13.2) (2024-01-05)
 
 ### What's Changed
 

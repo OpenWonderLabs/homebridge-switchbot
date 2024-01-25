@@ -1,7 +1,7 @@
-import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+import { CharacteristicValue, PlatformAccessory, Service, API, Logging, HAP } from 'homebridge';
 import { request } from 'undici';
 import { SwitchBotPlatform } from '../platform';
-import { Devices, irDevicesConfig, irdevice } from '../settings';
+import { Devices, irDevicesConfig, irdevice, SwitchBotPlatformConfig } from '../settings';
 
 /**
  * Platform Accessory
@@ -9,6 +9,10 @@ import { Devices, irDevicesConfig, irdevice } from '../settings';
  * Each accessory may expose multiple services of different service types.
  */
 export class WaterHeater {
+  public readonly api: API;
+  public readonly log: Logging;
+  public readonly config!: SwitchBotPlatformConfig;
+  protected readonly hap: HAP;
   // Services
   valveService!: Service;
 
@@ -26,49 +30,53 @@ export class WaterHeater {
     private accessory: PlatformAccessory,
     public device: irdevice & irDevicesConfig,
   ) {
+    this.api = this.platform.api;
+    this.log = this.platform.log;
+    this.config = this.platform.config;
+    this.hap = this.api.hap;
     // default placeholders
-    this.logs(device);
+    this.deviceLogs(device);
     this.context();
     this.disablePushOnChanges(device);
     this.disablePushOffChanges(device);
-    this.config(device);
+    this.deviceConfig(device);
 
     // set accessory information
     accessory
-      .getService(this.platform.Service.AccessoryInformation)!
-      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
+      .getService(this.hap.Service.AccessoryInformation)!
+      .setCharacteristic(this.hap.Characteristic.Manufacturer, 'SwitchBot')
+      .setCharacteristic(this.hap.Characteristic.Model, device.remoteType)
+      .setCharacteristic(this.hap.Characteristic.SerialNumber, device.deviceId)
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
     const valveService = `${accessory.displayName} ${device.remoteType}`;
-    (this.valveService = accessory.getService(this.platform.Service.Valve)
-      || accessory.addService(this.platform.Service.Valve)), valveService;
+    (this.valveService = accessory.getService(this.hap.Service.Valve)
+      || accessory.addService(this.hap.Service.Valve)), valveService;
 
-    this.valveService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
-    if (!this.valveService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-      this.valveService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+    this.valveService.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
+    if (!this.valveService.testCharacteristic(this.hap.Characteristic.ConfiguredName)) {
+      this.valveService.addCharacteristic(this.hap.Characteristic.ConfiguredName, accessory.displayName);
     }
 
     // set sleep discovery characteristic
-    this.valveService.setCharacteristic(this.platform.Characteristic.ValveType, this.platform.Characteristic.ValveType.GENERIC_VALVE);
+    this.valveService.setCharacteristic(this.hap.Characteristic.ValveType, this.hap.Characteristic.ValveType.GENERIC_VALVE);
 
     // handle on / off events using the Active characteristic
-    this.valveService.getCharacteristic(this.platform.Characteristic.Active).onSet(this.ActiveSet.bind(this));
+    this.valveService.getCharacteristic(this.hap.Characteristic.Active).onSet(this.ActiveSet.bind(this));
   }
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${value}`);
 
     this.Active = value;
-    if (this.Active === this.platform.Characteristic.Active.ACTIVE) {
+    if (this.Active === this.hap.Characteristic.Active.ACTIVE) {
       await this.pushWaterHeaterOnChanges();
-      this.valveService.setCharacteristic(this.platform.Characteristic.InUse, this.platform.Characteristic.InUse.IN_USE);
+      this.valveService.setCharacteristic(this.hap.Characteristic.InUse, this.hap.Characteristic.InUse.IN_USE);
     } else {
       await this.pushWaterHeaterOffChanges();
-      this.valveService.setCharacteristic(this.platform.Characteristic.InUse, this.platform.Characteristic.InUse.NOT_IN_USE);
+      this.valveService.setCharacteristic(this.hap.Characteristic.InUse, this.hap.Characteristic.InUse.NOT_IN_USE);
     }
   }
 
@@ -83,7 +91,7 @@ export class WaterHeater {
       `${this.device.remoteType}: ${this.accessory.displayName} pushWaterHeaterOnChanges Active: ${this.Active},` +
       ` disablePushOn: ${this.disablePushOn}`,
     );
-    if (this.Active === this.platform.Characteristic.Active.ACTIVE && !this.disablePushOn) {
+    if (this.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const bodyChange = JSON.stringify({
@@ -100,7 +108,7 @@ export class WaterHeater {
       `${this.device.remoteType}: ${this.accessory.displayName} pushWaterHeaterOffChanges Active: ${this.Active},` +
       ` disablePushOff: ${this.disablePushOff}`,
     );
-    if (this.Active === this.platform.Characteristic.Active.INACTIVE && !this.disablePushOff) {
+    if (this.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
       const bodyChange = JSON.stringify({
@@ -158,7 +166,7 @@ export class WaterHeater {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Active}`);
     } else {
       this.accessory.context.Active = this.Active;
-      this.valveService?.updateCharacteristic(this.platform.Characteristic.Active, this.Active);
+      this.valveService?.updateCharacteristic(this.hap.Characteristic.Active, this.Active);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
     }
   }
@@ -250,12 +258,12 @@ export class WaterHeater {
   }
 
   async apiError({ e }: { e: any }): Promise<void> {
-    this.valveService.updateCharacteristic(this.platform.Characteristic.Active, e);
+    this.valveService.updateCharacteristic(this.hap.Characteristic.Active, e);
   }
 
   async context(): Promise<void> {
     if (this.Active === undefined) {
-      this.Active = this.platform.Characteristic.Active.INACTIVE;
+      this.Active = this.hap.Characteristic.Active.INACTIVE;
     } else {
       this.Active = this.accessory.context.Active;
     }
@@ -265,7 +273,7 @@ export class WaterHeater {
     }
   }
 
-  async config(device: irdevice & irDevicesConfig): Promise<void> {
+  async deviceConfig(device: irdevice & irDevicesConfig): Promise<void> {
     let config = {};
     if (device.irwh) {
       config = device.irwh;
@@ -299,7 +307,7 @@ export class WaterHeater {
     }
   }
 
-  async logs(device: irdevice & irDevicesConfig): Promise<void> {
+  async deviceLogs(device: irdevice & irDevicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
