@@ -4,9 +4,16 @@
   "version": "2.14.0",
   "description": "The SwitchBot plugin allows you to access your SwitchBot device(s) from HomeKit.",
   "author": {
-    "name": "SwitchBot <support@wondertechlabs.com>",
-    "url": "https://github.com/SwitchBot"
+    "name": "SwitchBot",
+    "url": "https://github.com/SwitchBot",
+    "email": "support@wondertechlabs.com"
   },
+  "contributors": [
+    {
+      "name": "Donavan Becker",
+      "url": "https://github.com/donavanbecker"
+    }
+  ],
   "type": "module",
   "license": "ISC",
   "icon": "https://raw.githubusercontent.com/OpenWonderLabs/homebridge-switchbot/latest/branding/icon.png",
@@ -71,14 +78,13 @@
     "undici": "^6.4.0"
   },
   "optionalDependencies": {
-    "node-switchbot": "^1.10.0",
-    "@abandonware/noble": "^1.9.2-23",
-    "@abandonware/bluetooth-hci-socket": "^0.5.3-10"
+    "node-switchbot": "^2.0.0-beta.0",
+    "@abandonware/noble": "^1.9.2-23"
   },
   "devDependencies": {
-    "@types/node": "^20.11.5",
-    "@typescript-eslint/eslint-plugin": "^6.19.0",
-    "@typescript-eslint/parser": "^6.19.0",
+    "@types/node": "^20.11.6",
+    "@typescript-eslint/eslint-plugin": "^6.19.1",
+    "@typescript-eslint/parser": "^6.19.1",
     "eslint": "^8.56.0",
     "homebridge": "^1.7.0",
     "nodemon": "^3.0.3",
