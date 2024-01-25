@@ -1,12 +1,12 @@
 import { request } from 'undici';
-import { sleep } from '../utils';
+import { sleep } from '../utils.js';
 import { MqttClient } from 'mqtt';
 import { interval, Subject } from 'rxjs';
-import { connectAsync } from 'async-mqtt';
-import { SwitchBotPlatform } from '../platform';
+import asyncmqtt from 'async-mqtt';
+import { SwitchBotPlatform } from '../platform.js';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue, Logging, API, HAP } from 'homebridge';
-import { device, devicesConfig, serviceData, deviceStatus, ad, Devices, SwitchBotPlatformConfig } from '../settings';
+import { device, devicesConfig, serviceData, deviceStatus, ad, Devices, SwitchBotPlatformConfig } from '../settings.js';
 
 enum BlindTiltMappingMode {
   OnlyUp = 'only_up',
@@ -943,6 +943,7 @@ export class BlindTilt {
   async setupMqtt(device: device & devicesConfig): Promise<void> {
     if (device.mqttURL) {
       try {
+        const { connectAsync } = asyncmqtt;
         this.mqttClient = await connectAsync(device.mqttURL, device.mqttOptions || {});
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MQTT connection has been established successfully.`);
         this.mqttClient.on('error', (e: Error) => {

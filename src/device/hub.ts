@@ -1,11 +1,11 @@
-import { connectAsync } from 'async-mqtt';
+import asyncmqtt from 'async-mqtt';
 import { CharacteristicValue, PlatformAccessory, Service, Units, API, Logging, HAP } from 'homebridge';
 import { MqttClient } from 'mqtt';
 import { hostname } from 'os';
 import { interval } from 'rxjs';
 import { request } from 'undici';
-import { SwitchBotPlatform } from '../platform';
-import { Devices, device, deviceStatus, devicesConfig, SwitchBotPlatformConfig } from '../settings';
+import { SwitchBotPlatform } from '../platform.js';
+import { Devices, device, deviceStatus, devicesConfig, SwitchBotPlatformConfig } from '../settings.js';
 
 export class Hub {
   public readonly api: API;
@@ -555,6 +555,7 @@ export class Hub {
   async setupMqtt(device: device & devicesConfig): Promise<void> {
     if (device.mqttURL) {
       try {
+        const { connectAsync } = asyncmqtt;
         this.mqttClient = await connectAsync(device.mqttURL, device.mqttOptions || {});
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MQTT connection has been established successfully.`);
         this.mqttClient.on('error', (e: Error) => {

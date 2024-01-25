@@ -1,7 +1,7 @@
 import { CharacteristicValue, PlatformAccessory, Service, API, Logging, HAP } from 'homebridge';
 import { request } from 'undici';
-import { SwitchBotPlatform } from '../platform';
-import { Devices, irDevicesConfig, irdevice, SwitchBotPlatformConfig } from '../settings';
+import { SwitchBotPlatform } from '../platform.js';
+import { Devices, irDevicesConfig, irdevice, SwitchBotPlatformConfig } from '../settings.js';
 
 /**
  * Platform Accessory

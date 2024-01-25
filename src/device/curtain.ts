@@ -1,12 +1,12 @@
 import { request } from 'undici';
-import { sleep } from '../utils';
+import { sleep } from '../utils.js';
 import { MqttClient } from 'mqtt';
 import { interval, Subject } from 'rxjs';
-import { connectAsync } from 'async-mqtt';
-import { SwitchBotPlatform } from '../platform';
+import asyncmqtt from 'async-mqtt';
+import { SwitchBotPlatform } from '../platform.js';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue, CharacteristicChange, API, Logging, HAP } from 'homebridge';
-import { device, devicesConfig, serviceData, deviceStatus, ad, Devices, SwitchBotPlatformConfig } from '../settings';
+import { device, devicesConfig, serviceData, deviceStatus, ad, Devices, SwitchBotPlatformConfig } from '../settings.js';
 import { hostname } from 'os';
 
 export class Curtain {
@@ -966,6 +966,7 @@ export class Curtain {
   async setupMqtt(device: device & devicesConfig): Promise<void> {
     if (device.mqttURL) {
       try {
+        const { connectAsync } = asyncmqtt;
         this.mqttClient = await connectAsync(device.mqttURL, device.mqttOptions || {});
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MQTT connection has been established successfully.`);
         this.mqttClient.on('error', (e: Error) => {

@@ -1,10 +1,10 @@
 import { request } from 'undici';
-import { sleep } from '../utils';
+import { sleep } from '../utils.js';
 import { interval, Subject } from 'rxjs';
-import { SwitchBotPlatform } from '../platform';
+import { SwitchBotPlatform } from '../platform.js';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue, API, Logging, HAP } from 'homebridge';
-import { device, devicesConfig, deviceStatus, ad, serviceData, Devices, SwitchBotPlatformConfig } from '../settings';
+import { device, devicesConfig, deviceStatus, ad, serviceData, Devices, SwitchBotPlatformConfig } from '../settings.js';
 
 export class Plug {
   public readonly api: API;

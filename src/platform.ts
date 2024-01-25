@@ -4,41 +4,41 @@
  */
 import { API, DynamicPlatformPlugin, Logging, PlatformAccessory } from 'homebridge';
 import { PLATFORM_NAME, PLUGIN_NAME, irdevice, device, SwitchBotPlatformConfig, devicesConfig, irDevicesConfig, Devices } from './settings.js';
-import { Bot } from './device/bot';
-import { Plug } from './device/plug';
-import { Lock } from './device/lock';
-import { Meter } from './device/meter';
-import { Motion } from './device/motion';
-import { Hub } from './device/hub';
-import { Contact } from './device/contact';
-import { Curtain } from './device/curtain';
-import { IOSensor } from './device/iosensor';
-import { MeterPlus } from './device/meterplus';
-import { ColorBulb } from './device/colorbulb';
-import { CeilingLight } from './device/ceilinglight';
-import { StripLight } from './device/lightstrip';
-import { Humidifier } from './device/humidifier';
-import { RobotVacuumCleaner } from './device/robotvacuumcleaner';
-import { TV } from './irdevice/tv';
-import { Fan } from './irdevice/fan';
-import { Light } from './irdevice/light';
-import { Others } from './irdevice/other';
-import { Camera } from './irdevice/camera';
-import { BlindTilt } from './device/blindtilt';
-import { AirPurifier } from './irdevice/airpurifier';
-import { WaterHeater } from './irdevice/waterheater';
-import { VacuumCleaner } from './irdevice/vacuumcleaner';
-import { AirConditioner } from './irdevice/airconditioner';
+import { Bot } from './device/bot.js';
+import { Plug } from './device/plug.js';
+import { Lock } from './device/lock.js';
+import { Meter } from './device/meter.js';
+import { Motion } from './device/motion.js';
+import { Hub } from './device/hub.js';
+import { Contact } from './device/contact.js';
+import { Curtain } from './device/curtain.js';
+import { IOSensor } from './device/iosensor.js';
+import { MeterPlus } from './device/meterplus.js';
+import { ColorBulb } from './device/colorbulb.js';
+import { CeilingLight } from './device/ceilinglight.js';
+import { StripLight } from './device/lightstrip.js';
+import { Humidifier } from './device/humidifier.js';
+import { RobotVacuumCleaner } from './device/robotvacuumcleaner.js';
+import { TV } from './irdevice/tv.js';
+import { Fan } from './irdevice/fan.js';
+import { Light } from './irdevice/light.js';
+import { Others } from './irdevice/other.js';
+import { Camera } from './irdevice/camera.js';
+import { BlindTilt } from './device/blindtilt.js';
+import { AirPurifier } from './irdevice/airpurifier.js';
+import { WaterHeater } from './irdevice/waterheater.js';
+import { VacuumCleaner } from './irdevice/vacuumcleaner.js';
+import { AirConditioner } from './irdevice/airconditioner.js';
 import * as http from 'http';
 import { Buffer } from 'buffer';
 import { request } from 'undici';
 import { MqttClient } from 'mqtt';
 import { queueScheduler } from 'rxjs';
 import fakegato from 'fakegato-history';
-import { connectAsync } from 'async-mqtt';
+import asyncmqtt from 'async-mqtt';
 import crypto, { randomUUID } from 'crypto';
 import { readFileSync, writeFileSync } from 'fs';
-import { EveHomeKitTypes } from 'homebridge-lib';
+import hbLib from 'homebridge-lib';
 
 
 /**
@@ -75,6 +75,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     // Plugin options into our config variables.
     this.config = {
       platform: 'SwitchBotPlatform',
+      name: config.name,
+      credentials: config.credentials as object,
       url: config.url as string,
       port: config.port as number,
       hostname: config.hostname as string,
@@ -104,6 +106,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
 
     // import fakegato-history module and EVE characteristics
+    const { EveHomeKitTypes } = hbLib;
     this.fakegatoAPI = fakegato(api);
     this.eve = new EveHomeKitTypes(api);
 
@@ -136,6 +139,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   async setupMqtt(): Promise<void> {
     if (this.config.options?.mqttURL) {
       try {
+        const { connectAsync } = asyncmqtt;
         this.mqttClient = await connectAsync(this.config.options?.mqttURL, this.config.options.mqttOptions || {});
         this.debugLog('MQTT connection has been established successfully.');
         this.mqttClient.on('error', (e: Error) => {
