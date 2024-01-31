@@ -1,10 +1,12 @@
 import { request } from 'undici';
-import { sleep } from '../utils';
+import { sleep } from '../utils.js';
 import { interval, Subject } from 'rxjs';
-import { SwitchBotPlatform } from '../platform';
+import { SwitchBotPlatform } from '../platform.js';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
-import { device, devicesConfig, deviceStatus, hs2rgb, rgb2hs, m2hs, serviceData, ad, Devices } from '../settings';
-import { Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap } from 'homebridge';
+import { device, devicesConfig, deviceStatus, hs2rgb, rgb2hs, m2hs, serviceData, ad, Devices, SwitchBotPlatformConfig } from '../settings.js';
+import {
+  Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap, API, Logging, HAP,
+} from 'homebridge';
 
 /**
  * Platform Accessory
@@ -12,6 +14,10 @@ import { Service, PlatformAccessory, CharacteristicValue, ControllerConstructor,
  * Each accessory may expose multiple services of different service types.
  */
 export class CeilingLight {
+  public readonly api: API;
+  public readonly log: Logging;
+  public readonly config!: SwitchBotPlatformConfig;
+  protected readonly hap: HAP;
   // Services
   lightBulbService!: Service;
 
@@ -58,21 +64,28 @@ export class CeilingLight {
   doCeilingLightUpdate!: Subject<void>;
 
   // Connection
-  private readonly BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
-  private readonly OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
+  private readonly OpenAPI: boolean;
+  private readonly BLE: boolean;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
     public device: device & devicesConfig,
   ) {
+    this.api = this.platform.api;
+    this.log = this.platform.log;
+    this.config = this.platform.config;
+    this.hap = this.api.hap;
+    // Connection
+    this.BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
+    this.OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
     // default placeholders
-    this.logs(device);
+    this.deviceLogs(device);
     this.scan(device);
     this.refreshRate(device);
     this.adaptiveLighting(device);
     this.context();
-    this.config(device);
+    this.deviceConfig(device);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doCeilingLightUpdate = new Subject();
@@ -83,35 +96,35 @@ export class CeilingLight {
 
     // set accessory information
     accessory
-      .getService(this.platform.Service.AccessoryInformation)!
-      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, this.model(device))
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
+      .getService(this.hap.Service.AccessoryInformation)!
+      .setCharacteristic(this.hap.Characteristic.Manufacturer, 'SwitchBot')
+      .setCharacteristic(this.hap.Characteristic.Model, this.model(device))
+      .setCharacteristic(this.hap.Characteristic.SerialNumber, device.deviceId)
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
 
     // get the Lightbulb service if it exists, otherwise create a new Lightbulb service
     // you can create multiple services for each accessory
     const lightBulbService = `${accessory.displayName} ${device.deviceType}`;
-    (this.lightBulbService = accessory.getService(this.platform.Service.Lightbulb)
-      || accessory.addService(this.platform.Service.Lightbulb)), lightBulbService;
+    (this.lightBulbService = accessory.getService(this.hap.Service.Lightbulb)
+      || accessory.addService(this.hap.Service.Lightbulb)), lightBulbService;
 
     if (this.adaptiveLightingShift === -1 && this.accessory.context.adaptiveLighting) {
       this.accessory.removeService(this.lightBulbService);
-      this.lightBulbService = this.accessory.addService(this.platform.Service.Lightbulb);
+      this.lightBulbService = this.accessory.addService(this.hap.Service.Lightbulb);
       this.accessory.context.adaptiveLighting = false;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} adaptiveLighting: ${this.accessory.context.adaptiveLighting}`);
     }
 
-    this.lightBulbService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
-    if (!this.lightBulbService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-      this.lightBulbService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+    this.lightBulbService.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
+    if (!this.lightBulbService.testCharacteristic(this.hap.Characteristic.ConfiguredName)) {
+      this.lightBulbService.addCharacteristic(this.hap.Characteristic.ConfiguredName, accessory.displayName);
     }
     // handle on / off events using the On characteristic
-    this.lightBulbService.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
+    this.lightBulbService.getCharacteristic(this.hap.Characteristic.On).onSet(this.OnSet.bind(this));
 
     // handle Brightness events using the Brightness characteristic
     this.lightBulbService
-      .getCharacteristic(this.platform.Characteristic.Brightness)
+      .getCharacteristic(this.hap.Characteristic.Brightness)
       .setProps({
         minStep: this.minStep(device),
         minValue: 0,
@@ -125,7 +138,7 @@ export class CeilingLight {
 
     // handle ColorTemperature events using the ColorTemperature characteristic
     this.lightBulbService
-      .getCharacteristic(this.platform.Characteristic.ColorTemperature)
+      .getCharacteristic(this.hap.Characteristic.ColorTemperature)
       .setProps({
         minValue: 140,
         maxValue: 500,
@@ -138,7 +151,7 @@ export class CeilingLight {
 
     // handle Hue events using the Hue characteristic
     this.lightBulbService
-      .getCharacteristic(this.platform.Characteristic.Hue)
+      .getCharacteristic(this.hap.Characteristic.Hue)
       .setProps({
         minValue: 0,
         maxValue: 360,
@@ -151,7 +164,7 @@ export class CeilingLight {
 
     // handle Hue events using the Hue characteristic
     this.lightBulbService
-      .getCharacteristic(this.platform.Characteristic.Saturation)
+      .getCharacteristic(this.hap.Characteristic.Saturation)
       .setProps({
         minValue: 0,
         maxValue: 100,
@@ -194,16 +207,16 @@ export class CeilingLight {
           const { powerState, brightness, colorTemperature } = context;
           const { On, Brightness, ColorTemperature } = this;
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-              '(powerState, brightness, colorTemperature) = ' +
-              `Webhook:(${powerState}, ${brightness}, ${colorTemperature}), ` +
-              `current:(${On}, ${Brightness}, ${ColorTemperature})`);
+            '(powerState, brightness, colorTemperature) = ' +
+            `Webhook:(${powerState}, ${brightness}, ${colorTemperature}), ` +
+            `current:(${On}, ${Brightness}, ${ColorTemperature})`);
           this.On = powerState === 'ON' ? true : false;
           this.Brightness = brightness;
           this.ColorTemperature = colorTemperature;
           this.updateHomeKitCharacteristics();
         } catch (e: any) {
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-              + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+            + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
         }
       };
     }
@@ -788,8 +801,8 @@ export class CeilingLight {
 
     // Updating the hue/sat to the corresponding values mimics native adaptive lighting
     const hs = m2hs(value);
-    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Hue, hs[0]);
-    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Saturation, hs[1]);
+    this.lightBulbService.updateCharacteristic(this.hap.Characteristic.Hue, hs[0]);
+    this.lightBulbService.updateCharacteristic(this.hap.Characteristic.Saturation, hs[1]);
 
     this.ColorTemperature = value;
     this.doCeilingLightUpdate.next();
@@ -807,7 +820,7 @@ export class CeilingLight {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Hue: ${value}`);
     }
 
-    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, 140);
+    this.lightBulbService.updateCharacteristic(this.hap.Characteristic.ColorTemperature, 140);
 
     this.Hue = value;
     this.doCeilingLightUpdate.next();
@@ -825,7 +838,7 @@ export class CeilingLight {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Saturation: ${value}`);
     }
 
-    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, 140);
+    this.lightBulbService.updateCharacteristic(this.hap.Characteristic.ColorTemperature, 140);
 
     this.Saturation = value;
     this.doCeilingLightUpdate.next();
@@ -836,35 +849,35 @@ export class CeilingLight {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
     } else {
       this.accessory.context.On = this.On;
-      this.lightBulbService.updateCharacteristic(this.platform.Characteristic.On, this.On);
+      this.lightBulbService.updateCharacteristic(this.hap.Characteristic.On, this.On);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
     if (this.Brightness === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Brightness: ${this.Brightness}`);
     } else {
       this.accessory.context.Brightness = this.Brightness;
-      this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Brightness, this.Brightness);
+      this.lightBulbService.updateCharacteristic(this.hap.Characteristic.Brightness, this.Brightness);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic Brightness: ${this.Brightness}`);
     }
     if (this.ColorTemperature === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
     } else {
       this.accessory.context.ColorTemperature = this.ColorTemperature;
-      this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, this.ColorTemperature);
+      this.lightBulbService.updateCharacteristic(this.hap.Characteristic.ColorTemperature, this.ColorTemperature);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic ColorTemperature: ${this.ColorTemperature}`);
     }
     if (this.Hue === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${this.Hue}`);
     } else {
       this.accessory.context.Hue = this.Hue;
-      this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Hue, this.Hue);
+      this.lightBulbService.updateCharacteristic(this.hap.Characteristic.Hue, this.Hue);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic Hue: ${this.Hue}`);
     }
     if (this.Saturation === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${this.Saturation}`);
     } else {
       this.accessory.context.Saturation = this.Saturation;
-      this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Saturation, this.Saturation);
+      this.lightBulbService.updateCharacteristic(this.hap.Characteristic.Saturation, this.Saturation);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic Saturation: ${this.Saturation}`);
     }
   }
@@ -1016,11 +1029,11 @@ export class CeilingLight {
   }
 
   apiError(e: any): void {
-    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.On, e);
-    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Hue, e);
-    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Brightness, e);
-    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.Saturation, e);
-    this.lightBulbService.updateCharacteristic(this.platform.Characteristic.ColorTemperature, e);
+    this.lightBulbService.updateCharacteristic(this.hap.Characteristic.On, e);
+    this.lightBulbService.updateCharacteristic(this.hap.Characteristic.Hue, e);
+    this.lightBulbService.updateCharacteristic(this.hap.Characteristic.Brightness, e);
+    this.lightBulbService.updateCharacteristic(this.hap.Characteristic.Saturation, e);
+    this.lightBulbService.updateCharacteristic(this.hap.Characteristic.ColorTemperature, e);
   }
 
   async context() {
@@ -1067,7 +1080,7 @@ export class CeilingLight {
     }
   }
 
-  async config(device: device & devicesConfig): Promise<void> {
+  async deviceConfig(device: device & devicesConfig): Promise<void> {
     let config = {};
     if (device.ceilinglight) {
       config = device.ceilinglight;
@@ -1098,7 +1111,7 @@ export class CeilingLight {
     }
   }
 
-  async logs(device: device & devicesConfig): Promise<void> {
+  async deviceLogs(device: device & devicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);

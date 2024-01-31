@@ -1,13 +1,13 @@
 import { hostname } from 'os';
 import { request } from 'undici';
-import { sleep } from '../utils';
+import { sleep } from '../utils.js';
 import { MqttClient } from 'mqtt';
-import { connectAsync } from 'async-mqtt';
+import asyncmqtt from 'async-mqtt';
 import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
-import { SwitchBotPlatform } from '../platform';
-import { Service, PlatformAccessory, Units, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, serviceData, ad, temperature, deviceStatus, Devices } from '../settings';
+import { SwitchBotPlatform } from '../platform.js';
+import { Service, PlatformAccessory, Units, CharacteristicValue, API, Logging, HAP } from 'homebridge';
+import { device, devicesConfig, serviceData, ad, temperature, deviceStatus, Devices, SwitchBotPlatformConfig } from '../settings.js';
 
 /**
  * Platform Accessory
@@ -15,6 +15,10 @@ import { device, devicesConfig, serviceData, ad, temperature, deviceStatus, Devi
  * Each accessory may expose multiple services of different service types.
  */
 export class IOSensor {
+  public readonly api: API;
+  public readonly log: Logging;
+  public readonly config!: SwitchBotPlatformConfig;
+  protected readonly hap: HAP;
   // Services
   batteryService: Service;
   humidityservice?: Service;
@@ -59,22 +63,29 @@ export class IOSensor {
   doIOSensorUpdate: Subject<void>;
 
   // Connection
-  private readonly BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
-  private readonly OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
+  private readonly OpenAPI: boolean;
+  private readonly BLE: boolean;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
     public device: device & devicesConfig,
   ) {
+    this.api = this.platform.api;
+    this.log = this.platform.log;
+    this.config = this.platform.config;
+    this.hap = this.api.hap;
+    // Connection
+    this.BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
+    this.OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
     // default placeholders
-    this.logs(device);
+    this.deviceLogs(device);
     this.scan(device);
     this.refreshRate(device);
     this.context();
     this.setupHistoryService(device);
     this.setupMqtt(device);
-    this.config(device);
+    this.deviceConfig(device);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doIOSensorUpdate = new Subject();
@@ -85,29 +96,29 @@ export class IOSensor {
 
     // set accessory information
     accessory
-      .getService(this.platform.Service.AccessoryInformation)!
-      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, 'WoIOSensor')
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
+      .getService(this.hap.Service.AccessoryInformation)!
+      .setCharacteristic(this.hap.Characteristic.Manufacturer, 'SwitchBot')
+      .setCharacteristic(this.hap.Characteristic.Model, 'WoIOSensor')
+      .setCharacteristic(this.hap.Characteristic.SerialNumber, device.deviceId)
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
 
     // Temperature Sensor Service
     if (device.meter?.hide_temperature) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Temperature Sensor Service`);
-      this.temperatureservice = this.accessory.getService(this.platform.Service.TemperatureSensor);
+      this.temperatureservice = this.accessory.getService(this.hap.Service.TemperatureSensor);
       accessory.removeService(this.temperatureservice!);
     } else if (!this.temperatureservice) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Temperature Sensor Service`);
       const temperatureservice = `${accessory.displayName} Temperature Sensor`;
-      (this.temperatureservice = this.accessory.getService(this.platform.Service.TemperatureSensor)
-      || this.accessory.addService(this.platform.Service.TemperatureSensor)), temperatureservice;
+      (this.temperatureservice = this.accessory.getService(this.hap.Service.TemperatureSensor)
+        || this.accessory.addService(this.hap.Service.TemperatureSensor)), temperatureservice;
 
-      this.temperatureservice.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
-      if (!this.temperatureservice.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-        this.temperatureservice.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Temperature Sensor`);
+      this.temperatureservice.setCharacteristic(this.hap.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
+      if (!this.temperatureservice.testCharacteristic(this.hap.Characteristic.ConfiguredName)) {
+        this.temperatureservice.addCharacteristic(this.hap.Characteristic.ConfiguredName, `${accessory.displayName} Temperature Sensor`);
       }
       this.temperatureservice
-        .getCharacteristic(this.platform.Characteristic.CurrentTemperature)
+        .getCharacteristic(this.hap.Characteristic.CurrentTemperature)
         .setProps({
           unit: Units['CELSIUS'],
           validValueRanges: [-273.15, 100],
@@ -125,20 +136,20 @@ export class IOSensor {
     // Humidity Sensor Service
     if (device.meter?.hide_humidity) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Humidity Sensor Service`);
-      this.humidityservice = this.accessory.getService(this.platform.Service.HumiditySensor);
+      this.humidityservice = this.accessory.getService(this.hap.Service.HumiditySensor);
       accessory.removeService(this.humidityservice!);
     } else if (!this.humidityservice) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Humidity Sensor Service`);
       const humidityservice = `${accessory.displayName} Humidity Sensor`;
-      (this.humidityservice = this.accessory.getService(this.platform.Service.HumiditySensor)
-      || this.accessory.addService(this.platform.Service.HumiditySensor)), humidityservice;
+      (this.humidityservice = this.accessory.getService(this.hap.Service.HumiditySensor)
+        || this.accessory.addService(this.hap.Service.HumiditySensor)), humidityservice;
 
-      this.humidityservice.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
-      if (!this.humidityservice.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-        this.humidityservice.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Humidity Sensor`);
+      this.humidityservice.setCharacteristic(this.hap.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
+      if (!this.humidityservice.testCharacteristic(this.hap.Characteristic.ConfiguredName)) {
+        this.humidityservice.addCharacteristic(this.hap.Characteristic.ConfiguredName, `${accessory.displayName} Humidity Sensor`);
       }
       this.humidityservice
-        .getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
+        .getCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity)
         .setProps({
           minStep: 0.1,
         })
@@ -151,14 +162,14 @@ export class IOSensor {
 
     // Battery Service
     const batteryService = `${accessory.displayName} Battery`;
-    (this.batteryService = this.accessory.getService(this.platform.Service.Battery)
-    || accessory.addService(this.platform.Service.Battery)), batteryService;
+    (this.batteryService = this.accessory.getService(this.hap.Service.Battery)
+      || accessory.addService(this.hap.Service.Battery)), batteryService;
 
-    this.batteryService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Battery`);
-    if (!this.batteryService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-      this.batteryService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Battery`);
+    this.batteryService.setCharacteristic(this.hap.Characteristic.Name, `${accessory.displayName} Battery`);
+    if (!this.batteryService.testCharacteristic(this.hap.Characteristic.ConfiguredName)) {
+      this.batteryService.addCharacteristic(this.hap.Characteristic.ConfiguredName, `${accessory.displayName} Battery`);
     }
-    this.batteryService.setCharacteristic(this.platform.Characteristic.ChargingState, this.platform.Characteristic.ChargingState.NOT_CHARGEABLE);
+    this.batteryService.setCharacteristic(this.hap.Characteristic.ChargingState, this.hap.Characteristic.ChargingState.NOT_CHARGEABLE);
 
     // Retrieve initial values and updateHomekit
     this.updateHomeKitCharacteristics();
@@ -180,16 +191,16 @@ export class IOSensor {
             const { temperature, humidity } = context;
             const { CurrentTemperature, CurrentRelativeHumidity } = this;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-                  '(temperature, humidity) = ' +
-                  `Webhook:(${temperature}, ${humidity}), ` +
-                  `current:(${CurrentTemperature}, ${CurrentRelativeHumidity})`);
+              '(temperature, humidity) = ' +
+              `Webhook:(${temperature}, ${humidity}), ` +
+              `current:(${CurrentTemperature}, ${CurrentRelativeHumidity})`);
             this.CurrentRelativeHumidity = humidity;
             this.CurrentTemperature = temperature;
             this.updateHomeKitCharacteristics();
           }
         } catch (e: any) {
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-                + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+            + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
         }
       };
     }
@@ -219,9 +230,9 @@ export class IOSensor {
     // Battery
     this.BatteryLevel = Number(this.BLE_BatteryLevel);
     if (this.BatteryLevel < 15) {
-      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
+      this.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
-      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+      this.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     }
     this.debugLog(`${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
 
@@ -244,9 +255,9 @@ export class IOSensor {
     // Battery
     this.BatteryLevel = Number(this.OpenAPI_BatteryLevel);
     if (this.BatteryLevel < 15) {
-      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
+      this.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
-      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+      this.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     }
     this.debugLog(`${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
 
@@ -265,9 +276,9 @@ export class IOSensor {
     // BatteryLevel
     this.BatteryLevel = Number(this.OpenAPI_BatteryLevel);
     if (this.BatteryLevel < 10) {
-      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
+      this.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
-      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+      this.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     }
     if (Number.isNaN(this.BatteryLevel)) {
       this.BatteryLevel = 100;
@@ -413,7 +424,7 @@ export class IOSensor {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
       } else {
         this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidity;
-        this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
+        this.humidityservice?.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
         this.debugLog(
           `${this.device.deviceType}: ${this.accessory.displayName}` +
           ` updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`,
@@ -437,7 +448,7 @@ export class IOSensor {
           entry['temp'] = this.CurrentTemperature;
         }
         this.accessory.context.CurrentTemperature = this.CurrentTemperature;
-        this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
+        this.temperatureservice?.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, this.CurrentTemperature);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
       }
     }
@@ -448,7 +459,7 @@ export class IOSensor {
         mqttmessage.push(`"battery": ${this.BatteryLevel}`);
       }
       this.accessory.context.BatteryLevel = this.BatteryLevel;
-      this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.BatteryLevel);
+      this.batteryService?.updateCharacteristic(this.hap.Characteristic.BatteryLevel, this.BatteryLevel);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.BatteryLevel}`);
     }
     if (this.StatusLowBattery === undefined) {
@@ -458,7 +469,7 @@ export class IOSensor {
         mqttmessage.push(`"lowBattery": ${this.StatusLowBattery}`);
       }
       this.accessory.context.StatusLowBattery = this.StatusLowBattery;
-      this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.StatusLowBattery);
+      this.batteryService?.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, this.StatusLowBattery);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.StatusLowBattery}`);
     }
     if (this.device.mqttURL) {
@@ -492,6 +503,7 @@ export class IOSensor {
   async setupMqtt(device: device & devicesConfig): Promise<void> {
     if (device.mqttURL) {
       try {
+        const { connectAsync } = asyncmqtt;
         this.mqttClient = await connectAsync(device.mqttURL, device.mqttOptions || {});
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MQTT connection has been established successfully.`);
         this.mqttClient.on('error', (e: Error) => {
@@ -622,13 +634,13 @@ export class IOSensor {
 
   async apiError(e: any): Promise<void> {
     if (!this.device.meter?.hide_humidity) {
-      this.humidityservice?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, e);
+      this.humidityservice?.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity, e);
     }
     if (!this.device.meter?.hide_temperature) {
-      this.temperatureservice?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
+      this.temperatureservice?.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, e);
     }
-    this.batteryService?.updateCharacteristic(this.platform.Characteristic.BatteryLevel, e);
-    this.batteryService?.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, e);
+    this.batteryService?.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e);
+    this.batteryService?.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, e);
   }
 
   async context() {
@@ -648,7 +660,7 @@ export class IOSensor {
       this.BatteryLevel = this.accessory.context.BatteryLevel;
     }
     if (this.StatusLowBattery === undefined) {
-      this.StatusLowBattery = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+      this.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
       this.accessory.context.StatusLowBattery = this.StatusLowBattery;
     } else {
       this.StatusLowBattery = this.accessory.context.StatusLowBattery;
@@ -669,7 +681,7 @@ export class IOSensor {
     }
   }
 
-  async config(device: device & devicesConfig): Promise<void> {
+  async deviceConfig(device: device & devicesConfig): Promise<void> {
     let config = {};
     if (device.meter) {
       config = device.meter;
@@ -697,7 +709,7 @@ export class IOSensor {
     }
   }
 
-  async logs(device: device & devicesConfig): Promise<void> {
+  async deviceLogs(device: device & devicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);

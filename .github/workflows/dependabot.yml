@@ -2,17 +2,16 @@ name: AutoDependabot
 
 on:
   pull_request:
-  push:
     branches:
-    - beta-*.*.*
+    - beta
+    - latest
+  pull_request_target:
+    branches:
+    - beta
+    - latest
 
 jobs:
-  automerge:
-    name: Auto-merge patch updates
-    runs-on: ubuntu-latest
-    steps:
-      - uses: mitto98/dependabot-automerge-action@master
-        with:
-          token: ${{ github.token }}
-          merge-patch: true
-          
+  label:
+    uses: OpenWonderLabs/.github/.github/workflows/dependabot.yml@latest
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}

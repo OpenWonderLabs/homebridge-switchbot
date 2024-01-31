@@ -1,41 +1,45 @@
-import { Bot } from './device/bot';
-import { Plug } from './device/plug';
-import { Lock } from './device/lock';
-import { Meter } from './device/meter';
-import { Motion } from './device/motion';
-import { Hub } from './device/hub';
-import { Contact } from './device/contact';
-import { Curtain } from './device/curtain';
-import { IOSensor } from './device/iosensor';
-import { MeterPlus } from './device/meterplus';
-import { ColorBulb } from './device/colorbulb';
-import { CeilingLight } from './device/ceilinglight';
-import { StripLight } from './device/lightstrip';
-import { Humidifier } from './device/humidifier';
-import { RobotVacuumCleaner } from './device/robotvacuumcleaner';
-import { TV } from './irdevice/tv';
-import { Fan } from './irdevice/fan';
-import { Light } from './irdevice/light';
-import { Others } from './irdevice/other';
-import { Camera } from './irdevice/camera';
-import { BlindTilt } from './device/blindtilt';
-import { AirPurifier } from './irdevice/airpurifier';
-import { WaterHeater } from './irdevice/waterheater';
-import { VacuumCleaner } from './irdevice/vacuumcleaner';
-import { AirConditioner } from './irdevice/airconditioner';
-import { request } from 'undici';
-import crypto, { randomUUID } from 'crypto';
+/* Copyright(C) 2017-2023, donavanbecker (https://github.com/donavanbecker). All rights reserved.
+ *
+ * protect-platform.ts: homebridge-cloudflared-tunnel platform class.
+ */
+import { API, DynamicPlatformPlugin, Logging, PlatformAccessory } from 'homebridge';
+import { PLATFORM_NAME, PLUGIN_NAME, irdevice, device, SwitchBotPlatformConfig, devicesConfig, irDevicesConfig, Devices } from './settings.js';
+import { Bot } from './device/bot.js';
+import { Plug } from './device/plug.js';
+import { Lock } from './device/lock.js';
+import { Meter } from './device/meter.js';
+import { Motion } from './device/motion.js';
+import { Hub } from './device/hub.js';
+import { Contact } from './device/contact.js';
+import { Curtain } from './device/curtain.js';
+import { IOSensor } from './device/iosensor.js';
+import { MeterPlus } from './device/meterplus.js';
+import { ColorBulb } from './device/colorbulb.js';
+import { CeilingLight } from './device/ceilinglight.js';
+import { StripLight } from './device/lightstrip.js';
+import { Humidifier } from './device/humidifier.js';
+import { RobotVacuumCleaner } from './device/robotvacuumcleaner.js';
+import { TV } from './irdevice/tv.js';
+import { Fan } from './irdevice/fan.js';
+import { Light } from './irdevice/light.js';
+import { Others } from './irdevice/other.js';
+import { Camera } from './irdevice/camera.js';
+import { BlindTilt } from './device/blindtilt.js';
+import { AirPurifier } from './irdevice/airpurifier.js';
+import { WaterHeater } from './irdevice/waterheater.js';
+import { VacuumCleaner } from './irdevice/vacuumcleaner.js';
+import { AirConditioner } from './irdevice/airconditioner.js';
+import * as http from 'http';
 import { Buffer } from 'buffer';
+import { request } from 'undici';
+import { MqttClient } from 'mqtt';
 import { queueScheduler } from 'rxjs';
 import fakegato from 'fakegato-history';
-import { EveHomeKitTypes } from 'homebridge-lib';
-import { MqttClient } from 'mqtt';
-import { connectAsync } from 'async-mqtt';
-import * as http from 'http';
-
+import asyncmqtt from 'async-mqtt';
+import crypto, { randomUUID } from 'crypto';
 import { readFileSync, writeFileSync } from 'fs';
-import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, Service, Characteristic } from 'homebridge';
-import { PLATFORM_NAME, PLUGIN_NAME, irdevice, device, SwitchBotPlatformConfig, devicesConfig, irDevicesConfig, Devices } from './settings';
+import hbLib from 'homebridge-lib';
+
 
 /**
  * HomebridgePlatform
@@ -43,15 +47,15 @@ import { PLATFORM_NAME, PLUGIN_NAME, irdevice, device, SwitchBotPlatformConfig, 
  * parse the user config and discover/register accessories with Homebridge.
  */
 export class SwitchBotPlatform implements DynamicPlatformPlugin {
-  public readonly Service: typeof Service = this.api.hap.Service;
-  public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
+  public accessories: PlatformAccessory[];
+  public readonly api: API;
+  public readonly log: Logging;
 
-  // this is used to track restored cached accessories
-  public readonly accessories: PlatformAccessory[] = [];
-
-  version = process.env.npm_package_version || '2.9.0';
+  version = process.env.npm_package_version || '2.13.0';
+  Logging?: string;
   debugMode!: boolean;
   platformLogging?: string;
+  config!: SwitchBotPlatformConfig;
   webhookEventListener: http.Server | null = null;
   mqttClient: MqttClient | null = null;
 
@@ -59,17 +63,29 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   public readonly eve: any;
   public readonly webhookEventHandler: { [x: string]: (context: { [x: string]: any }) => void } = {};
 
-  constructor(
-    public readonly log: Logger,
-    public readonly config: SwitchBotPlatformConfig,
-    public readonly api: API,
-  ) {
-    this.logs();
-    this.debugLog('Finished initializing platform:', this.config.name);
+  constructor(log: Logging, config: SwitchBotPlatformConfig, api: API) {
+    this.accessories = [];
+    this.api = api;
+    this.log = log;
     // only load if configured
     if (!this.config) {
       return;
     }
+
+    // Plugin options into our config variables.
+    this.config = {
+      platform: 'SwitchBotPlatform',
+      name: config.name,
+      credentials: config.credentials as object,
+      url: config.url as string,
+      port: config.port as number,
+      hostname: config.hostname as string,
+      protocol: config.protocol as string,
+      verifyTLS: config.verifyTLS as boolean,
+      logging: config.logging as string,
+    };
+    this.logs();
+    this.debugLog(`Finished initializing platform: ${config.name}`);
 
     // HOOBS notice
     if (__dirname.includes('hoobs')) {
@@ -90,6 +106,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
 
     // import fakegato-history module and EVE characteristics
+    const { EveHomeKitTypes } = hbLib;
     this.fakegatoAPI = fakegato(api);
     this.eve = new EveHomeKitTypes(api);
 
@@ -122,6 +139,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   async setupMqtt(): Promise<void> {
     if (this.config.options?.mqttURL) {
       try {
+        const { connectAsync } = asyncmqtt;
         this.mqttClient = await connectAsync(this.config.options?.mqttURL, this.config.options.mqttOptions || {});
         this.debugLog('MQTT connection has been established successfully.');
         this.mqttClient.on('error', (e: Error) => {

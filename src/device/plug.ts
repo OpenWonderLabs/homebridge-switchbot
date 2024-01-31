@@ -1,12 +1,16 @@
 import { request } from 'undici';
-import { sleep } from '../utils';
+import { sleep } from '../utils.js';
 import { interval, Subject } from 'rxjs';
-import { SwitchBotPlatform } from '../platform';
+import { SwitchBotPlatform } from '../platform.js';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, deviceStatus, ad, serviceData, Devices } from '../settings';
+import { Service, PlatformAccessory, CharacteristicValue, API, Logging, HAP } from 'homebridge';
+import { device, devicesConfig, deviceStatus, ad, serviceData, Devices, SwitchBotPlatformConfig } from '../settings.js';
 
 export class Plug {
+  public readonly api: API;
+  public readonly log: Logging;
+  public readonly config!: SwitchBotPlatformConfig;
+  protected readonly hap: HAP;
   // Services
   outletService: Service;
 
@@ -32,20 +36,27 @@ export class Plug {
   doPlugUpdate!: Subject<void>;
 
   // Connection
-  private readonly BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
-  private readonly OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
+  private readonly OpenAPI: boolean;
+  private readonly BLE: boolean;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
     public device: device & devicesConfig,
   ) {
+    this.api = this.platform.api;
+    this.log = this.platform.log;
+    this.config = this.platform.config;
+    this.hap = this.api.hap;
+    // Connection
+    this.BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
+    this.OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
     // default placeholders
-    this.logs(device);
+    this.deviceLogs(device);
     this.scan(device);
     this.refreshRate(device);
     this.context();
-    this.config(device);
+    this.deviceConfig(device);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doPlugUpdate = new Subject();
@@ -56,27 +67,27 @@ export class Plug {
 
     // set accessory information
     accessory
-      .getService(this.platform.Service.AccessoryInformation)!
-      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, this.model(device))
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
+      .getService(this.hap.Service.AccessoryInformation)!
+      .setCharacteristic(this.hap.Characteristic.Manufacturer, 'SwitchBot')
+      .setCharacteristic(this.hap.Characteristic.Model, this.model(device))
+      .setCharacteristic(this.hap.Characteristic.SerialNumber, device.deviceId)
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
 
     // get the Outlet service if it exists, otherwise create a new Outlet service
     // you can create multiple services for each accessory
     const outletService = `${accessory.displayName} ${device.deviceType}`;
-    (this.outletService = accessory.getService(this.platform.Service.Outlet)
-    || accessory.addService(this.platform.Service.Outlet)), outletService;
+    (this.outletService = accessory.getService(this.hap.Service.Outlet)
+      || accessory.addService(this.hap.Service.Outlet)), outletService;
 
-    this.outletService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
-    if (!this.outletService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-      this.outletService.addCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.displayName);
+    this.outletService.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
+    if (!this.outletService.testCharacteristic(this.hap.Characteristic.ConfiguredName)) {
+      this.outletService.addCharacteristic(this.hap.Characteristic.ConfiguredName, accessory.displayName);
     }
     // each service must implement at-minimum the "required characteristics" for the given service type
     // see https://developers.homebridge.io/#/service/Outlet
 
     // create handlers for required characteristics
-    this.outletService.getCharacteristic(this.platform.Characteristic.On).onSet(this.OnSet.bind(this));
+    this.outletService.getCharacteristic(this.hap.Characteristic.On).onSet(this.OnSet.bind(this));
 
     // Update Homekit
     this.updateHomeKitCharacteristics();
@@ -97,14 +108,14 @@ export class Plug {
           const { powerState } = context;
           const { On } = this;
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-                      '(powerState) = ' +
-                      `Webhook:(${powerState}), ` +
-                      `current:(${On})`);
+            '(powerState) = ' +
+            `Webhook:(${powerState}), ` +
+            `current:(${On})`);
           this.On = powerState === 'ON' ? true : false;
           this.updateHomeKitCharacteristics();
         } catch (e: any) {
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-                    + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+            + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
         }
       };
     }
@@ -442,7 +453,7 @@ export class Plug {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.On}`);
     } else {
       this.accessory.context.On = this.On;
-      this.outletService.updateCharacteristic(this.platform.Characteristic.On, this.On);
+      this.outletService.updateCharacteristic(this.hap.Characteristic.On, this.On);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
     }
   }
@@ -595,7 +606,7 @@ export class Plug {
   }
 
   async apiError(e: any): Promise<void> {
-    this.outletService.updateCharacteristic(this.platform.Characteristic.On, e);
+    this.outletService.updateCharacteristic(this.hap.Characteristic.On, e);
   }
 
   async context() {
@@ -616,7 +627,7 @@ export class Plug {
     }
   }
 
-  async config(device: device & devicesConfig): Promise<void> {
+  async deviceConfig(device: device & devicesConfig): Promise<void> {
     let config = {};
     if (device.plug) {
       config = device.plug;
@@ -647,7 +658,7 @@ export class Plug {
     }
   }
 
-  async logs(device: device & devicesConfig): Promise<void> {
+  async deviceLogs(device: device & devicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);

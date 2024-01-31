@@ -1,13 +1,17 @@
-import { connectAsync } from 'async-mqtt';
-import { CharacteristicValue, PlatformAccessory, Service, Units } from 'homebridge';
+import asyncmqtt from 'async-mqtt';
+import { CharacteristicValue, PlatformAccessory, Service, Units, API, Logging, HAP } from 'homebridge';
 import { MqttClient } from 'mqtt';
 import { hostname } from 'os';
 import { interval } from 'rxjs';
 import { request } from 'undici';
-import { SwitchBotPlatform } from '../platform';
-import { Devices, device, deviceStatus, devicesConfig } from '../settings';
+import { SwitchBotPlatform } from '../platform.js';
+import { Devices, device, deviceStatus, devicesConfig, SwitchBotPlatformConfig } from '../settings.js';
 
 export class Hub {
+  public readonly api: API;
+  public readonly log: Logging;
+  public readonly config!: SwitchBotPlatformConfig;
+  protected readonly hap: HAP;
   // Services
   lightSensorService?: Service;
   humidityService?: Service;
@@ -44,21 +48,28 @@ export class Hub {
   deviceRefreshRate!: number;
 
   // Connection
-  private readonly BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
-  private readonly OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
+  private readonly OpenAPI: boolean;
+  private readonly BLE: boolean;
 
   constructor(
     private readonly platform: SwitchBotPlatform,
     private accessory: PlatformAccessory,
     public device: device & devicesConfig,
   ) {
+    this.api = this.platform.api;
+    this.log = this.platform.log;
+    this.config = this.platform.config;
+    this.hap = this.api.hap;
+    // Connection
+    this.BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
+    this.OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
     // default placeholders
-    this.logs(device);
+    this.deviceLogs(device);
     this.refreshRate(device);
     this.context();
     this.setupHistoryService(device);
     this.setupMqtt(device);
-    this.config(device);
+    this.deviceConfig(device);
 
     this.CurrentRelativeHumidity = accessory.context.CurrentRelativeHumidity;
     this.CurrentTemperature = accessory.context.CurrentTemperature;
@@ -68,29 +79,29 @@ export class Hub {
 
     // set accessory information
     accessory
-      .getService(this.platform.Service.AccessoryInformation)!
-      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.platform.Characteristic.Model, accessory.context.model)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceId)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
+      .getService(this.hap.Service.AccessoryInformation)!
+      .setCharacteristic(this.hap.Characteristic.Manufacturer, 'SwitchBot')
+      .setCharacteristic(this.hap.Characteristic.Model, accessory.context.model)
+      .setCharacteristic(this.hap.Characteristic.SerialNumber, device.deviceId)
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
 
     // Temperature Sensor Service
     if (device.hub?.hide_temperature) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Temperature Sensor Service`);
-      this.temperatureService = this.accessory.getService(this.platform.Service.TemperatureSensor);
+      this.temperatureService = this.accessory.getService(this.hap.Service.TemperatureSensor);
       accessory.removeService(this.temperatureService!);
     } else if (!this.temperatureService) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Temperature Sensor Service`);
       const temperatureService = `${accessory.displayName} Temperature Sensor`;
-      (this.temperatureService = this.accessory.getService(this.platform.Service.TemperatureSensor)
-        || this.accessory.addService(this.platform.Service.TemperatureSensor)), temperatureService;
+      (this.temperatureService = this.accessory.getService(this.hap.Service.TemperatureSensor)
+        || this.accessory.addService(this.hap.Service.TemperatureSensor)), temperatureService;
 
-      this.temperatureService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
-      if (!this.temperatureService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-        this.temperatureService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Temperature Sensor`);
+      this.temperatureService.setCharacteristic(this.hap.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
+      if (!this.temperatureService.testCharacteristic(this.hap.Characteristic.ConfiguredName)) {
+        this.temperatureService.addCharacteristic(this.hap.Characteristic.ConfiguredName, `${accessory.displayName} Temperature Sensor`);
       }
       this.temperatureService
-        .getCharacteristic(this.platform.Characteristic.CurrentTemperature)
+        .getCharacteristic(this.hap.Characteristic.CurrentTemperature)
         .setProps({
           unit: Units['CELSIUS'],
           validValueRanges: [-273.15, 100],
@@ -108,20 +119,20 @@ export class Hub {
     // Humidity Sensor Service
     if (device.hub?.hide_humidity) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Humidity Sensor Service`);
-      this.humidityService = this.accessory.getService(this.platform.Service.HumiditySensor);
+      this.humidityService = this.accessory.getService(this.hap.Service.HumiditySensor);
       accessory.removeService(this.humidityService!);
     } else if (!this.humidityService) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Humidity Sensor Service`);
       const humidityService = `${accessory.displayName} Humidity Sensor`;
-      (this.humidityService = this.accessory.getService(this.platform.Service.HumiditySensor)
-        || this.accessory.addService(this.platform.Service.HumiditySensor)), humidityService;
+      (this.humidityService = this.accessory.getService(this.hap.Service.HumiditySensor)
+        || this.accessory.addService(this.hap.Service.HumiditySensor)), humidityService;
 
-      this.humidityService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
-      if (!this.humidityService.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
-        this.humidityService.addCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Humidity Sensor`);
+      this.humidityService.setCharacteristic(this.hap.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
+      if (!this.humidityService.testCharacteristic(this.hap.Characteristic.ConfiguredName)) {
+        this.humidityService.addCharacteristic(this.hap.Characteristic.ConfiguredName, `${accessory.displayName} Humidity Sensor`);
       }
       this.humidityService
-        .getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
+        .getCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity)
         .setProps({
           minStep: 0.1,
         })
@@ -135,16 +146,16 @@ export class Hub {
     // Light Sensor Service
     if (device.hub?.hide_lightsensor) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
-      this.lightSensorService = this.accessory.getService(this.platform.Service.LightSensor);
+      this.lightSensorService = this.accessory.getService(this.hap.Service.LightSensor);
       accessory.removeService(this.lightSensorService!);
     } else if (!this.lightSensorService) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Light Sensor Service`);
       const lightSensorService = `${accessory.displayName} Light Sensor`;
-      (this.lightSensorService = this.accessory.getService(this.platform.Service.LightSensor)
-        || this.accessory.addService(this.platform.Service.LightSensor)), lightSensorService;
+      (this.lightSensorService = this.accessory.getService(this.hap.Service.LightSensor)
+        || this.accessory.addService(this.hap.Service.LightSensor)), lightSensorService;
 
-      this.lightSensorService.setCharacteristic(this.platform.Characteristic.Name, `${accessory.displayName} Light Sensor`);
-      this.lightSensorService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${accessory.displayName} Light Sensor`);
+      this.lightSensorService.setCharacteristic(this.hap.Characteristic.Name, `${accessory.displayName} Light Sensor`);
+      this.lightSensorService.setCharacteristic(this.hap.Characteristic.ConfiguredName, `${accessory.displayName} Light Sensor`);
     } else {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Light Sensor Service Not Added`);
     }
@@ -168,9 +179,9 @@ export class Hub {
             const { temperature, humidity, lightLevel } = context;
             const { CurrentTemperature, CurrentRelativeHumidity, CurrentAmbientLightLevel } = this;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-                '(temperature, humidity, lightLevel) = ' +
-                `Webhook:(${temperature}, ${humidity}, ${lightLevel}), ` +
-                `current:(${CurrentTemperature}, ${CurrentRelativeHumidity}, ${CurrentAmbientLightLevel})`);
+              '(temperature, humidity, lightLevel) = ' +
+              `Webhook:(${temperature}, ${humidity}, ${lightLevel}), ` +
+              `current:(${CurrentTemperature}, ${CurrentRelativeHumidity}, ${CurrentAmbientLightLevel})`);
             this.CurrentRelativeHumidity = humidity;
             this.CurrentTemperature = temperature;
             this.set_minLux = this.minLux();
@@ -265,7 +276,7 @@ export class Hub {
           }
         } catch (e: any) {
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-              + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+            + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
         }
       };
     }
@@ -396,7 +407,7 @@ export class Hub {
         );
       }
       if (!this.device.hub?.hide_lightsensor) {
-        this.lightSensorService?.setCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
+        this.lightSensorService?.setCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
       }
     }
 
@@ -469,7 +480,7 @@ export class Hub {
           entry['humidity'] = this.CurrentRelativeHumidity;
         }
         this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidity;
-        this.humidityService?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
+        this.humidityService?.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
           + `updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
       }
@@ -487,7 +498,7 @@ export class Hub {
           entry['temp'] = this.CurrentTemperature;
         }
         this.accessory.context.CurrentTemperature = this.CurrentTemperature;
-        this.temperatureService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.CurrentTemperature);
+        this.temperatureService?.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, this.CurrentTemperature);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
       }
     }
@@ -504,7 +515,7 @@ export class Hub {
           entry['lux'] = this.CurrentAmbientLightLevel;
         }
         this.accessory.context.CurrentAmbientLightLevel = this.CurrentAmbientLightLevel;
-        this.lightSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
+        this.lightSensorService?.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
         this.debugLog(
           `${this.device.deviceType}: ${this.accessory.displayName} `
           + `updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
@@ -544,6 +555,7 @@ export class Hub {
   async setupMqtt(device: device & devicesConfig): Promise<void> {
     if (device.mqttURL) {
       try {
+        const { connectAsync } = asyncmqtt;
         this.mqttClient = await connectAsync(device.mqttURL, device.mqttOptions || {});
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MQTT connection has been established successfully.`);
         this.mqttClient.on('error', (e: Error) => {
@@ -624,13 +636,13 @@ export class Hub {
 
   async apiError(e: any): Promise<void> {
     if (!this.device.hub?.hide_temperature) {
-      this.temperatureService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, e);
+      this.temperatureService?.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, e);
     }
     if (!this.device.hub?.hide_humidity) {
-      this.humidityService?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, e);
+      this.humidityService?.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity, e);
     }
     if (!this.device.hub?.hide_lightsensor) {
-      this.lightSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentAmbientLightLevel, e);
+      this.lightSensorService?.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, e);
     }
   }
 
@@ -693,7 +705,7 @@ export class Hub {
     }
   }
 
-  async config(device: device & devicesConfig): Promise<void> {
+  async deviceConfig(device: device & devicesConfig): Promise<void> {
     let config = {};
     if (device.hub) {
       config = device.hub;
@@ -715,7 +727,7 @@ export class Hub {
     }
   }
 
-  async logs(device: device & devicesConfig): Promise<void> {
+  async deviceLogs(device: device & devicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
