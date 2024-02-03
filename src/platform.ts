@@ -663,6 +663,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.createContact(device);
         break;
       case 'Curtain':
+      case 'Curtain3':
         this.debugLog(`Discovered ${device.deviceType} ${device.deviceName}: ${device.deviceId}`);
         this.createCurtain(device);
         break;
@@ -2306,16 +2307,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   async registerCurtains(device: device & devicesConfig) {
-    if (device.deviceType === 'Curtain') {
-      this.debugWarnLog(
-        `deviceName: ${device.deviceName} deviceId: ${device.deviceId}, curtainDevicesIds: ${device.curtainDevicesIds}, master: ` +
-        `${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group}, connectionType: ${device.connectionType}`,
-      );
-    } else {
-      this.debugWarnLog(
-        `deviceName: ${device.deviceName} deviceId: ${device.deviceId}, blindTiltDevicesIds: ${device.blindTiltDevicesIds}, master: ` +
-        `${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group}, connectionType: ${device.connectionType}`,
-      );
+    switch (device.deviceType) {
+      case 'Curtain':
+      case 'Curtain3':
+        this.debugWarnLog(`deviceName: ${device.deviceName} deviceId: ${device.deviceId}, curtainDevicesIds: ${device.curtainDevicesIds}, master: ` +
+          `${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group}, connectionType: ${device.connectionType}`);
+        break;
+      default:
+        this.debugWarnLog(`deviceName: ${device.deviceName} deviceId: ${device.deviceId}, blindTiltDevicesIds: ${device.blindTiltDevicesIds}, master:`
+        + ` ${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group}, connectionType: ${device.connectionType}`);
     }
 
     let registerCurtain: boolean;
@@ -2376,12 +2376,16 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     device.connectionType = await this.connectionType(device);
     let registerDevice: boolean;
     if (!device.hide_device && device.connectionType === 'BLE/OpenAPI') {
-      if (device.deviceType === 'Curtain' || device.deviceType === 'Blind Tilt') {
-        registerDevice = await this.registerCurtains(device);
-        this.debugWarnLog(`Device: ${device.deviceName} ${device.deviceType} registerDevice: ${registerDevice}`);
-      } else {
-        registerDevice = true;
-        this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`);
+      switch (device.deviceType) {
+        case 'Curtain':
+        case 'Curtain3':
+        case 'Blind Tilt':
+          registerDevice = await this.registerCurtains(device);
+          this.debugWarnLog(`Device: ${device.deviceName} ${device.deviceType} registerDevice: ${registerDevice}`);
+          break;
+        default:
+          registerDevice = true;
+          this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`);
       }
       if (registerDevice === true) {
         this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`);
@@ -2389,12 +2393,16 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.debugErrorLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will not display in HomeKit`);
       }
     } else if (!device.hide_device && device.deviceId && device.configDeviceType && device.configDeviceName && device.connectionType === 'BLE') {
-      if (device.deviceType === 'Curtain' || device.deviceType === 'Blind Tilt') {
-        registerDevice = await this.registerCurtains(device);
-        this.debugWarnLog(`Device: ${device.deviceName} ${device.deviceType} registerDevice: ${registerDevice}`);
-      } else {
-        registerDevice = true;
-        this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`);
+      switch (device.deviceType) {
+        case 'Curtain':
+        case 'Curtain3':
+        case 'Blind Tilt':
+          registerDevice = await this.registerCurtains(device);
+          this.debugWarnLog(`Device: ${device.deviceName} ${device.deviceType} registerDevice: ${registerDevice}`);
+          break;
+        default:
+          registerDevice = true;
+          this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`);
       }
       if (registerDevice === true) {
         this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`);
@@ -2402,12 +2410,16 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.debugErrorLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will not display in HomeKit`);
       }
     } else if (!device.hide_device && device.connectionType === 'OpenAPI') {
-      if (device.deviceType === 'Curtain' || device.deviceType === 'Blind Tilt') {
-        registerDevice = await this.registerCurtains(device);
-        this.debugWarnLog(`Device: ${device.deviceName} ${device.deviceType} registerDevice: ${registerDevice}`);
-      } else {
-        registerDevice = true;
-        this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`);
+      switch (device.deviceType) {
+        case 'Curtain':
+        case 'Curtain3':
+        case 'Blind Tilt':
+          registerDevice = await this.registerCurtains(device);
+          this.debugWarnLog(`Device: ${device.deviceName} ${device.deviceType} registerDevice: ${registerDevice}`);
+          break;
+        default:
+          registerDevice = true;
+          this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`);
       }
       if (registerDevice === true) {
         this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`);
@@ -2415,12 +2427,16 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.debugErrorLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will not display in HomeKit`);
       }
     } else if (!device.hide_device && device.connectionType === 'Disabled') {
-      if (device.deviceType === 'Curtain' || device.deviceType === 'Blind Tilt') {
-        registerDevice = await this.registerCurtains(device);
-        this.debugWarnLog(`Device: ${device.deviceName} ${device.deviceType} registerDevice: ${registerDevice}`);
-      } else {
-        registerDevice = true;
-        this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`);
+      switch (device.deviceType) {
+        case 'Curtain':
+        case 'Curtain3':
+        case 'Blind Tilt':
+          registerDevice = await this.registerCurtains(device);
+          this.debugWarnLog(`Device: ${device.deviceName} ${device.deviceType} registerDevice: ${registerDevice}`);
+          break;
+        default:
+          registerDevice = true;
+          this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`);
       }
       this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will continue to display in HomeKit`);
     } else if (!device.connectionType && !device.hide_device) {
