@@ -75,21 +75,21 @@
     "fakegato-history": "^0.6.4",
     "homebridge-lib": "^6.7.3",
     "rxjs": "^7.8.1",
-    "undici": "^6.4.0"
+    "undici": "^6.6.0"
   },
   "optionalDependencies": {
     "node-switchbot": "^2.0.0-beta.0",
     "@abandonware/noble": "^1.9.2-23"
   },
   "devDependencies": {
-    "@types/node": "^20.11.6",
-    "@typescript-eslint/eslint-plugin": "^6.19.1",
-    "@typescript-eslint/parser": "^6.19.1",
+    "@types/node": "^20.11.16",
+    "@typescript-eslint/eslint-plugin": "^6.20.0",
+    "@typescript-eslint/parser": "^6.20.0",
     "eslint": "^8.56.0",
     "homebridge": "^1.7.0",
     "homebridge-config-ui-x": "4.55.1",
     "nodemon": "^3.0.3",
-    "npm-check-updates": "^16.14.12",
+    "npm-check-updates": "^16.14.14",
     "rimraf": "^5.0.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
