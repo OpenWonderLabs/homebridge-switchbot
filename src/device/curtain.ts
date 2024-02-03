@@ -155,16 +155,6 @@ export class Curtain {
       })
       .onSet(this.TargetPositionSet.bind(this));
 
-    this.windowCoveringService
-      .getCharacteristic(this.hap.Characteristic.HoldPosition)
-      .setProps({
-        minStep: this.minStep(device),
-        minValue: 0,
-        maxValue: 100,
-        validValueRanges: [0, 100],
-      })
-      .onSet(this.HoldPositionSet.bind(this));
-
     // Light Sensor Service
     if (device.curtain?.hide_lightsensor) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
