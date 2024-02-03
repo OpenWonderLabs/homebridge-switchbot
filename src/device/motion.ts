@@ -306,7 +306,7 @@ export class Motion {
           return await this.retry({
             max: this.maxRetry(),
             fn: async () => {
-              // Set an event hander
+              // Set an event handler
               this.scanning = true;
               switchbot.onadvertisement = async (ad: ad) => {
                 this.debugLog(

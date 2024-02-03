@@ -4,7 +4,7 @@
   "singular": true,
   "customUi": true,
   "customUiPath": "./dist/homebridge-ui",
-  "headerDisplay": "<p align='center'><img width='100px' src='https://user-images.githubusercontent.com/9875439/102681754-ac2eb800-4189-11eb-8e17-7c47c804484b.png'></p>\n\nThe **SwitchBot** plugin allows you to control SwitchBot Devices. \n\nTo get started link your SwitchBot account.\n\n1. Download SwitchBot App on App Store or Google Play Store.\n\n2. Register a SwitchBot account and log in into your account.\n\n3. Generate an Open Token within the App.\n\n4. Input your `Open Token` into the paramter below.",
+  "headerDisplay": "<p align='center'><img width='100px' src='https://user-images.githubusercontent.com/9875439/102681754-ac2eb800-4189-11eb-8e17-7c47c804484b.png'></p>\n\nThe **SwitchBot** plugin allows you to control SwitchBot Devices. \n\nTo get started link your SwitchBot account.\n\n1. Download SwitchBot App on App Store or Google Play Store.\n\n2. Register a SwitchBot account and log in into your account.\n\n3. Generate an Open Token within the App.\n\n4. Input your `Open Token` into the parameter below.",
   "footerDisplay": "Please raise any issues on our [project page](https://github.com/OpenWonderLabs/homebridge-switchbot/issues).\n\nIf you would like to have other SwitchBot Devices added to this plugin fill out [Feature Request Form](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/new?assignees=&labels=&template=feature_request.md).\n\n[SwitchBot Website](https://www.switch-bot.com)",
   "schema": {
     "type": "object",

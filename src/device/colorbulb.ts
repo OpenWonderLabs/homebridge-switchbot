@@ -424,7 +424,7 @@ export class ColorBulb {
           id: this.device.bleMac,
         })
         .then(async () => {
-          // Set an event hander
+          // Set an event handler
           switchbot.onadvertisement = async (ad: ad) => {
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +

@@ -158,7 +158,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   async setupwebhook() {
-    //webhook configutation
+    //webhook configuration
     if (this.config.options?.webhookURL) {
       const url = this.config.options?.webhookURL;
 
@@ -2557,19 +2557,19 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
    * Otherwise send debug logs to log.debug
    */
   infoLog(...log: any[]): void {
-    if (this.enablingPlatfromLogging()) {
+    if (this.enablingPlatformLogging()) {
       this.log.info(String(...log));
     }
   }
 
   warnLog(...log: any[]): void {
-    if (this.enablingPlatfromLogging()) {
+    if (this.enablingPlatformLogging()) {
       this.log.warn(String(...log));
     }
   }
 
   debugWarnLog(...log: any[]): void {
-    if (this.enablingPlatfromLogging()) {
+    if (this.enablingPlatformLogging()) {
       if (this.platformLogging?.includes('debug')) {
         this.log.warn('[DEBUG]', String(...log));
       }
@@ -2577,13 +2577,13 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   errorLog(...log: any[]): void {
-    if (this.enablingPlatfromLogging()) {
+    if (this.enablingPlatformLogging()) {
       this.log.error(String(...log));
     }
   }
 
   debugErrorLog(...log: any[]): void {
-    if (this.enablingPlatfromLogging()) {
+    if (this.enablingPlatformLogging()) {
       if (this.platformLogging?.includes('debug')) {
         this.log.error('[DEBUG]', String(...log));
       }
@@ -2591,7 +2591,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   debugLog(...log: any[]): void {
-    if (this.enablingPlatfromLogging()) {
+    if (this.enablingPlatformLogging()) {
       if (this.platformLogging === 'debugMode') {
         this.log.debug(String(...log));
       } else if (this.platformLogging === 'debug') {
@@ -2600,7 +2600,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  enablingPlatfromLogging(): boolean {
+  enablingPlatformLogging(): boolean {
     return this.platformLogging?.includes('debug') || this.platformLogging === 'standard';
   }
 }
