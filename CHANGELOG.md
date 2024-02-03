@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [3.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.1.0) (2024-02-02)
+
+### What's Changed
+#### Featured Changes
+- Offical support for [Curtain 3](https://www.switch-bot.com/pages/switchbot-curtain-3), `deviceType`: `Curtain3`.
+
+#### Bug Fixes
+- Fix Issue with which provented plugin from loading.
+
+#### Other Changes
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.0.0...v3.1.0
+
 ## [3.0.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.0.0) (2024-01-31)
 
 ### What's Changed
