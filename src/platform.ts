@@ -63,12 +63,16 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   public readonly eve: any;
   public readonly webhookEventHandler: { [x: string]: (context: { [x: string]: any }) => void } = {};
 
-  constructor(log: Logging, config: SwitchBotPlatformConfig, api: API) {
+  constructor(
+    log: Logging,
+    config: SwitchBotPlatformConfig,
+    api: API,
+  ) {
     this.accessories = [];
     this.api = api;
     this.log = log;
     // only load if configured
-    if (!this.config) {
+    if (!config) {
       return;
     }
 
@@ -77,23 +81,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       platform: 'SwitchBotPlatform',
       name: config.name,
       credentials: config.credentials as object,
-      url: config.url as string,
-      port: config.port as number,
-      hostname: config.hostname as string,
-      protocol: config.protocol as string,
-      verifyTLS: config.verifyTLS as boolean,
-      logging: config.logging as string,
+      options: config.options as object,
     };
-    this.logs();
+    this.logType();
     this.debugLog(`Finished initializing platform: ${config.name}`);
-
-    // HOOBS notice
-    if (__dirname.includes('hoobs')) {
-      this.warnLog(
-        'This plugin has not been tested under HOOBS, it is highly recommended that you switch to Homebridge: ' +
-        'https://tinyurl.com/HOOBS2Homebridge',
-      );
-    }
 
     // verify the config
     try {
@@ -325,6 +316,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
    * Verify the config passed to the plugin is valid
    */
   async verifyConfig() {
+    this.debugLog('Verifying Config');
+    this.config = this.config || {};
     this.config.options = this.config.options || {};
 
     const platformConfig = {};
@@ -2529,7 +2522,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     return switchbot;
   }
 
-  logs() {
+  logType() {
     this.debugMode = process.argv.includes('-D') || process.argv.includes('--debug');
     if (this.config.options?.logging === 'debug' || this.config.options?.logging === 'standard' || this.config.options?.logging === 'none') {
       this.platformLogging = this.config.options!.logging;
