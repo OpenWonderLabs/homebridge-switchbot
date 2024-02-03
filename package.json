@@ -78,7 +78,7 @@
     "undici": "^6.6.0"
   },
   "optionalDependencies": {
-    "node-switchbot": "^1.10.0",
+    "node-switchbot": "^2.0.0-beta.0",
     "@abandonware/noble": "^1.9.2-23"
   },
   "devDependencies": {
