@@ -3,7 +3,7 @@ branding:
 - changed-files:
   - any-glob-to-any-file: branding/**
 
-# Add 'docs' label to any change to .md files within the entire repository 
+# Add 'docs' label to any change to .md files within the entire repository
 docs:
 - changed-files:
   - any-glob-to-any-file: '**/*.md'
@@ -11,26 +11,26 @@ docs:
 # Add 'enhancement' label to any change to src files within the source dir EXCEPT for the docs sub-folder
 enhancement:
   - changed-files:
-    - any-glob-to-any-file: 'src/**/*'
-    - any-glob-to-any-file: 'config.schema.json'
+    - any-glob-to-any-file: src/**/*
+    - any-glob-to-any-file: config.schema.json
 
 # Add 'dependencies' label to any change to src files within the source dir EXCEPT for the docs sub-folder
 dependencies:
   - changed-files:
-    - any-glob-to-any-file: 'package.json'
-    - any-glob-to-any-file: 'package-lock.json'
+    - any-glob-to-any-file: package.json
+    - any-glob-to-any-file: package-lock.json
 
 # Add 'beta' label to any PR that is opened against the `beta` branch
 beta:
-- base-branch: 'beta*'
+- base-branch: beta*
 
 # Add 'alpha' label to any PR that is opened against the `alpha` branch
 alpha:
-- base-branch: 'alpha*'
+- base-branch: alpha*
 
 # Add 'latest' label to any PR that is opened against the `latest` branch
 latest:
-- base-branch: 'latest'
+- base-branch: latest
 
 # Add 'workflow' to any changes within 'workflow' folder or any subfolders
 workflow:

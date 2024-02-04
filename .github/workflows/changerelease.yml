@@ -3,8 +3,8 @@ name: Changelog to Release
 on:
   workflow_dispatch:
   push:
-    paths: [CHANGELOG.md]
-    branches: [latest]
+    paths: CHANGELOG.md
+    branches: latest
 
 jobs:
     changerelease:
