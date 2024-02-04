@@ -36,9 +36,9 @@ export class Curtain {
   OpenAPI_CurrentPosition: deviceStatus['slidePosition'];
   OpenAPI_CurrentAmbientLightLevel: deviceStatus['brightness'];
 
-  // OpenAPI Others
+  // Others
   Mode!: string;
-  setPositionMode?: string | number;
+  setPositionMode?: string;
 
   // BLE Status
   BLE_InMotion: serviceData['inMotion'];
@@ -662,10 +662,7 @@ export class Curtain {
         .toLowerCase();
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
       this.SilentPerformance();
-      const adjustedMode = this.setPositionMode || null;
-      if (adjustedMode === null) {
-        this.Mode = 'Default Mode';
-      }
+      const adjustedMode = this.setPositionMode == '1' ? 0x01 : 0xff;
       this.debugLog(`${this.accessory.displayName} Mode: ${this.Mode}`);
       if (switchbot !== false) {
         try {
@@ -1016,18 +1013,18 @@ export class Curtain {
   async SilentPerformance() {
     if (Number(this.TargetPosition) > 50) {
       if (this.device.curtain?.setOpenMode === '1') {
-        this.setPositionMode = 1;
+        this.setPositionMode = '1';
         this.Mode = 'Silent Mode';
       } else {
-        this.setPositionMode = 0;
+        this.setPositionMode = '0';
         this.Mode = 'Performance Mode';
       }
     } else {
       if (this.device.curtain?.setCloseMode === '1') {
-        this.setPositionMode = 1;
+        this.setPositionMode = '1';
         this.Mode = 'Silent Mode';
       } else {
-        this.setPositionMode = 0;
+        this.setPositionMode = '0';
         this.Mode = 'Performance Mode';
       }
     }
