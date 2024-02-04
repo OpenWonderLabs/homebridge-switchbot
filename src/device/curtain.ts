@@ -666,7 +666,7 @@ export class Curtain {
         .toLowerCase();
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
       this.SilentPerformance();
-      const adjustedMode = this.setPositionMode == '1' ? 0x01 : 0xff;
+      const adjustedMode = this.setPositionMode === '1' ? 0x01 : 0xff;
       this.debugLog(`${this.accessory.displayName} Mode: ${this.Mode}`);
       if (switchbot !== false) {
         try {
