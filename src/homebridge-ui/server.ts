@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { HomebridgePluginUiServer } from '@homebridge/plugin-ui-utils';
 import fs from 'fs';
 
