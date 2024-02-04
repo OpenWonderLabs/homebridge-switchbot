@@ -273,15 +273,12 @@ export class Plug {
   async openAPIRefreshStatus() {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
     try {
-      const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/status`, {
+      const { body, statusCode } = await request(`${Devices}/${this.device.deviceId}/status`, {
         headers: this.platform.generateHeaders(),
       });
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} body: ${JSON.stringify(body)}`);
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} headers: ${JSON.stringify(headers)}`);
       const deviceStatus: any = await body.json();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
       if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
         this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
@@ -398,14 +395,12 @@ export class Plug {
       });
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
-        const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/commands`, {
+        const { body, statusCode } = await request(`${Devices}/${this.device.deviceId}/commands`, {
           body: bodyChange,
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} body: ${JSON.stringify(body)}`);
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} headers: ${JSON.stringify(headers)}`);
         const deviceStatus: any = await body.json();
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
@@ -652,6 +647,9 @@ export class Plug {
     }
     if (device.maxRetry !== undefined) {
       config['maxRetry'] = device.maxRetry;
+    }
+    if (device.webhook !== undefined) {
+      config['webhook'] = device.webhook;
     }
     if (Object.entries(config).length !== 0) {
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
