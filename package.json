@@ -32,9 +32,7 @@
   "scripts": {
     "check": "npm install && npm outdated",
     "update": "ncu -u && npm update && npm install",
-    "updateDependencies": "npm run check && npm run update",
     "lint": "eslint src/**.ts",
-    "jlint": "eslint homebridge-ui/public/**.mjs",
     "watch": "npm run build && npm run plugin-ui && npm link && nodemon",
     "plugin-ui": "rsync ./src/homebridge-ui/public/index.html ./dist/homebridge-ui/public/",
     "build": "rimraf ./dist && tsc",

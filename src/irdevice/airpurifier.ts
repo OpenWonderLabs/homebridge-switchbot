@@ -220,7 +220,6 @@ export class AirPurifier {
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
-        this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} body: ${JSON.stringify(body)}`);
         this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
         this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} headers: ${JSON.stringify(headers)}`);
         const deviceStatus: any = await body.json();
