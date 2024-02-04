@@ -549,7 +549,7 @@ export class Bot {
           id: this.device.bleMac,
         })
         .then(async () => {
-          // Set an event hander
+          // Set an event handler
           switchbot.onadvertisement = async (ad: ad) => {
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
@@ -753,7 +753,7 @@ export class Bot {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Press Mode`);
         this.On = false;
       } else {
-        throw new Error(`${this.device.deviceType}: ${this.accessory.displayName} Device Paramters not set for this Bot.`);
+        throw new Error(`${this.device.deviceType}: ${this.accessory.displayName} Device Parameters not set for this Bot.`);
       }
       const bodyChange = JSON.stringify({
         command: `${command}`,
@@ -1069,7 +1069,7 @@ export class Bot {
   }
 
   async removeOutletService(accessory: PlatformAccessory): Promise<void> {
-    // If outletService still pressent, then remove first
+    // If outletService still present, then remove first
     this.outletService = this.accessory.getService(this.hap.Service.Outlet);
     if (this.outletService) {
       this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Outlet Service`);
@@ -1078,7 +1078,7 @@ export class Bot {
   }
 
   async removeGarageDoorService(accessory: PlatformAccessory): Promise<void> {
-    // If garageDoorService still pressent, then remove first
+    // If garageDoorService still present, then remove first
     this.garageDoorService = this.accessory.getService(this.hap.Service.GarageDoorOpener);
     if (this.garageDoorService) {
       this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Garage Door Service`);
@@ -1087,7 +1087,7 @@ export class Bot {
   }
 
   async removeDoorService(accessory: PlatformAccessory): Promise<void> {
-    // If doorService still pressent, then remove first
+    // If doorService still present, then remove first
     this.doorService = this.accessory.getService(this.hap.Service.Door);
     if (this.doorService) {
       this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Door Service`);
@@ -1096,7 +1096,7 @@ export class Bot {
   }
 
   async removeLockService(accessory: PlatformAccessory): Promise<void> {
-    // If lockService still pressent, then remove first
+    // If lockService still present, then remove first
     this.lockService = this.accessory.getService(this.hap.Service.LockMechanism);
     if (this.lockService) {
       this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Lock Service`);
@@ -1105,7 +1105,7 @@ export class Bot {
   }
 
   async removeFaucetService(accessory: PlatformAccessory): Promise<void> {
-    // If faucetService still pressent, then remove first
+    // If faucetService still present, then remove first
     this.faucetService = this.accessory.getService(this.hap.Service.Faucet);
     if (this.faucetService) {
       this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Faucet Service`);
@@ -1114,7 +1114,7 @@ export class Bot {
   }
 
   async removeFanService(accessory: PlatformAccessory): Promise<void> {
-    // If fanService still pressent, then remove first
+    // If fanService still present, then remove first
     this.fanService = this.accessory.getService(this.hap.Service.Fan);
     if (this.fanService) {
       this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Fan Service`);
@@ -1123,7 +1123,7 @@ export class Bot {
   }
 
   async removeWindowService(accessory: PlatformAccessory): Promise<void> {
-    // If windowService still pressent, then remove first
+    // If windowService still present, then remove first
     this.windowService = this.accessory.getService(this.hap.Service.Window);
     if (this.windowService) {
       this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Window Service`);
@@ -1132,7 +1132,7 @@ export class Bot {
   }
 
   async removeWindowCoveringService(accessory: PlatformAccessory): Promise<void> {
-    // If windowCoveringService still pressent, then remove first
+    // If windowCoveringService still present, then remove first
     this.windowCoveringService = this.accessory.getService(this.hap.Service.WindowCovering);
     if (this.windowCoveringService) {
       this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Window Covering Service`);
@@ -1141,7 +1141,7 @@ export class Bot {
   }
 
   async removeStatefulProgrammableSwitchService(accessory: PlatformAccessory): Promise<void> {
-    // If statefulProgrammableSwitchService still pressent, then remove first
+    // If statefulProgrammableSwitchService still present, then remove first
     this.statefulProgrammableSwitchService = this.accessory.getService(this.hap.Service.StatefulProgrammableSwitch);
     if (this.statefulProgrammableSwitchService) {
       this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Stateful Programmable Switch Service`);
@@ -1150,7 +1150,7 @@ export class Bot {
   }
 
   async removeSwitchService(accessory: PlatformAccessory): Promise<void> {
-    // If switchService still pressent, then remove first
+    // If switchService still present, then remove first
     this.switchService = this.accessory.getService(this.hap.Service.Switch);
     if (this.switchService) {
       this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Switch Service`);
@@ -1360,10 +1360,10 @@ export class Bot {
   async deviceType(device: device & devicesConfig): Promise<void> {
     if (!device.bot?.deviceType && this.accessory.context.deviceType) {
       this.botDeviceType = this.accessory.context.deviceType;
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Type: ${this.botDeviceType}, from Accesory Cache.`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Type: ${this.botDeviceType}, from Accessory Cache.`);
     } else if (device.bot?.deviceType) {
       this.accessory.context.deviceType = device.bot.deviceType;
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Accesory Cache: ${this.accessory.context.deviceType}`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Accessory Cache: ${this.accessory.context.deviceType}`);
       this.botDeviceType = this.accessory.context.deviceType;
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Type: ${this.botDeviceType}`);
     } else {

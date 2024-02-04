@@ -770,7 +770,7 @@ export class Others {
   }
 
   async removeOutletService(accessory: PlatformAccessory): Promise<void> {
-    // If outletService still pressent, then remove first
+    // If outletService still present, then remove first
     this.outletService = this.accessory.getService(this.hap.Service.Outlet);
     if (this.outletService) {
       this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Outlet Service`);
@@ -779,7 +779,7 @@ export class Others {
   }
 
   async removeGarageDoorService(accessory: PlatformAccessory): Promise<void> {
-    // If garageDoorService still pressent, then remove first
+    // If garageDoorService still present, then remove first
     this.garageDoorService = this.accessory.getService(this.hap.Service.GarageDoorOpener);
     if (this.garageDoorService) {
       this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Garage Door Service`);
@@ -788,7 +788,7 @@ export class Others {
   }
 
   async removeDoorService(accessory: PlatformAccessory): Promise<void> {
-    // If doorService still pressent, then remove first
+    // If doorService still present, then remove first
     this.doorService = this.accessory.getService(this.hap.Service.Door);
     if (this.doorService) {
       this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Door Service`);
@@ -797,7 +797,7 @@ export class Others {
   }
 
   async removeLockService(accessory: PlatformAccessory): Promise<void> {
-    // If lockService still pressent, then remove first
+    // If lockService still present, then remove first
     this.lockService = this.accessory.getService(this.hap.Service.LockMechanism);
     if (this.lockService) {
       this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Lock Service`);
@@ -806,7 +806,7 @@ export class Others {
   }
 
   async removeFaucetService(accessory: PlatformAccessory): Promise<void> {
-    // If faucetService still pressent, then remove first
+    // If faucetService still present, then remove first
     this.faucetService = this.accessory.getService(this.hap.Service.Faucet);
     if (this.faucetService) {
       this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Faucet Service`);
@@ -815,7 +815,7 @@ export class Others {
   }
 
   async removeFanService(accessory: PlatformAccessory): Promise<void> {
-    // If fanService still pressent, then remove first
+    // If fanService still present, then remove first
     this.fanService = this.accessory.getService(this.hap.Service.Fan);
     if (this.fanService) {
       this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Fan Service`);
@@ -824,7 +824,7 @@ export class Others {
   }
 
   async removeWindowService(accessory: PlatformAccessory): Promise<void> {
-    // If windowService still pressent, then remove first
+    // If windowService still present, then remove first
     this.windowService = this.accessory.getService(this.hap.Service.Window);
     if (this.windowService) {
       this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Window Service`);
@@ -833,7 +833,7 @@ export class Others {
   }
 
   async removeWindowCoveringService(accessory: PlatformAccessory): Promise<void> {
-    // If windowCoveringService still pressent, then remove first
+    // If windowCoveringService still present, then remove first
     this.windowCoveringService = this.accessory.getService(this.hap.Service.WindowCovering);
     if (this.windowCoveringService) {
       this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Window Covering Service`);
@@ -842,7 +842,7 @@ export class Others {
   }
 
   async removeStatefulProgrammableSwitchService(accessory: PlatformAccessory): Promise<void> {
-    // If statefulProgrammableSwitchService still pressent, then remove first
+    // If statefulProgrammableSwitchService still present, then remove first
     this.statefulProgrammableSwitchService = this.accessory.getService(this.hap.Service.StatefulProgrammableSwitch);
     if (this.statefulProgrammableSwitchService) {
       this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Stateful Programmable Switch Service`);
@@ -851,7 +851,7 @@ export class Others {
   }
 
   async removeSwitchService(accessory: PlatformAccessory): Promise<void> {
-    // If switchService still pressent, then remove first
+    // If switchService still present, then remove first
     this.switchService = this.accessory.getService(this.hap.Service.Switch);
     if (this.switchService) {
       this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Switch Service`);
@@ -862,10 +862,10 @@ export class Others {
   async deviceType(device: irdevice & irDevicesConfig): Promise<void> {
     if (!device.other?.deviceType && this.accessory.context.deviceType) {
       this.otherDeviceType = this.accessory.context.deviceType;
-      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Type: ${this.otherDeviceType}, from Accesory Cache.`);
+      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Type: ${this.otherDeviceType}, from Accessory Cache.`);
     } else if (device.other?.deviceType) {
       this.accessory.context.deviceType = device.other.deviceType;
-      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Accesory Cache: ${this.accessory.context.deviceType}`);
+      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Accessory Cache: ${this.accessory.context.deviceType}`);
       this.otherDeviceType = this.accessory.context.deviceType;
       this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Type: ${this.otherDeviceType}`);
     } else {

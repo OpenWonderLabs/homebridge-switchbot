@@ -547,7 +547,7 @@ export class Hub {
   }
 
   /*
-   * Setup MQTT hadler if URL is specifed.
+   * Setup MQTT hadler if URL is specified.
    */
   async setupMqtt(device: device & devicesConfig): Promise<void> {
     if (device.mqttURL) {

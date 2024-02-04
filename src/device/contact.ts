@@ -38,7 +38,7 @@ export class Contact {
   OpenAPI_CurrentAmbientLightLevel: deviceStatus['brightness'];
 
   // BLE Status
-  BLE_BateryLevel!: serviceData['battery'];
+  BLE_BatteryLevel!: serviceData['battery'];
   BLE_MotionDetected!: serviceData['movement'];
   BLE_ContactSensorState!: serviceData['doorState'];
   BLE_CurrentAmbientLightLevel: serviceData['lightLevel'];
@@ -257,10 +257,10 @@ export class Contact {
       }
     }
     // Battery
-    if (this.BLE_BateryLevel === undefined) {
-      this.BLE_BateryLevel === 100;
+    if (this.BLE_BatteryLevel === undefined) {
+      this.BLE_BatteryLevel === 100;
     }
-    this.BatteryLevel = Number(this.BLE_BateryLevel);
+    this.BatteryLevel = Number(this.BLE_BatteryLevel);
     if (this.BatteryLevel < 10) {
       this.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
@@ -360,7 +360,7 @@ export class Contact {
           id: this.device.bleMac,
         })
         .then(async () => {
-          // Set an event hander
+          // Set an event handler
           this.scanning = true;
           switchbot.onadvertisement = async (ad: ad) => {
             this.debugLog(
@@ -368,7 +368,7 @@ export class Contact {
               ` BLE Address Found: ${ad.address}`,
             );
             this.BLE_MotionDetected = ad.serviceData.movement;
-            this.BLE_BateryLevel = ad.serviceData.battery;
+            this.BLE_BatteryLevel = ad.serviceData.battery;
             this.BLE_ContactSensorState = ad.serviceData.doorState;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
             this.debugLog(

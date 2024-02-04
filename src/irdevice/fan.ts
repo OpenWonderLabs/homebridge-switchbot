@@ -86,7 +86,7 @@ export class Fan {
       } else {
         this.maxValue = 100;
       }
-      // handle Roation Speed events using the RotationSpeed characteristic
+      // handle Rotation Speed events using the RotationSpeed characteristic
       this.fanService
         .getCharacteristic(this.hap.Characteristic.RotationSpeed)
         .setProps({

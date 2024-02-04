@@ -171,7 +171,7 @@ All notable changes to this project will be documented in this file. This projec
 ### What's Changed
 
 - Will now log if there are no devices discovered by SwitchBot-API.
-- Added the ability to use Tempature from a SwitchBot Meter to be used with an IR Air Conditioner, Thanks [@mrlt8](https://github.com/mrlt8) [#761](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/761)
+- Added the ability to use Temperature from a SwitchBot Meter to be used with an IR Air Conditioner, Thanks [@mrlt8](https://github.com/mrlt8) [#761](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/761)
 - Adds the ability to enable EVE history SwitchBot Curtains, Thanks [@banboobee](https://github.com/banboobee) [#766](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/766)
 - Housekeeping and updated dependencies.
 
@@ -243,7 +243,7 @@ All notable changes to this project will be documented in this file. This projec
 
 ### What's Changed
 
-- Add Intial Support for Blind Tilt (OpenAPI Only), Thanks [@AndreasVerhoeven](https://github.com/AndreasVerhoeven). [#649](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/649)
+- Add Initial Support for Blind Tilt (OpenAPI Only), Thanks [@AndreasVerhoeven](https://github.com/AndreasVerhoeven). [#649](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/649)
 - Remove incorrect warning message, Thanks [@dnicolson](https://github.com/dnicolson). [#661](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/661)
 - Replace switchbot wait with utility function, Thanks [@dnicolson](https://github.com/dnicolson). [#633](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/633)
 - Enhancements to BLE functionality.
@@ -318,7 +318,7 @@ All notable changes to this project will be documented in this file. This projec
 
 ### What's Changed
 
-- Moved Air Conditioner config `PushOn` to be an overal IR Device config of `allowPushOn` and `allowPushOff`.
+- Moved Air Conditioner config `PushOn` to be an overall IR Device config of `allowPushOn` and `allowPushOff`.
 - Fixed Issue where Brightness characteristic received "NaN". [#518](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/518)
 - Fixed Issue where IR TVs would not default to External Device. [#520](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/518)
 - Housekeeping and updated dependencies.
@@ -376,7 +376,7 @@ All notable changes to this project will be documented in this file. This projec
     - `Disable` will disable all connections. This will also allow you to disable commands and refreshes for a specific device but leave it in HomeKit.
 - Added Support for Ceiling Light & Ceiling Light Pro
 - Fixes Smart Lock Issues fixed in v1.1 of OpenAPI. [#462](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/462)
-= Fixes excesive logging from node-switchbot. [#435](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/435), [#444](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/444), [#446](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/446)
+= Fixes excessive logging from node-switchbot. [#435](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/435), [#444](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/444), [#446](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/446)
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.15.0...v2.0.0
@@ -442,10 +442,10 @@ All notable changes to this project will be documented in this file. This projec
 
 ### What's Changed
 
-- Seperated Color Bulb and Strip Lights
+- Separated Color Bulb and Strip Lights
   - Strip Lights no longer support Adaptive Lighting.
     - Adaptive Lighting requires Color Temperature, which Strip Lights do not support.
-- Seperated Meter and Meter Plus for BLE purposes.
+- Separated Meter and Meter Plus for BLE purposes.
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.6...v1.12.7
@@ -597,8 +597,8 @@ All notable changes to this project will be documented in this file. This projec
 - Fixed Bug: Contact Sensors's Motion Sensor and Light Sensor showing undefined values.
 - Fixed Bug: Motion Sensors's Light Sensor showing undefined values.
 - Fixed Bug: Battery Service wouldn't be removed from Curtain, Contact Sensor, or Motion Sensor when switching from BLE to OpenAPI.
-- Enhancments: Made some improvemnt on the switch from BLE to OpenAPI when BLE connection fails.
-- Enhancments: Made Optional Switchbot Device Settings and Optional IR Device Settings more managable by using Tabs.
+- Enhancements: Made some improvement on the switch from BLE to OpenAPI when BLE connection fails.
+- Enhancements: Made Optional Switchbot Device Settings and Optional IR Device Settings more managable by using Tabs.
 - Change: Changed Curtain `refreshRate` to `updateRate`.
   - You will have to update your config for it to pickup the new `updateRate`.
 - Housekeeping and updated dependencies.
@@ -802,7 +802,7 @@ All notable changes to this project will be documented in this file. This projec
 
 ### What's Changed
 
-- Offical release of homebridge-Switchbot, which combines both BLE and OpenAPI into 1 plugin.
+- Official release of homebridge-Switchbot, which combines both BLE and OpenAPI into 1 plugin.
 - Adds Light Sensors to Curtains
   - with iOS 15.1 you can set automations on light sensors.
 - Adds Motion Sensor to Contact Sensors
