@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [3.1.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.1.1) (2024-02-XX)
+
+### What's Changed
+- Fix BLE connection, Thanks [@dnicolson](https://github.com/dnicolson) [#907](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/907)
+- Fix BLE curtain mode, Thanks [@dnicolson](https://github.com/dnicolson) [#908](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/908)
+- Fix curtain characteristic warning, Thanks [@dnicolson](https://github.com/dnicolson) [#909](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/909)
+- Revert curtain retry functionality, Thanks [@dnicolson](https://github.com/dnicolson) [#911](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/911)
+- Code Cleaup, Thanks [@dnicolson](https://github.com/dnicolson) [#910](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/910) [#912](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/912) [#913](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/913)  
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.1.0...v3.1.1
+
 ## [3.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.1.0) (2024-02-02)
 
 ### What's Changed
