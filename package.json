@@ -57,6 +57,14 @@
   "keywords": [
     "homebridge-plugin",
     "switchbot",
+    "lights",
+    "fan",
+    "outlet",
+    "hub",
+    "lightstrip",
+    "motion",
+    "contact",
+    "vacuum",
     "lock",
     "humidifier",
     "humidity",
@@ -76,8 +84,7 @@
     "undici": "^6.6.0"
   },
   "optionalDependencies": {
-    "node-switchbot": "^2.0.0-beta.0",
-    "@abandonware/noble": "^1.9.2-23"
+    "node-switchbot": "^2.0.0-beta.3"
   },
   "devDependencies": {
     "@types/node": "^20.11.16",
