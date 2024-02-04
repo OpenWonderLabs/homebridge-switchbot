@@ -678,29 +678,27 @@ export class Curtain {
       }
       this.debugLog(`${this.accessory.displayName} Mode: ${this.Mode}`);
       if (switchbot !== false) {
-        await this.retry({
-          max: this.maxRetry(),
-          fn: () => {
-            return switchbot
-              .discover({ model: 'c', quick: true, id: this.device.bleMac })
-              .then(async (device_list: any) => {
-                this.infoLog(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
-                return await device_list[0].runToPos(100 - Number(this.TargetPosition), adjustedMode);
-              })
-              .then(() => {
-                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
-              })
-              .catch(async (e: any) => {
-                this.apiError(e);
-                this.errorLog(
-                  `${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}` +
-                  ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-                );
-                await this.BLEPushConnection();
-                throw new Error('Connection error');
-              });
-          },
-        });
+        try {
+          const device_list = await switchbot.discover({ model: 'c', quick: true, id: this.device.bleMac });
+          this.infoLog(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
+
+          await this.retry({
+            max: this.maxRetry(),
+            fn: async () => {
+              await device_list[0].runToPos(100 - Number(this.TargetPosition), adjustedMode);
+            },
+          });
+
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
+        } catch (e) {
+          this.apiError(e);
+          this.errorLog(
+            `${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}` +
+              ` Connection, Error Message: ${JSON.stringify((e as Error).message)}`,
+          );
+          await this.BLEPushConnection();
+          throw new Error('Connection error');
+        }
       } else {
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
         await this.BLEPushConnection();
