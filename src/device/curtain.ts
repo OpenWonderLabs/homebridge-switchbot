@@ -155,16 +155,6 @@ export class Curtain {
       })
       .onSet(this.TargetPositionSet.bind(this));
 
-    this.windowCoveringService
-      .getCharacteristic(this.hap.Characteristic.HoldPosition)
-      .setProps({
-        minStep: this.minStep(device),
-        minValue: 0,
-        maxValue: 100,
-        validValueRanges: [0, 100],
-      })
-      .onSet(this.HoldPositionSet.bind(this));
-
     // Light Sensor Service
     if (device.curtain?.hide_lightsensor) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
@@ -559,7 +549,7 @@ export class Curtain {
           id: this.device.bleMac,
         })
         .then(async () => {
-          // Set an event hander
+          // Set an event handler
           switchbot.onadvertisement = async (ad: ad) => {
             this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
@@ -609,15 +599,12 @@ export class Curtain {
   async openAPIRefreshStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
     try {
-      const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/status`, {
+      const { body, statusCode } = await request(`${Devices}/${this.device.deviceId}/status`, {
         headers: this.platform.generateHeaders(),
       });
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} body: ${JSON.stringify(body)}`);
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} headers: ${JSON.stringify(headers)}`);
       const deviceStatus: any = await body.json();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
       if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
         this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
@@ -678,29 +665,27 @@ export class Curtain {
       const adjustedMode = this.setPositionMode == '1' ? 0x01 : 0xff;
       this.debugLog(`${this.accessory.displayName} Mode: ${this.Mode}`);
       if (switchbot !== false) {
-        await this.retry({
-          max: this.maxRetry(),
-          fn: () => {
-            return switchbot
-              .discover({ model: 'c', quick: true, id: this.device.bleMac })
-              .then(async (device_list: any) => {
-                this.infoLog(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
-                return await device_list[0].runToPos(100 - Number(this.TargetPosition), adjustedMode);
-              })
-              .then(() => {
-                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
-              })
-              .catch(async (e: any) => {
-                this.apiError(e);
-                this.errorLog(
-                  `${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}` +
-                  ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-                );
-                await this.BLEPushConnection();
-                throw new Error('Connection error');
-              });
-          },
-        });
+        try {
+          const device_list = await switchbot.discover({ model: 'c', quick: true, id: this.device.bleMac });
+          this.infoLog(`${this.accessory.displayName} Target Position: ${this.TargetPosition}`);
+
+          await this.retry({
+            max: this.maxRetry(),
+            fn: async () => {
+              await device_list[0].runToPos(100 - Number(this.TargetPosition), adjustedMode);
+            },
+          });
+
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
+        } catch (e) {
+          this.apiError(e);
+          this.errorLog(
+            `${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}` +
+              ` Connection, Error Message: ${JSON.stringify((e as Error).message)}`,
+          );
+          await this.BLEPushConnection();
+          throw new Error('Connection error');
+        }
       } else {
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
         await this.BLEPushConnection();
@@ -771,14 +756,12 @@ export class Curtain {
       });
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
-        const { body, statusCode, headers } = await request(`${Devices}/${this.device.deviceId}/commands`, {
+        const { body, statusCode } = await request(`${Devices}/${this.device.deviceId}/commands`, {
           body: bodyChange,
           method: 'POST',
           headers: this.platform.generateHeaders(),
         });
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} body: ${JSON.stringify(body)}`);
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} headers: ${JSON.stringify(headers)}`);
         const deviceStatus: any = await body.json();
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
@@ -966,7 +949,7 @@ export class Curtain {
   }
 
   /*
-   * Setup MQTT hadler if URL is specifed.
+   * Setup MQTT hadler if URL is specified.
    */
   async setupMqtt(device: device & devicesConfig): Promise<void> {
     if (device.mqttURL) {
@@ -1276,6 +1259,9 @@ export class Curtain {
     }
     if (device.maxRetry !== undefined) {
       config['maxRetry'] = device.maxRetry;
+    }
+    if (device.webhook !== undefined) {
+      config['webhook'] = device.webhook;
     }
     if (Object.entries(config).length !== 0) {
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);

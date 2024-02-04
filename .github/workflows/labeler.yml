@@ -7,10 +7,10 @@
 
 name: Labeler
 
-on: [pull_request]
+on: pull_request_target
 
 jobs:
-  label:
+  labeler:
     uses: OpenWonderLabs/.github/.github/workflows/labeler.yml@latest
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}

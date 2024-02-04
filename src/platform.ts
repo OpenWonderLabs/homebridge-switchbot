@@ -158,7 +158,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   async setupwebhook() {
-    //webhook configutation
+    //webhook configuration
     if (this.config.options?.webhookURL) {
       const url = this.config.options?.webhookURL;
 
@@ -203,7 +203,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
 
       try {
-        const { body, statusCode, headers } = await request(
+        const { body, statusCode } = await request(
           'https://api.switch-bot.com/v1.1/webhook/setupWebhook', {
             method: 'POST',
             headers: this.generateHeaders(),
@@ -217,7 +217,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.debugLog(`setupWebhook: url:${url}`);
         this.debugLog(`setupWebhook: body:${JSON.stringify(response)}`);
         this.debugLog(`setupWebhook: statusCode:${statusCode}`);
-        this.debugLog(`setupWebhook: headers:${JSON.stringify(headers)}`);
         if (statusCode !== 200 || response?.statusCode !== 100) {
           this.errorLog(`Failed to configure webhook. Existing webhook well be overridden. HTTP:${statusCode} API:${response?.statusCode} `
             + `message:${response?.message}`);
@@ -227,7 +226,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
 
       try {
-        const { body, statusCode, headers } = await request(
+        const { body, statusCode } = await request(
           'https://api.switch-bot.com/v1.1/webhook/updateWebhook', {
             method: 'POST',
             headers: this.generateHeaders(),
@@ -243,7 +242,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.debugLog(`updateWebhook: url:${url}`);
         this.debugLog(`updateWebhook: body:${JSON.stringify(response)}`);
         this.debugLog(`updateWebhook: statusCode:${statusCode}`);
-        this.debugLog(`updateWebhook: headers:${JSON.stringify(headers)}`);
         if (statusCode !== 200 || response?.statusCode !== 100) {
           this.errorLog(`Failed to update webhook. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`);
         }
@@ -252,7 +250,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
 
       try {
-        const { body, statusCode, headers } = await request(
+        const { body, statusCode } = await request(
           'https://api.switch-bot.com/v1.1/webhook/queryWebhook', {
             method: 'POST',
             headers: this.generateHeaders(),
@@ -263,7 +261,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         const response: any = await body.json();
         this.debugLog(`queryWebhook: body:${JSON.stringify(response)}`);
         this.debugLog(`queryWebhook: statusCode:${statusCode}`);
-        this.debugLog(`queryWebhook: headers:${JSON.stringify(headers)}`);
         if (statusCode !== 200 || response?.statusCode !== 100) {
           this.errorLog(`Failed to query webhook. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`);
         } else {
@@ -275,7 +272,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
       this.api.on('shutdown', async () => {
         try {
-          const { body, statusCode, headers } = await request(
+          const { body, statusCode } = await request(
             'https://api.switch-bot.com/v1.1/webhook/deleteWebhook', {
               method: 'POST',
               headers: this.generateHeaders(),
@@ -288,7 +285,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           this.debugLog(`deleteWebhook: url:${url}`);
           this.debugLog(`deleteWebhook: body:${JSON.stringify(response)}`);
           this.debugLog(`deleteWebhook: statusCode:${statusCode}`);
-          this.debugLog(`deleteWebhook: headers:${JSON.stringify(headers)}`);
           if (statusCode !== 200 || response?.statusCode !== 100) {
             this.errorLog(`Failed to delete webhook. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`);
           } else {
@@ -490,12 +486,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   async discoverDevices() {
     if (this.config.credentials?.token) {
       try {
-        const { body, statusCode, headers } = await request(Devices, {
+        const { body, statusCode } = await request(Devices, {
           headers: this.generateHeaders(),
         });
-        this.debugWarnLog(`body: ${JSON.stringify(body)}`);
         this.debugWarnLog(`statusCode: ${statusCode}`);
-        this.debugWarnLog(`headers: ${JSON.stringify(headers)}`);
         const devicesAPI: any = await body.json();
         this.debugWarnLog(`devicesAPI: ${JSON.stringify(devicesAPI)}`);
         this.debugWarnLog(`devicesAPI Body: ${JSON.stringify(devicesAPI.body)}`);
@@ -2557,19 +2551,19 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
    * Otherwise send debug logs to log.debug
    */
   infoLog(...log: any[]): void {
-    if (this.enablingPlatfromLogging()) {
+    if (this.enablingPlatformLogging()) {
       this.log.info(String(...log));
     }
   }
 
   warnLog(...log: any[]): void {
-    if (this.enablingPlatfromLogging()) {
+    if (this.enablingPlatformLogging()) {
       this.log.warn(String(...log));
     }
   }
 
   debugWarnLog(...log: any[]): void {
-    if (this.enablingPlatfromLogging()) {
+    if (this.enablingPlatformLogging()) {
       if (this.platformLogging?.includes('debug')) {
         this.log.warn('[DEBUG]', String(...log));
       }
@@ -2577,13 +2571,13 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   errorLog(...log: any[]): void {
-    if (this.enablingPlatfromLogging()) {
+    if (this.enablingPlatformLogging()) {
       this.log.error(String(...log));
     }
   }
 
   debugErrorLog(...log: any[]): void {
-    if (this.enablingPlatfromLogging()) {
+    if (this.enablingPlatformLogging()) {
       if (this.platformLogging?.includes('debug')) {
         this.log.error('[DEBUG]', String(...log));
       }
@@ -2591,7 +2585,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   debugLog(...log: any[]): void {
-    if (this.enablingPlatfromLogging()) {
+    if (this.enablingPlatformLogging()) {
       if (this.platformLogging === 'debugMode') {
         this.log.debug(String(...log));
       } else if (this.platformLogging === 'debug') {
@@ -2600,7 +2594,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  enablingPlatfromLogging(): boolean {
+  enablingPlatformLogging(): boolean {
     return this.platformLogging?.includes('debug') || this.platformLogging === 'standard';
   }
 }
