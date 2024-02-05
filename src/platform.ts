@@ -2520,17 +2520,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
   // BLE Connection
   async connectBLE() {
-    let Switchbot: new () => any;
-    let switchbot: any;
+    let SwitchbotBLE: any;
+    let Switchbot: any;
     try {
       Switchbot = (await import('node-switchbot')).default;
-      queueScheduler.schedule(() => (switchbot = new Switchbot()));
+      queueScheduler.schedule(() => (Switchbot = new SwitchbotBLE()));
     } catch (e: any) {
       this.log.error(e);
-      switchbot = false;
-      this.errorLog(`Was 'node-switchbot' found: ${switchbot}`);
+      Switchbot = false;
+      this.errorLog(`Was 'node-switchbot' found: ${Switchbot}`);
     }
-    return switchbot;
+    return Switchbot;
   }
 
   logType() {
