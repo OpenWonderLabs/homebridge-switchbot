@@ -2,16 +2,12 @@ name: AutoDependabot
 
 on:
   pull_request:
-    branches:
-    - beta
-    - latest
+    branches: [ beta, latest ]
   pull_request_target:
-    branches:
-    - beta
-    - latest
+    branches: [ beta, latest ]
 
 jobs:
-  label:
+  dependabot:
     uses: OpenWonderLabs/.github/.github/workflows/dependabot.yml@latest
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}

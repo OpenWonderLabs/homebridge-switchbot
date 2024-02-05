@@ -60,7 +60,7 @@
 - [SwitchBot Humidifier](https://www.switch-bot.com/products/switchbot-smart-humidifier)
   - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
     - Can Push Updates over OpenAPI
-    - Can Receive Udpates over BLE and OpenAPI
+    - Can Receive Updates over BLE and OpenAPI
 - [SwitchBot Meter](https://www.switch-bot.com/products/switchbot-meter)
 - [SwitchBot Meter Plus (US)](https://www.switch-bot.com/products/switchbot-meter-plus)
 - [SwitchBot Meter Plus (JP)](https://www.switchbot.jp/products/switchbot-meter-plus)
@@ -178,7 +178,7 @@
 - Water Heaters
   - Allows for On/Off Controls
 - Others
-  - Option to Dispaly as differenet Device Type
+  - Option to Display as differenet Device Type
     - Supports Fan Device Type
   - Allows for On/Off Controls
 

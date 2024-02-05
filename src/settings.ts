@@ -303,7 +303,7 @@ export type deviceStatus = {
   mode?: number; //available for  devices. the fan mode. (Used by the following deviceTypes: Smart Fan)
   speed?: number; //the fan speed. (Used by the following deviceTypes: Smart Fan)
   shaking?: boolean; //determines if the fan is swinging or not. (Used by the following deviceTypes: Smart Fan)
-  shakeCenter?: string; //the fan's swing direciton. (Used by the following deviceTypes: Smart Fan)
+  shakeCenter?: string; //the fan's swing direction. (Used by the following deviceTypes: Smart Fan)
   shakeRange?: string; //the fan's swing range, 0~120°. (Used by the following deviceTypes: Smart Fan)
 };
 
