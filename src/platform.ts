@@ -39,8 +39,9 @@ import asyncmqtt from 'async-mqtt';
 import crypto, { randomUUID } from 'crypto';
 import { readFileSync, writeFileSync } from 'fs';
 import hbLib from 'homebridge-lib';
-import { SwitchBot } from 'node-switchbot';
-/*import { SwitchBot } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/switchbot.js';*/
+import noble from '@abandonware/noble';
+import SwitchBotBLE from 'node-switchbot';
+/*import SwitchBotBLE from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/switchbot.js';*/
 
 
 
@@ -2312,7 +2313,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         break;
       default:
         this.debugWarnLog(`deviceName: ${device.deviceName} deviceId: ${device.deviceId}, blindTiltDevicesIds: ${device.blindTiltDevicesIds}, master:`
-        + ` ${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group}, connectionType: ${device.connectionType}`);
+          + ` ${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group}, connectionType: ${device.connectionType}`);
     }
 
     let registerCurtain: boolean;
@@ -2523,13 +2524,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
   // BLE Connection
   async connectBLE() {
+    const { SwitchBot } = SwitchBotBLE;
     let switchbot: any;
-    //try {
-    queueScheduler.schedule(() => (switchbot = new SwitchBot()));
-    /*} catch (e: any) {
+    try {
+      queueScheduler.schedule(() => (switchbot = new SwitchBot({ 'noble': noble })));
+    } catch (e: any) {
       switchbot = false;
       this.errorLog(`Was 'node-switchbot' found: ${switchbot}, Error: ${e}`);
-    }*/
+    }
     return switchbot;
   }
 
