@@ -81,10 +81,10 @@
     "fakegato-history": "^0.6.4",
     "homebridge-lib": "^6.7.3",
     "rxjs": "^7.8.1",
-    "undici": "^6.6.0"
+    "undici": "^6.6.1"
   },
   "optionalDependencies": {
-    "node-switchbot": "^2.0.0-beta.5"
+    "node-switchbot": "^2.0.0-beta.6"
   },
   "devDependencies": {
     "@types/node": "^20.11.16",

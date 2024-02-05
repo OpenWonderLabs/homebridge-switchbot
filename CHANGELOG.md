@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fix BLE curtain mode, Thanks [@dnicolson](https://github.com/dnicolson) [#908](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/908)
 - Fix curtain characteristic warning, Thanks [@dnicolson](https://github.com/dnicolson) [#909](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/909)
 - Revert curtain retry functionality, Thanks [@dnicolson](https://github.com/dnicolson) [#911](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/911)
-- Code Cleaup, Thanks [@dnicolson](https://github.com/dnicolson) [#910](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/910) [#912](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/912) [#913](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/913)  
+- Code Cleaup, Thanks [@dnicolson](https://github.com/dnicolson) [#910](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/910) [#912](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/912) [#913](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/913)  [#917](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/917)  
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.1.0...v3.1.1
