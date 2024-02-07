@@ -21,14 +21,14 @@
             "title": "Token",
             "type": "string",
             "x-schema-form": {
-              "type": "password"
+              "type": "token"
             }
           },
           "secret": {
             "title": "Secret",
             "type": "string",
             "x-schema-form": {
-              "type": "password"
+              "type": "secret"
             }
           },
           "notice": {
