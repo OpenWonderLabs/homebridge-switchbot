@@ -40,6 +40,10 @@ export class AirConditioner {
   // Config
   deviceLogging!: string;
   hide_automode?: boolean;
+  set_max_heat?: number;
+  set_min_heat?: number;
+  set_max_cool?: number;
+  set_min_cool?: number;
   disablePushOn?: boolean;
   disablePushOff?: boolean;
   meter?: PlatformAccessory;
@@ -113,8 +117,8 @@ export class AirConditioner {
     this.coolerService
       .getCharacteristic(this.hap.Characteristic.HeatingThresholdTemperature)
       .setProps({
-        minValue: 0,
-        maxValue: 35,
+        minValue: this.set_min_heat,
+        maxValue: this.set_max_heat,
         minStep: 0.5,
       })
       .onGet(this.ThresholdTemperatureGet.bind(this))
@@ -123,8 +127,8 @@ export class AirConditioner {
     this.coolerService
       .getCharacteristic(this.hap.Characteristic.CoolingThresholdTemperature)
       .setProps({
-        minValue: 0,
-        maxValue: 35,
+        minValue: this.set_min_cool,
+        maxValue: this.set_max_cool,
         minStep: 0.5,
       })
       .onGet(this.ThresholdTemperatureGet.bind(this))
@@ -658,6 +662,36 @@ export class AirConditioner {
     } else {
       this.hide_automode = this.device.irair?.hide_automode;
       this.accessory.context.hide_automode = this.hide_automode;
+    }
+
+    if (this.device.irair?.set_max_heat) {
+      this.set_max_heat = this.device.irair?.set_max_heat;
+      this.accessory.context.set_max_heat = this.set_max_heat;
+    } else {
+      this.set_max_heat = 35;
+      this.accessory.context.set_max_heat = this.set_max_heat;
+    }
+    if (this.device.irair?.set_min_heat) {
+      this.set_min_heat = this.device.irair?.set_min_heat;
+      this.accessory.context.set_min_heat = this.set_min_heat;
+    } else {
+      this.set_min_heat = 0;
+      this.accessory.context.set_min_heat = this.set_min_heat;
+    }
+
+    if (this.device.irair?.set_max_cool) {
+      this.set_max_cool = this.device.irair?.set_max_cool;
+      this.accessory.context.set_max_cool = this.set_max_cool;
+    } else {
+      this.set_max_cool = 35;
+      this.accessory.context.set_max_cool = this.set_max_cool;
+    }
+    if (this.device.irair?.set_min_cool) {
+      this.set_min_cool = this.device.irair?.set_min_cool;
+      this.accessory.context.set_min_cool = this.set_min_cool;
+    } else {
+      this.set_min_cool = 0;
+      this.accessory.context.set_min_cool = this.set_min_cool;
     }
 
     if (this.meter) {

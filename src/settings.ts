@@ -189,9 +189,9 @@ export interface irDevicesConfig extends irdevice {
 export type irfan = {
   swing_mode?: boolean;
   rotation_speed?: boolean;
-  set_minStep?: number; //set_minStep
-  set_max?: number; //set_max
-  set_min?: number; //set_min
+  set_minStep?: number;
+  set_max?: number;
+  set_min?: number;
 };
 
 export type irlight = {
@@ -200,6 +200,10 @@ export type irlight = {
 
 export type irair = {
   hide_automode?: boolean;
+  set_max_heat?: number;
+  set_min_heat?: number;
+  set_max_cool?: number;
+  set_min_cool?: number;
   meterType?: string;
   meterId?: string;
   meterUuid?: string;

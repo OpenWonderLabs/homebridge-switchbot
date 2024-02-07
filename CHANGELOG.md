@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [3.3.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.3.0) (2024-02-XX)
+
+### What's Changed
+- Add config that allows you to set `cool` and `heat`: `min` & `max`
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.2.0...v3.3.0
+
 ## [3.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.2.0) (2024-02-06)
 
 ### What's Changed

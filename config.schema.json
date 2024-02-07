@@ -1221,6 +1221,43 @@
                         "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Air Conditioner' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Air Conditioner') && model.options.irdevices[arrayIndices].deviceId);"
                       }
                     },
+                    "set_max_heat": {
+                      "title": "IR Air Conditioner Maximum Heat Range",
+                      "type": "number",
+                      "placeholder": "25",
+                      "description": "Set the maximum heat range for the IR Air Conditioner.",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Air Conditioner' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Air Conditioner') && model.options.irdevices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "set_min_heat": {
+                      "title": "IR Air Conditioner Minimum Heat Range",
+                      "type": "number",
+                      "placeholder": "0",
+                      "description": "Set the minimum heat range for the IR Air Conditioner.",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Air Conditioner' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Air Conditioner') && model.options.irdevices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "set_max_cool": {
+                      "title": "IR Air Conditioner Maximum Cool Range",
+                      "type": "number",
+                      "placeholder": "35",
+                      "description": "Set the maximum cool range for the IR Air Conditioner.",
+                      "multipleOf": 1,
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Air Conditioner' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Air Conditioner') && model.options.irdevices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "set_min_cool": {
+                      "title": "IR Air Conditioner Minimum Cool Range",
+                      "type": "number",
+                      "placeholder": "10",
+                      "description": "Set the minimum cool range for the IR Air Conditioner.",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Air Conditioner' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Air Conditioner') && model.options.irdevices[arrayIndices].deviceId);"
+                      }
+                    },
                     "meterType": {
                       "title": "Use an existing Switchbot device for temperature/humidity",
                       "type": "string",
@@ -1641,6 +1678,10 @@
             "options.irdevices[].disablePushOff",
             "options.irdevices[].disablePushDetail",
             "options.irdevices[].irair.hide_automode",
+            "options.irdevices[].irair.set_max_heat",
+            "options.irdevices[].irair.set_min_heat",
+            "options.irdevices[].irair.set_max_cool",
+            "options.irdevices[].irair.set_min_cool",
             "options.irdevices[].irair.meterType",
             "options.irdevices[].irair.meterId",
             "options.irdevices[].irfan.rotation_speed",
