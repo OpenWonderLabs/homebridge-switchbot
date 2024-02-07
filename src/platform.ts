@@ -39,7 +39,6 @@ import asyncmqtt from 'async-mqtt';
 import crypto, { randomUUID } from 'crypto';
 import { readFileSync, writeFileSync } from 'fs';
 import hbLib from 'homebridge-lib';
-/*import { SwitchBot } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/switchbot.js';*/
 
 
 
@@ -2528,6 +2527,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     try {
       noble = (await import('@abandonware/noble')).default;
       SwitchBot = (await import('node-switchbot')).default;
+      //SwitchBot = (await import('/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/switchbot.js')).default;
       queueScheduler.schedule(() => (switchbot = new SwitchBot({ 'noble': noble })));
     } catch (e: any) {
       switchbot = false;

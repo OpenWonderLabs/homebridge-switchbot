@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [3.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.2.0) (2024-02-06)
+
+### What's Changed
+- Upgrade to latest node-switchbot with is now a Typescript ES-Module.
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.1.3...v3.2.0
+
 ## [3.1.3](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.1.3) (2024-02-06)
 
 ### What's Changed
