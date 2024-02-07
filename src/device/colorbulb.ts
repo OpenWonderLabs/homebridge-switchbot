@@ -90,7 +90,7 @@ export class ColorBulb {
     this.scan(device);
     this.refreshRate(device);
     this.adaptiveLighting(device);
-    this.context();
+    this.deviceContext();
     this.deviceConfig(device);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
@@ -240,6 +240,7 @@ export class ColorBulb {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${this.Saturation}`);
 
           this.ColorTemperature = colorTemperature;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
           this.updateHomeKitCharacteristics();
         } catch (e: any) {
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
@@ -326,7 +327,7 @@ export class ColorBulb {
 
     // ColorTemperature
     if (this.BLE_ColorTemperature) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE ColorTemperature: ${this.BLE_ColorTemperature}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.BLE_ColorTemperature}`);
       this.ColorTemperature = this.BLE_ColorTemperature!;
 
       this.ColorTemperature = Math.max(Math.min(this.ColorTemperature, 500), 140);
@@ -373,7 +374,7 @@ export class ColorBulb {
 
     // ColorTemperature
     if (!Number.isNaN(this.OpenAPI_ColorTemperature)) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} OpenAPI ColorTemperature: ${this.OpenAPI_ColorTemperature}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.OpenAPI_ColorTemperature}`);
       const mired = Math.round(1000000 / this.OpenAPI_ColorTemperature!);
 
       this.ColorTemperature = Number(mired);
@@ -1191,6 +1192,42 @@ export class ColorBulb {
       case 200:
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
         break;
+      case 400:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Bad Request, The client has issued an invalid request. `
+            + `This is commonly used to specify validation errors in a request payload, statusCode: ${statusCode}`);
+        break;
+      case 401:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unauthorized,	Authorization for the API is required, `
+            + `but the request has not been authenticated, statusCode: ${statusCode}`);
+        break;
+      case 403:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Forbidden,	The request has been authenticated but does not `
+            + `have appropriate permissions, or a requested resource is not found, statusCode: ${statusCode}`);
+        break;
+      case 404:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Not Found,	Specifies the requested path does not exist, `
+        + `statusCode: ${statusCode}`);
+        break;
+      case 406:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Not Acceptable,	The client has requested a MIME type via `
+            + `the Accept header for a value not supported by the server, statusCode: ${statusCode}`);
+        break;
+      case 415:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unsupported Media Type,	The client has defined a contentType `
+            + `header that is not supported by the server, statusCode: ${statusCode}`);
+        break;
+      case 422:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unprocessable Entity,	The client has made a valid request, `
+            + `but the server cannot process it. This is often used for APIs for which certain limits have been exceeded, statusCode: ${statusCode}`);
+        break;
+      case 429:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Too Many Requests,	The client has exceeded the number of `
+            + `requests allowed for a given time window, statusCode: ${statusCode}`);
+        break;
+      case 500:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Internal Server Error,	An unexpected error on the SmartThings `
+            + `servers has occurred. These errors should be rare, statusCode: ${statusCode}`);
+        break;
       default:
         this.infoLog(
           `${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: ` +
@@ -1201,7 +1238,7 @@ export class ColorBulb {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      await this.context();
+      await this.deviceContext();
       await this.updateHomeKitCharacteristics();
     }
   }
@@ -1214,7 +1251,7 @@ export class ColorBulb {
     this.lightBulbService.updateCharacteristic(this.hap.Characteristic.ColorTemperature, e);
   }
 
-  async context() {
+  async deviceContext(): Promise<void> {
     if (this.On === undefined) {
       this.On = false;
     } else {
@@ -1230,7 +1267,7 @@ export class ColorBulb {
     } else {
       this.Brightness = this.accessory.context.Brightness;
     }
-    if (this.Brightness === undefined) {
+    if (this.Saturation === undefined) {
       this.Saturation = 0;
     } else {
       this.Saturation = this.accessory.context.Saturation;
