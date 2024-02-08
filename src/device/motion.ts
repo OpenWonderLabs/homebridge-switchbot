@@ -4,7 +4,7 @@ import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
 import { SwitchBotPlatform } from '../platform.js';
 import { Service, PlatformAccessory, CharacteristicValue, API, Logging, HAP } from 'homebridge';
-import { device, devicesConfig, serviceData, deviceStatus, ad, Devices, SwitchBotPlatformConfig } from '../settings.js';
+import { device, devicesConfig, serviceData, deviceStatus, Devices, SwitchBotPlatformConfig } from '../settings.js';
 
 /**
  * Platform Accessory
@@ -296,7 +296,34 @@ export class Motion {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     this.getCustomBLEAddress(switchbot);
     // Start to monitor advertisement packets
-    if (switchbot !== false) {
+    (async () => {
+      // Start to monitor advertisement packets
+      await switchbot.startScan({
+        model: 's',
+        id: this.device.bleMac,
+      });
+      // Set an event handler
+      switchbot.onadvertisement = (ad: any) => {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${JSON.stringify(ad, null, '  ')}`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} address: ${ad.address}, model: ${ad.model}`);
+        if (this.device.bleMac === ad.address && ad.model === 's') {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+          this.BLE_MotionDetected = ad.serviceData.movement;
+          this.BLE_BatteryLevel = ad.serviceData.battery;
+          this.BLE_CurrentAmbientLightLevel = ad.serviceData.lightLevel;
+        } else {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+        }
+      };
+      // Wait 1 seconds
+      await switchbot.wait(this.scanDuration * 1000);
+      // Stop to monitor
+      await switchbot.stopScan();
+      // Update HomeKit
+      await this.BLEparseStatus();
+      await this.updateHomeKitCharacteristics();
+    })();
+    /*if (switchbot !== false) {
       await switchbot
         .startScan({
           model: 's',
@@ -359,7 +386,7 @@ export class Motion {
     } else {
       this.debugErrorLog('4');
       await this.BLERefreshConnection(switchbot);
-    }
+    }*/
   }
 
   async openAPIRefreshStatus(): Promise<void> {

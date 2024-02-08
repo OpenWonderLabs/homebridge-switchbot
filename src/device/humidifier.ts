@@ -4,7 +4,7 @@ import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform.js';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue, API, Logging, HAP } from 'homebridge';
-import { device, devicesConfig, serviceData, ad, deviceStatus, Devices, SwitchBotPlatformConfig } from '../settings.js';
+import { device, devicesConfig, serviceData, deviceStatus, Devices, SwitchBotPlatformConfig } from '../settings.js';
 
 /**
  * Platform Accessory
@@ -348,7 +348,34 @@ export class Humidifier {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     this.getCustomBLEAddress(switchbot);
     // Start to monitor advertisement packets
-    if (switchbot !== false) {
+    (async () => {
+      // Start to monitor advertisement packets
+      await switchbot.startScan({
+        model: 'e',
+        id: this.device.bleMac,
+      });
+      // Set an event handler
+      switchbot.onadvertisement = (ad: any) => {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${JSON.stringify(ad, null, '  ')}`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} address: ${ad.address}, model: ${ad.serviceData.model}`);
+        if (this.device.bleMac === ad.address && ad.serviceData.model === 'e') {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+          this.autoMode = ad.serviceData.autoMode;
+          this.onState = ad.serviceData.onState;
+          this.percentage = ad.serviceData.percentage > 100 ? 100 : ad.serviceData.percentage;
+        } else {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+        }
+      };
+      // Wait 1 seconds
+      await switchbot.wait(this.scanDuration * 1000);
+      // Stop to monitor
+      await switchbot.stopScan();
+      // Update HomeKit
+      await this.BLEparseStatus();
+      await this.updateHomeKitCharacteristics();
+    })();
+    /*if (switchbot !== false) {
       switchbot
         .startScan({
           model: 'e',
@@ -396,7 +423,7 @@ export class Humidifier {
         });
     } else {
       await this.BLERefreshConnection(switchbot);
-    }
+    }*/
   }
 
   async openAPIRefreshStatus(): Promise<void> {

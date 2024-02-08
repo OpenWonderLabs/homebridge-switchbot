@@ -5,7 +5,7 @@ import { hostname } from 'os';
 import { interval } from 'rxjs';
 import { request } from 'undici';
 import { SwitchBotPlatform } from '../platform.js';
-import { Devices, ad, device, deviceStatus, devicesConfig, serviceData, temperature, SwitchBotPlatformConfig } from '../settings.js';
+import { Devices, device, deviceStatus, devicesConfig, serviceData, temperature, SwitchBotPlatformConfig } from '../settings.js';
 import { sleep } from '../utils.js';
 
 /**
@@ -312,7 +312,35 @@ export class MeterPlus {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     this.getCustomBLEAddress(switchbot);
     // Start to monitor advertisement packets
-    if (switchbot !== false) {
+    (async () => {
+      await switchbot.startScan({
+        model: 'i',
+        id: this.device.bleMac,
+      });
+      // Set an event handler
+      switchbot.onadvertisement = (ad: any) => {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${JSON.stringify(ad, null, '  ')}`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} address: ${ad.address}, model: ${ad.serviceData.model}`);
+        if (this.device.bleMac === ad.address && ad.serviceData.model === 'i') {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+          this.BLE_CurrentRelativeHumidity = ad.serviceData.humidity < 0 ? 0 : ad.serviceData.humidity > 100 ? 100 : ad.serviceData.humidity;
+          this.BLE_CurrentTemperature = ad.serviceData.temperature;
+          this.BLE_Celsius = ad.serviceData.temperature!.c;
+          this.BLE_Fahrenheit = ad.serviceData.temperature!.f;
+          this.BLE_BatteryLevel = ad.serviceData.battery;
+        } else {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+        }
+      };
+      // Wait 1 seconds
+      await switchbot.wait(this.scanDuration * 1000);
+      // Stop to monitor
+      await switchbot.stopScan();
+      // Update HomeKit
+      await this.BLEparseStatus();
+      await this.updateHomeKitCharacteristics();
+    })();
+    /*if (switchbot !== false) {
       switchbot
         .startScan({
           model: 'i',
@@ -366,7 +394,7 @@ export class MeterPlus {
         });
     } else {
       await this.BLERefreshConnection(switchbot);
-    }
+    }*/
   }
 
   async openAPIRefreshStatus(): Promise<void> {

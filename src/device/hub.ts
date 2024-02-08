@@ -286,7 +286,9 @@ export class Hub {
    * Parse the device status from the SwitchBot api
    */
   async parseStatus(): Promise<void> {
-    if (this.OpenAPI && this.platform.config.credentials?.token) {
+    if (this.BLE) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE not supported`);
+    } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIparseStatus();
     } else {
       await this.offlineOff();
@@ -417,7 +419,9 @@ export class Hub {
   }
 
   async refreshStatus(): Promise<void> {
-    if (this.OpenAPI && this.platform.config.credentials?.token) {
+    if (this.BLE) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE not supported`);
+    } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();

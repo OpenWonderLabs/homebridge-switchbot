@@ -6,7 +6,7 @@ import asyncmqtt from 'async-mqtt';
 import { SwitchBotPlatform } from '../platform.js';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue, CharacteristicChange, API, Logging, HAP } from 'homebridge';
-import { device, devicesConfig, serviceData, deviceStatus, ad, Devices, SwitchBotPlatformConfig } from '../settings.js';
+import { device, devicesConfig, serviceData, deviceStatus, Devices, SwitchBotPlatformConfig } from '../settings.js';
 import { hostname } from 'os';
 
 export class Curtain {
@@ -546,7 +546,38 @@ export class Curtain {
       default:
         model = 'c';
     }
-    if (switchbot !== false) {
+    (async () => {
+      // Start to monitor advertisement packets
+      await switchbot.startScan({
+        model: model,
+        id: this.device.bleMac,
+      });
+      // Set an event handler
+      switchbot.onadvertisement = (ad: any) => {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${JSON.stringify(ad, null, '  ')}`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} address: ${ad.address}, model: ${ad.serviceData.model}`);
+        if (this.device.bleMac === ad.address && ad.serviceData.model === 'c') {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+          this.BLE_Calibration = ad.serviceData.calibration;
+          this.BLE_BatteryLevel = ad.serviceData.battery;
+          this.BLE_InMotion = ad.serviceData.inMotion;
+          this.BLE_CurrentPosition = ad.serviceData.position;
+          this.BLE_CurrentAmbientLightLevel = ad.serviceData.lightLevel;
+        } else {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+        }
+      };
+      // Wait 1 seconds
+      await switchbot.wait(this.scanDuration * 1000);
+      // Stop to monitor
+      await switchbot.stopScan();
+      // Update HomeKit
+      await this.BLEparseStatus();
+      await this.updateHomeKitCharacteristics();
+    })();
+
+
+    /*if (switchbot !== false) {
       switchbot
         .startScan({
           model: model,
@@ -597,7 +628,7 @@ export class Curtain {
         });
     } else {
       await this.BLERefreshConnection(switchbot);
-    }
+    }*/
   }
 
   async openAPIRefreshStatus(): Promise<void> {

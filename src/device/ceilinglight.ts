@@ -3,7 +3,7 @@ import { sleep } from '../utils.js';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform.js';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
-import { device, devicesConfig, deviceStatus, hs2rgb, rgb2hs, m2hs, serviceData, ad, Devices, SwitchBotPlatformConfig } from '../settings.js';
+import { device, devicesConfig, deviceStatus, hs2rgb, rgb2hs, m2hs, serviceData, Devices, SwitchBotPlatformConfig } from '../settings.js';
 import {
   Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap, API, Logging, HAP,
 } from 'homebridge';
@@ -371,7 +371,37 @@ export class CeilingLight {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     this.getCustomBLEAddress(switchbot);
     // Start to monitor advertisement packets
-    if (switchbot !== false) {
+    (async () => {
+      // Start to monitor advertisement packets
+      await switchbot.startScan({
+        id: this.device.bleMac,
+      });
+      // Set an event handler
+      switchbot.onadvertisement = (ad: any) => {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${JSON.stringify(ad, null, '  ')}`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} address: ${ad.address}, model: ${ad.model}`);
+        if (this.device.bleMac === ad.address && ad.model === 's') {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+          this.BLE_On = ad.serviceData.state;
+          //this.delay = ad.serviceData.delay;
+          //this.timer = ad.serviceData.timer;
+          //this.syncUtcTime = ad.serviceData.syncUtcTime;
+          //this.wifiRssi = ad.serviceData.wifiRssi;
+          //this.overload = ad.serviceData.overload;
+          //this.currentPower = ad.serviceData.currentPower;
+        } else {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+        }
+      };
+      // Wait 1 seconds
+      await switchbot.wait(this.scanDuration * 1000);
+      // Stop to monitor
+      await switchbot.stopScan();
+      // Update HomeKit
+      await this.BLEparseStatus();
+      await this.updateHomeKitCharacteristics();
+    })();
+    /*if (switchbot !== false) {
       switchbot
         .startScan({
           model: '',
@@ -393,11 +423,11 @@ export class CeilingLight {
             //this.overload = ad.serviceData.overload;
             //this.currentPower = ad.serviceData.currentPower;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-            /*this.debugLog(
+            this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} state: ${ad.serviceData.state}, ` +
                 `delay: ${ad.serviceData.delay}, timer: ${ad.serviceData.timer}, syncUtcTime: ${ad.serviceData.syncUtcTime} ` +
                 `wifiRssi: ${ad.serviceData.wifiRssi}, overload: ${ad.serviceData.overload}, currentPower: ${ad.serviceData.currentPower}`,
-            );*/
+            );
 
             if (ad.serviceData) {
               this.BLE_IsConnected = true;
@@ -425,7 +455,7 @@ export class CeilingLight {
         });
     } else {
       await this.BLERefreshConnection(switchbot);
-    }
+    }*/
   }
 
   async openAPIRefreshStatus() {
