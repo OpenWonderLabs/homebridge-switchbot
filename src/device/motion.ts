@@ -305,8 +305,8 @@ export class Motion {
       // Set an event handler
       switchbot.onadvertisement = (ad: any) => {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${JSON.stringify(ad, null, '  ')}`);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} address: ${ad.address}, model: ${ad.model}`);
-        if (this.device.bleMac === ad.address && ad.model === 's') {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} address: ${ad.address}, model: ${ad.serviceData.model}`);
+        if (this.device.bleMac === ad.address && ad.serviceData.model === 's') {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
           this.BLE_MotionDetected = ad.serviceData.movement;
           this.BLE_BatteryLevel = ad.serviceData.battery;

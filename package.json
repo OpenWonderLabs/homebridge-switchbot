@@ -84,7 +84,7 @@
     "undici": "^6.6.2"
   },
   "optionalDependencies": {
-    "node-switchbot": "^2.0.2-beta.2"
+    "node-switchbot": "^2.0.2-beta.4"
   },
   "devDependencies": {
     "@types/node": "^20.11.16",
