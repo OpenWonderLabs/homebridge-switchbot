@@ -524,7 +524,7 @@ export class Meter {
   }
 
   async stopScanning(switchbot: any) {
-    await switchbot.stopScan();
+    switchbot.stopScan();
     if (this.BLE_IsConnected) {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
@@ -546,7 +546,7 @@ export class Meter {
         };
         await sleep(10000);
         // Stop to monitor
-        await switchbot.stopScan();
+        switchbot.stopScan();
       })();
     }
   }

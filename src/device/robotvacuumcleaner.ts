@@ -616,7 +616,7 @@ export class RobotVacuumCleaner {
   }
 
   async stopScanning(switchbot: any) {
-    await switchbot.stopScan();
+    switchbot.stopScan();
     if (this.BLE_IsConnected) {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
@@ -646,7 +646,7 @@ export class RobotVacuumCleaner {
         };
         await sleep(10000);
         // Stop to monitor
-        await switchbot.stopScan();
+        switchbot.stopScan();
       })();
     }
   }

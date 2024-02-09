@@ -763,7 +763,7 @@ export class Humidifier {
   }
 
   async stopScanning(switchbot: any) {
-    await switchbot.stopScan();
+    switchbot.stopScan();
     if (this.connected) {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
@@ -785,7 +785,7 @@ export class Humidifier {
         };
         await sleep(10000);
         // Stop to monitor
-        await switchbot.stopScan();
+        switchbot.stopScan();
       })();
     }
   }
