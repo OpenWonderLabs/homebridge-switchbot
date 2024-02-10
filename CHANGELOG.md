@@ -2,10 +2,13 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [3.3.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.3.0) (2024-02-XX)
+## [3.3.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.3.0) (2024-02-09)
 
 ### What's Changed
 - Add config that allows you to set `cool` and `heat`: `min` & `max`
+- Fix node-switchbot import [#928](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/928), Thanks [@dnicolson](https://github.com/dnicolson)
+- Code cleanup: Remove unnecessary await keyword [#929](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/929), Thanks [@dnicolson](https://github.com/dnicolson)
+- Code cleanup: Remove empty image tag [#930](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/930), Thanks [@dnicolson](https://github.com/dnicolson)
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.2.0...v3.3.0
