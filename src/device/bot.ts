@@ -4,7 +4,7 @@ import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform.js';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue, API, Logging, HAP } from 'homebridge';
-import { device, devicesConfig, deviceStatus, ad, serviceData, Devices, SwitchBotPlatformConfig } from '../settings.js';
+import { device, devicesConfig, deviceStatus, serviceData, Devices, SwitchBotPlatformConfig } from '../settings.js';
 
 /**
  * Platform Accessory
@@ -542,7 +542,34 @@ export class Bot {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     this.getCustomBLEAddress(switchbot);
     // Start to monitor advertisement packets
-    if (switchbot !== false) {
+    (async () => {
+      // Start to monitor advertisement packets
+      await switchbot.startScan({
+        model: 'H',
+        id: this.device.bleMac,
+      });
+      // Set an event handler
+      switchbot.onadvertisement = (ad: any) => {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${JSON.stringify(ad, null, '  ')}`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} address: ${ad.address}, model: ${ad.model}`);
+        if (this.device.bleMac === ad.address && ad.model === 'H') {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+          this.BLE_Mode = ad.serviceData.mode;
+          this.BLE_On = ad.serviceData.state;
+          this.BLE_BatteryLevel = ad.serviceData.battery;
+        } else {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+        }
+      };
+      // Wait 1 seconds
+      await switchbot.wait(this.scanDuration * 1000);
+      // Stop to monitor
+      await switchbot.stopScan();
+      // Update HomeKit
+      await this.BLEparseStatus();
+      await this.updateHomeKitCharacteristics();
+    })();
+    /*if (switchbot !== false) {
       switchbot
         .startScan({
           model: 'H',
@@ -590,7 +617,7 @@ export class Bot {
         });
     } else {
       await this.BLERefreshConnection(switchbot);
-    }
+    }*/
   }
 
   async openAPIRefreshStatus(): Promise<void> {
@@ -1168,7 +1195,7 @@ export class Bot {
   }
 
   async stopScanning(switchbot: any) {
-    await switchbot.stopScan();
+    switchbot.stopScan();
     if (this.BLE_IsConnected) {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
@@ -1190,7 +1217,7 @@ export class Bot {
         };
         await sleep(10000);
         // Stop to monitor
-        await switchbot.stopScan();
+        switchbot.stopScan();
       })();
     }
   }
@@ -1306,6 +1333,42 @@ export class Bot {
         break;
       case 200:
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
+        break;
+      case 400:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Bad Request, The client has issued an invalid request. `
+            + `This is commonly used to specify validation errors in a request payload, statusCode: ${statusCode}`);
+        break;
+      case 401:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unauthorized,	Authorization for the API is required, `
+            + `but the request has not been authenticated, statusCode: ${statusCode}`);
+        break;
+      case 403:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Forbidden,	The request has been authenticated but does not `
+            + `have appropriate permissions, or a requested resource is not found, statusCode: ${statusCode}`);
+        break;
+      case 404:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Not Found,	Specifies the requested path does not exist, `
+        + `statusCode: ${statusCode}`);
+        break;
+      case 406:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Not Acceptable,	The client has requested a MIME type via `
+            + `the Accept header for a value not supported by the server, statusCode: ${statusCode}`);
+        break;
+      case 415:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unsupported Media Type,	The client has defined a contentType `
+            + `header that is not supported by the server, statusCode: ${statusCode}`);
+        break;
+      case 422:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unprocessable Entity,	The client has made a valid request, `
+            + `but the server cannot process it. This is often used for APIs for which certain limits have been exceeded, statusCode: ${statusCode}`);
+        break;
+      case 429:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Too Many Requests,	The client has exceeded the number of `
+            + `requests allowed for a given time window, statusCode: ${statusCode}`);
+        break;
+      case 500:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Internal Server Error,	An unexpected error on the SmartThings `
+            + `servers has occurred. These errors should be rare, statusCode: ${statusCode}`);
         break;
       default:
         this.infoLog(

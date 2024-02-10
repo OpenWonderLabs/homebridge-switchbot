@@ -49,12 +49,6 @@
      - Copy BLE Mac aka `deviceId`
   4. Input your `deviceId` into the Device Config
 
-<p align="center">
-
-<img src="" width="1px">
-
-</p>
-
 ## Supported SwitchBot Devices
 
 - [SwitchBot Humidifier](https://www.switch-bot.com/products/switchbot-smart-humidifier)

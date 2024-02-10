@@ -3,7 +3,7 @@ import { sleep } from '../utils.js';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform.js';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
-import { device, devicesConfig, deviceStatus, hs2rgb, rgb2hs, m2hs, serviceData, ad, Devices, SwitchBotPlatformConfig } from '../settings.js';
+import { device, devicesConfig, deviceStatus, hs2rgb, rgb2hs, m2hs, serviceData, Devices, SwitchBotPlatformConfig } from '../settings.js';
 import {
   Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap, API, Logging, HAP,
 } from 'homebridge';
@@ -37,15 +37,17 @@ export class ColorBulb {
   OpenAPI_ColorTemperature?: deviceStatus['colorTemperature'];
 
   // BLE Status
-  BLE_Red: serviceData['red'];
-  BLE_On: serviceData['state'];
-  BLE_Blue: serviceData['blue'];
+  BLE_ColorTemperature: serviceData['color_temperature'];
   BLE_Power: serviceData['power'];
+  BLE_Red: serviceData['red'];
+  BLE_Blue: serviceData['blue'];
   BLE_Green: serviceData['green'];
+  BLE_On: serviceData['state'];
   BLE_Delay: serviceData['delay'];
   BLE_WifiRssi: serviceData['wifiRssi'];
   BLE_Brightness: serviceData['brightness'];
-  BLE_ColorTemperature: serviceData['color_temperature'];
+  BLE_Saturation;
+  BLE_Hue;
 
   // BLE Others
   BLE_IsConnected?: boolean;
@@ -90,7 +92,7 @@ export class ColorBulb {
     this.scan(device);
     this.refreshRate(device);
     this.adaptiveLighting(device);
-    this.context();
+    this.deviceContext();
     this.deviceConfig(device);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
@@ -240,6 +242,7 @@ export class ColorBulb {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${this.Saturation}`);
 
           this.ColorTemperature = colorTemperature;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
           this.updateHomeKitCharacteristics();
         } catch (e: any) {
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
@@ -315,18 +318,20 @@ export class ColorBulb {
       `${this.device.deviceType}: ${this.accessory.displayName}` +
       ` hs: ${JSON.stringify(rgb2hs(Number(this.BLE_Red), Number(this.BLE_Green), Number(this.BLE_Blue)))}`,
     );
+    this.BLE_Hue = hue;
+    this.BLE_Saturation = saturation;
 
     // Hue
-    this.Hue = hue;
+    this.Hue = this.BLE_Hue;
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${this.Hue}`);
 
     // Saturation
-    this.Saturation = saturation;
+    this.Saturation = this.BLE_Saturation;
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${this.Saturation}`);
 
     // ColorTemperature
     if (this.BLE_ColorTemperature) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE ColorTemperature: ${this.BLE_ColorTemperature}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.BLE_ColorTemperature}`);
       this.ColorTemperature = this.BLE_ColorTemperature!;
 
       this.ColorTemperature = Math.max(Math.min(this.ColorTemperature, 500), 140);
@@ -373,7 +378,7 @@ export class ColorBulb {
 
     // ColorTemperature
     if (!Number.isNaN(this.OpenAPI_ColorTemperature)) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} OpenAPI ColorTemperature: ${this.OpenAPI_ColorTemperature}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.OpenAPI_ColorTemperature}`);
       const mired = Math.round(1000000 / this.OpenAPI_ColorTemperature!);
 
       this.ColorTemperature = Number(mired);
@@ -417,7 +422,39 @@ export class ColorBulb {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
     this.getCustomBLEAddress(switchbot);
     // Start to monitor advertisement packets
-    if (switchbot !== false) {
+    (async () => {
+      // Start to monitor advertisement packets
+      await switchbot.startScan({
+        model: 'u',
+        id: this.device.bleMac,
+      });
+      // Set an event handler
+      switchbot.onadvertisement = (ad: any) => {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${JSON.stringify(ad, null, '  ')}`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} address: ${ad.address}, model: ${ad.serviceData.model}`);
+        if (this.device.bleMac === ad.address && ad.serviceData.model === 'u') {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+          this.BLE_ColorTemperature = ad.serviceData.color_temperature;
+          this.BLE_Power = ad.serviceData.power;
+          this.BLE_On = ad.serviceData.state;
+          this.BLE_Red = ad.serviceData.red;
+          this.BLE_Green = ad.serviceData.green;
+          this.BLE_Blue = ad.serviceData.blue;
+          this.BLE_Brightness = ad.serviceData.brightness;
+          this.BLE_Delay = ad.serviceData.delay;
+        } else {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+        }
+      };
+      // Wait 1 seconds
+      await switchbot.wait(this.scanDuration * 1000);
+      // Stop to monitor
+      await switchbot.stopScan();
+      // Update HomeKit
+      await this.BLEparseStatus();
+      await this.updateHomeKitCharacteristics();
+    })();
+    /*if (switchbot !== false) {
       switchbot
         .startScan({
           model: 'u',
@@ -440,11 +477,11 @@ export class ColorBulb {
             this.BLE_Brightness = ad.serviceData.brightness;
             this.BLE_Delay = ad.serviceData.delay;
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-            /*this.debugLog(
+            this.debugLog(
               `${this.device.deviceType}: ${this.accessory.displayName} state: ${ad.serviceData.state}, ` +
                 `delay: ${ad.serviceData.delay}, timer: ${ad.serviceData.timer}, syncUtcTime: ${ad.serviceData.syncUtcTime} ` +
                 `wifiRssi: ${ad.serviceData.wifiRssi}, overload: ${ad.serviceData.overload}, currentPower: ${ad.serviceData.currentPower}`,
-            );*/
+            );
 
             if (ad.serviceData) {
               this.BLE_IsConnected = true;
@@ -472,7 +509,7 @@ export class ColorBulb {
         });
     } else {
       await this.BLERefreshConnection(switchbot);
-    }
+    }*/
   }
 
   async openAPIRefreshStatus() {
@@ -1070,7 +1107,7 @@ export class ColorBulb {
   }
 
   async stopScanning(switchbot: any) {
-    await switchbot.stopScan();
+    switchbot.stopScan();
     if (this.BLE_IsConnected) {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
@@ -1093,7 +1130,7 @@ export class ColorBulb {
         };
         await sleep(10000);
         // Stop to monitor
-        await switchbot.stopScan();
+        switchbot.stopScan();
       })();
     }
   }
@@ -1191,6 +1228,42 @@ export class ColorBulb {
       case 200:
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
         break;
+      case 400:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Bad Request, The client has issued an invalid request. `
+            + `This is commonly used to specify validation errors in a request payload, statusCode: ${statusCode}`);
+        break;
+      case 401:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unauthorized,	Authorization for the API is required, `
+            + `but the request has not been authenticated, statusCode: ${statusCode}`);
+        break;
+      case 403:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Forbidden,	The request has been authenticated but does not `
+            + `have appropriate permissions, or a requested resource is not found, statusCode: ${statusCode}`);
+        break;
+      case 404:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Not Found,	Specifies the requested path does not exist, `
+        + `statusCode: ${statusCode}`);
+        break;
+      case 406:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Not Acceptable,	The client has requested a MIME type via `
+            + `the Accept header for a value not supported by the server, statusCode: ${statusCode}`);
+        break;
+      case 415:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unsupported Media Type,	The client has defined a contentType `
+            + `header that is not supported by the server, statusCode: ${statusCode}`);
+        break;
+      case 422:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unprocessable Entity,	The client has made a valid request, `
+            + `but the server cannot process it. This is often used for APIs for which certain limits have been exceeded, statusCode: ${statusCode}`);
+        break;
+      case 429:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Too Many Requests,	The client has exceeded the number of `
+            + `requests allowed for a given time window, statusCode: ${statusCode}`);
+        break;
+      case 500:
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Internal Server Error,	An unexpected error on the SmartThings `
+            + `servers has occurred. These errors should be rare, statusCode: ${statusCode}`);
+        break;
       default:
         this.infoLog(
           `${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: ` +
@@ -1201,7 +1274,7 @@ export class ColorBulb {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      await this.context();
+      await this.deviceContext();
       await this.updateHomeKitCharacteristics();
     }
   }
@@ -1214,7 +1287,7 @@ export class ColorBulb {
     this.lightBulbService.updateCharacteristic(this.hap.Characteristic.ColorTemperature, e);
   }
 
-  async context() {
+  async deviceContext(): Promise<void> {
     if (this.On === undefined) {
       this.On = false;
     } else {
@@ -1230,7 +1303,7 @@ export class ColorBulb {
     } else {
       this.Brightness = this.accessory.context.Brightness;
     }
-    if (this.Brightness === undefined) {
+    if (this.Saturation === undefined) {
       this.Saturation = 0;
     } else {
       this.Saturation = this.accessory.context.Saturation;

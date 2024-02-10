@@ -40,6 +40,10 @@ export class AirConditioner {
   // Config
   deviceLogging!: string;
   hide_automode?: boolean;
+  set_max_heat?: number;
+  set_min_heat?: number;
+  set_max_cool?: number;
+  set_min_cool?: number;
   disablePushOn?: boolean;
   disablePushOff?: boolean;
   meter?: PlatformAccessory;
@@ -113,8 +117,8 @@ export class AirConditioner {
     this.coolerService
       .getCharacteristic(this.hap.Characteristic.HeatingThresholdTemperature)
       .setProps({
-        minValue: 0,
-        maxValue: 35,
+        minValue: this.set_min_heat,
+        maxValue: this.set_max_heat,
         minStep: 0.5,
       })
       .onGet(this.ThresholdTemperatureGet.bind(this))
@@ -123,8 +127,8 @@ export class AirConditioner {
     this.coolerService
       .getCharacteristic(this.hap.Characteristic.CoolingThresholdTemperature)
       .setProps({
-        minValue: 0,
-        maxValue: 35,
+        minValue: this.set_min_cool,
+        maxValue: this.set_max_cool,
         minStep: 0.5,
       })
       .onGet(this.ThresholdTemperatureGet.bind(this))
@@ -606,6 +610,42 @@ export class AirConditioner {
       case 200:
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
         break;
+      case 400:
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Bad Request, The client has issued an invalid request. `
+              + `This is commonly used to specify validation errors in a request payload, statusCode: ${statusCode}`);
+        break;
+      case 401:
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Unauthorized,	Authorization for the API is required, `
+              + `but the request has not been authenticated, statusCode: ${statusCode}`);
+        break;
+      case 403:
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Forbidden,	The request has been authenticated but does not `
+              + `have appropriate permissions, or a requested resource is not found, statusCode: ${statusCode}`);
+        break;
+      case 404:
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Not Found,	Specifies the requested path does not exist, `
+          + `statusCode: ${statusCode}`);
+        break;
+      case 406:
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Not Acceptable,	The client has requested a MIME type via `
+              + `the Accept header for a value not supported by the server, statusCode: ${statusCode}`);
+        break;
+      case 415:
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Unsupported Media Type,	The client has defined a contentType `
+              + `header that is not supported by the server, statusCode: ${statusCode}`);
+        break;
+      case 422:
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Unprocessable Entity,	The client has made a valid request, but `
+              + `the server cannot process it. This is often used for APIs for which certain limits have been exceeded, statusCode: ${statusCode}`);
+        break;
+      case 429:
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Too Many Requests,	The client has exceeded the number of `
+              + `requests allowed for a given time window, statusCode: ${statusCode}`);
+        break;
+      case 500:
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Internal Server Error,	An unexpected error on the SmartThings `
+              + `servers has occurred. These errors should be rare, statusCode: ${statusCode}`);
+        break;
       default:
         this.infoLog(
           `${this.device.remoteType}: ${this.accessory.displayName} Unknown statusCode: ` +
@@ -658,6 +698,36 @@ export class AirConditioner {
     } else {
       this.hide_automode = this.device.irair?.hide_automode;
       this.accessory.context.hide_automode = this.hide_automode;
+    }
+
+    if (this.device.irair?.set_max_heat) {
+      this.set_max_heat = this.device.irair?.set_max_heat;
+      this.accessory.context.set_max_heat = this.set_max_heat;
+    } else {
+      this.set_max_heat = 35;
+      this.accessory.context.set_max_heat = this.set_max_heat;
+    }
+    if (this.device.irair?.set_min_heat) {
+      this.set_min_heat = this.device.irair?.set_min_heat;
+      this.accessory.context.set_min_heat = this.set_min_heat;
+    } else {
+      this.set_min_heat = 0;
+      this.accessory.context.set_min_heat = this.set_min_heat;
+    }
+
+    if (this.device.irair?.set_max_cool) {
+      this.set_max_cool = this.device.irair?.set_max_cool;
+      this.accessory.context.set_max_cool = this.set_max_cool;
+    } else {
+      this.set_max_cool = 35;
+      this.accessory.context.set_max_cool = this.set_max_cool;
+    }
+    if (this.device.irair?.set_min_cool) {
+      this.set_min_cool = this.device.irair?.set_min_cool;
+      this.accessory.context.set_min_cool = this.set_min_cool;
+    } else {
+      this.set_min_cool = 0;
+      this.accessory.context.set_min_cool = this.set_min_cool;
     }
 
     if (this.meter) {
