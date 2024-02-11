@@ -78,63 +78,15 @@
                   "type": "string",
                   "oneOf": [
                     {
-                      "title": "Bot",
-                      "enum": [
-                        "Bot"
-                      ]
-                    },
-                    {
-                      "title": "Curtain",
-                      "enum": [
-                        "Curtain"
-                      ]
-                    },
-                    {
-                      "title": "Curtain 3",
-                      "enum": [
-                        "Curtain3"
-                      ]
-                    },
-                    {
                       "title": "Blind Tilt",
                       "enum": [
                         "Blind Tilt"
                       ]
                     },
                     {
-                      "title": "Plug",
+                      "title": "Bot",
                       "enum": [
-                        "Plug"
-                      ]
-                    },
-                    {
-                      "title": "Meter",
-                      "enum": [
-                        "Meter"
-                      ]
-                    },
-                    {
-                      "title": "Motion Sensor",
-                      "enum": [
-                        "Motion Sensor"
-                      ]
-                    },
-                    {
-                      "title": "Hub 2",
-                      "enum": [
-                        "Hub 2"
-                      ]
-                    },
-                    {
-                      "title": "Contact Sensor",
-                      "enum": [
-                        "Contact Sensor"
-                      ]
-                    },
-                    {
-                      "title": "Color Bulb",
-                      "enum": [
-                        "Color Bulb"
+                        "Bot"
                       ]
                     },
                     {
@@ -150,9 +102,111 @@
                       ]
                     },
                     {
+                      "title": "Color Bulb",
+                      "enum": [
+                        "Color Bulb"
+                      ]
+                    },
+                    {
+                      "title": "Contact Sensor",
+                      "enum": [
+                        "Contact Sensor"
+                      ]
+                    },
+                    {
+                      "title": "Curtain",
+                      "enum": [
+                        "Curtain"
+                      ]
+                    },
+                    {
+                      "title": "Curtain 3",
+                      "enum": [
+                        "Curtain3"
+                      ]
+                    },
+                    {
+                      "title": "Floor Cleaning Robot S10",
+                      "enum": [
+                        "WoSweeper"
+                      ]
+                    },
+                    {
+                      "title": "Hub 2",
+                      "enum": [
+                        "Hub 2"
+                      ]
+                    },
+                    {
                       "title": "Humidifier",
                       "enum": [
                         "Humidifier"
+                      ]
+                    },
+                    {
+                      "title": "Indoor/Outdoor Sensor",
+                      "enum": [
+                        "WoIOSensor"
+                      ]
+                    },
+                    {
+                      "title": "Meter",
+                      "enum": [
+                        "Meter"
+                      ]
+                    },
+                    {
+                      "title": "Meter Plus (JP)",
+                      "enum": [
+                        "Meter Plus (JP)"
+                      ]
+                    },
+                    {
+                      "title": "Meter Plus (US)",
+                      "enum": [
+                        "MeterPlus"
+                      ]
+                    },
+                    {
+                      "title": "Mini Robot Vacuum K10+",
+                      "enum": [
+                        "WoSweeperMini"
+                      ]
+                    },
+                    {
+                      "title": "Motion Sensor",
+                      "enum": [
+                        "Motion Sensor"
+                      ]
+                    },
+                    {
+                      "title": "Plug",
+                      "enum": [
+                        "Plug"
+                      ]
+                    },
+                    {
+                      "title": "Plug Mini (JP)",
+                      "enum": [
+                        "Plug Mini (JP)"
+                      ]
+                    },
+                    {
+                      "title": "Plug Mini (US)",
+                      "enum": [
+                        "Plug Mini (US)"
+                      ]
+                    },
+                    {
+                      "title": "Robot Vacuum Cleaner S1",
+                      "enum": [
+                        "Robot Vacuum Cleaner S1"
+                      ]
+                    },
+                    {
+                      "title": "Robot Vacuum Cleaner S1 Plus",
+                      "enum": [
+                        "Robot Vacuum Cleaner S1 Plus"
                       ]
                     },
                     {
@@ -178,48 +232,6 @@
                       "enum": [
                         "Strip Light"
                       ]
-                    },
-                    {
-                      "title": "Meter Plus (US)",
-                      "enum": [
-                        "MeterPlus"
-                      ]
-                    },
-                    {
-                      "title": "Meter Plus (JP)",
-                      "enum": [
-                        "Meter Plus (JP)"
-                      ]
-                    },
-                    {
-                      "title": "Indoor/Outdoor Sensor",
-                      "enum": [
-                        "WoIOSensor"
-                      ]
-                    },
-                    {
-                      "title": "Plug Mini (US)",
-                      "enum": [
-                        "Plug Mini (US)"
-                      ]
-                    },
-                    {
-                      "title": "Plug Mini (JP)",
-                      "enum": [
-                        "Plug Mini (JP)"
-                      ]
-                    },
-                    {
-                      "title": "Robot Vacuum Cleaner S1",
-                      "enum": [
-                        "Robot Vacuum Cleaner S1"
-                      ]
-                    },
-                    {
-                      "title": "Robot Vacuum Cleaner S1 Plus",
-                      "enum": [
-                        "Robot Vacuum Cleaner S1 Plus"
-                      ]
                     }
                   ],
                   "condition": {
@@ -231,27 +243,27 @@
                   "type": "string",
                   "oneOf": [
                     {
-                      "title": "BLE/OpenAPI",
-                      "enum": [
-                        "BLE/OpenAPI"
-                      ]
-                    },
-                    {
-                      "title": "OpenAPI",
-                      "enum": [
-                        "OpenAPI"
-                      ]
-                    },
-                    {
                       "title": "BLE",
                       "enum": [
                         "BLE"
                       ]
                     },
                     {
+                      "title": "BLE/OpenAPI",
+                      "enum": [
+                        "BLE/OpenAPI"
+                      ]
+                    },
+                    {
                       "title": "Disable",
                       "enum": [
                         "Disabled"
+                      ]
+                    },
+                    {
+                      "title": "OpenAPI",
+                      "enum": [
+                        "OpenAPI"
                       ]
                     }
                   ],
@@ -325,6 +337,12 @@
                           ]
                         },
                         {
+                          "title": "Multi-Press",
+                          "enum": [
+                            "multipress"
+                          ]
+                        },
+                        {
                           "title": "Press",
                           "enum": [
                             "press"
@@ -334,12 +352,6 @@
                           "title": "Switch",
                           "enum": [
                             "switch"
-                          ]
-                        },
-                        {
-                          "title": "Multi-Press",
-                          "enum": [
-                            "multipress"
                           ]
                         }
                       ],
@@ -361,33 +373,9 @@
                           ]
                         },
                         {
-                          "title": "Outlet",
-                          "enum": [
-                            "outlet"
-                          ]
-                        },
-                        {
-                          "title": "Garage Door",
-                          "enum": [
-                            "garagedoor"
-                          ]
-                        },
-                        {
                           "title": "Door",
                           "enum": [
                             "door"
-                          ]
-                        },
-                        {
-                          "title": "Lock",
-                          "enum": [
-                            "lock"
-                          ]
-                        },
-                        {
-                          "title": "Faucet",
-                          "enum": [
-                            "faucet"
                           ]
                         },
                         {
@@ -397,15 +385,27 @@
                           ]
                         },
                         {
-                          "title": "Window",
+                          "title": "Faucet",
                           "enum": [
-                            "window"
+                            "faucet"
                           ]
                         },
                         {
-                          "title": "Window Covering",
+                          "title": "Garage Door",
                           "enum": [
-                            "windowcovering"
+                            "garagedoor"
+                          ]
+                        },
+                        {
+                          "title": "Lock",
+                          "enum": [
+                            "lock"
+                          ]
+                        },
+                        {
+                          "title": "Outlet",
+                          "enum": [
+                            "outlet"
                           ]
                         },
                         {
@@ -418,6 +418,18 @@
                           "title": "Switch",
                           "enum": [
                             "switch"
+                          ]
+                        },
+                        {
+                          "title": "Window",
+                          "enum": [
+                            "window"
+                          ]
+                        },
+                        {
+                          "title": "Window Covering",
+                          "enum": [
+                            "windowcovering"
                           ]
                         }
                       ],
@@ -544,16 +556,16 @@
                       "type": "string",
                       "oneOf": [
                         {
-                          "title": "Performance Mode",
                           "enum": [
                             "0"
-                          ]
+                          ],
+                          "title": "Performance Mode"
                         },
                         {
-                          "title": "Silent Mode",
                           "enum": [
                             "1"
-                          ]
+                          ],
+                          "title": "Silent Mode"
                         }
                       ],
                       "condition": {
@@ -565,16 +577,16 @@
                       "type": "string",
                       "oneOf": [
                         {
-                          "title": "Performance Mode",
                           "enum": [
                             "0"
-                          ]
+                          ],
+                          "title": "Performance Mode"
                         },
                         {
-                          "title": "Silent Mode",
                           "enum": [
                             "1"
-                          ]
+                          ],
+                          "title": "Silent Mode"
                         }
                       ],
                       "condition": {
@@ -614,34 +626,34 @@
                       "type": "string",
                       "oneOf": [
                         {
-                          "title": "Middle to Up",
-                          "enum": [
-                            "only_up"
-                          ]
-                        },
-                        {
-                          "title": "Middle to Down",
-                          "enum": [
-                            "only_down"
-                          ]
-                        },
-                        {
-                          "title": "Down-to-Up",
                           "enum": [
                             "down_and_up"
-                          ]
+                          ],
+                          "title": "Down-to-Up"
                         },
                         {
-                          "title": "Up-to-Down",
+                          "enum": [
+                            "only_down"
+                          ],
+                          "title": "Middle to Down"
+                        },
+                        {
+                          "enum": [
+                            "only_up"
+                          ],
+                          "title": "Middle to Up"
+                        },
+                        {
                           "enum": [
                             "up_and_down"
-                          ]
+                          ],
+                          "title": "Up-to-Down"
                         },
                         {
-                          "title": "Tilt Direction",
                           "enum": [
                             "use_tilt_for_direction"
-                          ]
+                          ],
+                          "title": "Tilt Direction"
                         }
                       ],
                       "description": "Defines how the Home app sliders control the blind tilt.",
@@ -903,15 +915,15 @@
                   "default": "",
                   "oneOf": [
                     {
-                      "title": "Default Logging",
+                      "title": "Debug Logging",
                       "enum": [
-                        ""
+                        "debug"
                       ]
                     },
                     {
-                      "title": "Standard Logging",
+                      "title": "Default Logging",
                       "enum": [
-                        "standard"
+                        ""
                       ]
                     },
                     {
@@ -921,9 +933,9 @@
                       ]
                     },
                     {
-                      "title": "Debug Logging",
+                      "title": "Standard Logging",
                       "enum": [
-                        "debug"
+                        "standard"
                       ]
                     }
                   ],
@@ -980,93 +992,9 @@
                       ]
                     },
                     {
-                      "title": "DIY Air Conditioner (IR)",
+                      "title": "Air Purifier (IR)",
                       "enum": [
-                        "DIY Air Conditioner"
-                      ]
-                    },
-                    {
-                      "title": "TV (IR)",
-                      "enum": [
-                        "TV"
-                      ]
-                    },
-                    {
-                      "title": "DIY TV (IR)",
-                      "enum": [
-                        "DIY TV"
-                      ]
-                    },
-                    {
-                      "title": "Light (IR)",
-                      "enum": [
-                        "Light"
-                      ]
-                    },
-                    {
-                      "title": "DIY Light (IR)",
-                      "enum": [
-                        "DIY Light"
-                      ]
-                    },
-                    {
-                      "title": "IPTV (IR)",
-                      "enum": [
-                        "IPTV"
-                      ]
-                    },
-                    {
-                      "title": "DIY IPTV (IR)",
-                      "enum": [
-                        "DIY IPTV"
-                      ]
-                    },
-                    {
-                      "title": "Set Top Box (IR)",
-                      "enum": [
-                        "Set Top Box"
-                      ]
-                    },
-                    {
-                      "title": "DIY Set Top Box (IR)",
-                      "enum": [
-                        "DIY Set Top Box"
-                      ]
-                    },
-                    {
-                      "title": "DVD (IR)",
-                      "enum": [
-                        "DVD"
-                      ]
-                    },
-                    {
-                      "title": "DIY DVD (IR)",
-                      "enum": [
-                        "DIY DVD"
-                      ]
-                    },
-                    {
-                      "title": "Fan (IR)",
-                      "enum": [
-                        "Fan"
-                      ]
-                    },
-                    {
-                      "title": "DIY Fan (IR)",
-                      "enum": [
-                        "DIY Fan"
-                      ]
-                    },
-                    {
-                      "title": "Projector (IR)",
-                      "enum": [
-                        "Projector"
-                      ]
-                    },
-                    {
-                      "title": "DIY Projector (IR)",
-                      "enum": [
-                        "DIY Projector"
+                        "Air Purifier"
                       ]
                     },
                     {
@@ -1076,15 +1004,9 @@
                       ]
                     },
                     {
-                      "title": "DIY Camera (IR)",
+                      "title": "DIY Air Conditioner (IR)",
                       "enum": [
-                        "DIY Camera"
-                      ]
-                    },
-                    {
-                      "title": "Air Purifier (IR)",
-                      "enum": [
-                        "Air Purifier"
+                        "DIY Air Conditioner"
                       ]
                     },
                     {
@@ -1094,9 +1016,45 @@
                       ]
                     },
                     {
-                      "title": "Speaker (IR)",
+                      "title": "DIY Camera (IR)",
                       "enum": [
-                        "Speaker"
+                        "DIY Camera"
+                      ]
+                    },
+                    {
+                      "title": "DIY DVD (IR)",
+                      "enum": [
+                        "DIY DVD"
+                      ]
+                    },
+                    {
+                      "title": "DIY Fan (IR)",
+                      "enum": [
+                        "DIY Fan"
+                      ]
+                    },
+                    {
+                      "title": "DIY IPTV (IR)",
+                      "enum": [
+                        "DIY IPTV"
+                      ]
+                    },
+                    {
+                      "title": "DIY Light (IR)",
+                      "enum": [
+                        "DIY Light"
+                      ]
+                    },
+                    {
+                      "title": "DIY Projector (IR)",
+                      "enum": [
+                        "DIY Projector"
+                      ]
+                    },
+                    {
+                      "title": "DIY Set Top Box (IR)",
+                      "enum": [
+                        "DIY Set Top Box"
                       ]
                     },
                     {
@@ -1106,21 +1064,9 @@
                       ]
                     },
                     {
-                      "title": "Water Heater (IR)",
+                      "title": "DIY TV (IR)",
                       "enum": [
-                        "Water Heater"
-                      ]
-                    },
-                    {
-                      "title": "DIY Water Heater (IR)",
-                      "enum": [
-                        "DIY Water Heater"
-                      ]
-                    },
-                    {
-                      "title": "Vacuum Cleaner (IR)",
-                      "enum": [
-                        "Vacuum Cleaner"
+                        "DIY TV"
                       ]
                     },
                     {
@@ -1130,9 +1076,75 @@
                       ]
                     },
                     {
+                      "title": "DIY Water Heater (IR)",
+                      "enum": [
+                        "DIY Water Heater"
+                      ]
+                    },
+                    {
+                      "title": "DVD (IR)",
+                      "enum": [
+                        "DVD"
+                      ]
+                    },
+                    {
+                      "title": "Fan (IR)",
+                      "enum": [
+                        "Fan"
+                      ]
+                    },
+                    {
+                      "title": "IPTV (IR)",
+                      "enum": [
+                        "IPTV"
+                      ]
+                    },
+                    {
+                      "title": "Light (IR)",
+                      "enum": [
+                        "Light"
+                      ]
+                    },
+                    {
                       "title": "Others (IR)",
                       "enum": [
                         "Others"
+                      ]
+                    },
+                    {
+                      "title": "Projector (IR)",
+                      "enum": [
+                        "Projector"
+                      ]
+                    },
+                    {
+                      "title": "Set Top Box (IR)",
+                      "enum": [
+                        "Set Top Box"
+                      ]
+                    },
+                    {
+                      "title": "Speaker (IR)",
+                      "enum": [
+                        "Speaker"
+                      ]
+                    },
+                    {
+                      "title": "TV (IR)",
+                      "enum": [
+                        "TV"
+                      ]
+                    },
+                    {
+                      "title": "Vacuum Cleaner (IR)",
+                      "enum": [
+                        "Vacuum Cleaner"
+                      ]
+                    },
+                    {
+                      "title": "Water Heater (IR)",
+                      "enum": [
+                        "Water Heater"
                       ]
                     }
                   ],
@@ -1143,18 +1155,19 @@
                 "connectionType": {
                   "title": "Connection Type",
                   "type": "string",
+                  "placeholder": "OpenAPI",
                   "oneOf": [
                     {
-                      "title": "OpenAPI",
-                      "enum": [
-                        "OpenAPI"
-                      ]
-                    },
-                    {
-                      "title": "Disable",
                       "enum": [
                         "Disabled"
-                      ]
+                      ],
+                      "title": "Disable"
+                    },
+                    {
+                      "enum": [
+                        "OpenAPI"
+                      ],
+                      "title": "OpenAPI"
                     }
                   ],
                   "description": "Enables OpenAPI, if disabled will leave device in HomeKit and commands will not be sent to OpenAPI.",
@@ -1269,13 +1282,19 @@
                       "type": "string",
                       "oneOf": [
                         {
+                          "title": "Hub 2",
+                          "enum": [
+                            "Hub 2"
+                          ]
+                        },
+                        {
                           "title": "Meter",
                           "enum": [
                             "Meter"
                           ]
                         },
                         {
-                          "title": "MeterPlus",
+                          "title": "Meter Plus",
                           "enum": [
                             "MeterPlus"
                           ]
@@ -1284,12 +1303,6 @@
                           "title": "Meter Plus (JP)",
                           "enum": [
                             "Meter Plus (JP)"
-                          ]
-                        },
-                        {
-                          "title": "Hub 2",
-                          "enum": [
-                            "Hub 2"
                           ]
                         },
                         {
@@ -1377,39 +1390,9 @@
                       "default": "",
                       "oneOf": [
                         {
-                          "title": "Default",
-                          "enum": [
-                            ""
-                          ]
-                        },
-                        {
-                          "title": "Outlet",
-                          "enum": [
-                            "outlet"
-                          ]
-                        },
-                        {
-                          "title": "Garage Door",
-                          "enum": [
-                            "garagedoor"
-                          ]
-                        },
-                        {
                           "title": "Door",
                           "enum": [
                             "door"
-                          ]
-                        },
-                        {
-                          "title": "Lock",
-                          "enum": [
-                            "lock"
-                          ]
-                        },
-                        {
-                          "title": "Faucet",
-                          "enum": [
-                            "faucet"
                           ]
                         },
                         {
@@ -1419,15 +1402,27 @@
                           ]
                         },
                         {
-                          "title": "Window",
+                          "title": "Faucet",
                           "enum": [
-                            "window"
+                            "faucet"
                           ]
                         },
                         {
-                          "title": "Window Covering",
+                          "title": "Garage Door",
                           "enum": [
-                            "windowcovering"
+                            "garagedoor"
+                          ]
+                        },
+                        {
+                          "title": "Lock",
+                          "enum": [
+                            "lock"
+                          ]
+                        },
+                        {
+                          "title": "Outlet",
+                          "enum": [
+                            "outlet"
                           ]
                         },
                         {
@@ -1440,6 +1435,18 @@
                           "title": "Switch",
                           "enum": [
                             "switch"
+                          ]
+                        },
+                        {
+                          "title": "Window",
+                          "enum": [
+                            "window"
+                          ]
+                        },
+                        {
+                          "title": "Window Covering",
+                          "enum": [
+                            "windowcovering"
                           ]
                         }
                       ],
@@ -1471,15 +1478,15 @@
                   "default": "",
                   "oneOf": [
                     {
-                      "title": "Default Logging",
+                      "title": "Debug Logging",
                       "enum": [
-                        ""
+                        "debug"
                       ]
                     },
                     {
-                      "title": "Standard Logging",
+                      "title": "Default Logging",
                       "enum": [
-                        "standard"
+                        ""
                       ]
                     },
                     {
@@ -1489,9 +1496,9 @@
                       ]
                     },
                     {
-                      "title": "Debug Logging",
+                      "title": "Standard Logging",
                       "enum": [
-                        "debug"
+                        "standard"
                       ]
                     }
                   ],
@@ -1533,15 +1540,15 @@
             "default": "",
             "oneOf": [
               {
-                "title": "Default Logging",
+                "title": "Debug Logging",
                 "enum": [
-                  ""
+                  "debug"
                 ]
               },
               {
-                "title": "Standard Logging",
+                "title": "Default Logging",
                 "enum": [
-                  "standard"
+                  ""
                 ]
               },
               {
@@ -1551,9 +1558,9 @@
                 ]
               },
               {
-                "title": "Debug Logging",
+                "title": "Standard Logging",
                 "enum": [
-                  "debug"
+                  "standard"
                 ]
               }
             ]
