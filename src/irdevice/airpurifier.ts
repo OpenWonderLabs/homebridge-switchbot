@@ -54,7 +54,7 @@ export class AirPurifier {
     this.hap = this.api.hap;
     // default placeholders
     this.deviceLogs(device);
-    this.context();
+    this.deviceContext();
     this.disablePushOnChanges(device);
     this.disablePushOffChanges(device);
     this.deviceConfig(device);
@@ -408,7 +408,7 @@ export class AirPurifier {
     this.airPurifierService.updateCharacteristic(this.hap.Characteristic.Active, e);
   }
 
-  private context() {
+  private deviceContext() {
     if (this.Active === undefined) {
       this.Active = this.hap.Characteristic.Active.INACTIVE;
     } else {

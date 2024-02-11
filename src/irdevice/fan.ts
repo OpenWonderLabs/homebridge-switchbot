@@ -43,7 +43,7 @@ export class Fan {
     this.hap = this.api.hap;
     // default placeholders
     this.deviceLogs(device);
-    this.context();
+    this.deviceContext();
     this.disablePushOnChanges(device);
     this.disablePushOffChanges(device);
     this.deviceConfig(device);
@@ -421,7 +421,7 @@ export class Fan {
     this.fanService.updateCharacteristic(this.hap.Characteristic.SwingMode, e);
   }
 
-  async context() {
+  async deviceContext() {
     if (this.Active === undefined) {
       this.Active = this.hap.Characteristic.Active.INACTIVE;
     } else {

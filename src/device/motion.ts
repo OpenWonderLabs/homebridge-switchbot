@@ -74,7 +74,7 @@ export class Motion {
     this.deviceLogs(device);
     this.scan(device);
     this.refreshRate(device);
-    this.context();
+    this.deviceContext();
     this.deviceConfig(device);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
@@ -629,7 +629,7 @@ export class Motion {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      await this.context();
+      await this.deviceContext();
       await this.updateHomeKitCharacteristics();
     }
   }
@@ -643,11 +643,15 @@ export class Motion {
     }
   }
 
-  async context() {
+  async deviceContext() {
     if (this.MotionDetected === undefined) {
       this.MotionDetected = false;
     } else {
       this.MotionDetected = this.accessory.context.MotionDetected;
+    }
+    if (this.FirmwareRevision === undefined) {
+      this.FirmwareRevision = this.platform.version;
+      this.accessory.context.FirmwareRevision = this.FirmwareRevision;
     }
   }
 

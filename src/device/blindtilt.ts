@@ -105,7 +105,7 @@ export class BlindTilt {
     this.refreshRate(device);
     this.scan(device);
     this.setupMqtt(device);
-    this.context();
+    this.deviceContext();
     this.deviceConfig(device);
 
     this.mappingMode = (device.blindTilt?.mode as BlindTiltMappingMode) ?? BlindTiltMappingMode.OnlyUp;
@@ -1196,7 +1196,7 @@ export class BlindTilt {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      await this.context();
+      await this.deviceContext();
       await this.updateHomeKitCharacteristics();
     }
   }
@@ -1215,7 +1215,7 @@ export class BlindTilt {
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
-  async context() {
+  async deviceContext() {
     if (this.CurrentPosition === undefined) {
       this.CurrentPosition = 0;
     } else {

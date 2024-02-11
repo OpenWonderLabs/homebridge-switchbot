@@ -75,7 +75,7 @@ export class Humidifier {
     this.deviceLogs(device);
     this.scan(device);
     this.refreshRate(device);
-    this.context();
+    this.deviceContext();
     this.deviceConfig(device);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
@@ -937,7 +937,7 @@ export class Humidifier {
   async offlineOff(): Promise<void> {
     this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} offline: ${this.device.offline}`);
     if (this.device.offline) {
-      await this.context();
+      await this.deviceContext();
       if (this.CurrentTemperature === undefined) {
         this.CurrentTemperature = 0;
       }
@@ -959,7 +959,7 @@ export class Humidifier {
     }
   }
 
-  async context() {
+  async deviceContext() {
     if (this.Active === undefined) {
       this.Active = this.hap.Characteristic.Active.ACTIVE;
     } else {

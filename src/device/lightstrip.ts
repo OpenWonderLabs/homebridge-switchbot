@@ -82,7 +82,7 @@ export class StripLight {
     this.deviceLogs(device);
     this.scan(device);
     this.refreshRate(device);
-    this.context();
+    this.deviceContext();
     this.deviceConfig(device);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
@@ -1108,7 +1108,7 @@ export class StripLight {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      await this.context();
+      await this.deviceContext();
       await this.updateHomeKitCharacteristics();
     }
   }
@@ -1120,7 +1120,7 @@ export class StripLight {
     this.lightBulbService.updateCharacteristic(this.hap.Characteristic.Saturation, e);
   }
 
-  async context() {
+  async deviceContext() {
     if (this.On === undefined) {
       this.On = false;
     } else {

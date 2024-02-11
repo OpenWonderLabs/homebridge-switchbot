@@ -42,7 +42,7 @@ export class Light {
     this.hap = this.api.hap;
     // default placeholders
     this.deviceLogs(device);
-    this.context();
+    this.deviceContext();
     this.disablePushOnChanges(device);
     this.disablePushOffChanges(device);
     this.deviceConfig(device);
@@ -437,7 +437,7 @@ export class Light {
     }
   }
 
-  async context() {
+  async deviceContext() {
     if (this.On === undefined) {
       this.On = false;
     } else {
