@@ -235,14 +235,26 @@ export class ColorBulb {
 
           // Hue
           this.Hue = hue;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${this.Hue}`);
+          if (this.accessory.context.Hue !== this.Hue) {
+            this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${this.Hue}`);
+          } else {
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${this.Hue}`);
+          }
 
           // Saturation
           this.Saturation = saturation;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${this.Saturation}`);
+          if (this.accessory.context.Saturation !== this.Saturation) {
+            this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${this.Saturation}`);
+          } else {
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${this.Saturation}`);
+          }
 
           this.ColorTemperature = colorTemperature;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
+          if (this.accessory.context.ColorTemperature !== this.ColorTemperature) {
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
+          } else {
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.ColorTemperature}`);
+          }
           this.updateHomeKitCharacteristics();
         } catch (e: any) {
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
@@ -1230,39 +1242,39 @@ export class ColorBulb {
         break;
       case 400:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Bad Request, The client has issued an invalid request. `
-            + `This is commonly used to specify validation errors in a request payload, statusCode: ${statusCode}`);
+          + `This is commonly used to specify validation errors in a request payload, statusCode: ${statusCode}`);
         break;
       case 401:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unauthorized,	Authorization for the API is required, `
-            + `but the request has not been authenticated, statusCode: ${statusCode}`);
+          + `but the request has not been authenticated, statusCode: ${statusCode}`);
         break;
       case 403:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Forbidden,	The request has been authenticated but does not `
-            + `have appropriate permissions, or a requested resource is not found, statusCode: ${statusCode}`);
+          + `have appropriate permissions, or a requested resource is not found, statusCode: ${statusCode}`);
         break;
       case 404:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Not Found,	Specifies the requested path does not exist, `
-        + `statusCode: ${statusCode}`);
+          + `statusCode: ${statusCode}`);
         break;
       case 406:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Not Acceptable,	The client has requested a MIME type via `
-            + `the Accept header for a value not supported by the server, statusCode: ${statusCode}`);
+          + `the Accept header for a value not supported by the server, statusCode: ${statusCode}`);
         break;
       case 415:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unsupported Media Type,	The client has defined a contentType `
-            + `header that is not supported by the server, statusCode: ${statusCode}`);
+          + `header that is not supported by the server, statusCode: ${statusCode}`);
         break;
       case 422:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unprocessable Entity,	The client has made a valid request, `
-            + `but the server cannot process it. This is often used for APIs for which certain limits have been exceeded, statusCode: ${statusCode}`);
+          + `but the server cannot process it. This is often used for APIs for which certain limits have been exceeded, statusCode: ${statusCode}`);
         break;
       case 429:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Too Many Requests,	The client has exceeded the number of `
-            + `requests allowed for a given time window, statusCode: ${statusCode}`);
+          + `requests allowed for a given time window, statusCode: ${statusCode}`);
         break;
       case 500:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Internal Server Error,	An unexpected error on the SmartThings `
-            + `servers has occurred. These errors should be rare, statusCode: ${statusCode}`);
+          + `servers has occurred. These errors should be rare, statusCode: ${statusCode}`);
         break;
       default:
         this.infoLog(

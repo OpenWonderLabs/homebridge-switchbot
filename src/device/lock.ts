@@ -69,7 +69,7 @@ export class Lock {
     this.deviceLogs(device);
     this.scan(device);
     this.refreshRate(device);
-    this.context();
+    this.deviceContext();
     this.deviceConfig(device);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
@@ -808,7 +808,7 @@ export class Lock {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      await this.context();
+      await this.deviceContext();
       await this.updateHomeKitCharacteristics();
     }
   }
@@ -821,7 +821,7 @@ export class Lock {
     this.lockService.updateCharacteristic(this.hap.Characteristic.LockCurrentState, e);
   }
 
-  async context() {
+  async deviceContext() {
     if (this.LockTargetState === undefined) {
       this.LockTargetState = false;
     } else {

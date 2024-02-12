@@ -62,7 +62,7 @@ export class RobotVacuumCleaner {
     this.deviceLogs(device);
     this.scan(device);
     this.refreshRate(device);
-    this.context();
+    this.deviceContext();
     this.deviceConfig(device);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
@@ -809,7 +809,7 @@ export class RobotVacuumCleaner {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      await this.context();
+      await this.deviceContext();
       await this.updateHomeKitCharacteristics();
     }
   }
@@ -818,7 +818,7 @@ export class RobotVacuumCleaner {
     this.robotVacuumCleanerService.updateCharacteristic(this.hap.Characteristic.On, e);
   }
 
-  async context() {
+  async deviceContext() {
     if (this.On === undefined) {
       this.On = false;
     } else {
@@ -828,6 +828,10 @@ export class RobotVacuumCleaner {
       this.Brightness = 0;
     } else {
       this.Brightness = this.accessory.context.Brightness;
+    }
+    if (this.FirmwareRevision === undefined) {
+      this.FirmwareRevision = this.platform.version;
+      this.accessory.context.FirmwareRevision = this.FirmwareRevision;
     }
   }
 

@@ -97,7 +97,7 @@ export class Curtain {
     this.refreshRate(device);
     this.scan(device);
     this.setupMqtt(device);
-    this.context();
+    this.deviceContext();
     this.deviceConfig(device);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
@@ -1219,7 +1219,7 @@ export class Curtain {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      await this.context();
+      await this.deviceContext();
       await this.updateHomeKitCharacteristics();
     }
   }
@@ -1236,7 +1236,7 @@ export class Curtain {
     //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
-  async context() {
+  async deviceContext() {
     if (this.accessory.context.CurrentPosition === undefined) {
       this.CurrentPosition = 0;
     } else {

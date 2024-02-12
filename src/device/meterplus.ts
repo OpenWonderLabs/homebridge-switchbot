@@ -77,7 +77,7 @@ export class MeterPlus {
     this.deviceLogs(device);
     this.scan(device);
     this.refreshRate(device);
-    this.context();
+    this.deviceContext();
     this.setupHistoryService(device);
     this.setupMqtt(device);
     this.deviceConfig(device);
@@ -697,7 +697,7 @@ export class MeterPlus {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      await this.context();
+      await this.deviceContext();
       await this.updateHomeKitCharacteristics();
     }
   }
@@ -713,7 +713,7 @@ export class MeterPlus {
     this.batteryService?.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, e);
   }
 
-  async context() {
+  async deviceContext() {
     if (this.CurrentRelativeHumidity === undefined) {
       this.CurrentRelativeHumidity = 0;
     } else {

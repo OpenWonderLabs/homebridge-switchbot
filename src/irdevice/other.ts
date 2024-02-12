@@ -47,7 +47,7 @@ export class Others {
     // default placeholders
     this.deviceLogs(device);
     this.deviceType(device);
-    this.context();
+    this.deviceContext();
     this.disablePushOnChanges(device);
     this.disablePushOffChanges(device);
     this.deviceConfig(device);
@@ -910,7 +910,7 @@ export class Others {
     }
   }
 
-  async context() {
+  async deviceContext() {
     if (this.On === undefined) {
       this.On = true;
     } else {

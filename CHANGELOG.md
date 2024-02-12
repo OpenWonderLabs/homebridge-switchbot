@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [3.4.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.4.0) (2024-02-11)
+
+### What's Changed
+- Add support for `Smart Lock Pro`
+- Add `Mini Robot Vacuum K10+` to config
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.3.0...v3.4.0
+
 ## [3.3.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.3.0) (2024-02-09)
 
 ### What's Changed

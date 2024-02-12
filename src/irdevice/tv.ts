@@ -39,7 +39,7 @@ export class TV {
     this.hap = this.api.hap;
     // default placeholders
     this.deviceLogs(device);
-    this.context();
+    this.deviceContext();
     this.disablePushOnChanges(device);
     this.disablePushOffChanges(device);
     this.disablePushDetailChanges(device);
@@ -555,7 +555,7 @@ export class TV {
     this.tvService.updateCharacteristic(this.hap.Characteristic.ActiveIdentifier, e);
   }
 
-  async context() {
+  async deviceContext() {
     if (this.Active === undefined) {
       this.Active = this.hap.Characteristic.Active.INACTIVE;
     } else {

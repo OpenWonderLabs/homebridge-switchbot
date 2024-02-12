@@ -1,6 +1,6 @@
 /* Copyright(C) 2017-2023, donavanbecker (https://github.com/donavanbecker). All rights reserved.
  *
- * protect-platform.ts: homebridge-cloudflared-tunnel platform class.
+ * platform.ts: @switchbot/homebridge-switchbot platform class.
  */
 import { API, DynamicPlatformPlugin, Logging, PlatformAccessory } from 'homebridge';
 import { PLATFORM_NAME, PLUGIN_NAME, irdevice, device, SwitchBotPlatformConfig, devicesConfig, irDevicesConfig, Devices } from './settings.js';
@@ -52,11 +52,13 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   public readonly api: API;
   public readonly log: Logging;
 
-  version = process.env.npm_package_version || '2.13.0';
+  version!: string;
   Logging?: string;
   debugMode!: boolean;
-  platformLogging?: string;
+  platformConfig!: SwitchBotPlatformConfig['options'];
+  platformLogging!: SwitchBotPlatformConfig['logging'];
   config!: SwitchBotPlatformConfig;
+
   webhookEventListener: http.Server | null = null;
   mqttClient: MqttClient | null = null;
 
@@ -84,7 +86,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       credentials: config.credentials as object,
       options: config.options as object,
     };
-    this.logType();
+    this.platformLogging = this.config.options?.logging ?? 'standard';
+    this.platformConfigOptions();
+    this.platformLogs();
+    this.getVersion();
     this.debugLog(`Finished initializing platform: ${config.name}`);
 
     // verify the config
@@ -673,6 +678,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.createPlug(device);
         break;
       case 'Smart Lock':
+      case 'Smart Lock Pro':
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createLock(device);
         break;
@@ -680,6 +686,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createColorBulb(device);
         break;
+      case 'WoSweeper':
       case 'WoSweeperMini':
       case 'Robot Vacuum Cleaner S1':
       case 'Robot Vacuum Cleaner S1 Plus':
@@ -2567,7 +2574,37 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     return switchbot;
   }
 
-  logType() {
+  async getVersion() {
+    const json = JSON.parse(
+      readFileSync(
+        new URL('../package.json', import.meta.url),
+        'utf-8',
+      ),
+    );
+    this.debugLog(`Plugin Version: ${json.version}`);
+    this.version = json.version;
+  }
+
+  async platformConfigOptions() {
+    const platformConfig: SwitchBotPlatformConfig['options'] = {};
+    if (this.config.options) {
+      if (this.config.options.logging) {
+        platformConfig.logging = this.config.options.logging;
+      }
+      if (this.config.options.refreshRate) {
+        platformConfig.refreshRate = this.config.options.refreshRate;
+      }
+      if (this.config.options.pushRate) {
+        platformConfig.pushRate = this.config.options.pushRate;
+      }
+      if (Object.entries(platformConfig).length !== 0) {
+        this.debugLog(`Platform Config: ${JSON.stringify(platformConfig)}`);
+      }
+      this.platformConfig = platformConfig;
+    }
+  }
+
+  async platformLogs() {
     this.debugMode = process.argv.includes('-D') || process.argv.includes('--debug');
     if (this.config.options?.logging === 'debug' || this.config.options?.logging === 'standard' || this.config.options?.logging === 'none') {
       this.platformLogging = this.config.options!.logging;

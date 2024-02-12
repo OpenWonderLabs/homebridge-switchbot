@@ -78,7 +78,7 @@ export class Contact {
     this.deviceLogs(device);
     this.scan(device);
     this.refreshRate(device);
-    this.context();
+    this.deviceContext();
     this.deviceConfig(device);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
@@ -664,7 +664,7 @@ export class Contact {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      await this.context();
+      await this.deviceContext();
       await this.updateHomeKitCharacteristics();
     }
   }
@@ -681,7 +681,7 @@ export class Contact {
     this.batteryService?.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, e);
   }
 
-  async context() {
+  async deviceContext() {
     if (this.MotionDetected === undefined) {
       this.MotionDetected = false;
     } else {

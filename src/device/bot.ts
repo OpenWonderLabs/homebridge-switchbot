@@ -86,7 +86,7 @@ export class Bot {
     this.refreshRate(device);
     this.PressOrSwitch(device);
     this.allowPushChanges(device);
-    this.context();
+    this.deviceContext();
     this.DoublePress(device);
     this.deviceConfig(device);
 
@@ -1380,7 +1380,7 @@ export class Bot {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      await this.context();
+      await this.deviceContext();
       await this.updateHomeKitCharacteristics();
     }
   }
@@ -1437,7 +1437,7 @@ export class Bot {
     }
   }
 
-  async context() {
+  async deviceContext() {
     if (this.On === undefined) {
       this.On = false;
       this.accessory.context.On = this.On;

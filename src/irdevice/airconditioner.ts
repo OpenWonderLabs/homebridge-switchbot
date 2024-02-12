@@ -63,7 +63,7 @@ export class AirConditioner {
     this.hap = this.api.hap;
     // default placeholders
     this.deviceLogs(device);
-    this.context();
+    this.deviceContext();
     this.disablePushOnChanges(device);
     this.disablePushOffChanges(device);
     this.disablePushDetailChanges(device);
@@ -209,7 +209,7 @@ export class AirConditioner {
       `${this.device.remoteType}: ${this.accessory.displayName} pushAirConditionerDetailsChanges Active: ${this.Active},` +
       ` disablePushOff: ${this.disablePushOff},  disablePushOn: ${this.disablePushOn}`,
     );
-    //await this.context();
+    //await this.deviceContext();
     if (this.CurrentMode === undefined) {
       this.CurrentMode = 1;
     }
@@ -243,7 +243,7 @@ export class AirConditioner {
 
   private async UpdateCurrentHeaterCoolerState() {
     if (this.Active === this.hap.Characteristic.Active.ACTIVE) {
-      await this.context();
+      await this.deviceContext();
       if (this.ThresholdTemperature < this.CurrentTemperature &&
         this.TargetHeaterCoolerState !== this.hap.Characteristic.TargetHeaterCoolerState.HEAT) {
         this.CurrentHeaterCoolerState = this.hap.Characteristic.CurrentHeaterCoolerState.COOLING;
@@ -439,7 +439,7 @@ export class AirConditioner {
   }
 
   async ThresholdTemperatureGet(): Promise<CharacteristicValue> {
-    await this.context();
+    await this.deviceContext();
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Get ThresholdTemperature: ${this.ThresholdTemperature}`);
     return this.ThresholdTemperature;
   }
@@ -665,7 +665,7 @@ export class AirConditioner {
     this.coolerService.updateCharacteristic(this.hap.Characteristic.CoolingThresholdTemperature, e);
   }
 
-  async context(): Promise<void> {
+  async deviceContext(): Promise<void> {
     if (this.Active === undefined) {
       this.Active = this.hap.Characteristic.Active.INACTIVE;
     } else if (this.Active) {
