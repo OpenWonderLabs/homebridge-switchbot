@@ -1,6 +1,6 @@
 /* Copyright(C) 2017-2023, donavanbecker (https://github.com/donavanbecker). All rights reserved.
  *
- * protect-platform.ts: homebridge-cloudflared-tunnel platform class.
+ * platform.ts: @switchbot/homebridge-switchbot platform class.
  */
 import { API, DynamicPlatformPlugin, Logging, PlatformAccessory } from 'homebridge';
 import { PLATFORM_NAME, PLUGIN_NAME, irdevice, device, SwitchBotPlatformConfig, devicesConfig, irDevicesConfig, Devices } from './settings.js';

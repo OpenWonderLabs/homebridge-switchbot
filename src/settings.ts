@@ -1,3 +1,7 @@
+/* Copyright(C) 2017-2023, donavanbecker (https://github.com/donavanbecker). All rights reserved.
+ *
+ * settings.ts: @switchbot/homebridge-switchbot platform class.
+ */
 /* eslint-disable max-len */
 import { MacAddress, PlatformConfig } from 'homebridge';
 import { IClientOptions } from 'async-mqtt';
