@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [3.5.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.5.0) (2024-04-XX)
+
+### What's Changed
+- Add BLE support for `Smart Lock`
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.4.0...v3.5.0
+
 ## [3.4.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.4.0) (2024-02-11)
 
 ### What's Changed
