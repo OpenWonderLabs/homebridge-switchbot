@@ -76,27 +76,27 @@
     "ir"
   ],
   "dependencies": {
-    "@homebridge/plugin-ui-utils": "^1.0.1",
+    "@homebridge/plugin-ui-utils": "^1.0.2",
     "async-mqtt": "^2.6.3",
     "fakegato-history": "^0.6.4",
-    "homebridge-lib": "^6.7.3",
+    "homebridge-lib": "^6.7.5",
     "rxjs": "^7.8.1",
-    "undici": "^6.6.2"
+    "undici": "^6.11.1"
   },
   "optionalDependencies": {
     "node-switchbot": "2.1.0-beta.2"
   },
   "devDependencies": {
-    "@types/node": "^20.11.17",
-    "@typescript-eslint/eslint-plugin": "^7.0.1",
-    "@typescript-eslint/parser": "^7.0.1",
-    "eslint": "^8.56.0",
+    "@types/node": "^20.12.4",
+    "@typescript-eslint/eslint-plugin": "^7.5.0",
+    "@typescript-eslint/parser": "^7.5.0",
+    "eslint": "^8.57.0",
     "homebridge": "^1.7.0",
-    "homebridge-config-ui-x": "4.55.1",
-    "nodemon": "^3.0.3",
-    "npm-check-updates": "^16.14.15",
+    "homebridge-config-ui-x": "4.56.1",
+    "nodemon": "^3.1.0",
+    "npm-check-updates": "^16.14.18",
     "rimraf": "^5.0.5",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.4.3"
   }
 }

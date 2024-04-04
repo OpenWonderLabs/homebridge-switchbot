@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. This projec
 ## [3.5.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.5.0) (2024-04-XX)
 
 ### What's Changed
+- Add Support for `Water Detector`
 - Add BLE support for `Smart Lock`
 - Housekeeping and updated dependencies.
 
