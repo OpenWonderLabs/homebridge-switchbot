@@ -92,7 +92,7 @@
     "@typescript-eslint/parser": "^6.21.0",
     "eslint": "^8.56.0",
     "homebridge": "^1.7.0",
-    "homebridge-config-ui-x": "4.55.1",
+    "homebridge-config-ui-x": "4.56.1",
     "nodemon": "^3.0.3",
     "npm-check-updates": "^16.14.15",
     "rimraf": "^5.0.5",
