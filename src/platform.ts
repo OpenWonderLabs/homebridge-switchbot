@@ -13,6 +13,7 @@ import { Hub } from './device/hub.js';
 import { Contact } from './device/contact.js';
 import { Curtain } from './device/curtain.js';
 import { IOSensor } from './device/iosensor.js';
+import { WaterDetector } from './device/waterdetector.js';
 import { MeterPlus } from './device/meterplus.js';
 import { ColorBulb } from './device/colorbulb.js';
 import { CeilingLight } from './device/ceilinglight.js';
@@ -654,6 +655,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createIOSensor(device);
         break;
+      case 'Water Detector':
+        this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
+        this.createWaterDetector(device);
+        break;
       case 'Motion Sensor':
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createMotion(device);
@@ -1140,6 +1145,66 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new IOSensor(this, accessory, device);
+      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
+
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
+      this.accessories.push(accessory);
+    } else {
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+    }
+  }
+
+  private async createWaterDetector(device: device & devicesConfig) {
+    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`);
+
+    // see if an accessory with the same uuid has already been registered and restored from
+    // the cached devices we stored in the `configureAccessory` method above
+    const existingAccessory = this.accessories.find((accessory) => accessory.UUID === uuid);
+
+    if (existingAccessory) {
+      // the accessory already exists
+      if (await this.registerDevice(device)) {
+        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
+        existingAccessory.context.model = device.deviceType;
+        existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.displayName = device.configDeviceName || device.deviceName;
+        if (device.firmware) {
+          existingAccessory.context.FirmwareRevision = device.firmware;
+        }
+        existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+        existingAccessory.context.connectionType = await this.connectionType(device);
+        this.api.updatePlatformAccessories([existingAccessory]);
+        // create the accessory handler for the restored accessory
+        // this is imported from `platformAccessory.ts`
+        new WaterDetector(this, existingAccessory, device);
+        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`);
+      } else {
+        this.unregisterPlatformAccessories(existingAccessory);
+      }
+    } else if (await this.registerDevice(device)) {
+      // the accessory does not yet exist, so we need to create it
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
+
+      // create a new accessory
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+
+      // store a copy of the device object in the `accessory.context`
+      // the `context` property can be used to store any data about the accessory you may need
+      accessory.context.device = device;
+      accessory.context.model = device.deviceType;
+      accessory.context.deviceID = device.deviceId;
+      if (device.firmware) {
+        accessory.context.FirmwareRevision = device.firmware;
+      }
+      accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
+      accessory.context.connectionType = await this.connectionType(device);
+      // create the accessory handler for the newly create accessory
+      // this is imported from `platformAccessory.ts`
+      new WaterDetector(this, accessory, device);
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
 
       // publish device externally or link the accessory to your platform

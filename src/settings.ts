@@ -72,6 +72,7 @@ export interface devicesConfig extends device {
   blindTilt?: blindTilt;
   contact?: contact;
   motion?: motion;
+  waterdetector?: waterdetector;
   colorbulb?: colorbulb;
   striplight?: striplight;
   ceilinglight?: ceilinglight;
@@ -136,6 +137,12 @@ export type motion = {
   hide_lightsensor?: boolean;
   set_minLux?: number;
   set_maxLux?: number;
+};
+
+export type waterdetector = {
+  hide_leak?: boolean;
+  hide_temperature?: boolean;
+  hide_humidity?: boolean;
 };
 
 export type colorbulb = {
