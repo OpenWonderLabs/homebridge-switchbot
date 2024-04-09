@@ -691,6 +691,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createColorBulb(device);
         break;
+      case 'K10+':
       case 'WoSweeper':
       case 'WoSweeperMini':
       case 'Robot Vacuum Cleaner S1':
