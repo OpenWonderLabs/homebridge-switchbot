@@ -6,8 +6,8 @@ import asyncmqtt from 'async-mqtt';
 import { interval, Subject } from 'rxjs';
 import { skipWhile } from 'rxjs/operators';
 import { SwitchBotPlatform } from '../platform.js';
-import { Service, PlatformAccessory, Units, CharacteristicValue, API, Logging, HAP } from 'homebridge';
-import { device, devicesConfig, serviceData, temperature, deviceStatus, Devices, SwitchBotPlatformConfig } from '../settings.js';
+import { Service, PlatformAccessory, CharacteristicValue, API, Logging, HAP } from 'homebridge';
+import { device, devicesConfig, serviceData, deviceStatus, Devices, SwitchBotPlatformConfig } from '../settings.js';
 
 /**
  * Platform Accessory
@@ -32,21 +32,15 @@ export class WaterDetector {
   ChargingState!: CharacteristicValue;
   StatusLowBattery!: CharacteristicValue;
   FirmwareRevision!: CharacteristicValue;
-  CurrentTemperature!: CharacteristicValue;
-  CurrentRelativeHumidity!: CharacteristicValue;
 
   // OpenAPI Status
   OpenAPI_BatteryLevel: deviceStatus['battery'];
   OpenAPI_FirmwareRevision: deviceStatus['version'];
-  OpenAPI_CurrentTemperature: deviceStatus['temperature'];
-  OpenAPI_CurrentRelativeHumidity: deviceStatus['humidity'];
+  OpenAPI_LeakDetected: deviceStatus['status'];
 
   // BLE Status
-  BLE_Celsius!: temperature['c'];
-  BLE_Fahrenheit!: temperature['f'];
   BLE_BatteryLevel!: serviceData['battery'];
-  BLE_CurrentTemperature!: serviceData['temperature'];
-  BLE_CurrentRelativeHumidity!: serviceData['humidity'];
+  BLE_LeakDetected!: number;//serviceData['status'];
 
   // BLE Others
   BLE_IsConnected?: boolean;
@@ -130,28 +124,6 @@ export class WaterDetector {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Temperature Sensor Service`);
       this.temperatureservice = this.accessory.getService(this.hap.Service.TemperatureSensor);
       accessory.removeService(this.temperatureservice!);
-    } else if (!this.temperatureservice) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Temperature Sensor Service`);
-      const temperatureservice = `${accessory.displayName} Temperature Sensor`;
-      (this.temperatureservice = this.accessory.getService(this.hap.Service.TemperatureSensor)
-        || this.accessory.addService(this.hap.Service.TemperatureSensor)), temperatureservice;
-
-      this.temperatureservice.setCharacteristic(this.hap.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
-      if (!this.temperatureservice.testCharacteristic(this.hap.Characteristic.ConfiguredName)) {
-        this.temperatureservice.addCharacteristic(this.hap.Characteristic.ConfiguredName, `${accessory.displayName} Temperature Sensor`);
-      }
-      this.temperatureservice
-        .getCharacteristic(this.hap.Characteristic.CurrentTemperature)
-        .setProps({
-          unit: Units['CELSIUS'],
-          validValueRanges: [-273.15, 100],
-          minValue: -273.15,
-          maxValue: 100,
-          minStep: 0.1,
-        })
-        .onGet(() => {
-          return this.CurrentTemperature!;
-        });
     } else {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Temperature Sensor Service Not Added`);
     }
@@ -161,24 +133,6 @@ export class WaterDetector {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Humidity Sensor Service`);
       this.humidityservice = this.accessory.getService(this.hap.Service.HumiditySensor);
       accessory.removeService(this.humidityservice!);
-    } else if (!this.humidityservice) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Humidity Sensor Service`);
-      const humidityservice = `${accessory.displayName} Humidity Sensor`;
-      (this.humidityservice = this.accessory.getService(this.hap.Service.HumiditySensor)
-        || this.accessory.addService(this.hap.Service.HumiditySensor)), humidityservice;
-
-      this.humidityservice.setCharacteristic(this.hap.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
-      if (!this.humidityservice.testCharacteristic(this.hap.Characteristic.ConfiguredName)) {
-        this.humidityservice.addCharacteristic(this.hap.Characteristic.ConfiguredName, `${accessory.displayName} Humidity Sensor`);
-      }
-      this.humidityservice
-        .getCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity)
-        .setProps({
-          minStep: 0.1,
-        })
-        .onGet(() => {
-          return this.CurrentRelativeHumidity;
-        });
     } else {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Humidity Sensor Service Not Added`);
     }
@@ -210,17 +164,14 @@ export class WaterDetector {
       this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
         try {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          if (context.scale === 'CELSIUS') {
-            const { temperature, humidity } = context;
-            const { CurrentTemperature, CurrentRelativeHumidity } = this;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-              '(temperature, humidity) = ' +
-              `Webhook:(${temperature}, ${humidity}), ` +
-              `current:(${CurrentTemperature}, ${CurrentRelativeHumidity})`);
-            this.CurrentRelativeHumidity = humidity;
-            this.CurrentTemperature = temperature;
-            this.updateHomeKitCharacteristics();
-          }
+          const { status } = context;
+          const { LeakDetected } = this;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
+              '(status) = ' +
+              `Webhook:(${status}), ` +
+              `current:(${LeakDetected})`);
+          this.LeakDetected = status;
+          this.updateHomeKitCharacteristics();
         } catch (e: any) {
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
@@ -259,55 +210,31 @@ export class WaterDetector {
     }
     this.debugLog(`${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
 
-    // Humidity
-    if (!this.device.waterdetector?.hide_humidity) {
-      this.CurrentRelativeHumidity = this.BLE_CurrentRelativeHumidity!;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Humidity: ${this.CurrentRelativeHumidity}%`);
-    }
-
-    // Current Temperature
-    if (!this.device.waterdetector?.hide_temperature) {
-      this.BLE_Celsius < 0 ? 0 : this.BLE_Celsius > 100 ? 100 : this.BLE_Celsius;
-      this.CurrentTemperature = this.BLE_Celsius;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c`);
-    }
+    // LeakDetected
+    this.LeakDetected = this.BLE_LeakDetected!;
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LeakDetected: ${this.LeakDetected}%`);
   }
 
   async openAPIparseStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
-    // Battery
-    this.BatteryLevel = Number(this.OpenAPI_BatteryLevel);
-    if (this.BatteryLevel < 15) {
-      this.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
-    } else {
-      this.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
-    }
-    this.debugLog(`${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
-
-    // Current Relative Humidity
-    if (!this.device.waterdetector?.hide_humidity) {
-      this.CurrentRelativeHumidity = this.OpenAPI_CurrentRelativeHumidity!;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Humidity: ${this.CurrentRelativeHumidity}%`);
-    }
-
-    // Current Temperature
-    if (!this.device.waterdetector?.hide_temperature) {
-      this.CurrentTemperature = this.OpenAPI_CurrentTemperature!;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c`);
-    }
-
-    // BatteryLevel
+    // StatusLowBattery
     this.BatteryLevel = Number(this.OpenAPI_BatteryLevel);
     if (this.BatteryLevel < 10) {
       this.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
       this.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     }
+    this.debugLog(`${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`);
+
+    // BatteryLevel
     if (Number.isNaN(this.BatteryLevel)) {
       this.BatteryLevel = 100;
     }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel},`
-      + ` StatusLowBattery: ${this.StatusLowBattery}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
+
+    // LeakDetected
+    this.LeakDetected = this.OpenAPI_LeakDetected!;
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LeakDetected: ${this.LeakDetected}%`);
 
     // FirmwareRevision
     this.FirmwareRevision = this.OpenAPI_FirmwareRevision!;
@@ -347,18 +274,16 @@ export class WaterDetector {
     (async () => {
       // Start to monitor advertisement packets
       await switchbot.startScan({
-        model: 'w',
+        model: 'l',
         id: this.device.bleMac,
       });
       // Set an event handler
       switchbot.onadvertisement = (ad: any) => {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${JSON.stringify(ad, null, '  ')}`);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} address: ${ad.address}, model: ${ad.serviceData.model}`);
-        if (this.device.bleMac === ad.address && ad.serviceData.model === 'w') {
+        if (this.device.bleMac === ad.address && ad.serviceData.model === 'l') {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-          this.BLE_CurrentTemperature = ad.serviceData.temperature;
-          this.BLE_Celsius = ad.serviceData.temperature!.c;
-          this.BLE_Fahrenheit = ad.serviceData.temperature!.f;
+          this.BLE_LeakDetected = ad.serviceData.status;
           this.BLE_BatteryLevel = ad.serviceData.battery;
         } else {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
@@ -372,61 +297,6 @@ export class WaterDetector {
       await this.BLEparseStatus();
       await this.updateHomeKitCharacteristics();
     })();
-    /*if (switchbot !== false) {
-      switchbot
-        .startScan({
-          model: 'w',
-          id: this.device.bleMac,
-        })
-        .then(async () => {
-          // Set an event handler
-          switchbot.onadvertisement = async (ad: ad) => {
-            this.debugLog(
-              `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
-              ` BLE Address Found: ${ad.address}`,
-            );
-            if (ad.serviceData.humidity! > 0) {
-              // reject unreliable data
-              this.BLE_CurrentRelativeHumidity = ad.serviceData.humidity;
-            }
-            this.BLE_CurrentTemperature = ad.serviceData.temperature;
-            this.BLE_Celsius = ad.serviceData.temperature!.c;
-            this.BLE_Fahrenheit = ad.serviceData.temperature!.f;
-            this.BLE_BatteryLevel = ad.serviceData.battery;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-            this.debugLog(
-              `${this.device.deviceType}: ${this.accessory.displayName} model: ${ad.serviceData.model}, modelName: ${ad.serviceData.modelName}, ` +
-              `temperature: ${JSON.stringify(ad.serviceData.temperature?.c)}, humidity: ${ad.serviceData.humidity}, ` +
-              `battery: ${ad.serviceData.battery}`,
-            );
-
-            if (ad.serviceData) {
-              this.BLE_IsConnected = true;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
-              await this.stopScanning(switchbot);
-            } else {
-              this.BLE_IsConnected = false;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
-            }
-          };
-          // Wait
-          return await sleep(this.scanDuration * 1000);
-        })
-        .then(async () => {
-          // Stop to monitor
-          await this.stopScanning(switchbot);
-        })
-        .catch(async (e: any) => {
-          this.apiError(e);
-          this.errorLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} failed BLERefreshStatus with ${this.device.connectionType}` +
-            ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-          );
-          await this.BLERefreshConnection(switchbot);
-        });
-    } else {
-      await this.BLERefreshConnection(switchbot);
-    }*/
   }
 
   async openAPIRefreshStatus(): Promise<void> {
@@ -442,8 +312,7 @@ export class WaterDetector {
       if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
         this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
           + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
-        this.OpenAPI_CurrentRelativeHumidity = deviceStatus.body.humidity!;
-        this.OpenAPI_CurrentTemperature = deviceStatus.body.temperature!;
+        this.OpenAPI_LeakDetected = deviceStatus.body.status;
         this.OpenAPI_BatteryLevel = deviceStatus.body.battery;
         this.OpenAPI_FirmwareRevision = deviceStatus.body.version;
         this.openAPIparseStatus();
@@ -482,39 +351,6 @@ export class WaterDetector {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic LeakDetected: ${this.LeakDetected}`);
       }
     }
-    if (!this.device.waterdetector?.hide_humidity) {
-      if (this.CurrentRelativeHumidity === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
-      } else {
-        this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidity;
-        this.humidityservice?.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
-        this.debugLog(
-          `${this.device.deviceType}: ${this.accessory.displayName}` +
-          ` updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`,
-        );
-        if (this.device.mqttURL) {
-          mqttmessage.push(`"humidity": ${this.CurrentRelativeHumidity}`);
-        }
-        if (this.device.history) {
-          entry['humidity'] = this.CurrentRelativeHumidity;
-        }
-      }
-    }
-    if (!this.device.waterdetector?.hide_temperature) {
-      if (this.CurrentTemperature === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
-      } else {
-        if (this.device.mqttURL) {
-          mqttmessage.push(`"temperature": ${this.CurrentTemperature}`);
-        }
-        if (this.device.history) {
-          entry['temp'] = this.CurrentTemperature;
-        }
-        this.accessory.context.CurrentTemperature = this.CurrentTemperature;
-        this.temperatureservice?.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, this.CurrentTemperature);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
-      }
-    }
     if (this.BatteryLevel === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}`);
     } else {
@@ -538,7 +374,7 @@ export class WaterDetector {
     if (this.device.mqttURL) {
       this.mqttPublish(`{${mqttmessage.join(',')}}`);
     }
-    if (Number(this.CurrentRelativeHumidity) > 0) {
+    if (Number(this.LeakDetected) > 0) {
       // reject unreliable data
       if (this.device.history) {
         this.historyService?.addEntry(entry);
@@ -736,26 +572,15 @@ export class WaterDetector {
     if (!this.device.waterdetector?.hide_leak) {
       this.leakService?.updateCharacteristic(this.hap.Characteristic.LeakDetected, e);
     }
-    if (!this.device.waterdetector?.hide_humidity) {
-      this.humidityservice?.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity, e);
-    }
-    if (!this.device.waterdetector?.hide_temperature) {
-      this.temperatureservice?.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, e);
-    }
     this.batteryService?.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e);
     this.batteryService?.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, e);
   }
 
   async deviceContext() {
-    if (this.CurrentRelativeHumidity === undefined) {
-      this.CurrentRelativeHumidity = 0;
+    if (this.LeakDetected === undefined) {
+      this.LeakDetected = 0;
     } else {
-      this.CurrentRelativeHumidity = this.accessory.context.CurrentRelativeHumidity;
-    }
-    if (this.CurrentTemperature === undefined) {
-      this.CurrentTemperature = 0;
-    } else {
-      this.CurrentTemperature = this.accessory.context.CurrentTemperature;
+      this.LeakDetected = this.accessory.context.LeakDetected;
     }
     if (this.BatteryLevel === undefined) {
       this.BatteryLevel = 100;

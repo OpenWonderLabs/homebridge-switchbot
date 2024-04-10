@@ -320,6 +320,7 @@ export type deviceStatus = {
   shaking?: boolean; //determines if the fan is swinging or not. (Used by the following deviceTypes: Smart Fan)
   shakeCenter?: string; //the fan's swing direction. (Used by the following deviceTypes: Smart Fan)
   shakeRange?: string; //the fan's swing range, 0~120°. (Used by the following deviceTypes: Smart Fan)
+  status?: number //the leak status. 0 for no leak, 1 for leak. (Used by the following deviceTypes: Water Detector)
 };
 
 export type ad = {
