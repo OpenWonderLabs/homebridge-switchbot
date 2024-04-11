@@ -499,20 +499,6 @@
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Water Detector' && model.options.devices[arrayIndices].deviceId);"
                       }
-                    },
-                    "hide_temperature": {
-                      "title": "Hide Water Detector's Temperature Sensor",
-                      "type": "boolean",
-                      "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Water Detector' && model.options.devices[arrayIndices].deviceId);"
-                      }
-                    },
-                    "hide_humidity": {
-                      "title": "Hide Water Detector's Humidity Sensor",
-                      "type": "boolean",
-                      "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Water Detector' && model.options.devices[arrayIndices].deviceId);"
-                      }
                     }
                   }
                 },
@@ -1651,8 +1637,6 @@
             "options.devices[].meter.hide_temperature",
             "options.devices[].meter.hide_humidity",
             "options.devices[].waterdetector.hide_leak",
-            "options.devices[].waterdetector.hide_temperature",
-            "options.devices[].waterdetector.hide_humidity",
             "options.devices[].humidifier.set_minStep",
             "options.devices[].humidifier.hide_temperature",
             "options.devices[].curtain.set_minStep",

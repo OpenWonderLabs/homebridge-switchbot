@@ -141,8 +141,6 @@ export type motion = {
 
 export type waterdetector = {
   hide_leak?: boolean;
-  hide_temperature?: boolean;
-  hide_humidity?: boolean;
 };
 
 export type colorbulb = {
