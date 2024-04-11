@@ -22,8 +22,6 @@ export class WaterDetector {
   // Services
   leakService?: Service;
   batteryService: Service;
-  humidityservice?: Service;
-  temperatureservice?: Service;
 
   // Characteristic Values
   StatusActive!: CharacteristicValue;
@@ -119,24 +117,6 @@ export class WaterDetector {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Leak Sensor Service Not Added`);
     }
 
-    // Temperature Sensor Service
-    if (device.waterdetector?.hide_temperature) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Temperature Sensor Service`);
-      this.temperatureservice = this.accessory.getService(this.hap.Service.TemperatureSensor);
-      accessory.removeService(this.temperatureservice!);
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Temperature Sensor Service Not Added`);
-    }
-
-    // Humidity Sensor Service
-    if (device.waterdetector?.hide_humidity) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Humidity Sensor Service`);
-      this.humidityservice = this.accessory.getService(this.hap.Service.HumiditySensor);
-      accessory.removeService(this.humidityservice!);
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Humidity Sensor Service Not Added`);
-    }
-
     // Battery Service
     const batteryService = `${accessory.displayName} Battery`;
     (this.batteryService = this.accessory.getService(this.hap.Service.Battery)
@@ -212,7 +192,7 @@ export class WaterDetector {
 
     // LeakDetected
     this.LeakDetected = this.BLE_LeakDetected!;
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LeakDetected: ${this.LeakDetected}%`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LeakDetected: ${this.LeakDetected}`);
   }
 
   async openAPIparseStatus(): Promise<void> {
@@ -234,7 +214,7 @@ export class WaterDetector {
 
     // LeakDetected
     this.LeakDetected = this.OpenAPI_LeakDetected!;
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LeakDetected: ${this.LeakDetected}%`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LeakDetected: ${this.LeakDetected}`);
 
     // FirmwareRevision
     this.FirmwareRevision = this.OpenAPI_FirmwareRevision!;
