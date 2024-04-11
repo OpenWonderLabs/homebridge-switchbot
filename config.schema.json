@@ -1615,7 +1615,8 @@
           "title": "{{ value.configDeviceName || value.deviceId || 'New SwitchBot Device' }}",
           "expandable": true,
           "expanded": false,
-          "orderable": false,
+          "draggable": true,
+          "orderable": true,
           "items": [
             "options.devices[].configDeviceName",
             "options.devices[].deviceId",
@@ -1694,7 +1695,8 @@
           "title": "{{ value.configDeviceName || value.deviceId || 'New IR Device' }}",
           "expandable": true,
           "expanded": false,
-          "orderable": false,
+          "draggable": true,
+          "orderable": true,
           "items": [
             "options.irdevices[].configDeviceName",
             "options.irdevices[].deviceId",
