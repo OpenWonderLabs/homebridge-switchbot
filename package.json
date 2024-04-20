@@ -25,11 +25,10 @@
     "url": "https://github.com/OpenWonderLabs/homebridge-switchbot/issues"
   },
   "engines": {
+    "homebridge": "^1.8.0",
     "node": "^18 || ^20"
   },
-  "engine-strict": {
-    "homebridge": "^1.8.0"
-  },
+  "engine-strict": true,
   "main": "dist/index.js",
   "scripts": {
     "check": "npm install && npm outdated",
