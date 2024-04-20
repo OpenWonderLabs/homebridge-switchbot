@@ -25,7 +25,6 @@
     "url": "https://github.com/OpenWonderLabs/homebridge-switchbot/issues"
   },
   "engines": {
-    "homebridge": "^1.8.0",
     "node": "^18 || ^20"
   },
   "engine-strict": {
