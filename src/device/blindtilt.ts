@@ -677,6 +677,8 @@ export class BlindTilt {
           })
           .then(() => {
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
+            this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+              + `Target Position: ${this.TargetPosition} sent over BLE,  sent successfully`);
           })
           .catch(async (e: any) => {
             this.apiError(e);
@@ -759,6 +761,8 @@ export class BlindTilt {
         if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
           this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+          this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+            + `request to SwitchBot API, body: ${bodyChange} sent successfully`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);
@@ -1152,39 +1156,39 @@ export class BlindTilt {
         break;
       case 400:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Bad Request, The client has issued an invalid request. `
-            + `This is commonly used to specify validation errors in a request payload, statusCode: ${statusCode}`);
+          + `This is commonly used to specify validation errors in a request payload, statusCode: ${statusCode}`);
         break;
       case 401:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unauthorized,	Authorization for the API is required, `
-            + `but the request has not been authenticated, statusCode: ${statusCode}`);
+          + `but the request has not been authenticated, statusCode: ${statusCode}`);
         break;
       case 403:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Forbidden,	The request has been authenticated but does not `
-            + `have appropriate permissions, or a requested resource is not found, statusCode: ${statusCode}`);
+          + `have appropriate permissions, or a requested resource is not found, statusCode: ${statusCode}`);
         break;
       case 404:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Not Found,	Specifies the requested path does not exist, `
-        + `statusCode: ${statusCode}`);
+          + `statusCode: ${statusCode}`);
         break;
       case 406:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Not Acceptable,	The client has requested a MIME type via `
-            + `the Accept header for a value not supported by the server, statusCode: ${statusCode}`);
+          + `the Accept header for a value not supported by the server, statusCode: ${statusCode}`);
         break;
       case 415:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unsupported Media Type,	The client has defined a contentType `
-            + `header that is not supported by the server, statusCode: ${statusCode}`);
+          + `header that is not supported by the server, statusCode: ${statusCode}`);
         break;
       case 422:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unprocessable Entity,	The client has made a valid request, `
-            + `but the server cannot process it. This is often used for APIs for which certain limits have been exceeded, statusCode: ${statusCode}`);
+          + `but the server cannot process it. This is often used for APIs for which certain limits have been exceeded, statusCode: ${statusCode}`);
         break;
       case 429:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Too Many Requests,	The client has exceeded the number of `
-            + `requests allowed for a given time window, statusCode: ${statusCode}`);
+          + `requests allowed for a given time window, statusCode: ${statusCode}`);
         break;
       case 500:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Internal Server Error,	An unexpected error on the SmartThings `
-            + `servers has occurred. These errors should be rare, statusCode: ${statusCode}`);
+          + `servers has occurred. These errors should be rare, statusCode: ${statusCode}`);
         break;
       default:
         this.infoLog(
@@ -1437,6 +1441,12 @@ export class BlindTilt {
   /**
    * Logging for Device
    */
+  successLog(...log: any[]): void {
+    if (this.enablingDeviceLogging()) {
+      this.platform.log.success(String(...log));
+    }
+  }
+
   infoLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));

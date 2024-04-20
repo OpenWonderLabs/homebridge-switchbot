@@ -386,6 +386,8 @@ export class Plug {
         })
         .then(() => {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
+          this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+              + `On: ${this.On} sent over BLE,  sent successfully`);
           this.On = false;
         })
         .catch(async (e: any) => {
@@ -432,6 +434,8 @@ export class Plug {
         if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
           this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+          this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+                + `request to SwitchBot API, body: ${deviceStatus} sent successfully`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);
@@ -740,6 +744,12 @@ export class Plug {
   /**
    * Logging for Device
    */
+  successLog(...log: any[]): void {
+    if (this.enablingDeviceLogging()) {
+      this.platform.log.success(String(...log));
+    }
+  }
+
   infoLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));

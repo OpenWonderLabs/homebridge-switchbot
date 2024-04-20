@@ -132,6 +132,7 @@ export class Camera {
         if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
           this.debugErrorLog(`${this.device.remoteType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+          this.successLog(`${this.device.remoteType}: ${this.accessory.displayName} request to SwitchBot API, body: ${bodyChange} sent successfully`);
           this.updateHomeKitCharacteristics();
         } else {
           this.statusCode(statusCode);
@@ -354,6 +355,12 @@ export class Camera {
   /**
    * Logging for Device
    */
+  successLog(...log: any[]): void {
+    if (this.enablingDeviceLogging()) {
+      this.platform.log.success(String(...log));
+    }
+  }
+
   infoLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));

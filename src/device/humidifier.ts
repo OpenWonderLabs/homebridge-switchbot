@@ -500,11 +500,13 @@ export class Humidifier {
         id: this.device.bleMac,
       })
       .then(async (device_list: any) => {
-        this.infoLog(`${this.accessory.displayName} Target Position: ${this.Active}`);
+        this.infoLog(`${this.accessory.displayName} Active: ${this.Active}`);
         return await device_list[0].percentage(this.RelativeHumidityHumidifierThreshold);
       })
       .then(() => {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
+        this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+              + `Active: ${this.Active} sent over BLE,  sent successfully`);
       })
       .catch(async (e: any) => {
         this.apiError(e);
@@ -543,6 +545,8 @@ export class Humidifier {
         if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
           this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+          this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+                + `request to SwitchBot API, body: ${deviceStatus} sent successfully`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);
@@ -594,6 +598,8 @@ export class Humidifier {
         if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
           this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+          this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+                + `request to SwitchBot API, body: ${deviceStatus} sent successfully`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);
@@ -640,6 +646,8 @@ export class Humidifier {
         if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
           this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+          this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+                + `request to SwitchBot API, body: ${deviceStatus} sent successfully`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);
@@ -1065,6 +1073,12 @@ export class Humidifier {
   /**
    * Logging for Device
    */
+  successLog(...log: any[]): void {
+    if (this.enablingDeviceLogging()) {
+      this.platform.log.success(String(...log));
+    }
+  }
+
   async infoLog(...log: any[]): Promise<void> {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));

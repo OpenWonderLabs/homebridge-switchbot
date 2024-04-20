@@ -434,6 +434,8 @@ export class RobotVacuumCleaner {
         })
         .then(() => {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
+          this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+              + `On: ${this.On} sent over BLE,  sent successfully`);
           this.On = false;
         })
         .catch(async (e: any) => {
@@ -480,6 +482,8 @@ export class RobotVacuumCleaner {
         if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
           this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+          this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+            + `request to SwitchBot API, body: ${bodyChange} sent successfully`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);
@@ -502,10 +506,11 @@ export class RobotVacuumCleaner {
 
   async openAPIpushBrightnessChanges() {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushBrightnessChanges`);
-    const body = await this.brightnessCommands();
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${body},`);
+    const bodyChange = this.brightnessCommands();
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
     try {
       const { body, statusCode } = await request(`${Devices}/${this.device.deviceId}/commands`, {
+        body: bodyChange,
         method: 'POST',
         headers: this.platform.generateHeaders(),
       });
@@ -516,6 +521,8 @@ export class RobotVacuumCleaner {
       if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
         this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
           + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+        this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+            + `request to SwitchBot API, body: ${deviceStatus} sent successfully`);
       } else {
         this.statusCode(statusCode);
         this.statusCode(deviceStatus.statusCode);
@@ -566,12 +573,12 @@ export class RobotVacuumCleaner {
       command = 'dock';
       parameter = 'default';
     }
-    const body = JSON.stringify({
+    const bodyChange = JSON.stringify({
       command: `${command}`,
       parameter: `${parameter}`,
       commandType: 'command',
     });
-    return body;
+    return bodyChange;
   }
 
   /**
@@ -898,6 +905,12 @@ export class RobotVacuumCleaner {
   /**
    * Logging for Device
    */
+  successLog(...log: any[]): void {
+    if (this.enablingDeviceLogging()) {
+      this.platform.log.success(String(...log));
+    }
+  }
+
   infoLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));

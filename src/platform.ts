@@ -2688,6 +2688,12 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
    * If device level logging is turned on, log to log.warn
    * Otherwise send debug logs to log.debug
    */
+  successLog(...log: any[]): void {
+    if (this.enablingPlatformLogging()) {
+      this.log.success(String(...log));
+    }
+  }
+
   infoLog(...log: any[]): void {
     if (this.enablingPlatformLogging()) {
       this.log.info(String(...log));

@@ -702,6 +702,8 @@ export class Bot {
           })
           .then(() => {
             this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
+            this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+              + `On: ${this.On} sent over BLE,  sent successfully`);
             this.accessory.context.On = this.On;
             setTimeout(() => {
               if (this.botDeviceType === 'switch') {
@@ -802,6 +804,8 @@ export class Bot {
         if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
           this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+          this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+            + `request to SwitchBot API, body: ${bodyChange} sent successfully`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);
@@ -1532,6 +1536,12 @@ export class Bot {
   /**
    * Logging for Device
    */
+  successLog(...log: any[]): void {
+    if (this.enablingDeviceLogging()) {
+      this.platform.log.success(String(...log));
+    }
+  }
+
   infoLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.platform.log.info(String(...log));
