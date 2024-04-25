@@ -1,9 +1,9 @@
 import { request } from 'undici';
-import { sleep } from '../utils.js';
+import { hs2rgb, rgb2hs, m2hs, sleep } from '../utils.js';
 import { interval, Subject } from 'rxjs';
 import { SwitchBotPlatform } from '../platform.js';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
-import { device, devicesConfig, deviceStatus, hs2rgb, rgb2hs, m2hs, serviceData, Devices, SwitchBotPlatformConfig } from '../settings.js';
+import { device, devicesConfig, deviceStatus, serviceData, Devices, SwitchBotPlatformConfig } from '../settings.js';
 import {
   Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap, API, Logging, HAP,
 } from 'homebridge';
