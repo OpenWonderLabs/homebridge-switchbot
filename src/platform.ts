@@ -635,6 +635,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
         break;
       case 'Hub 2':
+      case 'remote with screen':
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createHub2(device);
         break;
@@ -713,6 +714,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.warnLog(`Device: ${device.deviceName} with Device Type: ${device.deviceType}, is currently not supported.`);
         break;
       case 'Remote':
+      case 'remote with screen+':
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId} is Not Supported.`);
         break;
       default:
