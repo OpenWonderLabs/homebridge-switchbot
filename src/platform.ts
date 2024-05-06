@@ -39,7 +39,7 @@ import fakegato from 'fakegato-history';
 import asyncmqtt from 'async-mqtt';
 import crypto, { randomUUID } from 'crypto';
 import { readFileSync, writeFileSync } from 'fs';
-import hbLib from 'homebridge-lib';
+import { EveHomeKitTypes } from 'homebridge-lib';
 import { UrlObject } from 'url';
 import { sleep } from './utils.js';
 
@@ -58,6 +58,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   version!: string;
   Logging?: string;
   debugMode!: boolean;
+  maxRetries!: number;
+  delayBetweenRetries!: number;
   platformConfig!: SwitchBotPlatformConfig['options'];
   platformLogging!: SwitchBotPlatformConfig['logging'];
   config!: SwitchBotPlatformConfig;
@@ -106,7 +108,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
 
     // import fakegato-history module and EVE characteristics
-    const { EveHomeKitTypes } = hbLib;
     this.fakegatoAPI = fakegato(api);
     this.eve = new EveHomeKitTypes(api);
 
@@ -385,6 +386,21 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.debugWarnLog('Using Default Push Rate.');
     }
 
+    if (!this.config.options.maxRetries) {
+      this.config.options!.maxRetries! = 5;
+      this.debugWarnLog('Using Default Max Retries.');
+    } else {
+      this.maxRetries = this.config.options.maxRetries;
+    }
+
+    if (!this.config.options.delayBetweenRetries) {
+      // default 3 seconds
+      this.config.options!.delayBetweenRetries! = 3000;
+      this.debugWarnLog('Using Default Delay Between Retries.');
+    } else {
+      this.delayBetweenRetries = this.config.options.delayBetweenRetries * 1000;
+    }
+
     if (!this.config.credentials && !this.config.options) {
       this.debugWarnLog('Missing Credentials');
     } else if (this.config.credentials && !this.config.credentials.notice) {
@@ -495,8 +511,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   async discoverDevices() {
     if (this.config.credentials?.token) {
       let retryCount = 0;
-      const maxRetries = 5; // Maximum number of retries
-      const delayBetweenRetries = 5000; // Delay between retries in milliseconds
+      const maxRetries = this.maxRetries; // Maximum number of retries
+      const delayBetweenRetries = this.delayBetweenRetries; // Delay between retries in milliseconds
       while (retryCount < maxRetries) {
         try {
           const { body, statusCode } = await request(Devices, {

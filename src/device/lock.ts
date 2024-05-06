@@ -852,18 +852,18 @@ export class Lock {
   }
 
   async deviceRetry(device: device & devicesConfig): Promise<void> {
-    if (device.maxRetries === undefined) {
+    if (!device.maxRetries) {
       this.maxRetries = 5; // Maximum number of retries
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Max Retries Not Set, Using: ${this.maxRetries}`);
     } else {
       this.maxRetries = device.maxRetries;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Max Retries: ${this.maxRetries}`);
     }
-    if (device.delayBetweenRetries === undefined) {
+    if (!device.delayBetweenRetries) {
       this.delayBetweenRetries = 3000; // Delay between retries in milliseconds
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Delay Between Retries Not Set, Using: ${this.delayBetweenRetries}`);
     } else {
-      this.delayBetweenRetries = device.delayBetweenRetries;
+      this.delayBetweenRetries = device.delayBetweenRetries * 1000;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Delay Between Retries: ${this.delayBetweenRetries}`);
     }
   }

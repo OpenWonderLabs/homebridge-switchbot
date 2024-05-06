@@ -36,6 +36,8 @@ export type credentials = {
 export type options = {
   refreshRate?: number;
   pushRate?: number;
+  maxRetries?: number;
+  delayBetweenRetries?: number;
   logging?: string;
   devices?: Array<devicesConfig>;
   irdevices?: Array<irDevicesConfig>;

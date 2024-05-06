@@ -859,17 +859,17 @@
                   }
                 },
                 "maxRetries": {
-                  "title": "Max Retries for OpenAPI",
+                  "title": "Device Max Retries for OpenAPI",
                   "type": "number",
-                  "placeholder": "5",
+                  "placeholder": 5,
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].connectionType === 'OpenAPI' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
                   }
                 },
                 "delayBetweenRetries": {
-                  "title": "Delay Between Retries for OpenAPI (In Milliseconds)",
+                  "title": "Device Delay Between Retries for OpenAPI (In Seconds)",
                   "type": "number",
-                  "placeholder": "5",
+                  "placeholder": 3,
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].connectionType === 'OpenAPI' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
                   }
@@ -1555,6 +1555,16 @@
             "type": "string",
             "placeholder": "http://${FQDN}:${PORT}/${PATH}"
           },
+          "maxRetries": {
+            "title": "Max Retries for OpenAPI",
+            "type": "number",
+            "placeholder": 5
+          },
+          "delayBetweenRetries": {
+            "title": "Delay Between Retries for OpenAPI (In Seconds)",
+            "type": "number",
+            "placeholder": 3
+          },
           "refreshRate": {
             "title": "Refresh Rate",
             "type": "number",
@@ -1756,6 +1766,8 @@
       "expanded": false,
       "items": [
         "options.webhookURL",
+        "options.maxRetries",
+        "options.delayBetweenRetries",
         {
           "type": "help",
           "helpvalue": "<h5>Refresh Rate</h5><em class='primary-text'>Refresh Rate indicates the number of seconds between polls of SwitchBot API.</em>"
