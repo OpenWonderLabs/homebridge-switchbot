@@ -79,6 +79,8 @@ export class BlindTilt {
   deviceRefreshRate!: number;
   setCloseMode!: string;
   setOpenMode!: string;
+  maxRetries!: number;
+  delayBetweenRetries!: number;
 
   // Updates
   blindTiltUpdateInProgress!: boolean;
@@ -106,6 +108,7 @@ export class BlindTilt {
     this.scan(device);
     this.setupMqtt(device);
     this.deviceContext();
+    this.deviceRetry(device);
     this.deviceConfig(device);
 
     this.mappingMode = (device.blindTilt?.mode as BlindTiltMappingMode) ?? BlindTiltMappingMode.OnlyUp;
@@ -594,9 +597,10 @@ export class BlindTilt {
   async openAPIRefreshStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
     try {
-      const { body, statusCode } = await request(`${Devices}/${this.device.deviceId}/status`, {
-        headers: this.platform.generateHeaders(),
-      });
+      const { body, statusCode } = await this.platform.retryRequest(this.maxRetries, this.delayBetweenRetries,
+        `${Devices}/${this.device.deviceId}/status`, {
+          headers: this.platform.generateHeaders(),
+        });
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
       const deviceStatus: any = await body.json();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
@@ -1382,6 +1386,23 @@ export class BlindTilt {
     }
   }
 
+  async deviceRetry(device: device & devicesConfig): Promise<void> {
+    if (device.maxRetries === undefined) {
+      this.maxRetries = 5; // Maximum number of retries
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Max Retries Not Set, Using: ${this.maxRetries}`);
+    } else {
+      this.maxRetries = device.maxRetries;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Max Retries: ${this.maxRetries}`);
+    }
+    if (device.delayBetweenRetries === undefined) {
+      this.delayBetweenRetries = 3000; // Delay between retries in milliseconds
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Delay Between Retries Not Set, Using: ${this.delayBetweenRetries}`);
+    } else {
+      this.delayBetweenRetries = device.delayBetweenRetries;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Delay Between Retries: ${this.delayBetweenRetries}`);
+    }
+  }
+
   async deviceConfig(device: device & devicesConfig): Promise<void> {
     let config = {};
     if (device.blindTilt) {
@@ -1410,6 +1431,12 @@ export class BlindTilt {
     }
     if (device.webhook !== undefined) {
       config['webhook'] = device.webhook;
+    }
+    if (device.maxRetries !== undefined) {
+      config['maxRetries'] = device.maxRetries;
+    }
+    if (device.delayBetweenRetries !== undefined) {
+      config['delayBetweenRetries'] = device.delayBetweenRetries;
     }
     if (device.blindTilt?.mode === undefined) {
       config['mode'] = BlindTiltMappingMode.OnlyUp;

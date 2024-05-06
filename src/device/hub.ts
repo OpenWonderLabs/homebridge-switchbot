@@ -3,7 +3,6 @@ import { CharacteristicValue, PlatformAccessory, Service, Units, API, Logging, H
 import { MqttClient } from 'mqtt';
 import { hostname } from 'os';
 import { interval } from 'rxjs';
-import { request } from 'undici';
 import { SwitchBotPlatform } from '../platform.js';
 import { Devices, device, deviceStatus, devicesConfig, SwitchBotPlatformConfig } from '../settings.js';
 
@@ -46,6 +45,8 @@ export class Hub {
   scanDuration!: number;
   deviceLogging!: string;
   deviceRefreshRate!: number;
+  maxRetries!: number;
+  delayBetweenRetries!: number;
 
   // Connection
   private readonly OpenAPI: boolean;
@@ -69,6 +70,7 @@ export class Hub {
     this.deviceContext();
     this.setupHistoryService(device);
     this.setupMqtt(device);
+    this.deviceRetry(device);
     this.deviceConfig(device);
 
     this.CurrentRelativeHumidity = accessory.context.CurrentRelativeHumidity;
@@ -432,9 +434,10 @@ export class Hub {
   async openAPIRefreshStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
     try {
-      const { body, statusCode } = await request(`${Devices}/${this.device.deviceId}/status`, {
-        headers: this.platform.generateHeaders(),
-      });
+      const { body, statusCode } = await this.platform.retryRequest(this.maxRetries, this.delayBetweenRetries,
+        `${Devices}/${this.device.deviceId}/status`, {
+          headers: this.platform.generateHeaders(),
+        });
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
       const deviceStatus: any = await body.json();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
@@ -739,6 +742,23 @@ export class Hub {
     } else {
       this.updateRate = 7;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Default Curtain updateRate: ${this.updateRate}`);
+    }
+  }
+
+  async deviceRetry(device: device & devicesConfig): Promise<void> {
+    if (device.maxRetries === undefined) {
+      this.maxRetries = 5; // Maximum number of retries
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Max Retries Not Set, Using: ${this.maxRetries}`);
+    } else {
+      this.maxRetries = device.maxRetries;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Max Retries: ${this.maxRetries}`);
+    }
+    if (device.delayBetweenRetries === undefined) {
+      this.delayBetweenRetries = 3000; // Delay between retries in milliseconds
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Delay Between Retries Not Set, Using: ${this.delayBetweenRetries}`);
+    } else {
+      this.delayBetweenRetries = device.delayBetweenRetries;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Delay Between Retries: ${this.delayBetweenRetries}`);
     }
   }
 

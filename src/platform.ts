@@ -32,7 +32,7 @@ import { VacuumCleaner } from './irdevice/vacuumcleaner.js';
 import { AirConditioner } from './irdevice/airconditioner.js';
 import * as http from 'http';
 import { Buffer } from 'buffer';
-import { request } from 'undici';
+import { Dispatcher, request } from 'undici';
 import { MqttClient } from 'mqtt';
 import { queueScheduler } from 'rxjs';
 import fakegato from 'fakegato-history';
@@ -40,6 +40,8 @@ import asyncmqtt from 'async-mqtt';
 import crypto, { randomUUID } from 'crypto';
 import { readFileSync, writeFileSync } from 'fs';
 import hbLib from 'homebridge-lib';
+import { UrlObject } from 'url';
+import { sleep } from './utils.js';
 
 
 
@@ -2626,6 +2628,30 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       default:
         this.errorLog(`Unknown statusCode, statusCode: ${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
     }
+  }
+
+  async retryRequest(deviceMaxRetries: number, deviceDelayBetweenRetries: number, url: string | URL | UrlObject,
+    options?: { dispatcher?: Dispatcher } & Omit<Dispatcher.RequestOptions,
+      'origin' | 'path' | 'method'> & Partial<Pick<Dispatcher.RequestOptions, 'method'>>): Promise<{ body: any; statusCode: number }> {
+    let retryCount = 0;
+    const maxRetries = deviceMaxRetries;
+    const delayBetweenRetries = deviceDelayBetweenRetries;
+    while (retryCount < maxRetries) {
+      try {
+        const { body, statusCode } = await request(url, options);
+        if (statusCode === 200 || statusCode === 100) {
+          return { body, statusCode };
+        } else {
+          this.debugLog(`Received status code: ${statusCode}`);
+        }
+      } catch (error: any) {
+        this.errorLog(`Error making request: ${error.message}`);
+      }
+      retryCount++;
+      this.debugLog(`Retry attempt ${retryCount} of ${maxRetries}`);
+      await sleep(delayBetweenRetries);
+    }
+    return { body: null, statusCode: -1 };
   }
 
   // BLE Connection

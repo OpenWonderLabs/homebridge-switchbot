@@ -50,6 +50,8 @@ export class CeilingLight {
   deviceLogging!: string;
   deviceRefreshRate!: number;
   adaptiveLightingShift?: number;
+  maxRetries!: number;
+  delayBetweenRetries!: number;
 
   // Adaptive Lighting
   AdaptiveLightingController?: ControllerConstructor | Controller<ControllerServiceMap>;
@@ -85,6 +87,7 @@ export class CeilingLight {
     this.refreshRate(device);
     this.adaptiveLighting(device);
     this.deviceContext();
+    this.deviceRetry(device);
     this.deviceConfig(device);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
@@ -461,9 +464,10 @@ export class CeilingLight {
   async openAPIRefreshStatus() {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
     try {
-      const { body, statusCode } = await request(`${Devices}/${this.device.deviceId}/status`, {
-        headers: this.platform.generateHeaders(),
-      });
+      const { body, statusCode } = await this.platform.retryRequest(this.maxRetries, this.delayBetweenRetries,
+        `${Devices}/${this.device.deviceId}/status`, {
+          headers: this.platform.generateHeaders(),
+        });
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
       const deviceStatus: any = await body.json();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
@@ -1141,6 +1145,23 @@ export class CeilingLight {
     } else if (this.platform.config.options!.refreshRate) {
       this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
+    }
+  }
+
+  async deviceRetry(device: device & devicesConfig): Promise<void> {
+    if (device.maxRetries === undefined) {
+      this.maxRetries = 5; // Maximum number of retries
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Max Retries Not Set, Using: ${this.maxRetries}`);
+    } else {
+      this.maxRetries = device.maxRetries;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Max Retries: ${this.maxRetries}`);
+    }
+    if (device.delayBetweenRetries === undefined) {
+      this.delayBetweenRetries = 3000; // Delay between retries in milliseconds
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Delay Between Retries Not Set, Using: ${this.delayBetweenRetries}`);
+    } else {
+      this.delayBetweenRetries = device.delayBetweenRetries;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Delay Between Retries: ${this.delayBetweenRetries}`);
     }
   }
 

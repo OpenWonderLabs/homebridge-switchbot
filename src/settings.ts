@@ -59,6 +59,8 @@ export interface devicesConfig extends device {
   hide_device?: boolean;
   offline?: boolean;
   maxRetry?: number;
+  maxRetries?: number;
+  delayBetweenRetries?: number;
   disableCaching?: boolean;
   mqttURL?: string;
   mqttOptions?: IClientOptions;

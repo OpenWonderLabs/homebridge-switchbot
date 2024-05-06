@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file. This projec
 - Add Support for `Water Detector`
 - Add BLE support for `Smart Lock`
 - Add `K10+` deviceType Support
+- Add Support for `maxRetries` and `delayBetweenRetries` on OpenAPI status refreshes based on [#959](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/959#issuecomment-2094879876), Thanks [@sametguzeldev](https://github.com/sametguzeldev)
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.4.0...v3.5.0
