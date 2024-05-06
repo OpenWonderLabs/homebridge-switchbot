@@ -494,44 +494,95 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
    */
   async discoverDevices() {
     if (this.config.credentials?.token) {
-      try {
-        const { body, statusCode } = await request(Devices, {
-          headers: this.generateHeaders(),
-        });
-        this.debugWarnLog(`statusCode: ${statusCode}`);
-        const devicesAPI: any = await body.json();
-        this.debugWarnLog(`devicesAPI: ${JSON.stringify(devicesAPI)}`);
-        this.debugWarnLog(`devicesAPI Body: ${JSON.stringify(devicesAPI.body)}`);
-        this.debugWarnLog(`devicesAPI StatusCode: ${devicesAPI.statusCode}`);
-        if ((statusCode === 200 || statusCode === 100) && (devicesAPI.statusCode === 200 || devicesAPI.statusCode === 100)) {
-          this.debugErrorLog(`statusCode: ${statusCode} & devicesAPI StatusCode: ${devicesAPI.statusCode}`);
-          // SwitchBot Devices
-          const deviceLists = devicesAPI.body.deviceList;
-          this.debugWarnLog(`DeviceLists: ${JSON.stringify(deviceLists)}`);
-          this.debugWarnLog(`DeviceLists Length: ${deviceLists.length}`);
-          if (!this.config.options?.devices) {
-            this.debugLog(`SwitchBot Device Config Not Set: ${JSON.stringify(this.config.options?.devices)}`);
-            if (deviceLists.length === 0) {
-              this.debugLog(`SwitchBot API Currently Doesn't Have Any Devices With Cloud Services Enabled: ${JSON.stringify(devicesAPI.body)}`);
-            } else {
-              const devices = deviceLists.map((v: any) => v);
-              for (const device of devices) {
-                if (device.deviceType) {
-                  if (device.configDeviceName) {
-                    device.deviceName = device.configDeviceName;
+      let retryCount = 0;
+      const maxRetries = 5; // Maximum number of retries
+      const delayBetweenRetries = 5000; // Delay between retries in milliseconds
+      while (retryCount < maxRetries) {
+        try {
+          const { body, statusCode } = await request(Devices, {
+            headers: this.generateHeaders(),
+          });
+          this.debugWarnLog(`statusCode: ${statusCode}`);
+          const devicesAPI: any = await body.json();
+          this.debugWarnLog(`devicesAPI: ${JSON.stringify(devicesAPI)}`);
+          this.debugWarnLog(`devicesAPI Body: ${JSON.stringify(devicesAPI.body)}`);
+          this.debugWarnLog(`devicesAPI StatusCode: ${devicesAPI.statusCode}`);
+          if ((statusCode === 200 || statusCode === 100) && (devicesAPI.statusCode === 200 || devicesAPI.statusCode === 100)) {
+            this.debugErrorLog(`statusCode: ${statusCode} & devicesAPI StatusCode: ${devicesAPI.statusCode}`);
+            // SwitchBot Devices
+            const deviceLists = devicesAPI.body.deviceList;
+            this.debugWarnLog(`DeviceLists: ${JSON.stringify(deviceLists)}`);
+            this.debugWarnLog(`DeviceLists Length: ${deviceLists.length}`);
+            if (!this.config.options?.devices) {
+              this.debugLog(`SwitchBot Device Config Not Set: ${JSON.stringify(this.config.options?.devices)}`);
+              if (deviceLists.length === 0) {
+                this.debugLog(`SwitchBot API Currently Doesn't Have Any Devices With Cloud Services Enabled: ${JSON.stringify(devicesAPI.body)}`);
+              } else {
+                const devices = deviceLists.map((v: any) => v);
+                for (const device of devices) {
+                  if (device.deviceType) {
+                    if (device.configDeviceName) {
+                      device.deviceName = device.configDeviceName;
+                    }
+                    this.createDevice(device);
                   }
-                  this.createDevice(device);
                 }
               }
-            }
-          } else if (this.config.credentials?.token && this.config.options.devices) {
-            this.debugLog(`SwitchBot Device Config Set: ${JSON.stringify(this.config.options?.devices)}`);
-            if (deviceLists.length === 0) {
-              this.debugLog(`SwitchBot API Currently Doesn't Have Any Devices With Cloud Services Enabled: ${JSON.stringify(devicesAPI.body)}`);
-            } else {
-              const deviceConfigs = this.config.options?.devices;
+            } else if (this.config.credentials?.token && this.config.options.devices) {
+              this.debugLog(`SwitchBot Device Config Set: ${JSON.stringify(this.config.options?.devices)}`);
+              if (deviceLists.length === 0) {
+                this.debugLog(`SwitchBot API Currently Doesn't Have Any Devices With Cloud Services Enabled: ${JSON.stringify(devicesAPI.body)}`);
+              } else {
+                const deviceConfigs = this.config.options?.devices;
 
-              const mergeBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
+                const mergeBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
+                  a1.map((itm: { deviceId: string }) => ({
+                    ...a2.find(
+                      (item: { deviceId: string }) =>
+                        item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
+                    ),
+                    ...itm,
+                  }));
+
+                const devices = mergeBydeviceId(deviceLists, deviceConfigs);
+                this.debugLog(`SwitchBot Devices: ${JSON.stringify(devices)}`);
+                for (const device of devices) {
+                  if (!device.deviceType) {
+                    device.deviceType = device.configDeviceType;
+                    this.errorLog(`API has displaying no deviceType: ${device.deviceType}, So using configDeviceType: ${device.configDeviceType}`);
+                  }
+                  if (device.deviceType) {
+                    if (device.configDeviceName) {
+                      device.deviceName = device.configDeviceName;
+                    }
+                    this.createDevice(device);
+                  }
+                }
+              }
+            } else {
+              this.errorLog('SwitchBot Token Supplied, Issue with Auth.');
+            }
+            if (devicesAPI.body.deviceList.length !== 0) {
+              this.infoLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
+            } else {
+              this.debugLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
+            }
+
+            // IR Devices
+            const irDeviceLists = devicesAPI.body.infraredRemoteList;
+            if (!this.config.options?.irdevices) {
+              this.debugLog(`IR Device Config Not Set: ${JSON.stringify(this.config.options?.irdevices)}`);
+              const devices = irDeviceLists.map((v: any) => v);
+              for (const device of devices) {
+                if (device.remoteType) {
+                  this.createIRDevice(device);
+                }
+              }
+            } else {
+              this.debugLog(`IR Device Config Set: ${JSON.stringify(this.config.options?.irdevices)}`);
+              const irDeviceConfig = this.config.options?.irdevices;
+
+              const mergeIRBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
                 a1.map((itm: { deviceId: string }) => ({
                   ...a2.find(
                     (item: { deviceId: string }) =>
@@ -540,73 +591,34 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
                   ...itm,
                 }));
 
-              const devices = mergeBydeviceId(deviceLists, deviceConfigs);
-              this.debugLog(`SwitchBot Devices: ${JSON.stringify(devices)}`);
+              const devices = mergeIRBydeviceId(irDeviceLists, irDeviceConfig);
+              this.debugLog(`IR Devices: ${JSON.stringify(devices)}`);
               for (const device of devices) {
-                if (!device.deviceType) {
-                  device.deviceType = device.configDeviceType;
-                  this.errorLog(`API has displaying no deviceType: ${device.deviceType}, So using configDeviceType: ${device.configDeviceType}`);
-                }
-                if (device.deviceType) {
-                  if (device.configDeviceName) {
-                    device.deviceName = device.configDeviceName;
-                  }
-                  this.createDevice(device);
-                }
-              }
-            }
-          } else {
-            this.errorLog('SwitchBot Token Supplied, Issue with Auth.');
-          }
-          if (devicesAPI.body.deviceList.length !== 0) {
-            this.infoLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
-          } else {
-            this.debugLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
-          }
-
-          // IR Devices
-          const irDeviceLists = devicesAPI.body.infraredRemoteList;
-          if (!this.config.options?.irdevices) {
-            this.debugLog(`IR Device Config Not Set: ${JSON.stringify(this.config.options?.irdevices)}`);
-            const devices = irDeviceLists.map((v: any) => v);
-            for (const device of devices) {
-              if (device.remoteType) {
                 this.createIRDevice(device);
               }
             }
+            if (devicesAPI.body.infraredRemoteList.length !== 0) {
+              this.infoLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
+            } else {
+              this.debugLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
+            }
+            break;
           } else {
-            this.debugLog(`IR Device Config Set: ${JSON.stringify(this.config.options?.irdevices)}`);
-            const irDeviceConfig = this.config.options?.irdevices;
-
-            const mergeIRBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
-              a1.map((itm: { deviceId: string }) => ({
-                ...a2.find(
-                  (item: { deviceId: string }) =>
-                    item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
-                ),
-                ...itm,
-              }));
-
-            const devices = mergeIRBydeviceId(irDeviceLists, irDeviceConfig);
-            this.debugLog(`IR Devices: ${JSON.stringify(devices)}`);
-            for (const device of devices) {
-              this.createIRDevice(device);
+            this.statusCode(statusCode);
+            this.statusCode(devicesAPI.statusCode);
+            if (statusCode === 500) {
+              retryCount++;
+              this.infoLog(`statusCode: ${statusCode} Attempt ${retryCount} of ${maxRetries}`);
+              await sleep(delayBetweenRetries);
             }
           }
-          if (devicesAPI.body.infraredRemoteList.length !== 0) {
-            this.infoLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
-          } else {
-            this.debugLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
-          }
-        } else {
-          this.statusCode(statusCode);
-          this.statusCode(devicesAPI.statusCode);
+        } catch (e: any) {
+          retryCount++;
+          this.debugErrorLog(
+            `Failed to Discover Devices, Error Message: ${JSON.stringify(e.message)}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug',
+          );
+          this.debugErrorLog(`Failed to Discover Devices, Error: ${e}`);
         }
-      } catch (e: any) {
-        this.debugErrorLog(
-          `Failed to Discover Devices, Error Message: ${JSON.stringify(e.message)}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug',
-        );
-        this.debugErrorLog(`Failed to Discover Devices, Error: ${e}`);
       }
     } else if (!this.config.credentials?.token && this.config.options?.devices) {
       this.debugLog(`SwitchBot Device Manual Config Set: ${JSON.stringify(this.config.options?.devices)}`);
