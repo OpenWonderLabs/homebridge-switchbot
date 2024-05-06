@@ -80,7 +80,7 @@
     "@homebridge/plugin-ui-utils": "^1.0.3",
     "async-mqtt": "^2.6.3",
     "fakegato-history": "^0.6.4",
-    "homebridge-lib": "^7.0.0",
+    "homebridge-lib": "^6.7.5",
     "rxjs": "^7.8.1",
     "undici": "^6.15.0"
   },
