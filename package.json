@@ -26,8 +26,8 @@
   },
   "engineStrict": true,
   "engines": {
-    "homebridge": "^1.8.0",
-    "node": "^18 || ^20"
+    "homebridge": "^1.8.1",
+    "node": "^18 || ^20 || ^22"
   },
   "main": "dist/index.js",
   "scripts": {
@@ -80,7 +80,7 @@
     "@homebridge/plugin-ui-utils": "^1.0.3",
     "async-mqtt": "^2.6.3",
     "fakegato-history": "^0.6.4",
-    "homebridge-lib": "7.0.1",
+    "homebridge-lib": "6.7.5",
     "rxjs": "^7.8.1",
     "undici": "^6.16.1"
   },
