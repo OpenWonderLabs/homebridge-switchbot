@@ -39,7 +39,7 @@ import fakegato from 'fakegato-history';
 import asyncmqtt from 'async-mqtt';
 import crypto, { randomUUID } from 'crypto';
 import { readFileSync, writeFileSync } from 'fs';
-import hbLib from 'homebridge-lib';
+import { EveHomeKitTypes } from 'homebridge-lib';
 import { UrlObject } from 'url';
 import { sleep } from './utils.js';
 
@@ -108,7 +108,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
 
     // import fakegato-history module and EVE characteristics
-    const { EveHomeKitTypes } = hbLib;
     this.fakegatoAPI = fakegato(api);
     this.eve = new EveHomeKitTypes(api);
 
