@@ -2,6 +2,77 @@
  *
  * util.ts: @switchbot/homebridge-switchbot platform class.
  */
+export enum SwitchBotModel {
+  HubMini = 'W0202200',
+  HubPlus = 'SwitchBot Hub S1',
+  Hub2 = 'W3202100',
+  Bot = 'SwitchBot S1',
+  Curtain = 'W0701600',
+  Curtain3 = 'W2400000',
+  Humidifier = 'W0801800',
+  Plug = 'SP11', // Currently only available in Japan
+  Meter = 'SwitchBot MeterTH S1',
+  MeterPlusJP = 'W2201500',
+  MeterPlusUS = 'W2301500',
+  OutdoorMeter = 'W3400010',
+  MotionSensor = 'W1101500',
+  ContactSensor = 'W1201500',
+  ColorBulb = 'W1401400',
+  StripLight = 'W1701100',
+  PlugMiniUS = 'W1901400',
+  PlugMiniJP = 'W2001400',
+  Lock = 'W1601700',
+  LockPro = 'W3500000',
+  Keypad = 'W2500010',
+  KeypadTouch = 'W2500020',
+  K10 = 'K10+',
+  WoSweeper = 'WoSweeper',
+  WoSweeperMini = 'WoSweeperMini',
+  RobotVacuumCleanerS1 = 'W3011000', // Currently only available in Japan.
+  RobotVacuumCleanerS1Plus = 'W3011010', // Currently only available in Japan.
+  Remote = 'Remote',
+  UniversalRemote = 'UniversalRemote',
+  CeilingLight = 'W2612230', // Currently only available in Japan.
+  CeilingLightPro = 'W2612210', // Currently only available in Japan.
+  IndoorCam = 'W1301200',
+  PanTiltCam = 'W1801200',
+  PanTiltCam2K = 'W3101100',
+  BlindTilt = 'W2701600',
+  BatteryCirculatorFan = 'W3800510',
+  WaterDetector = 'WoWaterDetector',
+  Unknown = 'Unknown',
+}
+
+export enum SwitchBotBLEModel {
+  Bot = 'H',
+  Curtain = 'c',
+  Curtain3 = '{',
+  Humidifier = 'e',
+  Meter = 'T',
+  MeterPlus = 'i',
+  OutdoorMeter = 'w',
+  MotionSensor = 's',
+  ContactSensor = 'd',
+  ColorBulb = 'u',
+  StripLight = 'r',
+  PlugMiniUS = 'g',
+  PlugMiniJP = 'j',
+  Lock = 'o',
+  Remote = '',
+  CeilingLight = 'q', // Currently only available in Japan.
+  CeilingLightPro = 'n', // Currently only available in Japan.
+  BlindTilt = 'x',
+  Unknown = 'Unknown',
+}
+
+export enum BlindTiltMappingMode {
+  OnlyUp = 'only_up',
+  OnlyDown = 'only_down',
+  DownAndUp = 'down_and_up',
+  UpAndDown = 'up_and_down',
+  UseTiltForDirection = 'use_tilt_for_direction',
+}
+
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }

@@ -53,6 +53,7 @@ export interface devicesConfig extends device {
   deviceId: string;
   external?: boolean;
   refreshRate?: number;
+  updateRate?: number;
   firmware?: string;
   logging?: string;
   connectionType?: string;
@@ -71,6 +72,7 @@ export interface devicesConfig extends device {
   webhook?: boolean;
   bot?: bot;
   meter?: meter;
+  iosensor?: iosensor;
   humidifier?: humidifier;
   curtain?: curtain;
   blindTilt?: blindTilt;
@@ -86,6 +88,11 @@ export interface devicesConfig extends device {
 }
 
 export type meter = {
+  hide_temperature?: boolean;
+  hide_humidity?: boolean;
+};
+
+export type iosensor = {
   hide_temperature?: boolean;
   hide_humidity?: boolean;
 };
@@ -109,7 +116,6 @@ export type curtain = {
   hide_lightsensor?: boolean;
   set_minLux?: number;
   set_maxLux?: number;
-  updateRate?: number;
   set_max?: number;
   set_min?: number;
   set_minStep?: number;
@@ -122,7 +128,6 @@ export type blindTilt = {
   hide_lightsensor?: boolean;
   set_minLux?: number;
   set_maxLux?: number;
-  updateRate?: number;
   set_max?: number;
   set_min?: number;
   set_minStep?: number;
@@ -268,6 +273,10 @@ export type device = {
   version?: number;
   //BLE Mac Address
   bleMac?: string;
+  //Device Model
+  model?: string;
+  //Device BLE Model
+  bleModel?: string;
 };
 
 //a list of virtual infrared remote devices.
@@ -280,9 +289,16 @@ export type irdevice = {
   deviceName: string; //device name
   remoteType: string; //device type
   hubDeviceId: string; //remote device's parent Hub ID
+  model: string; //device model
 };
 
 export type deviceStatus = {
+  statusCode: number;
+  message: string;
+  body: deviceStatusBody;
+};
+
+export type deviceStatusBody = {
   //v1.1 of API
   deviceId: string; //device ID. (Used by the following deviceTypes: Bot, Curtain, Meter, Meter Plus, Lock, Keypad, Keypad Touch, Motion Sensor, Contact Sensor, Ceiling Light, Ceiling Light Pro, Plug Mini (US), Plug Mini (JP), Strip Light, Color Bulb, Robot Vacuum Cleaner S1, Robot Vacuum Cleaner S1 Plus, Humidifier, Blind Tilt)
   deviceType: string; //device type. (Used by the following deviceTypes: Bot, Curtain, Meter, Meter Plus, Lock, Keypad, Keypad Touch, Motion Sensor, Contact Sensor, Ceiling Light, Ceiling Light Pro, Plug Mini (US), Plug Mini (JP), Strip Light, Color Bulb, Robot Vacuum Cleaner S1, Robot Vacuum Cleaner S1 Plus, Humidifier, Blind Tilt)
@@ -323,6 +339,7 @@ export type deviceStatus = {
   shakeCenter?: string; //the fan's swing direction. (Used by the following deviceTypes: Smart Fan)
   shakeRange?: string; //the fan's swing range, 0~120°. (Used by the following deviceTypes: Smart Fan)
   status?: number //the leak status. 0 for no leak, 1 for leak. (Used by the following deviceTypes: Water Detector)
+  lightLevel?: number; //the light level. (Used by the following deviceTypes: Hub)
 };
 
 export type ad = {
@@ -359,7 +376,7 @@ export type serviceData = {
   battery?: number;
   //Humidifier's humidity level percentage
   percentage?: boolean | string;
-  //Humidifier's humidity level percentage
+  //Humidifier's state
   onState?: boolean;
   //Humidifier's AutoMode
   autoMode?: boolean;

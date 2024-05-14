@@ -80,23 +80,23 @@
     "@homebridge/plugin-ui-utils": "^1.0.3",
     "async-mqtt": "^2.6.3",
     "fakegato-history": "^0.6.4",
-    "homebridge-lib": "6.7.5",
+    "homebridge-lib": "7.0.1",
     "rxjs": "^7.8.1",
-    "undici": "^6.15.0"
+    "undici": "^6.16.1"
   },
   "optionalDependencies": {
-    "node-switchbot": "2.1.0-beta.6"
+    "node-switchbot": "2.1.0"
   },
   "devDependencies": {
-    "@types/node": "^20.12.8",
-    "@typescript-eslint/eslint-plugin": "^7.8.0",
-    "@typescript-eslint/parser": "^7.8.0",
+    "@types/node": "^20.12.12",
+    "@typescript-eslint/eslint-plugin": "^7.9.0",
+    "@typescript-eslint/parser": "^7.9.0",
     "eslint": "^8.57.0",
     "homebridge": "^1.8.1",
     "homebridge-config-ui-x": "4.56.2",
     "nodemon": "^3.1.0",
     "npm-check-updates": "^16.14.20",
-    "rimraf": "^5.0.5",
+    "rimraf": "^5.0.7",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   }
