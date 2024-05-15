@@ -48,18 +48,18 @@ export class CeilingLight extends deviceBase {
     this.doCeilingLightUpdate = new Subject();
     this.ceilingLightUpdateInProgress = false;
 
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
-
     // Initialize LightBulb property
     this.LightBulb = {
-      Service: this.accessory.addService(this.hap.Service.Lightbulb),
+      Service: accessory.getService(this.hap.Service.Lightbulb)!,
       On: accessory.context.On || false,
       Hue: accessory.context.Hue || 0,
       Saturation: accessory.context.Saturation || 0,
       Brightness: accessory.context.Brightness || 0,
       ColorTemperature: accessory.context.ColorTemperature || 140,
     };
+
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
 
     const LightBulbService = `${accessory.displayName} ${device.deviceType}`;
     (this.LightBulb!.Service = accessory.getService(this.hap.Service.Lightbulb)

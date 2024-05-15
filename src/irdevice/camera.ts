@@ -15,10 +15,10 @@ import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
  */
 export class Camera extends irdeviceBase {
   // Services
-  switchService!: Service;
-
-  // Characteristic Values
-  On!: CharacteristicValue;
+  private Switch: {
+    Service: Service;
+    On: CharacteristicValue;
+  };
 
   constructor(
     readonly platform: SwitchBotPlatform,
@@ -27,30 +27,29 @@ export class Camera extends irdeviceBase {
   ) {
     super(platform, accessory, device);
 
-    // default placeholders
-    if (this.On === undefined) {
-      this.On = false;
-    } else {
-      this.On = accessory.context.On;
-    }
+    // Initialize Switch property
+    this.Switch = {
+      Service: accessory.getService(this.hap.Service.Switch)!,
+      On: accessory.context.On || false,
+    };
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
-    const switchService = `${accessory.displayName} Camera`;
-    (this.switchService = accessory.getService(this.hap.Service.Switch)
-      || accessory.addService(this.hap.Service.Switch)), switchService;
+    const SwitchService = `${accessory.displayName} Camera`;
+    (this.Switch.Service = accessory.getService(this.hap.Service.Switch)
+      || accessory.addService(this.hap.Service.Switch)), SwitchService;
 
-    this.switchService.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
+    this.Switch.Service.setCharacteristic(this.hap.Characteristic.Name, SwitchService);
 
     // handle on / off events using the On characteristic
-    this.switchService.getCharacteristic(this.hap.Characteristic.On).onSet(this.OnSet.bind(this));
+    this.Switch.Service.getCharacteristic(this.hap.Characteristic.On).onSet(this.OnSet.bind(this));
   }
 
   async OnSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${value}`);
 
-    this.On = value;
-    if (this.On) {
+    this.Switch.On = value;
+    if (this.Switch.On) {
       this.pushOnChanges();
     } else {
       this.pushOffChanges();
@@ -68,8 +67,9 @@ export class Camera extends irdeviceBase {
    * Camera -        "command"       "channelSub"      "default"	        =        previous channel
    */
   async pushOnChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOnChanges On: ${this.On},` + ` disablePushOn: ${this.disablePushOn}`);
-    if (this.On && !this.disablePushOn) {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOnChanges On: ${this.Switch.On},`
+    + ` disablePushOn: ${this.disablePushOn}`);
+    if (this.Switch.On && !this.disablePushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const bodyChange = JSON.stringify({
@@ -83,9 +83,9 @@ export class Camera extends irdeviceBase {
 
   async pushOffChanges(): Promise<void> {
     this.debugLog(
-      `${this.device.remoteType}: ${this.accessory.displayName} pushOffChanges On: ${this.On},` + ` disablePushOff: ${this.disablePushOff}`,
+      `${this.device.remoteType}: ${this.accessory.displayName} pushOffChanges On: ${this.Switch.On},` + ` disablePushOff: ${this.disablePushOff}`,
     );
-    if (!this.On && !this.disablePushOff) {
+    if (!this.Switch.On && !this.disablePushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
       const bodyChange = JSON.stringify({
@@ -137,16 +137,16 @@ export class Camera extends irdeviceBase {
 
   async updateHomeKitCharacteristics(): Promise<void> {
     // On
-    if (this.On === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.On}`);
+    if (this.Switch.On === undefined) {
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.Switch.On}`);
     } else {
-      this.accessory.context.On = this.On;
-      this.switchService?.updateCharacteristic(this.hap.Characteristic.On, this.On);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+      this.accessory.context.On = this.Switch.On;
+      this.Switch.Service?.updateCharacteristic(this.hap.Characteristic.On, this.Switch.On);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.Switch.On}`);
     }
   }
 
   async apiError(e: any): Promise<void> {
-    this.switchService.updateCharacteristic(this.hap.Characteristic.On, e);
+    this.Switch.Service.updateCharacteristic(this.hap.Characteristic.On, e);
   }
 }

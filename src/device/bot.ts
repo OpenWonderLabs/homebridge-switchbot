@@ -98,12 +98,9 @@ export class Bot extends deviceBase {
     this.doBotUpdate = new Subject();
     this.botUpdateInProgress = false;
 
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
-
     // Initialize Battery property
     this.Battery = {
-      Service: accessory.addService(this.hap.Service.Battery),
+      Service: accessory.getService(this.hap.Service.Battery)!,
       BatteryLevel: accessory.context.BatteryLevel || 100,
       StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
     };
@@ -112,7 +109,7 @@ export class Bot extends deviceBase {
     if (this.botDeviceType === 'switch') {
       // Initialize Switch property
       this.Switch = {
-        Service: this.accessory.addService(this.hap.Service.Switch),
+        Service: accessory.getService(this.hap.Service.Switch)!,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -136,7 +133,7 @@ export class Bot extends deviceBase {
     } else if (this.botDeviceType === 'garagedoor') {
       // Initialize Switch property
       this.GarageDoor = {
-        Service: this.accessory.addService(this.hap.Service.GarageDoorOpener),
+        Service: accessory.getService(this.hap.Service.GarageDoorOpener)!,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -161,7 +158,7 @@ export class Bot extends deviceBase {
     } else if (this.botDeviceType === 'door') {
       // Initialize Switch property
       this.Door = {
-        Service: this.accessory.addService(this.hap.Service.Door),
+        Service: accessory.getService(this.hap.Service.Door)!,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -194,7 +191,7 @@ export class Bot extends deviceBase {
     } else if (this.botDeviceType === 'window') {
       // Initialize Switch property
       this.Window = {
-        Service: this.accessory.addService(this.hap.Service.Window),
+        Service: accessory.getService(this.hap.Service.Window)!,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -227,7 +224,7 @@ export class Bot extends deviceBase {
     } else if (this.botDeviceType === 'windowcovering') {
       // Initialize Switch property
       this.WindowCovering = {
-        Service: this.accessory.addService(this.hap.Service.WindowCovering),
+        Service: accessory.getService(this.hap.Service.WindowCovering)!,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -260,7 +257,7 @@ export class Bot extends deviceBase {
     } else if (this.botDeviceType === 'lock') {
       // Initialize Switch property
       this.Lock = {
-        Service: this.accessory.addService(this.hap.Service.LockMechanism),
+        Service: accessory.getService(this.hap.Service.LockMechanism)!,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -284,7 +281,7 @@ export class Bot extends deviceBase {
     } else if (this.botDeviceType === 'faucet') {
       // Initialize Switch property
       this.Faucet = {
-        Service: this.accessory.addService(this.hap.Service.Faucet),
+        Service: accessory.getService(this.hap.Service.Faucet)!,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -308,7 +305,7 @@ export class Bot extends deviceBase {
     } else if (this.botDeviceType === 'fan') {
       // Initialize Switch property
       this.Fan = {
-        Service: this.accessory.addService(this.hap.Service.Fanv2),
+        Service: accessory.getService(this.hap.Service.Fanv2)!,
         On: accessory.context.On || false,
       };
       this.removeLockService(accessory);
@@ -332,7 +329,7 @@ export class Bot extends deviceBase {
     } else if (this.botDeviceType === 'stateful') {
       // Initialize Switch property
       this.StatefulProgrammableSwitch = {
-        Service: this.accessory.addService(this.hap.Service.StatefulProgrammableSwitch),
+        Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch)!,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -358,7 +355,7 @@ export class Bot extends deviceBase {
     } else {
       // Initialize Switch property
       this.Outlet = {
-        Service: this.accessory.addService(this.hap.Service.Outlet),
+        Service: accessory.getService(this.hap.Service.Outlet)!,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -380,6 +377,9 @@ export class Bot extends deviceBase {
       this.Outlet!.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
       this.Outlet!.Service.getCharacteristic(this.hap.Characteristic.On).onSet(this.OnSet.bind(this));
     }
+
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
 
     // batteryService
     const batteryService = `${accessory.displayName} Battery`;

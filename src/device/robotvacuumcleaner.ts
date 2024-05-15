@@ -38,22 +38,22 @@ export class RobotVacuumCleaner extends deviceBase {
     this.doRobotVacuumCleanerUpdate = new Subject();
     this.robotVacuumCleanerUpdateInProgress = false;
 
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
-
     // Initialize Lightbulb property
     this.LightBulb = {
-      Service: this.accessory.addService(this.hap.Service.Lightbulb),
+      Service: accessory.getService(this.hap.Service.Lightbulb)!,
       On: accessory.context.On || false,
       Brightness: accessory.context.Brightness || 0,
     };
 
     // Initialize Battery property
     this.Battery = {
-      Service: this.accessory.addService(this.hap.Service.Battery),
+      Service: accessory.getService(this.hap.Service.Battery)!,
       BatteryLevel: accessory.context.BatteryLevel || 100,
       StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
     };
+
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
 
     // get the Lightbulb service if it exists, otherwise create a new Lightbulb service
     // you can create multiple services for each accessory

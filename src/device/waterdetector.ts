@@ -46,33 +46,25 @@ export class WaterDetector extends deviceBase {
     this.doWaterDetectorUpdate = new Subject();
     this.WaterDetectorUpdateInProgress = false;
 
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
-
     // Initialize Battery property
     this.Battery = {
-      Service: this.accessory.getService(this.hap.Service.Battery) || this.accessory.addService(this.hap.Service.Battery),
-      BatteryLevel: this.accessory.context.BatteryLevel || 100,
-      StatusLowBattery: this.accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
-      ChargingState: this.accessory.context.ChargingState || this.hap.Characteristic.ChargingState.NOT_CHARGEABLE,
+      Service: accessory.getService(this.hap.Service.Battery)!,
+      BatteryLevel: accessory.context.BatteryLevel || 100,
+      StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
+      ChargingState: accessory.context.ChargingState || this.hap.Characteristic.ChargingState.NOT_CHARGEABLE,
     };
 
     // Initialize Leak Sensor property
     if (!this.device.waterdetector?.hide_leak) {
       this.LeakSensor = {
-        Service: this.accessory.getService(this.hap.Service.LeakSensor) || this.accessory.addService(this.hap.Service.LeakSensor),
-        StatusActive: this.accessory.context.StatusActive || false,
-        LeakDetected: this.accessory.context.LeakDetected || this.hap.Characteristic.LeakDetected.LEAK_NOT_DETECTED,
+        Service: accessory.getService(this.hap.Service.LeakSensor)!,
+        StatusActive: accessory.context.StatusActive || false,
+        LeakDetected: accessory.context.LeakDetected || this.hap.Characteristic.LeakDetected.LEAK_NOT_DETECTED,
       };
     }
 
-    // set accessory information
-    accessory
-      .getService(this.hap.Service.AccessoryInformation)!
-      .setCharacteristic(this.hap.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.hap.Characteristic.Model, 'WoWaterDetector')
-      .setCharacteristic(this.hap.Characteristic.SerialNumber, device.deviceId)
-      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
 
     // Leak Sensor Service
     if (device.waterdetector?.hide_leak) {

@@ -51,19 +51,16 @@ export class Contact extends deviceBase {
     this.doContactUpdate = new Subject();
     this.contactUpdateInProgress = false;
 
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
-
     // Initialize Contact Sensor property
     this.ContactSensor = {
-      Service: this.accessory.addService(this.hap.Service.ContactSensor),
+      Service: accessory.getService(this.hap.Service.ContactSensor)!,
       ContactSensorState: this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED,
     };
 
     // Initialize Motion Sensor property
     if (!this.device.contact?.hide_motionsensor) {
       this.MotionSensor = {
-        Service: this.accessory.addService(this.hap.Service.MotionSensor),
+        Service: accessory.getService(this.hap.Service.MotionSensor)!,
         MotionDetected: false,
       };
     }
@@ -71,10 +68,13 @@ export class Contact extends deviceBase {
     // Initialize Light Sensor property
     if (!this.device.contact?.hide_lightsensor) {
       this.LightSensor = {
-        Service: this.accessory.addService(this.hap.Service.LightSensor),
+        Service: accessory.getService(this.hap.Service.LightSensor)!,
         CurrentAmbientLightLevel: 0,
       };
     }
+
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
 
     // get the Contact service if it exists, otherwise create a new Contact service
     // you can create multiple services for each accessory

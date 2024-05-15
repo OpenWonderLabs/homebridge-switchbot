@@ -46,14 +46,14 @@ export class Motion extends deviceBase {
     this.doMotionUpdate = new Subject();
     this.motionUbpdateInProgress = false;
 
+    // Initialize Motion Sensor property
+    this.MotionSensor = {
+      Service: accessory.getService(this.hap.Service.MotionSensor)!,
+      MotionDetected:accessory.context.MotionDetected || false,
+    };
+
     // Retrieve initial values and updateHomekit
     this.refreshStatus();
-
-    if (this.MotionSensor.MotionDetected === undefined) {
-      this.MotionSensor.MotionDetected = false;
-    } else {
-      this.MotionSensor.MotionDetected = this.accessory.context.MotionDetected;
-    }
 
     // get the Battery service if it exists, otherwise create a new Motion service
     // you can create multiple services for each accessory

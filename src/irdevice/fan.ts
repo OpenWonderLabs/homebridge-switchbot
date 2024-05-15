@@ -15,14 +15,13 @@ import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
  */
 export class Fan extends irdeviceBase {
   // Services
-  fanService!: Service;
-
-  // Characteristic Values
-  Active!: CharacteristicValue;
-  SwingMode!: CharacteristicValue;
-  RotationSpeed!: CharacteristicValue;
-  ActiveIdentifier!: CharacteristicValue;
-  RotationDirection!: CharacteristicValue;
+  private Fan: {
+    Service: Service;
+    Active: CharacteristicValue;
+    SwingMode: CharacteristicValue;
+    RotationSpeed: CharacteristicValue;
+    RotationDirection: CharacteristicValue;
+  };
 
   // Config
   minStep?: number;
@@ -36,23 +35,25 @@ export class Fan extends irdeviceBase {
   ) {
     super(platform, accessory, device);
 
-    // default placeholders
-    if (this.Active === undefined) {
-      this.Active = this.hap.Characteristic.Active.INACTIVE;
-    } else {
-      this.Active = this.accessory.context.Active;
-    }
+    // Initialize Switch property
+    this.Fan = {
+      Service: accessory.getService(this.hap.Service.Lightbulb)!,
+      Active: accessory.context.Active || this.hap.Characteristic.Active.INACTIVE,
+      SwingMode: accessory.context.SwingMode || this.hap.Characteristic.SwingMode.SWING_DISABLED,
+      RotationSpeed: accessory.context.RotationSpeed || 0,
+      RotationDirection: accessory.context.On || this.hap.Characteristic.RotationDirection.CLOCKWISE,
+    };
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
-    const fanService = `${accessory.displayName} Fan`;
-    (this.fanService = accessory.getService(this.hap.Service.Fanv2)
-      || accessory.addService(this.hap.Service.Fanv2)), fanService;
+    const FanService = `${accessory.displayName} Fan`;
+    (this.Fan.Service = accessory.getService(this.hap.Service.Fanv2)
+      || accessory.addService(this.hap.Service.Fanv2)), FanService;
 
-    this.fanService.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
+    this.Fan.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
 
     // handle on / off events using the Active characteristic
-    this.fanService.getCharacteristic(this.hap.Characteristic.Active).onSet(this.ActiveSet.bind(this));
+    this.Fan.Service.getCharacteristic(this.hap.Characteristic.Active).onSet(this.ActiveSet.bind(this));
 
     if (device.irfan?.rotation_speed) {
       if (device.irfan?.set_minStep) {
@@ -71,7 +72,7 @@ export class Fan extends irdeviceBase {
         this.maxValue = 100;
       }
       // handle Rotation Speed events using the RotationSpeed characteristic
-      this.fanService
+      this.Fan.Service
         .getCharacteristic(this.hap.Characteristic.RotationSpeed)
         .setProps({
           minStep: this.minStep,
@@ -79,9 +80,9 @@ export class Fan extends irdeviceBase {
           maxValue: this.maxValue,
         })
         .onSet(this.RotationSpeedSet.bind(this));
-    } else if (this.fanService.testCharacteristic(this.hap.Characteristic.RotationSpeed) && !device.irfan?.swing_mode) {
-      const characteristic = this.fanService.getCharacteristic(this.hap.Characteristic.RotationSpeed);
-      this.fanService.removeCharacteristic(characteristic);
+    } else if (this.Fan.Service.testCharacteristic(this.hap.Characteristic.RotationSpeed) && !device.irfan?.swing_mode) {
+      const characteristic = this.Fan.Service.getCharacteristic(this.hap.Characteristic.RotationSpeed);
+      this.Fan.Service.removeCharacteristic(characteristic);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Rotation Speed Characteristic was removed.`);
     } else {
       // eslint-disable-next-line max-len
@@ -93,10 +94,10 @@ export class Fan extends irdeviceBase {
 
     if (device.irfan?.swing_mode) {
       // handle Osolcation events using the SwingMode characteristic
-      this.fanService.getCharacteristic(this.hap.Characteristic.SwingMode).onSet(this.SwingModeSet.bind(this));
-    } else if (this.fanService.testCharacteristic(this.hap.Characteristic.SwingMode) && !device.irfan?.swing_mode) {
-      const characteristic = this.fanService.getCharacteristic(this.hap.Characteristic.SwingMode);
-      this.fanService.removeCharacteristic(characteristic);
+      this.Fan.Service.getCharacteristic(this.hap.Characteristic.SwingMode).onSet(this.SwingModeSet.bind(this));
+    } else if (this.Fan.Service.testCharacteristic(this.hap.Characteristic.SwingMode) && !device.irfan?.swing_mode) {
+      const characteristic = this.Fan.Service.getCharacteristic(this.hap.Characteristic.SwingMode);
+      this.Fan.Service.removeCharacteristic(characteristic);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Swing Mode Characteristic was removed.`);
     } else {
       // eslint-disable-next-line max-len
@@ -109,38 +110,38 @@ export class Fan extends irdeviceBase {
 
   async SwingModeSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} SwingMode: ${value}`);
-    if (value > this.SwingMode) {
-      this.SwingMode = 1;
+    if (value > this.Fan.SwingMode) {
+      this.Fan.SwingMode = 1;
       await this.pushFanOnChanges();
       await this.pushFanSwingChanges();
     } else {
-      this.SwingMode = 0;
+      this.Fan.SwingMode = 0;
       await this.pushFanOnChanges();
       await this.pushFanSwingChanges();
     }
-    this.SwingMode = value;
-    this.accessory.context.SwingMode = this.SwingMode;
+    this.Fan.SwingMode = value;
+    this.accessory.context.SwingMode = this.Fan.SwingMode;
   }
 
   async RotationSpeedSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} RotationSpeed: ${value}`);
-    if (value > this.RotationSpeed) {
-      this.RotationSpeed = 1;
+    if (value > this.Fan.RotationSpeed) {
+      this.Fan.RotationSpeed = 1;
       this.pushFanSpeedUpChanges();
       this.pushFanOnChanges();
     } else {
-      this.RotationSpeed = 0;
+      this.Fan.RotationSpeed = 0;
       this.pushFanSpeedDownChanges();
     }
-    this.RotationSpeed = value;
-    this.accessory.context.RotationSpeed = this.RotationSpeed;
+    this.Fan.RotationSpeed = value;
+    this.accessory.context.RotationSpeed = this.Fan.RotationSpeed;
   }
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${value}`);
 
-    this.Active = value;
-    if (this.Active === this.hap.Characteristic.Active.ACTIVE) {
+    this.Fan.Active = value;
+    if (this.Fan.Active === this.hap.Characteristic.Active.ACTIVE) {
       this.pushFanOnChanges();
     } else {
       this.pushFanOffChanges();
@@ -157,10 +158,9 @@ export class Fan extends irdeviceBase {
    * Fan -        "command"       "highSpeed"      "default"	        =        fan speed to high
    */
   async pushFanOnChanges(): Promise<void> {
-    this.debugLog(
-      `${this.device.remoteType}: ${this.accessory.displayName} pushFanOnChanges Active: ${this.Active},` + ` disablePushOn: ${this.disablePushOn}`,
-    );
-    if (this.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushFanOnChanges Active: ${this.Fan.Active},`
+      + ` disablePushOn: ${this.disablePushOn}`);
+    if (this.Fan.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const bodyChange = JSON.stringify({
@@ -174,10 +174,10 @@ export class Fan extends irdeviceBase {
 
   async pushFanOffChanges(): Promise<void> {
     this.debugLog(
-      `${this.device.remoteType}: ${this.accessory.displayName} pushLightOffChanges Active: ${this.Active},` +
+      `${this.device.remoteType}: ${this.accessory.displayName} pushLightOffChanges Active: ${this.Fan.Active},` +
       ` disablePushOff: ${this.disablePushOff}`,
     );
-    if (this.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOff) {
+    if (this.Fan.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
       const bodyChange = JSON.stringify({
@@ -255,32 +255,32 @@ export class Fan extends irdeviceBase {
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
-    if (this.Active === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Active}`);
+    if (this.Fan.Active === undefined) {
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Fan.Active}`);
     } else {
-      this.accessory.context.Active = this.Active;
-      this.fanService?.updateCharacteristic(this.hap.Characteristic.Active, this.Active);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
+      this.accessory.context.Active = this.Fan.Active;
+      this.Fan.Service?.updateCharacteristic(this.hap.Characteristic.Active, this.Fan.Active);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Fan.Active}`);
     }
-    if (this.SwingMode === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} SwingMode: ${this.SwingMode}`);
+    if (this.Fan.SwingMode === undefined) {
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} SwingMode: ${this.Fan.SwingMode}`);
     } else {
-      this.accessory.context.SwingMode = this.SwingMode;
-      this.fanService?.updateCharacteristic(this.hap.Characteristic.SwingMode, this.SwingMode);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic SwingMode: ${this.SwingMode}`);
+      this.accessory.context.SwingMode = this.Fan.SwingMode;
+      this.Fan.Service?.updateCharacteristic(this.hap.Characteristic.SwingMode, this.Fan.SwingMode);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic SwingMode: ${this.Fan.SwingMode}`);
     }
-    if (this.RotationSpeed === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} RotationSpeed: ${this.RotationSpeed}`);
+    if (this.Fan.RotationSpeed === undefined) {
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} RotationSpeed: ${this.Fan.RotationSpeed}`);
     } else {
-      this.accessory.context.RotationSpeed = this.RotationSpeed;
-      this.fanService?.updateCharacteristic(this.hap.Characteristic.RotationSpeed, this.RotationSpeed);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic RotationSpeed: ${this.RotationSpeed}`);
+      this.accessory.context.RotationSpeed = this.Fan.RotationSpeed;
+      this.Fan.Service?.updateCharacteristic(this.hap.Characteristic.RotationSpeed, this.Fan.RotationSpeed);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic RotationSpeed: ${this.Fan.RotationSpeed}`);
     }
   }
 
   async apiError(e: any): Promise<void> {
-    this.fanService.updateCharacteristic(this.hap.Characteristic.Active, e);
-    this.fanService.updateCharacteristic(this.hap.Characteristic.RotationSpeed, e);
-    this.fanService.updateCharacteristic(this.hap.Characteristic.SwingMode, e);
+    this.Fan.Service.updateCharacteristic(this.hap.Characteristic.Active, e);
+    this.Fan.Service.updateCharacteristic(this.hap.Characteristic.RotationSpeed, e);
+    this.Fan.Service.updateCharacteristic(this.hap.Characteristic.SwingMode, e);
   }
 }

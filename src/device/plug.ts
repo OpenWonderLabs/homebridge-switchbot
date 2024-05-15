@@ -29,14 +29,14 @@ export class Plug extends deviceBase {
     this.doPlugUpdate = new Subject();
     this.plugUpdateInProgress = false;
 
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
-
     // Initialize Outlet property
     this.Outlet = {
-      Service: this.accessory.addService(this.hap.Service.Battery),
+      Service: accessory.getService(this.hap.Service.Outlet)!,
       On: accessory.context.On || false,
     };
+
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
 
     // get the Outlet service if it exists, otherwise create a new Outlet service
     // you can create multiple services for each accessory

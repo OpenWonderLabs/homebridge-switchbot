@@ -3,4 +3,5 @@
  * custom.d.ts: @switchbot/homebridge-switchbot platform class.
  */
 declare module 'homebridge-lib'
+declare module 'homebridge-lib/EveHomeKitTypes'
 declare module 'fakegato-history'

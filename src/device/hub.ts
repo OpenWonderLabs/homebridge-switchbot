@@ -38,13 +38,11 @@ export class Hub extends deviceBase {
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doHubUpdate = new Subject();
     this.hubUpdateInProgress = false;
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
 
     // Initialize Temperature Sensor property
     if (!device.hub?.hide_temperature) {
       this.TemperatureSensor = {
-        Service: this.accessory.addService(this.hap.Service.TemperatureSensor),
+        Service: accessory.getService(this.hap.Service.TemperatureSensor)!,
         CurrentTemperature: accessory.context.CurrentTemperature || 0,
       };
     }
@@ -52,7 +50,7 @@ export class Hub extends deviceBase {
     // Initialize Humidity Sensor property
     if (!device.hub?.hide_humidity) {
       this.HumiditySensor = {
-        Service: this.accessory.addService(this.hap.Service.HumiditySensor),
+        Service: accessory.getService(this.hap.Service.HumiditySensor)!,
         CurrentRelativeHumidity: accessory.context.CurrentRelativeHumidity || 0,
       };
     }
@@ -60,10 +58,13 @@ export class Hub extends deviceBase {
     // Initialize Light Sensor property
     if (!device.hub?.hide_lightsensor) {
       this.LightSensor = {
-        Service: this.accessory.addService(this.hap.Service.LightSensor),
-        CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel || 0,
+        Service: accessory.getService(this.hap.Service.LightSensor)!,
+        CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel || 0.0001,
       };
     }
+
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
 
     // Temperature Sensor Service
     if (device.hub?.hide_temperature) {

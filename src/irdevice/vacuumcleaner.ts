@@ -29,7 +29,7 @@ export class VacuumCleaner extends irdeviceBase {
 
     // Initialize Switch property
     this.Switch = {
-      Service: accessory.addService(this.hap.Service.Switch),
+      Service: accessory.getService(this.hap.Service.Switch)!,
       On: accessory.context.On || false,
     };
 

@@ -44,19 +44,16 @@ export class Lock extends deviceBase {
     this.doLockUpdate = new Subject();
     this.lockUpdateInProgress = false;
 
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
-
     // Initialize LockMechanism property
     this.LockMechanism = {
-      Service: accessory.addService(this.hap.Service.LockMechanism),
+      Service: accessory.getService(this.hap.Service.LockMechanism)!,
       LockTargetState: accessory.context.LockTargetState || this.hap.Characteristic.LockTargetState.SECURED,
       LockCurrentState: accessory.context.LockCurrentState || this.hap.Characteristic.LockCurrentState.SECURED,
     };
 
     // Initialize Battery property
     this.Battery = {
-      Service: accessory.addService(this.hap.Service.Battery),
+      Service: accessory.getService(this.hap.Service.Battery)!,
       BatteryLevel: accessory.context.BatteryLevel || 100,
       StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
     };
@@ -64,7 +61,7 @@ export class Lock extends deviceBase {
     // Initialize ContactSensor property
     if (!this.device.lock?.hide_contactsensor) {
       this.ContactSensor = {
-        Service: accessory.addService(this.hap.Service.ContactSensor),
+        Service: accessory.getService(this.hap.Service.ContactSensor)!,
         ContactSensorState: accessory.context.ContactSensorState || this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED,
       };
     }
@@ -72,10 +69,13 @@ export class Lock extends deviceBase {
     // Initialize Latch Button Service
     if (device.lock?.activate_latchbutton) {
       this.Switch = {
-        Service: accessory.addService(this.hap.Service.Switch),
+        Service: accessory.getService(this.hap.Service.Switch)!,
         On: accessory.context.On || false,
       };
     }
+
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
 
     // get the LockMechanism service if it exists, otherwise create a new LockMechanism service
     // you can create multiple services for each accessory

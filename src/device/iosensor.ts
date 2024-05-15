@@ -45,13 +45,10 @@ export class IOSensor extends deviceBase {
     this.doIOSensorUpdate = new Subject();
     this.ioSensorUpdateInProgress = false;
 
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
-
     // Initialize Temperature Sensor property
     if (!device.iosensor?.hide_temperature) {
       this.TemperatureSensor = {
-        Service: this.accessory.addService(this.hap.Service.TemperatureSensor),
+        Service: accessory.getService(this.hap.Service.TemperatureSensor)!,
         CurrentTemperature: accessory.context.CurrentTemperature || 30,
       };
     }
@@ -59,17 +56,20 @@ export class IOSensor extends deviceBase {
     // Initialize Humidity Sensor property
     if (!device.iosensor?.hide_humidity) {
       this.HumiditySensor = {
-        Service: this.accessory.addService(this.hap.Service.HumiditySensor),
+        Service: accessory.getService(this.hap.Service.HumiditySensor)!,
         CurrentRelativeHumidity: accessory.context.CurrentRelativeHumidity || 50,
       };
     }
 
     // Initialize Battery property
     this.Battery = {
-      Service: this.accessory.addService(this.hap.Service.Battery),
+      Service: accessory.getService(this.hap.Service.Battery)!,
       BatteryLevel: accessory.context.BatteryLevel || 100,
       StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
     };
+
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
 
     // Temperature Sensor Service
     if (device.iosensor?.hide_temperature) {

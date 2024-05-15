@@ -15,17 +15,24 @@ import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
  */
 export class AirPurifier extends irdeviceBase {
   // Services
-  airPurifierService!: Service;
+  private AirPurifier: {
+    Service: Service;
+    Active: CharacteristicValue;
+    RotationSpeed: CharacteristicValue;
+    CurrentAirPurifierState: CharacteristicValue;
+    TargetAirPurifierState: CharacteristicValue;
+  };
+
+  private TemperatureSensor: {
+    Service: Service;
+    CurrentTemperature: CharacteristicValue;
+  };
 
   // Characteristic Values
-  Active!: CharacteristicValue;
   APActive!: CharacteristicValue;
   CurrentAPTemp!: CharacteristicValue;
   CurrentAPMode!: CharacteristicValue;
-  RotationSpeed!: CharacteristicValue;
   CurrentAPFanSpeed!: CharacteristicValue;
-  CurrentTemperature!: CharacteristicValue;
-  CurrentAirPurifierState!: CharacteristicValue;
   CurrentHeaterCoolerState!: CharacteristicValue;
 
   // Others
@@ -45,40 +52,43 @@ export class AirPurifier extends irdeviceBase {
   ) {
     super(platform, accessory, device);
 
-    // default placeholders
-    if (this.Active === undefined) {
-      this.Active = this.hap.Characteristic.Active.INACTIVE;
-    } else {
-      this.Active = this.accessory.context.Active;
-    }
-    if (this.CurrentTemperature === undefined) {
-      this.CurrentTemperature = 24;
-    } else {
-      this.CurrentTemperature = this.accessory.context.CurrentTemperature;
-    }
+    // Initialize AirPurifier property
+    this.AirPurifier = {
+      Service: accessory.getService(this.hap.Service.Switch)!,
+      Active: accessory.context.Active || this.hap.Characteristic.Active.INACTIVE,
+      RotationSpeed: accessory.context.RotationSpeed || 0,
+      CurrentAirPurifierState: accessory.context.CurrentAirPurifierState || this.hap.Characteristic.CurrentAirPurifierState.INACTIVE,
+      TargetAirPurifierState: accessory.context.TargetAirPurifierState || this.hap.Characteristic.TargetAirPurifierState.AUTO,
+    };
+
+    // Initialize TemperatureSensor property
+    this.TemperatureSensor = {
+      Service: accessory.getService(this.hap.Service.TemperatureSensor)!,
+      CurrentTemperature: accessory.context.CurrentTemperature || 24,
+    };
 
     // get the Television service if it exists, otherwise create a new Television service
     // you can create multiple services for each accessory
-    const airPurifierService = `${accessory.displayName} Air Purifier`;
-    (this.airPurifierService = accessory.getService(this.hap.Service.AirPurifier)
-      || accessory.addService(this.hap.Service.AirPurifier)), airPurifierService;
+    const AirPurifierService = `${accessory.displayName} Air Purifier`;
+    (this.AirPurifier.Service = accessory.getService(this.hap.Service.AirPurifier)
+      || accessory.addService(this.hap.Service.AirPurifier)), AirPurifierService;
 
-    this.airPurifierService.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
+    this.AirPurifier.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
     // handle on / off events using the Active characteristic
-    this.airPurifierService.getCharacteristic(this.hap.Characteristic.Active).onSet(this.ActiveSet.bind(this));
+    this.AirPurifier.Service.getCharacteristic(this.hap.Characteristic.Active).onSet(this.ActiveSet.bind(this));
 
-    this.airPurifierService.getCharacteristic(this.hap.Characteristic.CurrentAirPurifierState).onGet(() => {
+    this.AirPurifier.Service.getCharacteristic(this.hap.Characteristic.CurrentAirPurifierState).onGet(() => {
       return this.CurrentAirPurifierStateGet();
     });
 
-    this.airPurifierService.getCharacteristic(this.hap.Characteristic.TargetAirPurifierState).onSet(this.TargetAirPurifierStateSet.bind(this));
+    this.AirPurifier.Service.getCharacteristic(this.hap.Characteristic.TargetAirPurifierState).onSet(this.TargetAirPurifierStateSet.bind(this));
   }
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Active: ${value}`);
 
-    this.Active = value;
-    if (this.Active === this.hap.Characteristic.Active.ACTIVE) {
+    this.AirPurifier.Active = value;
+    if (this.AirPurifier.Active === this.hap.Characteristic.Active.ACTIVE) {
       this.pushAirPurifierOnChanges();
     } else {
       this.pushAirPurifierOffChanges();
@@ -102,12 +112,12 @@ export class AirPurifier extends irdeviceBase {
   }
 
   async CurrentAirPurifierStateGet(): Promise<number> {
-    if (this.Active === 1) {
-      this.CurrentAirPurifierState = this.hap.Characteristic.CurrentAirPurifierState.PURIFYING_AIR;
+    if (this.AirPurifier.Active === 1) {
+      this.AirPurifier.CurrentAirPurifierState = this.hap.Characteristic.CurrentAirPurifierState.PURIFYING_AIR;
     } else {
-      this.CurrentAirPurifierState = this.hap.Characteristic.CurrentAirPurifierState.INACTIVE;
+      this.AirPurifier.CurrentAirPurifierState = this.hap.Characteristic.CurrentAirPurifierState.INACTIVE;
     }
-    return this.CurrentAirPurifierState;
+    return this.AirPurifier.CurrentAirPurifierState;
   }
 
   /**
@@ -123,10 +133,10 @@ export class AirPurifier extends irdeviceBase {
    */
   async pushAirPurifierOnChanges(): Promise<void> {
     this.debugLog(
-      `${this.device.remoteType}: ${this.accessory.displayName} pushAirPurifierOnChanges Active: ${this.Active},` +
+      `${this.device.remoteType}: ${this.accessory.displayName} pushAirPurifierOnChanges Active: ${this.AirPurifier.Active},` +
       ` disablePushOn: ${this.disablePushOn}`,
     );
-    if (this.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
+    if (this.AirPurifier.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const bodyChange = JSON.stringify({
@@ -140,10 +150,10 @@ export class AirPurifier extends irdeviceBase {
 
   async pushAirPurifierOffChanges(): Promise<void> {
     this.debugLog(
-      `${this.device.remoteType}: ${this.accessory.displayName} pushAirPurifierOffChanges Active: ${this.Active},` +
+      `${this.device.remoteType}: ${this.accessory.displayName} pushAirPurifierOffChanges Active: ${this.AirPurifier.Active},` +
       ` disablePushOff: ${this.disablePushOff}`,
     );
-    if (this.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOn) {
+    if (this.AirPurifier.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
       const bodyChange = JSON.stringify({
@@ -157,7 +167,7 @@ export class AirPurifier extends irdeviceBase {
 
   async pushAirPurifierStatusChanges(): Promise<void> {
     this.debugLog(
-      `${this.device.remoteType}: ${this.accessory.displayName} pushAirPurifierStatusChanges Active: ${this.Active},` +
+      `${this.device.remoteType}: ${this.accessory.displayName} pushAirPurifierStatusChanges Active: ${this.AirPurifier.Active},` +
       ` disablePushOff: ${this.disablePushOff},  disablePushOn: ${this.disablePushOn}`,
     );
     if (!this.Busy) {
@@ -172,21 +182,21 @@ export class AirPurifier extends irdeviceBase {
 
   async pushAirPurifierDetailsChanges(): Promise<void> {
     this.debugLog(
-      `${this.device.remoteType}: ${this.accessory.displayName} pushAirPurifierDetailsChanges Active: ${this.Active},` +
+      `${this.device.remoteType}: ${this.accessory.displayName} pushAirPurifierDetailsChanges Active: ${this.AirPurifier.Active},` +
       ` disablePushOff: ${this.disablePushOff},  disablePushOn: ${this.disablePushOn}`,
     );
-    this.CurrentAPTemp = this.CurrentTemperature || 24;
+    this.CurrentAPTemp = this.TemperatureSensor!.CurrentTemperature || 24;
     this.CurrentAPMode = this.CurrentMode || 1;
     this.CurrentAPFanSpeed = this.CurrentFanSpeed || 1;
-    this.APActive = this.Active === 1 ? 'on' : 'off';
+    this.APActive = this.AirPurifier.Active === 1 ? 'on' : 'off';
     const parameter = `${this.CurrentAPTemp},${this.CurrentAPMode},${this.CurrentAPFanSpeed},${this.APActive}`;
     const bodyChange = JSON.stringify({
       command: 'setAll',
       parameter: `${parameter}`,
       commandType: 'command',
     });
-    if (this.Active === 1) {
-      if ((Number(this.CurrentTemperature) || 24) < (this.LastTemperature || 30)) {
+    if (this.AirPurifier.Active === 1) {
+      if ((Number(this.TemperatureSensor!.CurrentTemperature) || 24) < (this.LastTemperature || 30)) {
         this.CurrentHeaterCoolerState = this.hap.Characteristic.CurrentHeaterCoolerState.COOLING;
       } else {
         this.CurrentHeaterCoolerState = this.hap.Characteristic.CurrentHeaterCoolerState.HEATING;
@@ -237,40 +247,49 @@ export class AirPurifier extends irdeviceBase {
 
   async updateHomeKitCharacteristics(): Promise<void> {
     // Active
-    if (this.Active === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Active}`);
+    if (this.AirPurifier.Active === undefined) {
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.AirPurifier.Active}`);
     } else {
-      this.accessory.context.Active = this.Active;
-      this.airPurifierService?.updateCharacteristic(this.hap.Characteristic.Active, this.Active);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
+      this.accessory.context.Active = this.AirPurifier.Active;
+      this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.Active, this.AirPurifier.Active);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.AirPurifier.Active}`);
     }
     // CurrentAirPurifierState
-    if (this.CurrentAirPurifierState === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} CurrentAirPurifierState: ${this.CurrentAirPurifierState}`);
+    if (this.AirPurifier.CurrentAirPurifierState === undefined) {
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} CurrentAirPurifierState: ${this.AirPurifier.CurrentAirPurifierState}`);
     } else {
-      this.accessory.context.CurrentAirPurifierState = this.CurrentAirPurifierState;
-      this.airPurifierService?.updateCharacteristic(this.hap.Characteristic.CurrentAirPurifierState, this.CurrentAirPurifierState);
-      this.debugLog(
-        `${this.device.remoteType}: ${this.accessory.displayName}` + ` updateCharacteristic CurrentAirPurifierState: ${this.CurrentAirPurifierState}`,
-      );
+      this.accessory.context.CurrentAirPurifierState = this.AirPurifier.CurrentAirPurifierState;
+      this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.CurrentAirPurifierState, this.AirPurifier.CurrentAirPurifierState);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
+      + ` CurrentAirPurifierState: ${this.AirPurifier.CurrentAirPurifierState}`);
     }
     // CurrentHeaterCoolerState
     if (this.CurrentHeaterCoolerState === undefined) {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
     } else {
       this.accessory.context.CurrentHeaterCoolerState = this.CurrentHeaterCoolerState;
-      this.airPurifierService?.updateCharacteristic(this.hap.Characteristic.CurrentHeaterCoolerState, this.CurrentHeaterCoolerState);
+      this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.CurrentHeaterCoolerState, this.CurrentHeaterCoolerState);
       this.debugLog(
         `${this.device.remoteType}: ${this.accessory.displayName}` +
         ` updateCharacteristic CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`,
       );
     }
+    // CurrentTemperature
+    if (this.TemperatureSensor.CurrentTemperature === undefined) {
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}`);
+    } else {
+      this.accessory.context.CurrentTemperature = this.TemperatureSensor.CurrentTemperature;
+      this.TemperatureSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, this.TemperatureSensor.CurrentTemperature);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
+      + ` CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}`);
+    }
   }
 
   async apiError(e: any): Promise<void> {
-    this.airPurifierService.updateCharacteristic(this.hap.Characteristic.CurrentHeaterCoolerState, e);
-    this.airPurifierService.updateCharacteristic(this.hap.Characteristic.CurrentAirPurifierState, e);
-    this.airPurifierService.updateCharacteristic(this.hap.Characteristic.TargetAirPurifierState, e);
-    this.airPurifierService.updateCharacteristic(this.hap.Characteristic.Active, e);
+    this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.CurrentHeaterCoolerState, e);
+    this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.CurrentAirPurifierState, e);
+    this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.TargetAirPurifierState, e);
+    this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.Active, e);
+    this.TemperatureSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, e);
   }
 }

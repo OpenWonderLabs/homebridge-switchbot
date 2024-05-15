@@ -322,7 +322,7 @@ export abstract class irdeviceBase {
 
   async getDeviceContext(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): Promise<void> {
     accessory.context.name = device.deviceName;
-    accessory.context.model = device.model;
+    accessory.context.model = device.remoteType;
     accessory.context.deviceId = device.deviceId;
     accessory.context.remoteType = device.remoteType;
     if (device.firmware === undefined) {

@@ -53,31 +53,32 @@ export class Curtain extends deviceBase {
     this.curtainUpdateInProgress = false;
     this.setNewTarget = false;
 
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
     // Initialize LightBulb property
     this.WindowCovering = {
-      Service: this.accessory.addService(this.hap.Service.WindowCovering),
-      PositionState: this.accessory.context.PositionState || this.hap.Characteristic.PositionState.STOPPED,
-      TargetPosition: this.accessory.context.TargetPosition || 100,
-      CurrentPosition: this.accessory.context.CurrentPosition || 100,
-      HoldPosition: this.accessory.context.HoldPosition || false,
+      Service: accessory.getService(this.hap.Service.WindowCovering)!,
+      PositionState: accessory.context.PositionState || this.hap.Characteristic.PositionState.STOPPED,
+      TargetPosition: accessory.context.TargetPosition || 100,
+      CurrentPosition: accessory.context.CurrentPosition || 100,
+      HoldPosition: accessory.context.HoldPosition || false,
     };
 
     // Initialize Battery property
     this.Battery = {
-      Service: this.accessory.addService(this.hap.Service.Battery),
-      BatteryLevel: this.accessory.context.BatteryLevel || 100,
-      StatusLowBattery: this.accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
+      Service: accessory.getService(this.hap.Service.Battery)!,
+      BatteryLevel: accessory.context.BatteryLevel || 100,
+      StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
     };
 
     // Initialize LightSensor property
     if (!this.device.curtain?.hide_lightsensor) {
       this.LightSensor = {
-        Service: this.accessory.addService(this.hap.Service.LightSensor),
-        CurrentAmbientLightLevel: this.accessory.context.CurrentAmbientLightLevel || 0,
+        Service: accessory.getService(this.hap.Service.LightSensor)!,
+        CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel || 0.0001,
       };
     }
+
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
 
     // get the WindowCovering service if it exists, otherwise create a new WindowCovering service
     // you can create multiple services for each accessory
@@ -393,7 +394,7 @@ export class Curtain extends deviceBase {
   async openAPIparseStatus(deviceStatus: deviceStatus): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
     // CurrentPosition
-    this.WindowCovering.CurrentPosition = 100 - Number(deviceStatus.body.slidePosition);
+    this.WindowCovering!.CurrentPosition = 100 - Number(deviceStatus.body.slidePosition);
     await this.setMinMax();
     this.debugLog(`Curtain ${this.accessory.displayName} CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
     if (this.setNewTarget) {

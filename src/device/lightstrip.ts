@@ -42,18 +42,18 @@ export class StripLight extends deviceBase {
     this.doStripLightUpdate = new Subject();
     this.stripLightUpdateInProgress = false;
 
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
-
     // Initialize the LightBulb property
     this.LightBulb = {
-      Service: this.accessory.addService(this.hap.Service.Lightbulb),
+      Service: accessory.getService(this.hap.Service.Lightbulb)!,
       On: accessory.context.On || false,
       Hue: accessory.context.Hue || 0,
       Saturation: accessory.context.Saturation || 0,
       Brightness: accessory.context.Brightness || 0,
       ColorTemperature: accessory.context.ColorTemperature || 140,
     };
+
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
 
     // get the Lightbulb service if it exists, otherwise create a new Lightbulb service
     // you can create multiple services for each accessory

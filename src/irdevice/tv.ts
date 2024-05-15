@@ -41,7 +41,7 @@ export class TV extends irdeviceBase {
 
     // Initialize Television property
     this.Television = {
-      Service: accessory.addService(this.hap.Service.Television),
+      Service: accessory.getService(this.hap.Service.Television)!,
       Active: accessory.context.Active || this.hap.Characteristic.Active.INACTIVE,
       ActiveIdentifier: accessory.context.ActiveIdentifier || 1,
       SleepDiscoveryMode: accessory.context.SleepDiscoveryMode || this.hap.Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE,
@@ -50,7 +50,7 @@ export class TV extends irdeviceBase {
 
     // Initialize TelevisionSpeaker property
     this.TelevisionSpeaker = {
-      Service: accessory.addService(this.hap.Service.TelevisionSpeaker),
+      Service: accessory.getService(this.hap.Service.TelevisionSpeaker)!,
       Active: accessory.context.Active || false,
       VolumeControlType: accessory.context.VolumeControlType || this.hap.Characteristic.VolumeControlType.ABSOLUTE,
       VolumeSelector: accessory.context.VolumeSelector || this.hap.Characteristic.VolumeSelector.INCREMENT,

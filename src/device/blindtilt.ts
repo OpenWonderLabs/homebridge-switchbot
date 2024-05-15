@@ -60,33 +60,33 @@ export class BlindTilt extends deviceBase {
     this.blindTiltUpdateInProgress = false;
     this.setNewTarget = false;
 
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
-
     // Initialize LightBulb property
     this.WindowCovering = {
-      Service: this.accessory.addService(this.hap.Service.WindowCovering),
-      PositionState: this.accessory.context.PositionState || this.hap.Characteristic.PositionState.STOPPED,
-      TargetPosition: this.accessory.context.TargetPosition || 100,
-      CurrentPosition: this.accessory.context.CurrentPosition || 100,
-      TargetHorizontalTiltAngle: this.accessory.context.TargetHorizontalTiltAngle || 0,
-      CurrentHorizontalTiltAngle: this.accessory.context.CurrentHorizontalTiltAngle || 0,
+      Service: accessory.getService(this.hap.Service.WindowCovering)!,
+      PositionState: accessory.context.PositionState || this.hap.Characteristic.PositionState.STOPPED,
+      TargetPosition: accessory.context.TargetPosition || 100,
+      CurrentPosition: accessory.context.CurrentPosition || 100,
+      TargetHorizontalTiltAngle: accessory.context.TargetHorizontalTiltAngle || 0,
+      CurrentHorizontalTiltAngle: accessory.context.CurrentHorizontalTiltAngle || 0,
     };
 
     // Initialize Battery property
     this.Battery = {
-      Service: this.accessory.addService(this.hap.Service.Battery),
-      BatteryLevel: this.accessory.context.BatteryLevel || 100,
+      Service: accessory.getService(this.hap.Service.Battery)!,
+      BatteryLevel: accessory.context.BatteryLevel || 100,
       StatusLowBattery: this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
     };
 
     // Initialize LightSensor property
     if (!this.device.blindTilt?.hide_lightsensor) {
       this.LightSensor = {
-        Service: this.accessory.addService(this.hap.Service.LightSensor),
-        CurrentAmbientLightLevel: this.accessory.context.CurrentAmbientLightLevel || 0,
+        Service: accessory.getService(this.hap.Service.LightSensor)!,
+        CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel || 0.0001,
       };
     }
+
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
 
     // get the WindowCovering service if it exists, otherwise create a new WindowCovering service
     // you can create multiple services for each accessory
@@ -262,15 +262,17 @@ export class BlindTilt extends deviceBase {
       this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.STOPPED;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Stopped`);
     }
-    this.debugLog(
-      `${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition: ${this.WindowCovering.CurrentPosition},` +
-      ` TargetPosition: ${this.WindowCovering.TargetPosition}, PositionState: ${this.WindowCovering.PositionState},`,
-    );
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition: ${this.WindowCovering.CurrentPosition},`
+    + ` TargetPosition: ${this.WindowCovering.TargetPosition}, PositionState: ${this.WindowCovering.PositionState},`);
 
     if (!this.device.blindTilt?.hide_lightsensor) {
       const set_minLux = await this.minLux();
       const set_maxLux = await this.maxLux();
       const spaceBetweenLevels = 9;
+
+      if (this.LightSensor?.CurrentAmbientLightLevel === 0) {
+        this.LightSensor!.CurrentAmbientLightLevel = 0.0001;
+      }
 
       // Brightness
       switch (serviceData.lightLevel) {
@@ -347,7 +349,7 @@ export class BlindTilt extends deviceBase {
       String(deviceStatus.body.direction));
     this.debugLog(` device: ${deviceStatus.body.slidePosition} => HK: ${homekitPosition}`);
 
-    this.WindowCovering.CurrentPosition = homekitPosition;
+    this.WindowCovering!.CurrentPosition = homekitPosition;
     // CurrentPosition
     await this.setMinMax();
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition: ${this.WindowCovering.CurrentPosition}`);

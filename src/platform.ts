@@ -39,11 +39,9 @@ import fakegato from 'fakegato-history';
 import asyncmqtt from 'async-mqtt';
 import crypto, { randomUUID } from 'crypto';
 import { readFileSync, writeFileSync } from 'fs';
-import { EveHomeKitTypes } from 'homebridge-lib';
+import { EveHomeKitTypes } from 'homebridge-lib/EveHomeKitTypes';
 import { UrlObject } from 'url';
 import { sleep } from './utils.js';
-
-
 
 /**
  * HomebridgePlatform
@@ -387,7 +385,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
 
     if (!this.config.options.maxRetries) {
-      this.config.options!.maxRetries! = 5;
+      this.config.options.maxRetries = 5;
       this.debugWarnLog('Using Default Max Retries.');
     } else {
       this.maxRetries = this.config.options.maxRetries;
@@ -513,6 +511,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       let retryCount = 0;
       const maxRetries = this.maxRetries; // Maximum number of retries
       const delayBetweenRetries = this.delayBetweenRetries; // Delay between retries in milliseconds
+      this.debugWarnLog(`Retry Count: ${retryCount}`);
+      this.debugWarnLog(`Max Retries: ${maxRetries}`);
+      this.debugWarnLog(`Delay Between Retries: ${delayBetweenRetries}`);
       while (retryCount < maxRetries) {
         try {
           const { body, statusCode } = await request(Devices, {
@@ -2717,6 +2718,22 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
       if (this.config.options.pushRate) {
         platformConfig.pushRate = this.config.options.pushRate;
+      }
+      if (this.config.options.maxRetries) {
+        this.maxRetries = this.config.options.maxRetries;
+        platformConfig.maxRetries = this.config.options.maxRetries;
+      } else {
+        this.maxRetries = 3;
+        this.debugWarnLog('Using Default Max Retries');
+        platformConfig.maxRetries = this.maxRetries;
+      }
+      if (this.config.options.delayBetweenRetries) {
+        this.delayBetweenRetries = this.config.options.delayBetweenRetries * 1000;
+        platformConfig.delayBetweenRetries = this.config.options.delayBetweenRetries;
+      } else {
+        this.delayBetweenRetries = 3000;
+        this.debugWarnLog('Using Default Delay Between Retries');
+        platformConfig.delayBetweenRetries = this.delayBetweenRetries / 1000;
       }
       if (Object.entries(platformConfig).length !== 0) {
         this.debugLog(`Platform Config: ${JSON.stringify(platformConfig)}`);

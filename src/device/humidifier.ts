@@ -42,12 +42,9 @@ export class Humidifier extends deviceBase {
     this.doHumidifierUpdate = new Subject();
     this.humidifierUpdateInProgress = false;
 
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
-
     // Initialize the HumidifierDehumidifier Service
     this.HumidifierDehumidifier = {
-      Service: accessory.addService(this.hap.Service.HumidifierDehumidifier),
+      Service: accessory.getService(this.hap.Service.HumidifierDehumidifier)!,
       Active: accessory.context.Active || this.hap.Characteristic.Active.ACTIVE,
       WaterLevel: accessory.context.WaterLevel || 100,
       CurrentRelativeHumidity: accessory.context.CurrentRelativeHumidity || 50,
@@ -61,10 +58,13 @@ export class Humidifier extends deviceBase {
     // Initialize the Temperature Sensor Service
     if (!device.humidifier?.hide_temperature) {
       this.TemperatureSensor = {
-        Service: accessory.addService(this.hap.Service.TemperatureSensor),
+        Service: accessory.getService(this.hap.Service.TemperatureSensor)!,
         CurrentTemperature: accessory.context.CurrentTemperature || 30,
       };
     }
+
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
 
     // get the service if it exists, otherwise create a new service
     // you can create multiple services for each accessory

@@ -15,7 +15,11 @@ import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
  */
 export class Light extends irdeviceBase {
   // Services
-  lightBulbService?: Service;
+  private LightBulb!: {
+    Service: Service;
+    On: CharacteristicValue;
+  };
+
   ProgrammableSwitchServiceOn?: Service;
   ProgrammableSwitchServiceOff?: Service;
 
@@ -33,25 +37,23 @@ export class Light extends irdeviceBase {
   ) {
     super(platform, accessory, device);
 
-    // default placeholders
-    if (this.On === undefined) {
-      this.On = false;
-    } else {
-      this.On = accessory.context.On;
-    }
-
     if (!device.irlight?.stateless) {
+      // Initialize LightBulb property
+      this.LightBulb = {
+        Service: accessory.getService(this.hap.Service.Lightbulb)!,
+        On: accessory.context.On || false,
+      };
       // get the Light service if it exists, otherwise create a new Light service
       // you can create multiple services for each accessory
-      const lightBulbService = `${accessory.displayName} ${device.remoteType}`;
-      (this.lightBulbService = accessory.getService(this.hap.Service.Lightbulb)
-        || accessory.addService(this.hap.Service.Lightbulb)), lightBulbService;
+      const LightBulbService = `${accessory.displayName} ${device.remoteType}`;
+      (this.LightBulb.Service = accessory.getService(this.hap.Service.Lightbulb)
+        || accessory.addService(this.hap.Service.Lightbulb)), LightBulbService;
 
 
-      this.lightBulbService.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
+      this.LightBulb.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
 
       // handle on / off events using the On characteristic
-      this.lightBulbService.getCharacteristic(this.hap.Characteristic.On).onSet(this.OnSet.bind(this));
+      this.LightBulb.Service.getCharacteristic(this.hap.Characteristic.On).onSet(this.OnSet.bind(this));
     } else {
 
       // create a new Stateful Programmable Switch On service
@@ -252,7 +254,7 @@ export class Light extends irdeviceBase {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.On}`);
       } else {
         this.accessory.context.On = this.On;
-        this.lightBulbService?.updateCharacteristic(this.hap.Characteristic.On, this.On);
+        this.LightBulb.Service?.updateCharacteristic(this.hap.Characteristic.On, this.On);
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
       }
     } else {
@@ -283,7 +285,7 @@ export class Light extends irdeviceBase {
 
   async apiError(e: any): Promise<void> {
     if (this.device.irlight?.stateless) {
-      this.lightBulbService?.updateCharacteristic(this.hap.Characteristic.On, e);
+      this.LightBulb.Service?.updateCharacteristic(this.hap.Characteristic.On, e);
     } else {
       this.ProgrammableSwitchServiceOn?.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent, e);
       this.ProgrammableSwitchServiceOn?.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState, e);
