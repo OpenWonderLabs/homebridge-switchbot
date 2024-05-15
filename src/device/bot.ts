@@ -588,7 +588,7 @@ export class Bot extends deviceBase {
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
       if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-        this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+        this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} `
           + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
         this.openAPIparseStatus(deviceStatus);
         this.updateHomeKitCharacteristics();
@@ -754,7 +754,7 @@ export class Bot extends deviceBase {
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
         if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-          this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+          this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
           this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `request to SwitchBot API, body: ${bodyChange} sent successfully`);

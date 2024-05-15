@@ -599,15 +599,23 @@ export abstract class deviceBase {
   /**
    * Logging for Device
    */
-  successLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      this.platform.log.success(String(...log));
-    }
-  }
-
   infoLog(...log: any[]): void {
     if (this.enablingDeviceLogging()) {
       this.log.info(String(...log));
+    }
+  }
+
+  successLog(...log: any[]): void {
+    if (this.enablingDeviceLogging()) {
+      this.log.success(String(...log));
+    }
+  }
+
+  debugSuccessLog(...log: any[]): void {
+    if (this.enablingDeviceLogging()) {
+      if (this.deviceLogging?.includes('debug')) {
+        this.log.success('[DEBUG]', String(...log));
+      }
     }
   }
 
