@@ -157,12 +157,12 @@ export class Hub extends deviceBase {
           const { CurrentRelativeHumidity } = this.HumiditySensor || { CurrentRelativeHumidity: undefined };
           if (context.scale !== 'CELCIUS' && device.hub?.convertUnitTo === undefined) {
             this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} received a non-CELCIUS Webhook scale: `
-                  + `${context.scale}, Use the *convertUnitsTo* config under Hub settings, if displaying incorrectly in HomeKit.`);
+              + `${context.scale}, Use the *convertUnitsTo* config under Hub settings, if displaying incorrectly in HomeKit.`);
           }
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-              '(scale, temperature, humidity, lightLevel) = ' +
-              `Webhook:(${context.scale}, ${convertUnits(temperature, context.scale, device.hub?.convertUnitTo)}, ${humidity}, ${lightLevel}), ` +
-              `current:(${CurrentTemperature}, ${CurrentRelativeHumidity}, ${CurrentAmbientLightLevel})`);
+            '(scale, temperature, humidity, lightLevel) = ' +
+            `Webhook:(${context.scale}, ${convertUnits(temperature, context.scale, device.hub?.convertUnitTo)}, ${humidity}, ${lightLevel}), ` +
+            `current:(${CurrentTemperature}, ${CurrentRelativeHumidity}, ${CurrentAmbientLightLevel})`);
           if (!this.device.hub?.hide_humidity) {
             this.HumiditySensor!.CurrentRelativeHumidity = humidity;
           }
@@ -217,12 +217,14 @@ export class Hub extends deviceBase {
     }
 
     // FirmwareRevision
-    this.accessory.context.FirmwareRevision = deviceStatus.body.version;
+    if (deviceStatus.body.version) {
+      this.accessory.context.FirmwareRevision = deviceStatus.body.version;
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
         .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.FirmwareRevision)
         .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
         .updateValue(this.accessory.context.FirmwareRevision);
+    }
   }
 
   async refreshStatus(): Promise<void> {
@@ -278,7 +280,7 @@ export class Hub extends deviceBase {
     if (!this.device.hub?.hide_humidity) {
       if (this.HumiditySensor!.CurrentRelativeHumidity === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-        +` CurrentRelativeHumidity: ${this.HumiditySensor!.CurrentRelativeHumidity}`);
+          + ` CurrentRelativeHumidity: ${this.HumiditySensor!.CurrentRelativeHumidity}`);
       } else {
         if (this.device.mqttURL) {
           mqttmessage.push(`"humidity": ${this.HumiditySensor!.CurrentRelativeHumidity}`);
@@ -308,7 +310,7 @@ export class Hub extends deviceBase {
         this.accessory.context.CurrentTemperature = this.TemperatureSensor!.CurrentTemperature;
         this.TemperatureSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, this.TemperatureSensor!.CurrentTemperature);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-        + ` CurrentTemperature: ${this.TemperatureSensor!.CurrentTemperature}`);
+          + ` CurrentTemperature: ${this.TemperatureSensor!.CurrentTemperature}`);
       }
     }
 
@@ -316,7 +318,7 @@ export class Hub extends deviceBase {
     if (!this.device.hub?.hide_lightsensor) {
       if (this.LightSensor!.CurrentAmbientLightLevel === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-        + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
+          + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
       } else {
         if (this.device.mqttURL) {
           mqttmessage.push(`"light": ${this.LightSensor!.CurrentAmbientLightLevel}`);

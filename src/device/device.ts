@@ -559,8 +559,6 @@ export abstract class deviceBase {
   async statusCode(statusCode: number): Promise<void> {
     switch (this.device.deviceType) {
       case this.device.hubDeviceId:
-        statusCode = 161;
-        break;
       case '000000000000':
         statusCode = 161;
         break;

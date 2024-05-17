@@ -263,7 +263,7 @@ export class BlindTilt extends deviceBase {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Stopped`);
     }
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition: ${this.WindowCovering.CurrentPosition},`
-    + ` TargetPosition: ${this.WindowCovering.TargetPosition}, PositionState: ${this.WindowCovering.PositionState},`);
+      + ` TargetPosition: ${this.WindowCovering.TargetPosition}, PositionState: ${this.WindowCovering.PositionState},`);
 
     if (!this.device.blindTilt?.hide_lightsensor) {
       const set_minLux = await this.minLux();
@@ -436,12 +436,14 @@ export class BlindTilt extends deviceBase {
       + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
 
     // FirmwareRevision
-    this.accessory.context.FirmwareRevision = deviceStatus.body.version;
+    if (deviceStatus.body.version) {
+      this.accessory.context.FirmwareRevision = deviceStatus.body.version;
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
         .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.FirmwareRevision)
         .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
         .updateValue(this.accessory.context.FirmwareRevision);
+    }
   }
 
   async refreshStatus(): Promise<void> {

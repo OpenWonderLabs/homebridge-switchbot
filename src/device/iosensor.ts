@@ -228,12 +228,14 @@ export class IOSensor extends deviceBase {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Temperature: ${this.TemperatureSensor!.CurrentTemperature}°c`);
     }
     // FirmwareRevision
-    this.accessory.context.FirmwareRevision = deviceStatus.body.version;
-    this.accessory
-      .getService(this.hap.Service.AccessoryInformation)!
-      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.FirmwareRevision)
-      .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
-      .updateValue(this.accessory.context.FirmwareRevision);
+    if (deviceStatus.body.version) {
+      this.accessory.context.FirmwareRevision = deviceStatus.body.version;
+      this.accessory
+        .getService(this.hap.Service.AccessoryInformation)!
+        .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.FirmwareRevision)
+        .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+        .updateValue(this.accessory.context.FirmwareRevision);
+    }
   }
 
   /**

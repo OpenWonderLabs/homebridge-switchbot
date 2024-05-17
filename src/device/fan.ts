@@ -119,12 +119,14 @@ export class Fan extends deviceBase {
           this.Battery.BatteryLevel = battery;
 
           // FirmwareRevision
-          this.accessory.context.FirmwareRevision = version;
+          if (version) {
+            this.accessory.context.FirmwareRevision = version;
           this.accessory
             .getService(this.hap.Service.AccessoryInformation)!
             .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.FirmwareRevision)
             .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
             .updateValue(this.accessory.context.FirmwareRevision);
+          }
           this.updateHomeKitCharacteristics();
         } catch (e: any) {
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
@@ -202,12 +204,14 @@ export class Fan extends deviceBase {
       + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
 
     // FirmwareRevision
-    this.accessory.context.FirmwareRevision = deviceStatus.body.version;
-    this.accessory
-      .getService(this.hap.Service.AccessoryInformation)!
-      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.FirmwareRevision)
-      .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
-      .updateValue(this.accessory.context.FirmwareRevision);
+    if (deviceStatus.body.version) {
+      this.accessory.context.FirmwareRevision = deviceStatus.body.version;
+      this.accessory
+        .getService(this.hap.Service.AccessoryInformation)!
+        .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.FirmwareRevision)
+        .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+        .updateValue(this.accessory.context.FirmwareRevision);
+    }
   }
 
 
@@ -475,7 +479,7 @@ export class Fan extends deviceBase {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Fan.Active}`);
     }
     // RotationSpeed
-    if(this.Fan.RotationSpeed === undefined) {
+    if (this.Fan.RotationSpeed === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} RotationSpeed: ${this.Fan.RotationSpeed}`);
     } else {
       this.accessory.context.RotationSpeed = this.Fan.RotationSpeed;
@@ -483,7 +487,7 @@ export class Fan extends deviceBase {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic RotationSpeed: ${this.Fan.RotationSpeed}`);
     }
     // SwingMode
-    if(this.Fan.SwingMode === undefined) {
+    if (this.Fan.SwingMode === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} SwingMode: ${this.Fan.SwingMode}`);
     } else {
       this.accessory.context.SwingMode = this.Fan.SwingMode;
@@ -491,7 +495,7 @@ export class Fan extends deviceBase {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic SwingMode: ${this.Fan.SwingMode}`);
     }
     // BateryLevel
-    if(this.Battery.BatteryLevel === undefined) {
+    if (this.Battery.BatteryLevel === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel}`);
     } else {
       this.accessory.context.BatteryLevel = this.Battery.BatteryLevel;
@@ -499,7 +503,7 @@ export class Fan extends deviceBase {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.Battery.BatteryLevel}`);
     }
     // ChargingState
-    if(this.Battery.ChargingState === undefined) {
+    if (this.Battery.ChargingState === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ChargingState: ${this.Battery.ChargingState}`);
     } else {
       this.accessory.context.ChargingState = this.Battery.ChargingState;
@@ -507,7 +511,7 @@ export class Fan extends deviceBase {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic ChargingState: ${this.Battery.ChargingState}`);
     }
     // StatusLowBattery
-    if(this.Battery.StatusLowBattery === undefined) {
+    if (this.Battery.StatusLowBattery === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.Battery.StatusLowBattery}`);
     } else {
       this.accessory.context.StatusLowBattery = this.Battery.StatusLowBattery;
