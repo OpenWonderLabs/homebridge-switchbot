@@ -55,15 +55,13 @@ export abstract class deviceBase {
     this.BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
     this.OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
 
-    (async () => {
-      await this.getDeviceLogSettings(device);
-      await this.getDeviceRefreshRateSettings(device);
-      await this.getDeviceRetry(device);
-      await this.getDeviceConfigSettings(device);
-      await this.getDeviceContext(accessory, device);
-      await this.setupMqtt(device);
-      await this.scan(device);
-    });
+    this.getDeviceLogSettings(device);
+    this.getDeviceRefreshRateSettings(device);
+    this.getDeviceRetry(device);
+    this.getDeviceConfigSettings(device);
+    this.getDeviceContext(accessory, device);
+    this.setupMqtt(device);
+    this.scan(device);
 
     // Set accessory information
     accessory
