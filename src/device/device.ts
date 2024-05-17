@@ -179,91 +179,108 @@ export abstract class deviceBase {
   }
 
   async getDeviceConfigSettings(device: device & devicesConfig): Promise<void> {
-    let config = {};
-    if (device.logging !== undefined) {
-      config['logging'] = device.logging;
+    const deviceConfig = {};
+    if (device.logging !== 'standard') {
+      deviceConfig['logging'] = device.logging;
     }
-    if (device.refreshRate !== undefined) {
-      config['refreshRate'] = device.refreshRate;
+    if (device.refreshRate !== 0) {
+      deviceConfig['refreshRate'] = device.refreshRate;
     }
-    if (device.updateRate !== undefined) {
-      config['updateRate'] = device.updateRate;
+    if (device.updateRate !== 0) {
+      deviceConfig['updateRate'] = device.updateRate;
     }
-    if (device.scanDuration !== undefined) {
-      config['scanDuration'] = device.scanDuration;
+    if (device.scanDuration !== 0) {
+      deviceConfig['scanDuration'] = device.scanDuration;
     }
-    if (device.offline !== undefined) {
-      config['offline'] = device.offline;
+    if (device.offline === true) {
+      deviceConfig['offline'] = device.offline;
     }
-    if (device.maxRetry !== 0 ) {
-      config['maxRetry'] = device.maxRetry;
+    if (device.maxRetry !== 0) {
+      deviceConfig['maxRetry'] = device.maxRetry;
     }
     if (device.webhook === true) {
-      config['webhook'] = device.webhook;
+      deviceConfig['webhook'] = device.webhook;
     }
-    if (device.connectionType) {
-      config['connectionType'] = device.connectionType;
+    if (device.connectionType !== '') {
+      deviceConfig['connectionType'] = device.connectionType;
     }
-    if (device.external !== undefined) {
-      config['external'] = device.external;
+    if (device.external === true) {
+      deviceConfig['external'] = device.external;
     }
-    if (device.mqttURL !== undefined) {
-      config['mqttURL'] = device.mqttURL;
+    if (device.mqttURL !== '') {
+      deviceConfig['mqttURL'] = device.mqttURL;
     }
-    if (device.maxRetries !== undefined) {
-      config['maxRetries'] = device.maxRetries;
+    if (device.maxRetries !== 0) {
+      deviceConfig['maxRetries'] = device.maxRetries;
     }
-    if (device.delayBetweenRetries !== undefined) {
-      config['delayBetweenRetries'] = device.delayBetweenRetries;
+    if (device.delayBetweenRetries !== 0) {
+      deviceConfig['delayBetweenRetries'] = device.delayBetweenRetries;
     }
+    let botConfig = {};
     if (device.bot) {
-      config = device.bot;
+      botConfig = device.bot;
     }
+    let lockConfig = {};
     if (device.lock) {
-      config = device.lock;
+      lockConfig = device.lock;
     }
+    let ceilinglightConfig = {};
     if (device.ceilinglight) {
-      config = device.ceilinglight;
+      ceilinglightConfig = device.ceilinglight;
     }
+    let colorbulbConfig = {};
     if (device.colorbulb) {
-      config = device.colorbulb;
+      colorbulbConfig = device.colorbulb;
     }
+    let contactConfig = {};
     if (device.contact) {
-      config = device.contact;
+      contactConfig = device.contact;
     }
+    let motionConfig = {};
     if (device.motion) {
-      config = device.motion;
+      motionConfig = device.motion;
     }
+    let curtainConfig = {};
     if (device.curtain) {
-      config = device.curtain;
+      curtainConfig = device.curtain;
     }
+    let hubConfig = {};
     if (device.hub) {
-      config = device.hub;
+      hubConfig = device.hub;
     }
+    let waterdetectorConfig = {};
     if (device.waterdetector) {
-      config = device.waterdetector;
+      waterdetectorConfig = device.waterdetector;
     }
+    let humidifierConfig = {};
     if (device.humidifier) {
-      config = device.humidifier;
+      humidifierConfig = device.humidifier;
     }
+    let meterConfig = {};
     if (device.meter) {
-      config = device.meter;
+      meterConfig = device.meter;
     }
+    let iosensorConfig = {};
+    if (device.iosensor) {
+      iosensorConfig = device.iosensor;
+    }
+    let striplightConfig = {};
     if (device.striplight) {
-      config = device.striplight;
+      striplightConfig = device.striplight;
     }
+    let plugConfig = {};
     if (device.plug) {
-      config = device.plug;
+      plugConfig = device.plug;
     }
+    let blindTiltConfig = {};
     if (device.blindTilt) {
       if (device.blindTilt?.mode === undefined) {
-        config['mode'] = BlindTiltMappingMode.OnlyUp;
-      } else {
-        config['mode'] = device.blindTilt?.mode;
-
-        config = device.blindTilt;
+        blindTiltConfig['mode'] = BlindTiltMappingMode.OnlyUp;
       }
+      blindTiltConfig = device.blindTilt;
     }
+    const config = Object.assign({}, deviceConfig, botConfig, curtainConfig, waterdetectorConfig, striplightConfig, plugConfig, iosensorConfig,
+      meterConfig, humidifierConfig, hubConfig, lockConfig, ceilinglightConfig, colorbulbConfig, contactConfig, motionConfig, blindTiltConfig);
     if (Object.entries(config).length !== 0) {
       this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
@@ -613,7 +630,7 @@ export abstract class deviceBase {
         break;
       default:
         this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: `
-        + `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
+          + `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
     }
   }
 
