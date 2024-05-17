@@ -5,6 +5,7 @@ import { SwitchBotPlatform } from '../platform.js';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { device, devicesConfig, serviceData, deviceStatus, Devices } from '../settings.js';
+import { convertUnits } from '../utils.js';
 
 /**
  * Platform Accessory
@@ -148,20 +149,18 @@ export class Humidifier extends deviceBase {
       this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
         try {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          if (context.scale === 'CELSIUS') {
-            const { temperature, humidity } = context;
-            const { CurrentRelativeHumidity } = this.HumidifierDehumidifier;
-            const { CurrentTemperature } = this.TemperatureSensor || { CurrentTemperature: undefined };
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
+          const { temperature, humidity } = context;
+          const { CurrentRelativeHumidity } = this.HumidifierDehumidifier;
+          const { CurrentTemperature } = this.TemperatureSensor || { CurrentTemperature: undefined };
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
               '(temperature, humidity) = ' +
-              `Webhook:(${temperature}, ${humidity}), ` +
+              `Webhook:(${convertUnits(temperature, context.scale, device.iosensor?.convertUnitTo)}, ${humidity}), ` +
               `current:(${CurrentTemperature}, ${CurrentRelativeHumidity})`);
-            this.HumidifierDehumidifier.CurrentRelativeHumidity = humidity;
-            if (!this.device.humidifier?.hide_temperature) {
-              this.TemperatureSensor!.CurrentTemperature = temperature;
-            }
-            this.updateHomeKitCharacteristics();
+          this.HumidifierDehumidifier.CurrentRelativeHumidity = humidity;
+          if (!this.device.humidifier?.hide_temperature) {
+              this.TemperatureSensor!.CurrentTemperature = convertUnits(temperature, context.scale, device.iosensor?.convertUnitTo);
           }
+          this.updateHomeKitCharacteristics();
         } catch (e: any) {
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
