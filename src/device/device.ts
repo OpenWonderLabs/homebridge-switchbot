@@ -72,8 +72,7 @@ export abstract class deviceBase {
       .setCharacteristic(this.hap.Characteristic.Model, accessory.context.model)
       .setCharacteristic(this.hap.Characteristic.SerialNumber, accessory.context.deviceId)
       .setCharacteristic(this.hap.Characteristic.FirmwareRevision, accessory.context.version)
-      .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
-      .updateValue(accessory.context.version);
+      .setCharacteristic(this.hap.Characteristic.HardwareRevision, accessory.context.version);
   }
 
   async getDeviceLogSettings(device: device & devicesConfig): Promise<void> {

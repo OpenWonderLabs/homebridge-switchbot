@@ -1654,6 +1654,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.model = device.deviceType;
         existingAccessory.context.deviceID = device.deviceId;
         existingAccessory.displayName = device.configDeviceName || device.deviceName;
+        this.warnLog(`${existingAccessory.displayName} version: ${device.version} firmware: ${device.firmware}`);
         if (device.version && !device.firmware) {
           existingAccessory.context.version = device.version;
         }
