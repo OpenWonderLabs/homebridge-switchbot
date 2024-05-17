@@ -195,13 +195,13 @@ export abstract class deviceBase {
     if (device.offline !== undefined) {
       config['offline'] = device.offline;
     }
-    if (device.maxRetry !== undefined) {
+    if (device.maxRetry !== 0 ) {
       config['maxRetry'] = device.maxRetry;
     }
-    if (device.webhook !== undefined) {
+    if (device.webhook === true) {
       config['webhook'] = device.webhook;
     }
-    if (device.connectionType !== undefined) {
+    if (device.connectionType) {
       config['connectionType'] = device.connectionType;
     }
     if (device.external !== undefined) {
@@ -479,6 +479,11 @@ export abstract class deviceBase {
         device.bleModel = SwitchBotBLEModel.Unknown;
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
+      case 'Robot Vacuum Cleaner S10':
+        device.model = SwitchBotModel.RobotVacuumCleanerS10;
+        device.bleModel = SwitchBotBLEModel.Unknown;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        break;
       case 'Ceiling Light':
         device.model = SwitchBotModel.CeilingLight;
         device.bleModel = SwitchBotBLEModel.CeilingLight;
@@ -506,6 +511,11 @@ export abstract class deviceBase {
         break;
       case 'remote with screen+':
         device.model = SwitchBotModel.UniversalRemote;
+        device.bleModel = SwitchBotBLEModel.Unknown;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        break;
+      case 'Battery Circulator Fan':
+        device.model = SwitchBotModel.BatteryCirculatorFan;
         device.bleModel = SwitchBotBLEModel.Unknown;
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;

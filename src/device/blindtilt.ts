@@ -164,8 +164,8 @@ export class BlindTilt extends deviceBase {
       });
 
     //regisiter webhook event handler
-    if (this.device.webhook) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+    if (device.webhook) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
       this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
         try {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
@@ -437,6 +437,11 @@ export class BlindTilt extends deviceBase {
 
     // FirmwareRevision
     this.accessory.context.FirmwareRevision = deviceStatus.body.version;
+      this.accessory
+        .getService(this.hap.Service.AccessoryInformation)!
+        .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.FirmwareRevision)
+        .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+        .updateValue(this.accessory.context.FirmwareRevision);
   }
 
   async refreshStatus(): Promise<void> {
@@ -637,7 +642,7 @@ export class BlindTilt extends deviceBase {
           this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
           this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `request to SwitchBot API, body: ${bodyChange} sent successfully`);
+            + `request to SwitchBot API, body: ${JSON.stringify(bodyChange)} sent successfully`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);

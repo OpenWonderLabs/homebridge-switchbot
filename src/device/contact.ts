@@ -136,8 +136,8 @@ export class Contact extends deviceBase {
       });
 
     //regisiter webhook event handler
-    if (this.device.webhook) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+    if (device.webhook) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
       this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
         try {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
@@ -280,6 +280,11 @@ export class Contact extends deviceBase {
 
     // FirmwareRevision
     this.accessory.context.FirmwareRevision = deviceStatus.body.version;
+    this.accessory
+      .getService(this.hap.Service.AccessoryInformation)!
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.FirmwareRevision)
+      .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+      .updateValue(this.accessory.context.FirmwareRevision);
   }
 
   /**
@@ -454,10 +459,10 @@ export class Contact extends deviceBase {
       this.ContactSensor.Service.updateCharacteristic(this.hap.Characteristic.ContactSensorState,
         this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED);
       if (!this.device.contact?.hide_motionsensor) {
-      this.MotionSensor!.Service.updateCharacteristic(this.hap.Characteristic.MotionDetected, false);
+        this.MotionSensor!.Service.updateCharacteristic(this.hap.Characteristic.MotionDetected, false);
       }
       if (!this.device.contact?.hide_lightsensor) {
-      this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, 100);
+        this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, 100);
       }
     }
   }

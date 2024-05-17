@@ -154,8 +154,8 @@ export class Curtain extends deviceBase {
       });
 
     //regisiter webhook event handler
-    if (this.device.webhook) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+    if (device.webhook) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
       this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
         try {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
@@ -408,20 +408,20 @@ export class Curtain extends deviceBase {
         this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.INCREASING;
         this.WindowCovering.Service.getCharacteristic(this.hap.Characteristic.PositionState).updateValue(this.WindowCovering.PositionState);
         this.debugLog(`${this.device.deviceType}: ${this.WindowCovering.CurrentPosition} INCREASING`
-        + ` PositionState: ${this.WindowCovering.PositionState}`);
+          + ` PositionState: ${this.WindowCovering.PositionState}`);
       } else if (Number(this.WindowCovering.TargetPosition) < this.WindowCovering.CurrentPosition) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Opening, CurrentPosition: ${this.WindowCovering.CurrentPosition} `);
         this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.DECREASING;
         this.WindowCovering.Service.getCharacteristic(this.hap.Characteristic.PositionState).updateValue(this.WindowCovering.PositionState);
         this.debugLog(`${this.device.deviceType}: ${this.WindowCovering.CurrentPosition} DECREASING`
-        + ` PositionState: ${this.WindowCovering.PositionState}`);
+          + ` PositionState: ${this.WindowCovering.PositionState}`);
       } else {
         this.debugLog(`${this.device.deviceType}: ${this.WindowCovering.CurrentPosition} Standby,`
-        + ` CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
+          + ` CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
         this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.STOPPED;
         this.WindowCovering.Service.getCharacteristic(this.hap.Characteristic.PositionState).updateValue(this.WindowCovering.PositionState);
         this.debugLog(`${this.device.deviceType}: ${this.WindowCovering.CurrentPosition} STOPPED`
-        + ` PositionState: ${this.WindowCovering.PositionState}`);
+          + ` PositionState: ${this.WindowCovering.PositionState}`);
       }
     } else {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Standby, CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
@@ -447,7 +447,7 @@ export class Curtain extends deviceBase {
           this.LightSensor!.CurrentAmbientLightLevel = set_maxLux;
       }
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-      + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
+        + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
     }
 
     // BatteryLevel
@@ -465,6 +465,11 @@ export class Curtain extends deviceBase {
 
     // FirmwareRevision
     this.accessory.context.FirmwareRevision = deviceStatus.body.version;
+    this.accessory
+      .getService(this.hap.Service.AccessoryInformation)!
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.FirmwareRevision)
+      .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+      .updateValue(this.accessory.context.FirmwareRevision);
   }
 
   async refreshStatus(): Promise<void> {
@@ -704,17 +709,17 @@ export class Curtain extends deviceBase {
       this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.INCREASING;
       this.setNewTarget = true;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${value},`
-      + ` CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
+        + ` CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
     } else if (value < this.WindowCovering.CurrentPosition) {
       this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.DECREASING;
       this.setNewTarget = true;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${value},`
-      + ` CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
+        + ` CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
     } else {
       this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.STOPPED;
       this.setNewTarget = false;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${value},`
-      + ` CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
+        + ` CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
     }
     this.WindowCovering.Service.setCharacteristic(this.hap.Characteristic.PositionState, this.WindowCovering.PositionState);
     this.WindowCovering.Service.getCharacteristic(this.hap.Characteristic.PositionState).updateValue(this.WindowCovering.PositionState);
@@ -751,7 +756,7 @@ export class Curtain extends deviceBase {
       this.accessory.context.CurrentPosition = this.WindowCovering.CurrentPosition;
       this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, Number(this.WindowCovering.CurrentPosition));
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-      + ` CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
+        + ` CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
       if (this.device.mqttURL) {
         this.mqttPublish('CurrentPosition', this.WindowCovering.CurrentPosition.toString()); // Convert to string
       }
@@ -765,7 +770,7 @@ export class Curtain extends deviceBase {
       this.accessory.context.PositionState = this.WindowCovering.PositionState;
       this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.PositionState, Number(this.WindowCovering.PositionState));
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-      + ` PositionState: ${this.WindowCovering.PositionState}`);
+        + ` PositionState: ${this.WindowCovering.PositionState}`);
     }
     if (this.WindowCovering.TargetPosition === undefined || Number.isNaN(this.WindowCovering.TargetPosition)) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} TargetPosition: ${this.WindowCovering.TargetPosition}`);
@@ -776,7 +781,7 @@ export class Curtain extends deviceBase {
       this.accessory.context.TargetPosition = this.WindowCovering.TargetPosition;
       this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, Number(this.WindowCovering.TargetPosition));
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-      + ` TargetPosition: ${this.WindowCovering.TargetPosition}`);
+        + ` TargetPosition: ${this.WindowCovering.TargetPosition}`);
     }
     if (this.WindowCovering.HoldPosition === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} HoldPosition: ${this.WindowCovering.HoldPosition}`);
@@ -787,12 +792,12 @@ export class Curtain extends deviceBase {
       this.accessory.context.HoldPosition = this.WindowCovering.HoldPosition;
       this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.HoldPosition, this.WindowCovering.HoldPosition);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-      + ` HoldPosition: ${this.WindowCovering.HoldPosition}`);
+        + ` HoldPosition: ${this.WindowCovering.HoldPosition}`);
     }
     if (!this.device.curtain?.hide_lightsensor) {
       if (this.LightSensor!.CurrentAmbientLightLevel === undefined || Number.isNaN(this.LightSensor!.CurrentAmbientLightLevel)) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-        + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
+          + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
       } else {
         if (this.device.mqttURL) {
           this.mqttPublish('CurrentAmbientLightLevel', this.LightSensor!.CurrentAmbientLightLevel.toString());
@@ -830,7 +835,7 @@ export class Curtain extends deviceBase {
       this.accessory.context.StatusLowBattery = this.Battery.StatusLowBattery;
       this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-      + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+        + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
     }
   }
 

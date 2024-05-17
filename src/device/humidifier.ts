@@ -143,8 +143,8 @@ export class Humidifier extends deviceBase {
       });
 
     //regisiter webhook event handler
-    if (this.device.webhook) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+    if (device.webhook) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
       this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
         try {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
@@ -270,6 +270,11 @@ export class Humidifier extends deviceBase {
 
     // FirmwareRevision
     this.accessory.context.FirmwareRevision = deviceStatus.body.version;
+    this.accessory
+      .getService(this.hap.Service.AccessoryInformation)!
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.FirmwareRevision)
+      .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+      .updateValue(this.accessory.context.FirmwareRevision);
   }
 
   async refreshStatus(): Promise<void> {
@@ -670,7 +675,7 @@ export class Humidifier extends deviceBase {
       } else {
         this.TemperatureSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, this.TemperatureSensor!.CurrentTemperature);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-        + ` CurrentTemperature: ${this.TemperatureSensor!.CurrentTemperature}`);
+          + ` CurrentTemperature: ${this.TemperatureSensor!.CurrentTemperature}`);
         this.accessory.context.CurrentTemperature = this.TemperatureSensor!.CurrentTemperature;
       }
     }

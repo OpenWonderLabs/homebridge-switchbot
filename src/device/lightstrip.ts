@@ -149,8 +149,8 @@ export class StripLight extends deviceBase {
       });
 
     //regisiter webhook event handler
-    if (this.device.webhook) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+    if (device.webhook) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
       this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
         try {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
@@ -160,8 +160,22 @@ export class StripLight extends deviceBase {
             '(powerState, brightness, color, colorTemperature) = ' +
             `Webhook:(${powerState}, ${brightness}, ${color}, ${colorTemperature}), ` +
             `current:(${On}, ${Brightness}, ${Hue}, ${Saturation}, ${ColorTemperature})`);
+
+          // On
           this.LightBulb.On = powerState === 'ON' ? true : false;
+          if (this.accessory.context.Brightness !== this.LightBulb.On) {
+            this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.LightBulb.On}`);
+          } else {
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.LightBulb.On}`);
+          }
+
+          // Brightness
           this.LightBulb.Brightness = brightness;
+          if (this.accessory.context.Brightness !== this.LightBulb.Brightness) {
+            this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Brightness: ${this.LightBulb.Brightness}`);
+          } else {
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Brightness: ${this.LightBulb.Brightness}`);
+          }
 
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} color: ${JSON.stringify(color)}`);
           const [red, green, blue] = color!.split(':');
@@ -176,12 +190,27 @@ export class StripLight extends deviceBase {
 
           // Hue
           this.LightBulb.Hue = hue;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${this.LightBulb.Hue}`);
+          if (this.accessory.context.Hue !== this.LightBulb.Hue) {
+            this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${this.LightBulb.Hue}`);
+          } else {
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${this.LightBulb.Hue}`);
+          }
 
           // Saturation
           this.LightBulb.Saturation = saturation;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${this.LightBulb.Saturation}`);
+          if (this.accessory.context.Saturation !== this.LightBulb.Saturation) {
+            this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${this.LightBulb.Saturation}`);
+          } else {
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${this.LightBulb.Saturation}`);
+          }
 
+          // ColorTemperature
+          this.LightBulb.ColorTemperature = colorTemperature;
+          if (this.accessory.context.ColorTemperature !== this.LightBulb.ColorTemperature) {
+            this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.LightBulb.ColorTemperature}`);
+          } else {
+            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.LightBulb.ColorTemperature}`);
+          }
           this.updateHomeKitCharacteristics();
         } catch (e: any) {
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
@@ -298,6 +327,11 @@ export class StripLight extends deviceBase {
 
     // FirmwareRevision
     this.accessory.context.FirmwareRevision = deviceStatus.body.version;
+    this.accessory
+      .getService(this.hap.Service.AccessoryInformation)!
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.FirmwareRevision)
+      .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+      .updateValue(this.accessory.context.FirmwareRevision);
   }
 
   /**
@@ -470,7 +504,7 @@ export class StripLight extends deviceBase {
         this.accessory.context.kelvin = kelvin;
       } else {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No pushColorTemperatureChanges.`
-        + `ColorTemperature: ${this.LightBulb.ColorTemperature}, ColorTemperatureCached: ${this.accessory.context.ColorTemperature}`);
+          + `ColorTemperature: ${this.LightBulb.ColorTemperature}, ColorTemperatureCached: ${this.accessory.context.ColorTemperature}`);
       }
     } else {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges,`

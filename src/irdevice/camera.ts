@@ -68,7 +68,7 @@ export class Camera extends irdeviceBase {
    */
   async pushOnChanges(): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOnChanges On: ${this.Switch.On},`
-    + ` disablePushOn: ${this.disablePushOn}`);
+      + ` disablePushOn: ${this.disablePushOn}`);
     if (this.Switch.On && !this.disablePushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
@@ -114,7 +114,8 @@ export class Camera extends irdeviceBase {
         if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
           this.debugSuccessLog(`${this.device.remoteType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
-          this.successLog(`${this.device.remoteType}: ${this.accessory.displayName} request to SwitchBot API, body: ${bodyChange} sent successfully`);
+          this.successLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+            + ` request to SwitchBot API, body: ${JSON.stringify(bodyChange)} sent successfully`);
           this.updateHomeKitCharacteristics();
         } else {
           this.statusCode(statusCode);

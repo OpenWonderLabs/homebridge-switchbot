@@ -20,8 +20,9 @@ import { CeilingLight } from './device/ceilinglight.js';
 import { StripLight } from './device/lightstrip.js';
 import { Humidifier } from './device/humidifier.js';
 import { RobotVacuumCleaner } from './device/robotvacuumcleaner.js';
+import { Fan } from './device/fan.js';
 import { TV } from './irdevice/tv.js';
-import { Fan } from './irdevice/fan.js';
+import { IRFan } from './irdevice/fan.js';
 import { Light } from './irdevice/light.js';
 import { Others } from './irdevice/other.js';
 import { Camera } from './irdevice/camera.js';
@@ -727,6 +728,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       case 'WoSweeperMini':
       case 'Robot Vacuum Cleaner S1':
       case 'Robot Vacuum Cleaner S1 Plus':
+      case 'Robot Vacuum Cleaner S10':
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createRobotVacuumCleaner(device);
         break;
@@ -746,6 +748,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       case 'Remote':
       case 'remote with screen+':
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId} is Not Supported.`);
+        break;
+      case 'Battery Circulator Fan':
+        this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
+        this.createFan(device);
         break;
       default:
         this.warnLog(`Device: ${device.deviceName} with Device Type: ${device.deviceType}, is currently not supported.`);
@@ -782,7 +788,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       case 'Fan':
       case 'DIY Fan':
         this.debugLog(`Discovered ${device.remoteType}: ${device.deviceId}`);
-        this.createFan(device);
+        this.createIRFan(device);
         break;
       case 'Air Conditioner':
       case 'DIY Air Conditioner':
@@ -1814,6 +1820,66 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
+  private async createFan(device: device & devicesConfig) {
+    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`);
+
+    // see if an accessory with the same uuid has already been registered and restored from
+    // the cached devices we stored in the `configureAccessory` method above
+    const existingAccessory = this.accessories.find((accessory) => accessory.UUID === uuid);
+
+    if (existingAccessory) {
+      // the accessory already exists
+      if (await this.registerDevice(device)) {
+        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
+        existingAccessory.context.model = device.deviceType;
+        existingAccessory.context.deviceID = device.deviceId;
+        existingAccessory.displayName = device.configDeviceName || device.deviceName;
+        if (device.firmware) {
+          existingAccessory.context.FirmwareRevision = device.firmware;
+        }
+        existingAccessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
+        existingAccessory.context.connectionType = await this.connectionType(device);
+        this.api.updatePlatformAccessories([existingAccessory]);
+        // create the accessory handler for the restored accessory
+        // this is imported from `platformAccessory.ts`
+        new Fan(this, existingAccessory, device);
+        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`);
+      } else {
+        this.unregisterPlatformAccessories(existingAccessory);
+      }
+    } else if (await this.registerDevice(device)) {
+      // the accessory does not yet exist, so we need to create it
+      if (!device.external) {
+        this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+      }
+
+      // create a new accessory
+      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+
+      // store a copy of the device object in the `accessory.context`
+      // the `context` property can be used to store any data about the accessory you may need
+      accessory.context.device = device;
+      accessory.context.model = device.deviceType;
+      accessory.context.deviceID = device.deviceId;
+      if (device.firmware) {
+        accessory.context.FirmwareRevision = device.firmware;
+      }
+      accessory.context.deviceType = `SwitchBot: ${device.deviceType}`;
+      accessory.context.connectionType = await this.connectionType(device);
+      // create the accessory handler for the newly create accessory
+      // this is imported from `platformAccessory.ts`
+      new Fan(this, accessory, device);
+      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`);
+
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory);
+      this.accessories.push(accessory);
+    } else {
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
+    }
+  }
+
   private async createRobotVacuumCleaner(device: device & devicesConfig) {
     const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`);
 
@@ -1926,7 +1992,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  private async createFan(device: irdevice & devicesConfig) {
+  private async createIRFan(device: irdevice & devicesConfig) {
     const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.remoteType}`);
 
     // see if an accessory with the same uuid has already been registered and restored from
@@ -1949,7 +2015,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.api.updatePlatformAccessories([existingAccessory]);
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
-        new Fan(this, existingAccessory, device);
+        new IRFan(this, existingAccessory, device);
         this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${existingAccessory.UUID})`);
       } else {
         this.unregisterPlatformAccessories(existingAccessory);
@@ -1975,7 +2041,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.connectionType = device.connectionType;
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
-      new Fan(this, accessory, device);
+      new IRFan(this, accessory, device);
       this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
       // publish device externally or link the accessory to your platform

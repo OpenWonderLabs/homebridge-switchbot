@@ -224,7 +224,8 @@ export class AirPurifier extends irdeviceBase {
         if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
           this.debugSuccessLog(`${this.device.remoteType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
-          this.successLog(`${this.device.remoteType}: ${this.accessory.displayName} request to SwitchBot API, body: ${bodyChange} sent successfully`);
+          this.successLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+            + ` request to SwitchBot API, body: ${JSON.stringify(bodyChange)} sent successfully`);
           this.updateHomeKitCharacteristics();
         } else {
           this.statusCode(statusCode);
@@ -261,7 +262,7 @@ export class AirPurifier extends irdeviceBase {
       this.accessory.context.CurrentAirPurifierState = this.AirPurifier.CurrentAirPurifierState;
       this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.CurrentAirPurifierState, this.AirPurifier.CurrentAirPurifierState);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
-      + ` CurrentAirPurifierState: ${this.AirPurifier.CurrentAirPurifierState}`);
+        + ` CurrentAirPurifierState: ${this.AirPurifier.CurrentAirPurifierState}`);
     }
     // CurrentHeaterCoolerState
     if (this.CurrentHeaterCoolerState === undefined) {
@@ -281,7 +282,7 @@ export class AirPurifier extends irdeviceBase {
       this.accessory.context.CurrentTemperature = this.TemperatureSensor.CurrentTemperature;
       this.TemperatureSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, this.TemperatureSensor.CurrentTemperature);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
-      + ` CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}`);
+        + ` CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}`);
     }
   }
 

@@ -4,6 +4,7 @@
  */
 import { deviceBase } from './device.js';
 import { SwitchBotPlatform } from '../platform.js';
+import { convertUnits } from '../utils.js';
 import { Subject, interval, skipWhile } from 'rxjs';
 import { CharacteristicValue, PlatformAccessory, Service, Units } from 'homebridge';
 import { device, devicesConfig, serviceData, deviceStatus, Devices } from '../settings.js';
@@ -137,27 +138,29 @@ export class Meter extends deviceBase {
       });
 
     //regisiter webhook event handler
-    if (this.device.webhook) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+    if (device.webhook) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
       this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
         try {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          if (context.scale === 'CELSIUS') {
-            const { temperature, humidity } = context;
-            const { CurrentTemperature } = this.TemperatureSensor || { CurrentTemperature: undefined };
-            const { CurrentRelativeHumidity } = this.HumiditySensor || { CurrentRelativeHumidity: undefined };
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-              '(temperature, humidity) = ' +
-              `Webhook:(${temperature}, ${humidity}), ` +
-              `current:(${CurrentTemperature}, ${CurrentRelativeHumidity})`);
-            if (this.device.meter?.hide_humidity) {
-                this.HumiditySensor!.CurrentRelativeHumidity = humidity;
-            }
-            if (this.device.meter?.hide_temperature) {
-                this.TemperatureSensor!.CurrentTemperature = temperature;
-            }
-            this.updateHomeKitCharacteristics();
+          const { temperature, humidity } = context;
+          const { CurrentTemperature } = this.TemperatureSensor || { CurrentTemperature: undefined };
+          const { CurrentRelativeHumidity } = this.HumiditySensor || { CurrentRelativeHumidity: undefined };
+          if (context.scale !== 'CELCIUS' && device.meter?.convertUnitTo === undefined) {
+            this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook scale: `
+              + `${context.scale}, instead of CELCIUS. Use the *convertUnitsTo* config under Meter settings, if displaying incorrectly in HomeKit.`);
           }
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
+            '(scale, temperature, humidity) = '
+            + `Webhook:(${context.scale}, ${convertUnits(temperature, context.scale, device.meter?.convertUnitTo)}, ${humidity}), `
+            + `current:(${CurrentTemperature}, ${CurrentRelativeHumidity})`);
+          if (this.device.meter?.hide_humidity) {
+            this.HumiditySensor!.CurrentRelativeHumidity = humidity;
+          }
+          if (this.device.meter?.hide_temperature) {
+            this.TemperatureSensor!.CurrentTemperature = convertUnits(temperature, context.scale, device.meter?.convertUnitTo);
+          }
+          this.updateHomeKitCharacteristics();
         } catch (e: any) {
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
@@ -222,6 +225,11 @@ export class Meter extends deviceBase {
 
     // FirmwareRevision
     this.accessory.context.FirmwareRevision = deviceStatus.body.version;
+    this.accessory
+      .getService(this.hap.Service.AccessoryInformation)!
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.FirmwareRevision)
+      .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+      .updateValue(this.accessory.context.FirmwareRevision);
   }
 
   /**
@@ -318,7 +326,7 @@ export class Meter extends deviceBase {
     if (!this.device.meter?.hide_humidity) {
       if (this.HumiditySensor!.CurrentRelativeHumidity === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-        + ` CurrentRelativeHumidity: ${this.HumiditySensor!.CurrentRelativeHumidity}`);
+          + ` CurrentRelativeHumidity: ${this.HumiditySensor!.CurrentRelativeHumidity}`);
       } else {
         this.accessory.context.CurrentRelativeHumidity = this.HumiditySensor!.CurrentRelativeHumidity;
         this.HumiditySensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity,
@@ -369,7 +377,7 @@ export class Meter extends deviceBase {
       this.accessory.context.StatusLowBattery = this.Battery.StatusLowBattery;
       this.Battery!.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-      + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+        + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
       if (this.device.mqttURL) {
         mqttmessage.push(`"lowBattery": ${this.Battery.StatusLowBattery}`);
       }
@@ -401,10 +409,10 @@ export class Meter extends deviceBase {
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
       if (!this.device.meter?.hide_humidity) {
-      this.HumiditySensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity, 50);
+        this.HumiditySensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity, 50);
       }
       if (!this.device.meter?.hide_temperature) {
-      this.TemperatureSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, 30);
+        this.TemperatureSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, 30);
       }
       this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, 100);
     }

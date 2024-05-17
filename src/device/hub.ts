@@ -7,6 +7,7 @@ import { deviceBase } from './device.js';
 import { SwitchBotPlatform } from '../platform.js';
 import { Devices, device, deviceStatus, devicesConfig } from '../settings.js';
 import { CharacteristicValue, PlatformAccessory, Service, Units } from 'homebridge';
+import { convertUnits } from '../utils.js';
 
 export class Hub extends deviceBase {
   // Services
@@ -145,34 +146,36 @@ export class Hub extends deviceBase {
       });
 
     //regisiter webhook event handler
-    if (this.device.webhook) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+    if (device.webhook) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
       this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
         try {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          if (context.scale === 'CELSIUS') {
-            const { temperature, humidity, lightLevel } = context;
-            const { CurrentTemperature } = this.TemperatureSensor || { CurrentTemperature: undefined };
-            const { CurrentAmbientLightLevel } = this.LightSensor || { CurrentAmbientLightLevel: undefined };
-            const { CurrentRelativeHumidity } = this.HumiditySensor || { CurrentRelativeHumidity: undefined };
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-              '(temperature, humidity, lightLevel) = ' +
-              `Webhook:(${temperature}, ${humidity}, ${lightLevel}), ` +
-              `current:(${CurrentTemperature}, ${CurrentRelativeHumidity}, ${CurrentAmbientLightLevel})`);
-            if (!this.device.hub?.hide_humidity) {
-            this.HumiditySensor!.CurrentRelativeHumidity = humidity;
-            }
-            if (!this.device.hub?.hide_temperature) {
-            this.TemperatureSensor!.CurrentTemperature = temperature;
-            }
-            if (!this.device.hub?.hide_lightsensor) {
-              const set_minLux = await this.minLux();
-              const set_maxLux = await this.maxLux();
-              const spaceBetweenLevels = 19;
-              await this.getLightLevel(lightLevel, set_minLux, set_maxLux, spaceBetweenLevels);
-            }
-            this.updateHomeKitCharacteristics();
+          const { temperature, humidity, lightLevel } = context;
+          const { CurrentTemperature } = this.TemperatureSensor || { CurrentTemperature: undefined };
+          const { CurrentAmbientLightLevel } = this.LightSensor || { CurrentAmbientLightLevel: undefined };
+          const { CurrentRelativeHumidity } = this.HumiditySensor || { CurrentRelativeHumidity: undefined };
+          if (context.scale !== 'CELCIUS' && device.hub?.convertUnitTo === undefined) {
+            this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} received a non-CELCIUS Webhook scale: `
+                  + `${context.scale}, Use the *convertUnitsTo* config under Hub settings, if displaying incorrectly in HomeKit.`);
           }
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
+              '(scale, temperature, humidity, lightLevel) = ' +
+              `Webhook:(${context.scale}, ${convertUnits(temperature, context.scale, device.hub?.convertUnitTo)}, ${humidity}, ${lightLevel}), ` +
+              `current:(${CurrentTemperature}, ${CurrentRelativeHumidity}, ${CurrentAmbientLightLevel})`);
+          if (!this.device.hub?.hide_humidity) {
+            this.HumiditySensor!.CurrentRelativeHumidity = humidity;
+          }
+          if (!this.device.hub?.hide_temperature) {
+            this.TemperatureSensor!.CurrentTemperature = convertUnits(temperature, context.scale, device.hub?.convertUnitTo);
+          }
+          if (!this.device.hub?.hide_lightsensor) {
+            const set_minLux = await this.minLux();
+            const set_maxLux = await this.maxLux();
+            const spaceBetweenLevels = 19;
+            await this.getLightLevel(lightLevel, set_minLux, set_maxLux, spaceBetweenLevels);
+          }
+          this.updateHomeKitCharacteristics();
         } catch (e: any) {
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
@@ -215,6 +218,11 @@ export class Hub extends deviceBase {
 
     // FirmwareRevision
     this.accessory.context.FirmwareRevision = deviceStatus.body.version;
+      this.accessory
+        .getService(this.hap.Service.AccessoryInformation)!
+        .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.FirmwareRevision)
+        .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+        .updateValue(this.accessory.context.FirmwareRevision);
   }
 
   async refreshStatus(): Promise<void> {

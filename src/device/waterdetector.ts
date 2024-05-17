@@ -101,18 +101,20 @@ export class WaterDetector extends deviceBase {
       });
 
     //regisiter webhook event handler
-    if (this.device.webhook && !this.device.waterdetector?.hide_leak) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+    if (device.webhook && !this.device.waterdetector?.hide_leak) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
       this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
         try {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          const { status } = context;
+          const { detectionState, battery } = context;
           const { LeakDetected } = this.LeakSensor!;
+          const { BatteryLevel } = this.Battery!;
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-            '(status) = ' +
-            `Webhook:(${status}), ` +
-            `current:(${LeakDetected})`);
-          this.LeakSensor!.LeakDetected = status;
+            '(detectionState, battery) = ' +
+            `Webhook:(${detectionState}, ${battery}), ` +
+            `current:(${LeakDetected}, ${BatteryLevel})`);
+          this.LeakSensor!.LeakDetected = detectionState;
+          this.Battery!.BatteryLevel = battery;
           this.updateHomeKitCharacteristics();
         } catch (e: any) {
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
@@ -165,6 +167,11 @@ export class WaterDetector extends deviceBase {
 
     // FirmwareRevision
     this.accessory.context.FirmwareRevision = deviceStatus.body.version;
+    this.accessory
+      .getService(this.hap.Service.AccessoryInformation)!
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.FirmwareRevision)
+      .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+      .updateValue(this.accessory.context.FirmwareRevision);
   }
 
   async refreshStatus(): Promise<void> {

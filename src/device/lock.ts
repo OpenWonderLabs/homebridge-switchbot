@@ -141,8 +141,8 @@ export class Lock extends deviceBase {
       });
 
     //regisiter webhook event handler
-    if (this.device.webhook) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+    if (device.webhook) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
       this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
         try {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
@@ -257,6 +257,11 @@ export class Lock extends deviceBase {
 
     // FirmwareRevision
     this.accessory.context.FirmwareRevision = deviceStatus.body.version;
+    this.accessory
+      .getService(this.hap.Service.AccessoryInformation)!
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.FirmwareRevision)
+      .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+      .updateValue(this.accessory.context.FirmwareRevision);
   }
 
   /**
@@ -526,7 +531,7 @@ export class Lock extends deviceBase {
         this.accessory.context.ContactSensorState = this.ContactSensor!.ContactSensorState;
         this.ContactSensor!.Service.updateCharacteristic(this.hap.Characteristic.ContactSensorState, this.ContactSensor!.ContactSensorState);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-        + ` ContactSensorState: ${this.ContactSensor!.ContactSensorState}`);
+          + ` ContactSensorState: ${this.ContactSensor!.ContactSensorState}`);
       }
     }
     if (this.LockMechanism.LockTargetState === undefined) {
@@ -535,7 +540,7 @@ export class Lock extends deviceBase {
       this.accessory.context.LockTargetState = this.LockMechanism.LockTargetState;
       this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockTargetState, this.LockMechanism.LockTargetState);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-      + ` LockTargetState: ${this.LockMechanism.LockTargetState}`);
+        + ` LockTargetState: ${this.LockMechanism.LockTargetState}`);
     }
     if (this.LockMechanism.LockCurrentState === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LockCurrentState: ${this.LockMechanism.LockCurrentState}`);
@@ -543,7 +548,7 @@ export class Lock extends deviceBase {
       this.accessory.context.LockCurrentState = this.LockMechanism.LockCurrentState;
       this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockCurrentState, this.LockMechanism.LockCurrentState);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-      + ` LockCurrentState: ${this.LockMechanism.LockCurrentState}`);
+        + ` LockCurrentState: ${this.LockMechanism.LockCurrentState}`);
     }
     if (this.Battery.BatteryLevel === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel}`);
@@ -551,7 +556,7 @@ export class Lock extends deviceBase {
       this.accessory.context.BatteryLevel = this.Battery.BatteryLevel;
       this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, this.Battery.BatteryLevel);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-      + ` BatteryLevel: ${this.Battery.BatteryLevel}`);
+        + ` BatteryLevel: ${this.Battery.BatteryLevel}`);
     }
     if (this.Battery.StatusLowBattery === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.Battery.StatusLowBattery}`);
@@ -559,7 +564,7 @@ export class Lock extends deviceBase {
       this.accessory.context.StatusLowBattery = this.Battery.StatusLowBattery;
       this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-      + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+        + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
     }
   }
 

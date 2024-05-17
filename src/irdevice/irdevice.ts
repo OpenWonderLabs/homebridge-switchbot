@@ -455,7 +455,7 @@ export abstract class irdeviceBase {
         break;
       default:
         this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Unknown statusCode: `
-        + `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
+          + `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
     }
   }
 

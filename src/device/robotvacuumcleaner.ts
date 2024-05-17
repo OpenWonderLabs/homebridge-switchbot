@@ -101,8 +101,8 @@ export class RobotVacuumCleaner extends deviceBase {
       });
 
     //regisiter webhook event handler
-    if (this.device.webhook) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+    if (device.webhook) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
       this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
         try {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
@@ -200,6 +200,11 @@ export class RobotVacuumCleaner extends deviceBase {
 
     // FirmwareRevision
     this.accessory.context.FirmwareRevision = deviceStatus.body.version;
+    this.accessory
+      .getService(this.hap.Service.AccessoryInformation)!
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.FirmwareRevision)
+      .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+      .updateValue(this.accessory.context.FirmwareRevision);
   }
 
   /**
@@ -369,7 +374,7 @@ export class RobotVacuumCleaner extends deviceBase {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges`);
     if (this.LightBulb.On !== this.accessory.context.On) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges`
-      + ` On: ${this.LightBulb.On} OnCached: ${this.accessory.context.On}`);
+        + ` On: ${this.LightBulb.On} OnCached: ${this.accessory.context.On}`);
       const switchbot = await this.platform.connectBLE();
       // Convert to BLE Address
       this.device.bleMac = this.device
@@ -398,7 +403,7 @@ export class RobotVacuumCleaner extends deviceBase {
         .then(() => {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
           this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-              + `On: ${this.LightBulb.On} sent over BLE,  sent successfully`);
+            + `On: ${this.LightBulb.On} sent over BLE,  sent successfully`);
           this.LightBulb.On = false;
         })
         .catch(async (e: any) => {
@@ -411,7 +416,7 @@ export class RobotVacuumCleaner extends deviceBase {
         });
     } else {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges,`
-      + ` On: ${this.LightBulb.On}, OnCached: ${this.accessory.context.On}`);
+        + ` On: ${this.LightBulb.On}, OnCached: ${this.accessory.context.On}`);
     }
   }
 
@@ -435,7 +440,7 @@ export class RobotVacuumCleaner extends deviceBase {
           this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
           this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `request to SwitchBot API, body: ${bodyChange} sent successfully`);
+            + `request to SwitchBot API, body: ${JSON.stringify(bodyChange)} sent successfully`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);
@@ -474,7 +479,7 @@ export class RobotVacuumCleaner extends deviceBase {
         this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} `
           + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
         this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `request to SwitchBot API, body: ${deviceStatus} sent successfully`);
+          + `request to SwitchBot API, body: ${deviceStatus} sent successfully`);
       } else {
         this.statusCode(statusCode);
         this.statusCode(deviceStatus.statusCode);
@@ -595,7 +600,7 @@ export class RobotVacuumCleaner extends deviceBase {
       this.accessory.context.StatusLowBattery = this.Battery.StatusLowBattery;
       this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-      + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+        + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
     }
   }
 

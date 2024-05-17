@@ -48,6 +48,9 @@ export type options = {
 };
 
 export interface devicesConfig extends device {
+  bleMac?: string;
+  model?: string;
+  bleModel?: string;
   configDeviceType: string;
   configDeviceName?: string;
   deviceId: string;
@@ -89,11 +92,13 @@ export interface devicesConfig extends device {
 
 export type meter = {
   hide_temperature?: boolean;
+  convertUnitTo?: string;
   hide_humidity?: boolean;
 };
 
 export type iosensor = {
   hide_temperature?: boolean;
+  convertUnitTo?: string;
   hide_humidity?: boolean;
 };
 
@@ -174,6 +179,7 @@ export type lock = {
 
 export type hub = {
   hide_temperature?: boolean;
+  convertUnitTo?: string;
   hide_humidity?: boolean;
   hide_lightsensor?: boolean;
 };
@@ -271,13 +277,27 @@ export type device = {
   slidePosition?: string;
   //the version of the device
   version?: number;
-  //BLE Mac Address
-  bleMac?: string;
-  //Device Model
-  model?: string;
-  //Device BLE Model
-  bleModel?: string;
+  // Fan Mode:  direct mode: direct; natural mode: "natural"; sleep mode: "sleep"; ultra quiet mode: "baby"
+  mode: string;
+  //the current battery level
+  battery: number;
+  //ON/OFF state
+  power: string;
+  //set nightlight status. turn off: off; mode 1: 1; mode 2: 2
+  nightStatus: number;
+  //set horizontal oscillation. turn on: on; turn off: off
+  oscillation: string;
+  //set vertical oscillation. turn on: on; turn off: off
+  verticalOscillation: string;
+  //battery charge status. charging or uncharged
+  chargingStatus: string;
+  //fan speed. 1~100
+  fanSpeed: number;
 };
+
+// values defined but not displayed by API
+export interface deviceInfo extends device {
+}
 
 //a list of virtual infrared remote devices.
 export type infraredRemoteList = {
@@ -300,7 +320,7 @@ export type deviceStatus = {
 
 export type deviceStatusBody = {
   //v1.1 of API
-  deviceId: string; //device ID. (Used by the following deviceTypes: Bot, Curtain, Meter, Meter Plus, Lock, Keypad, Keypad Touch, Motion Sensor, Contact Sensor, Ceiling Light, Ceiling Light Pro, Plug Mini (US), Plug Mini (JP), Strip Light, Color Bulb, Robot Vacuum Cleaner S1, Robot Vacuum Cleaner S1 Plus, Humidifier, Blind Tilt)
+  deviceId: string; //device ID. (Used by the following deviceTypes: Bot, Curtain, Meter, Meter Plus, Lock, Keypad, Keypad Touch, Motion Sensor, Contact Sensor, Ceiling Light, Ceiling Light Pro, Plug Mini (US), Plug Mini (JP), Strip Light, Color Bulb, Robot Vacuum Cleaner S1, Robot Vacuum Cleaner S1 Plus, Humidifier, Blind Tilt, Battery Circulator Fan)
   deviceType: string; //device type. (Used by the following deviceTypes: Bot, Curtain, Meter, Meter Plus, Lock, Keypad, Keypad Touch, Motion Sensor, Contact Sensor, Ceiling Light, Ceiling Light Pro, Plug Mini (US), Plug Mini (JP), Strip Light, Color Bulb, Robot Vacuum Cleaner S1, Robot Vacuum Cleaner S1 Plus, Humidifier, Blind Tilt)
   hubDeviceId: string; //device's parent Hub ID. 000000000000 when the device itself is a Hub or it is connected through Wi-Fi. (Used by the following deviceTypes: Bot, Curtain, Meter, Meter Plus, Lock, Keypad, Keypad Touch, Motion Sensor, Contact Sensor, Ceiling Light, Ceiling Light Pro, Plug Mini (JP), Strip Light, Color Bulb, Robot Vacuum Cleaner S1, Robot Vacuum Cleaner S1 Plus, Humidifier, Blind Tilt)
   power?: string; //ON/OFF state. (Used by the following deviceTypes: Bot, Ceiling Light, Ceiling Light Pro, PLug, Plug Mini (US), Plug Mini (JP), Strip Light, Color Bulb, Humidifier)
@@ -330,16 +350,21 @@ export type deviceStatusBody = {
   childLock?: boolean; //determines if a Humidifier's safety lock is on or not. (Used by the following deviceTypes: Humidifier)
   sound?: boolean; //determines if a Humidifier is muted or not. (Used by the following deviceTypes: Humidifier)
   lackWater?: boolean; //determines if the water tank is empty or not. (Used by the following deviceTypes: Humidifier)
-  version?: number; //the version of the device. (Used by the following deviceTypes: Blind Tilt, Meter, MeterPlus, IOSensor)
+  version?: number; //the version of the device.
   direction?: string; //the opening direction of a Blind Tilt device. (Used by the following deviceTypes: Blind Tilt)
   runStatus?: string; //'static' when not moving. (Used by the following deviceTypes: Blind Tilt)
-  mode?: number; //available for  devices. the fan mode. (Used by the following deviceTypes: Smart Fan)
+  mode?: number | string; //available for  devices. the fan mode. (Used by the following deviceTypes: Smart Fan, Battery Circulator Fan):(direct mode: direct; natural mode: "natural"; sleep mode: "sleep"; ultra quiet mode: "baby")
   speed?: number; //the fan speed. (Used by the following deviceTypes: Smart Fan)
   shaking?: boolean; //determines if the fan is swinging or not. (Used by the following deviceTypes: Smart Fan)
   shakeCenter?: string; //the fan's swing direction. (Used by the following deviceTypes: Smart Fan)
   shakeRange?: string; //the fan's swing range, 0~120°. (Used by the following deviceTypes: Smart Fan)
   status?: number //the leak status. 0 for no leak, 1 for leak. (Used by the following deviceTypes: Water Detector)
   lightLevel?: number; //the light level. (Used by the following deviceTypes: Hub)
+  nightStatus: number  //	set nightlight status. turn off: off; mode 1: 1; mode 2: 2
+  oscillation: string  //	set horizontal oscillation. turn on: on; turn off: off
+  verticalOscillation: string  //	set vertical oscillation. turn on: on; turn off: off
+  chargingStatus: string  //	battery charge status. charging or uncharged
+  fanSpeed: number  //	fan speed. 1~100
 };
 
 export type ad = {

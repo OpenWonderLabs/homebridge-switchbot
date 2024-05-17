@@ -7,6 +7,7 @@ import { SwitchBotPlatform } from '../platform.js';
 import { Subject, interval, skipWhile } from 'rxjs';
 import { CharacteristicValue, PlatformAccessory, Service, Units } from 'homebridge';
 import { device, devicesConfig, serviceData, deviceStatus, Devices } from '../settings.js';
+import { convertUnits } from '../utils.js';
 
 /**
  * Platform Accessory
@@ -142,27 +143,29 @@ export class IOSensor extends deviceBase {
       });
 
     //regisiter webhook event handler
-    if (this.device.webhook) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+    if (device.webhook) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
       this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
         try {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          if (context.scale === 'CELSIUS') {
-            const { temperature, humidity } = context;
-            const { CurrentTemperature } = this.TemperatureSensor || { CurrentTemperature: undefined };
-            const { CurrentRelativeHumidity } = this.HumiditySensor || { CurrentRelativeHumidity: undefined };
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-              '(temperature, humidity) = ' +
-              `Webhook:(${temperature}, ${humidity}), ` +
-              `current:(${CurrentTemperature}, ${CurrentRelativeHumidity})`);
-            if (this.device.iosensor?.hide_humidity) {
-              this.HumiditySensor!.CurrentRelativeHumidity = humidity;
-            }
-            if (this.device.iosensor?.hide_temperature) {
-              this.TemperatureSensor!.CurrentTemperature = temperature;
-            }
-            this.updateHomeKitCharacteristics();
+          const { temperature, humidity } = context;
+          const { CurrentTemperature } = this.TemperatureSensor || { CurrentTemperature: undefined };
+          const { CurrentRelativeHumidity } = this.HumiditySensor || { CurrentRelativeHumidity: undefined };
+          if (context.scale !== 'CELCIUS' && device.iosensor?.convertUnitTo === undefined) {
+            this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} received a non-CELCIUS Webhook scale: `
+              + `${context.scale}, Use the *convertUnitsTo* config under Indoor/Outdoor Sensor settings, if displaying incorrectly in HomeKit.`);
           }
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
+            '(scale, temperature, humidity) = '
+            + `Webhook:(${context.scale}, ${convertUnits(temperature, context.scale, device.iosensor?.convertUnitTo)}, ${humidity}), `
+            + `current:(${CurrentTemperature}, ${CurrentRelativeHumidity})`);
+          if (this.device.iosensor?.hide_humidity) {
+            this.HumiditySensor!.CurrentRelativeHumidity = humidity;
+          }
+          if (this.device.iosensor?.hide_temperature) {
+            this.TemperatureSensor!.CurrentTemperature = convertUnits(temperature, context.scale, device.iosensor?.convertUnitTo);
+          }
+          this.updateHomeKitCharacteristics();
         } catch (e: any) {
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
@@ -226,6 +229,11 @@ export class IOSensor extends deviceBase {
     }
     // FirmwareRevision
     this.accessory.context.FirmwareRevision = deviceStatus.body.version;
+    this.accessory
+      .getService(this.hap.Service.AccessoryInformation)!
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.FirmwareRevision)
+      .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+      .updateValue(this.accessory.context.FirmwareRevision);
   }
 
   /**
@@ -403,10 +411,10 @@ export class IOSensor extends deviceBase {
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
       if (!this.device.iosensor?.hide_humidity) {
-      this.HumiditySensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity, 50);
+        this.HumiditySensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity, 50);
       }
       if (!this.device.iosensor?.hide_temperature) {
-      this.TemperatureSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, 30);
+        this.TemperatureSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, 30);
       }
       this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, 100);
     }

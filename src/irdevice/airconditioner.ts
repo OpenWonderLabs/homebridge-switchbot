@@ -348,7 +348,8 @@ export class AirConditioner extends irdeviceBase {
         if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
           this.debugSuccessLog(`${this.device.remoteType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
-          this.successLog(`${this.device.remoteType}: ${this.accessory.displayName} request to SwitchBot API, body: ${bodyChange} sent successfully`);
+          this.successLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+            + ` request to SwitchBot API, body: ${JSON.stringify(bodyChange)} sent successfully`);
           this.updateHomeKitCharacteristics();
         } else {
           this.statusCode(statusCode);
@@ -616,7 +617,7 @@ export class AirConditioner extends irdeviceBase {
       this.accessory.context.RotationSpeed = this.HeaterCooler.RotationSpeed;
       this.HeaterCooler.Service?.updateCharacteristic(this.hap.Characteristic.RotationSpeed, this.HeaterCooler.RotationSpeed);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
-      + ` RotationSpeed: ${this.HeaterCooler.RotationSpeed}`);
+        + ` RotationSpeed: ${this.HeaterCooler.RotationSpeed}`);
     }
     // CurrentTemperature
     if (this.HeaterCooler.CurrentTemperature === undefined) {
@@ -654,7 +655,7 @@ export class AirConditioner extends irdeviceBase {
     // CurrentHeaterCoolerState
     if (this.HeaterCooler.CurrentHeaterCoolerState === undefined) {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-      + ` CurrentHeaterCoolerState: ${this.HeaterCooler.CurrentHeaterCoolerState}`);
+        + ` CurrentHeaterCoolerState: ${this.HeaterCooler.CurrentHeaterCoolerState}`);
     } else {
       this.accessory.context.CurrentHeaterCoolerState = this.HeaterCooler.CurrentHeaterCoolerState;
       this.HeaterCooler.Service?.updateCharacteristic(this.hap.Characteristic.CurrentHeaterCoolerState, this.HeaterCooler.CurrentHeaterCoolerState);

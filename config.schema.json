@@ -308,8 +308,29 @@
                       "title": "Hide Hub 2's Temperature Sensor",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Hub 2') && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Hub 2' && model.options.devices[arrayIndices].deviceId);"
                       }
+                    },
+                    "convertUnitTo": {
+                      "title": "Convert Hub's Temperature Unit To",
+                      "type": "string",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Hub 2' && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hub.hide_temperature);"
+                      },
+                      "oneOf": [
+                        {
+                          "title": "Celsius",
+                          "enum": [
+                            "CELSIUS"
+                          ]
+                        },
+                        {
+                          "title": "Fahrenheit",
+                          "enum": [
+                            "FAHRENHEIT"
+                          ]
+                        }
+                      ]
                     },
                     "hide_humidity": {
                       "title": "Hide Hub 2's Humidity Sensor",
@@ -481,6 +502,27 @@
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)') && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
+                    "convertUnitTo": {
+                      "title": "Convert Meter's Temperature Unit To",
+                      "type": "string",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)') && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].meter.hide_temperature);"
+                      },
+                      "oneOf": [
+                        {
+                          "title": "Celsius",
+                          "enum": [
+                            "CELSIUS"
+                          ]
+                        },
+                        {
+                          "title": "Fahrenheit",
+                          "enum": [
+                            "FAHRENHEIT"
+                          ]
+                        }
+                      ]
+                    },
                     "hide_humidity": {
                       "title": "Hide Meter's Humidity Sensor",
                       "type": "boolean",
@@ -499,6 +541,27 @@
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' && model.options.devices[arrayIndices].deviceId);"
                       }
+                    },
+                    "convertUnitTo": {
+                      "title": "Convert Indoor/Outdoor Sensor's Temperature Unit To",
+                      "type": "string",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].iosensor.hide_temperature);"
+                      },
+                      "oneOf": [
+                        {
+                          "title": "Celsius",
+                          "enum": [
+                            "CELSIUS"
+                          ]
+                        },
+                        {
+                          "title": "Fahrenheit",
+                          "enum": [
+                            "FAHRENHEIT"
+                          ]
+                        }
+                      ]
                     },
                     "hide_humidity": {
                       "title": "Hide Indoor/Outdoor's Humidity Sensor",
@@ -1670,6 +1733,7 @@
             "options.devices[].connectionType",
             "options.devices[].webhook",
             "options.devices[].hub.hide_temperature",
+            "options.devices[].hub.convertUnitTo",
             "options.devices[].hub.hide_humidity",
             "options.devices[].hub.hide_lightsensor",
             "options.devices[].scanDuration",
@@ -1683,8 +1747,10 @@
             "options.devices[].bot.doublePress",
             "options.devices[].bot.pushRatePress",
             "options.devices[].meter.hide_temperature",
+            "options.devices[].meter.convertUnitTo",
             "options.devices[].meter.hide_humidity",
             "options.devices[].iosensor.hide_temperature",
+            "options.devices[].iosensor.convertUnitTo",
             "options.devices[].iosensor.hide_humidity",
             "options.devices[].waterdetector.hide_leak",
             "options.devices[].humidifier.set_minStep",

@@ -49,7 +49,7 @@ export class Motion extends deviceBase {
     // Initialize Motion Sensor property
     this.MotionSensor = {
       Service: accessory.getService(this.hap.Service.MotionSensor)!,
-      MotionDetected:accessory.context.MotionDetected || false,
+      MotionDetected: accessory.context.MotionDetected || false,
     };
 
     // Retrieve initial values and updateHomekit
@@ -100,8 +100,8 @@ export class Motion extends deviceBase {
       });
 
     //regisiter webhook event handler
-    if (this.device.webhook) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+    if (device.webhook) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
       this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
         try {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
@@ -201,6 +201,11 @@ export class Motion extends deviceBase {
 
     // FirmwareRevision
     this.accessory.context.FirmwareRevision = deviceStatus.body.version;
+    this.accessory
+      .getService(this.hap.Service.AccessoryInformation)!
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.FirmwareRevision)
+      .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+      .updateValue(this.accessory.context.FirmwareRevision);
   }
 
   /**

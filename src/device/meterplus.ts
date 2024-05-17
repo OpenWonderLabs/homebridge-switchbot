@@ -142,8 +142,8 @@ export class MeterPlus extends deviceBase {
       });
 
     //regisiter webhook event handler
-    if (this.device.webhook) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+    if (device.webhook) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
       this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
         try {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
@@ -226,6 +226,11 @@ export class MeterPlus extends deviceBase {
     }
     // FirmwareRevision
     this.accessory.context.FirmwareRevision = deviceStatus.body.version;
+    this.accessory
+      .getService(this.hap.Service.AccessoryInformation)!
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.FirmwareRevision)
+      .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+      .updateValue(this.accessory.context.FirmwareRevision);
   }
 
   /**
@@ -322,7 +327,7 @@ export class MeterPlus extends deviceBase {
     if (!this.device.meter?.hide_humidity) {
       if (this.HumiditySensor!.CurrentRelativeHumidity === undefined) {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-        + ` CurrentRelativeHumidity: ${this.HumiditySensor!.CurrentRelativeHumidity}`);
+          + ` CurrentRelativeHumidity: ${this.HumiditySensor!.CurrentRelativeHumidity}`);
       } else {
         this.accessory.context.CurrentRelativeHumidity = this.HumiditySensor!.CurrentRelativeHumidity;
         this.HumiditySensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity,
@@ -374,7 +379,7 @@ export class MeterPlus extends deviceBase {
       this.accessory.context.StatusLowBattery = this.Battery.StatusLowBattery;
       this.Battery!.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-      + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+        + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
       if (this.device.mqttURL) {
         mqttmessage.push(`"lowBattery": ${this.Battery.StatusLowBattery}`);
       }
@@ -406,10 +411,10 @@ export class MeterPlus extends deviceBase {
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
       if (!this.device.meter?.hide_humidity) {
-      this.HumiditySensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity, 50);
+        this.HumiditySensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity, 50);
       }
       if (!this.device.meter?.hide_temperature) {
-      this.TemperatureSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, 30);
+        this.TemperatureSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, 30);
       }
       this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, 100);
     }

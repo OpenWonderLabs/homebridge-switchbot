@@ -19,8 +19,8 @@ export enum SwitchBotModel {
   ContactSensor = 'W1201500',
   ColorBulb = 'W1401400',
   StripLight = 'W1701100',
-  PlugMiniUS = 'W1901400',
-  PlugMiniJP = 'W2001400',
+  PlugMiniUS = 'W1901400/W1901401',
+  PlugMiniJP = 'W2001400/W2001401',
   Lock = 'W1601700',
   LockPro = 'W3500000',
   Keypad = 'W2500010',
@@ -30,16 +30,17 @@ export enum SwitchBotModel {
   WoSweeperMini = 'WoSweeperMini',
   RobotVacuumCleanerS1 = 'W3011000', // Currently only available in Japan.
   RobotVacuumCleanerS1Plus = 'W3011010', // Currently only available in Japan.
+  RobotVacuumCleanerS10 = 'W3211800',
   Remote = 'Remote',
   UniversalRemote = 'UniversalRemote',
-  CeilingLight = 'W2612230', // Currently only available in Japan.
-  CeilingLightPro = 'W2612210', // Currently only available in Japan.
+  CeilingLight = 'W2612230/W2612240', // Currently only available in Japan.
+  CeilingLightPro = 'W2612210/W2612220', // Currently only available in Japan.
   IndoorCam = 'W1301200',
   PanTiltCam = 'W1801200',
   PanTiltCam2K = 'W3101100',
   BlindTilt = 'W2701600',
   BatteryCirculatorFan = 'W3800510',
-  WaterDetector = 'WoWaterDetector',
+  WaterDetector = 'W4402000',
   Unknown = 'Unknown',
 }
 
@@ -77,11 +78,25 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Converts the value to celsius if the temperature units are in Fahrenheit
+**/
+export function convertUnits(value: number, unit: string, convert?: string): number {
+  if (unit === 'CELSIUS' && convert === 'CELSIUS') {
+    return Math.round((value * 9) / 5 + 32);
+  } else if (unit === 'FAHRENHEIT' && convert === 'FAHRENHEIT') {
+    // celsius should be to the nearest 0.5 degree
+    return Math.round((5 / 9) * (value - 32) * 2) / 2;
+  }
+  return value;
+}
+
+
 export function rgb2hs(r: any, g: any, b: any) {
-  /*
-    Credit:
-    https://github.com/WickyNilliams/pure-color
-  */
+/**
+ * Credit:
+ * https://github.com/WickyNilliams/pure-color
+**/
   r = parseInt(r);
   g = parseInt(g);
   b = parseInt(b);
