@@ -531,7 +531,7 @@ export abstract class deviceBase {
 
     if (device.firmware) {
       accessory.context.FirmwareRevision = device.firmware;
-    } else if (device.firmware === undefined && device.version === undefined) {
+    } else if ((device.firmware === undefined && device.version === undefined) || accessory.context.FirmwareRevision === undefined) {
       device.version = this.platform.version;
       accessory.context.FirmwareRevision = device.version;
     } else {
