@@ -1064,92 +1064,92 @@ export class Bot extends deviceBase {
 
   async removeOutletService(accessory: PlatformAccessory): Promise<void> {
     // If outletService still present, then remove first
-    this.Outlet!.Service = this.accessory.getService(this.hap.Service.Outlet) as Service;
     if (this.Outlet?.Service) {
-      this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Outlet Service`);
-    }
+    this.Outlet!.Service = this.accessory.getService(this.hap.Service.Outlet) as Service;
+    this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Outlet Service`);
     accessory.removeService(this.Outlet!.Service);
+    }
   }
 
   async removeGarageDoorService(accessory: PlatformAccessory): Promise<void> {
     // If garageDoorService still present, then remove first
-    this.GarageDoor!.Service = this.accessory.getService(this.hap.Service.GarageDoorOpener) as Service;
     if (this.GarageDoor?.Service) {
-      this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Garage Door Service`);
-    }
+    this.GarageDoor!.Service = this.accessory.getService(this.hap.Service.GarageDoorOpener) as Service;
+    this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Garage Door Service`);
     accessory.removeService(this.GarageDoor!.Service);
+    }
   }
 
   async removeDoorService(accessory: PlatformAccessory): Promise<void> {
     // If doorService still present, then remove first
-    this.Door!.Service = this.accessory.getService(this.hap.Service.Door) as Service;
     if (this.Door?.Service) {
-      this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Door Service`);
-    }
+    this.Door!.Service = this.accessory.getService(this.hap.Service.Door) as Service;
+    this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Door Service`);
     accessory.removeService(this.Door!.Service);
+    }
   }
 
   async removeLockService(accessory: PlatformAccessory): Promise<void> {
     // If lockService still present, then remove first
-    this.Lock!.Service = this.accessory.getService(this.hap.Service.LockMechanism) as Service;
     if (this.Lock?.Service) {
-      this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Lock Service`);
-    }
+    this.Lock!.Service = this.accessory.getService(this.hap.Service.LockMechanism) as Service;
+    this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Lock Service`);
     accessory.removeService(this.Lock!.Service);
+    }
   }
 
   async removeFaucetService(accessory: PlatformAccessory): Promise<void> {
     // If faucetService still present, then remove first
-    this.Faucet!.Service = this.accessory.getService(this.hap.Service.Faucet) as Service;
     if (this.Faucet?.Service) {
+      this.Faucet!.Service = this.accessory.getService(this.hap.Service.Faucet) as Service;
       this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Faucet Service`);
+      accessory.removeService(this.Faucet!.Service);
     }
-    accessory.removeService(this.Faucet!.Service);
   }
 
   async removeFanService(accessory: PlatformAccessory): Promise<void> {
     // If fanService still present, then remove first
-    this.Fan!.Service = this.accessory.getService(this.hap.Service.Fanv2) as Service;
     if (this.Fan?.Service) {
-      this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Fan Service`);
-    }
+    this.Fan!.Service = this.accessory.getService(this.hap.Service.Fanv2) as Service;
+    this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Fan Service`);
     accessory.removeService(this.Fan!.Service);
+    }
   }
 
   async removeWindowService(accessory: PlatformAccessory): Promise<void> {
     // If windowService still present, then remove first
-    this.Window!.Service = this.accessory.getService(this.hap.Service.Window) as Service;
     if (this.Window?.Service) {
-      this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Window Service`);
-    }
+    this.Window!.Service = this.accessory.getService(this.hap.Service.Window) as Service;
+    this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Window Service`);
     accessory.removeService(this.Window!.Service);
+    }
   }
 
   async removeWindowCoveringService(accessory: PlatformAccessory): Promise<void> {
     // If windowCoveringService still present, then remove first
-    this.WindowCovering!.Service = this.accessory.getService(this.hap.Service.WindowCovering) as Service;
     if (this.WindowCovering?.Service) {
-      this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Window Covering Service`);
-    }
+    this.WindowCovering!.Service = this.accessory.getService(this.hap.Service.WindowCovering) as Service;
+    this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Window Covering Service`);
     accessory.removeService(this.WindowCovering!.Service);
+    }
   }
 
   async removeStatefulProgrammableSwitchService(accessory: PlatformAccessory): Promise<void> {
     // If statefulProgrammableSwitchService still present, then remove first
-    this.StatefulProgrammableSwitch!.Service = this.accessory.getService(this.hap.Service.StatefulProgrammableSwitch) as Service;
     if (this.StatefulProgrammableSwitch?.Service) {
+      this.StatefulProgrammableSwitch!.Service = this.accessory.getService(this.hap.Service.StatefulProgrammableSwitch) as Service;
       this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Stateful Programmable Switch Service`);
+      accessory.removeService(this.StatefulProgrammableSwitch!.Service);
     }
-    accessory.removeService(this.StatefulProgrammableSwitch!.Service);
   }
 
   async removeSwitchService(accessory: PlatformAccessory): Promise<void> {
     // If switchService still present, then remove first
-    this.Switch!.Service = this.accessory.getService(this.hap.Service.Switch) as Service;
     if (this.Switch?.Service) {
-      this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Switch Service`);
-    }
+    this.Switch!.Service = this.accessory.getService(this.hap.Service.Switch) as Service;
+    this.warnLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leftover Switch Service`);
     accessory.removeService(this.Switch!.Service);
+    }
   }
 
   async getOn(): Promise<boolean> {
