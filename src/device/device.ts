@@ -537,6 +537,14 @@ export abstract class deviceBase {
   }
 
   async statusCode(statusCode: number): Promise<void> {
+    switch (this.device.deviceType) {
+      case this.device.hubDeviceId:
+        statusCode = 161;
+        break;
+      case '000000000000':
+        statusCode = 161;
+        break;
+    }
     switch (statusCode) {
       case 151:
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command not supported by this deviceType, statusCode: ${statusCode}`);
