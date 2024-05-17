@@ -111,7 +111,7 @@ export class Lock extends deviceBase {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Contact Sensor Service`);
       this.ContactSensor!.Service = this.accessory.getService(this.hap.Service.ContactSensor) as Service;
       accessory.removeService(this.ContactSensor!.Service);
-    } else if (!this.ContactSensor!.Service) {
+    } else if (!this.ContactSensor?.Service) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Contact Sensor Service`);
       const ContactSensorService = `${accessory.displayName} Contact Sensor`;
       (this.ContactSensor!.Service = this.accessory.getService(this.hap.Service.ContactSensor)

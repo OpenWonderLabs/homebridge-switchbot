@@ -71,7 +71,7 @@ export class WaterDetector extends deviceBase {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leak Sensor Service`);
       this.LeakSensor!.Service = this.accessory.getService(this.hap.Service.LeakSensor) as Service;
       accessory.removeService(this.LeakSensor!.Service);
-    } else if (!this.LeakSensor!.Service) {
+    } else if (!this.LeakSensor?.Service) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Leak Sensor Service`);
       const LeakSensorService = `${accessory.displayName} Leak Sensor`;
       (this.LeakSensor!.Service = this.accessory.getService(this.hap.Service.LeakSensor)

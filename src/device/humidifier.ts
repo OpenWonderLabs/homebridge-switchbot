@@ -110,7 +110,7 @@ export class Humidifier extends deviceBase {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Temperature Sensor Service`);
       this.TemperatureSensor!.Service = this.accessory.getService(this.hap.Service.TemperatureSensor) as Service;
       accessory.removeService(this.TemperatureSensor!.Service);
-    } else if (!this.TemperatureSensor!.Service && !this.BLE) {
+    } else if (!this.TemperatureSensor?.Service && !this.BLE) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Temperature Sensor Service`);
       const TemperatureSensorService = `${accessory.displayName} Temperature Sensor`;
       (this.TemperatureSensor!.Service = this.accessory.getService(this.hap.Service.TemperatureSensor)
