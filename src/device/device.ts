@@ -63,7 +63,7 @@ export abstract class deviceBase {
       await this.getDeviceContext(accessory, device);
       await this.setupMqtt(device);
       await this.scan(device);
-    })();
+    });
 
     // Set accessory information
     accessory
