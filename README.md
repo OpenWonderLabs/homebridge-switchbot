@@ -22,6 +22,7 @@
 3. Click **Install**
 
 ## Configuration
+- Whenever referenced, the `deviceId` corresponds to the device's "BLE MAC" address, excluding ':' characters, which can be found in Switchbot App->Device Info. For example: `XX:YY:ZZ:AA:BB:CC` becomes `XXYYZZAABBCC`.
 
 - ### If using OpenAPI Connection
   1. Download SwitchBot App on App Store or Google Play Store
@@ -43,11 +44,7 @@
 - ### If using BLE Connection
   1. Download SwitchBot App on App Store or Google Play Store
   2. Register a SwitchBot account and log in into your account
-  3. Click on Device wanting to connect too plugin
-     - Click the Settings Gear
-     - Click Device Info
-     - Copy BLE Mac aka `deviceId`
-  4. Input your `deviceId` into the Device Config
+  3. Input your `deviceId` into the Device Config
 
 ## Supported SwitchBot Devices
 

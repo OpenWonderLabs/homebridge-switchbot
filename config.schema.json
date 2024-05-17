@@ -55,6 +55,7 @@
                 "deviceId": {
                   "title": "Device ID",
                   "type": "string",
+                  "description": "Corresponds to the device's BLE MAC address. See wiki documentation for more detail.",
                   "placeholder": "81F3UT59513F"
                 },
                 "configDeviceName": {
@@ -963,6 +964,7 @@
                 "deviceId": {
                   "title": "Device ID",
                   "type": "string",
+                  "description": "Corresponds to the device's BLE MAC address. See wiki documentation for more detail.",
                   "placeholder": "81F3UT59513F"
                 },
                 "configDeviceName": {
