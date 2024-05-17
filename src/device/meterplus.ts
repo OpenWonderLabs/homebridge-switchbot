@@ -225,9 +225,10 @@ export class MeterPlus extends deviceBase {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Temperature: ${this.TemperatureSensor!.CurrentTemperature}°c`);
     }
     // Firmware Version
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${deviceStatus.body.version}`);
+    const version = deviceStatus.body.version?.toString();
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
     if (deviceStatus.body.version) {
-      this.accessory.context.version = deviceStatus.body.version.toString();
+      this.accessory.context.version = version?.replace(/^V|-.*$/g, '');
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
         .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.version)

@@ -549,12 +549,13 @@ export abstract class deviceBase {
       device.version = this.platform.version;
       accessory.context.version = this.platform.version;
     } else {
-      accessory.context.version = device.version?.toString;
+      accessory.context.version = device.version?.replace(/^V|-.*$/g, '');
     }
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${accessory.context.version}`);
     if (accessory.context.version) {
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
+        .setCharacteristic(this.hap.Characteristic.HardwareRevision, accessory.context.version)
         .setCharacteristic(this.hap.Characteristic.FirmwareRevision, accessory.context.version)
         .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
         .updateValue(this.accessory.context.version);
