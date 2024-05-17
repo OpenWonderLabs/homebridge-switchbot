@@ -73,8 +73,8 @@ export abstract class deviceBase {
       .setCharacteristic(this.hap.Characteristic.ConfiguredName, accessory.context.name)
       .setCharacteristic(this.hap.Characteristic.Model, accessory.context.model)
       .setCharacteristic(this.hap.Characteristic.SerialNumber, accessory.context.deviceId)
-      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, device.version || accessory.context.version)
-      .setCharacteristic(this.hap.Characteristic.HardwareRevision, device.version || accessory.context.version);
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, device.version?.toString() || accessory.context.version)
+      .setCharacteristic(this.hap.Characteristic.HardwareRevision, device.version?.toString() || accessory.context.version);
   }
 
   async getDeviceLogSettings(device: device & devicesConfig): Promise<void> {
@@ -553,8 +553,9 @@ export abstract class deviceBase {
       device.version = this.platform.version;
       accessory.context.version = this.platform.version;
     } else {
-      accessory.context.version = device.version;
+      accessory.context.version = device.version?.toString;
     }
+    this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} Context: ${JSON.stringify(accessory.context)}`);
   }
 
   async statusCode(statusCode: number): Promise<void> {

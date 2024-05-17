@@ -226,7 +226,7 @@ export class Meter extends deviceBase {
     // Firmware Version
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${deviceStatus.body.version}`);
     if (deviceStatus.body.version) {
-      this.accessory.context.version = deviceStatus.body.version;
+      this.accessory.context.version = deviceStatus.body.version.toString();
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
         .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.version)
