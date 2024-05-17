@@ -1,12 +1,12 @@
-
 /* Copyright(C) 2021-2024, donavanbecker (https://github.com/donavanbecker). All rights reserved.
  *
- * motion.ts: @switchbot/homebridge-switchbot.
+ * waterdetector.ts: @switchbot/homebridge-switchbot.
  */
 import { deviceBase } from './device.js';
+import { interval, Subject } from 'rxjs';
+import { skipWhile } from 'rxjs/operators';
 import { SwitchBotPlatform } from '../platform.js';
-import { Subject, interval, skipWhile } from 'rxjs';
-import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { device, devicesConfig, serviceData, deviceStatus, Devices } from '../settings.js';
 
 /**
@@ -14,27 +14,24 @@ import { device, devicesConfig, serviceData, deviceStatus, Devices } from '../se
  * An instance of this class is created for each accessory your platform registers
  * Each accessory may expose multiple services of different service types.
  */
-export class Motion extends deviceBase {
+export class WaterDetector extends deviceBase {
   // Services
-  private Battery!: {
+  private Battery: {
     Service: Service;
     BatteryLevel: CharacteristicValue;
     StatusLowBattery: CharacteristicValue;
+    ChargingState: CharacteristicValue;
   };
 
-  private MotionSensor!: {
+  private LeakSensor?: {
     Service: Service;
-    MotionDetected: CharacteristicValue;
-  };
-
-  private LightSensor?: {
-    Service: Service;
-    CurrentAmbientLightLevel: CharacteristicValue;
+    StatusActive: CharacteristicValue;
+    LeakDetected: CharacteristicValue;
   };
 
   // Updates
-  motionUbpdateInProgress!: boolean;
-  doMotionUpdate!: Subject<void>;
+  WaterDetectorUpdateInProgress!: boolean;
+  doWaterDetectorUpdate: Subject<void>;
 
   constructor(
     readonly platform: SwitchBotPlatform,
@@ -42,43 +39,47 @@ export class Motion extends deviceBase {
     device: device & devicesConfig,
   ) {
     super(platform, accessory, device);
-    // this is subject we use to track when we need to POST changes to the SwitchBot API
-    this.doMotionUpdate = new Subject();
-    this.motionUbpdateInProgress = false;
+    // default placeholders
+    this.setupHistoryService(device);
 
-    // Initialize Motion Sensor property
-    this.MotionSensor = {
-      Service: accessory.getService(this.hap.Service.MotionSensor)!,
-      MotionDetected: accessory.context.MotionDetected || false,
+    // this is subject we use to track when we need to POST changes to the SwitchBot API
+    this.doWaterDetectorUpdate = new Subject();
+    this.WaterDetectorUpdateInProgress = false;
+
+    // Initialize Battery property
+    this.Battery = {
+      Service: accessory.getService(this.hap.Service.Battery)!,
+      BatteryLevel: accessory.context.BatteryLevel || 100,
+      StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
+      ChargingState: accessory.context.ChargingState || this.hap.Characteristic.ChargingState.NOT_CHARGEABLE,
     };
+
+    // Initialize Leak Sensor property
+    if (!this.device.waterdetector?.hide_leak) {
+      this.LeakSensor = {
+        Service: accessory.getService(this.hap.Service.LeakSensor)!,
+        StatusActive: accessory.context.StatusActive || false,
+        LeakDetected: accessory.context.LeakDetected || this.hap.Characteristic.LeakDetected.LEAK_NOT_DETECTED,
+      };
+    }
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();
 
-    // get the Battery service if it exists, otherwise create a new Motion service
-    // you can create multiple services for each accessory
-    const MotionSensorService = `${accessory.displayName} Motion Sensor`;
-    (this.MotionSensor.Service = accessory.getService(this.hap.Service.MotionSensor)
-      || accessory.addService(this.hap.Service.MotionSensor)), MotionSensorService;
+    // Leak Sensor Service
+    if (device.waterdetector?.hide_leak) {
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leak Sensor Service`);
+      this.LeakSensor!.Service = this.accessory.getService(this.hap.Service.LeakSensor) as Service;
+      accessory.removeService(this.LeakSensor!.Service);
+    } else if (!this.LeakSensor?.Service) {
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Leak Sensor Service`);
+      const LeakSensorService = `${accessory.displayName} Leak Sensor`;
+      (this.LeakSensor!.Service = this.accessory.getService(this.hap.Service.LeakSensor)
+        || this.accessory.addService(this.hap.Service.LeakSensor)), LeakSensorService;
 
-    this.MotionSensor.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-    // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/MotionSensor
-
-    // Light Sensor Service
-    if (device.motion?.hide_lightsensor) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
-      this.LightSensor!.Service = this.accessory.getService(this.hap.Service.LightSensor) as Service;
-      accessory.removeService(this.LightSensor!.Service);
-    } else if (!this.LightSensor?.Service) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Light Sensor Service`);
-      const LightSensorService = `${accessory.displayName} Light Sensor`;
-      (this.LightSensor!.Service = this.accessory.getService(this.hap.Service.LightSensor)
-        || this.accessory.addService(this.hap.Service.LightSensor)), LightSensorService;
-
-      this.LightSensor!.Service.setCharacteristic(this.hap.Characteristic.Name, LightSensorService);
+      this.LeakSensor!.Service.setCharacteristic(this.hap.Characteristic.Name, LeakSensorService);
     } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Light Sensor Service Not Added`);
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Leak Sensor Service Not Added`);
     }
 
     // Battery Service
@@ -94,24 +95,26 @@ export class Motion extends deviceBase {
 
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
-      .pipe(skipWhile(() => this.motionUbpdateInProgress))
+      .pipe(skipWhile(() => this.WaterDetectorUpdateInProgress))
       .subscribe(async () => {
         await this.refreshStatus();
       });
 
     //regisiter webhook event handler
-    if (device.webhook) {
+    if (device.webhook && !this.device.waterdetector?.hide_leak) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
       this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
         try {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          const { detectionState } = context;
-          const { MotionDetected } = this.MotionSensor;
+          const { detectionState, battery } = context;
+          const { LeakDetected } = this.LeakSensor!;
+          const { BatteryLevel } = this.Battery!;
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-            '(detectionState) = ' +
-            `Webhook:(${detectionState}), ` +
-            `current:(${MotionDetected})`);
-          this.MotionSensor.MotionDetected = detectionState === 'DETECTED' ? true : false;
+            '(detectionState, battery) = ' +
+            `Webhook:(${detectionState}, ${battery}), ` +
+            `current:(${LeakDetected}, ${BatteryLevel})`);
+          this.LeakSensor!.LeakDetected = detectionState;
+          this.Battery!.BatteryLevel = battery;
           this.updateHomeKitCharacteristics();
         } catch (e: any) {
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
@@ -123,81 +126,44 @@ export class Motion extends deviceBase {
 
   async BLEparseStatus(serviceData: serviceData): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
-    // Movement
-    this.MotionSensor.MotionDetected = serviceData.movement!;
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MotionDetected: ${this.MotionSensor.MotionDetected}`);
-    if (this.MotionSensor.MotionDetected !== this.accessory.context.MotionDetected && this.MotionSensor.MotionDetected) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Detected Motion`);
-    }
-    // Light Level
-    if (!this.device.motion?.hide_lightsensor) {
-      const set_minLux = await this.minLux();
-      const set_maxLux = await this.maxLux();
-      switch (serviceData.lightLevel) {
-        case 'dark':
-        case 1:
-          this.LightSensor!.CurrentAmbientLightLevel = set_minLux;
-          break;
-        default:
-          this.LightSensor!.CurrentAmbientLightLevel = set_maxLux;
-      }
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel},`
-        + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`,
-      );
-      if (this.LightSensor!.CurrentAmbientLightLevel !== this.accessory.context.CurrentAmbientLightLevel) {
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-          + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
-      }
-    }
     // Battery
-    if (serviceData.battery === undefined) {
-      serviceData.battery = 100;
-    }
-    this.Battery.BatteryLevel = serviceData.battery!;
-    if (this.Battery.BatteryLevel < 10) {
+    this.Battery.BatteryLevel = Number(serviceData.battery);
+    if (this.Battery.BatteryLevel < 15) {
       this.Battery.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
       this.Battery.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     }
-    this.debugLog(
-      `${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel},`
-      + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`,
-    );
+    this.debugLog(`${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel}, StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+
+    // LeakDetected
+    if (this.device.waterdetector?.hide_leak) {
+      this.LeakSensor!.LeakDetected = serviceData.status!;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LeakDetected: ${this.LeakSensor!.LeakDetected}`);
+    }
   }
 
   async openAPIparseStatus(deviceStatus: deviceStatus): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
-    // Motion State
-    this.MotionSensor.MotionDetected = deviceStatus.body.moveDetected!;
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MotionDetected: ${this.MotionSensor.MotionDetected}`);
-    // Light Level
-    if (!this.device.motion?.hide_lightsensor) {
-      const set_minLux = await this.minLux();
-      const set_maxLux = await this.maxLux();
-      switch (deviceStatus.body.brightness) {
-        case 'dim':
-          this.LightSensor!.CurrentAmbientLightLevel = set_minLux;
-          break;
-        case 'bright':
-        default:
-          this.LightSensor!.CurrentAmbientLightLevel = set_maxLux;
-      }
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-        + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
-    }
-
-    // Battery
+    // StatusLowBattery
     this.Battery.BatteryLevel = Number(deviceStatus.body.battery);
     if (this.Battery.BatteryLevel < 10) {
       this.Battery.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
       this.Battery.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     }
+    this.debugLog(`${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel}, StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+
+    // BatteryLevel
     if (Number.isNaN(this.Battery.BatteryLevel)) {
       this.Battery.BatteryLevel = 100;
     }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel},`
-      + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel}`);
+
+    // LeakDetected
+    if (!this.device.waterdetector?.hide_leak) {
+      this.LeakSensor!.LeakDetected = deviceStatus.body.status!;
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LeakDetected: ${this.LeakSensor!.LeakDetected}`);
+    }
 
     // Firmware Version
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${deviceStatus.body.version}`);
@@ -211,9 +177,6 @@ export class Motion extends deviceBase {
     }
   }
 
-  /**
-   * Asks the SwitchBot API for the latest device information
-   */
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus enableCloudService: ${this.device.enableCloudService}`);
@@ -294,22 +257,33 @@ export class Motion extends deviceBase {
     }
   }
 
-
   /**
    * Updates the status for each of the HomeKit Characteristics
    */
   async updateHomeKitCharacteristics(): Promise<void> {
-    if (this.MotionSensor.MotionDetected === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MotionDetected: ${this.MotionSensor.MotionDetected}`);
-    } else {
-      this.accessory.context.MotionDetected = this.MotionSensor.MotionDetected;
-      this.MotionSensor.Service.updateCharacteristic(this.hap.Characteristic.MotionDetected, this.MotionSensor.MotionDetected);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-        + ` MotionDetected: ${this.MotionSensor.MotionDetected}`);
+    const mqttmessage: string[] = [];
+    const entry = { time: Math.round(new Date().valueOf() / 1000) };
+    if (!this.device.waterdetector?.hide_leak) {
+      if (this.LeakSensor!.LeakDetected === undefined) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LeakDetected: ${this.LeakSensor!.LeakDetected}`);
+      } else {
+        if (this.device.mqttURL) {
+          mqttmessage.push(`"LeakDetected": ${this.LeakSensor!.LeakDetected}`);
+        }
+        if (this.device.history) {
+          entry['leak'] = this.LeakSensor!.LeakDetected;
+        }
+        this.accessory.context.LeakDetected = this.LeakSensor!.LeakDetected;
+        this.LeakSensor!.Service.updateCharacteristic(this.hap.Characteristic.LeakDetected, this.LeakSensor!.LeakDetected);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic LeakDetected: ${this.LeakSensor!.LeakDetected}`);
+      }
     }
     if (this.Battery.BatteryLevel === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel}`);
     } else {
+      if (this.device.mqttURL) {
+        mqttmessage.push(`"battery": ${this.Battery.BatteryLevel}`);
+      }
       this.accessory.context.BatteryLevel = this.Battery.BatteryLevel;
       this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, this.Battery.BatteryLevel);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.Battery.BatteryLevel}`);
@@ -317,22 +291,23 @@ export class Motion extends deviceBase {
     if (this.Battery.StatusLowBattery === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.Battery.StatusLowBattery}`);
     } else {
+      if (this.device.mqttURL) {
+        mqttmessage.push(`"lowBattery": ${this.Battery.StatusLowBattery}`);
+      }
       this.accessory.context.StatusLowBattery = this.Battery.StatusLowBattery;
       this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
         + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
     }
-    if (this.BLE) {
-      if (this.LightSensor!.CurrentAmbientLightLevel === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-          + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
-      } else {
-        this.accessory.context.CurrentAmbientLightLevel = this.LightSensor!.CurrentAmbientLightLevel;
-        this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, this.LightSensor!.CurrentAmbientLightLevel);
-        this.debugLog(
-          `${this.device.deviceType}: ${this.accessory.displayName}` +
-          ` updateCharacteristic CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`,
-        );
+    if (this.device.mqttURL) {
+      this.mqttPublish(`{${mqttmessage.join(',')}}`);
+    }
+    if (!this.device.waterdetector?.hide_leak) {
+      if (Number(this.LeakSensor!.LeakDetected) > 0) {
+        // reject unreliable data
+        if (this.device.history) {
+          this.historyService?.addEntry(entry);
+        }
       }
     }
   }
@@ -346,38 +321,17 @@ export class Motion extends deviceBase {
     }
   }
 
-  async minLux(): Promise<number> {
-    let set_minLux: number;
-    if (this.device.motion?.set_minLux) {
-      set_minLux = this.device.motion!.set_minLux!;
-    } else {
-      set_minLux = 1;
-    }
-    return set_minLux;
-  }
-
-  async maxLux(): Promise<number> {
-    let set_maxLux: number;
-    if (this.device.motion?.set_maxLux) {
-      set_maxLux = this.device.motion!.set_maxLux!;
-    } else {
-      set_maxLux = 6001;
-    }
-    return set_maxLux;
-  }
-
   async offlineOff(): Promise<void> {
-    if (this.device.offline) {
-      this.MotionSensor.Service.updateCharacteristic(this.hap.Characteristic.MotionDetected, false);
+    if (this.device.offline && !this.device.waterdetector?.hide_leak) {
+      this.LeakSensor!.Service.updateCharacteristic(this.hap.Characteristic.LeakDetected, this.hap.Characteristic.LeakDetected.LEAK_NOT_DETECTED);
     }
   }
 
   async apiError(e: any): Promise<void> {
-    this.MotionSensor.Service.updateCharacteristic(this.hap.Characteristic.MotionDetected, e);
+    if (!this.device.waterdetector?.hide_leak) {
+      this.LeakSensor!.Service.updateCharacteristic(this.hap.Characteristic.LeakDetected, e);
+    }
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e);
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, e);
-    if (this.BLE) {
-      this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, e);
-    }
   }
 }

@@ -1,4 +1,4 @@
-/* Copyright(C) 2021-2023, SwitchBot (https://github.com/SwitchBot). All rights reserved.
+/* Copyright(C) 2021-2024, SwitchBot (https://github.com/SwitchBot). All rights reserved.
  *
  * index.ts: @switchbot/homebridge-switchbot plugin registration.
  */

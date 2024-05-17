@@ -1,32 +1,34 @@
+/* eslint-disable max-len */
 /* Copyright(C) 2021-2024, donavanbecker (https://github.com/donavanbecker). All rights reserved.
  *
- * robotvacuumcleaner.ts: @switchbot/homebridge-switchbot.
+ * plug.ts: @switchbot/homebridge-switchbot.
  */
 import { request } from 'undici';
-import { Subject, interval, skipWhile } from 'rxjs';
 import { deviceBase } from './device.js';
 import { SwitchBotPlatform } from '../platform.js';
-import { debounceTime, take, tap } from 'rxjs/operators';
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, deviceStatus, serviceData, Devices } from '../settings.js';
+import { Subject, debounceTime, interval, skipWhile, take, tap } from 'rxjs';
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+import { device, devicesConfig, serviceData, deviceStatus, Devices } from '../settings.js';
 
-export class RobotVacuumCleaner extends deviceBase {
+export class Fan extends deviceBase {
   // Services
-  private LightBulb: {
+  private Fan: {
     Service: Service;
-    On: CharacteristicValue;
-    Brightness: CharacteristicValue;
+    Active: CharacteristicValue;
+    SwingMode: CharacteristicValue;
+    RotationSpeed: CharacteristicValue;
   };
 
   private Battery: {
     Service: Service;
     BatteryLevel: CharacteristicValue;
     StatusLowBattery: CharacteristicValue;
+    ChargingState: CharacteristicValue;
   };
 
   // Updates
-  robotVacuumCleanerUpdateInProgress!: boolean;
-  doRobotVacuumCleanerUpdate!: Subject<void>;
+  plugUpdateInProgress!: boolean;
+  doPlugUpdate!: Subject<void>;
 
   constructor(
     readonly platform: SwitchBotPlatform,
@@ -35,14 +37,15 @@ export class RobotVacuumCleaner extends deviceBase {
   ) {
     super(platform, accessory, device);
     // this is subject we use to track when we need to POST changes to the SwitchBot API
-    this.doRobotVacuumCleanerUpdate = new Subject();
-    this.robotVacuumCleanerUpdateInProgress = false;
+    this.doPlugUpdate = new Subject();
+    this.plugUpdateInProgress = false;
 
-    // Initialize Lightbulb property
-    this.LightBulb = {
-      Service: accessory.getService(this.hap.Service.Lightbulb)!,
-      On: accessory.context.On || false,
-      Brightness: accessory.context.Brightness || 0,
+    // Initialize Fan property
+    this.Fan = {
+      Service: accessory.getService(this.hap.Service.Fanv2)!,
+      Active: accessory.context.Active || this.hap.Characteristic.Active.INACTIVE,
+      SwingMode: accessory.context.SwingMode || this.hap.Characteristic.SwingMode.SWING_DISABLED,
+      RotationSpeed: accessory.context.RotationSpeed || 0,
     };
 
     // Initialize Battery property
@@ -50,52 +53,35 @@ export class RobotVacuumCleaner extends deviceBase {
       Service: accessory.getService(this.hap.Service.Battery)!,
       BatteryLevel: accessory.context.BatteryLevel || 100,
       StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
+      ChargingState: accessory.context.ChargingState || this.hap.Characteristic.ChargingState.NOT_CHARGING,
     };
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();
 
-    // get the Lightbulb service if it exists, otherwise create a new Lightbulb service
+    // get the Fan service if it exists, otherwise create a new Fanv2 service
     // you can create multiple services for each accessory
-    const LightBulbService = `${accessory.displayName} ${device.deviceType}`;
-    (this.LightBulb.Service = accessory.getService(this.hap.Service.Lightbulb)
-      || accessory.addService(this.hap.Service.Lightbulb)), LightBulbService;
+    const FanService = `${accessory.displayName} ${device.deviceType}`;
+    (this.Fan.Service = accessory.getService(this.hap.Service.Fanv2)
+      || accessory.addService(this.hap.Service.Fanv2)), FanService;
 
-    this.LightBulb.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
+    this.Fan.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
     // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/Lightbulb
+    // see https://developers.homebridge.io/#/service/Fanv2
 
     // create handlers for required characteristics
-    this.LightBulb.Service.getCharacteristic(this.hap.Characteristic.On).onSet(this.OnSet.bind(this));
-
-    // handle Brightness events using the Brightness characteristic
-    this.LightBulb.Service
-      .getCharacteristic(this.hap.Characteristic.Brightness)
-      .setProps({
-        minStep: 25,
-        minValue: 0,
-        maxValue: 100,
-        validValues: [0, 25, 50, 75, 100],
-        validValueRanges: [0, 100],
-      })
-      .onGet(() => {
-        return this.LightBulb.Brightness;
-      })
-      .onSet(this.BrightnessSet.bind(this));
-
-    // Battery Service
-    const BatteryService = `${accessory.displayName} Battery`;
-    (this.Battery.Service = this.accessory.getService(this.hap.Service.Battery)
-      || accessory.addService(this.hap.Service.Battery)), BatteryService;
-
-    this.Battery.Service.setCharacteristic(this.hap.Characteristic.Name, BatteryService);
+    this.Fan.Service.getCharacteristic(this.hap.Characteristic.Active).onSet(this.ActiveSet.bind(this));
+    // create handlers for required characteristics
+    this.Fan.Service.getCharacteristic(this.hap.Characteristic.RotationSpeed).onSet(this.RotationSpeedSet.bind(this));
+    // create handlers for required characteristics
+    this.Fan.Service.getCharacteristic(this.hap.Characteristic.SwingMode).onSet(this.SwingModeSet.bind(this));
 
     // Update Homekit
     this.updateHomeKitCharacteristics();
 
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
-      .pipe(skipWhile(() => this.robotVacuumCleanerUpdateInProgress))
+      .pipe(skipWhile(() => this.plugUpdateInProgress))
       .subscribe(async () => {
         await this.refreshStatus();
       });
@@ -106,15 +92,41 @@ export class RobotVacuumCleaner extends deviceBase {
       this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
         try {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          const { onlineStatus, battery } = context;
-          const { On } = this.LightBulb;
-          const { BatteryLevel } = this.Battery;
+          const { version, battery, powerState, oscillation, chargingStatus, fanSpeed } = context;
+          const { Active, SwingMode, RotationSpeed } = this.Fan;
+          const { BatteryLevel, ChargingState } = this.Battery;
+          const { FirmwareRevision } = this.accessory.context;
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-            '(onlineStatus, battery) = ' +
-            `Webhook:(${onlineStatus}, ${battery}), ` +
-            `current:(${On}, ${BatteryLevel})`);
-          this.LightBulb.On = onlineStatus === 'online' ? true : false;
+            '(version, battery, powerState, oscillation, chargingStatus, fanSpeed) = '
+            + `Webhook:(${version}, ${battery}, ${powerState}, ${oscillation}, ${chargingStatus}, ${fanSpeed}), `
+            + `current:(${FirmwareRevision}, ${BatteryLevel}, ${Active}, ${SwingMode}, ${ChargingState}, ${RotationSpeed})`);
+
+          // Active
+          this.Fan.Active = powerState === 'ON' ? this.hap.Characteristic.Active.ACTIVE : this.hap.Characteristic.Active.INACTIVE;
+
+          // SwingMode
+          this.Fan.SwingMode = oscillation === 'on' ?
+            this.hap.Characteristic.SwingMode.SWING_ENABLED : this.hap.Characteristic.SwingMode.SWING_DISABLED;
+
+          // RotationSpeed
+          this.Fan.RotationSpeed = fanSpeed;
+
+          // ChargingState
+          this.Battery.ChargingState = chargingStatus === 'charging' ?
+            this.hap.Characteristic.ChargingState.CHARGING : this.hap.Characteristic.ChargingState.NOT_CHARGING;
+
+          // BatteryLevel
           this.Battery.BatteryLevel = battery;
+
+          // Firmware Version
+          if (version) {
+            this.accessory.context.version = version;
+          this.accessory
+            .getService(this.hap.Service.AccessoryInformation)!
+            .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.version)
+            .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+            .updateValue(this.accessory.context.version);
+          }
           this.updateHomeKitCharacteristics();
         } catch (e: any) {
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
@@ -125,21 +137,16 @@ export class RobotVacuumCleaner extends deviceBase {
 
     // Watch for Plug change events
     // We put in a debounce of 100ms so we don't make duplicate calls
-    this.doRobotVacuumCleanerUpdate
+    this.doPlugUpdate
       .pipe(
         tap(() => {
-          this.robotVacuumCleanerUpdateInProgress = true;
+          this.plugUpdateInProgress = true;
         }),
         debounceTime(this.platform.config.options!.pushRate! * 1000),
       )
       .subscribe(async () => {
         try {
-          if (this.LightBulb.On !== this.accessory.context.On) {
-            await this.pushChanges();
-          }
-          if (this.LightBulb.On && this.LightBulb.Brightness !== this.accessory.context.Brightness) {
-            await this.openAPIpushBrightnessChanges();
-          }
+          await this.pushChanges();
         } catch (e: any) {
           this.apiError(e);
           this.errorLog(
@@ -147,43 +154,41 @@ export class RobotVacuumCleaner extends deviceBase {
             ` Error Message: ${JSON.stringify(e.message)}`,
           );
         }
-        this.robotVacuumCleanerUpdateInProgress = false;
+        this.plugUpdateInProgress = false;
       });
   }
 
   async BLEparseStatus(serviceData: serviceData): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
 
-    // Battery
-    this.Battery.BatteryLevel = Number(serviceData.battery);
-    if (this.Battery.BatteryLevel < 10) {
-      this.Battery.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
-    } else {
-      this.Battery.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
-    }
-    this.debugLog(`${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel}, StatusLowBattery: ${this.Battery.StatusLowBattery}`);
-
     // State
     switch (serviceData.state) {
       case 'on':
-        this.LightBulb.On = true;
+        this.Fan.Active = true;
         break;
       default:
-        this.LightBulb.On = false;
+        this.Fan.Active = false;
     }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.LightBulb.On}`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.Fan.Active}`);
   }
 
   async openAPIparseStatus(deviceStatus: deviceStatus) {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
-    switch (deviceStatus.body.power) {
-      case 'on':
-        this.LightBulb.On = true;
-        break;
-      default:
-        this.LightBulb.On = false;
-    }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.LightBulb.On}`);
+
+    // Active
+    this.Fan.Active = deviceStatus.body.power === 'on' ? this.hap.Characteristic.Active.ACTIVE : this.hap.Characteristic.Active.INACTIVE;
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Active: ${this.Fan.Active}`);
+
+    // SwingMode
+    this.Fan.SwingMode = deviceStatus.body.oscillation === 'on' ?
+      this.hap.Characteristic.SwingMode.SWING_ENABLED : this.hap.Characteristic.SwingMode.SWING_DISABLED;
+
+    // RotationSpeed
+    this.Fan.RotationSpeed = deviceStatus.body.fanSpeed;
+
+    // ChargingState
+    this.Battery.ChargingState = deviceStatus.body.chargingStatus === 'charging' ?
+      this.hap.Characteristic.ChargingState.CHARGING : this.hap.Characteristic.ChargingState.NOT_CHARGING;
 
     // BatteryLevel
     this.Battery.BatteryLevel = Number(deviceStatus.body.battery);
@@ -210,14 +215,16 @@ export class RobotVacuumCleaner extends deviceBase {
     }
   }
 
+
+
   /**
    * Asks the SwitchBot API for the latest device information
    */
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus enableCloudService: ${this.device.enableCloudService}`);
-      /*} else if (this.BLE) {
-        await this.BLERefreshStatus();*/
+    } else if (this.BLE) {
+      await this.BLERefreshStatus();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
@@ -241,21 +248,19 @@ export class RobotVacuumCleaner extends deviceBase {
     this.getCustomBLEAddress(switchbot);
     // Start to monitor advertisement packets
     (async () => {
-      await switchbot.startScan({
-        model: '?',
-        id: this.device.bleMac,
-      });
+      // Start to monitor advertisement packets
+      await switchbot.startScan({ model: this.device.bleModel, id: this.device.bleMac });
       // Set an event handler
       switchbot.onadvertisement = (ad: any) => {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${JSON.stringify(ad, null, '  ')}`);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} address: ${ad.address}, model: ${ad.serviceData.model}`);
-        if (this.device.bleMac === ad.address && ad.serviceData.model === '?') {
+        if (this.device.bleMac === ad.address && ad.model === this.device.bleModel) {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${JSON.stringify(ad, null, '  ')}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} address: ${ad.address}, model: ${ad.model}`);
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
         } else {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
         }
       };
-      // Wait 1 seconds
+      // Wait 10 seconds
       await switchbot.wait(this.scanDuration * 1000);
       // Stop to monitor
       await switchbot.stopScan();
@@ -263,63 +268,16 @@ export class RobotVacuumCleaner extends deviceBase {
       await this.BLEparseStatus(switchbot.onadvertisement.serviceData);
       await this.updateHomeKitCharacteristics();
     })();
-    /*if (switchbot !== false) {
-      switchbot
-        .startScan({
-          model: this.BLEmodel(),
-          id: this.device.bleMac,
-        })
-        .then(async () => {
-          // Set an event handler
-          switchbot.onadvertisement = async (ad: ad) => {
-            this.debugLog(
-              `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
-              ` BLE Address Found: ${ad.address}`,
-            );
-            serviceData.state = ad.serviceData.state;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-            this.debugLog(
-              `${this.device.deviceType}: ${this.accessory.displayName} state: ${ad.serviceData.state}, ` +
-              `delay: ${ad.serviceData.delay}, timer: ${ad.serviceData.timer}, syncUtcTime: ${ad.serviceData.syncUtcTime} ` +
-              `wifiRssi: ${ad.serviceData.wifiRssi}, overload: ${ad.serviceData.overload}, currentPower: ${ad.serviceData.currentPower}`,
-            );
-
-            if (ad.serviceData) {
-              this.BLE_IsConnected = true;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
-              await this.stopScanning(switchbot);
-            } else {
-              this.BLE_IsConnected = false;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
-            }
-          };
-          // Wait
-          return await sleep(this.scanDuration * 1000);
-        })
-        .then(async () => {
-          // Stop to monitor
-          await this.stopScanning(switchbot);
-        })
-        .catch(async (e: any) => {
-          this.apiError(e);
-          this.errorLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} failed BLERefreshStatus with ${this.device.connectionType}` +
-            ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-          );
-          await this.BLERefreshConnection(switchbot);
-        });
-    } else {
+    if (switchbot === undefined) {
       await this.BLERefreshConnection(switchbot);
-    }*/
+    }
   }
 
-  async openAPIRefreshStatus() {
+  async openAPIRefreshStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
     try {
       const { body, statusCode } = await this.platform.retryRequest(this.deviceMaxRetries, this.deviceDelayBetweenRetries,
-        `${Devices}/${this.device.deviceId}/status`, {
-          headers: this.platform.generateHeaders(),
-        });
+        `${Devices}/${this.device.deviceId}/status`, { headers: this.platform.generateHeaders() });
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
       const deviceStatus: any = await body.json();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
@@ -344,18 +302,19 @@ export class RobotVacuumCleaner extends deviceBase {
 
   /**
    * Pushes the requested changes to the SwitchBot API
-   * deviceType	              commandType	    Command	    parameter	        Description
-   * Robot Vacuum Cleaner S1   "command"     "start"      "default"	  =     start vacuuming
-   * Robot Vacuum Cleaner S1   "command"     "stop"       "default"	  =     stop vacuuming
-   * Robot Vacuum Cleaner S1   "command"     "dock"       "default"   =     return to charging dock
-   * Robot Vacuum Cleaner S1   "command"     "PowLevel"   "{0-3}"     =     set suction power level: 0 (Quiet), 1 (Standard), 2 (Strong), 3 (MAX)
+   * deviceType	commandType	       Command	    command                 parameter	                                Description
+   * Battery Circulator Fan  -    "command"     "turnOff"               "default"	                            =   set to OFF state
+   * Battery Circulator Fan  -    "command"     "turnOn"                "default"	                            =   set to ON state
+   * Battery Circulator Fan  -    "command"     "setNightLightMode"     "off, 1, or 2"                        =   off, turn off nightlight, (1, bright) (2, dim)
+   * Battery Circulator Fan  -    "command"     "setWindMode"           "direct, natural, sleep, or baby"     =   Set fan mode. direct: direct mode. natural: natural mode. sleep: sleep mode. baby: ultra quiet mode
+   * Battery Circulator Fan  -    "command"     "setWindSpeed"          "{1-100} e.g. 10"                     =   Set fan speed.1~100
    */
 
   async pushChanges(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} pushChanges enableCloudService: ${this.device.enableCloudService}`);
-      /*} else if (this.BLE) {
-        await this.BLEpushChanges();*/
+    } else if (this.BLE) {
+      await this.BLEpushChanges();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges();
     } else {
@@ -366,7 +325,7 @@ export class RobotVacuumCleaner extends deviceBase {
     }
     // Refresh the status from the API
     interval(15000)
-      .pipe(skipWhile(() => this.robotVacuumCleanerUpdateInProgress))
+      .pipe(skipWhile(() => this.plugUpdateInProgress))
       .pipe(take(1))
       .subscribe(async () => {
         await this.refreshStatus();
@@ -375,9 +334,9 @@ export class RobotVacuumCleaner extends deviceBase {
 
   async BLEpushChanges(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges`);
-    if (this.LightBulb.On !== this.accessory.context.On) {
+    if (this.Fan.Active !== this.accessory.context.Active) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges`
-        + ` On: ${this.LightBulb.On} OnCached: ${this.accessory.context.On}`);
+        + ` On: ${this.Fan.Active} OnCached: ${this.accessory.context.Active}`);
       const switchbot = await this.platform.connectBLE();
       // Convert to BLE Address
       this.device.bleMac = this.device
@@ -387,15 +346,15 @@ export class RobotVacuumCleaner extends deviceBase {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
       switchbot
         .discover({
-          model: '?',
+          model: this.device.bleModel,
           id: this.device.bleMac,
         })
         .then(async (device_list: any) => {
-          this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.LightBulb.On}`);
+          this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.Fan.Active}`);
           return await this.retryBLE({
             max: await this.maxRetryBLE(),
             fn: async () => {
-              if (this.LightBulb.On) {
+              if (this.Fan.Active) {
                 return await device_list[0].turnOn({ id: this.device.bleMac });
               } else {
                 return await device_list[0].turnOff({ id: this.device.bleMac });
@@ -406,8 +365,8 @@ export class RobotVacuumCleaner extends deviceBase {
         .then(() => {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
           this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `On: ${this.LightBulb.On} sent over BLE,  sent successfully`);
-          this.LightBulb.On = false;
+            + `Active: ${this.Fan.Active} sent over BLE,  sent successfully`);
+          this.Fan.Active = false;
         })
         .catch(async (e: any) => {
           this.apiError(e);
@@ -419,14 +378,24 @@ export class RobotVacuumCleaner extends deviceBase {
         });
     } else {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges,`
-        + ` On: ${this.LightBulb.On}, OnCached: ${this.accessory.context.On}`);
+        + ` Active: ${this.Fan.Active}, ActiveCached: ${this.accessory.context.Active}`);
     }
   }
 
   async openAPIpushChanges() {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges`);
-    if (this.LightBulb.On !== this.accessory.context.On) {
-      const bodyChange = await this.commands();
+    if (this.Fan.Active !== this.accessory.context.Active) {
+      let command = '';
+      if (this.Fan.Active) {
+        command = 'turnOn';
+      } else {
+        command = 'turnOff';
+      }
+      const bodyChange = JSON.stringify({
+        command: `${command}`,
+        parameter: 'default',
+        commandType: 'command',
+      });
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
         const { body, statusCode } = await request(`${Devices}/${this.device.deviceId}/commands`, {
@@ -443,158 +412,104 @@ export class RobotVacuumCleaner extends deviceBase {
           this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
           this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `request to SwitchBot API, body: ${JSON.stringify(bodyChange)} sent successfully`);
+            + `request to SwitchBot API, body: ${deviceStatus} sent successfully`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);
         }
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}` +
-          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-        );
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
       }
     } else {
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges.` +
-        `On: ${this.LightBulb.On}, ` +
-        `OnCached: ${this.accessory.context.On}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges.`
+        + `On: ${this.Fan.Active}, ActiveCached: ${this.accessory.context.Active}`);
     }
-  }
-
-  async openAPIpushBrightnessChanges() {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushBrightnessChanges`);
-    const bodyChange = await this.brightnessCommands();
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
-    try {
-      const { body, statusCode } = await request(`${Devices}/${this.device.deviceId}/commands`, {
-        body: bodyChange,
-        method: 'POST',
-        headers: this.platform.generateHeaders(),
-      });
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
-      const deviceStatus: any = await body.json();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
-      if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-        this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-          + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
-        this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-          + `request to SwitchBot API, body: ${deviceStatus} sent successfully`);
-      } else {
-        this.statusCode(statusCode);
-        this.statusCode(deviceStatus.statusCode);
-      }
-    } catch (e: any) {
-      this.apiError(e);
-      this.errorLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}` +
-        ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-      );
-    }
-  }
-
-  async commands() {
-    let command: string;
-    let parameter: string;
-    if (this.LightBulb.On) {
-      command = 'start';
-      parameter = 'default';
-    } else {
-      command = 'dock';
-      parameter = 'default';
-    }
-    const body = JSON.stringify({
-      command: `${command}`,
-      parameter: `${parameter}`,
-      commandType: 'command',
-    });
-    return body;
-  }
-
-  async brightnessCommands(): Promise<string> {
-    let command: string;
-    let parameter: string;
-    if (this.LightBulb.Brightness === 25) {
-      command = 'PowLevel';
-      parameter = '0';
-    } else if (this.LightBulb.Brightness === 50) {
-      command = 'PowLevel';
-      parameter = '1';
-    } else if (this.LightBulb.Brightness === 75) {
-      command = 'PowLevel';
-      parameter = '2';
-    } else if (this.LightBulb.Brightness === 100) {
-      command = 'PowLevel';
-      parameter = '3';
-    } else {
-      command = 'dock';
-      parameter = 'default';
-    }
-    const bodyChange = JSON.stringify({
-      command: `${command}`,
-      parameter: `${parameter}`,
-      commandType: 'command',
-    });
-    return bodyChange;
   }
 
   /**
    * Handle requests to set the value of the "On" characteristic
    */
-  async OnSet(value: CharacteristicValue): Promise<void> {
-    if (this.LightBulb.On === this.accessory.context.On) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set On: ${value}`);
+  async ActiveSet(value: CharacteristicValue): Promise<void> {
+    if (this.Fan.Active === this.accessory.context.Active) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set Active: ${value}`);
     } else {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set On: ${value}`);
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Active: ${value}`);
     }
 
-    this.LightBulb.On = value;
-    this.doRobotVacuumCleanerUpdate.next();
+    this.Fan.Active = value;
+    this.doPlugUpdate.next();
   }
 
   /**
-   * Handle requests to set the value of the "Brightness" characteristic
+   * Handle requests to set the value of the "On" characteristic
    */
-  async BrightnessSet(value: CharacteristicValue): Promise<void> {
-    if (this.LightBulb.Brightness === this.accessory.context.Brightness) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set Brightness: ${value}`);
-    } else if (this.LightBulb.On) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Brightness: ${value}`);
+  async RotationSpeedSet(value: CharacteristicValue): Promise<void> {
+    if (this.Fan.RotationSpeed === this.accessory.context.RotationSpeed) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set RotationSpeed: ${value}`);
     } else {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Brightness: ${value}`);
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set RotationSpeed: ${value}`);
     }
 
-    this.LightBulb.Brightness = value;
-    this.doRobotVacuumCleanerUpdate.next();
+    this.Fan.RotationSpeed = value;
+    this.doPlugUpdate.next();
+  }
+
+  /**
+   * Handle requests to set the value of the "On" characteristic
+   */
+  async SwingModeSet(value: CharacteristicValue): Promise<void> {
+    if (this.Fan.SwingMode === this.accessory.context.SwingMode) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set SwingMode: ${value}`);
+    } else {
+      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set SwingMode: ${value}`);
+    }
+
+    this.Fan.SwingMode = value;
+    this.doPlugUpdate.next();
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
-    // On
-    if (this.LightBulb.On === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.LightBulb.On}`);
+    // Active
+    if (this.Fan.Active === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Active: ${this.Fan.Active}`);
     } else {
-      this.accessory.context.On = this.LightBulb.On;
-      this.LightBulb.Service.updateCharacteristic(this.hap.Characteristic.On, this.LightBulb.On);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic On: ${this.LightBulb.On}`);
+      this.accessory.context.Active = this.Fan.Active;
+      this.Fan.Service.updateCharacteristic(this.hap.Characteristic.Active, this.Fan.Active);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Fan.Active}`);
     }
-    // Brightness
-    if (this.LightBulb.Brightness === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Brightness: ${this.LightBulb.Brightness}`);
+    // RotationSpeed
+    if (this.Fan.RotationSpeed === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} RotationSpeed: ${this.Fan.RotationSpeed}`);
     } else {
-      this.accessory.context.Brightness = this.LightBulb.Brightness;
-      this.LightBulb.Service.updateCharacteristic(this.hap.Characteristic.Brightness, this.LightBulb.Brightness);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic Brightness: ${this.LightBulb.Brightness}`);
+      this.accessory.context.RotationSpeed = this.Fan.RotationSpeed;
+      this.Fan.Service.updateCharacteristic(this.hap.Characteristic.RotationSpeed, this.Fan.RotationSpeed);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic RotationSpeed: ${this.Fan.RotationSpeed}`);
     }
-    // BatteryLevel
+    // SwingMode
+    if (this.Fan.SwingMode === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} SwingMode: ${this.Fan.SwingMode}`);
+    } else {
+      this.accessory.context.SwingMode = this.Fan.SwingMode;
+      this.Fan.Service.updateCharacteristic(this.hap.Characteristic.SwingMode, this.Fan.SwingMode);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic SwingMode: ${this.Fan.SwingMode}`);
+    }
+    // BateryLevel
     if (this.Battery.BatteryLevel === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel}`);
     } else {
       this.accessory.context.BatteryLevel = this.Battery.BatteryLevel;
-      this.Battery.Service?.updateCharacteristic(this.hap.Characteristic.BatteryLevel, this.Battery.BatteryLevel);
+      this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, this.Battery.BatteryLevel);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.Battery.BatteryLevel}`);
+    }
+    // ChargingState
+    if (this.Battery.ChargingState === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ChargingState: ${this.Battery.ChargingState}`);
+    } else {
+      this.accessory.context.ChargingState = this.Battery.ChargingState;
+      this.Battery.Service.updateCharacteristic(this.hap.Characteristic.ChargingState, this.Battery.ChargingState);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic ChargingState: ${this.Battery.ChargingState}`);
     }
     // StatusLowBattery
     if (this.Battery.StatusLowBattery === undefined) {
@@ -602,8 +517,7 @@ export class RobotVacuumCleaner extends deviceBase {
     } else {
       this.accessory.context.StatusLowBattery = this.Battery.StatusLowBattery;
       this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-        + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.Battery.StatusLowBattery}`);
     }
   }
 
@@ -625,11 +539,15 @@ export class RobotVacuumCleaner extends deviceBase {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      this.LightBulb.Service.updateCharacteristic(this.hap.Characteristic.On, false);
+      this.Fan.Service.updateCharacteristic(this.hap.Characteristic.Active, this.hap.Characteristic.Active.INACTIVE);
+      this.Fan.Service.updateCharacteristic(this.hap.Characteristic.RotationSpeed, 0);
+      this.Fan.Service.updateCharacteristic(this.hap.Characteristic.SwingMode, this.hap.Characteristic.SwingMode.SWING_DISABLED);
     }
   }
 
   async apiError(e: any): Promise<void> {
-    this.LightBulb.Service.updateCharacteristic(this.hap.Characteristic.On, e);
+    this.Fan.Service.updateCharacteristic(this.hap.Characteristic.Active, e);
+    this.Fan.Service.updateCharacteristic(this.hap.Characteristic.RotationSpeed, e);
+    this.Fan.Service.updateCharacteristic(this.hap.Characteristic.SwingMode, e);
   }
 }

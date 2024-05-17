@@ -151,6 +151,12 @@
                       ]
                     },
                     {
+                      "title": "Water Detector",
+                      "enum": [
+                        "Water Detector"
+                      ]
+                    },
+                    {
                       "title": "Meter",
                       "enum": [
                         "Meter"
@@ -303,8 +309,29 @@
                       "title": "Hide Hub 2's Temperature Sensor",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Hub 2') && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Hub 2' && model.options.devices[arrayIndices].deviceId);"
                       }
+                    },
+                    "convertUnitTo": {
+                      "title": "Convert Hub's Temperature Unit To",
+                      "type": "string",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Hub 2' && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hub.hide_temperature);"
+                      },
+                      "oneOf": [
+                        {
+                          "title": "Celsius",
+                          "enum": [
+                            "CELSIUS"
+                          ]
+                        },
+                        {
+                          "title": "Fahrenheit",
+                          "enum": [
+                            "FAHRENHEIT"
+                          ]
+                        }
+                      ]
                     },
                     "hide_humidity": {
                       "title": "Hide Hub 2's Humidity Sensor",
@@ -473,14 +500,87 @@
                       "title": "Hide Meter's Temperature Sensor",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor') && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)') && model.options.devices[arrayIndices].deviceId);"
                       }
+                    },
+                    "convertUnitTo": {
+                      "title": "Convert Meter's Temperature Unit To",
+                      "type": "string",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)') && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].meter.hide_temperature);"
+                      },
+                      "oneOf": [
+                        {
+                          "title": "Celsius",
+                          "enum": [
+                            "CELSIUS"
+                          ]
+                        },
+                        {
+                          "title": "Fahrenheit",
+                          "enum": [
+                            "FAHRENHEIT"
+                          ]
+                        }
+                      ]
                     },
                     "hide_humidity": {
                       "title": "Hide Meter's Humidity Sensor",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor') && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)') && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    }
+                  }
+                },
+                "iosensor": {
+                  "type": "object",
+                  "properties": {
+                    "hide_temperature": {
+                      "title": "Hide Indoor/Outdoor's Temperature Sensor",
+                      "type": "boolean",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "convertUnitTo": {
+                      "title": "Convert Indoor/Outdoor Sensor's Temperature Unit To",
+                      "type": "string",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].iosensor.hide_temperature);"
+                      },
+                      "oneOf": [
+                        {
+                          "title": "Celsius",
+                          "enum": [
+                            "CELSIUS"
+                          ]
+                        },
+                        {
+                          "title": "Fahrenheit",
+                          "enum": [
+                            "FAHRENHEIT"
+                          ]
+                        }
+                      ]
+                    },
+                    "hide_humidity": {
+                      "title": "Hide Indoor/Outdoor's Humidity Sensor",
+                      "type": "boolean",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    }
+                  }
+                },
+                "waterdetector": {
+                  "type": "object",
+                  "properties": {
+                    "hide_leak": {
+                      "title": "Hide Water Detector's Leak Sensor",
+                      "type": "boolean",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Water Detector' && model.options.devices[arrayIndices].deviceId);"
                       }
                     }
                   }
@@ -822,14 +922,14 @@
                       "title": "Hide Lock's Contact Sensor",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Smart Lock' && model.options.devices[arrayIndices].configDeviceType === 'Smart Lock Pro' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Smart Lock' || model.options.devices[arrayIndices].configDeviceType === 'Smart Lock Pro') && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
                     "activate_latchbutton": {
                       "title": "Activate Latch Button",
                       "type": "boolean",
                       "condition": {
-                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Smart Lock' && model.options.devices[arrayIndices].configDeviceType === 'Smart Lock Pro' && model.options.devices[arrayIndices].deviceId);"
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Smart Lock' || model.options.devices[arrayIndices].configDeviceType === 'Smart Lock Pro') && model.options.devices[arrayIndices].deviceId);"
                       }
                     }
                   }
@@ -839,6 +939,22 @@
                   "type": "boolean",
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3'));"
+                  }
+                },
+                "maxRetries": {
+                  "title": "Device Max Retries for OpenAPI",
+                  "type": "number",
+                  "placeholder": 5,
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].connectionType === 'OpenAPI' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
+                  }
+                },
+                "delayBetweenRetries": {
+                  "title": "Device Delay Between Retries for OpenAPI (In Seconds)",
+                  "type": "number",
+                  "placeholder": 3,
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].connectionType === 'OpenAPI' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
                   }
                 },
                 "maxRetry": {
@@ -854,28 +970,28 @@
                   "type": "string",
                   "placeholder": "192.168.7.1",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Water Detector' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
                   }
                 },
                 "mqttOptions": {
                   "title": "MQTT Options",
                   "type": "string",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].mqttURL && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].mqttURL && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Water Detector' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
                   }
                 },
                 "mqttPubOptions": {
                   "title": "MQTT Pub Options",
                   "type": "string",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].mqttURL && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].mqttURL && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Water Detector' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
                   }
                 },
                 "history": {
                   "title": "EVE History",
                   "type": "boolean",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Water Detector' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
                   }
                 },
                 "firmware": {
@@ -1523,6 +1639,16 @@
             "type": "string",
             "placeholder": "http://${FQDN}:${PORT}/${PATH}"
           },
+          "maxRetries": {
+            "title": "Max Retries for OpenAPI",
+            "type": "number",
+            "placeholder": 5
+          },
+          "delayBetweenRetries": {
+            "title": "Delay Between Retries for OpenAPI (In Seconds)",
+            "type": "number",
+            "placeholder": 3
+          },
           "refreshRate": {
             "title": "Refresh Rate",
             "type": "number",
@@ -1599,7 +1725,8 @@
           "title": "{{ value.configDeviceName || value.deviceId || 'New SwitchBot Device' }}",
           "expandable": true,
           "expanded": false,
-          "orderable": false,
+          "draggable": true,
+          "orderable": true,
           "items": [
             "options.devices[].configDeviceName",
             "options.devices[].deviceId",
@@ -1608,10 +1735,13 @@
             "options.devices[].connectionType",
             "options.devices[].webhook",
             "options.devices[].hub.hide_temperature",
+            "options.devices[].hub.convertUnitTo",
             "options.devices[].hub.hide_humidity",
             "options.devices[].hub.hide_lightsensor",
             "options.devices[].scanDuration",
             "options.devices[].disableCaching",
+            "options.devices[].maxRetries",
+            "options.devices[].delayBetweenRetries",
             "options.devices[].maxRetry",
             "options.devices[].bot.mode",
             "options.devices[].bot.deviceType",
@@ -1619,7 +1749,12 @@
             "options.devices[].bot.doublePress",
             "options.devices[].bot.pushRatePress",
             "options.devices[].meter.hide_temperature",
+            "options.devices[].meter.convertUnitTo",
             "options.devices[].meter.hide_humidity",
+            "options.devices[].iosensor.hide_temperature",
+            "options.devices[].iosensor.convertUnitTo",
+            "options.devices[].iosensor.hide_humidity",
+            "options.devices[].waterdetector.hide_leak",
             "options.devices[].humidifier.set_minStep",
             "options.devices[].humidifier.hide_temperature",
             "options.devices[].curtain.set_minStep",
@@ -1677,7 +1812,8 @@
           "title": "{{ value.configDeviceName || value.deviceId || 'New IR Device' }}",
           "expandable": true,
           "expanded": false,
-          "orderable": false,
+          "draggable": true,
+          "orderable": true,
           "items": [
             "options.irdevices[].configDeviceName",
             "options.irdevices[].deviceId",
@@ -1719,6 +1855,8 @@
       "expanded": false,
       "items": [
         "options.webhookURL",
+        "options.maxRetries",
+        "options.delayBetweenRetries",
         {
           "type": "help",
           "helpvalue": "<h5>Refresh Rate</h5><em class='primary-text'>Refresh Rate indicates the number of seconds between polls of SwitchBot API.</em>"
