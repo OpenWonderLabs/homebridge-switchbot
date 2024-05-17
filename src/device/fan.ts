@@ -118,7 +118,7 @@ export class Fan extends deviceBase {
           // BatteryLevel
           this.Battery.BatteryLevel = battery;
 
-          // FirmwareRevision
+          // Firmware Version
           if (version) {
             this.accessory.context.version = version;
           this.accessory
@@ -203,7 +203,8 @@ export class Fan extends deviceBase {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel},`
       + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
 
-    // FirmwareRevision
+    // Firmware Version
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${deviceStatus.body.version}`);
     if (deviceStatus.body.version) {
       this.accessory.context.version = deviceStatus.body.version;
       this.accessory

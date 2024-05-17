@@ -268,7 +268,8 @@ export class Humidifier extends deviceBase {
     }
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} WaterLevel: ${this.HumidifierDehumidifier.WaterLevel}`);
 
-    // FirmwareRevision
+    // Firmware Version
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${deviceStatus.body.version}`);
     if (deviceStatus.body.version) {
       this.accessory.context.version = deviceStatus.body.version;
       this.accessory
