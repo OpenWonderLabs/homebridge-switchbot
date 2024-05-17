@@ -55,13 +55,15 @@ export abstract class deviceBase {
     this.BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
     this.OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
 
-    this.getDeviceLogSettings(device);
-    this.getDeviceRefreshRateSettings(device);
-    this.getDeviceRetry(device);
-    this.getDeviceConfigSettings(device);
-    this.getDeviceContext(accessory, device);
-    this.setupMqtt(device);
-    this.scan(device);
+    (async () => {
+      await this.getDeviceLogSettings(device);
+      await this.getDeviceRefreshRateSettings(device);
+      await this.getDeviceRetry(device);
+      await this.getDeviceConfigSettings(device);
+      await this.getDeviceContext(accessory, device);
+      await this.setupMqtt(device);
+      await this.scan(device);
+    })();
 
     // Set accessory information
     accessory
@@ -71,8 +73,8 @@ export abstract class deviceBase {
       .setCharacteristic(this.hap.Characteristic.ConfiguredName, accessory.context.name)
       .setCharacteristic(this.hap.Characteristic.Model, accessory.context.model)
       .setCharacteristic(this.hap.Characteristic.SerialNumber, accessory.context.deviceId)
-      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, accessory.context.version)
-      .setCharacteristic(this.hap.Characteristic.HardwareRevision, accessory.context.version);
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, device.version || accessory.context.version)
+      .setCharacteristic(this.hap.Characteristic.HardwareRevision, device.version || accessory.context.version);
   }
 
   async getDeviceLogSettings(device: device & devicesConfig): Promise<void> {
