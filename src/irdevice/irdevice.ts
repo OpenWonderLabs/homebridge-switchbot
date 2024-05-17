@@ -43,9 +43,9 @@ export abstract class irdeviceBase {
       .setCharacteristic(this.hap.Characteristic.ConfiguredName, accessory.context.name)
       .setCharacteristic(this.hap.Characteristic.Model, accessory.context.model)
       .setCharacteristic(this.hap.Characteristic.SerialNumber, accessory.context.deviceId)
-      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision)
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, accessory.context.firmware)
       .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
-      .updateValue(accessory.context.FirmwareRevision);
+      .updateValue(accessory.context.firmware);
   }
 
   async getDeviceLogSettings(device: irdevice & irDevicesConfig): Promise<void> {
@@ -326,12 +326,12 @@ export abstract class irdeviceBase {
     accessory.context.deviceId = device.deviceId;
     accessory.context.remoteType = device.remoteType;
     if (device.firmware) {
-      accessory.context.FirmwareRevision = device.firmware;
-    } else if (device.firmware === undefined || accessory.context.FirmwareRevision === undefined) {
+      accessory.context.firmware = device.firmware;
+    } else if (device.firmware === undefined || accessory.context.firmware === undefined) {
       device.firmware = this.platform.version;
-      accessory.context.FirmwareRevision = device.firmware;
+      accessory.context.firmware = device.firmware;
     } else {
-      accessory.context.FirmwareRevision = 'Unknown';
+      accessory.context.firmware = 'Unknown';
     }
   }
 

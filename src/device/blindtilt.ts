@@ -437,12 +437,12 @@ export class BlindTilt extends deviceBase {
 
     // FirmwareRevision
     if (deviceStatus.body.version) {
-      this.accessory.context.FirmwareRevision = deviceStatus.body.version;
+      this.accessory.context.version = deviceStatus.body.version;
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
-        .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.FirmwareRevision)
+        .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.version)
         .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
-        .updateValue(this.accessory.context.FirmwareRevision);
+        .updateValue(this.accessory.context.version);
     }
   }
 

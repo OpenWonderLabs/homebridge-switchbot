@@ -120,12 +120,12 @@ export class Fan extends deviceBase {
 
           // FirmwareRevision
           if (version) {
-            this.accessory.context.FirmwareRevision = version;
+            this.accessory.context.version = version;
           this.accessory
             .getService(this.hap.Service.AccessoryInformation)!
-            .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.FirmwareRevision)
+            .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.version)
             .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
-            .updateValue(this.accessory.context.FirmwareRevision);
+            .updateValue(this.accessory.context.version);
           }
           this.updateHomeKitCharacteristics();
         } catch (e: any) {
@@ -205,12 +205,12 @@ export class Fan extends deviceBase {
 
     // FirmwareRevision
     if (deviceStatus.body.version) {
-      this.accessory.context.FirmwareRevision = deviceStatus.body.version;
+      this.accessory.context.version = deviceStatus.body.version;
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
-        .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.FirmwareRevision)
+        .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.version)
         .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
-        .updateValue(this.accessory.context.FirmwareRevision);
+        .updateValue(this.accessory.context.version);
     }
   }
 
