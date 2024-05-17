@@ -528,11 +528,14 @@ export abstract class deviceBase {
     accessory.context.model = device.model;
     accessory.context.deviceId = device.deviceId;
     accessory.context.deviceType = device.deviceType;
-    if (device.firmware === undefined) {
-      device.firmware = this.platform.version;
+
+    if (device.firmware) {
       accessory.context.FirmwareRevision = device.firmware;
+    } else if (device.firmware === undefined && device.version === undefined) {
+      device.version = this.platform.version;
+      accessory.context.FirmwareRevision = device.version;
     } else {
-      accessory.context.FirmwareRevision = device.firmware;
+      accessory.context.FirmwareRevision = device.version;
     }
   }
 

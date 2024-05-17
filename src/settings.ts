@@ -276,7 +276,7 @@ export type device = {
   //the current position, 0-100
   slidePosition?: string;
   //the version of the device
-  version?: number;
+  version?: string;
   // Fan Mode:  direct mode: direct; natural mode: "natural"; sleep mode: "sleep"; ultra quiet mode: "baby"
   mode: string;
   //the current battery level

@@ -325,11 +325,13 @@ export abstract class irdeviceBase {
     accessory.context.model = device.remoteType;
     accessory.context.deviceId = device.deviceId;
     accessory.context.remoteType = device.remoteType;
-    if (device.firmware === undefined) {
+    if (device.firmware) {
+      accessory.context.FirmwareRevision = device.firmware;
+    } else if (device.firmware === undefined) {
       device.firmware = this.platform.version;
       accessory.context.FirmwareRevision = device.firmware;
     } else {
-      accessory.context.FirmwareRevision = device.firmware;
+      accessory.context.FirmwareRevision = 'Unknown';
     }
   }
 
