@@ -62,7 +62,7 @@ export class BlindTilt extends deviceBase {
 
     // Initialize LightBulb property
     this.WindowCovering = {
-      Service: accessory.getService(this.hap.Service.WindowCovering)!,
+      Service: accessory.getService(this.hap.Service.WindowCovering) as Service,
       PositionState: accessory.context.PositionState || this.hap.Characteristic.PositionState.STOPPED,
       TargetPosition: accessory.context.TargetPosition || 100,
       CurrentPosition: accessory.context.CurrentPosition || 100,
@@ -72,7 +72,7 @@ export class BlindTilt extends deviceBase {
 
     // Initialize Battery property
     this.Battery = {
-      Service: accessory.getService(this.hap.Service.Battery)!,
+      Service: accessory.getService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel || 100,
       StatusLowBattery: this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
     };
@@ -80,7 +80,7 @@ export class BlindTilt extends deviceBase {
     // Initialize LightSensor property
     if (!this.device.blindTilt?.hide_lightsensor) {
       this.LightSensor = {
-        Service: accessory.getService(this.hap.Service.LightSensor)!,
+        Service: accessory.getService(this.hap.Service.LightSensor) as Service,
         CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel || 0.0001,
       };
     }
@@ -436,9 +436,10 @@ export class BlindTilt extends deviceBase {
       + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
 
     // Firmware Version
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${deviceStatus.body.version}`);
+    const version = deviceStatus.body.version?.toString();
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
     if (deviceStatus.body.version) {
-      this.accessory.context.version = deviceStatus.body.version.toString();
+      this.accessory.context.version = version?.replace(/^V|-.*$/g, '');
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
         .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.version)

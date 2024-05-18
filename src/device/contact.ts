@@ -53,14 +53,14 @@ export class Contact extends deviceBase {
 
     // Initialize Contact Sensor property
     this.ContactSensor = {
-      Service: accessory.getService(this.hap.Service.ContactSensor)!,
+      Service: accessory.getService(this.hap.Service.ContactSensor) as Service,
       ContactSensorState: this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED,
     };
 
     // Initialize Motion Sensor property
     if (!this.device.contact?.hide_motionsensor) {
       this.MotionSensor = {
-        Service: accessory.getService(this.hap.Service.MotionSensor)!,
+        Service: accessory.getService(this.hap.Service.MotionSensor) as Service,
         MotionDetected: false,
       };
     }
@@ -68,7 +68,7 @@ export class Contact extends deviceBase {
     // Initialize Light Sensor property
     if (!this.device.contact?.hide_lightsensor) {
       this.LightSensor = {
-        Service: accessory.getService(this.hap.Service.LightSensor)!,
+        Service: accessory.getService(this.hap.Service.LightSensor) as Service,
         CurrentAmbientLightLevel: 0,
       };
     }
@@ -279,9 +279,10 @@ export class Contact extends deviceBase {
       + `StatusLowBattery: ${this.Battery.StatusLowBattery}`);
 
     // Firmware Version
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${deviceStatus.body.version}`);
+    const version = deviceStatus.body.version?.toString();
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
     if (deviceStatus.body.version) {
-      this.accessory.context.version = deviceStatus.body.version.toString();
+      this.accessory.context.version = version?.replace(/^V|-.*$/g, '');
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
         .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.version)

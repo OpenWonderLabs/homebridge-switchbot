@@ -65,258 +65,77 @@ export abstract class irdeviceBase {
   }
 
   async getDeviceConfigSettings(device: irdevice & irDevicesConfig): Promise<void> {
-    let config = {};
-    if (device.logging !== undefined) {
-      config['logging'] = device.logging;
+    const deviceConfig = {};
+    if (device.logging !== 'standard') {
+      deviceConfig['logging'] = device.logging;
     }
+    if (device.connectionType !== '') {
+      deviceConfig['connectionType'] = device.connectionType;
+    }
+    if (device.external === true) {
+      deviceConfig['external'] = device.external;
+    }
+    if (device.customize === true) {
+      deviceConfig['customize'] = device.customize;
+    }
+    if (device.commandType !== '') {
+      deviceConfig['commandType'] = device.commandType;
+    }
+    if (device.customOn !== '') {
+      deviceConfig['customOn'] = device.customOn;
+    }
+    if (device.customOff !== '') {
+      deviceConfig['customOff'] = device.customOff;
+    }
+    if (device.disablePushOn === true) {
+      deviceConfig['disablePushOn'] = device.disablePushOn;
+    }
+    if (device.disablePushOff === true) {
+      deviceConfig['disablePushOff'] = device.disablePushOff;
+    }
+    if (device.disablePushDetail === true) {
+      deviceConfig['disablePushDetail'] = device.disablePushDetail;
+    }
+    let irairConfig = {};
     if (device.irair) {
-      config = device.irair;
+      irairConfig = device.irair;
     }
-    if (device.connectionType !== undefined) {
-      config['connectionType'] = device.connectionType;
-    }
-    if (device.external !== undefined) {
-      config['external'] = device.external;
-    }
-    if (device.customOn !== undefined) {
-      config['customOn'] = device.customOn;
-    }
-    if (device.customOff !== undefined) {
-      config['customOff'] = device.customOff;
-    }
-    if (device.customize !== undefined) {
-      config['customize'] = device.customize;
-    }
-    if (device.disablePushOn !== undefined) {
-      config['disablePushOn'] = device.disablePushOn;
-    }
-    if (device.disablePushOff !== undefined) {
-      config['disablePushOff'] = device.disablePushOff;
-    }
-    if (device.disablePushDetail !== undefined) {
-      config['disablePushDetail'] = device.disablePushDetail;
-    }
+    let irpurConfig = {};
     if (device.irpur) {
-      config = device.irpur;
+      irpurConfig = device.irpur;
     }
-    if (device.logging !== undefined) {
-      config['logging'] = device.logging;
-    }
-    if (device.connectionType !== undefined) {
-      config['connectionType'] = device.connectionType;
-    }
-    if (device.external !== undefined) {
-      config['external'] = device.external;
-    }
-    if (device.customOn !== undefined) {
-      config['customOn'] = device.customOn;
-    }
-    if (device.customOff !== undefined) {
-      config['customOff'] = device.customOff;
-    }
-    if (device.customize !== undefined) {
-      config['customize'] = device.customize;
-    }
-    if (device.disablePushOn !== undefined) {
-      config['disablePushOn'] = device.disablePushOn;
-    }
-    if (device.disablePushOff !== undefined) {
-      config['disablePushOff'] = device.disablePushOff;
-    }
+    let ircamConfig = {};
     if (device.ircam) {
-      config = device.ircam;
+      ircamConfig = device.ircam;
     }
-    if (device.logging !== undefined) {
-      config['logging'] = device.logging;
-    }
-    if (device.connectionType !== undefined) {
-      config['connectionType'] = device.connectionType;
-    }
-    if (device.external !== undefined) {
-      config['external'] = device.external;
-    }
-    if (device.customOn !== undefined) {
-      config['customOn'] = device.customOn;
-    }
-    if (device.customOff !== undefined) {
-      config['customOff'] = device.customOff;
-    }
-    if (device.customize !== undefined) {
-      config['customize'] = device.customize;
-    }
-    if (device.disablePushOn !== undefined) {
-      config['disablePushOn'] = device.disablePushOn;
-    }
-    if (device.disablePushOff !== undefined) {
-      config['disablePushOff'] = device.disablePushOff;
-    }
+    let irfanConfig = {};
     if (device.irfan) {
-      config = device.irfan;
+      irfanConfig = device.irfan;
     }
-    if (device.logging !== undefined) {
-      config['logging'] = device.logging;
-    }
-    if (device.connectionType !== undefined) {
-      config['connectionType'] = device.connectionType;
-    }
-    if (device.external !== undefined) {
-      config['external'] = device.external;
-    }
-    if (device.customOn !== undefined) {
-      config['customOn'] = device.customOn;
-    }
-    if (device.customOff !== undefined) {
-      config['customOff'] = device.customOff;
-    }
-    if (device.customize !== undefined) {
-      config['customize'] = device.customize;
-    }
-    if (device.disablePushOn !== undefined) {
-      config['disablePushOn'] = device.disablePushOn;
-    }
-    if (device.disablePushOff !== undefined) {
-      config['disablePushOff'] = device.disablePushOff;
-    }
+    let irlightConfig = {};
     if (device.irlight) {
-      config = device.irlight;
+      irlightConfig = device.irlight;
     }
-    if (device.logging !== undefined) {
-      config['logging'] = device.logging;
-    }
-    if (device.connectionType !== undefined) {
-      config['connectionType'] = device.connectionType;
-    }
-    if (device.external !== undefined) {
-      config['external'] = device.external;
-    }
-    if (device.customOn !== undefined) {
-      config['customOn'] = device.customOn;
-    }
-    if (device.customOff !== undefined) {
-      config['customOff'] = device.customOff;
-    }
-    if (device.customize !== undefined) {
-      config['customize'] = device.customize;
-    }
-    if (device.disablePushOn !== undefined) {
-      config['disablePushOn'] = device.disablePushOn;
-    }
-    if (device.disablePushOff !== undefined) {
-      config['disablePushOff'] = device.disablePushOff;
-    }
+    let otherConfig = {};
     if (device.other) {
-      config = device.other;
+      otherConfig = device.other;
     }
-    if (device.logging !== undefined) {
-      config['logging'] = device.logging;
-    }
-    if (device.connectionType !== undefined) {
-      config['connectionType'] = device.connectionType;
-    }
-    if (device.external !== undefined) {
-      config['external'] = device.external;
-    }
-    if (device.customOn !== undefined) {
-      config['customOn'] = device.customOn;
-    }
-    if (device.customOff !== undefined) {
-      config['customOff'] = device.customOff;
-    }
-    if (device.customize !== undefined) {
-      config['customize'] = device.customize;
-    }
-    if (device.disablePushOn !== undefined) {
-      config['disablePushOn'] = device.disablePushOn;
-    }
-    if (device.disablePushOff !== undefined) {
-      config['disablePushOff'] = device.disablePushOff;
-    }
+    let irtvConfig = {};
     if (device.irtv) {
-      config = device.irtv;
+      irtvConfig = device.irtv;
     }
-    if (device.logging !== undefined) {
-      config['logging'] = device.logging;
-    }
-    if (device.connectionType !== undefined) {
-      config['connectionType'] = device.connectionType;
-    }
-    if (device.external !== undefined) {
-      config['external'] = device.external;
-    }
-    if (device.customOn !== undefined) {
-      config['customOn'] = device.customOn;
-    }
-    if (device.customOff !== undefined) {
-      config['customOff'] = device.customOff;
-    }
-    if (device.customize !== undefined) {
-      config['customize'] = device.customize;
-    }
-    if (device.disablePushOn !== undefined) {
-      config['disablePushOn'] = device.disablePushOn;
-    }
-    if (device.disablePushOff !== undefined) {
-      config['disablePushOff'] = device.disablePushOff;
-    }
-    if (device.disablePushDetail !== undefined) {
-      config['disablePushDetail'] = device.disablePushDetail;
-    }
+    let irvcConfig = {};
     if (device.irvc) {
-      config = device.irvc;
+      irvcConfig = device.irvc;
     }
-    if (device.logging !== undefined) {
-      config['logging'] = device.logging;
-    }
-    if (device.connectionType !== undefined) {
-      config['connectionType'] = device.connectionType;
-    }
-    if (device.external !== undefined) {
-      config['external'] = device.external;
-    }
-    if (device.customOn !== undefined) {
-      config['customOn'] = device.customOn;
-    }
-    if (device.customOff !== undefined) {
-      config['customOff'] = device.customOff;
-    }
-    if (device.customize !== undefined) {
-      config['customize'] = device.customize;
-    }
-    if (device.disablePushOn !== undefined) {
-      config['disablePushOn'] = device.disablePushOn;
-    }
-    if (device.disablePushOff !== undefined) {
-      config['disablePushOff'] = device.disablePushOff;
-    }
+    let irwhConfig = {};
     if (device.irwh) {
-      config = device.irwh;
+      irwhConfig = device.irwh;
     }
-    if (device.logging !== undefined) {
-      config['logging'] = device.logging;
-    }
-    if (device.connectionType !== undefined) {
-      config['connectionType'] = device.connectionType;
-    }
-    if (device.external !== undefined) {
-      config['external'] = device.external;
-    }
-    if (device.customOn !== undefined) {
-      config['customOn'] = device.customOn;
-    }
-    if (device.customOff !== undefined) {
-      config['customOff'] = device.customOff;
-    }
-    if (device.customize !== undefined) {
-      config['customize'] = device.customize;
-    }
-    if (device.disablePushOn !== undefined) {
-      config['disablePushOn'] = device.disablePushOn;
-    }
-    if (device.disablePushOff !== undefined) {
-      config['disablePushOff'] = device.disablePushOff;
-    }
+    const config = Object.assign({}, deviceConfig, irairConfig, irpurConfig, ircamConfig, irfanConfig, irlightConfig, otherConfig,
+      irtvConfig, irvcConfig, irwhConfig);
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`Lock: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.debugSuccessLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 

@@ -43,7 +43,7 @@ export class Hub extends deviceBase {
     // Initialize Temperature Sensor property
     if (!device.hub?.hide_temperature) {
       this.TemperatureSensor = {
-        Service: accessory.getService(this.hap.Service.TemperatureSensor)!,
+        Service: accessory.getService(this.hap.Service.TemperatureSensor) as Service,
         CurrentTemperature: accessory.context.CurrentTemperature || 0,
       };
     }
@@ -51,7 +51,7 @@ export class Hub extends deviceBase {
     // Initialize Humidity Sensor property
     if (!device.hub?.hide_humidity) {
       this.HumiditySensor = {
-        Service: accessory.getService(this.hap.Service.HumiditySensor)!,
+        Service: accessory.getService(this.hap.Service.HumiditySensor) as Service,
         CurrentRelativeHumidity: accessory.context.CurrentRelativeHumidity || 0,
       };
     }
@@ -59,7 +59,7 @@ export class Hub extends deviceBase {
     // Initialize Light Sensor property
     if (!device.hub?.hide_lightsensor) {
       this.LightSensor = {
-        Service: accessory.getService(this.hap.Service.LightSensor)!,
+        Service: accessory.getService(this.hap.Service.LightSensor) as Service,
         CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel || 0.0001,
       };
     }
@@ -217,9 +217,10 @@ export class Hub extends deviceBase {
     }
 
     // Firmware Version
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${deviceStatus.body.version}`);
+    const version = deviceStatus.body.version?.toString();
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
     if (deviceStatus.body.version) {
-      this.accessory.context.version = deviceStatus.body.version.toString();
+      this.accessory.context.version = version?.replace(/^V|-.*$/g, '');
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
         .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.version)

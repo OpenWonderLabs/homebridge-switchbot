@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 /* Copyright(C) 2021-2024, donavanbecker (https://github.com/donavanbecker). All rights reserved.
  *
  * plug.ts: @switchbot/homebridge-switchbot.
@@ -42,7 +41,7 @@ export class Fan extends deviceBase {
 
     // Initialize Fan property
     this.Fan = {
-      Service: accessory.getService(this.hap.Service.Fanv2)!,
+      Service: accessory.getService(this.hap.Service.Fanv2) as Service,
       Active: accessory.context.Active || this.hap.Characteristic.Active.INACTIVE,
       SwingMode: accessory.context.SwingMode || this.hap.Characteristic.SwingMode.SWING_DISABLED,
       RotationSpeed: accessory.context.RotationSpeed || 0,
@@ -50,7 +49,7 @@ export class Fan extends deviceBase {
 
     // Initialize Battery property
     this.Battery = {
-      Service: accessory.getService(this.hap.Service.Battery)!,
+      Service: accessory.getService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel || 100,
       StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
       ChargingState: accessory.context.ChargingState || this.hap.Characteristic.ChargingState.NOT_CHARGING,
@@ -121,11 +120,11 @@ export class Fan extends deviceBase {
           // Firmware Version
           if (version) {
             this.accessory.context.version = version;
-          this.accessory
-            .getService(this.hap.Service.AccessoryInformation)!
-            .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.version)
-            .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
-            .updateValue(this.accessory.context.version);
+            this.accessory
+              .getService(this.hap.Service.AccessoryInformation)!
+              .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.version)
+              .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+              .updateValue(this.accessory.context.version);
           }
           this.updateHomeKitCharacteristics();
         } catch (e: any) {
@@ -204,9 +203,10 @@ export class Fan extends deviceBase {
       + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
 
     // Firmware Version
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${deviceStatus.body.version}`);
+    const version = deviceStatus.body.version?.toString();
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
     if (deviceStatus.body.version) {
-      this.accessory.context.version = deviceStatus.body.version.toString();
+      this.accessory.context.version = version?.replace(/^V|-.*$/g, '');
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
         .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.version)
@@ -302,12 +302,12 @@ export class Fan extends deviceBase {
 
   /**
    * Pushes the requested changes to the SwitchBot API
-   * deviceType	commandType	       Command	    command                 parameter	                                Description
-   * Battery Circulator Fan  -    "command"     "turnOff"               "default"	                            =   set to OFF state
-   * Battery Circulator Fan  -    "command"     "turnOn"                "default"	                            =   set to ON state
-   * Battery Circulator Fan  -    "command"     "setNightLightMode"     "off, 1, or 2"                        =   off, turn off nightlight, (1, bright) (2, dim)
-   * Battery Circulator Fan  -    "command"     "setWindMode"           "direct, natural, sleep, or baby"     =   Set fan mode. direct: direct mode. natural: natural mode. sleep: sleep mode. baby: ultra quiet mode
-   * Battery Circulator Fan  -    "command"     "setWindSpeed"          "{1-100} e.g. 10"                     =   Set fan speed.1~100
+   * commandType	 command                 parameter	                               Description
+   * "command"     "turnOff"               "default"	                           =   set to OFF state
+   * "command"     "turnOn"                "default"	                           =   set to ON state
+   * "command"     "setNightLightMode"     "off, 1, or 2"                        =   off, turn off nightlight, (1, bright) (2, dim)
+   * "command"     "setWindMode"           "direct, natural, sleep, or baby"     =   Set fan mode
+   * "command"     "setWindSpeed"          "{1-100} e.g. 10"                     =   Set fan speed 1~100
    */
 
   async pushChanges(): Promise<void> {
@@ -412,7 +412,7 @@ export class Fan extends deviceBase {
           this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
           this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `request to SwitchBot API, body: ${deviceStatus} sent successfully`);
+            + `request to SwitchBot API, body: ${JSON.stringify(deviceStatus)} sent successfully`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);
@@ -517,7 +517,8 @@ export class Fan extends deviceBase {
     } else {
       this.accessory.context.StatusLowBattery = this.Battery.StatusLowBattery;
       this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
+        + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
     }
   }
 

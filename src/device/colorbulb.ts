@@ -51,7 +51,7 @@ export class ColorBulb extends deviceBase {
 
     // Initialize LightBulb property
     this.LightBulb = {
-      Service: accessory.getService(this.hap.Service.Lightbulb)!,
+      Service: accessory.getService(this.hap.Service.Lightbulb) as Service,
       On: accessory.context.On || false,
       Hue: accessory.context.Hue || 0,
       Saturation: accessory.context.Saturation || 0,
@@ -349,9 +349,10 @@ export class ColorBulb extends deviceBase {
     }
 
     // Firmware Version
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${deviceStatus.body.version}`);
+    const version = deviceStatus.body.version?.toString();
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
     if (deviceStatus.body.version) {
-      this.accessory.context.version = deviceStatus.body.version.toString();
+      this.accessory.context.version = version?.replace(/^V|-.*$/g, '');
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
         .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.version)
@@ -755,7 +756,7 @@ export class ColorBulb extends deviceBase {
           this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
           this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `request to SwitchBot API, body: ${deviceStatus} sent successfully`);
+            + `request to SwitchBot API, body: ${JSON.stringify(deviceStatus)} sent successfully`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);
@@ -801,7 +802,7 @@ export class ColorBulb extends deviceBase {
           this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
           this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `request to SwitchBot API, body: ${deviceStatus} sent successfully`);
+            + `request to SwitchBot API, body: ${JSON.stringify(deviceStatus)} sent successfully`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);
@@ -841,7 +842,7 @@ export class ColorBulb extends deviceBase {
           this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
           this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `request to SwitchBot API, body: ${deviceStatus} sent successfully`);
+            + `request to SwitchBot API, body: ${JSON.stringify(deviceStatus)} sent successfully`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);

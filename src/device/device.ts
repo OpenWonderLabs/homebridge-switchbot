@@ -55,15 +55,13 @@ export abstract class deviceBase {
     this.BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
     this.OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
 
-    (async () => {
-      await this.getDeviceLogSettings(device);
-      await this.getDeviceRefreshRateSettings(device);
-      await this.getDeviceRetry(device);
-      await this.getDeviceConfigSettings(device);
-      await this.getDeviceContext(accessory, device);
-      await this.setupMqtt(device);
-      await this.scan(device);
-    })();
+    this.getDeviceLogSettings(device);
+    this.getDeviceRefreshRateSettings(device);
+    this.getDeviceRetry(device);
+    this.getDeviceConfigSettings(device);
+    this.getDeviceContext(accessory, device);
+    this.setupMqtt(device);
+    this.scan(device);
 
     // Set accessory information
     accessory
@@ -72,9 +70,7 @@ export abstract class deviceBase {
       .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
       .setCharacteristic(this.hap.Characteristic.ConfiguredName, accessory.context.name)
       .setCharacteristic(this.hap.Characteristic.Model, accessory.context.model)
-      .setCharacteristic(this.hap.Characteristic.SerialNumber, accessory.context.deviceId)
-      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, device.version?.toString() || accessory.context.version)
-      .setCharacteristic(this.hap.Characteristic.HardwareRevision, device.version?.toString() || accessory.context.version);
+      .setCharacteristic(this.hap.Characteristic.SerialNumber, accessory.context.deviceId);
   }
 
   async getDeviceLogSettings(device: device & devicesConfig): Promise<void> {
@@ -283,7 +279,7 @@ export abstract class deviceBase {
     const config = Object.assign({}, deviceConfig, botConfig, curtainConfig, waterdetectorConfig, striplightConfig, plugConfig, iosensorConfig,
       meterConfig, humidifierConfig, hubConfig, lockConfig, ceilinglightConfig, colorbulbConfig, contactConfig, motionConfig, blindTiltConfig);
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
@@ -553,16 +549,29 @@ export abstract class deviceBase {
       device.version = this.platform.version;
       accessory.context.version = this.platform.version;
     } else {
-      accessory.context.version = device.version?.toString;
+      accessory.context.version = device.version?.replace(/^V|-.*$/g, '');
+    }
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${accessory.context.version}`);
+    if (accessory.context.version) {
+      this.accessory
+        .getService(this.hap.Service.AccessoryInformation)!
+        .setCharacteristic(this.hap.Characteristic.HardwareRevision, accessory.context.version)
+        .setCharacteristic(this.hap.Characteristic.FirmwareRevision, accessory.context.version)
+        .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+        .updateValue(this.accessory.context.version);
     }
     this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} Context: ${JSON.stringify(accessory.context)}`);
   }
 
   async statusCode(statusCode: number): Promise<void> {
-    switch (this.device.deviceType) {
-      case this.device.hubDeviceId:
-      case '000000000000':
-        statusCode = 161;
+    switch (statusCode) {
+      case 171:
+        switch (this.device.deviceId) {
+          case this.device.hubDeviceId:
+          case '000000000000':
+            statusCode = 161;
+            break;
+        }
         break;
     }
     switch (statusCode) {

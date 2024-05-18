@@ -37,7 +37,7 @@ export class IRFan extends irdeviceBase {
 
     // Initialize Switch property
     this.Fan = {
-      Service: accessory.getService(this.hap.Service.Lightbulb)!,
+      Service: accessory.getService(this.hap.Service.Lightbulb) as Service,
       Active: accessory.context.Active || this.hap.Characteristic.Active.INACTIVE,
       SwingMode: accessory.context.SwingMode || this.hap.Characteristic.SwingMode.SWING_DISABLED,
       RotationSpeed: accessory.context.RotationSpeed || 0,
@@ -85,7 +85,6 @@ export class IRFan extends irdeviceBase {
       this.Fan.Service.removeCharacteristic(characteristic);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Rotation Speed Characteristic was removed.`);
     } else {
-      // eslint-disable-next-line max-len
       this.debugLog(
         `${this.device.remoteType}: ${this.accessory.displayName} RotationSpeed Characteristic was not removed/added, ` +
         `Clear Cache on ${this.accessory.displayName} to remove Chracteristic`,
@@ -100,7 +99,6 @@ export class IRFan extends irdeviceBase {
       this.Fan.Service.removeCharacteristic(characteristic);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Swing Mode Characteristic was removed.`);
     } else {
-      // eslint-disable-next-line max-len
       this.debugLog(
         `${this.device.remoteType}: ${this.accessory.displayName} Swing Mode Characteristic was not removed/added, ` +
         `Clear Cache on ${this.accessory.displayName} To Remove Chracteristic`,

@@ -54,7 +54,7 @@ export class AirPurifier extends irdeviceBase {
 
     // Initialize AirPurifier property
     this.AirPurifier = {
-      Service: accessory.getService(this.hap.Service.Switch)!,
+      Service: accessory.getService(this.hap.Service.Switch) as Service,
       Active: accessory.context.Active || this.hap.Characteristic.Active.INACTIVE,
       RotationSpeed: accessory.context.RotationSpeed || 0,
       CurrentAirPurifierState: accessory.context.CurrentAirPurifierState || this.hap.Characteristic.CurrentAirPurifierState.INACTIVE,
@@ -63,7 +63,7 @@ export class AirPurifier extends irdeviceBase {
 
     // Initialize TemperatureSensor property
     this.TemperatureSensor = {
-      Service: accessory.getService(this.hap.Service.TemperatureSensor)!,
+      Service: accessory.getService(this.hap.Service.TemperatureSensor) as Service,
       CurrentTemperature: accessory.context.CurrentTemperature || 24,
     };
 

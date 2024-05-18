@@ -5,6 +5,7 @@ import { SwitchBotPlatform } from '../platform.js';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { device, devicesConfig, serviceData, deviceStatus, Devices } from '../settings.js';
+import { convertUnits } from '../utils.js';
 
 /**
  * Platform Accessory
@@ -44,7 +45,7 @@ export class Humidifier extends deviceBase {
 
     // Initialize the HumidifierDehumidifier Service
     this.HumidifierDehumidifier = {
-      Service: accessory.getService(this.hap.Service.HumidifierDehumidifier)!,
+      Service: accessory.getService(this.hap.Service.HumidifierDehumidifier) as Service,
       Active: accessory.context.Active || this.hap.Characteristic.Active.ACTIVE,
       WaterLevel: accessory.context.WaterLevel || 100,
       CurrentRelativeHumidity: accessory.context.CurrentRelativeHumidity || 50,
@@ -58,7 +59,7 @@ export class Humidifier extends deviceBase {
     // Initialize the Temperature Sensor Service
     if (!device.humidifier?.hide_temperature) {
       this.TemperatureSensor = {
-        Service: accessory.getService(this.hap.Service.TemperatureSensor)!,
+        Service: accessory.getService(this.hap.Service.TemperatureSensor) as Service,
         CurrentTemperature: accessory.context.CurrentTemperature || 30,
       };
     }
@@ -148,20 +149,18 @@ export class Humidifier extends deviceBase {
       this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
         try {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          if (context.scale === 'CELSIUS') {
-            const { temperature, humidity } = context;
-            const { CurrentRelativeHumidity } = this.HumidifierDehumidifier;
-            const { CurrentTemperature } = this.TemperatureSensor || { CurrentTemperature: undefined };
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
+          const { temperature, humidity } = context;
+          const { CurrentRelativeHumidity } = this.HumidifierDehumidifier;
+          const { CurrentTemperature } = this.TemperatureSensor || { CurrentTemperature: undefined };
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
               '(temperature, humidity) = ' +
-              `Webhook:(${temperature}, ${humidity}), ` +
+              `Webhook:(${convertUnits(temperature, context.scale, device.iosensor?.convertUnitTo)}, ${humidity}), ` +
               `current:(${CurrentTemperature}, ${CurrentRelativeHumidity})`);
-            this.HumidifierDehumidifier.CurrentRelativeHumidity = humidity;
-            if (!this.device.humidifier?.hide_temperature) {
-              this.TemperatureSensor!.CurrentTemperature = temperature;
-            }
-            this.updateHomeKitCharacteristics();
+          this.HumidifierDehumidifier.CurrentRelativeHumidity = humidity;
+          if (!this.device.humidifier?.hide_temperature) {
+              this.TemperatureSensor!.CurrentTemperature = convertUnits(temperature, context.scale, device.iosensor?.convertUnitTo);
           }
+          this.updateHomeKitCharacteristics();
         } catch (e: any) {
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
@@ -269,9 +268,10 @@ export class Humidifier extends deviceBase {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} WaterLevel: ${this.HumidifierDehumidifier.WaterLevel}`);
 
     // Firmware Version
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${deviceStatus.body.version}`);
+    const version = deviceStatus.body.version?.toString();
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
     if (deviceStatus.body.version) {
-      this.accessory.context.version = deviceStatus.body.version.toString();
+      this.accessory.context.version = version?.replace(/^V|-.*$/g, '');
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
         .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.version)
@@ -446,7 +446,7 @@ export class Humidifier extends deviceBase {
           this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
           this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `request to SwitchBot API, body: ${deviceStatus} sent successfully`);
+            + `request to SwitchBot API, body: ${JSON.stringify(deviceStatus)} sent successfully`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);
@@ -501,7 +501,7 @@ export class Humidifier extends deviceBase {
           this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
           this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `request to SwitchBot API, body: ${deviceStatus} sent successfully`);
+            + `request to SwitchBot API, body: ${JSON.stringify(deviceStatus)} sent successfully`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);
@@ -547,7 +547,7 @@ export class Humidifier extends deviceBase {
           this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
           this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `request to SwitchBot API, body: ${deviceStatus} sent successfully`);
+            + `request to SwitchBot API, body: ${JSON.stringify(deviceStatus)} sent successfully`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);

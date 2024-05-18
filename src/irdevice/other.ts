@@ -82,7 +82,7 @@ export class Others extends irdeviceBase {
     if (this.otherDeviceType === 'switch') {
       // Initialize Switch property
       this.Switch = {
-        Service: accessory.getService(this.hap.Service.Switch)!,
+        Service: accessory.getService(this.hap.Service.Switch) as Service,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -106,7 +106,7 @@ export class Others extends irdeviceBase {
     } else if (this.otherDeviceType === 'garagedoor') {
       // Initialize Garage Door property
       this.GarageDoor = {
-        Service: accessory.getService(this.hap.Service.GarageDoorOpener)!,
+        Service: accessory.getService(this.hap.Service.GarageDoorOpener) as Service,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -131,7 +131,7 @@ export class Others extends irdeviceBase {
     } else if (this.otherDeviceType === 'door') {
       // Initialize Door property
       this.Door = {
-        Service: accessory.getService(this.hap.Service.Door)!,
+        Service: accessory.getService(this.hap.Service.Door) as Service,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -164,7 +164,7 @@ export class Others extends irdeviceBase {
     } else if (this.otherDeviceType === 'window') {
       // Initialize Window property
       this.Window = {
-        Service: accessory.getService(this.hap.Service.Window)!,
+        Service: accessory.getService(this.hap.Service.Window) as Service,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -197,7 +197,7 @@ export class Others extends irdeviceBase {
     } else if (this.otherDeviceType === 'windowcovering') {
       // Initialize WindowCovering property
       this.WindowCovering = {
-        Service: accessory.getService(this.hap.Service.WindowCovering)!,
+        Service: accessory.getService(this.hap.Service.WindowCovering) as Service,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -230,7 +230,7 @@ export class Others extends irdeviceBase {
     } else if (this.otherDeviceType === 'lock') {
       // Initialize Lock property
       this.Lock = {
-        Service: accessory.getService(this.hap.Service.LockMechanism)!,
+        Service: accessory.getService(this.hap.Service.LockMechanism) as Service,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -254,7 +254,7 @@ export class Others extends irdeviceBase {
     } else if (this.otherDeviceType === 'faucet') {
       // Initialize Faucet property
       this.Faucet = {
-        Service: accessory.getService(this.hap.Service.Faucet)!,
+        Service: accessory.getService(this.hap.Service.Faucet) as Service,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -278,7 +278,7 @@ export class Others extends irdeviceBase {
     } else if (this.otherDeviceType === 'fan') {
       // Initialize Fan property
       this.Fan = {
-        Service: accessory.getService(this.hap.Service.Fanv2)!,
+        Service: accessory.getService(this.hap.Service.Fanv2) as Service,
         On: accessory.context.On || false,
       };
       this.removeLockService(accessory);
@@ -302,7 +302,7 @@ export class Others extends irdeviceBase {
     } else if (this.otherDeviceType === 'stateful') {
       // Initialize StatefulProgrammableSwitch property
       this.StatefulProgrammableSwitch = {
-        Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch)!,
+        Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch) as Service,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -328,7 +328,7 @@ export class Others extends irdeviceBase {
     } else {
       // Initialize Outlet property
       this.Outlet = {
-        Service: accessory.getService(this.hap.Service.Outlet)!,
+        Service: accessory.getService(this.hap.Service.Outlet) as Service,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);

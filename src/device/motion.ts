@@ -48,18 +48,33 @@ export class Motion extends deviceBase {
 
     // Initialize Motion Sensor property
     this.MotionSensor = {
-      Service: accessory.getService(this.hap.Service.MotionSensor)!,
+      Service: accessory.getService(this.hap.Service.MotionSensor) as Service,
       MotionDetected: accessory.context.MotionDetected || false,
     };
+
+    // Initialize Battery property
+    this.Battery = {
+      Service: accessory.getService(this.hap.Service.Battery) as Service,
+      BatteryLevel: accessory.context.BatteryLevel || 100,
+      StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
+    };
+
+    // Initialize Motion Sensor property
+    if (!device.motion?.hide_lightsensor) {
+      this.LightSensor = {
+        Service: accessory.getService(this.hap.Service.LightSensor) as Service,
+        CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel || 0,
+      };
+    };
+
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();
 
     // get the Battery service if it exists, otherwise create a new Motion service
     // you can create multiple services for each accessory
-    const MotionSensorService = `${accessory.displayName} Motion Sensor`;
     (this.MotionSensor.Service = accessory.getService(this.hap.Service.MotionSensor)
-      || accessory.addService(this.hap.Service.MotionSensor)), MotionSensorService;
+        || accessory.addService(this.hap.Service.MotionSensor)), `${accessory.displayName} Motion Sensor`;
 
     this.MotionSensor.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
     // each service must implement at-minimum the "required characteristics" for the given service type
@@ -200,9 +215,10 @@ export class Motion extends deviceBase {
       + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
 
     // Firmware Version
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${deviceStatus.body.version}`);
+    const version = deviceStatus.body.version?.toString();
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
     if (deviceStatus.body.version) {
-      this.accessory.context.version = deviceStatus.body.version.toString();
+      this.accessory.context.version = version?.replace(/^V|-.*$/g, '');
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
         .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.version)
