@@ -29,7 +29,7 @@ export class WaterHeater extends irdeviceBase {
 
     // Initialize Valve property
     this.Valve = {
-      Service: accessory.getService(this.hap.Service.Valve)!,
+      Service: accessory.getService(this.hap.Service.Valve) as Service,
       Active: accessory.context.Active || this.hap.Characteristic.Active.INACTIVE,
     };
 

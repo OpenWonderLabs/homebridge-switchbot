@@ -37,7 +37,7 @@ export class IRFan extends irdeviceBase {
 
     // Initialize Switch property
     this.Fan = {
-      Service: accessory.getService(this.hap.Service.Lightbulb)!,
+      Service: accessory.getService(this.hap.Service.Lightbulb) as Service,
       Active: accessory.context.Active || this.hap.Characteristic.Active.INACTIVE,
       SwingMode: accessory.context.SwingMode || this.hap.Characteristic.SwingMode.SWING_DISABLED,
       RotationSpeed: accessory.context.RotationSpeed || 0,

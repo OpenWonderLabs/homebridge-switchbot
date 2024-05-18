@@ -55,7 +55,7 @@ export class Curtain extends deviceBase {
 
     // Initialize LightBulb property
     this.WindowCovering = {
-      Service: accessory.getService(this.hap.Service.WindowCovering)!,
+      Service: accessory.getService(this.hap.Service.WindowCovering) as Service,
       PositionState: accessory.context.PositionState || this.hap.Characteristic.PositionState.STOPPED,
       TargetPosition: accessory.context.TargetPosition || 100,
       CurrentPosition: accessory.context.CurrentPosition || 100,
@@ -64,7 +64,7 @@ export class Curtain extends deviceBase {
 
     // Initialize Battery property
     this.Battery = {
-      Service: accessory.getService(this.hap.Service.Battery)!,
+      Service: accessory.getService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel || 100,
       StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
     };
@@ -72,7 +72,7 @@ export class Curtain extends deviceBase {
     // Initialize LightSensor property
     if (!this.device.curtain?.hide_lightsensor) {
       this.LightSensor = {
-        Service: accessory.getService(this.hap.Service.LightSensor)!,
+        Service: accessory.getService(this.hap.Service.LightSensor) as Service,
         CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel || 0.0001,
       };
     }

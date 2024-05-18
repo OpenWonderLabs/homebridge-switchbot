@@ -40,7 +40,7 @@ export class Light extends irdeviceBase {
     if (!device.irlight?.stateless) {
       // Initialize LightBulb property
       this.LightBulb = {
-        Service: accessory.getService(this.hap.Service.Lightbulb)!,
+        Service: accessory.getService(this.hap.Service.Lightbulb) as Service,
         On: accessory.context.On || false,
       };
       // get the Light service if it exists, otherwise create a new Light service

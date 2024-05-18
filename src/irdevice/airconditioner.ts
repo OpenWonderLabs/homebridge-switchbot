@@ -58,7 +58,7 @@ export class AirConditioner extends irdeviceBase {
 
     // Initialize HeaterCooler property
     this.HeaterCooler = {
-      Service: accessory.getService(this.hap.Service.Switch)!,
+      Service: accessory.getService(this.hap.Service.Switch) as Service,
       Active: accessory.context.Active || this.hap.Characteristic.Active.INACTIVE,
       CurrentHeaterCoolerState: accessory.context.CurrentHeaterCoolerState || this.hap.Characteristic.CurrentHeaterCoolerState.IDLE,
       TargetHeaterCoolerState: accessory.context.TargetHeaterCoolerState || this.hap.Characteristic.TargetHeaterCoolerState.AUTO,
@@ -72,7 +72,7 @@ export class AirConditioner extends irdeviceBase {
       const meterUuid = this.platform.api.hap.uuid.generate(`${this.device.irair.meterId}-${this.device.irair.meterType}`);
       this.meter = this.platform.accessories.find((accessory) => accessory.UUID === meterUuid);
       this.HumiditySensor = {
-        Service: this.meter!.getService(this.hap.Service.HumiditySensor)!,
+        Service: this.meter!.getService(this.hap.Service.HumiditySensor) as Service,
         CurrentRelativeHumidity: this.meter!.context.CurrentRelativeHumidity || 0,
       };
     }

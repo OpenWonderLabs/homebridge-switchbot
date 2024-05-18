@@ -100,7 +100,7 @@ export class Bot extends deviceBase {
 
     // Initialize Battery property
     this.Battery = {
-      Service: accessory.getService(this.hap.Service.Battery)!,
+      Service: accessory.getService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel || 100,
       StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
     };
@@ -109,7 +109,7 @@ export class Bot extends deviceBase {
     if (this.botDeviceType === 'switch') {
       // Initialize Switch property
       this.Switch = {
-        Service: accessory.getService(this.hap.Service.Switch)!,
+        Service: accessory.getService(this.hap.Service.Switch) as Service,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -133,7 +133,7 @@ export class Bot extends deviceBase {
     } else if (this.botDeviceType === 'garagedoor') {
       // Initialize Switch property
       this.GarageDoor = {
-        Service: accessory.getService(this.hap.Service.GarageDoorOpener)!,
+        Service: accessory.getService(this.hap.Service.GarageDoorOpener) as Service,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -158,7 +158,7 @@ export class Bot extends deviceBase {
     } else if (this.botDeviceType === 'door') {
       // Initialize Switch property
       this.Door = {
-        Service: accessory.getService(this.hap.Service.Door)!,
+        Service: accessory.getService(this.hap.Service.Door) as Service,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -191,7 +191,7 @@ export class Bot extends deviceBase {
     } else if (this.botDeviceType === 'window') {
       // Initialize Switch property
       this.Window = {
-        Service: accessory.getService(this.hap.Service.Window)!,
+        Service: accessory.getService(this.hap.Service.Window) as Service,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -224,7 +224,7 @@ export class Bot extends deviceBase {
     } else if (this.botDeviceType === 'windowcovering') {
       // Initialize Switch property
       this.WindowCovering = {
-        Service: accessory.getService(this.hap.Service.WindowCovering)!,
+        Service: accessory.getService(this.hap.Service.WindowCovering) as Service,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -257,7 +257,7 @@ export class Bot extends deviceBase {
     } else if (this.botDeviceType === 'lock') {
       // Initialize Switch property
       this.Lock = {
-        Service: accessory.getService(this.hap.Service.LockMechanism)!,
+        Service: accessory.getService(this.hap.Service.LockMechanism) as Service,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -281,7 +281,7 @@ export class Bot extends deviceBase {
     } else if (this.botDeviceType === 'faucet') {
       // Initialize Switch property
       this.Faucet = {
-        Service: accessory.getService(this.hap.Service.Faucet)!,
+        Service: accessory.getService(this.hap.Service.Faucet) as Service,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -305,7 +305,7 @@ export class Bot extends deviceBase {
     } else if (this.botDeviceType === 'fan') {
       // Initialize Switch property
       this.Fan = {
-        Service: accessory.getService(this.hap.Service.Fanv2)!,
+        Service: accessory.getService(this.hap.Service.Fanv2) as Service,
         On: accessory.context.On || false,
       };
       this.removeLockService(accessory);
@@ -329,7 +329,7 @@ export class Bot extends deviceBase {
     } else if (this.botDeviceType === 'stateful') {
       // Initialize Switch property
       this.StatefulProgrammableSwitch = {
-        Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch)!,
+        Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch) as Service,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);
@@ -355,7 +355,7 @@ export class Bot extends deviceBase {
     } else {
       // Initialize Switch property
       this.Outlet = {
-        Service: accessory.getService(this.hap.Service.Outlet)!,
+        Service: accessory.getService(this.hap.Service.Outlet) as Service,
         On: accessory.context.On || false,
       };
       this.removeFanService(accessory);

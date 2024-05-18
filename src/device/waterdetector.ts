@@ -48,7 +48,7 @@ export class WaterDetector extends deviceBase {
 
     // Initialize Battery property
     this.Battery = {
-      Service: accessory.getService(this.hap.Service.Battery)!,
+      Service: accessory.getService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel || 100,
       StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
       ChargingState: accessory.context.ChargingState || this.hap.Characteristic.ChargingState.NOT_CHARGEABLE,
@@ -57,7 +57,7 @@ export class WaterDetector extends deviceBase {
     // Initialize Leak Sensor property
     if (!this.device.waterdetector?.hide_leak) {
       this.LeakSensor = {
-        Service: accessory.getService(this.hap.Service.LeakSensor)!,
+        Service: accessory.getService(this.hap.Service.LeakSensor) as Service,
         StatusActive: accessory.context.StatusActive || false,
         LeakDetected: accessory.context.LeakDetected || this.hap.Characteristic.LeakDetected.LEAK_NOT_DETECTED,
       };

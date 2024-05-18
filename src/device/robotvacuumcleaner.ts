@@ -40,14 +40,14 @@ export class RobotVacuumCleaner extends deviceBase {
 
     // Initialize Lightbulb property
     this.LightBulb = {
-      Service: accessory.getService(this.hap.Service.Lightbulb)!,
+      Service: accessory.getService(this.hap.Service.Lightbulb) as Service,
       On: accessory.context.On || false,
       Brightness: accessory.context.Brightness || 0,
     };
 
     // Initialize Battery property
     this.Battery = {
-      Service: accessory.getService(this.hap.Service.Battery)!,
+      Service: accessory.getService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel || 100,
       StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
     };

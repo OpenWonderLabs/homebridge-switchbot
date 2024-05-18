@@ -31,7 +31,7 @@ export class Plug extends deviceBase {
 
     // Initialize Outlet property
     this.Outlet = {
-      Service: accessory.getService(this.hap.Service.Outlet)!,
+      Service: accessory.getService(this.hap.Service.Outlet) as Service,
       On: accessory.context.On || false,
     };
 

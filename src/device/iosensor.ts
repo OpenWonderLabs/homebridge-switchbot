@@ -49,7 +49,7 @@ export class IOSensor extends deviceBase {
     // Initialize Temperature Sensor property
     if (!device.iosensor?.hide_temperature) {
       this.TemperatureSensor = {
-        Service: accessory.getService(this.hap.Service.TemperatureSensor)!,
+        Service: accessory.getService(this.hap.Service.TemperatureSensor) as Service,
         CurrentTemperature: accessory.context.CurrentTemperature || 30,
       };
     }
@@ -57,14 +57,14 @@ export class IOSensor extends deviceBase {
     // Initialize Humidity Sensor property
     if (!device.iosensor?.hide_humidity) {
       this.HumiditySensor = {
-        Service: accessory.getService(this.hap.Service.HumiditySensor)!,
+        Service: accessory.getService(this.hap.Service.HumiditySensor) as Service,
         CurrentRelativeHumidity: accessory.context.CurrentRelativeHumidity || 50,
       };
     }
 
     // Initialize Battery property
     this.Battery = {
-      Service: accessory.getService(this.hap.Service.Battery)!,
+      Service: accessory.getService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel || 100,
       StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
     };

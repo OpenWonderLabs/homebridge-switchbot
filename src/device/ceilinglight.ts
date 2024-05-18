@@ -50,7 +50,7 @@ export class CeilingLight extends deviceBase {
 
     // Initialize LightBulb property
     this.LightBulb = {
-      Service: accessory.getService(this.hap.Service.Lightbulb)!,
+      Service: accessory.getService(this.hap.Service.Lightbulb) as Service,
       On: accessory.context.On || false,
       Hue: accessory.context.Hue || 0,
       Saturation: accessory.context.Saturation || 0,

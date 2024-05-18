@@ -45,7 +45,7 @@ export class Humidifier extends deviceBase {
 
     // Initialize the HumidifierDehumidifier Service
     this.HumidifierDehumidifier = {
-      Service: accessory.getService(this.hap.Service.HumidifierDehumidifier)!,
+      Service: accessory.getService(this.hap.Service.HumidifierDehumidifier) as Service,
       Active: accessory.context.Active || this.hap.Characteristic.Active.ACTIVE,
       WaterLevel: accessory.context.WaterLevel || 100,
       CurrentRelativeHumidity: accessory.context.CurrentRelativeHumidity || 50,
@@ -59,7 +59,7 @@ export class Humidifier extends deviceBase {
     // Initialize the Temperature Sensor Service
     if (!device.humidifier?.hide_temperature) {
       this.TemperatureSensor = {
-        Service: accessory.getService(this.hap.Service.TemperatureSensor)!,
+        Service: accessory.getService(this.hap.Service.TemperatureSensor) as Service,
         CurrentTemperature: accessory.context.CurrentTemperature || 30,
       };
     }

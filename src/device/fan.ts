@@ -41,7 +41,7 @@ export class Fan extends deviceBase {
 
     // Initialize Fan property
     this.Fan = {
-      Service: accessory.getService(this.hap.Service.Fanv2)!,
+      Service: accessory.getService(this.hap.Service.Fanv2) as Service,
       Active: accessory.context.Active || this.hap.Characteristic.Active.INACTIVE,
       SwingMode: accessory.context.SwingMode || this.hap.Characteristic.SwingMode.SWING_DISABLED,
       RotationSpeed: accessory.context.RotationSpeed || 0,
@@ -49,7 +49,7 @@ export class Fan extends deviceBase {
 
     // Initialize Battery property
     this.Battery = {
-      Service: accessory.getService(this.hap.Service.Battery)!,
+      Service: accessory.getService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel || 100,
       StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
       ChargingState: accessory.context.ChargingState || this.hap.Characteristic.ChargingState.NOT_CHARGING,
