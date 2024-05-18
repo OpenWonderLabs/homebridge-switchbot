@@ -1,6 +1,6 @@
-import globals from "globals";
-import pluginJs from "@eslint/js";
-import tseslint from "typescript-eslint";
+import globals from 'globals';
+import pluginJs from '@eslint/js';
+import tseslint from 'typescript-eslint';
 
 
 export default [
@@ -8,78 +8,78 @@ export default [
   pluginJs.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    ignores: [".dist/*"]
+    ignores: ['.dist/*'],
   },
   {
     rules: {
-      "quotes": [
-        "warn",
-        "single"
+      'quotes': [
+        'warn',
+        'single',
       ],
-      "indent": [
-        "warn",
+      'indent': [
+        'warn',
         2,
         {
-          "SwitchCase": 1
-        }
+          'SwitchCase': 1,
+        },
       ],
-      "linebreak-style": [
-        "warn",
-        "unix"
+      'linebreak-style': [
+        'warn',
+        'unix',
       ],
-      "semi": [
-        "warn",
-        "always"
+      'semi': [
+        'warn',
+        'always',
       ],
-      "comma-dangle": [
-        "warn",
-        "always-multiline"
+      'comma-dangle': [
+        'warn',
+        'always-multiline',
       ],
-      "dot-notation": "off",
-      "eqeqeq": "warn",
-      "curly": [
-        "warn",
-        "all"
+      'dot-notation': 'off',
+      'eqeqeq': 'warn',
+      'curly': [
+        'warn',
+        'all',
       ],
-      "brace-style": [
-        "warn"
+      'brace-style': [
+        'warn',
       ],
-      "prefer-arrow-callback": [
-        "warn"
+      'prefer-arrow-callback': [
+        'warn',
       ],
-      "max-len": [
-        "warn",
-        150
+      'max-len': [
+        'warn',
+        150,
       ],
-      "no-console": [
-        "warn"
+      'no-console': [
+        'warn',
       ], // use the provided Homebridge log method instead
-      "no-non-null-assertion": [
-        "off"
+      'no-non-null-assertion': [
+        'off',
       ],
-      "comma-spacing": [
-        "error"
+      'comma-spacing': [
+        'error',
       ],
-      "no-multi-spaces": [
-        "warn",
+      'no-multi-spaces': [
+        'warn',
         {
-          "ignoreEOLComments": true
-        }
+          'ignoreEOLComments': true,
+        },
       ],
-      "no-trailing-spaces": [
-        "warn"
+      'no-trailing-spaces': [
+        'warn',
       ],
-      "lines-between-class-members": [
-        "warn",
-        "always",
+      'lines-between-class-members': [
+        'warn',
+        'always',
         {
-          "exceptAfterSingleLine": true
-        }
+          'exceptAfterSingleLine': true,
+        },
       ],
-      "@typescript-eslint/explicit-function-return-type": "off",
-      "@typescript-eslint/no-non-null-assertion": "off",
-      "@typescript-eslint/explicit-module-boundary-types": "off",
-      "@typescript-eslint/no-explicit-any": "off"
-    }
-  }
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
 ];
