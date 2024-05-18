@@ -279,7 +279,7 @@ export abstract class deviceBase {
     const config = Object.assign({}, deviceConfig, botConfig, curtainConfig, waterdetectorConfig, striplightConfig, plugConfig, iosensorConfig,
       meterConfig, humidifierConfig, hubConfig, lockConfig, ceilinglightConfig, colorbulbConfig, contactConfig, motionConfig, blindTiltConfig);
     if (Object.entries(config).length !== 0) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
