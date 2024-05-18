@@ -1,19 +1,17 @@
+import globals from "globals";
+import pluginJs from "@eslint/js";
+import tseslint from "typescript-eslint";
+
+
 export default [
+  { languageOptions: { globals: globals.browser } },
+  pluginJs.configs.recommended,
+  ...tseslint.configs.recommended,
   {
-    "parser": "@typescript-eslint/parser",
-    "extends": [
-      "eslint:recommended",
-      "plugin:@typescript-eslint/eslint-recommended",
-      "plugin:@typescript-eslint/recommended" // uses the recommended rules from the @typescript-eslint/eslint-plugin
-    ],
-    "parserOptions": {
-      "ecmaVersion": 2021,
-      "sourceType": "module"
-    },
-    "ignorePatterns": [
-      "dist"
-    ],
-    "rules": {
+    ignores: [".dist/*"]
+  },
+  {
+    rules: {
       "quotes": [
         "warn",
         "single"

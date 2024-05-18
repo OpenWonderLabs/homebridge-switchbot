@@ -88,16 +88,19 @@
     "node-switchbot": "2.1.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.3.0",
+    "@stylistic/eslint-plugin-js": "^2.1.0",
+    "@types/eslint__js": "^8.42.3",
     "@types/node": "^20.12.12",
-    "@typescript-eslint/eslint-plugin": "^8.0.0-alpha.13",
-    "@typescript-eslint/parser": "^8.0.0-alpha.13",
     "eslint": "^9.3.0",
+    "globals": "^15.2.0",
     "homebridge": "^1.8.2",
     "homebridge-config-ui-x": "4.56.2",
     "nodemon": "^3.1.0",
     "npm-check-updates": "^16.14.20",
     "rimraf": "^5.0.7",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^8.0.0-alpha.13"
   }
 }

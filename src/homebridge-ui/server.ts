@@ -31,7 +31,7 @@ class PluginUiServer extends HomebridgePluginUiServer {
         }
         // Return the array
         return devicesToReturn;
-      } catch (err) {
+      } catch {
         // Just return an empty accessory list in case of any errors
         return [];
       }
