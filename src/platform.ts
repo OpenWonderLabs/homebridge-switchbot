@@ -735,21 +735,18 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createStripLight(device);
         break;
-      case 'Indoor Cam':
-        this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
-        this.warnLog(`Device: ${device.deviceName} with Device Type: ${device.deviceType}, is currently not supported.`);
-        break;
-      case 'Remote':
-      case 'remote with screen+':
-        this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId} is Not Supported.`);
-        break;
       case 'Battery Circulator Fan':
         this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
         this.createFan(device);
         break;
+      case 'Remote':
+      case 'Indoor Cam':
+      case 'remote with screen+':
+        this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}, is currently not supported, device: ${JSON.stringify(device)}`);
+        break;
       default:
         this.warnLog(`Device: ${device.deviceName} with Device Type: ${device.deviceType}, is currently not supported.`,
-          + 'Submit Feature Requests Here: https://tinyurl.com/SwitchBotFeatureRequest');
+          + `Submit Feature Requests Here: https://tinyurl.com/SwitchBotFeatureRequest, device: ${JSON.stringify(device)}` );
     }
   }
 
