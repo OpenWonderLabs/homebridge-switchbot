@@ -3,10 +3,12 @@
  * airpurifier.ts: @switchbot/homebridge-switchbot.
  */
 import { request } from 'undici';
+import { Devices } from '../settings.js';
 import { irdeviceBase } from './irdevice.js';
-import { SwitchBotPlatform } from '../platform.js';
-import { Devices, irDevicesConfig, irdevice } from '../settings.js';
-import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+
+import type { SwitchBotPlatform } from '../platform.js';
+import type { irDevicesConfig, irdevice } from '../settings.js';
+import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 
 /**
  * Platform Accessory

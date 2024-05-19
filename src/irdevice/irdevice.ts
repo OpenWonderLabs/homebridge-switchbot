@@ -1,11 +1,10 @@
 /* Copyright(C) 2021-2024, donavanbecker (https://github.com/donavanbecker). All rights reserved.
  *
- * device.ts: homebridge-august.
+ * device.ts: @switchbot/homebridge-switchbot.
  */
-import { API, HAP, Logging, PlatformAccessory } from 'homebridge';
-
-import { SwitchBotPlatform } from '../platform.js';
-import { SwitchBotPlatformConfig, irDevicesConfig, irdevice } from '../settings.js';
+import type { SwitchBotPlatform } from '../platform.js';
+import type { API, HAP, Logging, PlatformAccessory } from 'homebridge';
+import type { SwitchBotPlatformConfig, irDevicesConfig, irdevice } from '../settings.js';
 
 export abstract class irdeviceBase {
   public readonly api: API;

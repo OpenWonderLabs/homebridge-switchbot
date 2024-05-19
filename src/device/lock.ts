@@ -1,10 +1,12 @@
 import { request } from 'undici';
 import { deviceBase } from './device.js';
 import { interval, Subject } from 'rxjs';
-import { SwitchBotPlatform } from '../platform.js';
+import { Devices } from '../settings.js';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, deviceStatus, Devices, serviceData } from '../settings.js';
+
+import type { SwitchBotPlatform } from '../platform.js';
+import type { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import type { device, devicesConfig, deviceStatus, serviceData } from '../settings.js';
 
 export class Lock extends deviceBase {
   // Services

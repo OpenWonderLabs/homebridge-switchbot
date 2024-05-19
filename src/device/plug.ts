@@ -3,11 +3,13 @@
  * plug.ts: @switchbot/homebridge-switchbot.
  */
 import { request } from 'undici';
+import { Devices } from '../settings.js';
 import { deviceBase } from './device.js';
-import { SwitchBotPlatform } from '../platform.js';
 import { Subject, debounceTime, interval, skipWhile, take, tap } from 'rxjs';
-import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
-import { device, devicesConfig, serviceData, deviceStatus, Devices } from '../settings.js';
+
+import type { SwitchBotPlatform } from '../platform.js';
+import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+import type { device, devicesConfig, serviceData, deviceStatus} from '../settings.js';
 export class Plug extends deviceBase {
   // Services
   private Outlet: {

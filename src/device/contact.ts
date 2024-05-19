@@ -4,10 +4,12 @@
  */
 import { deviceBase } from './device.js';
 import { interval, Subject } from 'rxjs';
+import { Devices } from '../settings.js';
 import { skipWhile } from 'rxjs/operators';
-import { SwitchBotPlatform } from '../platform.js';
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, serviceData, deviceStatus, Devices } from '../settings.js';
+
+import type { SwitchBotPlatform } from '../platform.js';
+import type { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import type { device, devicesConfig, serviceData, deviceStatus} from '../settings.js';
 
 /**
  * Platform Accessory
@@ -16,9 +18,15 @@ import { device, devicesConfig, serviceData, deviceStatus, Devices } from '../se
  */
 export class Contact extends deviceBase {
   // Services
-  private ContactSensor!: {
+  private ContactSensor: {
     Service: Service;
     ContactSensorState: CharacteristicValue;
+  };
+
+  private Battery: {
+    Service: Service;
+    BatteryLevel: CharacteristicValue;
+    StatusLowBattery: CharacteristicValue;
   };
 
   private MotionSensor?: {
@@ -29,12 +37,6 @@ export class Contact extends deviceBase {
   private LightSensor?: {
     Service: Service;
     CurrentAmbientLightLevel: CharacteristicValue;
-  };
-
-  private Battery!: {
-    Service: Service;
-    BatteryLevel: CharacteristicValue;
-    StatusLowBattery: CharacteristicValue;
   };
 
   // Updates
@@ -55,6 +57,13 @@ export class Contact extends deviceBase {
     this.ContactSensor = {
       Service: accessory.getService(this.hap.Service.ContactSensor) as Service,
       ContactSensorState: this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED,
+    };
+
+    // Initialize Battery property
+    this.Battery = {
+      Service: accessory.getService(this.hap.Service.Battery) as Service,
+      BatteryLevel: 100,
+      StatusLowBattery: this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
     };
 
     // Initialize Motion Sensor property

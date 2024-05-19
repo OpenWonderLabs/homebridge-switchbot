@@ -2,12 +2,15 @@
  *
  * iosensor.ts: @switchbot/homebridge-switchbot.
  */
+import { Units } from 'homebridge';
 import { deviceBase } from './device.js';
-import { SwitchBotPlatform } from '../platform.js';
-import { Subject, interval, skipWhile } from 'rxjs';
-import { CharacteristicValue, PlatformAccessory, Service, Units } from 'homebridge';
-import { device, devicesConfig, serviceData, deviceStatus, Devices } from '../settings.js';
+import { Devices } from '../settings.js';
 import { convertUnits } from '../utils.js';
+import { Subject, interval, skipWhile } from 'rxjs';
+
+import type { SwitchBotPlatform } from '../platform.js';
+import type { CharacteristicValue, PlatformAccessory, Service} from 'homebridge';
+import type { device, devicesConfig, serviceData, deviceStatus} from '../settings.js';
 
 /**
  * Platform Accessory
@@ -16,7 +19,7 @@ import { convertUnits } from '../utils.js';
  */
 export class IOSensor extends deviceBase {
   // Services
-  private Battery!: {
+  private Battery: {
     Service: Service;
     BatteryLevel: CharacteristicValue;
     StatusLowBattery: CharacteristicValue;

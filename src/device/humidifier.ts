@@ -1,11 +1,13 @@
 import { request } from 'undici';
 import { deviceBase } from './device.js';
 import { interval, Subject } from 'rxjs';
-import { SwitchBotPlatform } from '../platform.js';
-import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, serviceData, deviceStatus, Devices } from '../settings.js';
+import { Devices } from '../settings.js';
 import { convertUnits } from '../utils.js';
+import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
+
+import type { SwitchBotPlatform } from '../platform.js';
+import type { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import type { device, devicesConfig, serviceData, deviceStatus} from '../settings.js';
 
 /**
  * Platform Accessory
@@ -158,7 +160,7 @@ export class Humidifier extends deviceBase {
               `current:(${CurrentTemperature}, ${CurrentRelativeHumidity})`);
           this.HumidifierDehumidifier.CurrentRelativeHumidity = humidity;
           if (!this.device.humidifier?.hide_temperature) {
-              this.TemperatureSensor!.CurrentTemperature = convertUnits(temperature, context.scale, device.iosensor?.convertUnitTo);
+            this.TemperatureSensor!.CurrentTemperature = convertUnits(temperature, context.scale, device.iosensor?.convertUnitTo);
           }
           this.updateHomeKitCharacteristics();
         } catch (e: any) {

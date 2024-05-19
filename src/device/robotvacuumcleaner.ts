@@ -3,12 +3,14 @@
  * robotvacuumcleaner.ts: @switchbot/homebridge-switchbot.
  */
 import { request } from 'undici';
-import { Subject, interval, skipWhile } from 'rxjs';
+import { Devices } from '../settings.js';
 import { deviceBase } from './device.js';
-import { SwitchBotPlatform } from '../platform.js';
+import { Subject, interval, skipWhile } from 'rxjs';
 import { debounceTime, take, tap } from 'rxjs/operators';
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, deviceStatus, serviceData, Devices } from '../settings.js';
+
+import type { SwitchBotPlatform } from '../platform.js';
+import type { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import type { device, devicesConfig, deviceStatus, serviceData} from '../settings.js';
 
 export class RobotVacuumCleaner extends deviceBase {
   // Services
@@ -594,7 +596,7 @@ export class RobotVacuumCleaner extends deviceBase {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel}`);
     } else {
       this.accessory.context.BatteryLevel = this.Battery.BatteryLevel;
-      this.Battery.Service?.updateCharacteristic(this.hap.Characteristic.BatteryLevel, this.Battery.BatteryLevel);
+      this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, this.Battery.BatteryLevel);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.Battery.BatteryLevel}`);
     }
     // StatusLowBattery

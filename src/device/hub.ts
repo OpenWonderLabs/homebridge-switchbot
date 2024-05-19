@@ -2,12 +2,15 @@
  *
  * hub.ts: @switchbot/homebridge-switchbot.
  */
-import { Subject, interval, skipWhile } from 'rxjs';
+import { Units } from 'homebridge';
 import { deviceBase } from './device.js';
-import { SwitchBotPlatform } from '../platform.js';
-import { Devices, device, deviceStatus, devicesConfig } from '../settings.js';
-import { CharacteristicValue, PlatformAccessory, Service, Units } from 'homebridge';
+import { Devices } from '../settings.js';
 import { convertUnits } from '../utils.js';
+import { Subject, interval, skipWhile } from 'rxjs';
+
+import type { SwitchBotPlatform } from '../platform.js';
+import type { device, deviceStatus, devicesConfig } from '../settings.js';
+import type { CharacteristicValue, PlatformAccessory, Service} from 'homebridge';
 
 export class Hub extends deviceBase {
   // Services

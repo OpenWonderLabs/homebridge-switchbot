@@ -3,13 +3,15 @@
  * blindtilt.ts: @switchbot/homebridge-switchbot.
  */
 import { request } from 'undici';
-import { BlindTiltMappingMode } from '../utils.js';
+import { Devices } from '../settings.js';
 import { interval, Subject } from 'rxjs';
 import { deviceBase } from './device.js';
-import { SwitchBotPlatform } from '../platform.js';
+import { BlindTiltMappingMode } from '../utils.js';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, serviceData, deviceStatus, Devices } from '../settings.js';
+
+import type { SwitchBotPlatform } from '../platform.js';
+import type { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import type { device, devicesConfig, serviceData, deviceStatus} from '../settings.js';
 
 
 export class BlindTilt extends deviceBase {

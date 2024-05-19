@@ -2,24 +2,23 @@
  *
  * platform.ts: @switchbot/homebridge-switchbot platform class.
  */
-import { API, DynamicPlatformPlugin, Logging, PlatformAccessory } from 'homebridge';
-import { PLATFORM_NAME, PLUGIN_NAME, irdevice, device, SwitchBotPlatformConfig, devicesConfig, irDevicesConfig, Devices } from './settings.js';
+import { Hub } from './device/hub.js';
 import { Bot } from './device/bot.js';
 import { Plug } from './device/plug.js';
 import { Lock } from './device/lock.js';
 import { Meter } from './device/meter.js';
 import { Motion } from './device/motion.js';
-import { Hub } from './device/hub.js';
 import { Contact } from './device/contact.js';
 import { Curtain } from './device/curtain.js';
 import { IOSensor } from './device/iosensor.js';
-import { WaterDetector } from './device/waterdetector.js';
 import { MeterPlus } from './device/meterplus.js';
 import { ColorBulb } from './device/colorbulb.js';
-import { CeilingLight } from './device/ceilinglight.js';
 import { StripLight } from './device/lightstrip.js';
 import { Humidifier } from './device/humidifier.js';
+import { CeilingLight } from './device/ceilinglight.js';
+import { WaterDetector } from './device/waterdetector.js';
 import { RobotVacuumCleaner } from './device/robotvacuumcleaner.js';
+
 import { Fan } from './device/fan.js';
 import { TV } from './irdevice/tv.js';
 import { IRFan } from './irdevice/fan.js';
@@ -31,18 +30,25 @@ import { AirPurifier } from './irdevice/airpurifier.js';
 import { WaterHeater } from './irdevice/waterheater.js';
 import { VacuumCleaner } from './irdevice/vacuumcleaner.js';
 import { AirConditioner } from './irdevice/airconditioner.js';
-import * as http from 'http';
+
 import { Buffer } from 'buffer';
-import { Dispatcher, request } from 'undici';
-import { MqttClient } from 'mqtt';
+import { request } from 'undici';
+import asyncmqtt from 'async-mqtt';
+import { sleep } from './utils.js';
+import { createServer } from 'http';
 import { queueScheduler } from 'rxjs';
 import fakegato from 'fakegato-history';
-import asyncmqtt from 'async-mqtt';
 import crypto, { randomUUID } from 'crypto';
 import { readFileSync, writeFileSync } from 'fs';
 import { EveHomeKitTypes } from 'homebridge-lib/EveHomeKitTypes';
-import { UrlObject } from 'url';
-import { sleep } from './utils.js';
+import { PLATFORM_NAME, PLUGIN_NAME, Devices, setupWebhook, updateWebhook, deleteWebhook, queryWebhook } from './settings.js';
+
+import type { UrlObject } from 'url';
+import type { MqttClient } from 'mqtt';
+import type { Dispatcher } from 'undici';
+import type { Server, IncomingMessage, ServerResponse } from 'http';
+import type { API, DynamicPlatformPlugin, Logging, PlatformAccessory } from 'homebridge';
+import type { irdevice, device, SwitchBotPlatformConfig, devicesConfig, irDevicesConfig } from './settings.js';
 
 /**
  * HomebridgePlatform
@@ -63,7 +69,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   platformLogging!: SwitchBotPlatformConfig['logging'];
   config!: SwitchBotPlatformConfig;
 
-  webhookEventListener: http.Server | null = null;
+  webhookEventListener: Server | null = null;
   mqttClient: MqttClient | null = null;
 
   public readonly fakegatoAPI: any;
@@ -121,7 +127,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         if (this.config.credentials?.openToken && !this.config.credentials.token) {
           await this.updateToken();
         } else if (this.config.credentials?.token && !this.config.credentials?.secret) {
-          // eslint-disable-next-line no-useless-escape
+
           this.errorLog('"secret" config is not populated, you must populate then please restart Homebridge.');
         } else {
           this.discoverDevices();
@@ -175,7 +181,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         const xurl = new URL(url);
         const port = Number(xurl.port);
         const path = xurl.pathname;
-        this.webhookEventListener = http.createServer((request: http.IncomingMessage, response: http.ServerResponse) => {
+        this.webhookEventListener = createServer((request: IncomingMessage, response: ServerResponse) => {
           try {
             if (request.url === path && request.method === 'POST') {
               request.on('data', async (data) => {
@@ -212,16 +218,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
 
       try {
-        const { body, statusCode } = await request(
-          'https://api.switch-bot.com/v1.1/webhook/setupWebhook', {
-            method: 'POST',
-            headers: this.generateHeaders(),
-            body: JSON.stringify({
-              'action': 'setupWebhook',
-              'url': url,
-              'deviceList': 'ALL',
-            }),
-          });
+        const { body, statusCode } = await request(setupWebhook, {
+          method: 'POST',
+          headers: this.generateHeaders(),
+          body: JSON.stringify({
+            'action': 'setupWebhook',
+            'url': url,
+            'deviceList': 'ALL',
+          }),
+        });
         const response: any = await body.json();
         this.debugLog(`setupWebhook: url:${url}`);
         this.debugLog(`setupWebhook: body:${JSON.stringify(response)}`);
@@ -235,18 +240,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
 
       try {
-        const { body, statusCode } = await request(
-          'https://api.switch-bot.com/v1.1/webhook/updateWebhook', {
-            method: 'POST',
-            headers: this.generateHeaders(),
-            body: JSON.stringify({
-              'action': 'updateWebhook',
-              'config': {
-                'url': url,
-                'enable': true,
-              },
-            }),
-          });
+        const { body, statusCode } = await request(updateWebhook, {
+          method: 'POST', headers: this.generateHeaders(), body: JSON.stringify({
+            'action': 'updateWebhook',
+            'config': {
+              'url': url,
+              'enable': true,
+            },
+          }),
+        });
         const response: any = await body.json();
         this.debugLog(`updateWebhook: url:${url}`);
         this.debugLog(`updateWebhook: body:${JSON.stringify(response)}`);
@@ -259,14 +261,13 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
 
       try {
-        const { body, statusCode } = await request(
-          'https://api.switch-bot.com/v1.1/webhook/queryWebhook', {
-            method: 'POST',
-            headers: this.generateHeaders(),
-            body: JSON.stringify({
-              'action': 'queryUrl',
-            }),
-          });
+        const { body, statusCode } = await request(queryWebhook, {
+          method: 'POST',
+          headers: this.generateHeaders(),
+          body: JSON.stringify({
+            'action': 'queryUrl',
+          }),
+        });
         const response: any = await body.json();
         this.debugLog(`queryWebhook: body:${JSON.stringify(response)}`);
         this.debugLog(`queryWebhook: statusCode:${statusCode}`);
@@ -281,15 +282,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
       this.api.on('shutdown', async () => {
         try {
-          const { body, statusCode } = await request(
-            'https://api.switch-bot.com/v1.1/webhook/deleteWebhook', {
-              method: 'POST',
-              headers: this.generateHeaders(),
-              body: JSON.stringify({
-                'action': 'deleteWebhook',
-                'url': url,
-              }),
-            });
+          const { body, statusCode } = await request(deleteWebhook, {
+            method: 'POST',
+            headers: this.generateHeaders(),
+            body: JSON.stringify({
+              'action': 'deleteWebhook',
+              'url': url,
+            }),
+          });
           const response: any = await body.json();
           this.debugLog(`deleteWebhook: url:${url}`);
           this.debugLog(`deleteWebhook: body:${JSON.stringify(response)}`);
@@ -449,18 +449,12 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
       // Move openToken to token
       if (!this.config.credentials.secret) {
-        // eslint-disable-next-line no-useless-escape, max-len
-        this.warnLog(
-          'This plugin has been updated to use OpenAPI v1.1, config is set with openToken, "openToken" cconfig has been moved to the "token" config',
-        );
-        // eslint-disable-next-line no-useless-escape
+        this.warnLog('This plugin has been updated to use OpenAPI v1.1, config is set with openToken,'
+          + ' "openToken" cconfig has been moved to the "token" config');
         this.errorLog('"secret" config is not populated, you must populate then please restart Homebridge.');
       } else {
-        // eslint-disable-next-line no-useless-escape, max-len
-        this.warnLog(
-          'This plugin has been updated to use OpenAPI v1.1, config is set with openToken, '
-          + '"openToken" config has been moved to the "token" config, please restart Homebridge.',
-        );
+        this.warnLog('This plugin has been updated to use OpenAPI v1.1, config is set with openToken, '
+          + '"openToken" config has been moved to the "token" config, please restart Homebridge.');
       }
 
       // set the refresh token
@@ -754,9 +748,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.createFan(device);
         break;
       default:
-        this.warnLog(`Device: ${device.deviceName} with Device Type: ${device.deviceType}, is currently not supported.`);
-        // eslint-disable-next-line max-len
-        this.warnLog('Submit Feature Requests Here: ' + 'https://tinyurl.com/SwitchBotFeatureRequest');
+        this.warnLog(`Device: ${device.deviceName} with Device Type: ${device.deviceType}, is currently not supported.`,
+          + 'Submit Feature Requests Here: https://tinyurl.com/SwitchBotFeatureRequest');
     }
   }
 

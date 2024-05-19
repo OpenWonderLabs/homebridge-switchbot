@@ -2,14 +2,15 @@
  *
  * device.ts: @switchbot/homebridge-switchbot.
  */
-import { API, HAP, Logging, PlatformAccessory } from 'homebridge';
 
 import { hostname } from 'os';
-import { MqttClient } from 'mqtt';
 import asyncmqtt from 'async-mqtt';
-import { SwitchBotPlatform } from '../platform.js';
-import { SwitchBotPlatformConfig, device, devicesConfig } from '../settings.js';
 import { BlindTiltMappingMode, SwitchBotModel, SwitchBotBLEModel, sleep } from '../utils.js';
+
+import type { MqttClient } from 'mqtt';
+import type { SwitchBotPlatform } from '../platform.js';
+import type { API, HAP, Logging, PlatformAccessory } from 'homebridge';
+import type { SwitchBotPlatformConfig, device, devicesConfig } from '../settings.js';
 
 export abstract class deviceBase {
   public readonly api: API;

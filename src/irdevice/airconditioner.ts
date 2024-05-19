@@ -3,10 +3,12 @@
  * airconditioners.ts: @switchbot/homebridge-switchbot.
  */
 import { request } from 'undici';
+import { Devices } from '../settings.js';
 import { irdeviceBase } from './irdevice.js';
-import { SwitchBotPlatform } from '../platform.js';
-import { Devices, irDevicesConfig, irdevice } from '../settings.js';
-import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+
+import type { SwitchBotPlatform } from '../platform.js';
+import type { irDevicesConfig, irdevice } from '../settings.js';
+import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 
 /**
  * Platform Accessory
@@ -607,7 +609,7 @@ export class AirConditioner extends irdeviceBase {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.HeaterCooler.Active}`);
     } else {
       this.accessory.context.Active = this.HeaterCooler.Active;
-      this.HeaterCooler.Service?.updateCharacteristic(this.hap.Characteristic.Active, this.HeaterCooler.Active);
+      this.HeaterCooler.Service.updateCharacteristic(this.hap.Characteristic.Active, this.HeaterCooler.Active);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.HeaterCooler.Active}`);
     }
     // RotationSpeed
@@ -615,7 +617,7 @@ export class AirConditioner extends irdeviceBase {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} RotationSpeed: ${this.HeaterCooler.RotationSpeed}`);
     } else {
       this.accessory.context.RotationSpeed = this.HeaterCooler.RotationSpeed;
-      this.HeaterCooler.Service?.updateCharacteristic(this.hap.Characteristic.RotationSpeed, this.HeaterCooler.RotationSpeed);
+      this.HeaterCooler.Service.updateCharacteristic(this.hap.Characteristic.RotationSpeed, this.HeaterCooler.RotationSpeed);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
         + ` RotationSpeed: ${this.HeaterCooler.RotationSpeed}`);
     }
@@ -624,7 +626,7 @@ export class AirConditioner extends irdeviceBase {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} CurrentTemperature: ${this.HeaterCooler.CurrentTemperature}`);
     } else {
       this.accessory.context.CurrentTemperature = this.HeaterCooler.CurrentTemperature;
-      this.HeaterCooler.Service?.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, this.HeaterCooler.CurrentTemperature);
+      this.HeaterCooler.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, this.HeaterCooler.CurrentTemperature);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
         + ` CurrentTemperature: ${this.HeaterCooler.CurrentTemperature}`);
     }
@@ -635,7 +637,7 @@ export class AirConditioner extends irdeviceBase {
           + ` CurrentRelativeHumidity: ${this.HumiditySensor!.CurrentRelativeHumidity}`);
       } else {
         this.accessory.context.CurrentRelativeHumidity = this.HumiditySensor!.CurrentRelativeHumidity;
-        this.HeaterCooler.Service?.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity,
+        this.HeaterCooler.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity,
           this.HumiditySensor!.CurrentRelativeHumidity);
         this.debugLog(
           `${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
@@ -648,7 +650,7 @@ export class AirConditioner extends irdeviceBase {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} TargetHeaterCoolerState: ${this.HeaterCooler.TargetHeaterCoolerState}`);
     } else {
       this.accessory.context.TargetHeaterCoolerState = this.HeaterCooler.TargetHeaterCoolerState;
-      this.HeaterCooler.Service?.updateCharacteristic(this.hap.Characteristic.TargetHeaterCoolerState, this.HeaterCooler.TargetHeaterCoolerState);
+      this.HeaterCooler.Service.updateCharacteristic(this.hap.Characteristic.TargetHeaterCoolerState, this.HeaterCooler.TargetHeaterCoolerState);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
         + ` TargetHeaterCoolerState: ${this.HeaterCooler.TargetHeaterCoolerState}`);
     }
@@ -658,7 +660,7 @@ export class AirConditioner extends irdeviceBase {
         + ` CurrentHeaterCoolerState: ${this.HeaterCooler.CurrentHeaterCoolerState}`);
     } else {
       this.accessory.context.CurrentHeaterCoolerState = this.HeaterCooler.CurrentHeaterCoolerState;
-      this.HeaterCooler.Service?.updateCharacteristic(this.hap.Characteristic.CurrentHeaterCoolerState, this.HeaterCooler.CurrentHeaterCoolerState);
+      this.HeaterCooler.Service.updateCharacteristic(this.hap.Characteristic.CurrentHeaterCoolerState, this.HeaterCooler.CurrentHeaterCoolerState);
       this.debugLog(
         `${this.device.remoteType}: ${this.accessory.displayName}` +
         ` updateCharacteristic CurrentHeaterCoolerState: ${this.HeaterCooler.CurrentHeaterCoolerState}`,
@@ -669,8 +671,8 @@ export class AirConditioner extends irdeviceBase {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} ThresholdTemperature: ${this.HeaterCooler.ThresholdTemperature}`);
     } else {
       this.accessory.context.ThresholdTemperature = this.HeaterCooler.ThresholdTemperature;
-      this.HeaterCooler.Service?.updateCharacteristic(this.hap.Characteristic.HeatingThresholdTemperature, this.HeaterCooler.ThresholdTemperature);
-      this.HeaterCooler.Service?.updateCharacteristic(this.hap.Characteristic.CoolingThresholdTemperature, this.HeaterCooler.ThresholdTemperature);
+      this.HeaterCooler.Service.updateCharacteristic(this.hap.Characteristic.HeatingThresholdTemperature, this.HeaterCooler.ThresholdTemperature);
+      this.HeaterCooler.Service.updateCharacteristic(this.hap.Characteristic.CoolingThresholdTemperature, this.HeaterCooler.ThresholdTemperature);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
         + ` ThresholdTemperature: ${this.HeaterCooler.ThresholdTemperature}`);
     }

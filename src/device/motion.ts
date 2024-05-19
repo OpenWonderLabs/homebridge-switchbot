@@ -3,11 +3,13 @@
  *
  * motion.ts: @switchbot/homebridge-switchbot.
  */
+import { Devices } from '../settings.js';
 import { deviceBase } from './device.js';
-import { SwitchBotPlatform } from '../platform.js';
 import { Subject, interval, skipWhile } from 'rxjs';
-import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
-import { device, devicesConfig, serviceData, deviceStatus, Devices } from '../settings.js';
+
+import type { SwitchBotPlatform } from '../platform.js';
+import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+import type { device, devicesConfig, serviceData, deviceStatus } from '../settings.js';
 
 /**
  * Platform Accessory
@@ -16,13 +18,13 @@ import { device, devicesConfig, serviceData, deviceStatus, Devices } from '../se
  */
 export class Motion extends deviceBase {
   // Services
-  private Battery!: {
+  private Battery: {
     Service: Service;
     BatteryLevel: CharacteristicValue;
     StatusLowBattery: CharacteristicValue;
   };
 
-  private MotionSensor!: {
+  private MotionSensor: {
     Service: Service;
     MotionDetected: CharacteristicValue;
   };
@@ -48,13 +50,13 @@ export class Motion extends deviceBase {
 
     // Initialize Motion Sensor property
     this.MotionSensor = {
-      Service: accessory.getService(this.hap.Service.MotionSensor) as Service,
+      Service: accessory.getService(this.hap.Service.MotionSensor) ?? accessory.addService(this.hap.Service.MotionSensor) as Service,
       MotionDetected: accessory.context.MotionDetected || false,
     };
 
     // Initialize Battery property
     this.Battery = {
-      Service: accessory.getService(this.hap.Service.Battery) as Service,
+      Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel || 100,
       StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
     };
@@ -71,12 +73,13 @@ export class Motion extends deviceBase {
     // Retrieve initial values and updateHomekit
     this.refreshStatus();
 
-    // get the Battery service if it exists, otherwise create a new Motion service
-    // you can create multiple services for each accessory
-    (this.MotionSensor.Service = accessory.getService(this.hap.Service.MotionSensor)
-        || accessory.addService(this.hap.Service.MotionSensor)), `${accessory.displayName} Motion Sensor`;
+    /*(this.MotionSensor.Service = accessory.getService(this.hap.Service.MotionSensor)
+        || accessory.addService(this.hap.Service.MotionSensor)), `${accessory.displayName} Motion Sensor`;*/
 
-    this.MotionSensor.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
+    if (this.MotionSensor.Service) {
+      this.MotionSensor.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
+    }
+
     // each service must implement at-minimum the "required characteristics" for the given service type
     // see https://developers.homebridge.io/#/service/MotionSensor
 
@@ -97,12 +100,14 @@ export class Motion extends deviceBase {
     }
 
     // Battery Service
-    const BatteryService = `${accessory.displayName} Battery`;
+    /*const BatteryService = `${accessory.displayName} Battery`;
     (this.Battery.Service = this.accessory.getService(this.hap.Service.Battery)
-      || accessory.addService(this.hap.Service.Battery)), BatteryService;
+      || accessory.addService(this.hap.Service.Battery)), BatteryService;*/
 
-    this.Battery.Service.setCharacteristic(this.hap.Characteristic.Name, BatteryService);
-    this.Battery.Service.setCharacteristic(this.hap.Characteristic.ChargingState, this.hap.Characteristic.ChargingState.NOT_CHARGEABLE);
+    if (this.Battery.Service) {
+      this.Battery.Service.setCharacteristic(this.hap.Characteristic.Name, `${accessory.displayName} Battery`);
+      this.Battery.Service.setCharacteristic(this.hap.Characteristic.ChargingState, this.hap.Characteristic.ChargingState.NOT_CHARGEABLE);
+    }
 
     // Retrieve initial values and updateHomekit
     this.updateHomeKitCharacteristics();

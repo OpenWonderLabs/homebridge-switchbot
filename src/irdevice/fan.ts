@@ -3,10 +3,12 @@
  * fan.ts: @switchbot/homebridge-switchbot.
  */
 import { request } from 'undici';
+import { Devices } from '../settings.js';
 import { irdeviceBase } from './irdevice.js';
-import { SwitchBotPlatform } from '../platform.js';
-import { Devices, irDevicesConfig, irdevice } from '../settings.js';
-import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+
+import type { SwitchBotPlatform } from '../platform.js';
+import type { irDevicesConfig, irdevice } from '../settings.js';
+import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 
 /**
  * Platform Accessory
@@ -22,11 +24,6 @@ export class IRFan extends irdeviceBase {
     RotationSpeed: CharacteristicValue;
     RotationDirection: CharacteristicValue;
   };
-
-  // Config
-  minStep?: number;
-  minValue?: number;
-  maxValue?: number;
 
   constructor(
     readonly platform: SwitchBotPlatform,
@@ -55,29 +52,15 @@ export class IRFan extends irdeviceBase {
     // handle on / off events using the Active characteristic
     this.Fan.Service.getCharacteristic(this.hap.Characteristic.Active).onSet(this.ActiveSet.bind(this));
 
+
     if (device.irfan?.rotation_speed) {
-      if (device.irfan?.set_minStep) {
-        this.minStep = device.irfan?.set_minStep;
-      } else {
-        this.minStep = 1;
-      }
-      if (device.irfan?.set_min) {
-        this.minValue = device.irfan?.set_min;
-      } else {
-        this.minValue = 1;
-      }
-      if (device.irfan?.set_max) {
-        this.maxValue = device.irfan?.set_max;
-      } else {
-        this.maxValue = 100;
-      }
       // handle Rotation Speed events using the RotationSpeed characteristic
       this.Fan.Service
         .getCharacteristic(this.hap.Characteristic.RotationSpeed)
         .setProps({
-          minStep: this.minStep,
-          minValue: this.minValue,
-          maxValue: this.maxValue,
+          minStep: Number(this.minStep(device)),
+          minValue: Number(this.minValue(device)),
+          maxValue: Number(this.maxValue(device)),
         })
         .onSet(this.RotationSpeedSet.bind(this));
     } else if (this.Fan.Service.testCharacteristic(this.hap.Characteristic.RotationSpeed) && !device.irfan?.swing_mode) {
@@ -104,6 +87,36 @@ export class IRFan extends irdeviceBase {
         `Clear Cache on ${this.accessory.displayName} To Remove Chracteristic`,
       );
     }
+  }
+
+  async minStep(device: irdevice & irDevicesConfig): Promise<number> {
+    let minStep: number;
+    if (device.irfan?.set_minStep) {
+      minStep = device.irfan?.set_minStep;
+    } else {
+      minStep = 1;
+    }
+    return minStep;
+  }
+
+  async minValue(device: irdevice & irDevicesConfig): Promise<number> {
+    let minValue: number;
+    if (device.irfan?.set_min) {
+      minValue = device.irfan?.set_min;
+    } else {
+      minValue = 1;
+    }
+    return minValue;
+  }
+
+  async maxValue(device: irdevice & irDevicesConfig): Promise<number> {
+    let maxValue: number;
+    if (device.irfan?.set_max) {
+      maxValue = device.irfan?.set_max;
+    } else {
+      maxValue = 100;
+    }
+    return maxValue;
   }
 
   async SwingModeSet(value: CharacteristicValue): Promise<void> {
@@ -258,21 +271,21 @@ export class IRFan extends irdeviceBase {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Fan.Active}`);
     } else {
       this.accessory.context.Active = this.Fan.Active;
-      this.Fan.Service?.updateCharacteristic(this.hap.Characteristic.Active, this.Fan.Active);
+      this.Fan.Service.updateCharacteristic(this.hap.Characteristic.Active, this.Fan.Active);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Fan.Active}`);
     }
     if (this.Fan.SwingMode === undefined) {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} SwingMode: ${this.Fan.SwingMode}`);
     } else {
       this.accessory.context.SwingMode = this.Fan.SwingMode;
-      this.Fan.Service?.updateCharacteristic(this.hap.Characteristic.SwingMode, this.Fan.SwingMode);
+      this.Fan.Service.updateCharacteristic(this.hap.Characteristic.SwingMode, this.Fan.SwingMode);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic SwingMode: ${this.Fan.SwingMode}`);
     }
     if (this.Fan.RotationSpeed === undefined) {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} RotationSpeed: ${this.Fan.RotationSpeed}`);
     } else {
       this.accessory.context.RotationSpeed = this.Fan.RotationSpeed;
-      this.Fan.Service?.updateCharacteristic(this.hap.Characteristic.RotationSpeed, this.Fan.RotationSpeed);
+      this.Fan.Service.updateCharacteristic(this.hap.Characteristic.RotationSpeed, this.Fan.RotationSpeed);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic RotationSpeed: ${this.Fan.RotationSpeed}`);
     }
   }

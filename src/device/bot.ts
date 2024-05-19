@@ -5,10 +5,12 @@
 import { request } from 'undici';
 import { deviceBase } from './device.js';
 import { interval, Subject } from 'rxjs';
-import { SwitchBotPlatform } from '../platform.js';
+import { Devices } from '../settings.js';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, serviceData, deviceStatus, Devices } from '../settings.js';
+
+import type { SwitchBotPlatform } from '../platform.js';
+import type { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import type { device, devicesConfig, serviceData, deviceStatus} from '../settings.js';
 
 /**
  * Platform Accessory
@@ -17,7 +19,7 @@ import { device, devicesConfig, serviceData, deviceStatus, Devices } from '../se
  */
 export class Bot extends deviceBase {
   // Services
-  private Battery!: {
+  private Battery: {
     Service: Service;
     BatteryLevel: CharacteristicValue;
     StatusLowBattery: CharacteristicValue;

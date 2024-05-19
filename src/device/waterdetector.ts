@@ -4,10 +4,12 @@
  */
 import { deviceBase } from './device.js';
 import { interval, Subject } from 'rxjs';
+import { Devices } from '../settings.js';
 import { skipWhile } from 'rxjs/operators';
-import { SwitchBotPlatform } from '../platform.js';
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { device, devicesConfig, serviceData, deviceStatus, Devices } from '../settings.js';
+
+import type { SwitchBotPlatform } from '../platform.js';
+import type { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import type { device, devicesConfig, serviceData, deviceStatus} from '../settings.js';
 
 /**
  * Platform Accessory

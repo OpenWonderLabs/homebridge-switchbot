@@ -2,16 +2,19 @@
  *
  * meter.ts: @switchbot/homebridge-switchbot.
  */
+import { Units } from 'homebridge';
+import { Devices } from '../settings.js';
 import { deviceBase } from './device.js';
-import { SwitchBotPlatform } from '../platform.js';
 import { convertUnits } from '../utils.js';
 import { Subject, interval, skipWhile } from 'rxjs';
-import { CharacteristicValue, PlatformAccessory, Service, Units } from 'homebridge';
-import { device, devicesConfig, serviceData, deviceStatus, Devices } from '../settings.js';
+
+import type { SwitchBotPlatform } from '../platform.js';
+import type { CharacteristicValue, PlatformAccessory, Service} from 'homebridge';
+import type { device, devicesConfig, serviceData, deviceStatus} from '../settings.js';
 
 export class Meter extends deviceBase {
   // Services
-  private Battery!: {
+  private Battery: {
     Service: Service;
     BatteryLevel: CharacteristicValue;
     StatusLowBattery: CharacteristicValue;

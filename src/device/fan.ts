@@ -4,10 +4,12 @@
  */
 import { request } from 'undici';
 import { deviceBase } from './device.js';
-import { SwitchBotPlatform } from '../platform.js';
+import { Devices } from '../settings.js';
 import { Subject, debounceTime, interval, skipWhile, take, tap } from 'rxjs';
-import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
-import { device, devicesConfig, serviceData, deviceStatus, Devices } from '../settings.js';
+
+import type { SwitchBotPlatform } from '../platform.js';
+import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+import type { device, devicesConfig, serviceData, deviceStatus} from '../settings.js';
 
 export class Fan extends deviceBase {
   // Services

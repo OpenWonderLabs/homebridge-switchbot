@@ -3,10 +3,12 @@
  * camera.ts: @switchbot/homebridge-switchbot.
  */
 import { request } from 'undici';
+import { Devices } from '../settings.js';
 import { irdeviceBase } from './irdevice.js';
-import { SwitchBotPlatform } from '../platform.js';
-import { Devices, irDevicesConfig, irdevice } from '../settings.js';
-import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+
+import type { SwitchBotPlatform } from '../platform.js';
+import type { irDevicesConfig, irdevice } from '../settings.js';
+import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 
 /**
  * Platform Accessory
@@ -142,7 +144,7 @@ export class Camera extends irdeviceBase {
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.Switch.On}`);
     } else {
       this.accessory.context.On = this.Switch.On;
-      this.Switch.Service?.updateCharacteristic(this.hap.Characteristic.On, this.Switch.On);
+      this.Switch.Service.updateCharacteristic(this.hap.Characteristic.On, this.Switch.On);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.Switch.On}`);
     }
   }

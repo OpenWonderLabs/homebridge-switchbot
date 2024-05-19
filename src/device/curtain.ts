@@ -6,14 +6,16 @@ import { hostname } from 'os';
 import { request } from 'undici';
 import { interval, Subject } from 'rxjs';
 import { deviceBase } from './device.js';
-import { SwitchBotPlatform } from '../platform.js';
+import { Devices } from '../settings.js';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
-import { Service, PlatformAccessory, CharacteristicValue, CharacteristicChange } from 'homebridge';
-import { device, devicesConfig, serviceData, deviceStatus, Devices } from '../settings.js';
+
+import type { SwitchBotPlatform } from '../platform.js';
+import type { device, devicesConfig, serviceData, deviceStatus} from '../settings.js';
+import type { Service, PlatformAccessory, CharacteristicValue, CharacteristicChange } from 'homebridge';
 
 export class Curtain extends deviceBase {
   // Services
-  private WindowCovering!: {
+  private WindowCovering: {
     Service: Service;
     PositionState: CharacteristicValue;
     TargetPosition: CharacteristicValue;
@@ -21,7 +23,7 @@ export class Curtain extends deviceBase {
     HoldPosition: CharacteristicValue;
   };
 
-  private Battery!: {
+  private Battery: {
     Service: Service;
     BatteryLevel: CharacteristicValue;
     StatusLowBattery: CharacteristicValue;
