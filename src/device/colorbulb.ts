@@ -21,6 +21,7 @@ import type { Service, PlatformAccessory, CharacteristicValue, ControllerConstru
 export class ColorBulb extends deviceBase {
   // Services
   private LightBulb: {
+    Name: CharacteristicValue;
     Service: Service;
     On: CharacteristicValue;
     Hue: CharacteristicValue;
@@ -53,36 +54,42 @@ export class ColorBulb extends deviceBase {
 
     // Initialize LightBulb property
     this.LightBulb = {
-      Service: accessory.getService(this.hap.Service.Lightbulb) as Service,
-      On: accessory.context.On || false,
-      Hue: accessory.context.Hue || 0,
-      Saturation: accessory.context.Saturation || 0,
-      Brightness: accessory.context.Brightness || 0,
-      ColorTemperature: accessory.context.ColorTemperature || 140,
+      Name: accessory.context.LightBulb.Name ?? accessory.displayName,
+      Service: accessory.getService(this.hap.Service.Lightbulb) ?? accessory.addService(this.hap.Service.Lightbulb) as Service,
+      On: accessory.context.On ?? false,
+      Hue: accessory.context.Hue ?? 0,
+      Saturation: accessory.context.Saturation ?? 0,
+      Brightness: accessory.context.Brightness ?? 0,
+      ColorTemperature: accessory.context.ColorTemperature ?? 140,
     };
 
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
-
-    // get the Lightbulb service if it exists, otherwise create a new Lightbulb service
-    // you can create multiple services for each accessory
-    const lightBulbService = `${accessory.displayName} ${device.deviceType}`;
-    (this.LightBulb.Service = accessory.getService(this.hap.Service.Lightbulb)
-      || accessory.addService(this.hap.Service.Lightbulb)), lightBulbService;
-
-    if (this.adaptiveLightingShift === -1 && this.accessory.context.adaptiveLighting) {
-      this.accessory.removeService(this.LightBulb.Service);
-      this.LightBulb.Service = this.accessory.addService(this.hap.Service.Lightbulb);
-      this.accessory.context.adaptiveLighting = false;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} adaptiveLighting: ${this.accessory.context.adaptiveLighting}`);
+    // Adaptive Lighting
+    if (this.adaptiveLightingShift === -1 && accessory.context.adaptiveLighting) {
+      accessory.removeService(this.LightBulb.Service);
+      this.LightBulb.Service = accessory.addService(this.hap.Service.Lightbulb);
+      accessory.context.adaptiveLighting = false;
+      this.debugLog(`${device.deviceType}: ${accessory.displayName} adaptiveLighting: ${accessory.context.adaptiveLighting}`);
     }
+    if (this.adaptiveLightingShift !== -1) {
+      this.AdaptiveLightingController = new platform.api.hap.AdaptiveLightingController(this.LightBulb.Service, {
+        customTemperatureAdjustment: this.adaptiveLightingShift,
+      });
+      accessory.configureController(this.AdaptiveLightingController);
+      accessory.context.adaptiveLighting = true;
+      this.debugLog(`${device.deviceType}: ${this.accessory.displayName} adaptiveLighting: ${accessory.context.adaptiveLighting},`
+      + ` adaptiveLightingShift: ${this.adaptiveLightingShift}`);
+    }
+    this.debugLog(`${device.deviceType}: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
 
-    this.LightBulb.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
+    // Initialize LightBulb Characteristics
+    this.LightBulb.Service
+      .setCharacteristic(this.hap.Characteristic.Name, this.LightBulb.Name)
+      .getCharacteristic(this.hap.Characteristic.On)
+      .onGet(() => {
+        return this.LightBulb.On;
+      })
+      .onSet(this.OnSet.bind(this));
 
-    // handle on / off events using the On characteristic
-    this.LightBulb.Service.getCharacteristic(this.hap.Characteristic.On).onSet(this.OnSet.bind(this));
-
-    // handle Brightness events using the Brightness characteristic
     this.LightBulb.Service
       .getCharacteristic(this.hap.Characteristic.Brightness)
       .setProps({
@@ -96,7 +103,6 @@ export class ColorBulb extends deviceBase {
       })
       .onSet(this.BrightnessSet.bind(this));
 
-    // handle ColorTemperature events using the ColorTemperature characteristic
     this.LightBulb.Service
       .getCharacteristic(this.hap.Characteristic.ColorTemperature)
       .setProps({
@@ -109,7 +115,6 @@ export class ColorBulb extends deviceBase {
       })
       .onSet(this.ColorTemperatureSet.bind(this));
 
-    // handle Hue events using the Hue characteristic
     this.LightBulb.Service
       .getCharacteristic(this.hap.Characteristic.Hue)
       .setProps({
@@ -122,7 +127,6 @@ export class ColorBulb extends deviceBase {
       })
       .onSet(this.HueSet.bind(this));
 
-    // handle Hue events using the Hue characteristic
     this.LightBulb.Service
       .getCharacteristic(this.hap.Characteristic.Saturation)
       .setProps({
@@ -134,19 +138,10 @@ export class ColorBulb extends deviceBase {
         return this.LightBulb.Saturation;
       })
       .onSet(this.SaturationSet.bind(this));
+    accessory.context.LightBulb.Name = this.LightBulb.Name;
 
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
-    if (this.adaptiveLightingShift !== -1) {
-      this.AdaptiveLightingController = new platform.api.hap.AdaptiveLightingController(this.LightBulb.Service, {
-        customTemperatureAdjustment: this.adaptiveLightingShift,
-      });
-      this.accessory.configureController(this.AdaptiveLightingController);
-      this.accessory.context.adaptiveLighting = true;
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} adaptiveLighting: ${this.accessory.context.adaptiveLighting},` +
-        ` adaptiveLightingShift: ${this.adaptiveLightingShift}`,
-      );
-    }
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
 
     // Update Homekit
     this.updateHomeKitCharacteristics();

@@ -7,7 +7,7 @@ import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 
 import type { SwitchBotPlatform } from '../platform.js';
 import type { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import type { device, devicesConfig, serviceData, deviceStatus} from '../settings.js';
+import type { device, devicesConfig, serviceData, deviceStatus } from '../settings.js';
 
 /**
  * Platform Accessory
@@ -17,6 +17,7 @@ import type { device, devicesConfig, serviceData, deviceStatus} from '../setting
 export class Humidifier extends deviceBase {
   // Services
   private HumidifierDehumidifier: {
+    Name: CharacteristicValue;
     Service: Service;
     Active: CharacteristicValue;
     WaterLevel: CharacteristicValue;
@@ -27,6 +28,7 @@ export class Humidifier extends deviceBase {
   };
 
   private TemperatureSensor?: {
+    Name: CharacteristicValue;
     Service: Service;
     CurrentTemperature: CharacteristicValue;
   };
@@ -47,46 +49,24 @@ export class Humidifier extends deviceBase {
 
     // Initialize the HumidifierDehumidifier Service
     this.HumidifierDehumidifier = {
-      Service: accessory.getService(this.hap.Service.HumidifierDehumidifier) as Service,
-      Active: accessory.context.Active || this.hap.Characteristic.Active.ACTIVE,
-      WaterLevel: accessory.context.WaterLevel || 100,
-      CurrentRelativeHumidity: accessory.context.CurrentRelativeHumidity || 50,
+      Name: accessory.context.HumidifierDehumidifier.Name ?? accessory.displayName,
+      Service: accessory.getService(this.hap.Service.HumidifierDehumidifier)
+        ?? accessory.addService(this.hap.Service.HumidifierDehumidifier) as Service,
+      Active: accessory.context.Active ?? this.hap.Characteristic.Active.ACTIVE,
+      WaterLevel: accessory.context.WaterLevel ?? 100,
+      CurrentRelativeHumidity: accessory.context.CurrentRelativeHumidity ?? 50,
       TargetHumidifierDehumidifierState: accessory.context.TargetHumidifierDehumidifierState
-        || this.hap.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER,
+        ?? this.hap.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER,
       CurrentHumidifierDehumidifierState: accessory.context.CurrentHumidifierDehumidifierState
-        || this.hap.Characteristic.CurrentHumidifierDehumidifierState.INACTIVE,
-      RelativeHumidityHumidifierThreshold: accessory.context.RelativeHumidityHumidifierThreshold || 50,
+        ?? this.hap.Characteristic.CurrentHumidifierDehumidifierState.INACTIVE,
+      RelativeHumidityHumidifierThreshold: accessory.context.RelativeHumidityHumidifierThreshold ?? 50,
     };
 
-    // Initialize the Temperature Sensor Service
-    if (!device.humidifier?.hide_temperature) {
-      this.TemperatureSensor = {
-        Service: accessory.getService(this.hap.Service.TemperatureSensor) as Service,
-        CurrentTemperature: accessory.context.CurrentTemperature || 30,
-      };
-    }
-
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
-
-    // get the service if it exists, otherwise create a new service
-    // you can create multiple services for each accessory
-    const HumidifierDehumidifierService = `${accessory.displayName} Humidifier`;
-    (this.HumidifierDehumidifier.Service = accessory.getService(this.hap.Service.HumidifierDehumidifier)
-      || accessory.addService(this.hap.Service.HumidifierDehumidifier)), HumidifierDehumidifierService;
-
-    this.HumidifierDehumidifier.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-
-    // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/HumidifierDehumidifier
-
-    // create handlers for required characteristics
-    this.HumidifierDehumidifier.Service.setCharacteristic(
-      this.hap.Characteristic.CurrentHumidifierDehumidifierState,
-      this.HumidifierDehumidifier.CurrentHumidifierDehumidifierState,
-    );
-
+    // Initialize the HumidifierDehumidifier Characteristics
     this.HumidifierDehumidifier.Service
+      .setCharacteristic(this.hap.Characteristic.Name, this.HumidifierDehumidifier.Name)
+      .setCharacteristic(this.hap.Characteristic.CurrentHumidifierDehumidifierState,
+        this.HumidifierDehumidifier.CurrentHumidifierDehumidifierState)
       .getCharacteristic(this.hap.Characteristic.TargetHumidifierDehumidifierState)
       .setProps({
         validValueRanges: [0, 1],
@@ -94,9 +74,17 @@ export class Humidifier extends deviceBase {
         maxValue: 1,
         validValues: [0, 1],
       })
+      .onGet(() => {
+        return this.HumidifierDehumidifier.TargetHumidifierDehumidifierState;
+      })
       .onSet(this.TargetHumidifierDehumidifierStateSet.bind(this));
 
-    this.HumidifierDehumidifier.Service.getCharacteristic(this.hap.Characteristic.Active).onSet(this.ActiveSet.bind(this));
+    this.HumidifierDehumidifier.Service
+      .getCharacteristic(this.hap.Characteristic.Active)
+      .onGet(() => {
+        return this.HumidifierDehumidifier.Active;
+      })
+      .onSet(this.ActiveSet.bind(this));
 
     this.HumidifierDehumidifier.Service
       .getCharacteristic(this.hap.Characteristic.RelativeHumidityHumidifierThreshold)
@@ -106,21 +94,27 @@ export class Humidifier extends deviceBase {
         maxValue: 100,
         minStep: this.minStep(device),
       })
+      .onGet(() => {
+        return this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold;
+      })
       .onSet(this.RelativeHumidityHumidifierThresholdSet.bind(this));
+    accessory.context.HumidifierDehumidifier.Name = this.HumidifierDehumidifier.Name;
 
-    // Temperature Sensor Service
-    if (device.humidifier?.hide_temperature || this.BLE) {
+    // Initialize the Temperature Sensor Service
+    if (device.humidifier?.hide_temperature) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Temperature Sensor Service`);
       this.TemperatureSensor!.Service = this.accessory.getService(this.hap.Service.TemperatureSensor) as Service;
       accessory.removeService(this.TemperatureSensor!.Service);
-    } else if (!this.TemperatureSensor?.Service && !this.BLE) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Temperature Sensor Service`);
-      const TemperatureSensorService = `${accessory.displayName} Temperature Sensor`;
-      (this.TemperatureSensor!.Service = this.accessory.getService(this.hap.Service.TemperatureSensor)
-        || this.accessory.addService(this.hap.Service.TemperatureSensor)), TemperatureSensorService;
+    } else {
+      this.TemperatureSensor = {
+        Name: accessory.context.TemperatureSensor.Name ?? `${accessory.displayName} Temperature Sensor`,
+        Service: accessory.getService(this.hap.Service.TemperatureSensor) ?? this.accessory.addService(this.hap.Service.TemperatureSensor) as Service,
+        CurrentTemperature: accessory.context.CurrentTemperature || 30,
+      };
 
-      this.TemperatureSensor!.Service.setCharacteristic(this.hap.Characteristic.Name, TemperatureSensorService);
-      this.TemperatureSensor!.Service
+      // Initialize the Temperature Sensor Characteristics
+      this.TemperatureSensor.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.TemperatureSensor.Name)
         .getCharacteristic(this.hap.Characteristic.CurrentTemperature)
         .setProps({
           validValueRanges: [-273.15, 100],
@@ -131,9 +125,11 @@ export class Humidifier extends deviceBase {
         .onGet(() => {
           return this.TemperatureSensor!.CurrentTemperature;
         });
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Temperature Sensor Service Not Added`);
+      accessory.context.TemperatureSensor.Name = this.TemperatureSensor.Name;
     }
+
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
 
     // Retrieve initial values and updateHomekit
     this.updateHomeKitCharacteristics();
@@ -155,9 +151,9 @@ export class Humidifier extends deviceBase {
           const { CurrentRelativeHumidity } = this.HumidifierDehumidifier;
           const { CurrentTemperature } = this.TemperatureSensor || { CurrentTemperature: undefined };
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-              '(temperature, humidity) = ' +
-              `Webhook:(${convertUnits(temperature, context.scale, device.iosensor?.convertUnitTo)}, ${humidity}), ` +
-              `current:(${CurrentTemperature}, ${CurrentRelativeHumidity})`);
+            '(temperature, humidity) = ' +
+            `Webhook:(${convertUnits(temperature, context.scale, device.iosensor?.convertUnitTo)}, ${humidity}), ` +
+            `current:(${CurrentTemperature}, ${CurrentRelativeHumidity})`);
           this.HumidifierDehumidifier.CurrentRelativeHumidity = humidity;
           if (!this.device.humidifier?.hide_temperature) {
             this.TemperatureSensor!.CurrentTemperature = convertUnits(temperature, context.scale, device.iosensor?.convertUnitTo);

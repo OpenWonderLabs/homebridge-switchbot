@@ -9,8 +9,8 @@ import { convertUnits } from '../utils.js';
 import { Subject, interval, skipWhile } from 'rxjs';
 
 import type { SwitchBotPlatform } from '../platform.js';
-import type { CharacteristicValue, PlatformAccessory, Service} from 'homebridge';
-import type { device, devicesConfig, serviceData, deviceStatus} from '../settings.js';
+import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+import type { device, devicesConfig, serviceData, deviceStatus } from '../settings.js';
 
 /**
  * Platform Accessory
@@ -20,17 +20,20 @@ import type { device, devicesConfig, serviceData, deviceStatus} from '../setting
 export class IOSensor extends deviceBase {
   // Services
   private Battery: {
+    Name: CharacteristicValue;
     Service: Service;
     BatteryLevel: CharacteristicValue;
     StatusLowBattery: CharacteristicValue;
   };
 
   private HumiditySensor?: {
+    Name: CharacteristicValue;
     Service: Service;
     CurrentRelativeHumidity: CharacteristicValue;
   };
 
   private TemperatureSensor?: {
+    Name: CharacteristicValue;
     Service: Service;
     CurrentTemperature: CharacteristicValue;
   };
@@ -49,45 +52,45 @@ export class IOSensor extends deviceBase {
     this.doIOSensorUpdate = new Subject();
     this.ioSensorUpdateInProgress = false;
 
-    // Initialize Temperature Sensor property
-    if (!device.iosensor?.hide_temperature) {
-      this.TemperatureSensor = {
-        Service: accessory.getService(this.hap.Service.TemperatureSensor) as Service,
-        CurrentTemperature: accessory.context.CurrentTemperature || 30,
-      };
-    }
-
-    // Initialize Humidity Sensor property
-    if (!device.iosensor?.hide_humidity) {
-      this.HumiditySensor = {
-        Service: accessory.getService(this.hap.Service.HumiditySensor) as Service,
-        CurrentRelativeHumidity: accessory.context.CurrentRelativeHumidity || 50,
-      };
-    }
-
     // Initialize Battery property
     this.Battery = {
-      Service: accessory.getService(this.hap.Service.Battery) as Service,
-      BatteryLevel: accessory.context.BatteryLevel || 100,
-      StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
+      Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
+      Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
+      BatteryLevel: accessory.context.BatteryLevel ?? 100,
+      StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
     };
 
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
+    // Initialize Battery Characteristics
+    this.Battery.Service
+      .setCharacteristic(this.hap.Characteristic.Name, this.Battery.Name)
+      .setCharacteristic(this.hap.Characteristic.ChargingState, this.hap.Characteristic.ChargingState.NOT_CHARGEABLE)
+      .getCharacteristic(this.hap.Characteristic.BatteryLevel)
+      .onGet(() => {
+        return this.Battery.BatteryLevel;
+      });
 
-    // Temperature Sensor Service
+    this.Battery.Service
+      .getCharacteristic(this.hap.Characteristic.StatusLowBattery)
+      .onGet(() => {
+        return this.Battery.StatusLowBattery;
+      });
+    accessory.context.Battery.Name = this.Battery.Name;
+
+    // InitializeTemperature Sensor Service
     if (device.iosensor?.hide_temperature) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Temperature Sensor Service`);
       this.TemperatureSensor!.Service = this.accessory.getService(this.hap.Service.TemperatureSensor) as Service;
       accessory.removeService(this.TemperatureSensor!.Service);
-    } else if (!this.TemperatureSensor?.Service) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Temperature Sensor Service`);
-      const TemperatureSensorService = `${accessory.displayName} Temperature Sensor`;
-      (this.TemperatureSensor!.Service = this.accessory.getService(this.hap.Service.TemperatureSensor)
-        || this.accessory.addService(this.hap.Service.TemperatureSensor)), TemperatureSensorService;
+    } else {
+      this.TemperatureSensor = {
+        Name: accessory.context.TemperatureSensor.Name ?? `${accessory.displayName} Temperature Sensor`,
+        Service: accessory.getService(this.hap.Service.TemperatureSensor) ?? this.accessory.addService(this.hap.Service.TemperatureSensor) as Service,
+        CurrentTemperature: accessory.context.CurrentTemperature ?? 30,
+      };
 
-      this.TemperatureSensor!.Service.setCharacteristic(this.hap.Characteristic.Name, TemperatureSensorService);
-      this.TemperatureSensor!.Service
+      // Initialize Temperature Sensor Characteristics
+      this.TemperatureSensor.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.TemperatureSensor.Name)
         .getCharacteristic(this.hap.Characteristic.CurrentTemperature)
         .setProps({
           unit: Units['CELSIUS'],
@@ -97,25 +100,26 @@ export class IOSensor extends deviceBase {
           minStep: 0.1,
         })
         .onGet(() => {
-          return this.TemperatureSensor!.CurrentTemperature!;
+          return this.TemperatureSensor!.CurrentTemperature;
         });
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Temperature Sensor Service Not Added`);
+      accessory.context.TemperatureSensor.Name = this.TemperatureSensor.Name;
     }
 
-    // Humidity Sensor Service
+    // Initialize Humidity Sensor Service
     if (device.iosensor?.hide_humidity) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Humidity Sensor Service`);
       this.HumiditySensor!.Service = this.accessory.getService(this.hap.Service.HumiditySensor) as Service;
       accessory.removeService(this.HumiditySensor!.Service);
-    } else if (!this.HumiditySensor?.Service) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Humidity Sensor Service`);
-      const HumiditySensorService = `${accessory.displayName} Humidity Sensor`;
-      (this.HumiditySensor!.Service = this.accessory.getService(this.hap.Service.HumiditySensor)
-        || this.accessory.addService(this.hap.Service.HumiditySensor)), HumiditySensorService;
+    } else {
+      this.HumiditySensor = {
+        Name: accessory.context.HumiditySensor.Name ?? `${accessory.displayName} Humidity Sensor`,
+        Service: accessory.getService(this.hap.Service.HumiditySensor) ?? this.accessory.addService(this.hap.Service.HumiditySensor) as Service,
+        CurrentRelativeHumidity: accessory.context.CurrentRelativeHumidity ?? 50,
+      };
 
-      this.HumiditySensor!.Service.setCharacteristic(this.hap.Characteristic.Name, HumiditySensorService);
-      this.HumiditySensor!.Service
+      // Initialize Humidity Sensor Characteristics
+      this.HumiditySensor.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.HumiditySensor.Name)
         .getCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity)
         .setProps({
           minStep: 0.1,
@@ -123,17 +127,11 @@ export class IOSensor extends deviceBase {
         .onGet(() => {
           return this.HumiditySensor!.CurrentRelativeHumidity;
         });
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Humidity Sensor Service Not Added`);
+      accessory.context.HumiditySensor.Name = this.HumiditySensor.Name;
     }
 
-    // Battery Service
-    const BatteryService = `${accessory.displayName} Battery`;
-    (this.Battery.Service = this.accessory.getService(this.hap.Service.Battery)
-      || accessory.addService(this.hap.Service.Battery)), BatteryService;
-
-    this.Battery.Service.setCharacteristic(this.hap.Characteristic.Name, BatteryService);
-    this.Battery.Service.setCharacteristic(this.hap.Characteristic.ChargingState, this.hap.Characteristic.ChargingState.NOT_CHARGEABLE);
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
 
     // Retrieve initial values and updateHomekit
     this.updateHomeKitCharacteristics();

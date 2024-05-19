@@ -14,6 +14,7 @@ import type { device, devicesConfig, serviceData, deviceStatus} from '../setting
 export class Fan extends deviceBase {
   // Services
   private Fan: {
+    Name: CharacteristicValue;
     Service: Service;
     Active: CharacteristicValue;
     SwingMode: CharacteristicValue;
@@ -21,6 +22,7 @@ export class Fan extends deviceBase {
   };
 
   private Battery: {
+    Name: CharacteristicValue;
     Service: Service;
     BatteryLevel: CharacteristicValue;
     StatusLowBattery: CharacteristicValue;
@@ -41,41 +43,74 @@ export class Fan extends deviceBase {
     this.doPlugUpdate = new Subject();
     this.plugUpdateInProgress = false;
 
-    // Initialize Fan property
+    // Initialize Fan Service
     this.Fan = {
-      Service: accessory.getService(this.hap.Service.Fanv2) as Service,
-      Active: accessory.context.Active || this.hap.Characteristic.Active.INACTIVE,
-      SwingMode: accessory.context.SwingMode || this.hap.Characteristic.SwingMode.SWING_DISABLED,
-      RotationSpeed: accessory.context.RotationSpeed || 0,
+      Name: accessory.context.Fan.Name ?? accessory.displayName,
+      Service: accessory.getService(this.hap.Service.Fanv2) ?? accessory.addService(this.hap.Service.Fanv2) as Service,
+      Active: accessory.context.Active ?? this.hap.Characteristic.Active.INACTIVE,
+      SwingMode: accessory.context.SwingMode ?? this.hap.Characteristic.SwingMode.SWING_DISABLED,
+      RotationSpeed: accessory.context.RotationSpeed ?? 0,
     };
+
+    // Initialize Fan Service
+    this.Fan.Service
+      .setCharacteristic(this.hap.Characteristic.Name, this.Fan.Name)
+      .getCharacteristic(this.hap.Characteristic.Active)
+      .onGet(() => {
+        return this.Fan.Active;
+      })
+      .onSet(this.ActiveSet.bind(this));
+
+    // Initialize Fan RotationSpeed Characteristic
+    this.Fan.Service
+      .getCharacteristic(this.hap.Characteristic.RotationSpeed)
+      .onGet(() => {
+        return this.Fan.RotationSpeed;
+      })
+      .onSet(this.RotationSpeedSet.bind(this));
+
+    // Initialize Fan SwingMode Characteristic
+    this.Fan.Service.getCharacteristic(this.hap.Characteristic.SwingMode)
+      .onGet(() => {
+        return this.Fan.SwingMode;
+      })
+      .onSet(this.SwingModeSet.bind(this));
+    accessory.context.Fan.Name = this.Fan.Name;
 
     // Initialize Battery property
     this.Battery = {
-      Service: accessory.getService(this.hap.Service.Battery) as Service,
-      BatteryLevel: accessory.context.BatteryLevel || 100,
-      StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
-      ChargingState: accessory.context.ChargingState || this.hap.Characteristic.ChargingState.NOT_CHARGING,
+      Name: accessory.context.Battery.Name ?? accessory.displayName,
+      Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
+      BatteryLevel: accessory.context.BatteryLevel ?? 100,
+      StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
+      ChargingState: accessory.context.ChargingState ?? this.hap.Characteristic.ChargingState.NOT_CHARGING,
     };
+
+    // Initialize Battery Service
+    this.Battery.Service
+      .setCharacteristic(this.hap.Characteristic.Name, this.Battery.Name)
+      .getCharacteristic(this.hap.Characteristic.BatteryLevel)
+      .onGet(() => {
+        return this.Battery.BatteryLevel;
+      });
+
+    // Initialize Battery ChargingState Characteristic
+    this.Battery.Service
+      .getCharacteristic(this.hap.Characteristic.ChargingState)
+      .onGet(() => {
+        return this.Battery.ChargingState;
+      });
+
+    // Initialize Battery StatusLowBattery Characteristic
+    this.Battery.Service
+      .getCharacteristic(this.hap.Characteristic.StatusLowBattery)
+      .onGet(() => {
+        return this.Battery.StatusLowBattery;
+      });
+    accessory.context.Battery.Name = this.Battery.Name;
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();
-
-    // get the Fan service if it exists, otherwise create a new Fanv2 service
-    // you can create multiple services for each accessory
-    const FanService = `${accessory.displayName} ${device.deviceType}`;
-    (this.Fan.Service = accessory.getService(this.hap.Service.Fanv2)
-      || accessory.addService(this.hap.Service.Fanv2)), FanService;
-
-    this.Fan.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-    // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/Fanv2
-
-    // create handlers for required characteristics
-    this.Fan.Service.getCharacteristic(this.hap.Characteristic.Active).onSet(this.ActiveSet.bind(this));
-    // create handlers for required characteristics
-    this.Fan.Service.getCharacteristic(this.hap.Characteristic.RotationSpeed).onSet(this.RotationSpeedSet.bind(this));
-    // create handlers for required characteristics
-    this.Fan.Service.getCharacteristic(this.hap.Characteristic.SwingMode).onSet(this.SwingModeSet.bind(this));
 
     // Update Homekit
     this.updateHomeKitCharacteristics();

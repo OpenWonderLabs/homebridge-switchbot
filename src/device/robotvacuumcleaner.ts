@@ -10,20 +10,23 @@ import { debounceTime, take, tap } from 'rxjs/operators';
 
 import type { SwitchBotPlatform } from '../platform.js';
 import type { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import type { device, devicesConfig, deviceStatus, serviceData} from '../settings.js';
+import type { device, devicesConfig, deviceStatus, serviceData } from '../settings.js';
 
 export class RobotVacuumCleaner extends deviceBase {
   // Services
   private LightBulb: {
+    Name: CharacteristicValue;
     Service: Service;
     On: CharacteristicValue;
     Brightness: CharacteristicValue;
   };
 
   private Battery: {
+    Name: CharacteristicValue;
     Service: Service;
     BatteryLevel: CharacteristicValue;
     StatusLowBattery: CharacteristicValue;
+    ChargingState: CharacteristicValue;
   };
 
   // Updates
@@ -40,37 +43,24 @@ export class RobotVacuumCleaner extends deviceBase {
     this.doRobotVacuumCleanerUpdate = new Subject();
     this.robotVacuumCleanerUpdateInProgress = false;
 
-    // Initialize Lightbulb property
+    // Initialize Lightbulb Service
     this.LightBulb = {
-      Service: accessory.getService(this.hap.Service.Lightbulb) as Service,
-      On: accessory.context.On || false,
-      Brightness: accessory.context.Brightness || 0,
+      Name: accessory.context.LightBulb.Name ?? accessory.displayName,
+      Service: accessory.getService(this.hap.Service.Lightbulb) ?? accessory.addService(this.hap.Service.Lightbulb) as Service,
+      On: accessory.context.On ?? false,
+      Brightness: accessory.context.Brightness ?? 0,
     };
 
-    // Initialize Battery property
-    this.Battery = {
-      Service: accessory.getService(this.hap.Service.Battery) as Service,
-      BatteryLevel: accessory.context.BatteryLevel || 100,
-      StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
-    };
+    // Initialize LightBulb Characteristics
+    this.LightBulb.Service
+      .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
+      .getCharacteristic(this.hap.Characteristic.On)
+      .onGet(() => {
+        return this.LightBulb.On;
+      })
+      .onSet(this.OnSet.bind(this));
 
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
-
-    // get the Lightbulb service if it exists, otherwise create a new Lightbulb service
-    // you can create multiple services for each accessory
-    const LightBulbService = `${accessory.displayName} ${device.deviceType}`;
-    (this.LightBulb.Service = accessory.getService(this.hap.Service.Lightbulb)
-      || accessory.addService(this.hap.Service.Lightbulb)), LightBulbService;
-
-    this.LightBulb.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-    // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/Lightbulb
-
-    // create handlers for required characteristics
-    this.LightBulb.Service.getCharacteristic(this.hap.Characteristic.On).onSet(this.OnSet.bind(this));
-
-    // handle Brightness events using the Brightness characteristic
+    // Initialize LightBulb Brightness Characteristic
     this.LightBulb.Service
       .getCharacteristic(this.hap.Characteristic.Brightness)
       .setProps({
@@ -84,14 +74,40 @@ export class RobotVacuumCleaner extends deviceBase {
         return this.LightBulb.Brightness;
       })
       .onSet(this.BrightnessSet.bind(this));
+    accessory.context.LightBulb.Name = this.LightBulb.Name;
 
-    // Battery Service
-    const BatteryService = `${accessory.displayName} Battery`;
-    (this.Battery.Service = this.accessory.getService(this.hap.Service.Battery)
-      || accessory.addService(this.hap.Service.Battery)), BatteryService;
+    // Initialize Battery Service
+    this.Battery = {
+      Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
+      Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
+      BatteryLevel: accessory.context.BatteryLevel ?? 100,
+      StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
+      ChargingState: accessory.context.ChargingState ?? this.hap.Characteristic.ChargingState.NOT_CHARGING,
+    };
 
-    this.Battery.Service.setCharacteristic(this.hap.Characteristic.Name, BatteryService);
+    // Initialize Battery Characteristics
+    this.Battery.Service
+      .setCharacteristic(this.hap.Characteristic.Name, this.Battery.Name)
+      .getCharacteristic(this.hap.Characteristic.BatteryLevel)
+      .onGet(() => {
+        return this.Battery.BatteryLevel;
+      });
 
+    this.Battery.Service
+      .getCharacteristic(this.hap.Characteristic.StatusLowBattery)
+      .onGet(() => {
+        return this.Battery.StatusLowBattery;
+      });
+
+    this.Battery.Service
+      .getCharacteristic(this.hap.Characteristic.ChargingState)
+      .onGet(() => {
+        return this.Battery.ChargingState;
+      });
+    accessory.context.Battery.Name = this.Battery.Name;
+
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
     // Update Homekit
     this.updateHomeKitCharacteristics();
 
@@ -108,14 +124,16 @@ export class RobotVacuumCleaner extends deviceBase {
       this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
         try {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          const { onlineStatus, battery } = context;
+          const { onlineStatus, battery, workingStatus } = context;
           const { On } = this.LightBulb;
-          const { BatteryLevel } = this.Battery;
+          const { BatteryLevel, ChargingState } = this.Battery;
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-            '(onlineStatus, battery) = ' +
-            `Webhook:(${onlineStatus}, ${battery}), ` +
-            `current:(${On}, ${BatteryLevel})`);
+            '(onlineStatus, battery, workingStatus) = ' +
+            `Webhook:(${onlineStatus}, ${battery}, ${workingStatus}), ` +
+            `current:(${On}, ${BatteryLevel}, ${ChargingState})`);
           this.LightBulb.On = onlineStatus === 'online' ? true : false;
+          this.Battery.ChargingState = workingStatus === 'Charging'
+            ? this.hap.Characteristic.ChargingState.CHARGING : this.hap.Characteristic.ChargingState.NOT_CHARGING;
           this.Battery.BatteryLevel = battery;
           this.updateHomeKitCharacteristics();
         } catch (e: any) {
@@ -189,6 +207,8 @@ export class RobotVacuumCleaner extends deviceBase {
 
     // BatteryLevel
     this.Battery.BatteryLevel = Number(deviceStatus.body.battery);
+
+    // StatusLowBattery
     if (this.Battery.BatteryLevel < 10) {
       this.Battery.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
     } else {
@@ -197,8 +217,11 @@ export class RobotVacuumCleaner extends deviceBase {
     if (Number.isNaN(this.Battery.BatteryLevel)) {
       this.Battery.BatteryLevel = 100;
     }
+    // ChargingState
+    this.Battery.ChargingState = deviceStatus.body.workingStatus === 'Charging'
+      ? this.hap.Characteristic.ChargingState.CHARGING : this.hap.Characteristic.ChargingState.NOT_CHARGING;
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel},`
-      + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+      + ` StatusLowBattery: ${this.Battery.StatusLowBattery}, ChargingState: ${this.Battery.ChargingState}`);
 
     // Firmware Version
     const version = deviceStatus.body.version?.toString();
@@ -219,8 +242,8 @@ export class RobotVacuumCleaner extends deviceBase {
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus enableCloudService: ${this.device.enableCloudService}`);
-      /*} else if (this.BLE) {
-        await this.BLERefreshStatus();*/
+    } else if (this.BLE) {
+      await this.BLERefreshStatus();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
@@ -244,21 +267,19 @@ export class RobotVacuumCleaner extends deviceBase {
     this.getCustomBLEAddress(switchbot);
     // Start to monitor advertisement packets
     (async () => {
-      await switchbot.startScan({
-        model: '?',
-        id: this.device.bleMac,
-      });
+      // Start to monitor advertisement packets
+      await switchbot.startScan({ model: this.device.bleModel, id: this.device.bleMac });
       // Set an event handler
       switchbot.onadvertisement = (ad: any) => {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${JSON.stringify(ad, null, '  ')}`);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} address: ${ad.address}, model: ${ad.serviceData.model}`);
-        if (this.device.bleMac === ad.address && ad.serviceData.model === '?') {
+        if (this.device.bleMac === ad.address && ad.model === this.device.bleModel) {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${JSON.stringify(ad, null, '  ')}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} address: ${ad.address}, model: ${ad.model}`);
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
         } else {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
         }
       };
-      // Wait 1 seconds
+      // Wait 10 seconds
       await switchbot.wait(this.scanDuration * 1000);
       // Stop to monitor
       await switchbot.stopScan();
@@ -266,63 +287,16 @@ export class RobotVacuumCleaner extends deviceBase {
       await this.BLEparseStatus(switchbot.onadvertisement.serviceData);
       await this.updateHomeKitCharacteristics();
     })();
-    /*if (switchbot !== false) {
-      switchbot
-        .startScan({
-          model: this.BLEmodel(),
-          id: this.device.bleMac,
-        })
-        .then(async () => {
-          // Set an event handler
-          switchbot.onadvertisement = async (ad: ad) => {
-            this.debugLog(
-              `${this.device.deviceType}: ${this.accessory.displayName} Config BLE Address: ${this.device.bleMac},` +
-              ` BLE Address Found: ${ad.address}`,
-            );
-            serviceData.state = ad.serviceData.state;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-            this.debugLog(
-              `${this.device.deviceType}: ${this.accessory.displayName} state: ${ad.serviceData.state}, ` +
-              `delay: ${ad.serviceData.delay}, timer: ${ad.serviceData.timer}, syncUtcTime: ${ad.serviceData.syncUtcTime} ` +
-              `wifiRssi: ${ad.serviceData.wifiRssi}, overload: ${ad.serviceData.overload}, currentPower: ${ad.serviceData.currentPower}`,
-            );
-
-            if (ad.serviceData) {
-              this.BLE_IsConnected = true;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
-              await this.stopScanning(switchbot);
-            } else {
-              this.BLE_IsConnected = false;
-              this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} connected: ${this.BLE_IsConnected}`);
-            }
-          };
-          // Wait
-          return await sleep(this.scanDuration * 1000);
-        })
-        .then(async () => {
-          // Stop to monitor
-          await this.stopScanning(switchbot);
-        })
-        .catch(async (e: any) => {
-          this.apiError(e);
-          this.errorLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} failed BLERefreshStatus with ${this.device.connectionType}` +
-            ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-          );
-          await this.BLERefreshConnection(switchbot);
-        });
-    } else {
+    if (switchbot === undefined) {
       await this.BLERefreshConnection(switchbot);
-    }*/
+    }
   }
 
-  async openAPIRefreshStatus() {
+  async openAPIRefreshStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
     try {
       const { body, statusCode } = await this.platform.retryRequest(this.deviceMaxRetries, this.deviceDelayBetweenRetries,
-        `${Devices}/${this.device.deviceId}/status`, {
-          headers: this.platform.generateHeaders(),
-        });
+        `${Devices}/${this.device.deviceId}/status`, { headers: this.platform.generateHeaders() });
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
       const deviceStatus: any = await body.json();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
@@ -607,6 +581,15 @@ export class RobotVacuumCleaner extends deviceBase {
       this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery);
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
         + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+    }
+    // ChargingState
+    if (this.Battery.ChargingState === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ChargingState: ${this.Battery.ChargingState}`);
+    } else {
+      this.accessory.context.ChargingState = this.Battery.ChargingState;
+      this.Battery.Service.updateCharacteristic(this.hap.Characteristic.ChargingState, this.Battery.ChargingState);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
+        + ` ChargingState: ${this.Battery.ChargingState}`);
     }
   }
 

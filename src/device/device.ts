@@ -565,15 +565,13 @@ export abstract class deviceBase {
   }
 
   async statusCode(statusCode: number): Promise<void> {
-    switch (statusCode) {
-      case 171:
-        switch (this.device.deviceId) {
-          case this.device.hubDeviceId:
-          case '000000000000':
-            statusCode = 161;
-            break;
-        }
-        break;
+    if (statusCode === 171) {
+      if (this.device.deviceId === this.device.hubDeviceId) {
+        statusCode = 161;
+      }
+      if (this.device.deviceId === '000000000000') {
+        statusCode = 161;
+      }
     }
     switch (statusCode) {
       case 151:

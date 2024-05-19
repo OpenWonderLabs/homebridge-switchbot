@@ -10,21 +10,24 @@ import { Subject, interval, skipWhile } from 'rxjs';
 
 import type { SwitchBotPlatform } from '../platform.js';
 import type { device, deviceStatus, devicesConfig } from '../settings.js';
-import type { CharacteristicValue, PlatformAccessory, Service} from 'homebridge';
+import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 
 export class Hub extends deviceBase {
   // Services
   private LightSensor?: {
+    Name: CharacteristicValue;
     Service: Service;
     CurrentAmbientLightLevel: CharacteristicValue;
   };
 
   private HumiditySensor?: {
+    Name: CharacteristicValue;
     Service: Service;
     CurrentRelativeHumidity: CharacteristicValue;
   };
 
   private TemperatureSensor?: {
+    Name: CharacteristicValue;
     Service: Service;
     CurrentTemperature: CharacteristicValue;
   };
@@ -43,46 +46,21 @@ export class Hub extends deviceBase {
     this.doHubUpdate = new Subject();
     this.hubUpdateInProgress = false;
 
-    // Initialize Temperature Sensor property
-    if (!device.hub?.hide_temperature) {
-      this.TemperatureSensor = {
-        Service: accessory.getService(this.hap.Service.TemperatureSensor) as Service,
-        CurrentTemperature: accessory.context.CurrentTemperature || 0,
-      };
-    }
-
-    // Initialize Humidity Sensor property
-    if (!device.hub?.hide_humidity) {
-      this.HumiditySensor = {
-        Service: accessory.getService(this.hap.Service.HumiditySensor) as Service,
-        CurrentRelativeHumidity: accessory.context.CurrentRelativeHumidity || 0,
-      };
-    }
-
-    // Initialize Light Sensor property
-    if (!device.hub?.hide_lightsensor) {
-      this.LightSensor = {
-        Service: accessory.getService(this.hap.Service.LightSensor) as Service,
-        CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel || 0.0001,
-      };
-    }
-
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
-
-    // Temperature Sensor Service
+    // Initialize Temperature Sensor Service
     if (device.hub?.hide_temperature) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Temperature Sensor Service`);
       this.TemperatureSensor!.Service = this.accessory.getService(this.hap.Service.TemperatureSensor) as Service;
       accessory.removeService(this.TemperatureSensor!.Service);
-    } else if (!this.TemperatureSensor?.Service) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Temperature Sensor Service`);
-      const TemperatureSensorService = `${accessory.displayName} Temperature Sensor`;
-      (this.TemperatureSensor!.Service = this.accessory.getService(this.hap.Service.TemperatureSensor)
-        || this.accessory.addService(this.hap.Service.TemperatureSensor)), TemperatureSensorService;
+    } else {
+      this.TemperatureSensor = {
+        Name: accessory.context.TemperatureSensor.Name ?? `${accessory.displayName} Temperature Sensor`,
+        Service: accessory.getService(this.hap.Service.TemperatureSensor) ?? this.accessory.addService(this.hap.Service.TemperatureSensor) as Service,
+        CurrentTemperature: accessory.context.CurrentTemperature ?? 0,
+      };
 
-      this.TemperatureSensor!.Service.setCharacteristic(this.hap.Characteristic.Name, TemperatureSensorService);
-      this.TemperatureSensor!.Service
+      // Initialize Temperature Sensor Characteristic
+      this.TemperatureSensor.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.TemperatureSensor.Name)
         .getCharacteristic(this.hap.Characteristic.CurrentTemperature)
         .setProps({
           unit: Units['CELSIUS'],
@@ -94,23 +72,24 @@ export class Hub extends deviceBase {
         .onGet(() => {
           return this.TemperatureSensor!.CurrentTemperature;
         });
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Temperature Sensor Service Not Added`);
+      accessory.context.TemperatureSensor.Name = this.TemperatureSensor.Name;
     }
 
-    // Humidity Sensor Service
+    // Initialize Humidity Sensor Service
     if (device.hub?.hide_humidity) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Humidity Sensor Service`);
       this.HumiditySensor!.Service = this.accessory.getService(this.hap.Service.HumiditySensor) as Service;
       accessory.removeService(this.HumiditySensor!.Service);
-    } else if (!this.HumiditySensor?.Service) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Humidity Sensor Service`);
-      const HumiditySensorService = `${accessory.displayName} Humidity Sensor`;
-      (this.HumiditySensor!.Service = this.accessory.getService(this.hap.Service.HumiditySensor)
-        || this.accessory.addService(this.hap.Service.HumiditySensor)), HumiditySensorService;
+    } else {
+      this.HumiditySensor = {
+        Name: accessory.context.HumiditySensor.Name ?? `${accessory.displayName} Humidity Sensor`,
+        Service: accessory.getService(this.hap.Service.HumiditySensor) ?? this.accessory.addService(this.hap.Service.HumiditySensor) as Service,
+        CurrentRelativeHumidity: accessory.context.CurrentRelativeHumidity ?? 0,
+      };
 
-      this.HumiditySensor!.Service.setCharacteristic(this.hap.Characteristic.Name, HumiditySensorService);
+      // Initialize Humidity Sensor Characteristics
       this.HumiditySensor!.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.HumiditySensor.Name)
         .getCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity)
         .setProps({
           minStep: 0.1,
@@ -118,25 +97,36 @@ export class Hub extends deviceBase {
         .onGet(() => {
           return this.HumiditySensor!.CurrentRelativeHumidity;
         });
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Humidity Sensor Service Not Added`);
+      accessory.context.HumiditySensor.Name = this.HumiditySensor.Name;
     }
 
-    // Light Sensor Service
+    // Initialize Light Sensor Service
     if (device.hub?.hide_lightsensor) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
       this.LightSensor!.Service = this.accessory.getService(this.hap.Service.LightSensor) as Service;
       accessory.removeService(this.LightSensor!.Service);
-    } else if (!this.LightSensor?.Service) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Light Sensor Service`);
-      const LightSensorService = `${accessory.displayName} Light Sensor`;
-      (this.LightSensor!.Service = this.accessory.getService(this.hap.Service.LightSensor)
-        || this.accessory.addService(this.hap.Service.LightSensor)), LightSensorService;
-
-      this.LightSensor!.Service.setCharacteristic(this.hap.Characteristic.Name, LightSensorService);
     } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Light Sensor Service Not Added`);
+      this.LightSensor = {
+        Name: accessory.context.LightSensor.Name ?? `${accessory.displayName} Light Sensor`,
+        Service: accessory.getService(this.hap.Service.LightSensor) ?? this.accessory.addService(this.hap.Service.LightSensor) as Service,
+        CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel ?? 0.0001,
+      };
+
+      // Initialize Light Sensor Characteristics
+      this.LightSensor!.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.LightSensor.Name)
+        .getCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel)
+        .setProps({
+          minStep: 1,
+        })
+        .onGet(() => {
+          return this.LightSensor!.CurrentAmbientLightLevel;
+        });
+      accessory.context.LightSensor.Name = this.LightSensor.Name;
     }
+
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
 
     // Retrieve initial values and update Homekit
     this.updateHomeKitCharacteristics();

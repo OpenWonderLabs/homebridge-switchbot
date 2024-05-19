@@ -9,7 +9,7 @@ import { skipWhile } from 'rxjs/operators';
 
 import type { SwitchBotPlatform } from '../platform.js';
 import type { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import type { device, devicesConfig, serviceData, deviceStatus} from '../settings.js';
+import type { device, devicesConfig, serviceData, deviceStatus } from '../settings.js';
 
 /**
  * Platform Accessory
@@ -19,22 +19,26 @@ import type { device, devicesConfig, serviceData, deviceStatus} from '../setting
 export class Contact extends deviceBase {
   // Services
   private ContactSensor: {
+    Name: CharacteristicValue;
     Service: Service;
     ContactSensorState: CharacteristicValue;
   };
 
   private Battery: {
+    Name: CharacteristicValue;
     Service: Service;
     BatteryLevel: CharacteristicValue;
     StatusLowBattery: CharacteristicValue;
   };
 
   private MotionSensor?: {
+    Name: CharacteristicValue;
     Service: Service;
     MotionDetected: CharacteristicValue;
   };
 
   private LightSensor?: {
+    Name: CharacteristicValue;
     Service: Service;
     CurrentAmbientLightLevel: CharacteristicValue;
   };
@@ -55,84 +59,94 @@ export class Contact extends deviceBase {
 
     // Initialize Contact Sensor property
     this.ContactSensor = {
-      Service: accessory.getService(this.hap.Service.ContactSensor) as Service,
-      ContactSensorState: this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED,
+      Name: accessory.context.ContactSensor.Name ?? accessory.displayName,
+      Service: accessory.getService(this.hap.Service.ContactSensor) ?? accessory.addService(this.hap.Service.ContactSensor) as Service,
+      ContactSensorState: accessory.context.ContactSensorState ?? this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED,
     };
+
+    // Initialize ContactSensor Characteristics
+    this.ContactSensor.Service
+      .setCharacteristic(this.hap.Characteristic.Name, this.ContactSensor.Name)
+      .setCharacteristic(this.hap.Characteristic.StatusActive, true)
+      .getCharacteristic(this.hap.Characteristic.ContactSensorState)
+      .onGet(() => {
+        return this.ContactSensor.ContactSensorState;
+      });
+    accessory.context.ContactSensor.Name = this.ContactSensor.Name;
 
     // Initialize Battery property
     this.Battery = {
-      Service: accessory.getService(this.hap.Service.Battery) as Service,
-      BatteryLevel: 100,
-      StatusLowBattery: this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
+      Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
+      Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
+      BatteryLevel: accessory.context.BatteryLevel ?? 100,
+      StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
     };
 
-    // Initialize Motion Sensor property
-    if (!this.device.contact?.hide_motionsensor) {
-      this.MotionSensor = {
-        Service: accessory.getService(this.hap.Service.MotionSensor) as Service,
-        MotionDetected: false,
-      };
-    }
+    // Initialize Battery Characteristics
+    this.Battery.Service
+      .setCharacteristic(this.hap.Characteristic.Name, this.Battery.Name)
+      .setCharacteristic(this.hap.Characteristic.ChargingState, this.hap.Characteristic.ChargingState.NOT_CHARGEABLE)
+      .getCharacteristic(this.hap.Characteristic.BatteryLevel)
+      .onGet(() => {
+        return this.Battery.BatteryLevel;
+      });
 
-    // Initialize Light Sensor property
-    if (!this.device.contact?.hide_lightsensor) {
-      this.LightSensor = {
-        Service: accessory.getService(this.hap.Service.LightSensor) as Service,
-        CurrentAmbientLightLevel: 0,
-      };
-    }
+    this.Battery.Service
+      .setCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery)
+      .getCharacteristic(this.hap.Characteristic.StatusLowBattery)
+      .onGet(() => {
+        return this.Battery.StatusLowBattery;
+      });
+    accessory.context.Battery.Name = this.Battery.Name;
 
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
-
-    // get the Contact service if it exists, otherwise create a new Contact service
-    // you can create multiple services for each accessory
-    const ContactSensorService = `${accessory.displayName} Contact Sensor`;
-    (this.ContactSensor.Service = accessory.getService(this.hap.Service.ContactSensor)
-      || accessory.addService(this.hap.Service.ContactSensor)), ContactSensorService;
-
-    this.ContactSensor.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-
-    // Motion Sensor Service
-    if (device.contact?.hide_motionsensor) {
+    // Initialize Motion Sensor Service
+    if (this.device.contact?.hide_motionsensor) {
       this.debugLog(`${device.deviceType}: ${accessory.displayName} Removing Motion Sensor Service`);
       this.MotionSensor!.Service = accessory.getService(this.hap.Service.MotionSensor) as Service;
       accessory.removeService(this.MotionSensor!.Service);
-    } else if (!this.MotionSensor?.Service && !device.contact?.hide_motionsensor) {
-      this.debugLog(`${device.deviceType}: ${accessory.displayName} Add Motion Sensor Service`);
-      const MotionService = `${accessory.displayName} Motion Sensor`;
-      (this.MotionSensor!.Service = accessory.getService(this.hap.Service.MotionSensor)
-        || accessory.addService(this.hap.Service.MotionSensor)), MotionService;
-
-      this.MotionSensor!.Service.setCharacteristic(this.hap.Characteristic.Name, MotionService);
     } else {
-      this.debugLog(`${device.deviceType}: ${accessory.displayName} Motion Sensor Service Not Added`);
+      this.MotionSensor = {
+        Name: accessory.context.MotionSensor.Name ?? `${accessory.displayName} Motion Sensor`,
+        Service: accessory.getService(this.hap.Service.MotionSensor) ?? accessory.addService(this.hap.Service.MotionSensor) as Service,
+        MotionDetected: accessory.context.MotionDetected ?? false,
+      };
+
+      // Motion Sensor Characteristics
+      this.MotionSensor.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.MotionSensor.Name)
+        .setCharacteristic(this.hap.Characteristic.StatusActive, true)
+        .getCharacteristic(this.hap.Characteristic.MotionDetected)
+        .onGet(() => {
+          return this.MotionSensor!.MotionDetected;
+        });
+      accessory.context.MotionSensor.Name = this.MotionSensor.Name;
     }
 
-    // Light Sensor Service
+    // Initialize Light Sensor Service
     if (device.contact?.hide_lightsensor) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
       this.LightSensor!.Service = accessory.getService(this.hap.Service.LightSensor) as Service;
       accessory.removeService(this.LightSensor!.Service);
-    } else if (!this.LightSensor?.Service && !device.contact?.hide_lightsensor) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Light Sensor Service`);
-
-      const LightSensorService = `${accessory.displayName} Light Sensor`;
-      (this.LightSensor!.Service = this.accessory.getService(this.hap.Service.LightSensor)
-        || this.accessory.addService(this.hap.Service.LightSensor)), LightSensorService;
-
-      this.LightSensor!.Service.setCharacteristic(this.hap.Characteristic.Name, LightSensorService);
     } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Light Sensor Service Not Added`);
+      this.LightSensor = {
+        Name: accessory.context.LightSensor.Name ?? `${accessory.displayName} Light Sensor`,
+        Service: accessory.getService(this.hap.Service.LightSensor) ?? accessory.addService(this.hap.Service.LightSensor) as Service,
+        CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel ?? 0.0001,
+      };
+
+      // Light Sensor Characteristics
+      this.LightSensor.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.LightSensor.Name)
+        .setCharacteristic(this.hap.Characteristic.StatusActive, true)
+        .getCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel)
+        .onGet(() => {
+          return this.LightSensor!.CurrentAmbientLightLevel;
+        });
+      accessory.context.LightSensor.Name = this.LightSensor.Name;
     }
 
-    // Battery Service
-    const BatteryService = `${accessory.displayName} Battery`;
-    (this.Battery.Service = this.accessory.getService(this.hap.Service.Battery)
-      || accessory.addService(this.hap.Service.Battery)), BatteryService;
-
-    this.Battery.Service.setCharacteristic(this.hap.Characteristic.Name, BatteryService);
-    this.Battery.Service.setCharacteristic(this.hap.Characteristic.ChargingState, this.hap.Characteristic.ChargingState.NOT_CHARGEABLE);
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
 
     // Retrieve initial values and updateHomekit
     this.updateHomeKitCharacteristics();
@@ -152,8 +166,8 @@ export class Contact extends deviceBase {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
           const { detectionState, brightness, openState } = context;
           const { ContactSensorState } = this.ContactSensor;
-          const { CurrentAmbientLightLevel } = this.LightSensor || {};
-          const { MotionDetected } = this.MotionSensor || {};
+          const { CurrentAmbientLightLevel } = this.LightSensor ?? {};
+          const { MotionDetected } = this.MotionSensor ?? {};
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
             '(detectionState, brightness, openState) = ' +
             `Webhook:(${detectionState}, ${brightness}, ${openState}), ` +
@@ -482,11 +496,14 @@ export class Contact extends deviceBase {
 
   async apiError(e: any): Promise<void> {
     this.ContactSensor.Service.updateCharacteristic(this.hap.Characteristic.ContactSensorState, e);
+    this.ContactSensor.Service.updateCharacteristic(this.hap.Characteristic.StatusActive, e);
     if (!this.device.contact?.hide_motionsensor) {
       this.MotionSensor!.Service.updateCharacteristic(this.hap.Characteristic.MotionDetected, e);
+      this.MotionSensor!.Service.updateCharacteristic(this.hap.Characteristic.StatusActive, e);
     }
     if (!this.device.contact?.hide_lightsensor) {
       this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, e);
+      this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.StatusActive, e);
     }
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e);
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, e);

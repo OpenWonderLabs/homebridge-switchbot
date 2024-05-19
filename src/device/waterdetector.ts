@@ -19,6 +19,7 @@ import type { device, devicesConfig, serviceData, deviceStatus} from '../setting
 export class WaterDetector extends deviceBase {
   // Services
   private Battery: {
+    Name: CharacteristicValue
     Service: Service;
     BatteryLevel: CharacteristicValue;
     StatusLowBattery: CharacteristicValue;
@@ -26,6 +27,7 @@ export class WaterDetector extends deviceBase {
   };
 
   private LeakSensor?: {
+    Name: CharacteristicValue;
     Service: Service;
     StatusActive: CharacteristicValue;
     LeakDetected: CharacteristicValue;
@@ -48,49 +50,57 @@ export class WaterDetector extends deviceBase {
     this.doWaterDetectorUpdate = new Subject();
     this.WaterDetectorUpdateInProgress = false;
 
-    // Initialize Battery property
+    // Initialize Battery Service
     this.Battery = {
-      Service: accessory.getService(this.hap.Service.Battery) as Service,
-      BatteryLevel: accessory.context.BatteryLevel || 100,
-      StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
-      ChargingState: accessory.context.ChargingState || this.hap.Characteristic.ChargingState.NOT_CHARGEABLE,
+      Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
+      Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
+      BatteryLevel: accessory.context.BatteryLevel ?? 100,
+      StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
+      ChargingState: accessory.context.ChargingState ?? this.hap.Characteristic.ChargingState.NOT_CHARGEABLE,
     };
 
-    // Initialize Leak Sensor property
-    if (!this.device.waterdetector?.hide_leak) {
-      this.LeakSensor = {
-        Service: accessory.getService(this.hap.Service.LeakSensor) as Service,
-        StatusActive: accessory.context.StatusActive || false,
-        LeakDetected: accessory.context.LeakDetected || this.hap.Characteristic.LeakDetected.LEAK_NOT_DETECTED,
-      };
-    }
+    // Initialize Battery Characteristic
+    this.Battery.Service
+      .setCharacteristic(this.hap.Characteristic.Name, this.Battery.Name)
+      .setCharacteristic(this.hap.Characteristic.ChargingState, this.hap.Characteristic.ChargingState.NOT_CHARGEABLE)
+      .getCharacteristic(this.hap.Characteristic.BatteryLevel)
+      .onGet(() => {
+        return this.Battery.StatusLowBattery;
+      });
 
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
+    this.Battery.Service
+      .getCharacteristic(this.hap.Characteristic.StatusLowBattery)
+      .onGet(() => {
+        return this.Battery.StatusLowBattery;
+      });
+    accessory.context.Battery.Name = this.Battery.Name;
 
-    // Leak Sensor Service
+    // Initialize Leak Sensor Service
     if (device.waterdetector?.hide_leak) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leak Sensor Service`);
       this.LeakSensor!.Service = this.accessory.getService(this.hap.Service.LeakSensor) as Service;
       accessory.removeService(this.LeakSensor!.Service);
-    } else if (!this.LeakSensor?.Service) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Leak Sensor Service`);
-      const LeakSensorService = `${accessory.displayName} Leak Sensor`;
-      (this.LeakSensor!.Service = this.accessory.getService(this.hap.Service.LeakSensor)
-        || this.accessory.addService(this.hap.Service.LeakSensor)), LeakSensorService;
-
-      this.LeakSensor!.Service.setCharacteristic(this.hap.Characteristic.Name, LeakSensorService);
     } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Leak Sensor Service Not Added`);
+      this.LeakSensor = {
+        Name: accessory.context.LeakSensor.Name ?? `${accessory.displayName} Leak Sensor`,
+        Service: accessory.getService(this.hap.Service.LeakSensor) ?? this.accessory.addService(this.hap.Service.LeakSensor) as Service,
+        StatusActive: accessory.context.StatusActive ?? false,
+        LeakDetected: accessory.context.LeakDetected ?? this.hap.Characteristic.LeakDetected.LEAK_NOT_DETECTED,
+      };
+
+      // Initialize LeakSensor Characteristic
+      this.LeakSensor!.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.LeakSensor.Name)
+        .setCharacteristic(this.hap.Characteristic.StatusActive, true)
+        .getCharacteristic(this.hap.Characteristic.LeakDetected)
+        .onGet(() => {
+          return this.LeakSensor!.LeakDetected;
+        });
+      accessory.context.LeakSensor.Name = this.LeakSensor.Name;
     }
 
-    // Battery Service
-    const BatteryService = `${accessory.displayName} Battery`;
-    (this.Battery.Service = this.accessory.getService(this.hap.Service.Battery)
-      || accessory.addService(this.hap.Service.Battery)), BatteryService;
-
-    this.Battery.Service.setCharacteristic(this.hap.Characteristic.Name, BatteryService);
-    this.Battery.Service.setCharacteristic(this.hap.Characteristic.ChargingState, this.hap.Characteristic.ChargingState.NOT_CHARGEABLE);
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
 
     // Retrieve initial values and updateHomekit
     this.updateHomeKitCharacteristics();

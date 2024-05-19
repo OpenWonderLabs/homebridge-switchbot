@@ -13,6 +13,7 @@ import type { device, devicesConfig, serviceData, deviceStatus} from '../setting
 export class Plug extends deviceBase {
   // Services
   private Outlet: {
+    Name: CharacteristicValue;
     Service: Service;
     On: CharacteristicValue;
   };
@@ -31,27 +32,25 @@ export class Plug extends deviceBase {
     this.doPlugUpdate = new Subject();
     this.plugUpdateInProgress = false;
 
-    // Initialize Outlet property
+    // Initialize Outlet Service
     this.Outlet = {
-      Service: accessory.getService(this.hap.Service.Outlet) as Service,
+      Name: accessory.context.Outlet.Name ?? accessory.displayName,
+      Service: accessory.getService(this.hap.Service.Outlet) ?? accessory.addService(this.hap.Service.Outlet) as Service,
       On: accessory.context.On || false,
     };
 
+    // Initialize Outlet Characteristics
+    this.Outlet.Service
+      .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
+      .getCharacteristic(this.hap.Characteristic.On)
+      .onGet(() => {
+        return this.Outlet.On;
+      })
+      .onSet(this.OnSet.bind(this));
+    accessory.context.Outlet.Name = this.Outlet.Name;
+
     // Retrieve initial values and updateHomekit
     this.refreshStatus();
-
-    // get the Outlet service if it exists, otherwise create a new Outlet service
-    // you can create multiple services for each accessory
-    const OutletService = `${accessory.displayName} ${device.deviceType}`;
-    (this.Outlet.Service = accessory.getService(this.hap.Service.Outlet)
-      || accessory.addService(this.hap.Service.Outlet)), OutletService;
-
-    this.Outlet.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-    // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/Outlet
-
-    // create handlers for required characteristics
-    this.Outlet.Service.getCharacteristic(this.hap.Characteristic.On).onSet(this.OnSet.bind(this));
 
     // Update Homekit
     this.updateHomeKitCharacteristics();

@@ -16,6 +16,7 @@ import type { Service, PlatformAccessory, CharacteristicValue, CharacteristicCha
 export class Curtain extends deviceBase {
   // Services
   private WindowCovering: {
+    Name: CharacteristicValue;
     Service: Service;
     PositionState: CharacteristicValue;
     TargetPosition: CharacteristicValue;
@@ -24,12 +25,15 @@ export class Curtain extends deviceBase {
   };
 
   private Battery: {
+    Name: CharacteristicValue;
     Service: Service;
     BatteryLevel: CharacteristicValue;
     StatusLowBattery: CharacteristicValue;
+    ChargingState: CharacteristicValue;
   };
 
   private LightSensor?: {
+    Name: CharacteristicValue;
     Service: Service;
     CurrentAmbientLightLevel?: CharacteristicValue;
   };
@@ -57,49 +61,29 @@ export class Curtain extends deviceBase {
 
     // Initialize LightBulb property
     this.WindowCovering = {
-      Service: accessory.getService(this.hap.Service.WindowCovering) as Service,
-      PositionState: accessory.context.PositionState || this.hap.Characteristic.PositionState.STOPPED,
-      TargetPosition: accessory.context.TargetPosition || 100,
-      CurrentPosition: accessory.context.CurrentPosition || 100,
-      HoldPosition: accessory.context.HoldPosition || false,
+      Name: accessory.context.WindowCovering.Name ?? accessory.displayName,
+      Service: accessory.getService(this.hap.Service.WindowCovering) ?? accessory.addService(this.hap.Service.WindowCovering) as Service,
+      PositionState: accessory.context.PositionState ?? this.hap.Characteristic.PositionState.STOPPED,
+      TargetPosition: accessory.context.TargetPosition ?? 100,
+      CurrentPosition: accessory.context.CurrentPosition ?? 100,
+      HoldPosition: accessory.context.HoldPosition ?? false,
     };
 
-    // Initialize Battery property
-    this.Battery = {
-      Service: accessory.getService(this.hap.Service.Battery) as Service,
-      BatteryLevel: accessory.context.BatteryLevel || 100,
-      StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
-    };
+    // Initialize WindowCovering Service
+    this.WindowCovering.Service.
+      setCharacteristic(this.hap.Characteristic.Name, this.WindowCovering.Name)
+      .setCharacteristic(this.hap.Characteristic.ObstructionDetected, false)
+      .getCharacteristic(this.hap.Characteristic.PositionState)
+      .onGet(() => {
+        return this.WindowCovering.PositionState;
+      });
+    accessory.context.WindowCovering.Name = this.WindowCovering.Name;
 
-    // Initialize LightSensor property
-    if (!this.device.curtain?.hide_lightsensor) {
-      this.LightSensor = {
-        Service: accessory.getService(this.hap.Service.LightSensor) as Service,
-        CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel || 0.0001,
-      };
-    }
-
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
-
-    // get the WindowCovering service if it exists, otherwise create a new WindowCovering service
-    // you can create multiple services for each accessory
-    const WindowCoveringService = `${accessory.displayName} ${device.deviceType}`;
-    (this.WindowCovering.Service = accessory.getService(this.hap.Service.WindowCovering)
-      || accessory.addService(this.hap.Service.WindowCovering)), WindowCoveringService;
-
-    this.WindowCovering.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-
-    // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/WindowCovering
-
-    // create handlers for required characteristics
-    this.WindowCovering.Service.setCharacteristic(this.hap.Characteristic.PositionState, this.WindowCovering.PositionState);
-
+    // Initialize WindowCovering CurrentPosition
     this.WindowCovering.Service
       .getCharacteristic(this.hap.Characteristic.CurrentPosition)
       .setProps({
-        minStep: this.minStep(device),
+        minStep: Number(this.minStep(device)),
         minValue: 0,
         maxValue: 100,
         validValueRanges: [0, 100],
@@ -108,42 +92,83 @@ export class Curtain extends deviceBase {
         return this.WindowCovering.CurrentPosition;
       });
 
+    // Initialize WindowCovering TargetPosition
     this.WindowCovering.Service
       .getCharacteristic(this.hap.Characteristic.TargetPosition)
       .setProps({
-        minStep: this.minStep(device),
+        minStep: Number(this.minStep(device)),
         minValue: 0,
         maxValue: 100,
         validValueRanges: [0, 100],
       })
+      .onGet(() => {
+        return this.WindowCovering.TargetPosition;
+      })
       .onSet(this.TargetPositionSet.bind(this));
 
+    // Initialize WindowCovering TargetPosition
     this.WindowCovering.Service
       .getCharacteristic(this.hap.Characteristic.HoldPosition)
+      .onGet(() => {
+        return this.WindowCovering.HoldPosition;
+      })
       .onSet(this.HoldPositionSet.bind(this));
 
-    // Light Sensor Service
+    // Initialize Battery property
+    this.Battery = {
+      Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
+      Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
+      BatteryLevel: accessory.context.BatteryLevel ?? 100,
+      StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
+      ChargingState: accessory.context.ChargingState ?? this.hap.Characteristic.ChargingState.NOT_CHARGING,
+    };
+
+    // Initialize Battery Service
+    this.Battery.Service
+      .setCharacteristic(this.hap.Characteristic.Name, this.Battery.Name)
+      .getCharacteristic(this.hap.Characteristic.BatteryLevel)
+      .onGet(() => {
+        return this.Battery.BatteryLevel;
+      });
+    accessory.context.Battery.Name = this.Battery.Name;
+
+    this.Battery.Service
+      .getCharacteristic(this.hap.Characteristic.StatusLowBattery)
+      .onGet(() => {
+        return this.Battery.StatusLowBattery;
+      });
+
+    this.Battery.Service
+      .getCharacteristic(this.hap.Characteristic.ChargingState)
+      .onGet(() => {
+        return this.Battery.ChargingState;
+      });
+
+    // Initialize LightSensor Service
     if (device.curtain?.hide_lightsensor) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
       this.LightSensor!.Service = this.accessory.getService(this.hap.Service.LightSensor) as Service;
       accessory.removeService(this.LightSensor!.Service);
-    } else if (!this.LightSensor?.Service) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Light Sensor Service`);
-      const LightSensorService = `${accessory.displayName} Light Sensor`;
-      (this.LightSensor!.Service = this.accessory.getService(this.hap.Service.LightSensor)
-        || this.accessory.addService(this.hap.Service.LightSensor)), LightSensorService;
-
-      this.LightSensor!.Service.setCharacteristic(this.hap.Characteristic.Name, LightSensorService);
     } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Light Sensor Service Not Added`);
+      this.LightSensor = {
+        Name: accessory.context.LightSensor.Name ?? `${accessory.displayName} Light Sensor`,
+        Service: accessory.getService(this.hap.Service.LightSensor) ?? this.accessory.addService(this.hap.Service.LightSensor) as Service,
+        CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel ?? 0.0001,
+      };
+
+      // Initialize LightSensor Characteristic
+      this.LightSensor.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.LightSensor.Name)
+        .setCharacteristic(this.hap.Characteristic.StatusActive, true)
+        .getCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel)
+        .onGet(() => {
+          return this.LightSensor!.CurrentAmbientLightLevel!;
+        });
+      accessory.context.LightSensor.Name = this.LightSensor.Name;
     }
 
-    // Battery Service
-    const batteryService = `${accessory.displayName} Battery`;
-    (this.Battery.Service = this.accessory.getService(this.hap.Service.Battery)
-      || accessory.addService(this.hap.Service.Battery)), batteryService;
-
-    this.Battery.Service.setCharacteristic(this.hap.Characteristic.Name, `${accessory.displayName} Battery`);
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
 
     // Update Homekit
     this.updateHomeKitCharacteristics();
@@ -345,30 +370,37 @@ export class Curtain extends deviceBase {
         case 3:
           this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 2;
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel}`);
+          this.Battery.ChargingState = this.hap.Characteristic.ChargingState.CHARGING;
           break;
         case 4:
           this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 3;
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel}`);
+          this.Battery.ChargingState = this.hap.Characteristic.ChargingState.CHARGING;
           break;
         case 5:
           this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 4;
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel}`);
+          this.Battery.ChargingState = this.hap.Characteristic.ChargingState.CHARGING;
           break;
         case 6:
           this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 5;
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel}`);
+          this.Battery.ChargingState = this.hap.Characteristic.ChargingState.CHARGING;
           break;
         case 7:
           this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 6;
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel}`);
+          this.Battery.ChargingState = this.hap.Characteristic.ChargingState.CHARGING;
           break;
         case 8:
           this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 7;
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel}`);
+          this.Battery.ChargingState = this.hap.Characteristic.ChargingState.CHARGING;
           break;
         case 9:
           this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 8;
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel}`);
+          this.Battery.ChargingState = this.hap.Characteristic.ChargingState.CHARGING;
           break;
         case 10:
         default:
@@ -441,12 +473,13 @@ export class Curtain extends deviceBase {
       const set_minLux = await this.minLux();
       const set_maxLux = await this.maxLux();
       switch (deviceStatus.body.brightness) {
-        case 'dim':
-          this.LightSensor!.CurrentAmbientLightLevel = set_minLux;
-          break;
         case 'bright':
-        default:
           this.LightSensor!.CurrentAmbientLightLevel = set_maxLux;
+          this.Battery.ChargingState = this.hap.Characteristic.ChargingState.CHARGING;
+          break;
+        case 'dim':
+        default:
+          this.LightSensor!.CurrentAmbientLightLevel = set_minLux;
       }
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
         + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
@@ -843,6 +876,17 @@ export class Curtain extends deviceBase {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
         + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
     }
+    if (this.Battery.ChargingState === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ChargingState: ${this.Battery.ChargingState}`);
+    } else {
+      if (this.device.mqttURL) {
+        this.mqttPublish('ChargingState', this.Battery.ChargingState.toString());
+      }
+      this.accessory.context.ChargingState = this.Battery.ChargingState;
+      this.Battery.Service.updateCharacteristic(this.hap.Characteristic.ChargingState, this.Battery.ChargingState);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
+        + ` ChargingState: ${this.Battery.ChargingState}`);
+    }
   }
 
   async BLEPushConnection() {
@@ -908,7 +952,7 @@ export class Curtain extends deviceBase {
     }
   }
 
-  minStep(device: device & devicesConfig): number {
+  async minStep(device: device & devicesConfig): Promise<number> {
     let set_minStep: number;
     if (device.curtain?.set_minStep) {
       set_minStep = device.curtain?.set_minStep;
@@ -950,11 +994,12 @@ export class Curtain extends deviceBase {
     this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, e);
     this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.PositionState, e);
     this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, e);
-    if (!this.device.curtain?.hide_lightsensor) {
-      this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, e);
-    }
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e);
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, e);
-    //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+    this.Battery.Service.updateCharacteristic(this.hap.Characteristic.ChargingState, e);
+    if (!this.device.curtain?.hide_lightsensor) {
+      this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, e);
+      this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.StatusActive, e);
+    }
   }
 }

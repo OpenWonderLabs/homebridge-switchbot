@@ -19,17 +19,20 @@ import type { device, devicesConfig, serviceData, deviceStatus } from '../settin
 export class Motion extends deviceBase {
   // Services
   private Battery: {
+    Name: CharacteristicValue;
     Service: Service;
     BatteryLevel: CharacteristicValue;
     StatusLowBattery: CharacteristicValue;
   };
 
   private MotionSensor: {
+    Name: CharacteristicValue;
     Service: Service;
     MotionDetected: CharacteristicValue;
   };
 
   private LightSensor?: {
+    Name: CharacteristicValue;
     Service: Service;
     CurrentAmbientLightLevel: CharacteristicValue;
   };
@@ -50,64 +53,72 @@ export class Motion extends deviceBase {
 
     // Initialize Motion Sensor property
     this.MotionSensor = {
+      Name: accessory.context.MotionSensor.Name ?? `${accessory.displayName} Motion Sensor`,
       Service: accessory.getService(this.hap.Service.MotionSensor) ?? accessory.addService(this.hap.Service.MotionSensor) as Service,
-      MotionDetected: accessory.context.MotionDetected || false,
+      MotionDetected: accessory.context.MotionDetected ?? false,
     };
 
-    // Initialize Battery property
+    // Initialize Motion Sensor Characteristics
+    this.MotionSensor.Service
+      .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
+      .setCharacteristic(this.hap.Characteristic.StatusActive, true)
+      .getCharacteristic(this.hap.Characteristic.MotionDetected)
+      .onGet(() => {
+        return this.MotionSensor.MotionDetected;
+      });
+    accessory.context.MotionSensor.Name = this.MotionSensor.Name;
+
+    // Initialize Battery Service
     this.Battery = {
+      Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
-      BatteryLevel: accessory.context.BatteryLevel || 100,
-      StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
+      BatteryLevel: accessory.context.BatteryLevel ?? 100,
+      StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
     };
 
-    // Initialize Motion Sensor property
-    if (!device.motion?.hide_lightsensor) {
+    // Initialize Battery Characteristics
+    this.Battery.Service
+      .setCharacteristic(this.hap.Characteristic.Name, this.Battery.Name)
+      .setCharacteristic(this.hap.Characteristic.ChargingState, this.hap.Characteristic.ChargingState.NOT_CHARGEABLE)
+      .getCharacteristic(this.hap.Characteristic.BatteryLevel)
+      .onGet(() => {
+        return this.Battery.BatteryLevel;
+      });
+
+    this.Battery.Service
+      .setCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery)
+      .getCharacteristic(this.hap.Characteristic.StatusLowBattery)
+      .onGet(() => {
+        return this.Battery.StatusLowBattery;
+      });
+    accessory.context.Battery.Name = this.Battery.Name;
+
+    // Initialize Light Sensor Service
+    if (device.motion?.hide_lightsensor) {
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
+      this.LightSensor!.Service = this.accessory.getService(this.hap.Service.LightSensor) as Service;
+      accessory.removeService(this.LightSensor!.Service);
+    } else {
       this.LightSensor = {
-        Service: accessory.getService(this.hap.Service.LightSensor) as Service,
-        CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel || 0,
+        Name: accessory.context.LightSensor.Name ?? `${accessory.displayName} Light Sensor`,
+        Service: accessory.getService(this.hap.Service.LightSensor) ?? this.accessory.addService(this.hap.Service.LightSensor) as Service,
+        CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel ?? 0,
       };
+
+      // Initialize LightSensor Characteristics
+      this.LightSensor!.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.LightSensor!.Name)
+        .setCharacteristic(this.hap.Characteristic.StatusActive, true)
+        .getCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel)
+        .onGet(() => {
+          return this.LightSensor!.CurrentAmbientLightLevel;
+        });
+      accessory.context.LightSensor.Name = this.LightSensor.Name;
     };
 
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();
-
-    /*(this.MotionSensor.Service = accessory.getService(this.hap.Service.MotionSensor)
-        || accessory.addService(this.hap.Service.MotionSensor)), `${accessory.displayName} Motion Sensor`;*/
-
-    if (this.MotionSensor.Service) {
-      this.MotionSensor.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-    }
-
-    // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/MotionSensor
-
-    // Light Sensor Service
-    if (device.motion?.hide_lightsensor) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
-      this.LightSensor!.Service = this.accessory.getService(this.hap.Service.LightSensor) as Service;
-      accessory.removeService(this.LightSensor!.Service);
-    } else if (!this.LightSensor?.Service) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Light Sensor Service`);
-      const LightSensorService = `${accessory.displayName} Light Sensor`;
-      (this.LightSensor!.Service = this.accessory.getService(this.hap.Service.LightSensor)
-        || this.accessory.addService(this.hap.Service.LightSensor)), LightSensorService;
-
-      this.LightSensor!.Service.setCharacteristic(this.hap.Characteristic.Name, LightSensorService);
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Light Sensor Service Not Added`);
-    }
-
-    // Battery Service
-    /*const BatteryService = `${accessory.displayName} Battery`;
-    (this.Battery.Service = this.accessory.getService(this.hap.Service.Battery)
-      || accessory.addService(this.hap.Service.Battery)), BatteryService;*/
-
-    if (this.Battery.Service) {
-      this.Battery.Service.setCharacteristic(this.hap.Characteristic.Name, `${accessory.displayName} Battery`);
-      this.Battery.Service.setCharacteristic(this.hap.Characteristic.ChargingState, this.hap.Characteristic.ChargingState.NOT_CHARGEABLE);
-    }
 
     // Retrieve initial values and updateHomekit
     this.updateHomeKitCharacteristics();

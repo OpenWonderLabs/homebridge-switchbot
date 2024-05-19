@@ -11,12 +11,13 @@ import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 
 import type { SwitchBotPlatform } from '../platform.js';
 import type { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import type { device, devicesConfig, serviceData, deviceStatus} from '../settings.js';
+import type { device, devicesConfig, serviceData, deviceStatus } from '../settings.js';
 
 
 export class BlindTilt extends deviceBase {
   // Services
   private WindowCovering: {
+    Name: CharacteristicValue;
     Service: Service;
     PositionState: CharacteristicValue;
     TargetPosition: CharacteristicValue;
@@ -26,12 +27,15 @@ export class BlindTilt extends deviceBase {
   };
 
   private Battery: {
+    Name: CharacteristicValue;
     Service: Service;
     BatteryLevel: CharacteristicValue;
     StatusLowBattery: CharacteristicValue;
+    ChargingState?: CharacteristicValue;
   };
 
   private LightSensor?: {
+    Name: CharacteristicValue;
     Service: Service;
     CurrentAmbientLightLevel?: CharacteristicValue;
   };
@@ -62,83 +66,46 @@ export class BlindTilt extends deviceBase {
     this.blindTiltUpdateInProgress = false;
     this.setNewTarget = false;
 
-    // Initialize LightBulb property
+    // Initialize WindowCovering Service
     this.WindowCovering = {
-      Service: accessory.getService(this.hap.Service.WindowCovering) as Service,
-      PositionState: accessory.context.PositionState || this.hap.Characteristic.PositionState.STOPPED,
-      TargetPosition: accessory.context.TargetPosition || 100,
-      CurrentPosition: accessory.context.CurrentPosition || 100,
-      TargetHorizontalTiltAngle: accessory.context.TargetHorizontalTiltAngle || 0,
-      CurrentHorizontalTiltAngle: accessory.context.CurrentHorizontalTiltAngle || 0,
+      Name: accessory.context.WindowCovering.Name ?? accessory.displayName,
+      Service: accessory.getService(this.hap.Service.WindowCovering) ?? accessory.addService(this.hap.Service.WindowCovering) as Service,
+      PositionState: accessory.context.PositionState ?? this.hap.Characteristic.PositionState.STOPPED,
+      TargetPosition: accessory.context.TargetPosition ?? 100,
+      CurrentPosition: accessory.context.CurrentPosition ?? 100,
+      TargetHorizontalTiltAngle: accessory.context.TargetHorizontalTiltAngle ?? 90,
+      CurrentHorizontalTiltAngle: accessory.context.CurrentHorizontalTiltAngle ?? 90,
     };
 
-    // Initialize Battery property
-    this.Battery = {
-      Service: accessory.getService(this.hap.Service.Battery) as Service,
-      BatteryLevel: accessory.context.BatteryLevel || 100,
-      StatusLowBattery: this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
-    };
-
-    // Initialize LightSensor property
-    if (!this.device.blindTilt?.hide_lightsensor) {
-      this.LightSensor = {
-        Service: accessory.getService(this.hap.Service.LightSensor) as Service,
-        CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel || 0.0001,
-      };
-    }
-
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
-
-    // get the WindowCovering service if it exists, otherwise create a new WindowCovering service
-    // you can create multiple services for each accessory
-    (this.WindowCovering!.Service =
-      accessory.getService(this.hap.Service.WindowCovering)
-      || accessory.addService(this.hap.Service.WindowCovering)), accessory.displayName;
-
-    this.WindowCovering!.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-
-    // create handlers for required characteristics
-    this.WindowCovering!.Service.setCharacteristic(this.hap.Characteristic.PositionState, this.WindowCovering.PositionState);
-
-    this.WindowCovering!.Service
-      .getCharacteristic(this.hap.Characteristic.CurrentPosition)
+    // Initialize WindowCovering Characteristics
+    this.WindowCovering.Service
+      .setCharacteristic(this.hap.Characteristic.Name, this.WindowCovering.Name)
+      .getCharacteristic(this.hap.Characteristic.TargetPosition)
       .setProps({
-        minStep: this.minStep(device),
+        minStep: Number(this.minStep(device)),
         minValue: 0,
         maxValue: 100,
         validValueRanges: [0, 100],
       })
       .onGet(() => {
-        return this.WindowCovering?.CurrentPosition ?? 0;
-      });
-
-    this.WindowCovering!.Service
-      .getCharacteristic(this.hap.Characteristic.TargetPosition)
-      .setProps({
-        minStep: this.minStep(device),
-        minValue: 0,
-        maxValue: 100,
-        validValueRanges: [0, 100],
+        return this.WindowCovering.TargetPosition;
       })
       .onSet(this.TargetPositionSet.bind(this));
 
-    this.WindowCovering!.CurrentHorizontalTiltAngle = 90;
-    this.WindowCovering!.Service
-      .getCharacteristic(this.hap.Characteristic.CurrentHorizontalTiltAngle)
+    // Initialize WindowCovering CurrentPosition Characteristic
+    this.WindowCovering.Service
+      .getCharacteristic(this.hap.Characteristic.CurrentPosition)
       .setProps({
-        minStep: 180,
-        minValue: -90,
-        maxValue: 90,
-        validValues: [-90, 90],
-      })
-      .onGet(() => {
-        // this.debugLog(`requested CurrentHorizontalTiltAngle: ${this.WindowCovering.CurrentHorizontalTiltAngle}`);
-        return this.WindowCovering.CurrentHorizontalTiltAngle ?? 0;
+        minStep: Number(this.minStep(device)),
+        minValue: 0,
+        maxValue: 100,
+        validValueRanges: [0, 100],
+      }).onGet(() => {
+        return this.WindowCovering?.CurrentPosition ?? 0;
       });
 
-    this.WindowCovering!.TargetHorizontalTiltAngle = 90;
-    this.WindowCovering!.Service
+    // Initialize WindowCovering TargetHorizontalTiltAngle Characteristic
+    this.WindowCovering.Service
       .getCharacteristic(this.hap.Characteristic.TargetHorizontalTiltAngle)
       .setProps({
         minStep: 180,
@@ -146,14 +113,64 @@ export class BlindTilt extends deviceBase {
         maxValue: 90,
         validValues: [-90, 90],
       })
+      .onGet(() => {
+        return this.WindowCovering.TargetHorizontalTiltAngle;
+      })
       .onSet(this.TargetHorizontalTiltAngleSet.bind(this));
+    accessory.context.WindowCovering.Name = this.WindowCovering.Name;
 
-    // Battery Service
-    const batteryService = `${accessory.displayName} Battery`;
-    (this.Battery.Service = this.accessory.getService(this.hap.Service.Battery)
-      || accessory.addService(this.hap.Service.Battery)), batteryService;
+    // Initialize WindowCovering CurrentHorizontalTiltAngle Characteristic
+    this.WindowCovering.Service
+      .getCharacteristic(this.hap.Characteristic.CurrentHorizontalTiltAngle)
+      .setProps({
+        minStep: 180,
+        minValue: -90,
+        maxValue: 90,
+        validValues: [-90, 90],
+      }).onGet(() => {
+        return this.WindowCovering.CurrentHorizontalTiltAngle ?? 0;
+      });
 
-    this.Battery!.Service.setCharacteristic(this.hap.Characteristic.Name, batteryService);
+    // Initialize Battery Service
+    this.Battery = {
+      Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
+      Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
+      BatteryLevel: accessory.context.BatteryLevel ?? 100,
+      StatusLowBattery: this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
+      ChargingState: accessory.context.ChargingState ?? this.hap.Characteristic.ChargingState.NOT_CHARGING,
+    };
+
+    // Initialize Battery Name Characteristic
+    this.Battery.Service
+      .setCharacteristic(this.hap.Characteristic.Name, this.Battery.Name)
+      .setCharacteristic(this.hap.Characteristic.ChargingState, this.hap.Characteristic.ChargingState.NOT_CHARGEABLE);
+    accessory.context.Battery.Name = this.Battery.Name;
+
+    // Initialize LightSensor Service
+    if (device.blindTilt?.hide_lightsensor) {
+      this.debugLog(`${device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
+      this.LightSensor!.Service = accessory.getService(this.hap.Service.LightSensor) as Service;
+      accessory.removeService(this.LightSensor!.Service);
+    } else {
+      this.LightSensor = {
+        Name: accessory.context.LightSensor.Name ?? `${accessory.displayName} Light Sensor`,
+        Service: accessory.getService(this.hap.Service.LightSensor) ?? accessory.addService(this.hap.Service.LightSensor) as Service,
+        CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel ?? 0.0001,
+      };
+
+      // Initialize LightSensor Characteristics
+      this.LightSensor.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.LightSensor.Name)
+        .setCharacteristic(this.hap.Characteristic.StatusActive, true)
+        .getCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel)
+        .onGet(() => {
+          return this.LightSensor?.CurrentAmbientLightLevel ?? 0.0001;
+        });
+      accessory.context.LightSensor.Name = this.LightSensor.Name;
+    }
+
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
 
     // Update Homekit
     this.updateHomeKitCharacteristics();
@@ -167,19 +184,21 @@ export class BlindTilt extends deviceBase {
 
     //regisiter webhook event handler
     if (device.webhook) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+      this.debugLog(`${device.deviceType}: ${accessory.displayName} is listening webhook.`);
       this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
         try {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          const { slidePosition, battery } = context;
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
+          const { slidePosition, battery, lightLevel } = context;
           const { CurrentPosition } = this.WindowCovering;
           const { BatteryLevel } = this.Battery;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-            '(slidePosition, battery) = ' +
-            `Webhook:(${slidePosition}, ${battery}), ` +
-            `current:(${CurrentPosition}, ${BatteryLevel})`);
-          this.WindowCovering!.CurrentPosition = slidePosition;
+          const { CurrentAmbientLightLevel } = this.LightSensor ?? {};
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} (slidePosition, battery, lightLevel) = `
+            + `Webhook:(${slidePosition}, ${battery}, ${lightLevel}), current:(${CurrentPosition}, ${BatteryLevel}, ${CurrentAmbientLightLevel})`);
+          this.WindowCovering.CurrentPosition = slidePosition;
           this.Battery.BatteryLevel = battery;
+          if (!device.blindTilt?.hide_lightsensor) {
+            this.LightSensor!.CurrentAmbientLightLevel = lightLevel;
+          }
           this.updateHomeKitCharacteristics();
         } catch (e: any) {
           this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
@@ -192,11 +211,11 @@ export class BlindTilt extends deviceBase {
     interval(this.deviceUpdateRate * 1000)
       //.pipe(skipWhile(() => this.blindTiltUpdateInProgress))
       .subscribe(async () => {
-        if (this.WindowCovering!.PositionState === this.hap.Characteristic.PositionState.STOPPED) {
+        if (this.WindowCovering.PositionState === this.hap.Characteristic.PositionState.STOPPED) {
           return;
         }
-        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Refresh Status When Moving,`
-          + ` PositionState: ${this.WindowCovering!.PositionState}`);
+        this.debugLog(`${device.deviceType}: ${accessory.displayName} Refresh Status When Moving,`
+          + ` PositionState: ${this.WindowCovering.PositionState}`);
         await this.refreshStatus();
       });
 
@@ -214,10 +233,8 @@ export class BlindTilt extends deviceBase {
           await this.pushChanges();
         } catch (e: any) {
           this.apiError(e);
-          this.errorLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,` +
-            ` Error Message: ${JSON.stringify(e.message)}`,
-          );
+          this.errorLog(`${device.deviceType}: ${accessory.displayName} failed pushChanges with ${device.connectionType} Connection,` +
+            ` Error Message: ${JSON.stringify(e.message)}`);
         }
         this.blindTiltUpdateInProgress = false;
       });
@@ -846,6 +863,17 @@ export class BlindTilt extends deviceBase {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
         + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
     }
+    if (this.Battery.ChargingState === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ChargingState: ${this.Battery.ChargingState}`);
+    } else {
+      if (this.device.mqttURL) {
+        this.mqttPublish('ChargingState', this.Battery.ChargingState.toString());
+      }
+      this.accessory.context.ChargingState = this.Battery.ChargingState;
+      this.Battery.Service.updateCharacteristic(this.hap.Characteristic.ChargingState, this.Battery.ChargingState);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
+        + ` ChargingState: ${this.Battery.ChargingState}`);
+    }
   }
 
   async BLEPushConnection() {
@@ -910,7 +938,7 @@ export class BlindTilt extends deviceBase {
     }
   }
 
-  minStep(device: device & devicesConfig): number {
+  async minStep(device: device & devicesConfig): Promise<number> {
     let set_minStep: number;
     if (device.blindTilt?.set_minStep) {
       set_minStep = device.blindTilt?.set_minStep;
@@ -945,6 +973,8 @@ export class BlindTilt extends deviceBase {
       this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 100);
       this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED);
       this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 100);
+      this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.CurrentHorizontalTiltAngle, 90);
+      this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.TargetHorizontalTiltAngle, 90);
     }
   }
 
@@ -952,14 +982,15 @@ export class BlindTilt extends deviceBase {
     this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, e);
     this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.PositionState, e);
     this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, e);
+    this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.CurrentHorizontalTiltAngle, e);
+    this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.TargetHorizontalTiltAngle, e);
+    this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e);
+    this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, e);
+    this.Battery.Service.updateCharacteristic(this.hap.Characteristic.ChargingState, e);
     if (!this.device.curtain?.hide_lightsensor) {
       this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, e);
+      this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.StatusActive, e);
     }
-    if (this.BLE) {
-      this.Battery?.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e);
-      this.Battery?.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, e);
-    }
-    //throw new this.platform.api.hap.HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
   /**

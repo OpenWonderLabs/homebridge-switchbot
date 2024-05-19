@@ -11,23 +11,27 @@ import type { device, devicesConfig, deviceStatus, serviceData } from '../settin
 export class Lock extends deviceBase {
   // Services
   private LockMechanism: {
+    Name: CharacteristicValue;
     Service: Service;
     LockTargetState: CharacteristicValue;
     LockCurrentState: CharacteristicValue;
   };
 
   private Battery: {
+    Name: CharacteristicValue;
     Service: Service;
     BatteryLevel: CharacteristicValue;
     StatusLowBattery: CharacteristicValue;
   };
 
   private ContactSensor?: {
+    Name: CharacteristicValue;
     Service: Service;
     ContactSensorState: CharacteristicValue;
   };
 
   private Switch?: {
+    Name: CharacteristicValue;
     Service: Service;
     On: CharacteristicValue;
   };
@@ -46,91 +50,96 @@ export class Lock extends deviceBase {
     this.doLockUpdate = new Subject();
     this.lockUpdateInProgress = false;
 
-    // Initialize LockMechanism property
+    // Initialize LockMechanism Service
     this.LockMechanism = {
-      Service: accessory.getService(this.hap.Service.LockMechanism) as Service,
-      LockTargetState: accessory.context.LockTargetState || this.hap.Characteristic.LockTargetState.SECURED,
-      LockCurrentState: accessory.context.LockCurrentState || this.hap.Characteristic.LockCurrentState.SECURED,
+      Name: accessory.context.LockMechanism.Name ?? accessory.displayName,
+      Service: accessory.getService(this.hap.Service.LockMechanism) ?? accessory.addService(this.hap.Service.LockMechanism) as Service,
+      LockTargetState: accessory.context.LockTargetState ?? this.hap.Characteristic.LockTargetState.SECURED,
+      LockCurrentState: accessory.context.LockCurrentState ?? this.hap.Characteristic.LockCurrentState.SECURED,
     };
+
+    // Initialize LockMechanism Characteristics
+    this.LockMechanism.Service
+      .setCharacteristic(this.hap.Characteristic.Name, this.LockMechanism.Name)
+      .getCharacteristic(this.hap.Characteristic.LockTargetState)
+      .onGet(() => {
+        return this.LockMechanism.LockTargetState;
+      })
+      .onSet(this.LockTargetStateSet.bind(this));
+    accessory.context.LockMechanism.Name = this.LockMechanism.Name;
 
     // Initialize Battery property
     this.Battery = {
-      Service: accessory.getService(this.hap.Service.Battery) as Service,
-      BatteryLevel: accessory.context.BatteryLevel || 100,
-      StatusLowBattery: accessory.context.StatusLowBattery || this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
+      Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
+      Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
+      BatteryLevel: accessory.context.BatteryLevel ?? 100,
+      StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
     };
 
-    // Initialize ContactSensor property
-    if (!this.device.lock?.hide_contactsensor) {
-      this.ContactSensor = {
-        Service: accessory.getService(this.hap.Service.ContactSensor) as Service,
-        ContactSensorState: accessory.context.ContactSensorState || this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED,
-      };
-    }
+    // Initialize Battery Characteristics
+    this.Battery.Service
+      .setCharacteristic(this.hap.Characteristic.Name, this.Battery.Name)
+      .setCharacteristic(this.hap.Characteristic.ChargingState, this.hap.Characteristic.ChargingState.NOT_CHARGEABLE)
+      .getCharacteristic(this.hap.Characteristic.BatteryLevel)
+      .onGet(() => {
+        return this.Battery.BatteryLevel;
+      });
 
-    // Initialize Latch Button Service
-    if (device.lock?.activate_latchbutton) {
-      this.Switch = {
-        Service: accessory.getService(this.hap.Service.Switch) as Service,
-        On: accessory.context.On || false,
-      };
-    }
-
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
-
-    // get the LockMechanism service if it exists, otherwise create a new LockMechanism service
-    // you can create multiple services for each accessory
-    const LockMechanismService = `${accessory.displayName} ${device.deviceType}`;
-    (this.LockMechanism.Service = accessory.getService(this.hap.Service.LockMechanism)
-      || accessory.addService(this.hap.Service.LockMechanism)), LockMechanismService;
-
-    this.LockMechanism.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-
-    this.LockMechanism.Service.getCharacteristic(this.hap.Characteristic.LockTargetState).onSet(this.LockTargetStateSet.bind(this));
-
-    // Latch Button Service
-    if (device.lock?.activate_latchbutton === false) { // remove the service when this variable is false
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Latch Button Service`);
-      this.Switch!.Service = accessory.getService(this.hap.Service.Switch) as Service;
-      accessory.removeService(this.Switch!.Service);
-    } else if (!this.Switch!.Service && device.lock?.activate_latchbutton === true) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Adding Latch Button Service`);
-      const latchServiceName = `${accessory.displayName} Latch`;
-      this.Switch!.Service = accessory.getService(this.hap.Service.Switch)
-        || accessory.addService(this.hap.Service.Switch, latchServiceName, 'Switch.ServiceIdentifier');
-
-      this.Switch!.Service.setCharacteristic(this.hap.Characteristic.Name, latchServiceName);
-
-      this.Switch!.Service.getCharacteristic(this.hap.Characteristic.On).onSet(this.OnSet.bind(this));
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Latch Button Service Not Added`);
-    }
-
+    this.Battery.Service
+      .getCharacteristic(this.hap.Characteristic.StatusLowBattery)
+      .onGet(() => {
+        return this.Battery.StatusLowBattery;
+      });
+    accessory.context.Battery.Name = this.Battery.Name;
 
     // Contact Sensor Service
     if (device.lock?.hide_contactsensor) {
       this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Contact Sensor Service`);
       this.ContactSensor!.Service = this.accessory.getService(this.hap.Service.ContactSensor) as Service;
       accessory.removeService(this.ContactSensor!.Service);
-    } else if (!this.ContactSensor?.Service) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Contact Sensor Service`);
-      const ContactSensorService = `${accessory.displayName} Contact Sensor`;
-      (this.ContactSensor!.Service = this.accessory.getService(this.hap.Service.ContactSensor)
-        || this.accessory.addService(this.hap.Service.ContactSensor)), ContactSensorService;
-
-      this.ContactSensor!.Service.setCharacteristic(this.hap.Characteristic.Name, ContactSensorService);
     } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Contact Sensor Service Not Added`);
+      this.ContactSensor = {
+        Name: accessory.context.ContactSensor.Name ?? `${accessory.displayName} Contact Sensor`,
+        Service: accessory.getService(this.hap.Service.ContactSensor) ?? this.accessory.addService(this.hap.Service.ContactSensor) as Service,
+        ContactSensorState: accessory.context.ContactSensorState ?? this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED,
+      };
+
+      // Initialize Contact Sensor Characteristics
+      this.ContactSensor.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.ContactSensor.Name)
+        .setCharacteristic(this.hap.Characteristic.StatusActive, true)
+        .getCharacteristic(this.hap.Characteristic.ContactSensorState)
+        .onGet(() => {
+          return this.ContactSensor!.ContactSensorState;
+        });
+      accessory.context.ContactSensor.Name = this.ContactSensor.Name;
     }
 
-    // Battery Service
-    const BatteryService = `${accessory.displayName} Battery`;
-    (this.Battery.Service = this.accessory.getService(this.hap.Service.Battery)
-      || accessory.addService(this.hap.Service.Battery)), BatteryService;
+    // Initialize Latch Button Service
+    if (device.lock?.activate_latchbutton === false) { // remove the service when this variable is false
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Latch Button Service`);
+      this.Switch!.Service = accessory.getService(this.hap.Service.Switch) as Service;
+      accessory.removeService(this.Switch!.Service);
+    } else {
+      this.Switch = {
+        Name: accessory.context.Switch.Name ?? `${accessory.displayName} Latch`,
+        Service: accessory.getService(this.hap.Service.Switch) ?? accessory.addService(this.hap.Service.Switch) as Service,
+        On: accessory.context.On ?? false,
+      };
 
-    this.Battery.Service.setCharacteristic(this.hap.Characteristic.Name, BatteryService);
-    this.Battery.Service.setCharacteristic(this.hap.Characteristic.ChargingState, this.hap.Characteristic.ChargingState.NOT_CHARGEABLE);
+      // Initialize Latch Button Characteristics
+      this.Switch.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.Switch.Name)
+        .getCharacteristic(this.hap.Characteristic.On)
+        .onGet(() => {
+          return this.Switch!.On;
+        })
+        .onSet(this.OnSet.bind(this));
+      accessory.context.Switch.Name = this.Switch.Name;
+    }
+
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
 
     // Update Homekit
     this.updateHomeKitCharacteristics();
