@@ -61,7 +61,7 @@ export class Curtain extends deviceBase {
 
     // Initialize LightBulb property
     this.WindowCovering = {
-      Name: accessory.context.WindowCovering.Name ?? accessory.displayName,
+      Name: accessory.context.WindowCoveringName ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.WindowCovering) ?? accessory.addService(this.hap.Service.WindowCovering) as Service,
       PositionState: accessory.context.PositionState ?? this.hap.Characteristic.PositionState.STOPPED,
       TargetPosition: accessory.context.TargetPosition ?? 100,
@@ -77,7 +77,7 @@ export class Curtain extends deviceBase {
       .onGet(() => {
         return this.WindowCovering.PositionState;
       });
-    accessory.context.WindowCovering.Name = this.WindowCovering.Name;
+    accessory.context.WindowCoveringName = this.WindowCovering.Name;
 
     // Initialize WindowCovering CurrentPosition
     this.WindowCovering.Service
@@ -116,7 +116,7 @@ export class Curtain extends deviceBase {
 
     // Initialize Battery property
     this.Battery = {
-      Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
+      Name: accessory.context.BatteryName ?? `${accessory.displayName} Battery`,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel ?? 100,
       StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
@@ -130,7 +130,7 @@ export class Curtain extends deviceBase {
       .onGet(() => {
         return this.Battery.BatteryLevel;
       });
-    accessory.context.Battery.Name = this.Battery.Name;
+    accessory.context.BatteryName = this.Battery.Name;
 
     this.Battery.Service
       .getCharacteristic(this.hap.Characteristic.StatusLowBattery)
@@ -151,7 +151,7 @@ export class Curtain extends deviceBase {
       accessory.removeService(this.LightSensor!.Service);
     } else {
       this.LightSensor = {
-        Name: accessory.context.LightSensor.Name ?? `${accessory.displayName} Light Sensor`,
+        Name: accessory.context.LightSensorName ?? `${accessory.displayName} Light Sensor`,
         Service: accessory.getService(this.hap.Service.LightSensor) ?? this.accessory.addService(this.hap.Service.LightSensor) as Service,
         CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel ?? 0.0001,
       };
@@ -164,7 +164,7 @@ export class Curtain extends deviceBase {
         .onGet(() => {
           return this.LightSensor!.CurrentAmbientLightLevel!;
         });
-      accessory.context.LightSensor.Name = this.LightSensor.Name;
+      accessory.context.LightSensorName = this.LightSensor.Name;
     }
 
     // Retrieve initial values and updateHomekit

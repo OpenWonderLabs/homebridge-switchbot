@@ -45,7 +45,7 @@ export class RobotVacuumCleaner extends deviceBase {
 
     // Initialize Lightbulb Service
     this.LightBulb = {
-      Name: accessory.context.LightBulb.Name ?? accessory.displayName,
+      Name: accessory.context.LightBulbName ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.Lightbulb) ?? accessory.addService(this.hap.Service.Lightbulb) as Service,
       On: accessory.context.On ?? false,
       Brightness: accessory.context.Brightness ?? 0,
@@ -74,11 +74,11 @@ export class RobotVacuumCleaner extends deviceBase {
         return this.LightBulb.Brightness;
       })
       .onSet(this.BrightnessSet.bind(this));
-    accessory.context.LightBulb.Name = this.LightBulb.Name;
+    accessory.context.LightBulbName = this.LightBulb.Name;
 
     // Initialize Battery Service
     this.Battery = {
-      Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
+      Name: accessory.context.BatteryName ?? `${accessory.displayName} Battery`,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel ?? 100,
       StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
@@ -104,7 +104,7 @@ export class RobotVacuumCleaner extends deviceBase {
       .onGet(() => {
         return this.Battery.ChargingState;
       });
-    accessory.context.Battery.Name = this.Battery.Name;
+    accessory.context.BatteryName = this.Battery.Name;
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();

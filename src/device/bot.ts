@@ -124,7 +124,7 @@ export class Bot extends deviceBase {
       .setCharacteristic(this.hap.Characteristic.Name, this.Battery.Name)
       .setCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery)
       .setCharacteristic(this.hap.Characteristic.ChargingState, this.hap.Characteristic.ChargingState.NOT_CHARGEABLE);
-    accessory.context.Battery.Name = this.Battery.Name;
+    accessory.context.BatteryName = this.Battery.Name;
 
     // deviceType
     if (this.botDeviceType === 'switch') {

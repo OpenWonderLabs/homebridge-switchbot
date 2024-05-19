@@ -34,7 +34,7 @@ export class Plug extends deviceBase {
 
     // Initialize Outlet Service
     this.Outlet = {
-      Name: accessory.context.Outlet.Name ?? accessory.displayName,
+      Name: accessory.context.OutletName ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.Outlet) ?? accessory.addService(this.hap.Service.Outlet) as Service,
       On: accessory.context.On || false,
     };
@@ -47,7 +47,7 @@ export class Plug extends deviceBase {
         return this.Outlet.On;
       })
       .onSet(this.OnSet.bind(this));
-    accessory.context.Outlet.Name = this.Outlet.Name;
+    accessory.context.OutletName = this.Outlet.Name;
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();

@@ -45,7 +45,7 @@ export class Fan extends deviceBase {
 
     // Initialize Fan Service
     this.Fan = {
-      Name: accessory.context.Fan.Name ?? accessory.displayName,
+      Name: accessory.context.FanName ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.Fanv2) ?? accessory.addService(this.hap.Service.Fanv2) as Service,
       Active: accessory.context.Active ?? this.hap.Characteristic.Active.INACTIVE,
       SwingMode: accessory.context.SwingMode ?? this.hap.Characteristic.SwingMode.SWING_DISABLED,
@@ -75,11 +75,11 @@ export class Fan extends deviceBase {
         return this.Fan.SwingMode;
       })
       .onSet(this.SwingModeSet.bind(this));
-    accessory.context.Fan.Name = this.Fan.Name;
+    accessory.context.FanName = this.Fan.Name;
 
     // Initialize Battery property
     this.Battery = {
-      Name: accessory.context.Battery.Name ?? accessory.displayName,
+      Name: accessory.context.BatteryName ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel ?? 100,
       StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
@@ -107,7 +107,7 @@ export class Fan extends deviceBase {
       .onGet(() => {
         return this.Battery.StatusLowBattery;
       });
-    accessory.context.Battery.Name = this.Battery.Name;
+    accessory.context.BatteryName = this.Battery.Name;
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();

@@ -47,7 +47,7 @@ export class StripLight extends deviceBase {
 
     // Initialize the LightBulb Service
     this.LightBulb = {
-      Name: accessory.context.LightBulb.Name ?? accessory.displayName,
+      Name: accessory.context.LightBulbName ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.Lightbulb) ?? accessory.addService(this.hap.Service.Lightbulb) as Service,
       On: accessory.context.On ?? false,
       Hue: accessory.context.Hue ?? 0,
@@ -137,7 +137,7 @@ export class StripLight extends deviceBase {
         return this.LightBulb.Saturation;
       })
       .onSet(this.SaturationSet.bind(this));
-    accessory.context.LightBulb.Name = this.LightBulb.Name;
+    accessory.context.LightBulbName = this.LightBulb.Name;
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();

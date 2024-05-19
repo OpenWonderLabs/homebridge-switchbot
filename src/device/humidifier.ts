@@ -49,7 +49,7 @@ export class Humidifier extends deviceBase {
 
     // Initialize the HumidifierDehumidifier Service
     this.HumidifierDehumidifier = {
-      Name: accessory.context.HumidifierDehumidifier.Name ?? accessory.displayName,
+      Name: accessory.context.HumidifierDehumidifierName ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.HumidifierDehumidifier)
         ?? accessory.addService(this.hap.Service.HumidifierDehumidifier) as Service,
       Active: accessory.context.Active ?? this.hap.Characteristic.Active.ACTIVE,
@@ -98,7 +98,7 @@ export class Humidifier extends deviceBase {
         return this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold;
       })
       .onSet(this.RelativeHumidityHumidifierThresholdSet.bind(this));
-    accessory.context.HumidifierDehumidifier.Name = this.HumidifierDehumidifier.Name;
+    accessory.context.HumidifierDehumidifierName = this.HumidifierDehumidifier.Name;
 
     // Initialize the Temperature Sensor Service
     if (device.humidifier?.hide_temperature) {
@@ -107,7 +107,7 @@ export class Humidifier extends deviceBase {
       accessory.removeService(this.TemperatureSensor!.Service);
     } else {
       this.TemperatureSensor = {
-        Name: accessory.context.TemperatureSensor.Name ?? `${accessory.displayName} Temperature Sensor`,
+        Name: accessory.context.TemperatureSensorName ?? `${accessory.displayName} Temperature Sensor`,
         Service: accessory.getService(this.hap.Service.TemperatureSensor) ?? this.accessory.addService(this.hap.Service.TemperatureSensor) as Service,
         CurrentTemperature: accessory.context.CurrentTemperature || 30,
       };
@@ -125,7 +125,7 @@ export class Humidifier extends deviceBase {
         .onGet(() => {
           return this.TemperatureSensor!.CurrentTemperature;
         });
-      accessory.context.TemperatureSensor.Name = this.TemperatureSensor.Name;
+      accessory.context.TemperatureSensorName = this.TemperatureSensor.Name;
     }
 
     // Retrieve initial values and updateHomekit
