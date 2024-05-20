@@ -63,7 +63,6 @@ export class ColorBulb extends deviceBase {
       ColorTemperature: accessory.context.ColorTemperature ?? 140,
     };
     accessory.context.LightBulb = this.LightBulb as object;
-    this.errorLog(`${device.deviceType}: ${accessory.displayName} LightBulb Context: ${JSON.stringify(accessory.context.LightBulb)}`);
 
     // Adaptive Lighting
     if (this.adaptiveLightingShift === -1 && accessory.context.adaptiveLighting) {
@@ -350,12 +349,15 @@ export class ColorBulb extends deviceBase {
     const version = deviceStatus.body.version?.toString();
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
     if (deviceStatus.body.version) {
-      this.accessory.context.version = version?.replace(/^V|-.*$/g, '');
+      const deviceVersion = version?.replace(/^V|-.*$/g, '') ?? '0.0.0';
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
-        .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.version)
+        .setCharacteristic(this.hap.Characteristic.HardwareRevision, deviceVersion)
+        .setCharacteristic(this.hap.Characteristic.FirmwareRevision, deviceVersion)
         .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
-        .updateValue(this.accessory.context.version);
+        .updateValue(deviceVersion);
+      this.accessory.context.deviceVersion = deviceVersion;
+      this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceVersion: ${this.accessory.context.deviceVersion}`);
     }
   }
 

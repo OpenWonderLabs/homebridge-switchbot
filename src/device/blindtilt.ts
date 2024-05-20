@@ -461,12 +461,17 @@ export class BlindTilt extends deviceBase {
     const version = deviceStatus.body.version?.toString();
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
     if (deviceStatus.body.version) {
-      this.accessory.context.version = version?.replace(/^V|-.*$/g, '');
+      const replace = version?.replace(/^V|-.*$/g, '');
+      const match = replace?.match(/.{1,1}/g);
+      const blindTiltVersion = match?.join('.') ?? '0.0.0';
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
-        .setCharacteristic(this.hap.Characteristic.FirmwareRevision, this.accessory.context.version)
+        .setCharacteristic(this.hap.Characteristic.HardwareRevision, blindTiltVersion)
+        .setCharacteristic(this.hap.Characteristic.FirmwareRevision, blindTiltVersion)
         .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
-        .updateValue(this.accessory.context.version);
+        .updateValue(blindTiltVersion);
+      this.accessory.context.deviceVersion = blindTiltVersion;
+      this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceVersion: ${this.accessory.context.deviceVersion}`);
     }
   }
 

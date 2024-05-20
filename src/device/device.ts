@@ -68,10 +68,10 @@ export abstract class deviceBase {
     accessory
       .getService(this.hap.Service.AccessoryInformation)!
       .setCharacteristic(this.hap.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
-      .setCharacteristic(this.hap.Characteristic.ConfiguredName, accessory.context.name)
-      .setCharacteristic(this.hap.Characteristic.Model, accessory.context.model)
-      .setCharacteristic(this.hap.Characteristic.SerialNumber, accessory.context.deviceId);
+      .setCharacteristic(this.hap.Characteristic.Name, device.deviceName)
+      .setCharacteristic(this.hap.Characteristic.ConfiguredName, device.deviceName)
+      .setCharacteristic(this.hap.Characteristic.Model, device.model!)
+      .setCharacteristic(this.hap.Characteristic.SerialNumber, device.deviceId);
   }
 
   async getDeviceLogSettings(device: device & devicesConfig): Promise<void> {
@@ -539,29 +539,55 @@ export abstract class deviceBase {
         device.bleModel = SwitchBotBLEModel.Unknown;
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
     }
-    accessory.context.name = device.deviceName;
     accessory.context.model = device.model;
-    accessory.context.deviceId = device.deviceId;
-    accessory.context.deviceType = device.deviceType;
 
+    let deviceFirmwareVersion: string;
     if (device.firmware) {
-      accessory.context.version = device.firmware;
-    } else if (device.firmware === undefined && device.version === undefined && accessory.context.version === undefined) {
-      device.version = this.platform.version;
-      accessory.context.version = this.platform.version;
-    } else if (accessory.context.device.version) {
-      accessory.context.version = accessory.context.device.version.replace(/^V|-.*$/g, '');
-    }else {
-      accessory.context.version = device.version?.replace(/^V|-.*$/g, '');
+      deviceFirmwareVersion = device.firmware;
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} 1 FirmwareRevision: ${device.firmware}`);
+    } else if (device.version) {
+      deviceFirmwareVersion = device.version;
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} 2 FirmwareRevision: ${device.version}`);
+    } else if (accessory.context.deviceVersion) {
+      deviceFirmwareVersion = accessory.context.deviceVersion;
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} 3 FirmwareRevision: ${accessory.context.deviceVersion}`);
+    } else {
+      deviceFirmwareVersion = this.platform.version ?? '0.0.0';
+      if (this.platform.version) {
+        this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} 4 FirmwareRevision: ${this.platform.version}`);
+      } else {
+        this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} 5 FirmwareRevision: ${deviceFirmwareVersion}`);
+      }
     }
-    this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${accessory.context.device.version}`);
-    this.accessory
-      .getService(this.hap.Service.AccessoryInformation)!
-      .setCharacteristic(this.hap.Characteristic.HardwareRevision, accessory.context.version)
-      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, accessory.context.version)
-      .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
-      .updateValue(accessory.context.version);
-    this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} Context: ${JSON.stringify(accessory.context.device)}`);
+    if (device.deviceType === 'Blind Tilt') {
+      // Firmware Version
+      const version = deviceFirmwareVersion.toString();
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
+      const replace = version?.replace(/^V|-.*$/g, '');
+      const match = replace?.match(/.{1,1}/g);
+      const blindTiltVersion = match?.join('.') ?? '0.0.0';
+      this.accessory
+        .getService(this.hap.Service.AccessoryInformation)!
+        .setCharacteristic(this.hap.Characteristic.HardwareRevision, blindTiltVersion)
+        .setCharacteristic(this.hap.Characteristic.FirmwareRevision, blindTiltVersion)
+        .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+        .updateValue(blindTiltVersion);
+      this.accessory.context.deviceVersion = blindTiltVersion;
+      this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceVersion: ${this.accessory.context.deviceVersion}`);
+    } else {
+      // Firmware Version
+      const version = deviceFirmwareVersion.toString();
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
+      const deviceVersion = version?.replace(/^V|-.*$/g, '') ?? '0.0.0';
+      this.accessory
+        .getService(this.hap.Service.AccessoryInformation)!
+        .setCharacteristic(this.hap.Characteristic.HardwareRevision, deviceVersion)
+        .setCharacteristic(this.hap.Characteristic.FirmwareRevision, deviceVersion)
+        .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+        .updateValue(deviceVersion);
+      this.accessory.context.deviceVersion = deviceVersion;
+      this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceVersion: ${this.accessory.context.deviceVersion}`);
+    }
   }
 
   async statusCode(statusCode: number): Promise<void> {
