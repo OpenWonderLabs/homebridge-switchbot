@@ -544,22 +544,21 @@ export abstract class deviceBase {
     let deviceFirmwareVersion: string;
     if (device.firmware) {
       deviceFirmwareVersion = device.firmware;
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} 1 FirmwareRevision: ${device.firmware}`);
+      this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} 1 FirmwareRevision: ${device.firmware}`);
     } else if (device.version) {
       deviceFirmwareVersion = device.version;
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} 2 FirmwareRevision: ${device.version}`);
+      this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} 2 FirmwareRevision: ${device.version}`);
     } else if (accessory.context.deviceVersion) {
       deviceFirmwareVersion = accessory.context.deviceVersion;
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} 3 FirmwareRevision: ${accessory.context.deviceVersion}`);
+      this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} 3 FirmwareRevision: ${accessory.context.deviceVersion}`);
     } else {
       deviceFirmwareVersion = this.platform.version ?? '0.0.0';
       if (this.platform.version) {
-        this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} 4 FirmwareRevision: ${this.platform.version}`);
+        this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} 4 FirmwareRevision: ${this.platform.version}`);
       } else {
-        this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} 5 FirmwareRevision: ${deviceFirmwareVersion}`);
+        this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} 5 FirmwareRevision: ${deviceFirmwareVersion}`);
       }
     }
-
 
     // Firmware Version
     const version = deviceFirmwareVersion.toString();
