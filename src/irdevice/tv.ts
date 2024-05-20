@@ -45,9 +45,7 @@ export class TV extends irdeviceBase {
     super(platform, accessory, device);
 
     // Initialize Television Service
-    if (!accessory.context.Television) {
-      accessory.context.Television = {};
-    }
+    accessory.context.Television = accessory.context.Television ?? {};
     this.Television = {
       Name: accessory.context.Television.Name ?? `${accessory.displayName} ${device.remoteType}`,
       ConfiguredName: accessory.context.Television.ConfiguredName ?? `${accessory.displayName} ${device.remoteType}`,
@@ -57,6 +55,7 @@ export class TV extends irdeviceBase {
       SleepDiscoveryMode: accessory.context.SleepDiscoveryMode ?? this.hap.Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE,
       RemoteKey: accessory.context.RemoteKey ?? this.hap.Characteristic.RemoteKey.EXIT,
     };
+    accessory.context.Television = this.Television as object;
 
     switch (device.remoteType) {
       case 'Speaker':
@@ -103,12 +102,9 @@ export class TV extends irdeviceBase {
         return this.Television.RemoteKey;
       })
       .onSet(this.RemoteKeySet.bind(this));
-    accessory.context.Television.Name = this.Television.Name;
 
     // Initialize TelevisionSpeaker Service
-    if (!accessory.context.TelevisionSpeaker) {
-      accessory.context.TelevisionSpeaker = {};
-    }
+    accessory.context.TelevisionSpeaker = accessory.context.TelevisionSpeaker ?? {};
     this.TelevisionSpeaker = {
       Name: accessory.context.TelevisionSpeaker.Name ?? `${accessory.displayName} ${device.remoteType} Speaker`,
       Service: accessory.getService(this.hap.Service.TelevisionSpeaker) ?? accessory.addService(this.hap.Service.TelevisionSpeaker) as Service,
@@ -116,6 +112,7 @@ export class TV extends irdeviceBase {
       VolumeControlType: accessory.context.VolumeControlType ?? this.hap.Characteristic.VolumeControlType.ABSOLUTE,
       VolumeSelector: accessory.context.VolumeSelector ?? this.hap.Characteristic.VolumeSelector.INCREMENT,
     };
+    accessory.context.TelevisionSpeaker = this.TelevisionSpeaker as object;
 
     this.TelevisionSpeaker.Service
       .setCharacteristic(this.hap.Characteristic.Name, this.TelevisionSpeaker.Name)
@@ -126,7 +123,6 @@ export class TV extends irdeviceBase {
         return this.TelevisionSpeaker.VolumeSelector;
       })
       .onSet(this.VolumeSelectorSet.bind(this));
-    accessory.context.TelevisionSpeaker.Name = this.TelevisionSpeaker.Name;
   }
 
   async VolumeSelectorSet(value: CharacteristicValue): Promise<void> {

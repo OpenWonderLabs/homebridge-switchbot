@@ -51,12 +51,14 @@ export class Lock extends deviceBase {
     this.lockUpdateInProgress = false;
 
     // Initialize LockMechanism Service
+    accessory.context.LockMechanism = accessory.context.LockMechanism ?? {};
     this.LockMechanism = {
-      Name: accessory.context.LockMechanismName ?? accessory.displayName,
+      Name: accessory.context.LockMechanism.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.LockMechanism) ?? accessory.addService(this.hap.Service.LockMechanism) as Service,
       LockTargetState: accessory.context.LockTargetState ?? this.hap.Characteristic.LockTargetState.SECURED,
       LockCurrentState: accessory.context.LockCurrentState ?? this.hap.Characteristic.LockCurrentState.SECURED,
     };
+    accessory.context.LockMechanism = this.LockMechanism as object;
 
     // Initialize LockMechanism Characteristics
     this.LockMechanism.Service
@@ -66,15 +68,16 @@ export class Lock extends deviceBase {
         return this.LockMechanism.LockTargetState;
       })
       .onSet(this.LockTargetStateSet.bind(this));
-    accessory.context.LockMechanismName = this.LockMechanism.Name;
 
     // Initialize Battery property
+    accessory.context.Battery = accessory.context.Battery ?? {};
     this.Battery = {
-      Name: accessory.context.BatteryName ?? `${accessory.displayName} Battery`,
+      Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel ?? 100,
       StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
     };
+    accessory.context.Battery = this.Battery as object;
 
     // Initialize Battery Characteristics
     this.Battery.Service
@@ -90,7 +93,6 @@ export class Lock extends deviceBase {
       .onGet(() => {
         return this.Battery.StatusLowBattery;
       });
-    accessory.context.BatteryName = this.Battery.Name;
 
     // Contact Sensor Service
     if (device.lock?.hide_contactsensor) {
@@ -98,11 +100,13 @@ export class Lock extends deviceBase {
       this.ContactSensor!.Service = this.accessory.getService(this.hap.Service.ContactSensor) as Service;
       accessory.removeService(this.ContactSensor!.Service);
     } else {
+      accessory.context.ContactSensor = accessory.context.ContactSensor ?? {};
       this.ContactSensor = {
-        Name: accessory.context.ContactSensorName ?? `${accessory.displayName} Contact Sensor`,
+        Name: accessory.context.ContactSensor.Name ?? `${accessory.displayName} Contact Sensor`,
         Service: accessory.getService(this.hap.Service.ContactSensor) ?? this.accessory.addService(this.hap.Service.ContactSensor) as Service,
         ContactSensorState: accessory.context.ContactSensorState ?? this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED,
       };
+      accessory.context.ContactSensor = this.ContactSensor as object;
 
       // Initialize Contact Sensor Characteristics
       this.ContactSensor.Service
@@ -112,7 +116,6 @@ export class Lock extends deviceBase {
         .onGet(() => {
           return this.ContactSensor!.ContactSensorState;
         });
-      accessory.context.ContactSensorName = this.ContactSensor.Name;
     }
 
     // Initialize Latch Button Service
@@ -121,11 +124,13 @@ export class Lock extends deviceBase {
       this.Switch!.Service = accessory.getService(this.hap.Service.Switch) as Service;
       accessory.removeService(this.Switch!.Service);
     } else {
+      accessory.context.Switch = accessory.context.Switch ?? {};
       this.Switch = {
-        Name: accessory.context.SwitchName ?? `${accessory.displayName} Latch`,
+        Name: accessory.context.Switch.Name ?? `${accessory.displayName} Latch`,
         Service: accessory.getService(this.hap.Service.Switch) ?? accessory.addService(this.hap.Service.Switch) as Service,
         On: accessory.context.On ?? false,
       };
+      accessory.context.Switch = this.Switch as object;
 
       // Initialize Latch Button Characteristics
       this.Switch.Service
@@ -135,7 +140,6 @@ export class Lock extends deviceBase {
           return this.Switch!.On;
         })
         .onSet(this.OnSet.bind(this));
-      accessory.context.SwitchName = this.Switch.Name;
     }
 
     // Retrieve initial values and updateHomekit

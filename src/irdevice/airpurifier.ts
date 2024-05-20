@@ -56,11 +56,8 @@ export class AirPurifier extends irdeviceBase {
   ) {
     super(platform, accessory, device);
 
-    if (!accessory.context.AirPurifier) {
-      accessory.context.AirPurifier = {};
-    }
-
-    // Initialize AirPurifier property
+    // Initialize AirPurifier Service
+    accessory.context.AirPurifier = accessory.context.AirPurifier ?? {};
     this.AirPurifier = {
       Name: accessory.context.AirPurifier.Name ?? `${accessory.displayName} Air Purifier`,
       Service: accessory.getService(this.hap.Service.AirPurifier) ?? accessory.addService(this.hap.Service.AirPurifier) as Service,
@@ -69,6 +66,7 @@ export class AirPurifier extends irdeviceBase {
       CurrentAirPurifierState: accessory.context.CurrentAirPurifierState ?? this.hap.Characteristic.CurrentAirPurifierState.INACTIVE,
       TargetAirPurifierState: accessory.context.TargetAirPurifierState ?? this.hap.Characteristic.TargetAirPurifierState.AUTO,
     };
+    accessory.context.AirPurifier = this.AirPurifier as object;
 
     this.AirPurifier.Service
       .setCharacteristic(this.hap.Characteristic.Name, this.AirPurifier.Name)
@@ -90,17 +88,15 @@ export class AirPurifier extends irdeviceBase {
         return this.AirPurifier.TargetAirPurifierState;
       })
       .onSet(this.TargetAirPurifierStateSet.bind(this));
-    accessory.context.AirPurifier.Name = this.AirPurifier.Name;
 
-    if (!accessory.context.TemperatureSensor) {
-      accessory.context.TemperatureSensor = {};
-    }
-    // Initialize TemperatureSensor property
+    // Initialize TemperatureSensor Service
+    accessory.context.TemperatureSensor = accessory.context.TemperatureSensor ?? {};
     this.TemperatureSensor = {
       Name: accessory.context.TemperatureSensor.Name ?? `${accessory.displayName} Temperature Sensor`,
       Service: accessory.getService(this.hap.Service.TemperatureSensor) ?? accessory.addService(this.hap.Service.TemperatureSensor) as Service,
       CurrentTemperature: accessory.context.CurrentTemperature || 24,
     };
+    accessory.context.TemperatureSensor = this.TemperatureSensor as object;
 
     this.TemperatureSensor.Service
       .setCharacteristic(this.hap.Characteristic.Name, this.TemperatureSensor.Name)
@@ -108,7 +104,6 @@ export class AirPurifier extends irdeviceBase {
       .onGet(() => {
         return this.TemperatureSensor.CurrentTemperature;
       });
-    accessory.context.TemperatureSensor.Name = this.TemperatureSensor.Name;
   }
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {

@@ -119,22 +119,24 @@ export class Bot extends deviceBase {
       BatteryLevel: accessory.context.BatteryLevel ?? 100,
       StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
     };
+    accessory.context.Battery = this.Battery as object;
 
     // Initialize Battery Characteristics
     this.Battery.Service
       .setCharacteristic(this.hap.Characteristic.Name, this.Battery.Name)
       .setCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery)
       .setCharacteristic(this.hap.Characteristic.ChargingState, this.hap.Characteristic.ChargingState.NOT_CHARGEABLE);
-    accessory.context.BatteryName = this.Battery.Name;
 
     // deviceType
     if (this.botDeviceType === 'switch') {
       // Initialize Switch Service
+      accessory.context.Switch = accessory.context.Switch ?? {};
       this.Switch = {
-        Name: accessory.context.Name ?? accessory.displayName,
+        Name: accessory.context.Switch.Name ?? accessory.displayName,
         Service: accessory.getService(this.hap.Service.Switch) ?? accessory.addService(this.hap.Service.Switch) as Service,
         On: accessory.context.On ?? false,
       };
+      accessory.context.Switch = this.Switch as object;
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Switch`);
 
       // Initialize Switch Characteristics
@@ -146,7 +148,6 @@ export class Bot extends deviceBase {
           return this.Switch!.On;
         })
         .onSet(this.OnSet.bind(this));
-      accessory.context.Name = this.Switch.Name;
 
       // Remove other services
       this.removeFanService(accessory);
@@ -160,11 +161,13 @@ export class Bot extends deviceBase {
       this.removeStatefulProgrammableSwitchService(accessory);
     } else if (this.botDeviceType === 'garagedoor') {
       // Initialize GarageDoor Service
+      accessory.context.GarageDoor = accessory.context.GarageDoor ?? {};
       this.GarageDoor = {
-        Name: accessory.context.Name ?? accessory.displayName,
+        Name: accessory.context.GarageDoor.Name ?? accessory.displayName,
         Service: accessory.getService(this.hap.Service.GarageDoorOpener) ?? accessory.addService(this.hap.Service.GarageDoorOpener) as Service,
         On: accessory.context.On ?? false,
       };
+      accessory.context.GarageDoor = this.GarageDoor as object;
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Garage Door Opener`);
 
       // Initialize GarageDoor Characteristics
@@ -181,7 +184,6 @@ export class Bot extends deviceBase {
           return this.GarageDoor!.On;
         })
         .onSet(this.OnSet.bind(this));
-      accessory.context.Name = this.GarageDoor.Name;
 
       // Remove other services
       this.removeFanService(accessory);
@@ -195,11 +197,13 @@ export class Bot extends deviceBase {
       this.removeStatefulProgrammableSwitchService(accessory);
     } else if (this.botDeviceType === 'door') {
       // Initialize Door Service
+      accessory.context.Door = accessory.context.Door ?? {};
       this.Door = {
-        Name: accessory.context.Name ?? accessory.displayName,
+        Name: accessory.context.Door.Name ?? accessory.displayName,
         Service: accessory.getService(this.hap.Service.Door) ?? accessory.addService(this.hap.Service.Door) as Service,
         On: accessory.context.On ?? false,
       };
+      accessory.context.Door = this.Door as object;
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Door`);
 
       // Initialize Door Characteristics
@@ -216,7 +220,6 @@ export class Bot extends deviceBase {
           return this.Door!.On;
         })
         .onSet(this.OnSet.bind(this));
-      accessory.context.Name = this.Door.Name;
 
       // Remove other services
       this.removeFanService(accessory);
@@ -230,11 +233,13 @@ export class Bot extends deviceBase {
       this.removeStatefulProgrammableSwitchService(accessory);
     } else if (this.botDeviceType === 'window') {
       // Initialize Window Service
+      accessory.context.Window = accessory.context.Window ?? {};
       this.Window = {
-        Name: accessory.context.Name ?? accessory.displayName,
+        Name: accessory.context.Window.Name ?? accessory.displayName,
         Service: accessory.getService(this.hap.Service.Window) ?? accessory.addService(this.hap.Service.Window) as Service,
         On: accessory.context.On ?? false,
       };
+      accessory.context.Window = this.Window as object;
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Window`);
 
       // Initialize Window Characteristics
@@ -251,7 +256,6 @@ export class Bot extends deviceBase {
           return this.Window!.On;
         })
         .onSet(this.OnSet.bind(this));
-      accessory.context.Name = this.Window.Name;
 
       // Remove other services
       this.removeFanService(accessory);
@@ -265,11 +269,13 @@ export class Bot extends deviceBase {
       this.removeStatefulProgrammableSwitchService(accessory);
     } else if (this.botDeviceType === 'windowcovering') {
       // Initialize WindowCovering Service
+      accessory.context.WindowCovering = accessory.context.WindowCovering ?? {};
       this.WindowCovering = {
-        Name: accessory.context.Name ?? accessory.displayName,
+        Name: accessory.context.WindowCovering.Name ?? accessory.displayName,
         Service: accessory.getService(this.hap.Service.WindowCovering) ?? accessory.addService(this.hap.Service.WindowCovering) as Service,
         On: accessory.context.On ?? false,
       };
+      accessory.context.WindowCovering = this.WindowCovering as object;
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Window Covering`);
 
       // Initialize WindowCovering Characteristics
@@ -286,7 +292,6 @@ export class Bot extends deviceBase {
           return this.WindowCovering!.On;
         })
         .onSet(this.OnSet.bind(this));
-      accessory.context.Name = this.WindowCovering.Name;
 
       // Remove other services
       this.removeFanService(accessory);
@@ -300,11 +305,13 @@ export class Bot extends deviceBase {
       this.removeStatefulProgrammableSwitchService(accessory);
     } else if (this.botDeviceType === 'lock') {
       // Initialize Lock Service
+      accessory.context.LockMechanism = accessory.context.LockMechanism ?? {};
       this.LockMechanism = {
-        Name: accessory.context.Name ?? accessory.displayName,
+        Name: accessory.context.LockMechanism.Name ?? accessory.displayName,
         Service: accessory.getService(this.hap.Service.LockMechanism) ?? accessory.addService(this.hap.Service.LockMechanism) as Service,
         On: accessory.context.On ?? false,
       };
+      accessory.context.LockMechanism = this.LockMechanism as object;
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Lock`);
 
       // Initialize Lock Characteristics
@@ -315,7 +322,6 @@ export class Bot extends deviceBase {
           return this.LockMechanism!.On;
         })
         .onSet(this.OnSet.bind(this));
-      accessory.context.Name = this.LockMechanism.Name;
 
       // Remove other services
       this.removeFanService(accessory);
@@ -329,11 +335,13 @@ export class Bot extends deviceBase {
       this.removeStatefulProgrammableSwitchService(accessory);
     } else if (this.botDeviceType === 'faucet') {
       // Initialize Faucet Service
+      accessory.context.Faucet = accessory.context.Faucet ?? {};
       this.Faucet = {
-        Name: accessory.context.Name ?? accessory.displayName,
+        Name: accessory.context.Faucet.Name ?? accessory.displayName,
         Service: accessory.getService(this.hap.Service.Faucet) ?? accessory.addService(this.hap.Service.Faucet) as Service,
         On: accessory.context.On ?? false,
       };
+      accessory.context.Faucet = this.Faucet as object;
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Faucet`);
 
       // Initialize Faucet Characteristics
@@ -344,7 +352,6 @@ export class Bot extends deviceBase {
           return this.Faucet!.On;
         })
         .onSet(this.OnSet.bind(this));
-      accessory.context.Name = this.Faucet.Name;
 
       // Remove other services
       this.removeFanService(accessory);
@@ -358,11 +365,13 @@ export class Bot extends deviceBase {
       this.removeStatefulProgrammableSwitchService(accessory);
     } else if (this.botDeviceType === 'fan') {
       // Initialize Fan Service
+      accessory.context.Fan = accessory.context.Fan ?? {};
       this.Fan = {
-        Name: accessory.context.Name ?? accessory.displayName,
+        Name: accessory.context.Fan.Name ?? accessory.displayName,
         Service: accessory.getService(this.hap.Service.Fanv2) ?? accessory.addService(this.hap.Service.Fanv2) as Service,
         On: accessory.context.On ?? false,
       };
+      accessory.context.Fan = this.Fan as object;
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Fan`);
 
       // Initialize Fan Characteristics
@@ -373,7 +382,6 @@ export class Bot extends deviceBase {
           return this.Fan!.On;
         })
         .onSet(this.OnSet.bind(this));
-      accessory.context.Name = this.Fan.Name;
 
       // Remove other services
       this.removeLockService(accessory);
@@ -387,12 +395,14 @@ export class Bot extends deviceBase {
       this.removeStatefulProgrammableSwitchService(accessory);
     } else if (this.botDeviceType === 'stateful') {
       // Initialize StatefulProgrammableSwitch Service
+      accessory.context.StatefulProgrammableSwitch = accessory.context.StatefulProgrammableSwitch ?? {};
       this.StatefulProgrammableSwitch = {
-        Name: accessory.context.Name ?? accessory.displayName,
+        Name: accessory.context.StatefulProgrammableSwitch.Name ?? accessory.displayName,
         Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch)
           ?? accessory.addService(this.hap.Service.StatefulProgrammableSwitch) as Service,
         On: accessory.context.On ?? false,
       };
+      accessory.context.StatefulProgrammableSwitch = this.StatefulProgrammableSwitch as object;
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Stateful Programmable Switch`);
 
       // Initialize StatefulProgrammableSwitch Characteristics
@@ -403,7 +413,6 @@ export class Bot extends deviceBase {
           return this.StatefulProgrammableSwitch!.On;
         })
         .onSet(this.OnSet.bind(this));
-      accessory.context.Name = this.StatefulProgrammableSwitch.Name;
 
       // Remove other services
       this.removeFanService(accessory);
@@ -417,11 +426,13 @@ export class Bot extends deviceBase {
       this.removeWindowCoveringService(accessory);
     } else {
       // Initialize Switch property
+      accessory.context.Outlet = accessory.context.Outlet ?? {};
       this.Outlet = {
-        Name: accessory.context.Name ?? accessory.displayName,
+        Name: accessory.context.Outlet.Name ?? accessory.displayName,
         Service: accessory.getService(this.hap.Service.Outlet) ?? accessory.addService(this.hap.Service.Outlet) as Service,
         On: accessory.context.On ?? false,
       };
+      accessory.context.Outlet = this.Outlet as object;
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Outlet`);
 
       // Initialize Outlet Characteristics
@@ -432,7 +443,6 @@ export class Bot extends deviceBase {
           return this.Outlet!.On;
         })
         .onSet(this.OnSet.bind(this));
-      accessory.context.Name = this.Outlet.Name;
 
       // Remove other services
       this.removeFanService(accessory);

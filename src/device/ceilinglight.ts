@@ -51,9 +51,10 @@ export class CeilingLight extends deviceBase {
     this.doCeilingLightUpdate = new Subject();
     this.ceilingLightUpdateInProgress = false;
 
-    // Initialize LightBulb property
+    // Initialize LightBulb Service
+    accessory.context.LightBulb = accessory.context.LightBulb ?? {};
     this.LightBulb = {
-      Name: accessory.context.LightBulbName ?? accessory.displayName,
+      Name: accessory.context.LightBul.bName ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.Lightbulb) ?? accessory.addService(this.hap.Service.Lightbulb) as Service,
       On: accessory.context.On ?? false,
       Hue: accessory.context.Hue ?? 0,
@@ -61,6 +62,7 @@ export class CeilingLight extends deviceBase {
       Brightness: accessory.context.Brightness ?? 0,
       ColorTemperature: accessory.context.ColorTemperature ?? 140,
     };
+    accessory.context.LightBulb = this.LightBulb as object;
 
     // Adaptive Lighting
     if (this.adaptiveLightingShift === -1 && accessory.context.adaptiveLighting) {
@@ -141,7 +143,6 @@ export class CeilingLight extends deviceBase {
         return this.LightBulb.Saturation;
       })
       .onSet(this.SaturationSet.bind(this));
-    accessory.context.LightBulbName = this.LightBulb.Name;
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();

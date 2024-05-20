@@ -549,19 +549,19 @@ export abstract class deviceBase {
     } else if (device.firmware === undefined && device.version === undefined && accessory.context.version === undefined) {
       device.version = this.platform.version;
       accessory.context.version = this.platform.version;
-    } else {
+    } else if (accessory.context.device.version) {
+      accessory.context.version = accessory.context.device.version.replace(/^V|-.*$/g, '');
+    }else {
       accessory.context.version = device.version?.replace(/^V|-.*$/g, '');
     }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${accessory.context.version}`);
-    if (accessory.context.version) {
-      this.accessory
-        .getService(this.hap.Service.AccessoryInformation)!
-        .setCharacteristic(this.hap.Characteristic.HardwareRevision, accessory.context.version)
-        .setCharacteristic(this.hap.Characteristic.FirmwareRevision, accessory.context.version)
-        .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
-        .updateValue(this.accessory.context.version);
-    }
-    this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} Context: ${JSON.stringify(accessory.context)}`);
+    this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${accessory.context.device.version}`);
+    this.accessory
+      .getService(this.hap.Service.AccessoryInformation)!
+      .setCharacteristic(this.hap.Characteristic.HardwareRevision, accessory.context.version)
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, accessory.context.version)
+      .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+      .updateValue(accessory.context.version);
+    this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} Context: ${JSON.stringify(accessory.context.device)}`);
   }
 
   async statusCode(statusCode: number): Promise<void> {

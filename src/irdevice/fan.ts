@@ -33,11 +33,8 @@ export class IRFan extends irdeviceBase {
   ) {
     super(platform, accessory, device);
 
-    if (!accessory.context.Fan) {
-      accessory.context.Fan = {};
-    }
-
-    // Initialize Switch property
+    // Initialize Switch Service
+    accessory.context.Fan = accessory.context.Fan ?? {};
     this.Fan = {
       Name: accessory.context.Fan.Name ?? `${accessory.displayName} Fan`,
       Service: accessory.getService(this.hap.Service.Fanv2) ?? accessory.addService(this.hap.Service.Fanv2) as Service,
@@ -46,6 +43,7 @@ export class IRFan extends irdeviceBase {
       RotationSpeed: accessory.context.RotationSpeed ?? 0,
       RotationDirection: accessory.context.RotationDirection ?? this.hap.Characteristic.RotationDirection.CLOCKWISE,
     };
+    accessory.context.Fan = this.Fan as object;
 
     this.Fan.Service
       .setCharacteristic(this.hap.Characteristic.Name, this.Fan.Name)
@@ -54,7 +52,6 @@ export class IRFan extends irdeviceBase {
         return this.Fan.Active;
       })
       .onSet(this.ActiveSet.bind(this));
-    accessory.context.Fan.Name = this.Fan.Name;
 
     if (device.irfan?.rotation_speed) {
       // handle Rotation Speed events using the RotationSpeed characteristic
@@ -98,7 +95,6 @@ export class IRFan extends irdeviceBase {
         `Clear Cache on ${this.accessory.displayName} To Remove Chracteristic`,
       );
     }
-    accessory.context.Fan.Name = this.Fan.Name;
   }
 
   async minStep(device: irdevice & irDevicesConfig): Promise<number> {

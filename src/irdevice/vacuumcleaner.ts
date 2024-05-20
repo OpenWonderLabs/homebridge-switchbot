@@ -31,14 +31,13 @@ export class VacuumCleaner extends irdeviceBase {
     super(platform, accessory, device);
 
     // Initialize Switch Service
-    if (!accessory.context.Switch) {
-      accessory.context.Switch = {};
-    }
+    accessory.context.Switch = accessory.context.Switch ?? {};
     this.Switch = {
-      Name: accessory.context.Name ?? `${accessory.displayName} ${device.remoteType}`,
+      Name: accessory.context.Switch.Name ?? `${accessory.displayName} ${device.remoteType}`,
       Service: accessory.getService(this.hap.Service.Switch) ?? accessory.addService(this.hap.Service.Switch) as Service,
       On: accessory.context.On ?? false,
     };
+    accessory.context.Switch = this.Switch as object;
 
     this.Switch.Service
       .setCharacteristic(this.hap.Characteristic.Name, this.Switch.Name)
@@ -47,7 +46,6 @@ export class VacuumCleaner extends irdeviceBase {
         return this.Switch.On;
       })
       .onSet(this.OnSet.bind(this));
-    accessory.context.Switch.Name = this.Switch.Name;
   }
 
   async OnSet(value: CharacteristicValue): Promise<void> {

@@ -30,15 +30,14 @@ export class Camera extends irdeviceBase {
   ) {
     super(platform, accessory, device);
 
-    if (!accessory.context.Switch) {
-      accessory.context.Switch = {};
-    }
-    // Initialize Switch property
+    // Initialize Switch Service
+    accessory.context.Switch = accessory.context.Switch ?? {};
     this.Switch = {
       Name: accessory.context.Switch.Name ?? `${accessory.displayName} Camera`,
       Service: accessory.getService(this.hap.Service.Switch) ?? accessory.addService(this.hap.Service.Switch) as Service,
       On: accessory.context.On ?? false,
     };
+    accessory.context.Switch = this.Switch as object;
 
     this.Switch.Service
       .setCharacteristic(this.hap.Characteristic.Name, this.Switch.Name)
@@ -47,7 +46,6 @@ export class Camera extends irdeviceBase {
         return this.Switch.On;
       })
       .onSet(this.OnSet.bind(this));
-    accessory.context.Switch.Name = this.Switch.Name;
   }
 
   async OnSet(value: CharacteristicValue): Promise<void> {

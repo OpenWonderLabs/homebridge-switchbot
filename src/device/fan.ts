@@ -44,13 +44,15 @@ export class Fan extends deviceBase {
     this.plugUpdateInProgress = false;
 
     // Initialize Fan Service
+    accessory.context.Fan = accessory.context.Fan ?? {};
     this.Fan = {
-      Name: accessory.context.FanName ?? accessory.displayName,
+      Name: accessory.context.Fan.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.Fanv2) ?? accessory.addService(this.hap.Service.Fanv2) as Service,
       Active: accessory.context.Active ?? this.hap.Characteristic.Active.INACTIVE,
       SwingMode: accessory.context.SwingMode ?? this.hap.Characteristic.SwingMode.SWING_DISABLED,
       RotationSpeed: accessory.context.RotationSpeed ?? 0,
     };
+    accessory.context.Fan = this.Fan as object;
 
     // Initialize Fan Service
     this.Fan.Service
@@ -75,16 +77,17 @@ export class Fan extends deviceBase {
         return this.Fan.SwingMode;
       })
       .onSet(this.SwingModeSet.bind(this));
-    accessory.context.FanName = this.Fan.Name;
 
-    // Initialize Battery property
+    // Initialize Battery Service
+    accessory.context.Battery = accessory.context.Battery ?? {};
     this.Battery = {
-      Name: accessory.context.BatteryName ?? accessory.displayName,
+      Name: accessory.context.Battery.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel ?? 100,
       StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
       ChargingState: accessory.context.ChargingState ?? this.hap.Characteristic.ChargingState.NOT_CHARGING,
     };
+    accessory.context.Battery = this.Battery as object;
 
     // Initialize Battery Service
     this.Battery.Service
@@ -107,7 +110,6 @@ export class Fan extends deviceBase {
       .onGet(() => {
         return this.Battery.StatusLowBattery;
       });
-    accessory.context.BatteryName = this.Battery.Name;
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();

@@ -51,6 +51,7 @@ export class WaterDetector extends deviceBase {
     this.WaterDetectorUpdateInProgress = false;
 
     // Initialize Battery Service
+    accessory.context.Battery = accessory.context.Battery ?? {};
     this.Battery = {
       Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
@@ -58,6 +59,7 @@ export class WaterDetector extends deviceBase {
       StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
       ChargingState: accessory.context.ChargingState ?? this.hap.Characteristic.ChargingState.NOT_CHARGEABLE,
     };
+    accessory.context.Battery = this.Battery as object;
 
     // Initialize Battery Characteristic
     this.Battery.Service
@@ -73,7 +75,6 @@ export class WaterDetector extends deviceBase {
       .onGet(() => {
         return this.Battery.StatusLowBattery;
       });
-    accessory.context.Battery.Name = this.Battery.Name;
 
     // Initialize Leak Sensor Service
     if (device.waterdetector?.hide_leak) {
@@ -81,12 +82,14 @@ export class WaterDetector extends deviceBase {
       this.LeakSensor!.Service = this.accessory.getService(this.hap.Service.LeakSensor) as Service;
       accessory.removeService(this.LeakSensor!.Service);
     } else {
+      accessory.context.LeakSensor = accessory.context.LeakSensor ?? {};
       this.LeakSensor = {
         Name: accessory.context.LeakSensor.Name ?? `${accessory.displayName} Leak Sensor`,
         Service: accessory.getService(this.hap.Service.LeakSensor) ?? this.accessory.addService(this.hap.Service.LeakSensor) as Service,
         StatusActive: accessory.context.StatusActive ?? false,
         LeakDetected: accessory.context.LeakDetected ?? this.hap.Characteristic.LeakDetected.LEAK_NOT_DETECTED,
       };
+      accessory.context.LeakSensor = this.LeakSensor as object;
 
       // Initialize LeakSensor Characteristic
       this.LeakSensor!.Service
@@ -96,7 +99,6 @@ export class WaterDetector extends deviceBase {
         .onGet(() => {
           return this.LeakSensor!.LeakDetected;
         });
-      accessory.context.LeakSensor.Name = this.LeakSensor.Name;
     }
 
     // Retrieve initial values and updateHomekit

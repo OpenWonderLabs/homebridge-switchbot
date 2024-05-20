@@ -51,8 +51,8 @@ export class ColorBulb extends deviceBase {
     this.doColorBulbUpdate = new Subject();
     this.colorBulbUpdateInProgress = false;
 
-    accessory.context.LightBulb = accessory.context.LightBulb ?? {};
     // Initialize LightBulb property
+    accessory.context.LightBulb = accessory.context.LightBulb ?? {};
     this.LightBulb = {
       Name: accessory.context.LightBulb.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.Lightbulb) ?? accessory.addService(this.hap.Service.Lightbulb) as Service,
@@ -140,7 +140,6 @@ export class ColorBulb extends deviceBase {
         return this.LightBulb.Saturation;
       })
       .onSet(this.SaturationSet.bind(this));
-    accessory.context.LightBulb.Name = this.LightBulb.Name;
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();

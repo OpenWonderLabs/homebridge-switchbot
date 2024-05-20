@@ -48,12 +48,14 @@ export class Meter extends deviceBase {
     this.meterUpdateInProgress = false;
 
     // Initialize Battery Service
+    accessory.context.Battery = accessory.context.Battery ?? {};
     this.Battery = {
-      Name: accessory.context.BatteryName ?? `${accessory.displayName} Battery`,
+      Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel ?? 100,
       StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
     };
+    accessory.context.Battery = this.Battery as object;
 
     // Initialize Battery Characteristics
     this.Battery.Service
@@ -69,7 +71,6 @@ export class Meter extends deviceBase {
       .onGet(() => {
         return this.Battery.StatusLowBattery;
       });
-    accessory.context.BatteryName = this.Battery.Name;
 
     // Initialize Temperature Sensor Service
     if (device.meter?.hide_temperature) {
@@ -77,11 +78,13 @@ export class Meter extends deviceBase {
       this.TemperatureSensor!.Service = this.accessory.getService(this.hap.Service.TemperatureSensor) as Service;
       accessory.removeService(this.TemperatureSensor!.Service);
     } else {
+      accessory.context.TemperatureSensor = accessory.context.TemperatureSensor ?? {};
       this.TemperatureSensor = {
-        Name: accessory.context.TemperatureSensorName ?? `${accessory.displayName} Temperature Sensor`,
+        Name: accessory.context.TemperatureSensor.Name ?? `${accessory.displayName} Temperature Sensor`,
         Service: accessory.getService(this.hap.Service.TemperatureSensor) ?? this.accessory.addService(this.hap.Service.TemperatureSensor) as Service,
         CurrentTemperature: accessory.context.CurrentTemperature ?? 30,
       };
+      accessory.context.TemperatureSensor = this.TemperatureSensor as object;
 
       // Initialize Temperature Sensor Characteristics
       this.TemperatureSensor.Service
@@ -97,7 +100,6 @@ export class Meter extends deviceBase {
         .onGet(() => {
           return this.TemperatureSensor!.CurrentTemperature!;
         });
-      accessory.context.TemperatureSensorName = this.TemperatureSensor.Name;
     }
     // Initialize Humidity Sensor Service
     if (device.meter?.hide_humidity) {
@@ -105,11 +107,13 @@ export class Meter extends deviceBase {
       this.HumiditySensor!.Service = this.accessory.getService(this.hap.Service.HumiditySensor) as Service;
       accessory.removeService(this.HumiditySensor!.Service);
     } else {
+      accessory.context.HumiditySensor = accessory.context.HumiditySensor ?? {};
       this.HumiditySensor = {
         Name: accessory.context.HumiditySensorName ?? `${accessory.displayName} Humidity Sensor`,
         Service: accessory.getService(this.hap.Service.HumiditySensor) ?? this.accessory.addService(this.hap.Service.HumiditySensor) as Service,
         CurrentRelativeHumidity: accessory.context.CurrentRelativeHumidity ?? 50,
       };
+      accessory.context.HumiditySensor = this.HumiditySensor as object;
 
       // Initialize Humidity Sensor Characteristics
       this.HumiditySensor!.Service
@@ -121,7 +125,6 @@ export class Meter extends deviceBase {
         .onGet(() => {
           return this.HumiditySensor!.CurrentRelativeHumidity!;
         });
-      accessory.context.HumiditySensorName = this.HumiditySensor.Name;
     }
 
     // Retrieve initial values and updateHomekit

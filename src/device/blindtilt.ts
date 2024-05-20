@@ -66,8 +66,8 @@ export class BlindTilt extends deviceBase {
     this.blindTiltUpdateInProgress = false;
     this.setNewTarget = false;
 
-    accessory.context.WindowCovering = accessory.context.WindowCovering ?? {};
     // Initialize WindowCovering Service
+    accessory.context.WindowCovering = accessory.context.WindowCovering ?? {};
     this.WindowCovering = {
       Name: accessory.context.WindowCovering.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.WindowCovering) ?? accessory.addService(this.hap.Service.WindowCovering) as Service,
@@ -119,7 +119,6 @@ export class BlindTilt extends deviceBase {
         return this.WindowCovering.TargetHorizontalTiltAngle;
       })
       .onSet(this.TargetHorizontalTiltAngleSet.bind(this));
-    accessory.context.WindowCovering.Name = this.WindowCovering.Name;
 
     // Initialize WindowCovering CurrentHorizontalTiltAngle Characteristic
     this.WindowCovering.Service
@@ -134,19 +133,20 @@ export class BlindTilt extends deviceBase {
       });
 
     // Initialize Battery Service
+    accessory.context.Battery = accessory.context.Battery ?? {};
     this.Battery = {
-      Name: accessory.context.BatteryName ?? `${accessory.displayName} Battery`,
+      Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel ?? 100,
       StatusLowBattery: this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
       ChargingState: accessory.context.ChargingState ?? this.hap.Characteristic.ChargingState.NOT_CHARGING,
     };
+    accessory.context.Battery = this.Battery as object;
 
     // Initialize Battery Name Characteristic
     this.Battery.Service
       .setCharacteristic(this.hap.Characteristic.Name, this.Battery.Name)
       .setCharacteristic(this.hap.Characteristic.ChargingState, this.hap.Characteristic.ChargingState.NOT_CHARGEABLE);
-    accessory.context.BatteryName = this.Battery.Name;
 
     // Initialize LightSensor Service
     if (device.blindTilt?.hide_lightsensor) {
@@ -154,11 +154,13 @@ export class BlindTilt extends deviceBase {
       this.LightSensor!.Service = accessory.getService(this.hap.Service.LightSensor) as Service;
       accessory.removeService(this.LightSensor!.Service);
     } else {
+      accessory.context.LightSensor = accessory.context.LightSensor ?? {};
       this.LightSensor = {
-        Name: accessory.context.LightSensorName ?? `${accessory.displayName} Light Sensor`,
+        Name: accessory.context.LightSensor.Name ?? `${accessory.displayName} Light Sensor`,
         Service: accessory.getService(this.hap.Service.LightSensor) ?? accessory.addService(this.hap.Service.LightSensor) as Service,
         CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel ?? 0.0001,
       };
+      accessory.context.LightSensor = this.LightSensor as object;
 
       // Initialize LightSensor Characteristics
       this.LightSensor.Service
@@ -168,7 +170,6 @@ export class BlindTilt extends deviceBase {
         .onGet(() => {
           return this.LightSensor?.CurrentAmbientLightLevel ?? 0.0001;
         });
-      accessory.context.LightSensorName = this.LightSensor.Name;
     }
 
     // Retrieve initial values and updateHomekit

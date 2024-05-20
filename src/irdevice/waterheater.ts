@@ -31,14 +31,13 @@ export class WaterHeater extends irdeviceBase {
     super(platform, accessory, device);
 
     // Initialize Switch Service
-    if (!accessory.context.Valve) {
-      accessory.context.Valve = {};
-    }
+    accessory.context.Valve = accessory.context.Valve ?? {};
     this.Valve = {
-      Name: accessory.context.Name ?? `${accessory.displayName} ${device.remoteType}`,
+      Name: accessory.context.Valve.Name ?? `${accessory.displayName} ${device.remoteType}`,
       Service: accessory.getService(this.hap.Service.Valve) ?? accessory.addService(this.hap.Service.Valve) as Service,
       Active: accessory.context.Active ?? this.hap.Characteristic.Active.INACTIVE,
     };
+    accessory.context.Valve = this.Valve as object;
 
     this.Valve.Service
       .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
@@ -48,7 +47,6 @@ export class WaterHeater extends irdeviceBase {
         return this.Valve.Active;
       })
       .onSet(this.ActiveSet.bind(this));
-    accessory.context.Valve.Name = this.Valve.Name;
   }
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {

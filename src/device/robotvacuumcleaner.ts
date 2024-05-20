@@ -44,12 +44,14 @@ export class RobotVacuumCleaner extends deviceBase {
     this.robotVacuumCleanerUpdateInProgress = false;
 
     // Initialize Lightbulb Service
+    accessory.context.LightBulb = accessory.context.LightBulb ?? {};
     this.LightBulb = {
-      Name: accessory.context.LightBulbName ?? accessory.displayName,
+      Name: accessory.context.LightBulb.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.Lightbulb) ?? accessory.addService(this.hap.Service.Lightbulb) as Service,
       On: accessory.context.On ?? false,
       Brightness: accessory.context.Brightness ?? 0,
     };
+    accessory.context.LightBulb = this.LightBulb as object;
 
     // Initialize LightBulb Characteristics
     this.LightBulb.Service
@@ -74,16 +76,17 @@ export class RobotVacuumCleaner extends deviceBase {
         return this.LightBulb.Brightness;
       })
       .onSet(this.BrightnessSet.bind(this));
-    accessory.context.LightBulbName = this.LightBulb.Name;
 
     // Initialize Battery Service
+    accessory.context.Battery = accessory.context.Battery ?? {};
     this.Battery = {
-      Name: accessory.context.BatteryName ?? `${accessory.displayName} Battery`,
+      Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel ?? 100,
       StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
       ChargingState: accessory.context.ChargingState ?? this.hap.Characteristic.ChargingState.NOT_CHARGING,
     };
+    accessory.context.Battery = this.Battery as object;
 
     // Initialize Battery Characteristics
     this.Battery.Service
@@ -104,7 +107,6 @@ export class RobotVacuumCleaner extends deviceBase {
       .onGet(() => {
         return this.Battery.ChargingState;
       });
-    accessory.context.BatteryName = this.Battery.Name;
 
     // Retrieve initial values and updateHomekit
     this.refreshStatus();

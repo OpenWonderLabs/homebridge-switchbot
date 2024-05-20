@@ -52,11 +52,13 @@ export class Hub extends deviceBase {
       this.TemperatureSensor!.Service = this.accessory.getService(this.hap.Service.TemperatureSensor) as Service;
       accessory.removeService(this.TemperatureSensor!.Service);
     } else {
+      accessory.context.TemperatureSensor = accessory.context.TemperatureSensor ?? {};
       this.TemperatureSensor = {
-        Name: accessory.context.TemperatureSensorName ?? `${accessory.displayName} Temperature Sensor`,
+        Name: accessory.context.TemperatureSensor.Name ?? `${accessory.displayName} Temperature Sensor`,
         Service: accessory.getService(this.hap.Service.TemperatureSensor) ?? this.accessory.addService(this.hap.Service.TemperatureSensor) as Service,
         CurrentTemperature: accessory.context.CurrentTemperature ?? 0,
       };
+      accessory.context.TemperatureSensor = this.TemperatureSensor as object;
 
       // Initialize Temperature Sensor Characteristic
       this.TemperatureSensor.Service
@@ -72,7 +74,6 @@ export class Hub extends deviceBase {
         .onGet(() => {
           return this.TemperatureSensor!.CurrentTemperature;
         });
-      accessory.context.TemperatureSensorName = this.TemperatureSensor.Name;
     }
 
     // Initialize Humidity Sensor Service
@@ -81,11 +82,13 @@ export class Hub extends deviceBase {
       this.HumiditySensor!.Service = this.accessory.getService(this.hap.Service.HumiditySensor) as Service;
       accessory.removeService(this.HumiditySensor!.Service);
     } else {
+      accessory.context.HumiditySensor = accessory.context.HumiditySensor ?? {};
       this.HumiditySensor = {
-        Name: accessory.context.HumiditySensorName ?? `${accessory.displayName} Humidity Sensor`,
+        Name: accessory.context.HumiditySensor.Name ?? `${accessory.displayName} Humidity Sensor`,
         Service: accessory.getService(this.hap.Service.HumiditySensor) ?? this.accessory.addService(this.hap.Service.HumiditySensor) as Service,
         CurrentRelativeHumidity: accessory.context.CurrentRelativeHumidity ?? 0,
       };
+      accessory.context.HumiditySensor = this.HumiditySensor as object;
 
       // Initialize Humidity Sensor Characteristics
       this.HumiditySensor!.Service
@@ -97,7 +100,6 @@ export class Hub extends deviceBase {
         .onGet(() => {
           return this.HumiditySensor!.CurrentRelativeHumidity;
         });
-      accessory.context.HumiditySensorName = this.HumiditySensor.Name;
     }
 
     // Initialize Light Sensor Service
@@ -106,11 +108,13 @@ export class Hub extends deviceBase {
       this.LightSensor!.Service = this.accessory.getService(this.hap.Service.LightSensor) as Service;
       accessory.removeService(this.LightSensor!.Service);
     } else {
+      accessory.context.LightSensor = accessory.context.LightSensor ?? {};
       this.LightSensor = {
-        Name: accessory.context.LightSensorName ?? `${accessory.displayName} Light Sensor`,
+        Name: accessory.context.LightSensor.Name ?? `${accessory.displayName} Light Sensor`,
         Service: accessory.getService(this.hap.Service.LightSensor) ?? this.accessory.addService(this.hap.Service.LightSensor) as Service,
         CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel ?? 0.0001,
       };
+      accessory.context.LightSensor = this.LightSensor as object;
 
       // Initialize Light Sensor Characteristics
       this.LightSensor!.Service
@@ -122,7 +126,6 @@ export class Hub extends deviceBase {
         .onGet(() => {
           return this.LightSensor!.CurrentAmbientLightLevel;
         });
-      accessory.context.LightSensorName = this.LightSensor.Name;
     }
 
     // Retrieve initial values and updateHomekit

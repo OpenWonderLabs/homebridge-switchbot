@@ -44,18 +44,15 @@ export class Light extends irdeviceBase {
   ) {
     super(platform, accessory, device);
 
-
-
     if (!device.irlight?.stateless) {
-      if (!accessory.context.LightBulb) {
-        accessory.context.LightBulb = {};
-      }
-      // Initialize LightBulb property
+      // Initialize LightBulb Service
+      accessory.context.LightBulb = accessory.context.LightBulb ?? {};
       this.LightBulb = {
         Name: accessory.context.LightBulb.Name ?? `${accessory.displayName} ${device.remoteType}`,
         Service: accessory.getService(this.hap.Service.Lightbulb) ?? accessory.addService(this.hap.Service.Lightbulb) as Service,
         On: accessory.context.On || false,
       };
+      accessory.context.LightBulb = this.LightBulb as object;
 
       this.LightBulb.Service
         .setCharacteristic(this.hap.Characteristic.Name, this.LightBulb.Name)
@@ -64,12 +61,9 @@ export class Light extends irdeviceBase {
           return this.LightBulb!.On;
         })
         .onSet(this.OnSet.bind(this));
-      accessory.context.LightBulb.Name = this.LightBulb.Name;
     } else {
       // Initialize ProgrammableSwitchOn Service
-      if (!accessory.context.ProgrammableSwitchOn) {
-        accessory.context.ProgrammableSwitchOn = {};
-      }
+      accessory.context.ProgrammableSwitchOn = accessory.context.ProgrammableSwitchOn ?? {};
       this.ProgrammableSwitchOn = {
         Name: accessory.context.ProgrammableSwitchOn.Name ?? `${accessory.displayName} ${device.remoteType} On`,
         Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch)
@@ -77,6 +71,7 @@ export class Light extends irdeviceBase {
         ProgrammableSwitchEvent: accessory.context.ProgrammableSwitchEvent ?? this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
         ProgrammableSwitchOutputState: accessory.context.ProgrammableSwitchOutputState ?? 0,
       };
+      accessory.context.ProgrammableSwitchOn = this.ProgrammableSwitchOn as object;
 
       // Initialize ProgrammableSwitchOn Characteristics
       this.ProgrammableSwitchOn?.Service
@@ -97,12 +92,9 @@ export class Light extends irdeviceBase {
           return this.ProgrammableSwitchOn!.ProgrammableSwitchOutputState;
         })
         .onSet(this.ProgrammableSwitchOutputStateSetOn.bind(this));
-      accessory.context.ProgrammableSwitchOn.Name = this.ProgrammableSwitchOn.Name;
 
       // Initialize ProgrammableSwitchOff Service
-      if (!accessory.context.ProgrammableSwitchOff) {
-        accessory.context.ProgrammableSwitchOff = {};
-      }
+      accessory.context.ProgrammableSwitchOff = accessory.context.ProgrammableSwitchOff ?? {};
       this.ProgrammableSwitchOff = {
         Name: accessory.context.ProgrammableSwitchOff.Name ?? `${accessory.displayName} ${device.remoteType} Off`,
         Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch)
@@ -110,6 +102,7 @@ export class Light extends irdeviceBase {
         ProgrammableSwitchEvent: accessory.context.ProgrammableSwitchEvent ?? this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
         ProgrammableSwitchOutputState: accessory.context.ProgrammableSwitchOutputState ?? 0,
       };
+      accessory.context.ProgrammableSwitchOff = this.ProgrammableSwitchOff as object;
 
       // Initialize ProgrammableSwitchOff Characteristics
       this.ProgrammableSwitchOff?.Service
@@ -130,7 +123,6 @@ export class Light extends irdeviceBase {
           return this.ProgrammableSwitchOff!.ProgrammableSwitchOutputState;
         })
         .onSet(this.ProgrammableSwitchOutputStateSetOff.bind(this));
-      accessory.context.ProgrammableSwitchOff.Name = this.ProgrammableSwitchOff.Name;
     }
 
   }

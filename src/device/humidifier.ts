@@ -48,8 +48,9 @@ export class Humidifier extends deviceBase {
     this.humidifierUpdateInProgress = false;
 
     // Initialize the HumidifierDehumidifier Service
+    accessory.context.HumidifierDehumidifier = accessory.context.HumidifierDehumidifier ?? {};
     this.HumidifierDehumidifier = {
-      Name: accessory.context.HumidifierDehumidifierName ?? accessory.displayName,
+      Name: accessory.context.HumidifierDehumidifier.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.HumidifierDehumidifier)
         ?? accessory.addService(this.hap.Service.HumidifierDehumidifier) as Service,
       Active: accessory.context.Active ?? this.hap.Characteristic.Active.ACTIVE,
@@ -61,6 +62,7 @@ export class Humidifier extends deviceBase {
         ?? this.hap.Characteristic.CurrentHumidifierDehumidifierState.INACTIVE,
       RelativeHumidityHumidifierThreshold: accessory.context.RelativeHumidityHumidifierThreshold ?? 50,
     };
+    accessory.context.HumidifierDehumidifier = this.HumidifierDehumidifier as object;
 
     // Initialize the HumidifierDehumidifier Characteristics
     this.HumidifierDehumidifier.Service
@@ -98,7 +100,6 @@ export class Humidifier extends deviceBase {
         return this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold;
       })
       .onSet(this.RelativeHumidityHumidifierThresholdSet.bind(this));
-    accessory.context.HumidifierDehumidifierName = this.HumidifierDehumidifier.Name;
 
     // Initialize the Temperature Sensor Service
     if (device.humidifier?.hide_temperature) {
@@ -106,11 +107,13 @@ export class Humidifier extends deviceBase {
       this.TemperatureSensor!.Service = this.accessory.getService(this.hap.Service.TemperatureSensor) as Service;
       accessory.removeService(this.TemperatureSensor!.Service);
     } else {
+      accessory.context.TemperatureSensor = accessory.context.TemperatureSensor ?? {};
       this.TemperatureSensor = {
-        Name: accessory.context.TemperatureSensorName ?? `${accessory.displayName} Temperature Sensor`,
+        Name: accessory.context.TemperatureSensor.Name ?? `${accessory.displayName} Temperature Sensor`,
         Service: accessory.getService(this.hap.Service.TemperatureSensor) ?? this.accessory.addService(this.hap.Service.TemperatureSensor) as Service,
         CurrentTemperature: accessory.context.CurrentTemperature || 30,
       };
+      accessory.context.TemperatureSensor = this.TemperatureSensor as object;
 
       // Initialize the Temperature Sensor Characteristics
       this.TemperatureSensor.Service
@@ -125,7 +128,6 @@ export class Humidifier extends deviceBase {
         .onGet(() => {
           return this.TemperatureSensor!.CurrentTemperature;
         });
-      accessory.context.TemperatureSensorName = this.TemperatureSensor.Name;
     }
 
     // Retrieve initial values and updateHomekit

@@ -64,9 +64,7 @@ export class AirConditioner extends irdeviceBase {
 
 
     // Initialize HeaterCooler Service
-    if (!accessory.context.HeaterCooler) {
-      accessory.context.HeaterCooler = {};
-    }
+    accessory.context.HeaterCooler = accessory.context.HeaterCooler ?? {};
     this.HeaterCooler = {
       Name: accessory.context.HeaterCooler.Name ?? `${accessory.displayName} ${device.remoteType}`,
       Service: accessory.getService(this.hap.Service.HeaterCooler) ?? accessory.addService(this.hap.Service.HeaterCooler) as Service,
@@ -77,7 +75,7 @@ export class AirConditioner extends irdeviceBase {
       ThresholdTemperature: accessory.context.ThresholdTemperature ?? 24,
       RotationSpeed: accessory.context.RotationSpeed ?? 4,
     };
-
+    accessory.context.HeaterCooler = this.HeaterCooler as object;
 
     this.HeaterCooler.Service
       .setCharacteristic(this.hap.Characteristic.Name, this.HeaterCooler.Name)
@@ -145,18 +143,19 @@ export class AirConditioner extends irdeviceBase {
         return await this.RotationSpeedGet();
       })
       .onSet(this.RotationSpeedSet.bind(this));
-    accessory.context.HeaterCooler.Name = this.HeaterCooler.Name;
 
     // Initialize HumiditySensor property
 
     if (this.device.irair?.meterType && this.device.irair?.meterId) {
       const meterUuid = this.platform.api.hap.uuid.generate(`${this.device.irair.meterId}-${this.device.irair.meterType}`);
       this.meter = this.platform.accessories.find((accessory) => accessory.UUID === meterUuid);
+      accessory.context.HumiditySensor = accessory.context.HumiditySensor ?? {};
       this.HumiditySensor = {
-        Name:  this.meter!.displayName,
+        Name:  accessory.context.HumiditySensor ?? this.meter!.displayName,
         Service: this.meter!.getService(this.hap.Service.HumiditySensor) ?? this.meter!.addService(this.hap.Service.HumiditySensor) as Service,
         CurrentRelativeHumidity: this.meter!.context.CurrentRelativeHumidity || 0,
       };
+      accessory.context.HumiditySensor = this.HumiditySensor as object;
     }
 
     if (this.device.irair?.meterType && this.device.irair?.meterId) {

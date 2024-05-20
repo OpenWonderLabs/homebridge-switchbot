@@ -52,11 +52,13 @@ export class Motion extends deviceBase {
     this.motionUbpdateInProgress = false;
 
     // Initialize Motion Sensor property
+    accessory.context.MotionSensor = accessory.context.MotionSensor ?? {};
     this.MotionSensor = {
-      Name: accessory.context.MotionSensorName ?? `${accessory.displayName} Motion Sensor`,
+      Name: accessory.context.MotionSensor.Name ?? `${accessory.displayName} Motion Sensor`,
       Service: accessory.getService(this.hap.Service.MotionSensor) ?? accessory.addService(this.hap.Service.MotionSensor) as Service,
       MotionDetected: accessory.context.MotionDetected ?? false,
     };
+    accessory.context.MotionSensor = this.MotionSensor as object;
 
     // Initialize Motion Sensor Characteristics
     this.MotionSensor.Service
@@ -69,12 +71,14 @@ export class Motion extends deviceBase {
     accessory.context.MotionSensorName = this.MotionSensor.Name;
 
     // Initialize Battery Service
+    accessory.context.Battery = accessory.context.Battery ?? {};
     this.Battery = {
-      Name: accessory.context.BatteryName ?? `${accessory.displayName} Battery`,
+      Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel ?? 100,
       StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
     };
+    accessory.context.Battery = this.Battery as object;
 
     // Initialize Battery Characteristics
     this.Battery.Service
@@ -91,7 +95,6 @@ export class Motion extends deviceBase {
       .onGet(() => {
         return this.Battery.StatusLowBattery;
       });
-    accessory.context.BatteryName = this.Battery.Name;
 
     // Initialize Light Sensor Service
     if (device.motion?.hide_lightsensor) {
@@ -99,11 +102,13 @@ export class Motion extends deviceBase {
       this.LightSensor!.Service = this.accessory.getService(this.hap.Service.LightSensor) as Service;
       accessory.removeService(this.LightSensor!.Service);
     } else {
+      accessory.context.LightSensor = accessory.context.LightSensor ?? {};
       this.LightSensor = {
-        Name: accessory.context.LightSensorName ?? `${accessory.displayName} Light Sensor`,
+        Name: accessory.context.LightSensor.Name ?? `${accessory.displayName} Light Sensor`,
         Service: accessory.getService(this.hap.Service.LightSensor) ?? this.accessory.addService(this.hap.Service.LightSensor) as Service,
         CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel ?? 0.0001,
       };
+      accessory.context.LightSensor = this.LightSensor as object;
 
       // Initialize LightSensor Characteristics
       this.LightSensor!.Service
@@ -113,7 +118,6 @@ export class Motion extends deviceBase {
         .onGet(() => {
           return this.LightSensor!.CurrentAmbientLightLevel;
         });
-      accessory.context.LightSensorName = this.LightSensor.Name;
     };
 
 
