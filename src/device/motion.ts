@@ -102,7 +102,7 @@ export class Motion extends deviceBase {
       this.LightSensor = {
         Name: accessory.context.LightSensorName ?? `${accessory.displayName} Light Sensor`,
         Service: accessory.getService(this.hap.Service.LightSensor) ?? this.accessory.addService(this.hap.Service.LightSensor) as Service,
-        CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel ?? 0,
+        CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel ?? 0.0001,
       };
 
       // Initialize LightSensor Characteristics

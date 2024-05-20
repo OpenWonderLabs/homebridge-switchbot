@@ -18,6 +18,7 @@ import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge
 export class AirPurifier extends irdeviceBase {
   // Services
   private AirPurifier: {
+    Name: CharacteristicValue;
     Service: Service;
     Active: CharacteristicValue;
     RotationSpeed: CharacteristicValue;
@@ -26,6 +27,7 @@ export class AirPurifier extends irdeviceBase {
   };
 
   private TemperatureSensor: {
+    Name: CharacteristicValue;
     Service: Service;
     CurrentTemperature: CharacteristicValue;
   };
@@ -54,36 +56,59 @@ export class AirPurifier extends irdeviceBase {
   ) {
     super(platform, accessory, device);
 
+    if (!accessory.context.AirPurifier) {
+      accessory.context.AirPurifier = {};
+    }
+
     // Initialize AirPurifier property
     this.AirPurifier = {
-      Service: accessory.getService(this.hap.Service.Switch) as Service,
-      Active: accessory.context.Active || this.hap.Characteristic.Active.INACTIVE,
-      RotationSpeed: accessory.context.RotationSpeed || 0,
-      CurrentAirPurifierState: accessory.context.CurrentAirPurifierState || this.hap.Characteristic.CurrentAirPurifierState.INACTIVE,
-      TargetAirPurifierState: accessory.context.TargetAirPurifierState || this.hap.Characteristic.TargetAirPurifierState.AUTO,
+      Name: accessory.context.AirPurifier.Name ?? `${accessory.displayName} Air Purifier`,
+      Service: accessory.getService(this.hap.Service.AirPurifier) ?? accessory.addService(this.hap.Service.AirPurifier) as Service,
+      Active: accessory.context.Active ?? this.hap.Characteristic.Active.INACTIVE,
+      RotationSpeed: accessory.context.RotationSpeed ?? 0,
+      CurrentAirPurifierState: accessory.context.CurrentAirPurifierState ?? this.hap.Characteristic.CurrentAirPurifierState.INACTIVE,
+      TargetAirPurifierState: accessory.context.TargetAirPurifierState ?? this.hap.Characteristic.TargetAirPurifierState.AUTO,
     };
 
+    this.AirPurifier.Service
+      .setCharacteristic(this.hap.Characteristic.Name, this.AirPurifier.Name)
+      .getCharacteristic(this.hap.Characteristic.Active)
+      .onGet(() => {
+        return this.AirPurifier.Active;
+      })
+      .onSet(this.ActiveSet.bind(this));
+
+    this.AirPurifier.Service
+      .getCharacteristic(this.hap.Characteristic.CurrentAirPurifierState)
+      .onGet(() => {
+        return this.CurrentAirPurifierStateGet();
+      });
+
+    this.AirPurifier.Service
+      .getCharacteristic(this.hap.Characteristic.TargetAirPurifierState)
+      .onGet(() => {
+        return this.AirPurifier.TargetAirPurifierState;
+      })
+      .onSet(this.TargetAirPurifierStateSet.bind(this));
+    accessory.context.AirPurifier.Name = this.AirPurifier.Name;
+
+    if (!accessory.context.TemperatureSensor) {
+      accessory.context.TemperatureSensor = {};
+    }
     // Initialize TemperatureSensor property
     this.TemperatureSensor = {
-      Service: accessory.getService(this.hap.Service.TemperatureSensor) as Service,
+      Name: accessory.context.TemperatureSensor.Name ?? `${accessory.displayName} Temperature Sensor`,
+      Service: accessory.getService(this.hap.Service.TemperatureSensor) ?? accessory.addService(this.hap.Service.TemperatureSensor) as Service,
       CurrentTemperature: accessory.context.CurrentTemperature || 24,
     };
 
-    // get the Television service if it exists, otherwise create a new Television service
-    // you can create multiple services for each accessory
-    const AirPurifierService = `${accessory.displayName} Air Purifier`;
-    (this.AirPurifier.Service = accessory.getService(this.hap.Service.AirPurifier)
-      || accessory.addService(this.hap.Service.AirPurifier)), AirPurifierService;
-
-    this.AirPurifier.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-    // handle on / off events using the Active characteristic
-    this.AirPurifier.Service.getCharacteristic(this.hap.Characteristic.Active).onSet(this.ActiveSet.bind(this));
-
-    this.AirPurifier.Service.getCharacteristic(this.hap.Characteristic.CurrentAirPurifierState).onGet(() => {
-      return this.CurrentAirPurifierStateGet();
-    });
-
-    this.AirPurifier.Service.getCharacteristic(this.hap.Characteristic.TargetAirPurifierState).onSet(this.TargetAirPurifierStateSet.bind(this));
+    this.TemperatureSensor.Service
+      .setCharacteristic(this.hap.Characteristic.Name, this.TemperatureSensor.Name)
+      .getCharacteristic(this.hap.Characteristic.CurrentTemperature)
+      .onGet(() => {
+        return this.TemperatureSensor.CurrentTemperature;
+      });
+    accessory.context.TemperatureSensor.Name = this.TemperatureSensor.Name;
   }
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {

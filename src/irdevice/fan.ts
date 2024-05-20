@@ -18,6 +18,7 @@ import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge
 export class IRFan extends irdeviceBase {
   // Services
   private Fan: {
+    Name: CharacteristicValue;
     Service: Service;
     Active: CharacteristicValue;
     SwingMode: CharacteristicValue;
@@ -32,26 +33,28 @@ export class IRFan extends irdeviceBase {
   ) {
     super(platform, accessory, device);
 
+    if (!accessory.context.Fan) {
+      accessory.context.Fan = {};
+    }
+
     // Initialize Switch property
     this.Fan = {
-      Service: accessory.getService(this.hap.Service.Lightbulb) as Service,
-      Active: accessory.context.Active || this.hap.Characteristic.Active.INACTIVE,
-      SwingMode: accessory.context.SwingMode || this.hap.Characteristic.SwingMode.SWING_DISABLED,
-      RotationSpeed: accessory.context.RotationSpeed || 0,
-      RotationDirection: accessory.context.On || this.hap.Characteristic.RotationDirection.CLOCKWISE,
+      Name: accessory.context.Fan.Name ?? `${accessory.displayName} Fan`,
+      Service: accessory.getService(this.hap.Service.Fanv2) ?? accessory.addService(this.hap.Service.Fanv2) as Service,
+      Active: accessory.context.Active ?? this.hap.Characteristic.Active.INACTIVE,
+      SwingMode: accessory.context.SwingMode ?? this.hap.Characteristic.SwingMode.SWING_DISABLED,
+      RotationSpeed: accessory.context.RotationSpeed ?? 0,
+      RotationDirection: accessory.context.RotationDirection ?? this.hap.Characteristic.RotationDirection.CLOCKWISE,
     };
 
-    // get the Television service if it exists, otherwise create a new Television service
-    // you can create multiple services for each accessory
-    const FanService = `${accessory.displayName} Fan`;
-    (this.Fan.Service = accessory.getService(this.hap.Service.Fanv2)
-      || accessory.addService(this.hap.Service.Fanv2)), FanService;
-
-    this.Fan.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-
-    // handle on / off events using the Active characteristic
-    this.Fan.Service.getCharacteristic(this.hap.Characteristic.Active).onSet(this.ActiveSet.bind(this));
-
+    this.Fan.Service
+      .setCharacteristic(this.hap.Characteristic.Name, this.Fan.Name)
+      .getCharacteristic(this.hap.Characteristic.Active)
+      .onGet(() => {
+        return this.Fan.Active;
+      })
+      .onSet(this.ActiveSet.bind(this));
+    accessory.context.Fan.Name = this.Fan.Name;
 
     if (device.irfan?.rotation_speed) {
       // handle Rotation Speed events using the RotationSpeed characteristic
@@ -61,6 +64,9 @@ export class IRFan extends irdeviceBase {
           minStep: Number(this.minStep(device)),
           minValue: Number(this.minValue(device)),
           maxValue: Number(this.maxValue(device)),
+        })
+        .onGet(() => {
+          return this.Fan.RotationSpeed;
         })
         .onSet(this.RotationSpeedSet.bind(this));
     } else if (this.Fan.Service.testCharacteristic(this.hap.Characteristic.RotationSpeed) && !device.irfan?.swing_mode) {
@@ -76,7 +82,12 @@ export class IRFan extends irdeviceBase {
 
     if (device.irfan?.swing_mode) {
       // handle Osolcation events using the SwingMode characteristic
-      this.Fan.Service.getCharacteristic(this.hap.Characteristic.SwingMode).onSet(this.SwingModeSet.bind(this));
+      this.Fan.Service
+        .getCharacteristic(this.hap.Characteristic.SwingMode)
+        .onGet(() => {
+          return this.Fan.SwingMode;
+        })
+        .onSet(this.SwingModeSet.bind(this));
     } else if (this.Fan.Service.testCharacteristic(this.hap.Characteristic.SwingMode) && !device.irfan?.swing_mode) {
       const characteristic = this.Fan.Service.getCharacteristic(this.hap.Characteristic.SwingMode);
       this.Fan.Service.removeCharacteristic(characteristic);
@@ -87,6 +98,7 @@ export class IRFan extends irdeviceBase {
         `Clear Cache on ${this.accessory.displayName} To Remove Chracteristic`,
       );
     }
+    accessory.context.Fan.Name = this.Fan.Name;
   }
 
   async minStep(device: irdevice & irDevicesConfig): Promise<number> {

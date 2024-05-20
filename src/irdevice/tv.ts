@@ -18,6 +18,8 @@ import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge
 export class TV extends irdeviceBase {
   // Services
   private Television: {
+    Name: CharacteristicValue;
+    ConfiguredName: CharacteristicValue;
     Service: Service;
     Active: CharacteristicValue;
     ActiveIdentifier: CharacteristicValue;
@@ -26,6 +28,7 @@ export class TV extends irdeviceBase {
   };
 
   private TelevisionSpeaker: {
+    Name: CharacteristicValue;
     Service: Service;
     Active: CharacteristicValue;
     VolumeControlType: CharacteristicValue;
@@ -41,101 +44,89 @@ export class TV extends irdeviceBase {
   ) {
     super(platform, accessory, device);
 
-    // Initialize Television property
+    // Initialize Television Service
+    if (!accessory.context.Television) {
+      accessory.context.Television = {};
+    }
     this.Television = {
-      Service: accessory.getService(this.hap.Service.Television) as Service,
-      Active: accessory.context.Active || this.hap.Characteristic.Active.INACTIVE,
-      ActiveIdentifier: accessory.context.ActiveIdentifier || 1,
-      SleepDiscoveryMode: accessory.context.SleepDiscoveryMode || this.hap.Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE,
-      RemoteKey: accessory.context.RemoteKey || this.hap.Characteristic.RemoteKey.EXIT,
+      Name: accessory.context.Television.Name ?? `${accessory.displayName} ${device.remoteType}`,
+      ConfiguredName: accessory.context.Television.ConfiguredName ?? `${accessory.displayName} ${device.remoteType}`,
+      Service: accessory.getService(this.hap.Service.Television) ?? accessory.addService(this.hap.Service.Television) as Service,
+      Active: accessory.context.Active ?? this.hap.Characteristic.Active.INACTIVE,
+      ActiveIdentifier: accessory.context.ActiveIdentifier ?? 1,
+      SleepDiscoveryMode: accessory.context.SleepDiscoveryMode ?? this.hap.Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE,
+      RemoteKey: accessory.context.RemoteKey ?? this.hap.Characteristic.RemoteKey.EXIT,
     };
 
-    // Initialize TelevisionSpeaker property
-    this.TelevisionSpeaker = {
-      Service: accessory.getService(this.hap.Service.TelevisionSpeaker) as Service,
-      Active: accessory.context.Active || false,
-      VolumeControlType: accessory.context.VolumeControlType || this.hap.Characteristic.VolumeControlType.ABSOLUTE,
-      VolumeSelector: accessory.context.VolumeSelector || this.hap.Characteristic.VolumeSelector.INCREMENT,
-    };
-
-    // default placeholders
-    if (this.Television.Active === undefined) {
-      this.Television.Active = this.hap.Characteristic.Active.INACTIVE;
-    } else {
-      this.Television.Active = this.accessory.context.Active;
-    }
-    if (this.Television.ActiveIdentifier === undefined) {
-      this.Television.ActiveIdentifier = 1;
-    } else {
-      this.Television.ActiveIdentifier = this.accessory.context.ActiveIdentifier;
-    }
-
-    // set the accessory category
-    const TelevisionServiceCategory = `${accessory.displayName} ${device.remoteType}`;
     switch (device.remoteType) {
       case 'Speaker':
       case 'DIY Speaker':
         accessory.category = this.platform.api.hap.Categories.SPEAKER;
-        (this.Television.Service = accessory.getService(this.hap.Service.Television)
-          || accessory.addService(this.hap.Service.Television)), TelevisionServiceCategory;
         break;
       case 'IPTV':
       case 'DIY IPTV':
         accessory.category = this.platform.api.hap.Categories.TV_STREAMING_STICK;
-        (this.Television.Service = accessory.getService(this.hap.Service.Television)
-          || accessory.addService(this.hap.Service.Television)), TelevisionServiceCategory;
         break;
       case 'DVD':
       case 'DIY DVD':
       case 'Set Top Box':
       case 'DIY Set Top Box':
         accessory.category = this.platform.api.hap.Categories.TV_SET_TOP_BOX;
-        (this.Television.Service = accessory.getService(this.hap.Service.Television)
-          || accessory.addService(this.hap.Service.Television)), TelevisionServiceCategory;
         break;
       default:
         accessory.category = this.platform.api.hap.Categories.TELEVISION;
-
-        // get the Television service if it exists, otherwise create a new Television service
-        // you can create multiple services for each accessory
-        (this.Television.Service = accessory.getService(this.hap.Service.Television)
-          || accessory.addService(this.hap.Service.Television)), TelevisionServiceCategory;
     }
 
-    this.Television.Service.getCharacteristic(this.hap.Characteristic.ConfiguredName);
+    this.Television.Service
+      .setCharacteristic(this.hap.Characteristic.SleepDiscoveryMode, this.hap.Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE)
+      .setCharacteristic(this.hap.Characteristic.ConfiguredName, this.Television.ConfiguredName)
+      .getCharacteristic(this.hap.Characteristic.ConfiguredName);
 
-    // set sleep discovery characteristic
-    this.Television.Service.setCharacteristic(
-      this.hap.Characteristic.SleepDiscoveryMode,
-      this.hap.Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE,
-    );
+    this.Television.Service
+      .setCharacteristic(this.hap.Characteristic.ActiveIdentifier, 1)
+      .getCharacteristic(this.hap.Characteristic.Active)
+      .onGet(() => {
+        return this.Television.Active;
+      })
+      .onSet(this.ActiveSet.bind(this));
 
-    // handle on / off events using the Active characteristic
-    this.Television.Service.getCharacteristic(this.hap.Characteristic.Active).onSet(this.ActiveSet.bind(this));
+    this.Television.Service
+      .getCharacteristic(this.hap.Characteristic.ActiveIdentifier)
+      .onGet(() => {
+        return this.Television.ActiveIdentifier;
+      })
+      .onSet(this.ActiveIdentifierSet.bind(this));
 
-    this.Television.Service.setCharacteristic(this.hap.Characteristic.ActiveIdentifier, 1);
+    this.Television.Service
+      .getCharacteristic(this.hap.Characteristic.RemoteKey)
+      .onGet(() => {
+        return this.Television.RemoteKey;
+      })
+      .onSet(this.RemoteKeySet.bind(this));
+    accessory.context.Television.Name = this.Television.Name;
 
-    // handle input source changes
-    this.Television.Service.getCharacteristic(this.hap.Characteristic.ActiveIdentifier).onSet(this.ActiveIdentifierSet.bind(this));
+    // Initialize TelevisionSpeaker Service
+    if (!accessory.context.TelevisionSpeaker) {
+      accessory.context.TelevisionSpeaker = {};
+    }
+    this.TelevisionSpeaker = {
+      Name: accessory.context.TelevisionSpeaker.Name ?? `${accessory.displayName} ${device.remoteType} Speaker`,
+      Service: accessory.getService(this.hap.Service.TelevisionSpeaker) ?? accessory.addService(this.hap.Service.TelevisionSpeaker) as Service,
+      Active: accessory.context.Active ?? false,
+      VolumeControlType: accessory.context.VolumeControlType ?? this.hap.Characteristic.VolumeControlType.ABSOLUTE,
+      VolumeSelector: accessory.context.VolumeSelector ?? this.hap.Characteristic.VolumeSelector.INCREMENT,
+    };
 
-    // handle remote control input
-    this.Television.Service.getCharacteristic(this.hap.Characteristic.RemoteKey).onSet(this.RemoteKeySet.bind(this));
-
-    /**
-     * Create a speaker service to allow volume control
-     */
-    // create a new Television Speaker service
-    const TelevisionSpeakerService = `${accessory.displayName} Speaker`;
-    (this.TelevisionSpeaker.Service = accessory.getService(this.hap.Service.TelevisionSpeaker)
-      || accessory.addService(this.hap.Service.TelevisionSpeaker)), TelevisionSpeakerService;
-
-    this.TelevisionSpeaker.Service.setCharacteristic(this.hap.Characteristic.Name, TelevisionSpeakerService);
     this.TelevisionSpeaker.Service
+      .setCharacteristic(this.hap.Characteristic.Name, this.TelevisionSpeaker.Name)
       .setCharacteristic(this.hap.Characteristic.Active, this.hap.Characteristic.Active.ACTIVE)
-      .setCharacteristic(this.hap.Characteristic.VolumeControlType, this.hap.Characteristic.VolumeControlType.ABSOLUTE);
-
-    // handle volume control
-    this.TelevisionSpeaker.Service.getCharacteristic(this.hap.Characteristic.VolumeSelector).onSet(this.VolumeSelectorSet.bind(this));
+      .setCharacteristic(this.hap.Characteristic.VolumeControlType, this.hap.Characteristic.VolumeControlType.ABSOLUTE)
+      .getCharacteristic(this.hap.Characteristic.VolumeSelector)
+      .onGet(() => {
+        return this.TelevisionSpeaker.VolumeSelector;
+      })
+      .onSet(this.VolumeSelectorSet.bind(this));
+    accessory.context.TelevisionSpeaker.Name = this.TelevisionSpeaker.Name;
   }
 
   async VolumeSelectorSet(value: CharacteristicValue): Promise<void> {

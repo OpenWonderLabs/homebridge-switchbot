@@ -51,8 +51,7 @@ export class ColorBulb extends deviceBase {
     this.doColorBulbUpdate = new Subject();
     this.colorBulbUpdateInProgress = false;
 
-    accessory.context.LightBulb = {};
-
+    accessory.context.LightBulb = accessory.context.LightBulb ?? {};
     // Initialize LightBulb property
     this.LightBulb = {
       Name: accessory.context.LightBulb.Name ?? accessory.displayName,
@@ -63,6 +62,8 @@ export class ColorBulb extends deviceBase {
       Brightness: accessory.context.Brightness ?? 0,
       ColorTemperature: accessory.context.ColorTemperature ?? 140,
     };
+    accessory.context.LightBulb = this.LightBulb as object;
+    this.errorLog(`${device.deviceType}: ${accessory.displayName} LightBulb Context: ${JSON.stringify(accessory.context.LightBulb)}`);
 
     // Adaptive Lighting
     if (this.adaptiveLightingShift === -1 && accessory.context.adaptiveLighting) {

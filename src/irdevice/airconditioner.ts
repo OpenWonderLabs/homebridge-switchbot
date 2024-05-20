@@ -18,6 +18,7 @@ import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge
 export class AirConditioner extends irdeviceBase {
   // Services
   private HeaterCooler: {
+    Name: CharacteristicValue;
     Service: Service;
     Active: CharacteristicValue;
     CurrentHeaterCoolerState: CharacteristicValue;
@@ -27,7 +28,9 @@ export class AirConditioner extends irdeviceBase {
     RotationSpeed: CharacteristicValue;
   };
 
+  meter?: PlatformAccessory;
   private HumiditySensor?: {
+    Name: CharacteristicValue;
     Service: Service;
     CurrentRelativeHumidity: CharacteristicValue;
   };
@@ -46,7 +49,6 @@ export class AirConditioner extends irdeviceBase {
   set_min_heat?: number;
   set_max_cool?: number;
   set_min_cool?: number;
-  meter?: PlatformAccessory;
 
   constructor(
     readonly platform: SwitchBotPlatform,
@@ -58,64 +60,54 @@ export class AirConditioner extends irdeviceBase {
     // default placeholders
     this.getAirConditionerConfigSettings(accessory, device);
 
-    // Initialize HeaterCooler property
-    this.HeaterCooler = {
-      Service: accessory.getService(this.hap.Service.Switch) as Service,
-      Active: accessory.context.Active || this.hap.Characteristic.Active.INACTIVE,
-      CurrentHeaterCoolerState: accessory.context.CurrentHeaterCoolerState || this.hap.Characteristic.CurrentHeaterCoolerState.IDLE,
-      TargetHeaterCoolerState: accessory.context.TargetHeaterCoolerState || this.hap.Characteristic.TargetHeaterCoolerState.AUTO,
-      CurrentTemperature: accessory.context.CurrentTemperature || 24,
-      ThresholdTemperature: accessory.context.ThresholdTemperature || 24,
-      RotationSpeed: accessory.context.RotationSpeed || 4,
-    };
-
-    // Initialize HumiditySensor property
-    if (this.device.irair?.meterType && this.device.irair?.meterId) {
-      const meterUuid = this.platform.api.hap.uuid.generate(`${this.device.irair.meterId}-${this.device.irair.meterType}`);
-      this.meter = this.platform.accessories.find((accessory) => accessory.UUID === meterUuid);
-      this.HumiditySensor = {
-        Service: this.meter!.getService(this.hap.Service.HumiditySensor) as Service,
-        CurrentRelativeHumidity: this.meter!.context.CurrentRelativeHumidity || 0,
-      };
-    }
-
-    // get the Television service if it exists, otherwise create a new Television service
-    // you can create multiple services for each accessory
-    const HeaterCoolerService = `${accessory.displayName} ${device.remoteType}`;
-    (this.HeaterCooler.Service = accessory.getService(this.hap.Service.HeaterCooler)
-      || accessory.addService(this.hap.Service.HeaterCooler)), HeaterCoolerService;
-
-    this.HeaterCooler.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-
-    // handle on / off events using the Active characteristic
-    this.HeaterCooler.Service.getCharacteristic(this.hap.Characteristic.Active)
-      .onSet(this.ActiveSet.bind(this));
-
-    this.HeaterCooler.Service.getCharacteristic(this.hap.Characteristic.CurrentTemperature)
-      .onGet(this.CurrentTemperatureGet.bind(this));
-
     this.ValidValues = this.hide_automode ? [1, 2] : [0, 1, 2];
 
-    if (this.device.irair?.meterType && this.device.irair?.meterId) {
-      const meterUuid = this.platform.api.hap.uuid.generate(`${this.device.irair.meterId}-${this.device.irair.meterType}`);
-      this.meter = this.platform.accessories.find((accessory) => accessory.UUID === meterUuid);
-    }
 
-    if (this.meter) {
-      this.HumiditySensor!.Service.getCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity)
-        .onGet(this.CurrentRelativeHumidityGet.bind(this));
+    // Initialize HeaterCooler Service
+    if (!accessory.context.HeaterCooler) {
+      accessory.context.HeaterCooler = {};
     }
+    this.HeaterCooler = {
+      Name: accessory.context.HeaterCooler.Name ?? `${accessory.displayName} ${device.remoteType}`,
+      Service: accessory.getService(this.hap.Service.HeaterCooler) ?? accessory.addService(this.hap.Service.HeaterCooler) as Service,
+      Active: accessory.context.Active ?? this.hap.Characteristic.Active.INACTIVE,
+      CurrentHeaterCoolerState: accessory.context.CurrentHeaterCoolerState ?? this.hap.Characteristic.CurrentHeaterCoolerState.IDLE,
+      TargetHeaterCoolerState: accessory.context.TargetHeaterCoolerState ?? this.hap.Characteristic.TargetHeaterCoolerState.AUTO,
+      CurrentTemperature: accessory.context.CurrentTemperature ?? 24,
+      ThresholdTemperature: accessory.context.ThresholdTemperature ?? 24,
+      RotationSpeed: accessory.context.RotationSpeed ?? 4,
+    };
+
+
+    this.HeaterCooler.Service
+      .setCharacteristic(this.hap.Characteristic.Name, this.HeaterCooler.Name)
+      .getCharacteristic(this.hap.Characteristic.Active)
+      .onGet(() => {
+        return this.HeaterCooler.Active;
+      })
+      .onSet(this.ActiveSet.bind(this));
+
+    this.HeaterCooler.Service
+      .getCharacteristic(this.hap.Characteristic.CurrentTemperature)
+      .onGet(async () => {
+        return await this.CurrentTemperatureGet();
+      });
 
     this.HeaterCooler.Service
       .getCharacteristic(this.hap.Characteristic.TargetHeaterCoolerState)
       .setProps({
         validValues: this.ValidValues,
       })
-      .onGet(this.TargetHeaterCoolerStateGet.bind(this))
+      .onGet(async () => {
+        return await this.TargetHeaterCoolerStateGet();
+      })
       .onSet(this.TargetHeaterCoolerStateSet.bind(this));
 
-    this.HeaterCooler.Service.getCharacteristic(this.hap.Characteristic.CurrentHeaterCoolerState)
-      .onGet(this.CurrentHeaterCoolerStateGet.bind(this));
+    this.HeaterCooler.Service
+      .getCharacteristic(this.hap.Characteristic.CurrentHeaterCoolerState)
+      .onGet(async () => {
+        return await this.CurrentHeaterCoolerStateGet();
+      });
 
     this.HeaterCooler.Service
       .getCharacteristic(this.hap.Characteristic.HeatingThresholdTemperature)
@@ -124,7 +116,9 @@ export class AirConditioner extends irdeviceBase {
         maxValue: this.set_max_heat,
         minStep: 0.5,
       })
-      .onGet(this.ThresholdTemperatureGet.bind(this))
+      .onGet(async () => {
+        return await this.ThresholdTemperatureGet();
+      })
       .onSet(this.ThresholdTemperatureSet.bind(this));
 
     this.HeaterCooler.Service
@@ -134,7 +128,9 @@ export class AirConditioner extends irdeviceBase {
         maxValue: this.set_max_cool,
         minStep: 0.5,
       })
-      .onGet(this.ThresholdTemperatureGet.bind(this))
+      .onGet(async () => {
+        return await this.ThresholdTemperatureGet();
+      })
       .onSet(this.ThresholdTemperatureSet.bind(this));
 
     this.HeaterCooler.Service
@@ -145,8 +141,36 @@ export class AirConditioner extends irdeviceBase {
         minValue: 1,
         maxValue: 4,
       })
-      .onGet(this.RotationSpeedGet.bind(this))
+      .onGet(async () => {
+        return await this.RotationSpeedGet();
+      })
       .onSet(this.RotationSpeedSet.bind(this));
+    accessory.context.HeaterCooler.Name = this.HeaterCooler.Name;
+
+    // Initialize HumiditySensor property
+
+    if (this.device.irair?.meterType && this.device.irair?.meterId) {
+      const meterUuid = this.platform.api.hap.uuid.generate(`${this.device.irair.meterId}-${this.device.irair.meterType}`);
+      this.meter = this.platform.accessories.find((accessory) => accessory.UUID === meterUuid);
+      this.HumiditySensor = {
+        Name:  this.meter!.displayName,
+        Service: this.meter!.getService(this.hap.Service.HumiditySensor) ?? this.meter!.addService(this.hap.Service.HumiditySensor) as Service,
+        CurrentRelativeHumidity: this.meter!.context.CurrentRelativeHumidity || 0,
+      };
+    }
+
+    if (this.device.irair?.meterType && this.device.irair?.meterId) {
+      const meterUuid = this.platform.api.hap.uuid.generate(`${this.device.irair.meterId}-${this.device.irair.meterType}`);
+      this.meter = this.platform.accessories.find((accessory) => accessory.UUID === meterUuid);
+    }
+
+    if (this.meter) {
+      this.HumiditySensor!.Service
+        .getCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity)
+        .onGet(async () => {
+          return await this.CurrentRelativeHumidityGet();
+        });
+    }
   }
 
   /**
@@ -545,43 +569,7 @@ export class AirConditioner extends irdeviceBase {
       this.HeaterCooler.RotationSpeed = this.HeaterCooler.RotationSpeed || this.accessory.context.RotationSpeed;
     }
 
-    if (this.device.irair?.hide_automode) {
-      this.hide_automode = this.device.irair?.hide_automode;
-      this.accessory.context.hide_automode = this.hide_automode;
-    } else {
-      this.hide_automode = this.device.irair?.hide_automode;
-      this.accessory.context.hide_automode = this.hide_automode;
-    }
-
-    if (this.device.irair?.set_max_heat) {
-      this.set_max_heat = this.device.irair?.set_max_heat;
-      this.accessory.context.set_max_heat = this.set_max_heat;
-    } else {
-      this.set_max_heat = 35;
-      this.accessory.context.set_max_heat = this.set_max_heat;
-    }
-    if (this.device.irair?.set_min_heat) {
-      this.set_min_heat = this.device.irair?.set_min_heat;
-      this.accessory.context.set_min_heat = this.set_min_heat;
-    } else {
-      this.set_min_heat = 0;
-      this.accessory.context.set_min_heat = this.set_min_heat;
-    }
-
-    if (this.device.irair?.set_max_cool) {
-      this.set_max_cool = this.device.irair?.set_max_cool;
-      this.accessory.context.set_max_cool = this.set_max_cool;
-    } else {
-      this.set_max_cool = 35;
-      this.accessory.context.set_max_cool = this.set_max_cool;
-    }
-    if (this.device.irair?.set_min_cool) {
-      this.set_min_cool = this.device.irair?.set_min_cool;
-      this.accessory.context.set_min_cool = this.set_min_cool;
-    } else {
-      this.set_min_cool = 0;
-      this.accessory.context.set_min_cool = this.set_min_cool;
-    }
+    await this.getAirConditionerConfigSettings(this.accessory, this.device);
 
     if (this.meter) {
       if (this.HumiditySensor!.CurrentRelativeHumidity === undefined && this.accessory.context.CurrentRelativeHumidity === undefined) {

@@ -18,51 +18,61 @@ import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge
 export class Others extends irdeviceBase {
   // Services
   private Switch?: {
+    Name: CharacteristicValue;
     Service: Service;
     On: CharacteristicValue;
   };
 
   private GarageDoor?: {
+    Name: CharacteristicValue;
     Service: Service;
     On: CharacteristicValue;
   };
 
   private Door?: {
+    Name: CharacteristicValue;
     Service: Service;
     On: CharacteristicValue;
   };
 
   private Window?: {
+    Name: CharacteristicValue;
     Service: Service;
     On: CharacteristicValue;
   };
 
   private WindowCovering?: {
+    Name: CharacteristicValue;
     Service: Service;
     On: CharacteristicValue;
   };
 
-  private Lock?: {
+  private LockMechanism?: {
+    Name: CharacteristicValue;
     Service: Service;
     On: CharacteristicValue;
   };
 
   private Faucet?: {
+    Name: CharacteristicValue;
     Service: Service;
     On: CharacteristicValue;
   };
 
   private Fan?: {
+    Name: CharacteristicValue;
     Service: Service;
     On: CharacteristicValue;
   };
 
   private StatefulProgrammableSwitch?: {
+    Name: CharacteristicValue;
     Service: Service;
     On: CharacteristicValue;
   };
 
   private Outlet?: {
+    Name: CharacteristicValue;
     Service: Service;
     On: CharacteristicValue;
   };
@@ -82,78 +92,83 @@ export class Others extends irdeviceBase {
 
     // deviceType
     if (this.otherDeviceType === 'switch') {
-      // Initialize Switch property
+      // Initialize Switch Service
+      if (!accessory.context.Switch) {
+        accessory.context.Switch = {};
+      }
       this.Switch = {
-        Service: accessory.getService(this.hap.Service.Switch) as Service,
-        On: accessory.context.On || false,
+        Name: accessory.context.Name ?? `${accessory.displayName} Switch`,
+        Service: accessory.getService(this.hap.Service.Switch) ?? accessory.addService(this.hap.Service.Switch) as Service,
+        On: accessory.context.On ?? false,
       };
-      this.removeFanService(accessory);
-      this.removeLockService(accessory);
-      this.removeDoorService(accessory);
-      this.removeFaucetService(accessory);
-      this.removeOutletService(accessory);
-      this.removeWindowService(accessory);
-      this.removeGarageDoorService(accessory);
-      this.removeWindowCoveringService(accessory);
-      this.removeStatefulProgrammableSwitchService(accessory);
-
-      // Add Switch Service
-      const SwitchService = `${accessory.displayName} Switch`;
-      (this.Switch!.Service = accessory.getService(this.hap.Service.Switch) as Service
-        || accessory.addService(this.hap.Service.Switch)), SwitchService;
       this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Switch`);
 
-      this.Switch!.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-      this.Switch!.Service.getCharacteristic(this.hap.Characteristic.On).onSet(this.OnSet.bind(this));
-    } else if (this.otherDeviceType === 'garagedoor') {
-      // Initialize Garage Door property
-      this.GarageDoor = {
-        Service: accessory.getService(this.hap.Service.GarageDoorOpener) as Service,
-        On: accessory.context.On || false,
-      };
+      this.Switch.Service
+        .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
+        .getCharacteristic(this.hap.Characteristic.On)
+        .onGet(() => {
+          return this.Switch!.On;
+        })
+        .onSet(this.OnSet.bind(this));
+      accessory.context.Name = this.Switch.Name;
+
+      // Remove other services
       this.removeFanService(accessory);
       this.removeLockService(accessory);
       this.removeDoorService(accessory);
       this.removeFaucetService(accessory);
       this.removeOutletService(accessory);
-      this.removeSwitchService(accessory);
       this.removeWindowService(accessory);
+      this.removeGarageDoorService(accessory);
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
-
-      // Add GarageDoor Service
-      const GarageDoorService = `${accessory.displayName} Garage Door Opener`;
-      (this.GarageDoor!.Service = accessory.getService(this.hap.Service.GarageDoorOpener) as Service
-        || accessory.addService(this.hap.Service.GarageDoorOpener)), GarageDoorService;
+    } else if (this.otherDeviceType === 'garagedoor') {
+      // Initialize Garage Door Service
+      if (!accessory.context.GarageDoor) {
+        accessory.context.GarageDoor = {};
+      }
+      this.GarageDoor = {
+        Name: accessory.context.Name ?? `${accessory.displayName} Garage Door`,
+        Service: accessory.getService(this.hap.Service.GarageDoorOpener) ?? accessory.addService(this.hap.Service.GarageDoorOpener) as Service,
+        On: accessory.context.On ?? false,
+      };
       this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Garage Door Opener`);
 
-      this.GarageDoor!.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-      this.GarageDoor!.Service.getCharacteristic(this.hap.Characteristic.TargetDoorState).onSet(this.OnSet.bind(this));
-      this.GarageDoor!.Service.setCharacteristic(this.hap.Characteristic.ObstructionDetected, false);
-    } else if (this.otherDeviceType === 'door') {
-      // Initialize Door property
-      this.Door = {
-        Service: accessory.getService(this.hap.Service.Door) as Service,
-        On: accessory.context.On || false,
-      };
+      this.GarageDoor.Service
+        .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
+        .setCharacteristic(this.hap.Characteristic.ObstructionDetected, false)
+        .getCharacteristic(this.hap.Characteristic.TargetDoorState)
+        .onGet(() => {
+          return this.GarageDoor!.On;
+        })
+        .onSet(this.OnSet.bind(this));
+      accessory.context.Name = this.GarageDoor.Name;
+
+      // Remove other services
       this.removeFanService(accessory);
       this.removeLockService(accessory);
-      this.removeOutletService(accessory);
+      this.removeDoorService(accessory);
       this.removeFaucetService(accessory);
+      this.removeOutletService(accessory);
       this.removeSwitchService(accessory);
       this.removeWindowService(accessory);
-      this.removeGarageDoorService(accessory);
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
-
-      // Add Door Service
-      const DoorService = `${accessory.displayName} Door`;
-      (this.Door!.Service = accessory.getService(this.hap.Service.Door) as Service
-        || accessory.addService(this.hap.Service.Door)), DoorService;
+    } else if (this.otherDeviceType === 'door') {
+      // Initialize Door Service
+      if (!accessory.context.Door) {
+        accessory.context.Door = {};
+      }
+      this.Door = {
+        Name: accessory.context.Name ?? `${accessory.displayName} Door`,
+        Service: accessory.getService(this.hap.Service.Door) ?? accessory.addService(this.hap.Service.Door) as Service,
+        On: accessory.context.On ?? false,
+      };
       this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Door`);
 
-      this.Door!.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
       this.Door!.Service
+        .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
+        .setCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED)
         .getCharacteristic(this.hap.Characteristic.TargetPosition)
         .setProps({
           validValues: [0, 100],
@@ -161,32 +176,36 @@ export class Others extends irdeviceBase {
           maxValue: 100,
           minStep: 100,
         })
+        .onGet(() => {
+          return this.GarageDoor!.On;
+        })
         .onSet(this.OnSet.bind(this));
-      this.Door!.Service.setCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED);
-    } else if (this.otherDeviceType === 'window') {
-      // Initialize Window property
-      this.Window = {
-        Service: accessory.getService(this.hap.Service.Window) as Service,
-        On: accessory.context.On || false,
-      };
+      accessory.context.Name = this.Door.Name;
+
+      // Remove other services
       this.removeFanService(accessory);
       this.removeLockService(accessory);
-      this.removeDoorService(accessory);
       this.removeOutletService(accessory);
       this.removeFaucetService(accessory);
       this.removeSwitchService(accessory);
+      this.removeWindowService(accessory);
       this.removeGarageDoorService(accessory);
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
-
-      // Add Window Service
-      const WindowService = `${accessory.displayName} Window`;
-      (this.Window!.Service = accessory.getService(this.hap.Service.Window) as Service
-        || accessory.addService(this.hap.Service.Window)), WindowService;
+    } else if (this.otherDeviceType === 'window') {
+      // Initialize Window Service
+      if (!accessory.context.Window) {
+        accessory.context.Window = {};
+      }
+      this.Window = {
+        Name: accessory.context.Name ?? `${accessory.displayName} Window`,
+        Service: accessory.getService(this.hap.Service.Window) ?? accessory.addService(this.hap.Service.Window) as Service,
+        On: accessory.context.On ?? false,
+      };
       this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Window`);
 
-      this.Window!.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-      this.Window!.Service
+      this.Window!.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
+        .setCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED)
         .getCharacteristic(this.hap.Characteristic.TargetPosition)
         .setProps({
           validValues: [0, 100],
@@ -194,32 +213,36 @@ export class Others extends irdeviceBase {
           maxValue: 100,
           minStep: 100,
         })
+        .onGet(() => {
+          return this.GarageDoor!.On;
+        })
         .onSet(this.OnSet.bind(this));
-      this.Window!.Service.setCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED);
-    } else if (this.otherDeviceType === 'windowcovering') {
-      // Initialize WindowCovering property
-      this.WindowCovering = {
-        Service: accessory.getService(this.hap.Service.WindowCovering) as Service,
-        On: accessory.context.On || false,
-      };
+      accessory.context.Name = this.Window.Name;
+
+      // Remove other services
       this.removeFanService(accessory);
       this.removeLockService(accessory);
       this.removeDoorService(accessory);
       this.removeOutletService(accessory);
       this.removeFaucetService(accessory);
       this.removeSwitchService(accessory);
-      this.removeWindowService(accessory);
       this.removeGarageDoorService(accessory);
+      this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
-
-      // Add WindowCovering Service
-      const WindowCoveringService = `${accessory.displayName} Window Covering`;
-      (this.WindowCovering!.Service = accessory.getService(this.hap.Service.WindowCovering) as Service
-        || accessory.addService(this.hap.Service.WindowCovering)), WindowCoveringService;
+    } else if (this.otherDeviceType === 'windowcovering') {
+      // Initialize WindowCovering Service
+      if (!accessory.context.WindowCovering) {
+        accessory.context.WindowCovering = {};
+      }
+      this.WindowCovering = {
+        Name: accessory.context.Name ?? `${accessory.displayName} Window Covering`,
+        Service: accessory.getService(this.hap.Service.WindowCovering) ?? accessory.addService(this.hap.Service.WindowCovering) as Service,
+        On: accessory.context.On ?? false,
+      };
       this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Window Covering`);
 
-      this.WindowCovering!.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-      this.WindowCovering!.Service
+      this.WindowCovering.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
+      this.WindowCovering.Service
         .getCharacteristic(this.hap.Characteristic.TargetPosition)
         .setProps({
           validValues: [0, 100],
@@ -227,86 +250,140 @@ export class Others extends irdeviceBase {
           maxValue: 100,
           minStep: 100,
         })
+        .onGet(() => {
+          return this.WindowCovering!.On;
+        })
         .onSet(this.OnSet.bind(this));
-      this.WindowCovering!.Service.setCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED);
-    } else if (this.otherDeviceType === 'lock') {
-      // Initialize Lock property
-      this.Lock = {
-        Service: accessory.getService(this.hap.Service.LockMechanism) as Service,
-        On: accessory.context.On || false,
-      };
+      this.WindowCovering.Service.setCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED);
+      accessory.context.Name = this.WindowCovering.Name;
+
+      // Remove other services
       this.removeFanService(accessory);
+      this.removeLockService(accessory);
       this.removeDoorService(accessory);
       this.removeOutletService(accessory);
-      this.removeSwitchService(accessory);
       this.removeFaucetService(accessory);
+      this.removeSwitchService(accessory);
       this.removeWindowService(accessory);
       this.removeGarageDoorService(accessory);
-      this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
-
-      // Add Lock Service
-      const LockService = `${accessory.displayName} Lock`;
-      (this.Lock!.Service = accessory.getService(this.hap.Service.LockMechanism) as Service
-        || accessory.addService(this.hap.Service.LockMechanism)), LockService;
+    } else if (this.otherDeviceType === 'lock') {
+      // Initialize Lock Service
+      if (!accessory.context.LockMechanism) {
+        accessory.context.LockMechanism = {};
+      }
+      this.LockMechanism = {
+        Name: accessory.context.Name ?? `${accessory.displayName} Lock`,
+        Service: accessory.getService(this.hap.Service.LockMechanism) ?? accessory.addService(this.hap.Service.LockMechanism) as Service,
+        On: accessory.context.On ?? false,
+      };
       this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Lock`);
 
-      this.Lock!.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-      this.Lock!.Service.getCharacteristic(this.hap.Characteristic.LockTargetState).onSet(this.OnSet.bind(this));
-    } else if (this.otherDeviceType === 'faucet') {
-      // Initialize Faucet property
-      this.Faucet = {
-        Service: accessory.getService(this.hap.Service.Faucet) as Service,
-        On: accessory.context.On || false,
-      };
+      this.LockMechanism.Service
+        .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
+        .getCharacteristic(this.hap.Characteristic.LockTargetState)
+        .onGet(() => {
+          return this.LockMechanism!.On;
+        })
+        .onSet(this.OnSet.bind(this));
+      accessory.context.Name = this.LockMechanism.Name;
+
+      // Remove other services
       this.removeFanService(accessory);
-      this.removeLockService(accessory);
       this.removeDoorService(accessory);
       this.removeOutletService(accessory);
       this.removeSwitchService(accessory);
+      this.removeFaucetService(accessory);
       this.removeWindowService(accessory);
       this.removeGarageDoorService(accessory);
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
-
-      // Add Faucet Service
-      const FaucetService = `${accessory.displayName} Faucet`;
-      (this.Faucet!.Service = accessory.getService(this.hap.Service.Faucet) as Service
-        || accessory.addService(this.hap.Service.Faucet)), FaucetService;
+    } else if (this.otherDeviceType === 'faucet') {
+      // Initialize Faucet Service
+      if (!accessory.context.Faucet) {
+        accessory.context.Faucet = {};
+      }
+      this.Faucet = {
+        Name: accessory.context.Name ?? `${accessory.displayName} Faucet`,
+        Service: accessory.getService(this.hap.Service.Faucet) ?? accessory.addService(this.hap.Service.Faucet) as Service,
+        On: accessory.context.On ?? false,
+      };
       this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Faucet`);
 
-      this.Faucet!.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-      this.Faucet!.Service.getCharacteristic(this.hap.Characteristic.Active).onSet(this.OnSet.bind(this));
-    } else if (this.otherDeviceType === 'fan') {
-      // Initialize Fan property
-      this.Fan = {
-        Service: accessory.getService(this.hap.Service.Fanv2) as Service,
-        On: accessory.context.On || false,
-      };
+      this.Faucet.Service
+        .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
+        .getCharacteristic(this.hap.Characteristic.Active)
+        .onGet(() => {
+          return this.Faucet!.On;
+        })
+        .onSet(this.OnSet.bind(this));
+      accessory.context.Name = this.Faucet.Name;
+
+      // Remove other services
+      this.removeFanService(accessory);
       this.removeLockService(accessory);
       this.removeDoorService(accessory);
-      this.removeFaucetService(accessory);
       this.removeOutletService(accessory);
       this.removeSwitchService(accessory);
       this.removeWindowService(accessory);
       this.removeGarageDoorService(accessory);
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
-
-      // Add Fan Service
-      const FanService = `${accessory.displayName} Fan`;
-      (this.Fan!.Service = accessory.getService(this.hap.Service.Fanv2) as Service
-        || accessory.addService(this.hap.Service.Fanv2)), FanService;
+    } else if (this.otherDeviceType === 'fan') {
+      // Initialize Fan Service
+      if (!accessory.context.Fan) {
+        accessory.context.Fan = {};
+      }
+      this.Fan = {
+        Name: accessory.context.Name ?? `${accessory.displayName} Fan`,
+        Service: accessory.getService(this.hap.Service.Fanv2) ?? accessory.addService(this.hap.Service.Fanv2) as Service,
+        On: accessory.context.On ?? false,
+      };
       this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Fan`);
 
-      this.Fan!.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-      this.Fan!.Service.getCharacteristic(this.hap.Characteristic.On).onSet(this.OnSet.bind(this));
+      this.Fan.Service
+        .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
+        .getCharacteristic(this.hap.Characteristic.On)
+        .onGet(() => {
+          return this.Fan!.On;
+        })
+        .onSet(this.OnSet.bind(this));
+      accessory.context.Name = this.Fan.Name;
+
+      // Remove other services
+      this.removeLockService(accessory);
+      this.removeDoorService(accessory);
+      this.removeFaucetService(accessory);
+      this.removeOutletService(accessory);
+      this.removeSwitchService(accessory);
+      this.removeWindowService(accessory);
+      this.removeGarageDoorService(accessory);
+      this.removeWindowCoveringService(accessory);
+      this.removeStatefulProgrammableSwitchService(accessory);
     } else if (this.otherDeviceType === 'stateful') {
+      // Initialize Lock Service
+      if (!accessory.context.StatefulProgrammableSwitch) {
+        accessory.context.StatefulProgrammableSwitch = {};
+      }
       // Initialize StatefulProgrammableSwitch property
       this.StatefulProgrammableSwitch = {
-        Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch) as Service,
-        On: accessory.context.On || false,
+        Name: accessory.context.Name ?? `${accessory.displayName} Stateful Programmable Switch`,
+        Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch)
+        ?? accessory.addService(this.hap.Service.StatefulProgrammableSwitch) as Service,
+        On: accessory.context.On ?? false,
       };
+      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Stateful Programmable Switch`);
+
+      this.StatefulProgrammableSwitch.Service
+        .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
+        .getCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState)
+        .onGet(() => {
+          return this.StatefulProgrammableSwitch!.On;
+        })
+        .onSet(this.OnSet.bind(this));
+      accessory.context.Name = this.StatefulProgrammableSwitch.Name;
+
+      // Remove other services
       this.removeFanService(accessory);
       this.removeLockService(accessory);
       this.removeDoorService(accessory);
@@ -316,23 +393,28 @@ export class Others extends irdeviceBase {
       this.removeWindowService(accessory);
       this.removeGarageDoorService(accessory);
       this.removeWindowCoveringService(accessory);
-
-      // Add StatefulProgrammableSwitch.Service
-      const StatefulProgrammableSwitchService = `${accessory.displayName} Stateful Programmable Switch`;
-      (this.StatefulProgrammableSwitch!.Service = accessory.getService(this.hap.Service.StatefulProgrammableSwitch) as Service
-        || accessory.addService(this.hap.Service.StatefulProgrammableSwitch)), StatefulProgrammableSwitchService;
-      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Stateful Programmable Switch`);
-
-      this.StatefulProgrammableSwitch!.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-      this.StatefulProgrammableSwitch!.Service
-        .getCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState)
-        .onSet(this.OnSet.bind(this));
     } else {
-      // Initialize Outlet property
+      // Initialize Outlet Service
+      if (!accessory.context.Outlet) {
+        accessory.context.Outlet = {};
+      }
       this.Outlet = {
-        Service: accessory.getService(this.hap.Service.Outlet) as Service,
-        On: accessory.context.On || false,
+        Name: accessory.context.Name ?? `${accessory.displayName} Outlet`,
+        Service: accessory.getService(this.hap.Service.Outlet) ?? accessory.addService(this.hap.Service.Outlet) as Service,
+        On: accessory.context.On ?? false,
       };
+      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Outlet`);
+
+      this.Outlet.Service
+        .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
+        .getCharacteristic(this.hap.Characteristic.On)
+        .onGet(() => {
+          return this.Outlet!.On;
+        })
+        .onSet(this.OnSet.bind(this));
+      accessory.context.Name = this.Outlet.Name;
+
+      // Remove other services
       this.removeFanService(accessory);
       this.removeLockService(accessory);
       this.removeDoorService(accessory);
@@ -342,15 +424,6 @@ export class Others extends irdeviceBase {
       this.removeGarageDoorService(accessory);
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
-
-      // Add Outlet.Service
-      const OutletService = `${accessory.displayName} Outlet`;
-      (this.Outlet!.Service = accessory.getService(this.hap.Service.Outlet) as Service
-        || accessory.addService(this.hap.Service.Outlet)), OutletService;
-      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Outlet`);
-
-      this.Outlet!.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-      this.Outlet!.Service.getCharacteristic(this.hap.Characteristic.On).onSet(this.OnSet.bind(this));
     }
   }
 
@@ -394,11 +467,11 @@ export class Others extends irdeviceBase {
     } else if (this.otherDeviceType === 'lock') {
       this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Set LockTargetState: ${value}`);
       if (value === this.hap.Characteristic.LockTargetState.SECURED) {
-        this.Lock!.On = false;
+        this.LockMechanism!.On = false;
       } else {
-        this.Lock!.On = true;
+        this.LockMechanism!.On = true;
       }
-      On = this.Lock!.On;
+      On = this.LockMechanism!.On;
     } else if (this.otherDeviceType === 'faucet') {
       this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Active: ${value}`);
       if (value === this.hap.Characteristic.Active.INACTIVE) {
@@ -589,22 +662,26 @@ export class Others extends irdeviceBase {
       }
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Window Covering On: ${this.WindowCovering!.On}`);
     } else if (this.otherDeviceType === 'lock') {
-      if (this.Lock!.On === undefined) {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.Lock!.On}`);
+      if (this.LockMechanism?.On === undefined) {
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.LockMechanism?.On}`);
       } else {
-        if (this.Lock!.On) {
-          this.Lock!.Service.updateCharacteristic(this.hap.Characteristic.LockTargetState, this.hap.Characteristic.LockTargetState.UNSECURED);
-          this.Lock!.Service.updateCharacteristic(this.hap.Characteristic.LockCurrentState, this.hap.Characteristic.LockCurrentState.UNSECURED);
+        if (this.LockMechanism.On) {
+          this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockTargetState,
+            this.hap.Characteristic.LockTargetState.UNSECURED);
+          this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockCurrentState,
+            this.hap.Characteristic.LockCurrentState.UNSECURED);
           this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
-            + ` LockTargetState: UNSECURED, LockCurrentState: UNSECURE (${this.Lock!.On})`);
+            + ` LockTargetState: UNSECURED, LockCurrentState: UNSECURE (${this.LockMechanism.On})`);
         } else {
-          this.Lock!.Service.updateCharacteristic(this.hap.Characteristic.LockTargetState, this.hap.Characteristic.LockTargetState.SECURED);
-          this.Lock!.Service.updateCharacteristic(this.hap.Characteristic.LockCurrentState, this.hap.Characteristic.LockCurrentState.SECURED);
+          this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockTargetState,
+            this.hap.Characteristic.LockTargetState.SECURED);
+          this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockCurrentState,
+            this.hap.Characteristic.LockCurrentState.SECURED);
           this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
-            + ` LockTargetState: SECURED, LockCurrentState: SECURED (${this.Lock!.On})`);
+            + ` LockTargetState: SECURED, LockCurrentState: SECURED (${this.LockMechanism.On})`);
         }
       }
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Lock On: ${this.Lock!.On}`);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Lock On: ${this.LockMechanism?.On}`);
     } else if (this.otherDeviceType === 'faucet') {
       if (this.Faucet!.On === undefined) {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.Faucet!.On}`);
@@ -730,10 +807,10 @@ export class Others extends irdeviceBase {
 
   async removeLockService(accessory: PlatformAccessory): Promise<void> {
     // If Lock.Service still present, then remove first
-    if (this.Lock?.Service) {
-      this.Lock!.Service = this.accessory.getService(this.hap.Service.LockMechanism) as Service;
+    if (this.LockMechanism?.Service) {
+      this.LockMechanism!.Service = this.accessory.getService(this.hap.Service.LockMechanism) as Service;
       this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Lock Service`);
-      accessory.removeService(this.Lock!.Service);
+      accessory.removeService(this.LockMechanism!.Service);
     }
   }
 

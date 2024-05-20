@@ -18,6 +18,7 @@ import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge
 export class Camera extends irdeviceBase {
   // Services
   private Switch: {
+    Name: CharacteristicValue;
     Service: Service;
     On: CharacteristicValue;
   };
@@ -29,22 +30,24 @@ export class Camera extends irdeviceBase {
   ) {
     super(platform, accessory, device);
 
+    if (!accessory.context.Switch) {
+      accessory.context.Switch = {};
+    }
     // Initialize Switch property
     this.Switch = {
-      Service: accessory.getService(this.hap.Service.Switch) as Service,
-      On: accessory.context.On || false,
+      Name: accessory.context.Switch.Name ?? `${accessory.displayName} Camera`,
+      Service: accessory.getService(this.hap.Service.Switch) ?? accessory.addService(this.hap.Service.Switch) as Service,
+      On: accessory.context.On ?? false,
     };
 
-    // get the Television service if it exists, otherwise create a new Television service
-    // you can create multiple services for each accessory
-    const SwitchService = `${accessory.displayName} Camera`;
-    (this.Switch.Service = accessory.getService(this.hap.Service.Switch)
-      || accessory.addService(this.hap.Service.Switch)), SwitchService;
-
-    this.Switch.Service.setCharacteristic(this.hap.Characteristic.Name, SwitchService);
-
-    // handle on / off events using the On characteristic
-    this.Switch.Service.getCharacteristic(this.hap.Characteristic.On).onSet(this.OnSet.bind(this));
+    this.Switch.Service
+      .setCharacteristic(this.hap.Characteristic.Name, this.Switch.Name)
+      .getCharacteristic(this.hap.Characteristic.On)
+      .onGet(() => {
+        return this.Switch.On;
+      })
+      .onSet(this.OnSet.bind(this));
+    accessory.context.Switch.Name = this.Switch.Name;
   }
 
   async OnSet(value: CharacteristicValue): Promise<void> {

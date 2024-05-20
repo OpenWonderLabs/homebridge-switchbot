@@ -18,6 +18,7 @@ import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge
 export class WaterHeater extends irdeviceBase {
   // Services
   private Valve: {
+    Name: CharacteristicValue;
     Service: Service;
     Active: CharacteristicValue;
   };
@@ -29,25 +30,25 @@ export class WaterHeater extends irdeviceBase {
   ) {
     super(platform, accessory, device);
 
-    // Initialize Valve property
+    // Initialize Switch Service
+    if (!accessory.context.Valve) {
+      accessory.context.Valve = {};
+    }
     this.Valve = {
-      Service: accessory.getService(this.hap.Service.Valve) as Service,
-      Active: accessory.context.Active || this.hap.Characteristic.Active.INACTIVE,
+      Name: accessory.context.Name ?? `${accessory.displayName} ${device.remoteType}`,
+      Service: accessory.getService(this.hap.Service.Valve) ?? accessory.addService(this.hap.Service.Valve) as Service,
+      Active: accessory.context.Active ?? this.hap.Characteristic.Active.INACTIVE,
     };
 
-    // get the Television service if it exists, otherwise create a new Television service
-    // you can create multiple services for each accessory
-    const ValveService = `${accessory.displayName} ${device.remoteType}`;
-    (this.Valve.Service = accessory.getService(this.hap.Service.Valve)
-      || accessory.addService(this.hap.Service.Valve)), ValveService;
-
-    this.Valve.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-
-    // set sleep discovery characteristic
-    this.Valve.Service.setCharacteristic(this.hap.Characteristic.ValveType, this.hap.Characteristic.ValveType.GENERIC_VALVE);
-
-    // handle on / off events using the Active characteristic
-    this.Valve.Service.getCharacteristic(this.hap.Characteristic.Active).onSet(this.ActiveSet.bind(this));
+    this.Valve.Service
+      .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
+      .setCharacteristic(this.hap.Characteristic.ValveType, this.hap.Characteristic.ValveType.GENERIC_VALVE)
+      .getCharacteristic(this.hap.Characteristic.Active)
+      .onGet(() => {
+        return this.Valve.Active;
+      })
+      .onSet(this.ActiveSet.bind(this));
+    accessory.context.Valve.Name = this.Valve.Name;
   }
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {

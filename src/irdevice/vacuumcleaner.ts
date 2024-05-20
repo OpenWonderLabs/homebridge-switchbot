@@ -18,6 +18,7 @@ import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge
 export class VacuumCleaner extends irdeviceBase {
   // Services
   private Switch: {
+    Name: CharacteristicValue;
     Service: Service;
     On: CharacteristicValue;
   };
@@ -29,21 +30,24 @@ export class VacuumCleaner extends irdeviceBase {
   ) {
     super(platform, accessory, device);
 
-    // Initialize Switch property
+    // Initialize Switch Service
+    if (!accessory.context.Switch) {
+      accessory.context.Switch = {};
+    }
     this.Switch = {
-      Service: accessory.getService(this.hap.Service.Switch) as Service,
-      On: accessory.context.On || false,
+      Name: accessory.context.Name ?? `${accessory.displayName} ${device.remoteType}`,
+      Service: accessory.getService(this.hap.Service.Switch) ?? accessory.addService(this.hap.Service.Switch) as Service,
+      On: accessory.context.On ?? false,
     };
 
-    // get the Switch service if it exists, otherwise create a new Switch service
-    const SwitchService = `${accessory.displayName} ${device.remoteType}`;
-    (this.Switch.Service = accessory.getService(this.hap.Service.Switch)
-      || accessory.addService(this.hap.Service.Switch)), SwitchService;
-
-    this.Switch.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-
-    // handle on / off events using the On characteristic
-    this.Switch.Service.getCharacteristic(this.hap.Characteristic.On).onSet(this.OnSet.bind(this));
+    this.Switch.Service
+      .setCharacteristic(this.hap.Characteristic.Name, this.Switch.Name)
+      .getCharacteristic(this.hap.Characteristic.On)
+      .onGet(() => {
+        return this.Switch.On;
+      })
+      .onSet(this.OnSet.bind(this));
+    accessory.context.Switch.Name = this.Switch.Name;
   }
 
   async OnSet(value: CharacteristicValue): Promise<void> {

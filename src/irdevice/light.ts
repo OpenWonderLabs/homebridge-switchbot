@@ -18,17 +18,20 @@ import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge
 export class Light extends irdeviceBase {
   // Services
   private LightBulb?: {
+    Name: CharacteristicValue;
     Service: Service;
     On: CharacteristicValue;
   };
 
   private ProgrammableSwitchOn?: {
+    Name: CharacteristicValue;
     Service: Service;
     ProgrammableSwitchEvent: CharacteristicValue;
     ProgrammableSwitchOutputState: CharacteristicValue;
   };
 
   private ProgrammableSwitchOff?: {
+    Name: CharacteristicValue;
     Service: Service;
     ProgrammableSwitchEvent: CharacteristicValue;
     ProgrammableSwitchOutputState: CharacteristicValue;
@@ -41,68 +44,93 @@ export class Light extends irdeviceBase {
   ) {
     super(platform, accessory, device);
 
+
+
     if (!device.irlight?.stateless) {
+      if (!accessory.context.LightBulb) {
+        accessory.context.LightBulb = {};
+      }
       // Initialize LightBulb property
       this.LightBulb = {
-        Service: accessory.getService(this.hap.Service.Lightbulb)! as Service,
+        Name: accessory.context.LightBulb.Name ?? `${accessory.displayName} ${device.remoteType}`,
+        Service: accessory.getService(this.hap.Service.Lightbulb) ?? accessory.addService(this.hap.Service.Lightbulb) as Service,
         On: accessory.context.On || false,
       };
-      // get the Light service if it exists, otherwise create a new Light service
-      // you can create multiple services for each accessory
-      const LightBulbService = `${accessory.displayName} ${device.remoteType}`;
-      (this.LightBulb.Service = accessory.getService(this.hap.Service.Lightbulb)
-        || accessory.addService(this.hap.Service.Lightbulb)), LightBulbService;
 
-
-      this.LightBulb.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-
-      // handle on / off events using the On characteristic
-      this.LightBulb.Service.getCharacteristic(this.hap.Characteristic.On).onSet(this.OnSet.bind(this));
+      this.LightBulb.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.LightBulb.Name)
+        .getCharacteristic(this.hap.Characteristic.On)
+        .onGet(() => {
+          return this.LightBulb!.On;
+        })
+        .onSet(this.OnSet.bind(this));
+      accessory.context.LightBulb.Name = this.LightBulb.Name;
     } else {
+      // Initialize ProgrammableSwitchOn Service
+      if (!accessory.context.ProgrammableSwitchOn) {
+        accessory.context.ProgrammableSwitchOn = {};
+      }
+      this.ProgrammableSwitchOn = {
+        Name: accessory.context.ProgrammableSwitchOn.Name ?? `${accessory.displayName} ${device.remoteType} On`,
+        Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch)
+        ?? accessory.addService(this.hap.Service.StatefulProgrammableSwitch) as Service,
+        ProgrammableSwitchEvent: accessory.context.ProgrammableSwitchEvent ?? this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
+        ProgrammableSwitchOutputState: accessory.context.ProgrammableSwitchOutputState ?? 0,
+      };
 
-      // create a new Stateful Programmable Switch On service
-      const ProgrammableSwitchOn = `${accessory.displayName} ${device.remoteType} On`;
-      (this.ProgrammableSwitchOn!.Service = accessory.getService(this.hap.Service.StatefulProgrammableSwitch)
-        || accessory.addService(this.hap.Service.StatefulProgrammableSwitch)), ProgrammableSwitchOn;
-
-
-      this.ProgrammableSwitchOn?.Service.setCharacteristic(this.hap.Characteristic.Name, `${accessory.displayName} On`);
-
-      this.ProgrammableSwitchOn?.Service.getCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent).setProps({
-        validValueRanges: [0, 0],
-        minValue: 0,
-        maxValue: 0,
-        validValues: [0],
-      })
+      // Initialize ProgrammableSwitchOn Characteristics
+      this.ProgrammableSwitchOn?.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.ProgrammableSwitchOn.Name)
+        .getCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent).setProps({
+          validValueRanges: [0, 0],
+          minValue: 0,
+          maxValue: 0,
+          validValues: [0],
+        })
         .onGet(() => {
           return this.ProgrammableSwitchOn!.ProgrammableSwitchEvent;
         });
 
-      this.ProgrammableSwitchOn?.Service.getCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState)
+      this.ProgrammableSwitchOn?.Service
+        .getCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState)
+        .onGet(() => {
+          return this.ProgrammableSwitchOn!.ProgrammableSwitchOutputState;
+        })
         .onSet(this.ProgrammableSwitchOutputStateSetOn.bind(this));
+      accessory.context.ProgrammableSwitchOn.Name = this.ProgrammableSwitchOn.Name;
 
+      // Initialize ProgrammableSwitchOff Service
+      if (!accessory.context.ProgrammableSwitchOff) {
+        accessory.context.ProgrammableSwitchOff = {};
+      }
+      this.ProgrammableSwitchOff = {
+        Name: accessory.context.ProgrammableSwitchOff.Name ?? `${accessory.displayName} ${device.remoteType} Off`,
+        Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch)
+        ?? accessory.addService(this.hap.Service.StatefulProgrammableSwitch) as Service,
+        ProgrammableSwitchEvent: accessory.context.ProgrammableSwitchEvent ?? this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
+        ProgrammableSwitchOutputState: accessory.context.ProgrammableSwitchOutputState ?? 0,
+      };
 
-
-      // create a new Stateful Programmable Switch Off service
-      const ProgrammableSwitchOff = `${accessory.displayName} ${device.remoteType} Off`;
-      (this.ProgrammableSwitchOff!.Service = accessory.getService(this.hap.Service.StatefulProgrammableSwitch)
-        || accessory.addService(this.hap.Service.StatefulProgrammableSwitch)), ProgrammableSwitchOff;
-
-
-      this.ProgrammableSwitchOff?.Service.setCharacteristic(this.hap.Characteristic.Name, `${accessory.displayName} Off`);
-
-      this.ProgrammableSwitchOff?.Service.getCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent).setProps({
-        validValueRanges: [0, 0],
-        minValue: 0,
-        maxValue: 0,
-        validValues: [0],
-      })
+      // Initialize ProgrammableSwitchOff Characteristics
+      this.ProgrammableSwitchOff?.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.ProgrammableSwitchOff.Name)
+        .getCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent).setProps({
+          validValueRanges: [0, 0],
+          minValue: 0,
+          maxValue: 0,
+          validValues: [0],
+        })
         .onGet(() => {
           return this.ProgrammableSwitchOff!.ProgrammableSwitchEvent;
         });
 
-      this.ProgrammableSwitchOff?.Service.getCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState)
+      this.ProgrammableSwitchOff?.Service
+        .getCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState)
+        .onGet(() => {
+          return this.ProgrammableSwitchOff!.ProgrammableSwitchOutputState;
+        })
         .onSet(this.ProgrammableSwitchOutputStateSetOff.bind(this));
+      accessory.context.ProgrammableSwitchOff.Name = this.ProgrammableSwitchOff.Name;
     }
 
   }

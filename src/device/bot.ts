@@ -111,9 +111,10 @@ export class Bot extends deviceBase {
     this.doBotUpdate = new Subject();
     this.botUpdateInProgress = false;
 
+    accessory.context.Battery = accessory.context.Battery ?? {};
     // Initialize Battery property
     this.Battery = {
-      Name: accessory.context.BatteryName ?? `${accessory.displayName} Battery`,
+      Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel ?? 100,
       StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,

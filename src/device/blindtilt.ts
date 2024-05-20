@@ -66,9 +66,10 @@ export class BlindTilt extends deviceBase {
     this.blindTiltUpdateInProgress = false;
     this.setNewTarget = false;
 
+    accessory.context.WindowCovering = accessory.context.WindowCovering ?? {};
     // Initialize WindowCovering Service
     this.WindowCovering = {
-      Name: accessory.context.WindowCoveringName ?? accessory.displayName,
+      Name: accessory.context.WindowCovering.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.WindowCovering) ?? accessory.addService(this.hap.Service.WindowCovering) as Service,
       PositionState: accessory.context.PositionState ?? this.hap.Characteristic.PositionState.STOPPED,
       TargetPosition: accessory.context.TargetPosition ?? 100,
@@ -76,6 +77,7 @@ export class BlindTilt extends deviceBase {
       TargetHorizontalTiltAngle: accessory.context.TargetHorizontalTiltAngle ?? 90,
       CurrentHorizontalTiltAngle: accessory.context.CurrentHorizontalTiltAngle ?? 90,
     };
+    accessory.context.WindowCovering = this.WindowCovering as object;
 
     // Initialize WindowCovering Characteristics
     this.WindowCovering.Service
@@ -117,7 +119,7 @@ export class BlindTilt extends deviceBase {
         return this.WindowCovering.TargetHorizontalTiltAngle;
       })
       .onSet(this.TargetHorizontalTiltAngleSet.bind(this));
-    accessory.context.WindowCoveringName = this.WindowCovering.Name;
+    accessory.context.WindowCovering.Name = this.WindowCovering.Name;
 
     // Initialize WindowCovering CurrentHorizontalTiltAngle Characteristic
     this.WindowCovering.Service
