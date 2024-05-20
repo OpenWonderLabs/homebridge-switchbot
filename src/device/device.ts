@@ -567,8 +567,8 @@ export abstract class deviceBase {
     if (version?.includes('.') === false) {
       const replace = version?.replace(/^V|-.*$/g, '');
       const match = replace?.match(/.{1,1}/g);
-      const blindTiltVersion = match?.join('.') ?? '0.0.0';
-      deviceVersion = blindTiltVersion;
+      const validVersion = match?.join('.');
+      deviceVersion = validVersion ?? '0.0.0';
     } else {
       deviceVersion = version?.replace(/^V|-.*$/g, '') ?? '0.0.0';
     }
