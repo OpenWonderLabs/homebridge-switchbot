@@ -98,9 +98,11 @@ export class Motion extends deviceBase {
 
     // Initialize Light Sensor Service
     if (device.motion?.hide_lightsensor) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
-      this.LightSensor!.Service = this.accessory.getService(this.hap.Service.LightSensor) as Service;
-      accessory.removeService(this.LightSensor!.Service);
+      if (this.LightSensor) {
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
+        this.LightSensor.Service = this.accessory.getService(this.hap.Service.LightSensor) as Service;
+        accessory.removeService(this.LightSensor.Service);
+      }
     } else {
       accessory.context.LightSensor = accessory.context.LightSensor ?? {};
       this.LightSensor = {

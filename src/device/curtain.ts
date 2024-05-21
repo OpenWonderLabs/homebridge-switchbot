@@ -148,9 +148,12 @@ export class Curtain extends deviceBase {
 
     // Initialize LightSensor Service
     if (device.curtain?.hide_lightsensor) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
-      this.LightSensor!.Service = this.accessory.getService(this.hap.Service.LightSensor) as Service;
-      accessory.removeService(this.LightSensor!.Service);
+      if (this.LightSensor?.Service) {
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
+        this.LightSensor.Service = this.accessory.getService(this.hap.Service.LightSensor) as Service;
+        accessory.removeService(this.LightSensor.Service);
+        accessory.context.LightSensor = {};
+      }
     } else {
       accessory.context.LightSensor = accessory.context.LightSensor ?? {};
       this.LightSensor = {

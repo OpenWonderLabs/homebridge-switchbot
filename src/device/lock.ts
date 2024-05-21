@@ -96,9 +96,11 @@ export class Lock extends deviceBase {
 
     // Contact Sensor Service
     if (device.lock?.hide_contactsensor) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Contact Sensor Service`);
-      this.ContactSensor!.Service = this.accessory.getService(this.hap.Service.ContactSensor) as Service;
-      accessory.removeService(this.ContactSensor!.Service);
+      if (this.ContactSensor) {
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Contact Sensor Service`);
+        this.ContactSensor.Service = this.accessory.getService(this.hap.Service.ContactSensor) as Service;
+        accessory.removeService(this.ContactSensor.Service);
+      }
     } else {
       accessory.context.ContactSensor = accessory.context.ContactSensor ?? {};
       this.ContactSensor = {
@@ -119,10 +121,12 @@ export class Lock extends deviceBase {
     }
 
     // Initialize Latch Button Service
-    if (device.lock?.activate_latchbutton === false) { // remove the service when this variable is false
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Latch Button Service`);
-      this.Switch!.Service = accessory.getService(this.hap.Service.Switch) as Service;
-      accessory.removeService(this.Switch!.Service);
+    if (device.lock?.activate_latchbutton === false) {
+      if (this.Switch) {
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Latch Button Service`);
+        this.Switch.Service = accessory.getService(this.hap.Service.Switch) as Service;
+        accessory.removeService(this.Switch.Service);
+      }
     } else {
       accessory.context.Switch = accessory.context.Switch ?? {};
       this.Switch = {

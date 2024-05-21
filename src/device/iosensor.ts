@@ -80,9 +80,11 @@ export class IOSensor extends deviceBase {
 
     // InitializeTemperature Sensor Service
     if (device.iosensor?.hide_temperature) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Temperature Sensor Service`);
-      this.TemperatureSensor!.Service = this.accessory.getService(this.hap.Service.TemperatureSensor) as Service;
-      accessory.removeService(this.TemperatureSensor!.Service);
+      if (this.TemperatureSensor) {
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Temperature Sensor Service`);
+        this.TemperatureSensor.Service = this.accessory.getService(this.hap.Service.TemperatureSensor) as Service;
+        accessory.removeService(this.TemperatureSensor.Service);
+      }
     } else {
       accessory.context.TemperatureSensor = accessory.context.TemperatureSensor ?? {};
       this.TemperatureSensor = {
@@ -110,9 +112,11 @@ export class IOSensor extends deviceBase {
 
     // Initialize Humidity Sensor Service
     if (device.iosensor?.hide_humidity) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Humidity Sensor Service`);
-      this.HumiditySensor!.Service = this.accessory.getService(this.hap.Service.HumiditySensor) as Service;
-      accessory.removeService(this.HumiditySensor!.Service);
+      if (this.HumiditySensor) {
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Humidity Sensor Service`);
+        this.HumiditySensor.Service = this.accessory.getService(this.hap.Service.HumiditySensor) as Service;
+        accessory.removeService(this.HumiditySensor.Service);
+      }
     } else {
       accessory.context.HumiditySensor = accessory.context.HumiditySensor ?? {};
       this.HumiditySensor = {

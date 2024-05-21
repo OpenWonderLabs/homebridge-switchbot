@@ -48,9 +48,11 @@ export class Hub extends deviceBase {
 
     // Initialize Temperature Sensor Service
     if (device.hub?.hide_temperature) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Temperature Sensor Service`);
-      this.TemperatureSensor!.Service = this.accessory.getService(this.hap.Service.TemperatureSensor) as Service;
-      accessory.removeService(this.TemperatureSensor!.Service);
+      if (this.TemperatureSensor) {
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Temperature Sensor Service`);
+        this.TemperatureSensor.Service = this.accessory.getService(this.hap.Service.TemperatureSensor) as Service;
+        accessory.removeService(this.TemperatureSensor.Service);
+      }
     } else {
       accessory.context.TemperatureSensor = accessory.context.TemperatureSensor ?? {};
       this.TemperatureSensor = {
@@ -78,9 +80,11 @@ export class Hub extends deviceBase {
 
     // Initialize Humidity Sensor Service
     if (device.hub?.hide_humidity) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Humidity Sensor Service`);
-      this.HumiditySensor!.Service = this.accessory.getService(this.hap.Service.HumiditySensor) as Service;
-      accessory.removeService(this.HumiditySensor!.Service);
+      if (this.HumiditySensor) {
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Humidity Sensor Service`);
+        this.HumiditySensor.Service = this.accessory.getService(this.hap.Service.HumiditySensor) as Service;
+        accessory.removeService(this.HumiditySensor.Service);
+      }
     } else {
       accessory.context.HumiditySensor = accessory.context.HumiditySensor ?? {};
       this.HumiditySensor = {
@@ -104,9 +108,11 @@ export class Hub extends deviceBase {
 
     // Initialize Light Sensor Service
     if (device.hub?.hide_lightsensor) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
-      this.LightSensor!.Service = this.accessory.getService(this.hap.Service.LightSensor) as Service;
-      accessory.removeService(this.LightSensor!.Service);
+      if (this.LightSensor) {
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
+        this.LightSensor.Service = this.accessory.getService(this.hap.Service.LightSensor) as Service;
+        accessory.removeService(this.LightSensor.Service);
+      }
     } else {
       accessory.context.LightSensor = accessory.context.LightSensor ?? {};
       this.LightSensor = {

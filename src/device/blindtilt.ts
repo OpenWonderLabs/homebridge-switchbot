@@ -150,9 +150,12 @@ export class BlindTilt extends deviceBase {
 
     // Initialize LightSensor Service
     if (device.blindTilt?.hide_lightsensor) {
-      this.debugLog(`${device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
-      this.LightSensor!.Service = accessory.getService(this.hap.Service.LightSensor) as Service;
-      accessory.removeService(this.LightSensor!.Service);
+      if (this.LightSensor?.Service) {
+        this.debugLog(`${device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
+        this.LightSensor.Service = accessory.getService(this.hap.Service.LightSensor) as Service;
+        accessory.removeService(this.LightSensor.Service);
+        accessory.context.LightSensor = {};
+      }
     } else {
       accessory.context.LightSensor = accessory.context.LightSensor ?? {};
       this.LightSensor = {

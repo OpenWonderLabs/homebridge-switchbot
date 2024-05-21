@@ -103,9 +103,11 @@ export class Contact extends deviceBase {
 
     // Initialize Motion Sensor Service
     if (this.device.contact?.hide_motionsensor) {
-      this.debugLog(`${device.deviceType}: ${accessory.displayName} Removing Motion Sensor Service`);
-      this.MotionSensor!.Service = accessory.getService(this.hap.Service.MotionSensor) as Service;
-      accessory.removeService(this.MotionSensor!.Service);
+      if (this.MotionSensor) {
+        this.debugLog(`${device.deviceType}: ${accessory.displayName} Removing Motion Sensor Service`);
+        this.MotionSensor.Service = accessory.getService(this.hap.Service.MotionSensor) as Service;
+        accessory.removeService(this.MotionSensor.Service);
+      }
     } else {
       accessory.context.MotionSensor = accessory.context.MotionSensor ?? {};
       this.MotionSensor = {
@@ -127,9 +129,11 @@ export class Contact extends deviceBase {
 
     // Initialize Light Sensor Service
     if (device.contact?.hide_lightsensor) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
-      this.LightSensor!.Service = accessory.getService(this.hap.Service.LightSensor) as Service;
-      accessory.removeService(this.LightSensor!.Service);
+      if (this.LightSensor) {
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
+        this.LightSensor.Service = accessory.getService(this.hap.Service.LightSensor) as Service;
+        accessory.removeService(this.LightSensor.Service);
+      }
     } else {
       accessory.context.LightSensor = accessory.context.LightSensor ?? {};
       this.LightSensor = {

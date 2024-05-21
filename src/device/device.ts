@@ -584,11 +584,18 @@ export abstract class deviceBase {
 
   async statusCode(statusCode: number): Promise<void> {
     if (statusCode === 171) {
-      if (this.device.deviceId === this.device.hubDeviceId) {
+      const previousStatusCode = statusCode;
+      if (this.device.hubDeviceId === this.device.deviceId) {
         statusCode = 161;
+        this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${previousStatusCode} is now statusCode: `
+        + `${statusCode}, because the hubDeviceId: ${this.device.hubDeviceId} is set to the same as the deviceId: `
+        + `${this.device.deviceId}, meaning the device is it's own hub.`);
       }
-      if (this.device.deviceId === '000000000000') {
+      if (this.device.hubDeviceId === '000000000000') {
         statusCode = 161;
+        this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${previousStatusCode} is now statusCode: `
+        + `${statusCode}, because the hubDeviceId: ${this.device.hubDeviceId} is set to the same as the deviceId: `
+        + `${this.device.deviceId}, meaning the device is it's own hub.`);
       }
     }
     switch (statusCode) {
@@ -656,7 +663,7 @@ export abstract class deviceBase {
         break;
       default:
         this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: `
-          + `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
+          + `${statusCode}, Submit Bugs Here: https://tinyurl.com/SwitchBotBug`);
     }
   }
 
