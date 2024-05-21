@@ -650,11 +650,13 @@ export class BlindTilt extends deviceBase {
       if (position === 100) {
         bodyChange = JSON.stringify({
           command: 'fullyOpen',
+          parameter: 'default',
           commandType: 'command',
         });
       } else if (position === 0) {
         bodyChange = JSON.stringify({
           command: direction === 'up' ? 'closeUp' : 'closeDown',
+          parameter: 'default',
           commandType: 'command',
         });
       } else {
@@ -680,7 +682,7 @@ export class BlindTilt extends deviceBase {
           this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
           this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `request to SwitchBot API, body: ${JSON.stringify(bodyChange)} sent successfully`);
+          + `request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);

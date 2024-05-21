@@ -548,7 +548,7 @@ export class Others extends irdeviceBase {
           this.debugSuccessLog(`${this.device.remoteType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
           this.successLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-            + ` request to SwitchBot API, body: ${JSON.stringify(bodyChange)} sent successfully`);
+            + ` request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
           this.updateHomeKitCharacteristics();
         } else {
           this.statusCode(statusCode);
