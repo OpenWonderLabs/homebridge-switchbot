@@ -160,25 +160,7 @@ export class Lock extends deviceBase {
       });
 
     //regisiter webhook event handler
-    if (device.webhook) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
-        try {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          const { lockState } = context;
-          const { LockCurrentState } = this.LockMechanism;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-            '(lockState) = ' +
-            `Webhook:(${lockState}), ` +
-            `current:(${LockCurrentState})`);
-          this.LockMechanism.LockCurrentState = lockState === 'LOCKED' ? 1 : 0;
-          this.updateHomeKitCharacteristics();
-        } catch (e: any) {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
-        }
-      };
-    }
+    this.registerWebhook(accessory, device);
 
     // Watch for Lock change events
     // We put in a debounce of 100ms so we don't make duplicate calls
@@ -187,17 +169,15 @@ export class Lock extends deviceBase {
         tap(() => {
           this.lockUpdateInProgress = true;
         }),
-        debounceTime(this.platform.config.options!.pushRate! * 1000),
+        debounceTime(this.devicePushRate * 1000),
       )
       .subscribe(async () => {
         try {
           await this.pushChanges();
         } catch (e: any) {
           this.apiError(e);
-          this.errorLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,` +
-            ` Error Message: ${JSON.stringify(e.message)}`,
-          );
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
         }
         this.lockUpdateInProgress = false;
       });
@@ -302,10 +282,8 @@ export class Lock extends deviceBase {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` +
-        ` ${this.device.connectionType}, refreshStatus will not happen.`,
-      );
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+        + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
   }
 
@@ -366,10 +344,28 @@ export class Lock extends deviceBase {
       }
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}` +
-        ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-      );
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+    }
+  }
+
+  async registerWebhook(accessory: PlatformAccessory, device: device & devicesConfig) {
+    if (device.webhook) {
+      this.debugLog(`${device.deviceType}: ${accessory.displayName} is listening webhook.`);
+      this.platform.webhookEventHandler[device.deviceId] = async (context) => {
+        try {
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
+          const { lockState } = context;
+          const { LockCurrentState } = this.LockMechanism;
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} (lockState) = Webhook:(${lockState}), current:(${LockCurrentState})`);
+          this.LockMechanism.LockCurrentState = lockState === 'LOCKED' ? 1 : 0;
+          this.updateHomeKitCharacteristics();
+        } catch (e: any) {
+          this.errorLog(`${device.deviceType}: ${accessory.displayName} failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+        }
+      };
+    } else {
+      this.debugLog(`${device.deviceType}: ${accessory.displayName} is not listening webhook.`);
     }
   }
 
@@ -382,15 +378,14 @@ export class Lock extends deviceBase {
   async pushChanges(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} pushChanges enableCloudService: ${this.device.enableCloudService}`);
-      /*} else if (this.BLE) {
-        await this.BLEpushChanges();*/
+    } else if (this.BLE) {
+      await this.BLEpushChanges();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` + ` ${this.device.connectionType}, pushChanges will not happen.`,
-      );
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+        + ` ${this.device.connectionType}, pushChanges will not happen.`);
     }
     // Refresh the status from the API
     interval(15000)
@@ -404,10 +399,8 @@ export class Lock extends deviceBase {
   async BLEpushChanges(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges`);
     if (this.LockMechanism.LockTargetState !== this.accessory.context.LockTargetState) {
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges LockTargetState: ${this.LockMechanism.LockTargetState}` +
-        ` LockTargetStateCached: ${this.accessory.context.LockTargetState}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges LockTargetState: ${this.LockMechanism.LockTargetState}`
+        + ` LockTargetStateCached: ${this.accessory.context.LockTargetState}`);
       const switchbot = await this.platform.connectBLE();
       // Convert to BLE Address
       this.device.bleMac = this.device
@@ -428,18 +421,14 @@ export class Lock extends deviceBase {
         })
         .catch(async (e: any) => {
           this.apiError(e);
-          this.errorLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}` +
-            ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-          );
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
+            + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
           await this.BLEPushConnection();
         });
     } else {
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges.` +
-        `LockTargetState: ${this.LockMechanism.LockTargetState}, ` +
-        `LockTargetStateCached: ${this.accessory.context.LockTargetState}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges.`
+        + `LockTargetState: ${this.LockMechanism.LockTargetState}, `
+        + `LockTargetStateCached: ${this.accessory.context.LockTargetState}`);
     }
   }
 
@@ -482,17 +471,12 @@ export class Lock extends deviceBase {
         }
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}` +
-          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-        );
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
       }
     } else {
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges.` +
-        `LockTargetState: ${this.LockMechanism.LockTargetState}, ` +
-        `LockTargetStateCached: ${this.accessory.context.LockTargetState}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges, LockTargetState: `
+        + `${this.LockMechanism.LockTargetState}, LockTargetStateCached: ${this.accessory.context.LockTargetState}`);
     }
   }
 

@@ -20,8 +20,9 @@ export abstract class deviceBase {
 
   // Config
   protected deviceLogging!: string;
-  protected deviceUpdateRate!: number;
   protected deviceRefreshRate!: number;
+  protected deviceUpdateRate!: number;
+  protected devicePushRate!: number;
   protected deviceMaxRetries!: number;
   protected deviceDelayBetweenRetries!: number;
 
@@ -56,73 +57,95 @@ export abstract class deviceBase {
     this.BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
     this.OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
 
-    this.getDeviceLogSettings(device);
-    this.getDeviceRefreshRateSettings(device);
-    this.getDeviceRetry(device);
-    this.getDeviceConfigSettings(device);
+    this.getDeviceLogSettings(accessory, device);
+    this.getDeviceRateSettings(accessory, device);
+    this.getDeviceRetry(accessory, device);
+    this.getDeviceConfigSettings(accessory, device);
     this.getDeviceContext(accessory, device);
-    this.setupMqtt(device);
-    this.scan(device);
+    this.setupMqtt(accessory, device);
+    this.scan(accessory, device);
 
     // Set accessory information
     accessory
       .getService(this.hap.Service.AccessoryInformation)!
       .setCharacteristic(this.hap.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.hap.Characteristic.Name, device.deviceName)
-      .setCharacteristic(this.hap.Characteristic.ConfiguredName, device.deviceName)
-      .setCharacteristic(this.hap.Characteristic.Model, device.model!)
+      .setCharacteristic(this.hap.Characteristic.AppMatchingIdentifier, 'id1087374760')
+      .setCharacteristic(this.hap.Characteristic.Name, device.deviceName ?? accessory.displayName)
+      .setCharacteristic(this.hap.Characteristic.ConfiguredName, device.deviceName ?? accessory.displayName)
+      .setCharacteristic(this.hap.Characteristic.Model, device.model ?? accessory.context.model)
+      .setCharacteristic(this.hap.Characteristic.ProductData, device.deviceId ?? accessory.context.deviceId)
       .setCharacteristic(this.hap.Characteristic.SerialNumber, device.deviceId);
   }
 
-  async getDeviceLogSettings(device: device & devicesConfig): Promise<void> {
+  async getDeviceLogSettings(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
     if (this.platform.debugMode) {
-      this.deviceLogging = this.accessory.context.logging = 'debugMode';
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+      this.deviceLogging = accessory.context.logging = 'debugMode';
+      this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
     } else if (device.logging) {
-      this.deviceLogging = this.accessory.context.logging = device.logging;
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
+      this.deviceLogging = accessory.context.logging = device.logging;
+      this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
     } else if (this.config.logging) {
-      this.deviceLogging = this.accessory.context.logging = this.config.logging;
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
+      this.deviceLogging = accessory.context.logging = this.config.logging;
+      this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
     } else {
-      this.deviceLogging = this.accessory.context.logging = 'standard';
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
+      this.deviceLogging = accessory.context.logging = 'standard';
+      this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
     }
   }
 
-  async getDeviceRefreshRateSettings(device: device & devicesConfig): Promise<void> {
+  async getDeviceRateSettings(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
     // refreshRate
     if (device.refreshRate) {
-      this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
-    } else if (this.platform.config.options!.refreshRate) {
-      this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
+      this.deviceRefreshRate = device.refreshRate;
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
+    } else if (this.config.options?.refreshRate) {
+      this.deviceRefreshRate = this.config.options.refreshRate;
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
+    } else {
+      this.deviceRefreshRate = 5;
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Using Default refreshRate: ${this.deviceRefreshRate}`);
     }
+    accessory.context.deviceRefreshRate = this.deviceRefreshRate;
     // updateRate
     if (device.updateRate) {
       this.deviceUpdateRate = device.updateRate;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config updateRate: ${this.deviceUpdateRate}`);
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Using Device Config updateRate: ${this.deviceUpdateRate}`);
+    } else if (this.config.options?.updateRate) {
+      this.deviceUpdateRate = this.config.options.updateRate;
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Using Platform Config updateRate: ${this.deviceUpdateRate}`);
     } else {
       this.deviceUpdateRate = 5;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Default updateRate: ${this.deviceUpdateRate}`);
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Using Default updateRate: ${this.deviceUpdateRate}`);
     }
+    accessory.context.deviceUpdateRate = this.deviceUpdateRate;
+    // pushRate
+    if (device.pushRate) {
+      this.devicePushRate = device.pushRate;
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Using Device Config pushRate: ${this.deviceUpdateRate}`);
+    } else if (this.config.options?.pushRate) {
+      this.devicePushRate = this.config.options.pushRate;
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Using Platform Config pushRate: ${this.deviceUpdateRate}`);
+    } else {
+      this.devicePushRate = 1;
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Using Default pushRate: ${this.deviceUpdateRate}`);
+    }
+    accessory.context.devicePushRate = this.devicePushRate;
   }
 
-  async getDeviceRetry(device: device & devicesConfig): Promise<void> {
+  async getDeviceRetry(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
     if (device.maxRetries) {
       this.deviceMaxRetries = device.maxRetries;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Max Retries: ${this.deviceMaxRetries}`);
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Using Device Max Retries: ${this.deviceMaxRetries}`);
     } else {
       this.deviceMaxRetries = 5; // Maximum number of retries
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Max Retries Not Set, Using: ${this.deviceMaxRetries}`);
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Max Retries Not Set, Using: ${this.deviceMaxRetries}`);
     }
     if (device.delayBetweenRetries) {
       this.deviceDelayBetweenRetries = device.delayBetweenRetries * 1000;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Delay Between Retries: ${this.deviceDelayBetweenRetries}`);
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Using Device Delay Between Retries: ${this.deviceDelayBetweenRetries}`);
     } else {
       this.deviceDelayBetweenRetries = 3000; // Delay between retries in milliseconds
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Delay Between Retries Not Set,`
+      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Delay Between Retries Not Set,`
         + ` Using: ${this.deviceDelayBetweenRetries}`);
     }
   }
@@ -147,36 +170,34 @@ export abstract class deviceBase {
     }
   }
 
-
-  async scan(device: device & devicesConfig): Promise<void> {
+  async scan(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
     if (device.scanDuration) {
       if (this.deviceUpdateRate > device.scanDuration) {
         this.scanDuration = this.deviceUpdateRate;
         if (this.BLE) {
           this.warnLog(
-            `${this.device.deviceType}: ` +
-            `${this.accessory.displayName} scanDuration is less than updateRate, overriding scanDuration with updateRate`,
-          );
+            `${this.device.deviceType}: `
+            + `${accessory.displayName} scanDuration is less than updateRate, overriding scanDuration with updateRate`);
         }
       } else {
-        this.scanDuration = this.accessory.context.scanDuration = device.scanDuration;
+        this.scanDuration = accessory.context.scanDuration = device.scanDuration;
       }
       if (this.BLE) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Using Device Config scanDuration: ${this.scanDuration}`);
       }
     } else {
       if (this.deviceUpdateRate > 1) {
         this.scanDuration = this.deviceUpdateRate;
       } else {
-        this.scanDuration = this.accessory.context.scanDuration = 1;
+        this.scanDuration = accessory.context.scanDuration = 1;
       }
       if (this.BLE) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Using Default scanDuration: ${this.scanDuration}`);
       }
     }
   }
 
-  async getDeviceConfigSettings(device: device & devicesConfig): Promise<void> {
+  async getDeviceConfigSettings(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
     const deviceConfig = {};
     if (device.logging !== 'standard') {
       deviceConfig['logging'] = device.logging;
@@ -280,7 +301,7 @@ export abstract class deviceBase {
     const config = Object.assign({}, deviceConfig, botConfig, curtainConfig, waterdetectorConfig, striplightConfig, plugConfig, iosensorConfig,
       meterConfig, humidifierConfig, hubConfig, lockConfig, ceilinglightConfig, colorbulbConfig, contactConfig, motionConfig, blindTiltConfig);
     if (Object.entries(config).length !== 0) {
-      this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.debugSuccessLog(`${this.device.deviceType}: ${accessory.displayName} Config: ${JSON.stringify(config)}`);
     }
   }
 
@@ -311,18 +332,18 @@ export abstract class deviceBase {
   /*
    * Setup MQTT hadler if URL is specified.
    */
-  async setupMqtt(device: device & devicesConfig): Promise<void> {
+  async setupMqtt(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
     if (device.mqttURL) {
       try {
         const { connectAsync } = asyncmqtt;
         this.mqttClient = await connectAsync(device.mqttURL, device.mqttOptions || {});
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MQTT connection has been established successfully.`);
         this.mqttClient.on('error', (e: Error) => {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Failed to publish MQTT messages. ${e}`);
+          this.errorLog(`${this.device.deviceType}: ${accessory.displayName} Failed to publish MQTT messages. ${e}`);
         });
       } catch (e) {
         this.mqttClient = null;
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Failed to establish MQTT connection. ${e}`);
+        this.errorLog(`${this.device.deviceType}: ${accessory.displayName} Failed to establish MQTT connection. ${e}`);
       }
     }
   }
@@ -330,13 +351,13 @@ export abstract class deviceBase {
   /*
    * Setup EVE history graph feature if enabled.
    */
-  async setupHistoryService(device: device & devicesConfig): Promise<void> {
+  async setupHistoryService(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
     const mac = this.device
       .deviceId!.match(/.{1,2}/g)!
       .join(':')
       .toLowerCase();
     this.historyService = device.history
-      ? new this.platform.fakegatoAPI('room', this.accessory, {
+      ? new this.platform.fakegatoAPI('room', accessory, {
         log: this.platform.log,
         storage: 'fs',
         filename: `${hostname().split('.')[0]}_${mac}_persist.json`,
@@ -367,202 +388,201 @@ export abstract class deviceBase {
       case 'Humidifier':
         device.model = SwitchBotModel.Humidifier;
         device.bleModel = SwitchBotBLEModel.Humidifier;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Hub Mini':
         device.model = SwitchBotModel.HubMini;
         device.bleModel = SwitchBotBLEModel.Unknown;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Hub Plus':
         device.model = SwitchBotModel.HubPlus;
         device.bleModel = SwitchBotBLEModel.Unknown;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Hub 2':
         device.model = SwitchBotModel.Hub2;
         device.bleModel = SwitchBotBLEModel.Unknown;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Bot':
         device.model = SwitchBotModel.Bot;
         device.bleModel = SwitchBotBLEModel.Bot;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Meter':
         device.model = SwitchBotModel.Meter;
         device.bleModel = SwitchBotBLEModel.Meter;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'MeterPlus':
         device.model = SwitchBotModel.MeterPlusUS;
         device.bleModel = SwitchBotBLEModel.MeterPlus;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Meter Plus (JP)':
         device.model = SwitchBotModel.MeterPlusJP;
         device.bleModel = SwitchBotBLEModel.MeterPlus;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'WoIOSensor':
         device.model = SwitchBotModel.OutdoorMeter;
         device.bleModel = SwitchBotBLEModel.OutdoorMeter;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Water Detector':
         device.model = SwitchBotModel.WaterDetector;
         device.bleModel = SwitchBotBLEModel.Unknown;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Motion Sensor':
         device.model = SwitchBotModel.MotionSensor;
         device.bleModel = SwitchBotBLEModel.MotionSensor;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Contact Sensor':
         device.model = SwitchBotModel.ContactSensor;
         device.bleModel = SwitchBotBLEModel.ContactSensor;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Curtain':
         device.model = SwitchBotModel.Curtain;
         device.bleModel = SwitchBotBLEModel.Curtain;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Curtain3':
         device.model = SwitchBotModel.Curtain3;
         device.bleModel = SwitchBotBLEModel.Curtain3;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Blind Tilt':
         device.model = SwitchBotModel.BlindTilt;
         device.bleModel = SwitchBotBLEModel.BlindTilt;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Plug':
         device.model = SwitchBotModel.Plug;
         device.bleModel = SwitchBotBLEModel.PlugMiniUS;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Plug Mini (US)':
         device.model = SwitchBotModel.PlugMiniUS;
         device.bleModel = SwitchBotBLEModel.PlugMiniUS;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Plug Mini (JP)':
         device.model = SwitchBotModel.PlugMiniJP;
         device.bleModel = SwitchBotBLEModel.PlugMiniJP;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Smart Lock':
         device.model = SwitchBotModel.Lock;
         device.bleModel = SwitchBotBLEModel.Lock;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Smart Lock Pro':
         device.model = SwitchBotModel.LockPro;
         device.bleModel = SwitchBotBLEModel.Unknown;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Color Bulb':
         device.model = SwitchBotModel.ColorBulb;
         device.bleModel = SwitchBotBLEModel.ColorBulb;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'K10+':
         device.model = SwitchBotModel.K10;
         device.bleModel = SwitchBotBLEModel.Unknown;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'WoSweeper':
         device.model = SwitchBotModel.WoSweeper;
         device.bleModel = SwitchBotBLEModel.Unknown;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'WoSweeperMini':
         device.model = SwitchBotModel.WoSweeperMini;
         device.bleModel = SwitchBotBLEModel.Unknown;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Robot Vacuum Cleaner S1':
         device.model = SwitchBotModel.RobotVacuumCleanerS1;
         device.bleModel = SwitchBotBLEModel.Unknown;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Robot Vacuum Cleaner S1 Plus':
         device.model = SwitchBotModel.RobotVacuumCleanerS1Plus;
         device.bleModel = SwitchBotBLEModel.Unknown;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Robot Vacuum Cleaner S10':
         device.model = SwitchBotModel.RobotVacuumCleanerS10;
         device.bleModel = SwitchBotBLEModel.Unknown;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Ceiling Light':
         device.model = SwitchBotModel.CeilingLight;
         device.bleModel = SwitchBotBLEModel.CeilingLight;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Ceiling Light Pro':
         device.model = SwitchBotModel.CeilingLightPro;
         device.bleModel = SwitchBotBLEModel.CeilingLightPro;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Strip Light':
         device.model = SwitchBotModel.StripLight;
         device.bleModel = SwitchBotBLEModel.StripLight;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Indoor Cam':
         device.model = SwitchBotModel.IndoorCam;
         device.bleModel = SwitchBotBLEModel.Unknown;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Remote':
         device.model = SwitchBotModel.Remote;
         device.bleModel = SwitchBotBLEModel.Remote;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'remote with screen+':
         device.model = SwitchBotModel.UniversalRemote;
         device.bleModel = SwitchBotBLEModel.Unknown;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Battery Circulator Fan':
         device.model = SwitchBotModel.BatteryCirculatorFan;
         device.bleModel = SwitchBotBLEModel.Unknown;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       default:
         device.model = SwitchBotModel.Unknown;
         device.bleModel = SwitchBotBLEModel.Unknown;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
     }
     accessory.context.model = device.model;
 
+    // Firmware Version
     let deviceFirmwareVersion: string;
     if (device.firmware) {
       deviceFirmwareVersion = device.firmware;
-      this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} 1 FirmwareRevision: ${device.firmware}`);
+      this.debugSuccessLog(`${device.deviceType}: ${accessory.displayName} 1 FirmwareRevision: ${device.firmware}`);
     } else if (device.version) {
       deviceFirmwareVersion = device.version;
-      this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} 2 FirmwareRevision: ${device.version}`);
+      this.debugSuccessLog(`${device.deviceType}: ${accessory.displayName} 2 FirmwareRevision: ${device.version}`);
     } else if (accessory.context.deviceVersion) {
       deviceFirmwareVersion = accessory.context.deviceVersion;
-      this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} 3 FirmwareRevision: ${accessory.context.deviceVersion}`);
+      this.debugSuccessLog(`${device.deviceType}: ${accessory.displayName} 3 FirmwareRevision: ${accessory.context.deviceVersion}`);
     } else {
       deviceFirmwareVersion = this.platform.version ?? '0.0.0';
       if (this.platform.version) {
-        this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} 4 FirmwareRevision: ${this.platform.version}`);
+        this.debugSuccessLog(`${device.deviceType}: ${accessory.displayName} 4 FirmwareRevision: ${this.platform.version}`);
       } else {
-        this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} 5 FirmwareRevision: ${deviceFirmwareVersion}`);
+        this.debugSuccessLog(`${device.deviceType}: ${accessory.displayName} 5 FirmwareRevision: ${deviceFirmwareVersion}`);
       }
     }
-
-    // Firmware Version
     const version = deviceFirmwareVersion.toString();
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
+    this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
     let deviceVersion: string;
     if (version?.includes('.') === false) {
       const replace = version?.replace(/^V|-.*$/g, '');
@@ -572,14 +592,15 @@ export abstract class deviceBase {
     } else {
       deviceVersion = version?.replace(/^V|-.*$/g, '') ?? '0.0.0';
     }
-    this.accessory
+    accessory
       .getService(this.hap.Service.AccessoryInformation)!
       .setCharacteristic(this.hap.Characteristic.HardwareRevision, deviceVersion)
+      .setCharacteristic(this.hap.Characteristic.SoftwareRevision, deviceVersion)
       .setCharacteristic(this.hap.Characteristic.FirmwareRevision, deviceVersion)
       .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
       .updateValue(deviceVersion);
-    this.accessory.context.deviceVersion = deviceVersion;
-    this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceVersion: ${this.accessory.context.deviceVersion}`);
+    accessory.context.deviceVersion = deviceVersion;
+    this.debugSuccessLog(`${device.deviceType}: ${accessory.displayName} deviceVersion: ${accessory.context.deviceVersion}`);
   }
 
   async statusCode(statusCode: number): Promise<void> {
@@ -588,14 +609,14 @@ export abstract class deviceBase {
       if (this.device.hubDeviceId === this.device.deviceId) {
         statusCode = 161;
         this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${previousStatusCode} is now statusCode: `
-        + `${statusCode}, because the hubDeviceId: ${this.device.hubDeviceId} is set to the same as the deviceId: `
-        + `${this.device.deviceId}, meaning the device is it's own hub.`);
+          + `${statusCode}, because the hubDeviceId: ${this.device.hubDeviceId} is set to the same as the deviceId: `
+          + `${this.device.deviceId}, meaning the device is it's own hub.`);
       }
       if (this.device.hubDeviceId === '000000000000') {
         statusCode = 161;
         this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${previousStatusCode} is now statusCode: `
-        + `${statusCode}, because the hubDeviceId: ${this.device.hubDeviceId} is set to the same as the deviceId: `
-        + `${this.device.deviceId}, meaning the device is it's own hub.`);
+          + `${statusCode}, because the hubDeviceId: ${this.device.hubDeviceId} is set to the same as the deviceId: `
+          + `${this.device.deviceId}, meaning the device is it's own hub.`);
       }
     }
     switch (statusCode) {
@@ -612,12 +633,12 @@ export abstract class deviceBase {
         this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device is offline, statusCode: ${statusCode}`);
         break;
       case 171:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. ` +
-          `Hub: ${this.device.hubDeviceId}`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. `
+          + `Hub: ${this.device.hubDeviceId}`);
         break;
       case 190:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device internal error due to device states not synchronized with` +
-          ` server, Or command format is invalid, statusCode: ${statusCode}`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device internal error due to device states not synchronized with`
+          + ` server, Or command format is invalid, statusCode: ${statusCode}`);
         break;
       case 100:
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Command successfully sent, statusCode: ${statusCode}`);

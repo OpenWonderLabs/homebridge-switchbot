@@ -10,7 +10,7 @@ import { Devices } from '../settings.js';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 
 import type { SwitchBotPlatform } from '../platform.js';
-import type { device, devicesConfig, serviceData, deviceStatus} from '../settings.js';
+import type { device, devicesConfig, serviceData, deviceStatus } from '../settings.js';
 import type { Service, PlatformAccessory, CharacteristicValue, CharacteristicChange } from 'homebridge';
 
 export class Curtain extends deviceBase {
@@ -84,7 +84,7 @@ export class Curtain extends deviceBase {
     this.WindowCovering.Service
       .getCharacteristic(this.hap.Characteristic.CurrentPosition)
       .setProps({
-        minStep: Number(this.minStep(device)),
+        minStep: device.curtain?.set_minStep ?? 1,
         minValue: 0,
         maxValue: 100,
         validValueRanges: [0, 100],
@@ -97,7 +97,7 @@ export class Curtain extends deviceBase {
     this.WindowCovering.Service
       .getCharacteristic(this.hap.Characteristic.TargetPosition)
       .setProps({
-        minStep: Number(this.minStep(device)),
+        minStep: device.curtain?.set_minStep ?? 1,
         minValue: 0,
         maxValue: 100,
         validValueRanges: [0, 100],
@@ -187,25 +187,7 @@ export class Curtain extends deviceBase {
       });
 
     //regisiter webhook event handler
-    if (device.webhook) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
-        try {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          const { slidePosition, battery } = context;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-            '(slidePosition, battery) = ' +
-            `Webhook:(${slidePosition}, ${battery}), ` +
-            `current:(${this.WindowCovering.CurrentPosition}, ${this.Battery.BatteryLevel})`);
-          this.WindowCovering.CurrentPosition = slidePosition;
-          this.Battery.BatteryLevel = battery;
-          this.updateHomeKitCharacteristics();
-        } catch (e: any) {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
-        }
-      };
-    }
+    this.registerWebhook(accessory, device);
 
     // update slide progress
     interval(this.deviceUpdateRate * 1000)
@@ -226,23 +208,21 @@ export class Curtain extends deviceBase {
         tap(() => {
           this.curtainUpdateInProgress = true;
         }),
-        debounceTime(this.platform.config.options!.pushRate! * 1000),
+        debounceTime(this.devicePushRate * 1000),
       )
       .subscribe(async () => {
         try {
           await this.pushChanges();
         } catch (e: any) {
           this.apiError(e);
-          this.errorLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,` +
-            ` Error Message: ${JSON.stringify(e.message)}`,
-          );
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
         }
         this.curtainUpdateInProgress = false;
       });
 
     // Setup EVE history features
-    this.setupHistoryService(device);
+    this.setupHistoryService(accessory, device);
   }
 
   private history(device: device & devicesConfig) {
@@ -258,7 +238,7 @@ export class Curtain extends deviceBase {
   /*
    * Setup EVE history features for curtain devices.
    */
-  async setupHistoryService(device: device & devicesConfig): Promise<void> {
+  async setupHistoryService(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
     if (device.history !== true) {
       return;
     }
@@ -293,8 +273,7 @@ export class Curtain extends deviceBase {
         this.accessory.context.lastActivation = entry.time;
         sensor?.updateCharacteristic(
           this.platform.eve.Characteristics.LastActivation,
-          Math.max(0, this.accessory.context.lastActivation - this.historyService.getInitialTime()),
-        );
+          Math.max(0, this.accessory.context.lastActivation - this.historyService.getInitialTime()));
         this.historyService.addEntry(entry);
       }
     });
@@ -350,14 +329,12 @@ export class Curtain extends deviceBase {
       this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.STOPPED;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Stopped`);
     }
-    this.debugLog(
-      `${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition: ${this.WindowCovering.CurrentPosition},` +
-      ` TargetPosition: ${this.WindowCovering.TargetPosition}, PositionState: ${this.WindowCovering.PositionState},`,
-    );
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition: ${this.WindowCovering.CurrentPosition},`
+      + ` TargetPosition: ${this.WindowCovering.TargetPosition}, PositionState: ${this.WindowCovering.PositionState},`);
 
     if (!this.device.curtain?.hide_lightsensor) {
-      const set_minLux = await this.minLux();
-      const set_maxLux = await this.maxLux();
+      const set_minLux = this.device.curtain?.set_minLux ?? 1;
+      const set_maxLux = this.device.curtain?.set_maxLux ?? 6001;
       const spaceBetweenLevels = 9;
 
       // Brightness
@@ -369,9 +346,8 @@ export class Curtain extends deviceBase {
         case 2:
           this.LightSensor!.CurrentAmbientLightLevel = (set_maxLux - set_minLux) / spaceBetweenLevels;
           this.debugLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel},` +
-            ` Calculation: ${(set_maxLux - set_minLux) / spaceBetweenLevels}`,
-          );
+            `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel},`
+            + ` Calculation: ${(set_maxLux - set_minLux) / spaceBetweenLevels}`);
           break;
         case 3:
           this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 2;
@@ -413,10 +389,8 @@ export class Curtain extends deviceBase {
           this.LightSensor!.CurrentAmbientLightLevel = set_maxLux;
           this.debugLog();
       }
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel},` +
-        ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel},`
+        + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
     }
     // Battery
     this.Battery.BatteryLevel = Number(serviceData.battery);
@@ -467,15 +441,13 @@ export class Curtain extends deviceBase {
       this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.STOPPED;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Stopped`);
     }
-    this.debugLog(
-      `${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition: ${this.WindowCovering.CurrentPosition},` +
-      ` TargetPosition: ${this.WindowCovering.TargetPosition}, PositionState: ${this.WindowCovering.PositionState},`,
-    );
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition: ${this.WindowCovering.CurrentPosition},`
+      + ` TargetPosition: ${this.WindowCovering.TargetPosition}, PositionState: ${this.WindowCovering.PositionState},`);
 
     // Brightness
     if (!this.device.curtain?.hide_lightsensor) {
-      const set_minLux = await this.minLux();
-      const set_maxLux = await this.maxLux();
+      const set_minLux = this.device.curtain?.set_minLux ?? 1;
+      const set_maxLux = this.device.curtain?.set_maxLux ?? 6001;
       switch (deviceStatus.body.brightness) {
         case 'bright':
           this.LightSensor!.CurrentAmbientLightLevel = set_maxLux;
@@ -527,10 +499,8 @@ export class Curtain extends deviceBase {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` +
-        ` ${this.device.connectionType}, refreshStatus will not happen.`,
-      );
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+        + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
   }
 
@@ -591,10 +561,30 @@ export class Curtain extends deviceBase {
       }
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}` +
-        ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-      );
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+    }
+  }
+
+  async registerWebhook(accessory: PlatformAccessory, device: device & devicesConfig) {
+    if (device.webhook) {
+      this.debugLog(`${device.deviceType}: ${accessory.displayName} is listening webhook.`);
+      this.platform.webhookEventHandler[device.deviceId] = async (context) => {
+        try {
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
+          const { slidePosition, battery } = context;
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} ` +
+            '(slidePosition, battery) = ' +
+            `Webhook:(${slidePosition}, ${battery}), `
+            + `current:(${this.WindowCovering.CurrentPosition}, ${this.Battery.BatteryLevel})`);
+          this.WindowCovering.CurrentPosition = slidePosition;
+          this.Battery.BatteryLevel = battery;
+          this.updateHomeKitCharacteristics();
+        } catch (e: any) {
+          this.errorLog(`${device.deviceType}: ${accessory.displayName} `
+            + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+        }
+      };
     }
   }
 
@@ -607,9 +597,8 @@ export class Curtain extends deviceBase {
       await this.openAPIpushChanges();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` + ` ${this.device.connectionType}, pushChanges will not happen.`,
-      );
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+        + ` ${this.device.connectionType}, pushChanges will not happen.`);
     }
     // Refresh the status from the API
     interval(15000)
@@ -650,10 +639,8 @@ export class Curtain extends deviceBase {
             + `TargetPosition: ${this.WindowCovering.TargetPosition} sent over BLE,  sent successfully`);
         } catch (e) {
           this.apiError(e);
-          this.errorLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}` +
-            ` Connection, Error Message: ${JSON.stringify((e as Error).message)}`,
-          );
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
+            + ` Connection, Error Message: ${JSON.stringify((e as Error).message)}`);
           await this.BLEPushConnection();
           throw new Error('Connection error');
         }
@@ -662,10 +649,8 @@ export class Curtain extends deviceBase {
         await this.BLEPushConnection();
       }
     } else {
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges, CurrentPosition & TargetPosition Are the Same.` +
-        `  CurrentPosition: ${this.WindowCovering.CurrentPosition}, TargetPosition  ${this.WindowCovering.TargetPosition}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges, CurrentPosition & TargetPosition Are the Same.`
+        + `  CurrentPosition: ${this.WindowCovering.CurrentPosition}, TargetPosition  ${this.WindowCovering.TargetPosition}`);
     }
   }
 
@@ -717,16 +702,12 @@ export class Curtain extends deviceBase {
         }
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}` +
-          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-        );
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
       }
     } else {
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} No OpenAPI Changes, CurrentPosition & TargetPosition Are the Same.` +
-        ` CurrentPosition: ${this.WindowCovering.CurrentPosition}, TargetPosition  ${this.WindowCovering.TargetPosition}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No OpenAPI Changes, CurrentPosition & TargetPosition Are the Same.`
+        + ` CurrentPosition: ${this.WindowCovering.CurrentPosition}, TargetPosition  ${this.WindowCovering.TargetPosition}`);
     }
   }
 
@@ -850,10 +831,8 @@ export class Curtain extends deviceBase {
         }
         this.accessory.context.CurrentAmbientLightLevel = this.LightSensor!.CurrentAmbientLightLevel;
         this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, this.LightSensor!.CurrentAmbientLightLevel);
-        this.debugLog(
-          `${this.device.deviceType}: ${this.accessory.displayName}` +
-          ` updateCharacteristic CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`,
-        );
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+          + ` updateCharacteristic CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
         if (this.device.history) {
           this.historyService?.addEntry({
             time: Math.round(new Date().valueOf() / 1000),
@@ -916,10 +895,10 @@ export class Curtain extends deviceBase {
     let setPositionMode: number;
     let Mode: string;
     if (Number(this.WindowCovering.TargetPosition) > 50) {
-      if (this.device.blindTilt?.setOpenMode === '1') {
+      if (this.device.curtain?.setOpenMode === '1') {
         setPositionMode = 1;
         Mode = 'Silent Mode';
-      } else if (this.device.blindTilt?.setOpenMode === '0') {
+      } else if (this.device.curtain?.setOpenMode === '0') {
         setPositionMode = 0;
         Mode = 'Performance Mode';
       } else {
@@ -927,10 +906,10 @@ export class Curtain extends deviceBase {
         Mode = 'Default Mode';
       }
     } else {
-      if (this.device.blindTilt?.setCloseMode === '1') {
+      if (this.device.curtain?.setCloseMode === '1') {
         setPositionMode = 1;
         Mode = 'Silent Mode';
-      } else if (this.device.blindTilt?.setOpenMode === '0') {
+      } else if (this.device.curtain?.setOpenMode === '0') {
         setPositionMode = 0;
         Mode = 'Performance Mode';
       } else {
@@ -957,36 +936,6 @@ export class Curtain extends deviceBase {
       const state = Number(this.WindowCovering.CurrentPosition) > 0 ? 1 : 0;
       motion?.updateCharacteristic(this.hap.Characteristic.MotionDetected, state);
     }
-  }
-
-  async minStep(device: device & devicesConfig): Promise<number> {
-    let set_minStep: number;
-    if (device.curtain?.set_minStep) {
-      set_minStep = device.curtain?.set_minStep;
-    } else {
-      set_minStep = 1;
-    }
-    return set_minStep;
-  }
-
-  async minLux(): Promise<number> {
-    let set_minLux: number;
-    if (this.device.curtain?.set_minLux) {
-      set_minLux = this.device.curtain?.set_minLux;
-    } else {
-      set_minLux = 1;
-    }
-    return set_minLux;
-  }
-
-  async maxLux(): Promise<number> {
-    let set_maxLux: number;
-    if (this.device.curtain?.set_maxLux) {
-      set_maxLux = this.device.curtain?.set_maxLux;
-    } else {
-      set_maxLux = 6001;
-    }
-    return set_maxLux;
   }
 
   async offlineOff(): Promise<void> {

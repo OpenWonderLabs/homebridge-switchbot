@@ -9,7 +9,7 @@ import { skipWhile } from 'rxjs/operators';
 
 import type { SwitchBotPlatform } from '../platform.js';
 import type { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import type { device, devicesConfig, serviceData, deviceStatus} from '../settings.js';
+import type { device, devicesConfig, serviceData, deviceStatus } from '../settings.js';
 
 /**
  * Platform Accessory
@@ -43,8 +43,6 @@ export class WaterDetector extends deviceBase {
     device: device & devicesConfig,
   ) {
     super(platform, accessory, device);
-    // default placeholders
-    this.setupHistoryService(device);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doWaterDetectorUpdate = new Subject();
@@ -82,6 +80,8 @@ export class WaterDetector extends deviceBase {
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leak Sensor Service`);
         this.LeakSensor.Service = this.accessory.getService(this.hap.Service.LeakSensor) as Service;
         accessory.removeService(this.LeakSensor.Service);
+      } else {
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Leak Sensor Service Not Found`);
       }
     } else {
       accessory.context.LeakSensor = accessory.context.LeakSensor ?? {};
@@ -117,27 +117,7 @@ export class WaterDetector extends deviceBase {
       });
 
     //regisiter webhook event handler
-    if (device.webhook && !this.device.waterdetector?.hide_leak) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
-        try {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          const { detectionState, battery } = context;
-          const { LeakDetected } = this.LeakSensor!;
-          const { BatteryLevel } = this.Battery!;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-            '(detectionState, battery) = ' +
-            `Webhook:(${detectionState}, ${battery}), ` +
-            `current:(${LeakDetected}, ${BatteryLevel})`);
-          this.LeakSensor!.LeakDetected = detectionState;
-          this.Battery!.BatteryLevel = battery;
-          this.updateHomeKitCharacteristics();
-        } catch (e: any) {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
-        }
-      };
-    }
+    this.registerWebhook(accessory, device);
   }
 
   async BLEparseStatus(serviceData: serviceData): Promise<void> {
@@ -206,10 +186,8 @@ export class WaterDetector extends deviceBase {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` +
-        ` ${this.device.connectionType}, refreshStatus will not happen.`,
-      );
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+        + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
   }
 
@@ -270,10 +248,33 @@ export class WaterDetector extends deviceBase {
       }
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}` +
-        ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-      );
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+    }
+  }
+
+  async registerWebhook(accessory: PlatformAccessory, device: device & devicesConfig) {
+    if (device.webhook) {
+      this.debugLog(`${device.deviceType}: ${accessory.displayName} is listening webhook.`);
+      this.platform.webhookEventHandler[device.deviceId] = async (context) => {
+        try {
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
+          const { detectionState, battery } = context;
+          const { LeakDetected } = this.LeakSensor ? this.LeakSensor : { LeakDetected: undefined };
+          const { BatteryLevel } = this.Battery ? this.Battery : { BatteryLevel: undefined };
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} (detectionState, battery) = Webhook: (${detectionState}, ${battery}), `
+            + `current: (${LeakDetected}, ${BatteryLevel})`);
+          if (!device.waterdetector?.hide_leak) {
+            this.LeakSensor!.LeakDetected = detectionState;
+          }
+          this.Battery.BatteryLevel = battery;
+          this.updateHomeKitCharacteristics();
+        } catch (e: any) {
+          this.errorLog(`${device.deviceType}: ${accessory.displayName} failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+        }
+      };
+    } else {
+      this.debugLog(`${device.deviceType}: ${accessory.displayName} is not listening webhook.`);
     }
   }
 

@@ -6,7 +6,7 @@ import { interval, skipWhile, Subject } from 'rxjs';
 import { debounceTime, take, tap } from 'rxjs/operators';
 
 import type { SwitchBotPlatform } from '../platform.js';
-import type { device, devicesConfig, deviceStatus, serviceData} from '../settings.js';
+import type { device, devicesConfig, deviceStatus, serviceData } from '../settings.js';
 import type { Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap } from 'homebridge';
 
 /**
@@ -71,10 +71,8 @@ export class StripLight extends deviceBase {
       });
       this.accessory.configureController(this.AdaptiveLightingController);
       this.accessory.context.adaptiveLighting = true;
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} adaptiveLighting: ${this.accessory.context.adaptiveLighting},` +
-        ` adaptiveLightingShift: ${this.adaptiveLightingShift}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} adaptiveLighting: ${this.accessory.context.adaptiveLighting},`
+        + ` adaptiveLightingShift: ${this.adaptiveLightingShift}`);
     }
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
 
@@ -91,7 +89,7 @@ export class StripLight extends deviceBase {
     this.LightBulb.Service
       .getCharacteristic(this.hap.Characteristic.Brightness)
       .setProps({
-        minStep: this.minStep(device),
+        minStep: device.striplight?.set_minStep ?? 1,
         minValue: 0,
         maxValue: 100,
         validValueRanges: [0, 100],
@@ -154,75 +152,7 @@ export class StripLight extends deviceBase {
       });
 
     //regisiter webhook event handler
-    if (device.webhook) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
-        try {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          const { powerState, brightness, color, colorTemperature } = context;
-          const { On, Brightness, Hue, Saturation, ColorTemperature } = this.LightBulb;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-            '(powerState, brightness, color, colorTemperature) = ' +
-            `Webhook:(${powerState}, ${brightness}, ${color}, ${colorTemperature}), ` +
-            `current:(${On}, ${Brightness}, ${Hue}, ${Saturation}, ${ColorTemperature})`);
-
-          // On
-          this.LightBulb.On = powerState === 'ON' ? true : false;
-          if (this.accessory.context.Brightness !== this.LightBulb.On) {
-            this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.LightBulb.On}`);
-          } else {
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.LightBulb.On}`);
-          }
-
-          // Brightness
-          this.LightBulb.Brightness = brightness;
-          if (this.accessory.context.Brightness !== this.LightBulb.Brightness) {
-            this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Brightness: ${this.LightBulb.Brightness}`);
-          } else {
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Brightness: ${this.LightBulb.Brightness}`);
-          }
-
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} color: ${JSON.stringify(color)}`);
-          const [red, green, blue] = color!.split(':');
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} red: ${JSON.stringify(red)}`);
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} green: ${JSON.stringify(green)}`);
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} blue: ${JSON.stringify(blue)}`);
-
-          const [hue, saturation] = rgb2hs(Number(red), Number(green), Number(blue));
-          this.debugLog(
-            `${this.device.deviceType}: ${this.accessory.displayName}` + ` hs: ${JSON.stringify(rgb2hs(Number(red), Number(green), Number(blue)))}`,
-          );
-
-          // Hue
-          this.LightBulb.Hue = hue;
-          if (this.accessory.context.Hue !== this.LightBulb.Hue) {
-            this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${this.LightBulb.Hue}`);
-          } else {
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${this.LightBulb.Hue}`);
-          }
-
-          // Saturation
-          this.LightBulb.Saturation = saturation;
-          if (this.accessory.context.Saturation !== this.LightBulb.Saturation) {
-            this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${this.LightBulb.Saturation}`);
-          } else {
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${this.LightBulb.Saturation}`);
-          }
-
-          // ColorTemperature
-          this.LightBulb.ColorTemperature = colorTemperature;
-          if (this.accessory.context.ColorTemperature !== this.LightBulb.ColorTemperature) {
-            this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.LightBulb.ColorTemperature}`);
-          } else {
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.LightBulb.ColorTemperature}`);
-          }
-          this.updateHomeKitCharacteristics();
-        } catch (e: any) {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
-        }
-      };
-    }
+    this.registerWebhook(accessory, device);
 
     // Watch for Bulb change events
     // We put in a debounce of 1000ms so we don't make duplicate calls
@@ -231,17 +161,15 @@ export class StripLight extends deviceBase {
         tap(() => {
           this.stripLightUpdateInProgress = true;
         }),
-        debounceTime(this.platform.config.options!.pushRate! * 1000),
+        debounceTime(this.devicePushRate * 1000),
       )
       .subscribe(async () => {
         try {
           await this.pushChanges();
         } catch (e: any) {
           this.apiError(e);
-          this.errorLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,` +
-            ` Error Message: ${JSON.stringify(e.message)}`,
-          );
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
         }
         this.stripLightUpdateInProgress = false;
       });
@@ -269,10 +197,8 @@ export class StripLight extends deviceBase {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} blue: ${serviceData.blue}`);
 
     const [hue, saturation] = rgb2hs(Number(serviceData.red), Number(serviceData.green), Number(serviceData.blue));
-    this.debugLog(
-      `${this.device.deviceType}: ${this.accessory.displayName}` +
-      ` hs: ${JSON.stringify(rgb2hs(Number(serviceData.red), Number(serviceData.green), Number(serviceData.blue)))}`,
-    );
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+      + ` hs: ${JSON.stringify(rgb2hs(Number(serviceData.red), Number(serviceData.green), Number(serviceData.blue)))}`);
 
     // Hue
     this.LightBulb.Hue = hue;
@@ -317,9 +243,8 @@ export class StripLight extends deviceBase {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} blue: ${JSON.stringify(blue)}`);
 
       const [hue, saturation] = rgb2hs(Number(red), Number(green), Number(blue));
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName}` + ` hs: ${JSON.stringify(rgb2hs(Number(red), Number(green), Number(blue)))}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+        + ` hs: ${JSON.stringify(rgb2hs(Number(red), Number(green), Number(blue)))}`);
 
       // Hue
       this.LightBulb.Hue = hue;
@@ -358,10 +283,8 @@ export class StripLight extends deviceBase {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` +
-        ` ${this.device.connectionType}, refreshStatus will not happen.`,
-      );
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+        + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
   }
 
@@ -422,10 +345,79 @@ export class StripLight extends deviceBase {
       }
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}` +
-        ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-      );
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+    }
+  }
+
+  async registerWebhook(accessory: PlatformAccessory, device: device & devicesConfig) {
+    if (device.webhook) {
+      this.debugLog(`${device.deviceType}: ${accessory.displayName} is listening webhook.`);
+      this.platform.webhookEventHandler[device.deviceId] = async (context) => {
+        try {
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
+          const { powerState, brightness, color, colorTemperature } = context;
+          const { On, Brightness, Hue, Saturation, ColorTemperature } = this.LightBulb;
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} (powerState, brightness, color, colorTemperature) = Webhook: (${powerState},`
+            + ` ${brightness}, ${color}, ${colorTemperature}), current:(${On}, ${Brightness}, ${Hue}, ${Saturation}, ${ColorTemperature})`);
+
+          // On
+          this.LightBulb.On = powerState === 'ON' ? true : false;
+          if (accessory.context.Brightness !== this.LightBulb.On) {
+            this.infoLog(`${device.deviceType}: ${accessory.displayName} On: ${this.LightBulb.On}`);
+          } else {
+            this.debugLog(`${device.deviceType}: ${accessory.displayName} On: ${this.LightBulb.On}`);
+          }
+
+          // Brightness
+          this.LightBulb.Brightness = brightness;
+          if (accessory.context.Brightness !== this.LightBulb.Brightness) {
+            this.infoLog(`${device.deviceType}: ${accessory.displayName} Brightness: ${this.LightBulb.Brightness}`);
+          } else {
+            this.debugLog(`${device.deviceType}: ${accessory.displayName} Brightness: ${this.LightBulb.Brightness}`);
+          }
+
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} color: ${JSON.stringify(color)}`);
+          const [red, green, blue] = color!.split(':');
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} red: ${JSON.stringify(red)}`);
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} green: ${JSON.stringify(green)}`);
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} blue: ${JSON.stringify(blue)}`);
+
+          const [hue, saturation] = rgb2hs(Number(red), Number(green), Number(blue));
+          this.debugLog(
+            `${device.deviceType}: ${accessory.displayName}`
+            + ` hs: ${JSON.stringify(rgb2hs(Number(red), Number(green), Number(blue)))}`);
+
+          // Hue
+          this.LightBulb.Hue = hue;
+          if (accessory.context.Hue !== this.LightBulb.Hue) {
+            this.infoLog(`${device.deviceType}: ${accessory.displayName} Hue: ${this.LightBulb.Hue}`);
+          } else {
+            this.debugLog(`${device.deviceType}: ${accessory.displayName} Hue: ${this.LightBulb.Hue}`);
+          }
+
+          // Saturation
+          this.LightBulb.Saturation = saturation;
+          if (accessory.context.Saturation !== this.LightBulb.Saturation) {
+            this.infoLog(`${device.deviceType}: ${accessory.displayName} Saturation: ${this.LightBulb.Saturation}`);
+          } else {
+            this.debugLog(`${device.deviceType}: ${accessory.displayName} Saturation: ${this.LightBulb.Saturation}`);
+          }
+
+          // ColorTemperature
+          this.LightBulb.ColorTemperature = colorTemperature;
+          if (accessory.context.ColorTemperature !== this.LightBulb.ColorTemperature) {
+            this.infoLog(`${device.deviceType}: ${accessory.displayName} ColorTemperature: ${this.LightBulb.ColorTemperature}`);
+          } else {
+            this.debugLog(`${device.deviceType}: ${accessory.displayName} ColorTemperature: ${this.LightBulb.ColorTemperature}`);
+          }
+          this.updateHomeKitCharacteristics();
+        } catch (e: any) {
+          this.errorLog(`${device.deviceType}: ${accessory.displayName} failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+        }
+      };
+    } else {
+      this.debugLog(`${device.deviceType}: ${accessory.displayName} is not listening webhook.`);
     }
   }
 
@@ -448,9 +440,8 @@ export class StripLight extends deviceBase {
       await this.openAPIpushChanges();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` + ` ${this.device.connectionType}, pushChanges will not happen.`,
-      );
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+        + ` ${this.device.connectionType}, pushChanges will not happen.`);
     }
     // Refresh the status from the API
     interval(15000)
@@ -499,8 +490,8 @@ export class StripLight extends deviceBase {
         })
         .catch(async (e: any) => {
           this.apiError(e);
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}` +
-            ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
+            + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
           await this.BLEPushConnection();
         });
       // Push Brightness Update
@@ -549,18 +540,14 @@ export class StripLight extends deviceBase {
         })
         .catch(async (e: any) => {
           this.apiError(e);
-          this.errorLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushBrightnessChanges with ${this.device.connectionType}` +
-            ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-          );
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushBrightnessChanges with ${this.device.connectionType}`
+            + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
           await this.BLEPushConnection();
         });
     } else {
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} No BLEpushBrightnessChanges.` +
-        `Brightness: ${this.LightBulb.Brightness}, ` +
-        `BrightnessCached: ${this.accessory.context.Brightness}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No BLEpushBrightnessChanges.`
+        + `Brightness: ${this.LightBulb.Brightness}, `
+        + `BrightnessCached: ${this.accessory.context.Brightness}`);
     }
   }
 
@@ -595,17 +582,13 @@ export class StripLight extends deviceBase {
         })
         .catch(async (e: any) => {
           this.apiError(e);
-          this.errorLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushRGBChanges with ${this.device.connectionType}` +
-            ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-          );
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushRGBChanges with ${this.device.connectionType}`
+            + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
           await this.BLEPushConnection();
         });
     } else {
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} No BLEpushRGBChanges. Hue: ${this.LightBulb.Hue}, ` +
-        `HueCached: ${this.accessory.context.Hue}, Saturation: ${this.LightBulb.Saturation}, SaturationCached: ${this.accessory.context.Saturation}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No BLEpushRGBChanges. Hue: ${this.LightBulb.Hue}, HueCached: `
+        + `${this.accessory.context.Hue}, Saturation: ${this.LightBulb.Saturation}, SaturationCached: ${this.accessory.context.Saturation}`);
     }
   }
 
@@ -646,17 +629,13 @@ export class StripLight extends deviceBase {
         }
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}` +
-          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-        );
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
       }
     } else {
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges.` +
-        `On: ${this.LightBulb.On}, ` +
-        `OnCached: ${this.accessory.context.On}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges.`
+        + `On: ${this.LightBulb.On}, `
+        + `OnCached: ${this.accessory.context.On}`);
     }
     // Push Hue & Saturation Update
     if (this.LightBulb.On) {
@@ -704,16 +683,12 @@ export class StripLight extends deviceBase {
         }
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} failed pushHueSaturationChanges with ${this.device.connectionType}` +
-          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-        );
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushHueSaturationChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
       }
     } else {
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} No pushHueSaturationChanges. Hue: ${this.LightBulb.Hue}, ` +
-        `HueCached: ${this.accessory.context.Hue}, Saturation: ${this.LightBulb.Saturation}, SaturationCached: ${this.accessory.context.Saturation}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No pushHueSaturationChanges. Hue: ${this.LightBulb.Hue}, HueCached: `
+        + `${this.accessory.context.Hue}, Saturation: ${this.LightBulb.Saturation}, SaturationCached: ${this.accessory.context.Saturation}`);
     }
   }
 
@@ -748,17 +723,13 @@ export class StripLight extends deviceBase {
         }
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} failed pushBrightnessChanges with ${this.device.connectionType}` +
-          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-        );
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushBrightnessChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
       }
     } else {
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} No pushBrightnessChanges,` +
-        `Brightness: ${this.LightBulb.Brightness}, ` +
-        `BrightnessCached: ${this.accessory.context.Brightness}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No pushBrightnessChanges,`
+        + `Brightness: ${this.LightBulb.Brightness}, `
+        + `BrightnessCached: ${this.accessory.context.Brightness}`);
     }
   }
 
@@ -918,16 +889,6 @@ export class StripLight extends deviceBase {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Refresh Status`);
       await this.openAPIRefreshStatus();
     }
-  }
-
-  minStep(device: device & devicesConfig): number {
-    let set_minStep: number;
-    if (device.striplight?.set_minStep) {
-      set_minStep = device.striplight?.set_minStep;
-    } else {
-      set_minStep = 1;
-    }
-    return set_minStep;
   }
 
   async adaptiveLighting(device: device & devicesConfig): Promise<void> {

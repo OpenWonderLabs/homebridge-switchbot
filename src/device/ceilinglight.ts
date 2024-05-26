@@ -10,7 +10,7 @@ import { hs2rgb, rgb2hs, m2hs } from '../utils.js';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 
 import type { SwitchBotPlatform } from '../platform.js';
-import type { device, devicesConfig, serviceData, deviceStatus} from '../settings.js';
+import type { device, devicesConfig, serviceData, deviceStatus } from '../settings.js';
 import type { Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap } from 'homebridge';
 
 /**
@@ -78,7 +78,7 @@ export class CeilingLight extends deviceBase {
       this.accessory.configureController(this.AdaptiveLightingController);
       this.accessory.context.adaptiveLighting = true;
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} adaptiveLighting: ${this.accessory.context.adaptiveLighting},`
-      + ` adaptiveLightingShift: ${this.adaptiveLightingShift}`);
+        + ` adaptiveLightingShift: ${this.adaptiveLightingShift}`);
     }
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
 
@@ -95,7 +95,7 @@ export class CeilingLight extends deviceBase {
     this.LightBulb.Service
       .getCharacteristic(this.hap.Characteristic.Brightness)
       .setProps({
-        minStep: this.minStep(device),
+        minStep: device.ceilinglight?.set_minStep ?? 1,
         minValue: 0,
         maxValue: 100,
         validValueRanges: [0, 100],
@@ -158,48 +158,7 @@ export class CeilingLight extends deviceBase {
       });
 
     //regisiter webhook event handler
-    if (device.webhook) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
-        try {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          const { powerState, brightness, colorTemperature } = context;
-          const { On, Brightness, ColorTemperature } = this.LightBulb;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-            '(powerState, brightness, colorTemperature) = ' +
-            `Webhook:(${powerState}, ${brightness}, ${colorTemperature}), ` +
-            `current:(${On}, ${Brightness}, ${ColorTemperature})`);
-
-          // On
-          this.LightBulb.On = powerState === 'ON' ? true : false;
-          if (this.accessory.context.Brightness !== this.LightBulb.On) {
-            this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.LightBulb.On}`);
-          } else {
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.LightBulb.On}`);
-          }
-
-          // Brightness
-          this.LightBulb.Brightness = brightness;
-          if (this.accessory.context.Brightness !== this.LightBulb.Brightness) {
-            this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Brightness: ${this.LightBulb.Brightness}`);
-          } else {
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Brightness: ${this.LightBulb.Brightness}`);
-          }
-
-          // ColorTemperature
-          this.LightBulb.ColorTemperature = colorTemperature;
-          if (this.accessory.context.ColorTemperature !== this.LightBulb.ColorTemperature) {
-            this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.LightBulb.ColorTemperature}`);
-          } else {
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.LightBulb.ColorTemperature}`);
-          }
-          this.updateHomeKitCharacteristics();
-        } catch (e: any) {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
-        }
-      };
-    }
+    this.registerWebhook(accessory, device);
 
     // Watch for Bulb change events
     // We put in a debounce of 100ms so we don't make duplicate calls
@@ -208,17 +167,15 @@ export class CeilingLight extends deviceBase {
         tap(() => {
           this.ceilingLightUpdateInProgress = true;
         }),
-        debounceTime(this.platform.config.options!.pushRate! * 1000),
+        debounceTime(this.devicePushRate * 1000),
       )
       .subscribe(async () => {
         try {
           await this.pushChanges();
         } catch (e: any) {
           this.apiError(e);
-          this.errorLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,` +
-            ` Error Message: ${JSON.stringify(e.message)}`,
-          );
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
         }
         this.ceilingLightUpdateInProgress = false;
       });
@@ -267,9 +224,8 @@ export class CeilingLight extends deviceBase {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} blue: ${JSON.stringify(blue)}`);
 
       const [hue, saturation] = rgb2hs(Number(red), Number(green), Number(blue));
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName}` + ` hs: ${JSON.stringify(rgb2hs(Number(red), Number(green), Number(blue)))}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+        + ` hs: ${JSON.stringify(rgb2hs(Number(red), Number(green), Number(blue)))}`);
 
       // Hue
       this.LightBulb.Hue = hue;
@@ -319,10 +275,8 @@ export class CeilingLight extends deviceBase {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` +
-        ` ${this.device.connectionType}, refreshStatus will not happen.`,
-      );
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+        + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
   }
 
@@ -383,10 +337,55 @@ export class CeilingLight extends deviceBase {
       }
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}` +
-        ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-      );
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+    }
+  }
+
+  async registerWebhook(accessory: PlatformAccessory, device: device & devicesConfig) {
+    if (device.webhook) {
+      this.debugLog(`${device.deviceType}: ${accessory.displayName} is listening webhook.`);
+      this.platform.webhookEventHandler[device.deviceId] = async (context) => {
+        try {
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
+          const { powerState, brightness, colorTemperature } = context;
+          const { On, Brightness, ColorTemperature } = this.LightBulb;
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} ` +
+            '(powerState, brightness, colorTemperature) = ' +
+            `Webhook:(${powerState}, ${brightness}, ${colorTemperature}), `
+            + `current:(${On}, ${Brightness}, ${ColorTemperature})`);
+
+          // On
+          this.LightBulb.On = powerState === 'ON' ? true : false;
+          if (accessory.context.Brightness !== this.LightBulb.On) {
+            this.infoLog(`${device.deviceType}: ${accessory.displayName} On: ${this.LightBulb.On}`);
+          } else {
+            this.debugLog(`${device.deviceType}: ${accessory.displayName} On: ${this.LightBulb.On}`);
+          }
+
+          // Brightness
+          this.LightBulb.Brightness = brightness;
+          if (accessory.context.Brightness !== this.LightBulb.Brightness) {
+            this.infoLog(`${device.deviceType}: ${accessory.displayName} Brightness: ${this.LightBulb.Brightness}`);
+          } else {
+            this.debugLog(`${device.deviceType}: ${accessory.displayName} Brightness: ${this.LightBulb.Brightness}`);
+          }
+
+          // ColorTemperature
+          this.LightBulb.ColorTemperature = colorTemperature;
+          if (accessory.context.ColorTemperature !== this.LightBulb.ColorTemperature) {
+            this.infoLog(`${device.deviceType}: ${accessory.displayName} ColorTemperature: ${this.LightBulb.ColorTemperature}`);
+          } else {
+            this.debugLog(`${device.deviceType}: ${accessory.displayName} ColorTemperature: ${this.LightBulb.ColorTemperature}`);
+          }
+          this.updateHomeKitCharacteristics();
+        } catch (e: any) {
+          this.errorLog(`${device.deviceType}: ${accessory.displayName} `
+            + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+        }
+      };
+    } else {
+      this.debugLog(`${device.deviceType}: ${accessory.displayName} is not listening webhook.`);
     }
   }
 
@@ -410,9 +409,8 @@ export class CeilingLight extends deviceBase {
       await this.openAPIpushChanges();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` + ` ${this.device.connectionType}, pushChanges will not happen.`,
-      );
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+        + ` ${this.device.connectionType}, pushChanges will not happen.`);
     }
     // Refresh the status from the API
     interval(15000)
@@ -461,17 +459,14 @@ export class CeilingLight extends deviceBase {
         })
         .catch(async (e: any) => {
           this.apiError(e);
-          this.errorLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}` +
-            ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-          );
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
+            + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
           await this.BLEPushConnection();
         });
     } else {
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName}`
-        + ` No BLEpushChanges: On: ${this.LightBulb.On}, ` + `OnCached: ${this.accessory.context.On}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+        + ` No BLEpushChanges: On: ${this.LightBulb.On}, `
+        + `OnCached: ${this.accessory.context.On}`);
     }
   }
 
@@ -505,24 +500,20 @@ export class CeilingLight extends deviceBase {
           this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
           this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-          + `request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
+            + `request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);
         }
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}` +
-          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-        );
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
       }
     } else {
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges.` +
-        `On: ${this.LightBulb.On}, ` +
-        `OnCached: ${this.accessory.context.On}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges.`
+        + `On: ${this.LightBulb.On}, `
+        + `OnCached: ${this.accessory.context.On}`);
     }
     // Push Hue & Saturation Update
     if (this.LightBulb.On) {
@@ -566,23 +557,19 @@ export class CeilingLight extends deviceBase {
           this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
           this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-          + `request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
+            + `request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);
         }
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} failed pushHueSaturationChanges with ${this.device.connectionType}` +
-          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-        );
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushHueSaturationChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
       }
     } else {
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} No pushHueSaturationChanges. Hue: ${this.LightBulb.Hue}, ` +
-        `HueCached: ${this.accessory.context.Hue}, Saturation: ${this.LightBulb.Saturation}, SaturationCached: ${this.accessory.context.Saturation}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No pushHueSaturationChanges. Hue: ${this.LightBulb.Hue}, HueCached: `
+        + `${this.accessory.context.Hue}, Saturation: ${this.LightBulb.Saturation}, SaturationCached: ${this.accessory.context.Saturation}`);
     }
   }
 
@@ -617,16 +604,12 @@ export class CeilingLight extends deviceBase {
         }
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} failed pushColorTemperatureChanges with ${this.device.connectionType}` +
-          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-        );
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushColorTemperatureChanges with`
+          + ` ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`);
       }
     } else {
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} No pushColorTemperatureChanges.` +
-        `ColorTemperature: ${this.LightBulb.ColorTemperature}, ColorTemperatureCached: ${this.accessory.context.ColorTemperature}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No pushColorTemperatureChanges.`
+        + `ColorTemperature: ${this.LightBulb.ColorTemperature}, ColorTemperatureCached: ${this.accessory.context.ColorTemperature}`);
     }
   }
 
@@ -654,24 +637,20 @@ export class CeilingLight extends deviceBase {
           this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
           this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-          + `request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
+            + `request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);
         }
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} failed pushBrightnessChanges with ${this.device.connectionType}` +
-          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-        );
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushBrightnessChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
       }
     } else {
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} No pushBrightnessChanges.` +
-        `Brightness: ${this.LightBulb.Brightness}, ` +
-        `BrightnessCached: ${this.accessory.context.Brightness}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No pushBrightnessChanges.`
+        + `Brightness: ${this.LightBulb.Brightness}, `
+        + `BrightnessCached: ${this.accessory.context.Brightness}`);
     }
   }
 
@@ -731,8 +710,8 @@ export class CeilingLight extends deviceBase {
 
     // Updating the hue/sat to the corresponding values mimics native adaptive lighting
     const hs = m2hs(value);
-    this.LightBulb!.Service.updateCharacteristic(this.hap.Characteristic.Hue, hs[0]);
-    this.LightBulb!.Service.updateCharacteristic(this.hap.Characteristic.Saturation, hs[1]);
+    this.LightBulb.Service.updateCharacteristic(this.hap.Characteristic.Hue, hs[0]);
+    this.LightBulb.Service.updateCharacteristic(this.hap.Characteristic.Saturation, hs[1]);
 
     this.LightBulb.ColorTemperature = value;
     this.doCeilingLightUpdate.next();
@@ -750,7 +729,7 @@ export class CeilingLight extends deviceBase {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Hue: ${value}`);
     }
 
-    this.LightBulb!.Service.updateCharacteristic(this.hap.Characteristic.ColorTemperature, 140);
+    this.LightBulb.Service.updateCharacteristic(this.hap.Characteristic.ColorTemperature, 140);
 
     this.LightBulb.Hue = value;
     this.doCeilingLightUpdate.next();
@@ -768,7 +747,7 @@ export class CeilingLight extends deviceBase {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Saturation: ${value}`);
     }
 
-    this.LightBulb!.Service.updateCharacteristic(this.hap.Characteristic.ColorTemperature, 140);
+    this.LightBulb.Service.updateCharacteristic(this.hap.Characteristic.ColorTemperature, 140);
 
     this.LightBulb.Saturation = value;
     this.doCeilingLightUpdate.next();
@@ -837,16 +816,6 @@ export class CeilingLight extends deviceBase {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Refresh Status`);
       await this.openAPIRefreshStatus();
     }
-  }
-
-  minStep(device: device & devicesConfig): number {
-    let set_minStep: number;
-    if (device.ceilinglight?.set_minStep) {
-      set_minStep = device.ceilinglight?.set_minStep;
-    } else {
-      set_minStep = 1;
-    }
-    return set_minStep;
   }
 
   async offlineOff(): Promise<void> {

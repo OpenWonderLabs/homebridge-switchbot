@@ -121,29 +121,7 @@ export class RobotVacuumCleaner extends deviceBase {
       });
 
     //regisiter webhook event handler
-    if (device.webhook) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
-        try {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          const { onlineStatus, battery, workingStatus } = context;
-          const { On } = this.LightBulb;
-          const { BatteryLevel, ChargingState } = this.Battery;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-            '(onlineStatus, battery, workingStatus) = ' +
-            `Webhook:(${onlineStatus}, ${battery}, ${workingStatus}), ` +
-            `current:(${On}, ${BatteryLevel}, ${ChargingState})`);
-          this.LightBulb.On = onlineStatus === 'online' ? true : false;
-          this.Battery.ChargingState = workingStatus === 'Charging'
-            ? this.hap.Characteristic.ChargingState.CHARGING : this.hap.Characteristic.ChargingState.NOT_CHARGING;
-          this.Battery.BatteryLevel = battery;
-          this.updateHomeKitCharacteristics();
-        } catch (e: any) {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
-        }
-      };
-    }
+    this.registerWebhook(accessory, device);
 
     // Watch for Plug change events
     // We put in a debounce of 100ms so we don't make duplicate calls
@@ -152,22 +130,20 @@ export class RobotVacuumCleaner extends deviceBase {
         tap(() => {
           this.robotVacuumCleanerUpdateInProgress = true;
         }),
-        debounceTime(this.platform.config.options!.pushRate! * 1000),
+        debounceTime(this.devicePushRate * 1000),
       )
       .subscribe(async () => {
         try {
-          if (this.LightBulb.On !== this.accessory.context.On) {
+          if (this.LightBulb.On !== accessory.context.On) {
             await this.pushChanges();
           }
-          if (this.LightBulb.On && this.LightBulb.Brightness !== this.accessory.context.Brightness) {
+          if (this.LightBulb.On && this.LightBulb.Brightness !== accessory.context.Brightness) {
             await this.openAPIpushBrightnessChanges();
           }
         } catch (e: any) {
           this.apiError(e);
-          this.errorLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,` +
-            ` Error Message: ${JSON.stringify(e.message)}`,
-          );
+          this.errorLog(`${device.deviceType}: ${accessory.displayName} failed pushChanges with ${device.connectionType} Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
         }
         this.robotVacuumCleanerUpdateInProgress = false;
       });
@@ -253,10 +229,8 @@ export class RobotVacuumCleaner extends deviceBase {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` +
-        ` ${this.device.connectionType}, refreshStatus will not happen.`,
-      );
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+        + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
   }
 
@@ -317,10 +291,33 @@ export class RobotVacuumCleaner extends deviceBase {
       }
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}` +
-        ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-      );
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+    }
+  }
+
+  async registerWebhook(accessory: PlatformAccessory, device: device & devicesConfig) {
+    if (device.webhook) {
+      this.debugLog(`${device.deviceType}: ${accessory.displayName} is listening webhook.`);
+      this.platform.webhookEventHandler[device.deviceId] = async (context) => {
+        try {
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
+          const { onlineStatus, battery, workingStatus } = context;
+          const { On } = this.LightBulb;
+          const { BatteryLevel, ChargingState } = this.Battery;
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} (onlineStatus, battery, workingStatus) = `
+            + `Webhook: (${onlineStatus}, ${battery}, ${workingStatus}), current: (${On}, ${BatteryLevel}, ${ChargingState})`);
+          this.LightBulb.On = onlineStatus === 'online' ? true : false;
+          this.Battery.ChargingState = workingStatus === 'Charging'
+            ? this.hap.Characteristic.ChargingState.CHARGING : this.hap.Characteristic.ChargingState.NOT_CHARGING;
+          this.Battery.BatteryLevel = battery;
+          this.updateHomeKitCharacteristics();
+        } catch (e: any) {
+          this.errorLog(`${device.deviceType}: ${accessory.displayName} failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+        }
+      };
+    } else {
+      this.debugLog(`${device.deviceType}: ${accessory.displayName} is not listening webhook.`);
     }
   }
 
@@ -342,9 +339,8 @@ export class RobotVacuumCleaner extends deviceBase {
       await this.openAPIpushChanges();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` + ` ${this.device.connectionType}, pushChanges will not happen.`,
-      );
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+        + ` ${this.device.connectionType}, pushChanges will not happen.`);
     }
     // Refresh the status from the API
     interval(15000)
@@ -393,10 +389,8 @@ export class RobotVacuumCleaner extends deviceBase {
         })
         .catch(async (e: any) => {
           this.apiError(e);
-          this.errorLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}` +
-            ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-          );
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
+            + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
           await this.BLEPushConnection();
         });
     } else {
@@ -425,24 +419,19 @@ export class RobotVacuumCleaner extends deviceBase {
           this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
           this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-          + `request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
+            + `request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);
         }
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}` +
-          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-        );
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
       }
     } else {
-      this.debugLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges.` +
-        `On: ${this.LightBulb.On}, ` +
-        `OnCached: ${this.accessory.context.On}`,
-      );
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges, On: ${this.LightBulb.On}, `
+        + `OnCached: ${this.accessory.context.On}`);
     }
   }
 
@@ -471,10 +460,8 @@ export class RobotVacuumCleaner extends deviceBase {
       }
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}` +
-        ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-      );
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
     }
   }
 

@@ -152,35 +152,7 @@ export class IOSensor extends deviceBase {
       });
 
     //regisiter webhook event handler
-    if (device.webhook) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
-        try {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          const { temperature, humidity } = context;
-          const { CurrentTemperature } = this.TemperatureSensor || { CurrentTemperature: undefined };
-          const { CurrentRelativeHumidity } = this.HumiditySensor || { CurrentRelativeHumidity: undefined };
-          if (context.scale !== 'CELCIUS' && device.iosensor?.convertUnitTo === undefined) {
-            this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} received a non-CELCIUS Webhook scale: `
-              + `${context.scale}, Use the *convertUnitsTo* config under Indoor/Outdoor Sensor settings, if displaying incorrectly in HomeKit.`);
-          }
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-            '(scale, temperature, humidity) = '
-            + `Webhook:(${context.scale}, ${convertUnits(temperature, context.scale, device.iosensor?.convertUnitTo)}, ${humidity}), `
-            + `current:(${CurrentTemperature}, ${CurrentRelativeHumidity})`);
-          if (this.device.iosensor?.hide_humidity) {
-            this.HumiditySensor!.CurrentRelativeHumidity = humidity;
-          }
-          if (this.device.iosensor?.hide_temperature) {
-            this.TemperatureSensor!.CurrentTemperature = convertUnits(temperature, context.scale, device.iosensor?.convertUnitTo);
-          }
-          this.updateHomeKitCharacteristics();
-        } catch (e: any) {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
-        }
-      };
-    }
+    this.registerWebhook(accessory, device);
   }
 
   async BLEparseStatus(serviceData: serviceData): Promise<void> {
@@ -265,10 +237,8 @@ export class IOSensor extends deviceBase {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` +
-        ` ${this.device.connectionType}, refreshStatus will not happen.`,
-      );
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+        + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
   }
 
@@ -329,10 +299,40 @@ export class IOSensor extends deviceBase {
       }
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}` +
-        ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-      );
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+    }
+  }
+
+  async registerWebhook(accessory: PlatformAccessory, device: device & devicesConfig) {
+    if (device.webhook) {
+      this.debugLog(`${device.deviceType}: ${accessory.displayName} is listening webhook.`);
+      this.platform.webhookEventHandler[device.deviceId] = async (context) => {
+        try {
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
+          const { temperature, humidity } = context;
+          const { CurrentTemperature } = this.TemperatureSensor || { CurrentTemperature: undefined };
+          const { CurrentRelativeHumidity } = this.HumiditySensor || { CurrentRelativeHumidity: undefined };
+          if (context.scale !== 'CELCIUS' && device.iosensor?.convertUnitTo === undefined) {
+            this.warnLog(`${device.deviceType}: ${accessory.displayName} received a non-CELCIUS Webhook scale: `
+              + `${context.scale}, Use the *convertUnitsTo* config under Indoor/Outdoor Sensor settings, if displaying incorrectly in HomeKit.`);
+          }
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} (scale, temperature, humidity) = Webhook:(${context.scale},`
+            + ` ${convertUnits(temperature, context.scale, device.iosensor?.convertUnitTo)}, ${humidity}), current:(${CurrentTemperature}, `
+            + `${CurrentRelativeHumidity})`);
+          if (device.iosensor?.hide_humidity) {
+            this.HumiditySensor!.CurrentRelativeHumidity = humidity;
+          }
+          if (device.iosensor?.hide_temperature) {
+            this.TemperatureSensor!.CurrentTemperature = convertUnits(temperature, context.scale, device.iosensor?.convertUnitTo);
+          }
+          this.updateHomeKitCharacteristics();
+        } catch (e: any) {
+          this.errorLog(`${device.deviceType}: ${accessory.displayName} failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+        }
+      };
+    } else {
+      this.debugLog(`${device.deviceType}: ${accessory.displayName} is not listening webhook.`);
     }
   }
 

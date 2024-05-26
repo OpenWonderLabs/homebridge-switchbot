@@ -998,14 +998,29 @@
                   "type": "string",
                   "placeholder": "1.2.8",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId);"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].configDeviceType);"
                   }
                 },
                 "refreshRate": {
                   "title": "Device Refresh Rate",
                   "type": "number",
                   "placeholder": 360,
-                  "description": "Indicates the number of seconds between polls of SwitchBot API.",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
+                  }
+                },
+                "updateRate": {
+                  "title": "Device Update Rate",
+                  "type": "number",
+                  "placeholder": 360,
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
+                  }
+                },
+                "pushRate": {
+                  "title": "Device Push Rate",
+                  "type": "number",
+                  "placeholder": 360,
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
                   }
@@ -1014,7 +1029,7 @@
                   "title": "Offline as Off",
                   "type": "boolean",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
                   }
                 },
                 "external": {
@@ -1648,16 +1663,19 @@
             "placeholder": 3
           },
           "refreshRate": {
-            "title": "Refresh Rate",
+            "title": "Device Refresh Rate",
             "type": "number",
-            "placeholder": 360,
-            "description": "Indicates the number of seconds between polls of SwitchBot API."
+            "placeholder": 360
+          },
+          "updateRate": {
+            "title": "Device Update Rate",
+            "type": "number",
+            "placeholder": 5
           },
           "pushRate": {
-            "title": "Push Rate",
+            "title": "Device Push Rate",
             "type": "number",
-            "placeholder": 1,
-            "description": "Indicates the number of seconds between pushes to SwitchBot API."
+            "placeholder": 1
           },
           "logging": {
             "title": "Logging Setting",
@@ -1789,7 +1807,18 @@
             "options.devices[].mqttPubOptions",
             "options.devices[].history",
             "options.devices[].firmware",
-            "options.devices[].refreshRate",
+            {
+              "key": "options.devices[].refreshRate",
+              "description": "<em class='primary-text'>Specifies the interval, in seconds, for retrieving the latest device status from the SwitchBot API. This interval applies only to this specific device.</em>"
+            },
+            {
+              "key": "options.devices[].updateRate",
+              "description": "<em class='primary-text'>Specifies the interval, in seconds, at which this device will request updates from the SwitchBot API while the device is in motion, for Curtain(s) and Blind Tilt(s) only.</em>"
+            },
+            {
+              "key": "options.devices[].pushRate",
+              "description": "<em class='primary-text'>Specifies the interval, in seconds, between pushes to the SwitchBot API for this specific device.</em>"
+            },
             "options.devices[].offline",
             "options.devices[].external",
             "options.devices[].logging"
@@ -1856,21 +1885,17 @@
         "options.maxRetries",
         "options.delayBetweenRetries",
         {
-          "type": "help",
-          "helpvalue": "<h5>Refresh Rate</h5><em class='primary-text'>Refresh Rate indicates the number of seconds between polls of SwitchBot API.</em>"
-        },
-        {
           "key": "options.refreshRate",
-          "notitle": true
-        },
+          "description": "<em class='primary-text'>Specifies the interval, in seconds, for retrieving the latest device status from the SwitchBot API.</em>"
+          },
         {
-          "type": "help",
-          "helpvalue": "<h5>Push Rate</h5><em class='primary-text'>Push Rate indicates the number of seconds between pushes to SwitchBot API, Currently only for Curtains.</em>"
-        },
+          "key": "options.updateRate",
+          "description": "<em class='primary-text'>Specifies the interval, in seconds, at which devices will request updates from the SwitchBot API while in motion, for Curtain(s) and Blind Tilt(s) only.</em>"
+          },
         {
           "key": "options.pushRate",
-          "notitle": true
-        },
+          "description": "<em class='primary-text'>Specifies the interval, in seconds, between pushes to the SwitchBot API.</em>"
+          },
         "options.logging"
       ]
     }

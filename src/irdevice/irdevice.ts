@@ -38,13 +38,12 @@ export abstract class irdeviceBase {
     accessory
       .getService(this.hap.Service.AccessoryInformation)!
       .setCharacteristic(this.hap.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
-      .setCharacteristic(this.hap.Characteristic.ConfiguredName, accessory.context.name)
-      .setCharacteristic(this.hap.Characteristic.Model, accessory.context.model)
-      .setCharacteristic(this.hap.Characteristic.SerialNumber, accessory.context.deviceId)
-      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, accessory.context.firmware)
-      .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
-      .updateValue(accessory.context.firmware);
+      .setCharacteristic(this.hap.Characteristic.AppMatchingIdentifier, 'id1087374760')
+      .setCharacteristic(this.hap.Characteristic.Name, accessory.context.name ?? accessory.displayName)
+      .setCharacteristic(this.hap.Characteristic.ConfiguredName, accessory.context.name ?? accessory.displayName)
+      .setCharacteristic(this.hap.Characteristic.Model, accessory.context.model ?? 'Unknown')
+      .setCharacteristic(this.hap.Characteristic.ProductData, accessory.context.deviceId)
+      .setCharacteristic(this.hap.Characteristic.SerialNumber, accessory.context.deviceId);
   }
 
   async getDeviceLogSettings(device: irdevice & irDevicesConfig): Promise<void> {
@@ -151,6 +150,43 @@ export abstract class irdeviceBase {
     } else {
       accessory.context.firmware = 'Unknown';
     }
+
+    // Firmware Version
+    let deviceFirmwareVersion: string;
+    if (device.firmware) {
+      deviceFirmwareVersion = device.firmware;
+      this.debugSuccessLog(`${device.remoteType}: ${accessory.displayName} 1 FirmwareRevision: ${device.firmware}`);
+    } else if (accessory.context.deviceVersion) {
+      deviceFirmwareVersion = accessory.context.deviceVersion;
+      this.debugSuccessLog(`${device.remoteType}: ${accessory.displayName} 2 FirmwareRevision: ${accessory.context.deviceVersion}`);
+    } else {
+      deviceFirmwareVersion = this.platform.version ?? '0.0.0';
+      if (this.platform.version) {
+        this.debugSuccessLog(`${device.remoteType}: ${accessory.displayName} 3 FirmwareRevision: ${this.platform.version}`);
+      } else {
+        this.debugSuccessLog(`${device.remoteType}: ${accessory.displayName} 4 FirmwareRevision: ${deviceFirmwareVersion}`);
+      }
+    }
+    const version = deviceFirmwareVersion.toString();
+    this.debugLog(`${this.device.remoteType}: ${accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
+    let deviceVersion: string;
+    if (version?.includes('.') === false) {
+      const replace = version?.replace(/^V|-.*$/g, '');
+      const match = replace?.match(/.{1,1}/g);
+      const validVersion = match?.join('.');
+      deviceVersion = validVersion ?? '0.0.0';
+    } else {
+      deviceVersion = version?.replace(/^V|-.*$/g, '') ?? '0.0.0';
+    }
+    accessory
+      .getService(this.hap.Service.AccessoryInformation)!
+      .setCharacteristic(this.hap.Characteristic.HardwareRevision, deviceVersion)
+      .setCharacteristic(this.hap.Characteristic.SoftwareRevision, deviceVersion)
+      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, deviceVersion)
+      .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+      .updateValue(deviceVersion);
+    accessory.context.deviceVersion = deviceVersion;
+    this.debugSuccessLog(`${device.remoteType}: ${accessory.displayName} deviceVersion: ${accessory.context.deviceVersion}`);
   }
 
   async disablePushOnChanges(device: irdevice & irDevicesConfig): Promise<void> {
@@ -224,12 +260,12 @@ export abstract class irdeviceBase {
         this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device is offline, statusCode: ${statusCode}`);
         break;
       case 171:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. ` +
-          `Hub: ${this.device.hubDeviceId}`);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. `
+          + `Hub: ${this.device.hubDeviceId}`);
         break;
       case 190:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device internal error due to device states not synchronized with` +
-          ` server, Or command format is invalid, statusCode: ${statusCode}`);
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device internal error due to device states not synchronized with`
+          + ` server, Or command format is invalid, statusCode: ${statusCode}`);
         break;
       case 100:
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Command successfully sent, statusCode: ${statusCode}`);

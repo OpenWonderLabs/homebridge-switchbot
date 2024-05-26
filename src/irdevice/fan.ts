@@ -58,9 +58,9 @@ export class IRFan extends irdeviceBase {
       this.Fan.Service
         .getCharacteristic(this.hap.Characteristic.RotationSpeed)
         .setProps({
-          minStep: Number(this.minStep(device)),
-          minValue: Number(this.minValue(device)),
-          maxValue: Number(this.maxValue(device)),
+          minStep: device.irfan?.set_minStep ?? 1,
+          minValue: device.irfan?.set_min ?? 1,
+          maxValue: device.irfan?.set_max ?? 100,
         })
         .onGet(() => {
           return this.Fan.RotationSpeed;
@@ -71,10 +71,8 @@ export class IRFan extends irdeviceBase {
       this.Fan.Service.removeCharacteristic(characteristic);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Rotation Speed Characteristic was removed.`);
     } else {
-      this.debugLog(
-        `${this.device.remoteType}: ${this.accessory.displayName} RotationSpeed Characteristic was not removed/added, ` +
-        `Clear Cache on ${this.accessory.displayName} to remove Chracteristic`,
-      );
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} RotationSpeed Characteristic was not removed/added, `
+        + `Clear Cache on ${this.accessory.displayName} to remove Chracteristic`);
     }
 
     if (device.irfan?.swing_mode) {
@@ -90,41 +88,9 @@ export class IRFan extends irdeviceBase {
       this.Fan.Service.removeCharacteristic(characteristic);
       this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Swing Mode Characteristic was removed.`);
     } else {
-      this.debugLog(
-        `${this.device.remoteType}: ${this.accessory.displayName} Swing Mode Characteristic was not removed/added, ` +
-        `Clear Cache on ${this.accessory.displayName} To Remove Chracteristic`,
-      );
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Swing Mode Characteristic was not removed/added, `
+        + `Clear Cache on ${this.accessory.displayName} To Remove Chracteristic`);
     }
-  }
-
-  async minStep(device: irdevice & irDevicesConfig): Promise<number> {
-    let minStep: number;
-    if (device.irfan?.set_minStep) {
-      minStep = device.irfan?.set_minStep;
-    } else {
-      minStep = 1;
-    }
-    return minStep;
-  }
-
-  async minValue(device: irdevice & irDevicesConfig): Promise<number> {
-    let minValue: number;
-    if (device.irfan?.set_min) {
-      minValue = device.irfan?.set_min;
-    } else {
-      minValue = 1;
-    }
-    return minValue;
-  }
-
-  async maxValue(device: irdevice & irDevicesConfig): Promise<number> {
-    let maxValue: number;
-    if (device.irfan?.set_max) {
-      maxValue = device.irfan?.set_max;
-    } else {
-      maxValue = 100;
-    }
-    return maxValue;
   }
 
   async SwingModeSet(value: CharacteristicValue): Promise<void> {
@@ -192,10 +158,8 @@ export class IRFan extends irdeviceBase {
   }
 
   async pushFanOffChanges(): Promise<void> {
-    this.debugLog(
-      `${this.device.remoteType}: ${this.accessory.displayName} pushLightOffChanges Active: ${this.Fan.Active},` +
-      ` disablePushOff: ${this.disablePushOff}`,
-    );
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushLightOffChanges Active: ${this.Fan.Active},`
+      + ` disablePushOff: ${this.disablePushOff}`);
     if (this.Fan.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
@@ -261,16 +225,12 @@ export class IRFan extends irdeviceBase {
         }
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(
-          `${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType}` +
-          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-        );
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
       }
     } else {
-      this.warnLog(
-        `${this.device.remoteType}: ${this.accessory.displayName}` +
-        ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`,
-      );
+      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+        + ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
     }
   }
 

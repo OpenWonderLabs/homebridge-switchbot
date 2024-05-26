@@ -8,8 +8,8 @@ import { deviceBase } from './device.js';
 import { Subject, interval, skipWhile } from 'rxjs';
 
 import type { SwitchBotPlatform } from '../platform.js';
-import type { CharacteristicValue, PlatformAccessory, Service} from 'homebridge';
-import type { device, devicesConfig, serviceData, deviceStatus} from '../settings.js';
+import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+import type { device, devicesConfig, serviceData, deviceStatus } from '../settings.js';
 
 /**
  * Platform Accessory
@@ -149,33 +149,7 @@ export class MeterPlus extends deviceBase {
       });
 
     //regisiter webhook event handler
-    if (device.webhook) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
-        try {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          if (context.scale === 'CELSIUS') {
-            const { temperature, humidity } = context;
-            const { CurrentRelativeHumidity } = this.HumiditySensor || { CurrentRelativeHumidity: undefined };
-            const { CurrentTemperature } = this.TemperatureSensor || { CurrentTemperature: undefined };
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-              '(temperature, humidity) = ' +
-              `Webhook:(${temperature}, ${humidity}), ` +
-              `current:(${CurrentTemperature}, ${CurrentRelativeHumidity})`);
-            if (this.device.meter?.hide_humidity) {
-              this.HumiditySensor!.CurrentRelativeHumidity = humidity;
-            }
-            if (this.device.meter?.hide_temperature) {
-              this.TemperatureSensor!.CurrentTemperature = temperature;
-            }
-            this.updateHomeKitCharacteristics();
-          }
-        } catch (e: any) {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
-        }
-      };
-    }
+    this.registerWebhook(accessory, device);
   }
 
   async BLEparseStatus(serviceData: serviceData): Promise<void> {
@@ -260,10 +234,8 @@ export class MeterPlus extends deviceBase {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` +
-        ` ${this.device.connectionType}, refreshStatus will not happen.`,
-      );
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+        + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
   }
 
@@ -324,10 +296,37 @@ export class MeterPlus extends deviceBase {
       }
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}` +
-        ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-      );
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+    }
+  }
+
+  async registerWebhook(accessory: PlatformAccessory, device: device & devicesConfig) {
+    if (device.webhook) {
+      this.debugLog(`${device.deviceType}: ${accessory.displayName} is listening webhook.`);
+      this.platform.webhookEventHandler[device.deviceId] = async (context) => {
+        try {
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
+          if (context.scale === 'CELSIUS') {
+            const { temperature, humidity } = context;
+            const { CurrentRelativeHumidity } = this.HumiditySensor ?? { CurrentRelativeHumidity: undefined };
+            const { CurrentTemperature } = this.TemperatureSensor ?? { CurrentTemperature: undefined };
+            this.debugLog(`${device.deviceType}: ${accessory.displayName} (temperature, humidity) = Webhook:(${temperature}, ${humidity}), `
+              + `current:(${CurrentTemperature}, ${CurrentRelativeHumidity})`);
+            if (!device.meter?.hide_humidity) {
+              this.HumiditySensor!.CurrentRelativeHumidity = humidity;
+            }
+            if (!device.meter?.hide_temperature) {
+              this.TemperatureSensor!.CurrentTemperature = temperature;
+            }
+            this.updateHomeKitCharacteristics();
+          }
+        } catch (e: any) {
+          this.errorLog(`${device.deviceType}: ${accessory.displayName} failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+        }
+      };
+    } else {
+      this.debugLog(`${device.deviceType}: ${accessory.displayName} is not listening webhook.`);
     }
   }
 

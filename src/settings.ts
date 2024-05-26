@@ -54,6 +54,7 @@ export type credentials = {
 
 export type options = {
   refreshRate?: number;
+  updateRate?: number;
   pushRate?: number;
   maxRetries?: number;
   delayBetweenRetries?: number;
@@ -76,6 +77,7 @@ export interface devicesConfig extends device {
   external?: boolean;
   refreshRate?: number;
   updateRate?: number;
+  pushRate?: number;
   firmware?: string;
   logging?: string;
   connectionType?: string;

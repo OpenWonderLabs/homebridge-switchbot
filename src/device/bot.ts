@@ -469,30 +469,8 @@ export class Bot extends deviceBase {
         await this.refreshStatus();
       });
 
-    //regisiter webhook event handler
-    if (device.webhook) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
-        try {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          const { power, battery, deviceMode } = context;
-          const { botMode } = this;
-          const On = await this.getOn();
-          const { BatteryLevel } = this.Battery;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-            '(power, battery, deviceMode) = ' +
-            `Webhook:(${power}, ${battery}, ${deviceMode}), ` +
-            `current:(${On}, ${BatteryLevel}, ${botMode})`);
-          await this.setOn(power);
-          this.Battery.BatteryLevel = battery;
-          this.botMode = deviceMode;
-          this.updateHomeKitCharacteristics();
-        } catch (e: any) {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
-        }
-      };
-    }
+    // regisiter webhook event handler
+    this.registerWebhook(accessory, device);
 
     // Watch for Bot change events
     // We put in a debounce of 1000ms so we don't make duplicate calls
@@ -501,7 +479,7 @@ export class Bot extends deviceBase {
         tap(() => {
           this.botUpdateInProgress = true;
         }),
-        debounceTime(this.platform.config.options!.pushRate! * 1000),
+        debounceTime(this.devicePushRate * 1000),
       )
       .subscribe(async () => {
         try {
@@ -516,10 +494,8 @@ export class Bot extends deviceBase {
           }
         } catch (e: any) {
           this.apiError(e);
-          this.errorLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,` +
-            ` Error Message: ${JSON.stringify(e.message)}`,
-          );
+          this.errorLog(`${device.deviceType}: ${accessory.displayName} failed pushChanges with ${device.connectionType} Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
         }
         this.botUpdateInProgress = false;
       });
@@ -616,10 +592,8 @@ export class Bot extends deviceBase {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` +
-        ` ${this.device.connectionType}, refreshStatus will not happen.`,
-      );
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+        + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
   }
 
@@ -680,10 +654,33 @@ export class Bot extends deviceBase {
       }
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}` +
-        ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-      );
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+    }
+  }
+
+  async registerWebhook(accessory: PlatformAccessory, device: device & devicesConfig) {
+    if (device.webhook) {
+      this.debugLog(`${device.deviceType}: ${accessory.displayName} is listening webhook.`);
+      this.platform.webhookEventHandler[device.deviceId] = async (context) => {
+        try {
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
+          const { power, battery, deviceMode } = context;
+          const { botMode } = this;
+          const On = await this.getOn();
+          const { BatteryLevel } = this.Battery;
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} (power, battery, deviceMode) = Webhook:(${power}, ${battery}, ${deviceMode}),`
+            + ` current:(${On}, ${BatteryLevel}, ${botMode})`);
+          await this.setOn(power);
+          this.Battery.BatteryLevel = battery;
+          this.botMode = deviceMode;
+          this.updateHomeKitCharacteristics();
+        } catch (e: any) {
+          this.errorLog(`${device.deviceType}: ${accessory.displayName} failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+        }
+      };
+    } else {
+      this.debugLog(`${device.deviceType}: ${accessory.displayName} is not listening webhook.`);
     }
   }
 
@@ -703,9 +700,8 @@ export class Bot extends deviceBase {
       await this.openAPIpushChanges();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` + ` ${this.device.connectionType}, pushChanges will not happen.`,
-      );
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+        + ` ${this.device.connectionType}, pushChanges will not happen.`);
     }
     // Refresh the status from the API
     interval(15000)
@@ -753,10 +749,8 @@ export class Bot extends deviceBase {
           })
           .catch(async (e: any) => {
             this.apiError(e);
-            this.errorLog(
-              `${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}` +
-              ` Connection & botMode: ${this.botMode}, Error Message: ${JSON.stringify(e.message)}`,
-            );
+            this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
+              + ` Connection & botMode: ${this.botMode}, Error Message: ${JSON.stringify(e.message)}`);
             await this.BLEPushConnection();
           });
       } else if (this.botMode === 'switch') {
@@ -839,7 +833,7 @@ export class Bot extends deviceBase {
           this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
           this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-          + `request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
+            + `request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
         } else {
           this.statusCode(statusCode);
           this.statusCode(deviceStatus.statusCode);

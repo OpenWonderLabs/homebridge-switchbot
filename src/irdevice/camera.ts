@@ -85,9 +85,8 @@ export class Camera extends irdeviceBase {
   }
 
   async pushOffChanges(): Promise<void> {
-    this.debugLog(
-      `${this.device.remoteType}: ${this.accessory.displayName} pushOffChanges On: ${this.Switch.On},` + ` disablePushOff: ${this.disablePushOff}`,
-    );
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOffChanges On: ${this.Switch.On},`
+      + ` disablePushOff: ${this.disablePushOff}`);
     if (!this.Switch.On && !this.disablePushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
@@ -126,16 +125,12 @@ export class Camera extends irdeviceBase {
         }
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(
-          `${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType}` +
-          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-        );
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
       }
     } else {
-      this.warnLog(
-        `${this.device.remoteType}: ${this.accessory.displayName}` +
-        ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`,
-      );
+      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+        + ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
     }
   }
 

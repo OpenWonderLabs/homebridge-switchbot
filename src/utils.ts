@@ -93,10 +93,10 @@ export function convertUnits(value: number, unit: string, convert?: string): num
 
 
 export function rgb2hs(r: any, g: any, b: any) {
-/**
- * Credit:
- * https://github.com/WickyNilliams/pure-color
-**/
+  /**
+   * Credit:
+   * https://github.com/WickyNilliams/pure-color
+  **/
   r = parseInt(r);
   g = parseInt(g);
   b = parseInt(b);

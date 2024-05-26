@@ -154,10 +154,8 @@ export class AirPurifier extends irdeviceBase {
    * AirPurifier:        "command"       "highSpeed"      "default"	        =        fan speed to high
    */
   async pushAirPurifierOnChanges(): Promise<void> {
-    this.debugLog(
-      `${this.device.remoteType}: ${this.accessory.displayName} pushAirPurifierOnChanges Active: ${this.AirPurifier.Active},` +
-      ` disablePushOn: ${this.disablePushOn}`,
-    );
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushAirPurifierOnChanges Active: ${this.AirPurifier.Active},`
+      + ` disablePushOn: ${this.disablePushOn}`);
     if (this.AirPurifier.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
@@ -171,10 +169,8 @@ export class AirPurifier extends irdeviceBase {
   }
 
   async pushAirPurifierOffChanges(): Promise<void> {
-    this.debugLog(
-      `${this.device.remoteType}: ${this.accessory.displayName} pushAirPurifierOffChanges Active: ${this.AirPurifier.Active},` +
-      ` disablePushOff: ${this.disablePushOff}`,
-    );
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushAirPurifierOffChanges Active: ${this.AirPurifier.Active},`
+      + ` disablePushOff: ${this.disablePushOff}`);
     if (this.AirPurifier.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
@@ -188,10 +184,8 @@ export class AirPurifier extends irdeviceBase {
   }
 
   async pushAirPurifierStatusChanges(): Promise<void> {
-    this.debugLog(
-      `${this.device.remoteType}: ${this.accessory.displayName} pushAirPurifierStatusChanges Active: ${this.AirPurifier.Active},` +
-      ` disablePushOff: ${this.disablePushOff},  disablePushOn: ${this.disablePushOn}`,
-    );
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushAirPurifierStatusChanges Active: ${this.AirPurifier.Active},`
+      + ` disablePushOff: ${this.disablePushOff},  disablePushOn: ${this.disablePushOn}`);
     if (!this.Busy) {
       this.Busy = true;
       this.CurrentHeaterCoolerState = this.hap.Characteristic.CurrentHeaterCoolerState.IDLE;
@@ -203,13 +197,11 @@ export class AirPurifier extends irdeviceBase {
   }
 
   async pushAirPurifierDetailsChanges(): Promise<void> {
-    this.debugLog(
-      `${this.device.remoteType}: ${this.accessory.displayName} pushAirPurifierDetailsChanges Active: ${this.AirPurifier.Active},` +
-      ` disablePushOff: ${this.disablePushOff},  disablePushOn: ${this.disablePushOn}`,
-    );
-    this.CurrentAPTemp = this.TemperatureSensor!.CurrentTemperature || 24;
-    this.CurrentAPMode = this.CurrentMode || 1;
-    this.CurrentAPFanSpeed = this.CurrentFanSpeed || 1;
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushAirPurifierDetailsChanges Active: ${this.AirPurifier.Active},`
+      + ` disablePushOff: ${this.disablePushOff},  disablePushOn: ${this.disablePushOn}`);
+    this.CurrentAPTemp = this.TemperatureSensor!.CurrentTemperature ?? 24;
+    this.CurrentAPMode = this.CurrentMode ?? 1;
+    this.CurrentAPFanSpeed = this.CurrentFanSpeed ?? 1;
     this.APActive = this.AirPurifier.Active === 1 ? 'on' : 'off';
     const parameter = `${this.CurrentAPTemp},${this.CurrentAPMode},${this.CurrentAPFanSpeed},${this.APActive}`;
     const bodyChange = JSON.stringify({
@@ -255,16 +247,12 @@ export class AirPurifier extends irdeviceBase {
         }
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(
-          `${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType}` +
-          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-        );
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
       }
     } else {
-      this.warnLog(
-        `${this.device.remoteType}: ${this.accessory.displayName}` +
-        ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`,
-      );
+      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+        + ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
     }
   }
 
@@ -292,10 +280,8 @@ export class AirPurifier extends irdeviceBase {
     } else {
       this.accessory.context.CurrentHeaterCoolerState = this.CurrentHeaterCoolerState;
       this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.CurrentHeaterCoolerState, this.CurrentHeaterCoolerState);
-      this.debugLog(
-        `${this.device.remoteType}: ${this.accessory.displayName}` +
-        ` updateCharacteristic CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`,
-      );
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
+        + ` CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
     }
     // CurrentTemperature
     if (this.TemperatureSensor.CurrentTemperature === undefined) {

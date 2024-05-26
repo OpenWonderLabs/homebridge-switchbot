@@ -82,10 +82,10 @@
     "fakegato-history": "^0.6.4",
     "homebridge-lib": "^7.0.1",
     "rxjs": "^7.8.1",
-    "undici": "^6.17.0"
+    "undici": "^6.18.1"
   },
   "optionalDependencies": {
-    "node-switchbot": "2.1.1-beta.0"
+    "node-switchbot": "2.1.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.3.0",
@@ -93,10 +93,10 @@
     "@types/eslint__js": "^8.42.3",
     "@types/node": "^20.12.12",
     "eslint": "^9.3.0",
-    "globals": "^15.2.0",
+    "globals": "^15.3.0",
     "homebridge": "^1.8.2",
     "homebridge-config-ui-x": "4.56.2",
-    "nodemon": "^3.1.0",
+    "nodemon": "^3.1.1",
     "npm-check-updates": "^16.14.20",
     "rimraf": "^5.0.7",
     "ts-node": "^10.9.2",

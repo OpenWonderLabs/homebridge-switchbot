@@ -388,16 +388,12 @@ export class TV extends irdeviceBase {
         }
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(
-          `${this.device.remoteType}: ${this.accessory.displayName} failed pushTVChanges with ${this.device.connectionType}` +
-          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-        );
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushTVChanges with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
       }
     } else {
-      this.warnLog(
-        `${this.device.remoteType}: ${this.accessory.displayName}` +
-        ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`,
-      );
+      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+      + ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
     }
   }
 

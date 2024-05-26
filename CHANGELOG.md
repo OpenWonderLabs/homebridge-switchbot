@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [3.5.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.5.0) (2024-05-XX)
+## [3.5.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.5.0) (2024-05-26)
 
 ### What's Changed
 - Add Support for `Water Detector`

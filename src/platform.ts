@@ -81,9 +81,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     config: SwitchBotPlatformConfig,
     api: API,
   ) {
+    // initialize
     this.accessories = [];
     this.api = api;
     this.log = log;
+
     // only load if configured
     if (!config) {
       return;
@@ -96,10 +98,13 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       credentials: config.credentials as object,
       options: config.options as object,
     };
-    this.platformLogging = this.config.options?.logging ?? 'standard';
-    this.platformConfigOptions();
-    this.platformLogs();
+
+    // Plugin Configuration
+    this.getPlatformConfigSettings();
+    this.getPlatformLogSettings();
     this.getVersion();
+
+    // Finish initializing the platform
     this.debugLog(`Finished initializing platform: ${config.name}`);
 
     // verify the config
@@ -627,8 +632,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         } catch (e: any) {
           retryCount++;
           this.debugErrorLog(
-            `Failed to Discover Devices, Error Message: ${JSON.stringify(e.message)}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug',
-          );
+            `Failed to Discover Devices, Error Message: ${JSON.stringify(e.message)}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug');
           this.debugErrorLog(`Failed to Discover Devices, Error: ${e}`);
         }
       }
@@ -746,7 +750,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         break;
       default:
         this.warnLog(`Device: ${device.deviceName} with Device Type: ${device.deviceType}, is currently not supported.`,
-          + `Submit Feature Requests Here: https://tinyurl.com/SwitchBotFeatureRequest, device: ${JSON.stringify(device)}` );
+          + `Submit Feature Requests Here: https://tinyurl.com/SwitchBotFeatureRequest, device: ${JSON.stringify(device)}`);
     }
   }
 
@@ -1401,8 +1405,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       if (device.group && !device.curtain?.disable_group) {
         this.debugLog(
           'Your Curtains are grouped, ' +
-          `, Secondary curtain automatically hidden. Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`,
-        );
+          `, Secondary curtain automatically hidden. Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
       } else {
         if (device.master) {
           this.warnLog(`Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
@@ -1474,8 +1477,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       if (device.group && !device.curtain?.disable_group) {
         this.debugLog(
           'Your Curtains are grouped, ' +
-          `, Secondary curtain automatically hidden. Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`,
-        );
+          `, Secondary curtain automatically hidden. Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
       } else {
         if (device.master) {
           this.warnLog(`Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
@@ -2468,8 +2470,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     switch (device.deviceType) {
       case 'Curtain':
       case 'Curtain3':
-        this.debugWarnLog(`deviceName: ${device.deviceName} deviceId: ${device.deviceId}, curtainDevicesIds: ${device.curtainDevicesIds}, master: ` +
-          `${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group}, connectionType: ${device.connectionType}`);
+        this.debugWarnLog(`deviceName: ${device.deviceName} deviceId: ${device.deviceId}, curtainDevicesIds: ${device.curtainDevicesIds}, master: `
+          + `${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group}, connectionType: ${device.connectionType}`);
         break;
       default:
         this.debugWarnLog(`deviceName: ${device.deviceName} deviceId: ${device.deviceId}, blindTiltDevicesIds: ${device.blindTiltDevicesIds}, master:`
@@ -2480,41 +2482,32 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     if (device.master && device.group) {
       // OpenAPI: Master Curtains/Blind Tilt in Group
       registerCurtain = true;
-      this.debugLog(
-        `deviceName: ${device.deviceName} [${device.deviceType} Config] device.master: ${device.master}, device.group: ${device.group}` +
-        ` connectionType; ${device.connectionType}`,
-      );
+      this.debugLog(`deviceName: ${device.deviceName} [${device.deviceType} Config] device.master: ${device.master}, device.group: ${device.group}`
+        + ` connectionType; ${device.connectionType}`);
       this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`);
     } else if (!device.master && device.curtain?.disable_group) {
       //!device.group && device.connectionType === 'BLE'
       // OpenAPI: Non-Master Curtains/Blind Tilts that has Disable Grouping Checked
       registerCurtain = true;
-      this.debugLog(
-        `deviceName: ${device.deviceName} [${device.deviceType} Config] device.master: ${device.master}, disable_group: ` +
-        `${device.curtain?.disable_group}, connectionType; ${device.connectionType}`,
-      );
+      this.debugLog(`deviceName: ${device.deviceName} [${device.deviceType} Config] device.master: ${device.master}, disable_group: `
+        + `${device.curtain?.disable_group}, connectionType; ${device.connectionType}`);
       this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`);
     } else if (device.master && !device.group) {
       // OpenAPI: Master Curtains/Blind Tilts not in Group
       registerCurtain = true;
-      this.debugLog(
-        `deviceName: ${device.deviceName} [${device.deviceType} Config] device.master: ${device.master}, device.group: ${device.group}` +
-        ` connectionType; ${device.connectionType}`,
-      );
+      this.debugLog(`deviceName: ${device.deviceName} [${device.deviceType} Config] device.master: ${device.master}, device.group: ${device.group}`
+        + ` connectionType; ${device.connectionType}`);
       this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`);
     } else if (device.connectionType === 'BLE') {
       // BLE: Curtains/Blind Tilt
       registerCurtain = true;
-      this.debugLog(
-        `deviceName: ${device.deviceName} [${device.deviceType} Config] connectionType: ${device.connectionType}, ` + ` group: ${device.group}`,
-      );
+      this.debugLog(`deviceName: ${device.deviceName} [${device.deviceType} Config] connectionType: ${device.connectionType}, `
+        + ` group: ${device.group}`);
       this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`);
     } else {
       registerCurtain = false;
-      this.debugErrorLog(
-        `deviceName: ${device.deviceName} [${device.deviceType} Config] disable_group: ${device.curtain?.disable_group},` +
-        ` device.master: ${device.master}, device.group: ${device.group}`,
-      );
+      this.debugErrorLog(`deviceName: ${device.deviceName} [${device.deviceType} Config] disable_group: ${device.curtain?.disable_group},`
+        + ` device.master: ${device.master}, device.group: ${device.group}`);
       this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}, device.connectionType: ${device.connectionType}`);
     }
     return registerCurtain;
@@ -2605,10 +2598,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.debugErrorLog(`Device: ${device.deviceName} hide_device: ${device.hide_device}, will not display in HomeKit`);
     } else {
       registerDevice = false;
-      this.debugErrorLog(
-        `Device: ${device.deviceName} connectionType: ${device.connectionType}, hide_device: ` +
-        `${device.hide_device},  will not display in HomeKit`,
-      );
+      this.debugErrorLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, hide_device: `
+        + `${device.hide_device},  will not display in HomeKit`);
     }
     return registerDevice;
   }
@@ -2651,16 +2642,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   async statusCode(statusCode: number): Promise<void> {
     switch (statusCode) {
       case 151:
-        this.errorLog(
-          `Command not supported by this device type, statusCode: ${statusCode}, Submit Feature Request Here: ` +
-          'https://tinyurl.com/SwitchBotFeatureRequest',
-        );
+        this.errorLog(`Command not supported by this device type, statusCode: ${statusCode}, Submit Feature Request Here: ` +
+          'https://tinyurl.com/SwitchBotFeatureRequest');
         break;
       case 152:
         this.errorLog(`Device not found, statusCode: ${statusCode}`);
         break;
       case 160:
-        this.errorLog(`Command is not supported, statusCode: ${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
+        this.errorLog(`Command is not supported, statusCode: ${statusCode}, Submit Bugs Here: https://tinyurl.com/SwitchBotBug`);
         break;
       case 161:
         this.errorLog(`Device is offline, statusCode: ${statusCode}`);
@@ -2765,7 +2754,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     this.version = json.version;
   }
 
-  async platformConfigOptions() {
+  async getPlatformConfigSettings() {
     const platformConfig: SwitchBotPlatformConfig['options'] = {};
     if (this.config.options) {
       if (this.config.options.logging) {
@@ -2773,6 +2762,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
       if (this.config.options.refreshRate) {
         platformConfig.refreshRate = this.config.options.refreshRate;
+      }
+      if (this.config.options.updateRate) {
+        platformConfig.updateRate = this.config.options.updateRate;
       }
       if (this.config.options.pushRate) {
         platformConfig.pushRate = this.config.options.pushRate;
@@ -2800,10 +2792,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  async platformLogs() {
+  async getPlatformLogSettings() {
     this.debugMode = process.argv.includes('-D') || process.argv.includes('--debug');
     if (this.config.options?.logging === 'debug' || this.config.options?.logging === 'standard' || this.config.options?.logging === 'none') {
-      this.platformLogging = this.config.options!.logging;
+      this.platformLogging = this.config.options.logging;
       this.debugWarnLog(`Using Config Logging: ${this.platformLogging}`);
     } else if (this.debugMode) {
       this.platformLogging = 'debugMode';
@@ -2818,15 +2810,23 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
    * If device level logging is turned on, log to log.warn
    * Otherwise send debug logs to log.debug
    */
+  infoLog(...log: any[]): void {
+    if (this.enablingPlatformLogging()) {
+      this.log.info(String(...log));
+    }
+  }
+
   successLog(...log: any[]): void {
     if (this.enablingPlatformLogging()) {
       this.log.success(String(...log));
     }
   }
 
-  infoLog(...log: any[]): void {
+  debugSuccessLog(...log: any[]): void {
     if (this.enablingPlatformLogging()) {
-      this.log.info(String(...log));
+      if (this.platformLogging?.includes('debug')) {
+        this.log.success('[DEBUG]', String(...log));
+      }
     }
   }
 

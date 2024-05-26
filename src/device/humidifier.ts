@@ -94,7 +94,7 @@ export class Humidifier extends deviceBase {
         validValueRanges: [0, 100],
         minValue: 0,
         maxValue: 100,
-        minStep: this.minStep(device),
+        minStep: device.humidifier?.set_minStep ?? 1,
       })
       .onGet(() => {
         return this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold;
@@ -141,34 +141,12 @@ export class Humidifier extends deviceBase {
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
       .pipe(skipWhile(() => this.humidifierUpdateInProgress))
-      .subscribe(() => {
-        this.refreshStatus();
+      .subscribe(async () => {
+        await this.refreshStatus();
       });
 
     //regisiter webhook event handler
-    if (device.webhook) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
-        try {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          const { temperature, humidity } = context;
-          const { CurrentRelativeHumidity } = this.HumidifierDehumidifier;
-          const { CurrentTemperature } = this.TemperatureSensor || { CurrentTemperature: undefined };
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-            '(temperature, humidity) = ' +
-            `Webhook:(${convertUnits(temperature, context.scale, device.iosensor?.convertUnitTo)}, ${humidity}), ` +
-            `current:(${CurrentTemperature}, ${CurrentRelativeHumidity})`);
-          this.HumidifierDehumidifier.CurrentRelativeHumidity = humidity;
-          if (!this.device.humidifier?.hide_temperature) {
-            this.TemperatureSensor!.CurrentTemperature = convertUnits(temperature, context.scale, device.iosensor?.convertUnitTo);
-          }
-          this.updateHomeKitCharacteristics();
-        } catch (e: any) {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
-        }
-      };
-    }
+    this.registerWebhook(accessory, device);
 
     // Watch for Humidifier change events
     // We put in a debounce of 100ms so we don't make duplicate calls
@@ -177,17 +155,15 @@ export class Humidifier extends deviceBase {
         tap(() => {
           this.humidifierUpdateInProgress = true;
         }),
-        debounceTime(this.platform.config.options!.pushRate! * 1000),
+        debounceTime(this.devicePushRate * 1000),
       )
       .subscribe(async () => {
         try {
           await this.pushChanges();
         } catch (e: any) {
           this.apiError(e);
-          this.errorLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,` +
-            ` Error Message: ${JSON.stringify(e.message)}`,
-          );
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
+            + ` Error Message: ${JSON.stringify(e.message)}`);
         }
         this.humidifierUpdateInProgress = false;
       });
@@ -294,10 +270,8 @@ export class Humidifier extends deviceBase {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` +
-        ` ${this.device.connectionType}, refreshStatus will not happen.`,
-      );
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+        + ` ${this.device.connectionType}, refreshStatus will not happen.`);
     }
   }
 
@@ -358,10 +332,32 @@ export class Humidifier extends deviceBase {
       }
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}` +
-        ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-      );
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+    }
+  }
+
+  async registerWebhook(accessory: PlatformAccessory, device: device & devicesConfig) {
+    if (device.webhook) {
+      this.debugLog(`${device.deviceType}: ${accessory.displayName} is listening webhook.`);
+      this.platform.webhookEventHandler[device.deviceId] = async (context) => {
+        try {
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
+          const { temperature, humidity } = context;
+          const { CurrentRelativeHumidity } = this.HumidifierDehumidifier;
+          const { CurrentTemperature } = this.TemperatureSensor || { CurrentTemperature: undefined };
+          this.debugLog(`${device.deviceType}: ${accessory.displayName} (temperature, humidity) = Webhook:(${convertUnits(temperature,
+            context.scale, device.iosensor?.convertUnitTo)}, ${humidity}), current:(${CurrentTemperature}, ${CurrentRelativeHumidity})`);
+          this.HumidifierDehumidifier.CurrentRelativeHumidity = humidity;
+          if (!device.humidifier?.hide_temperature) {
+            this.TemperatureSensor!.CurrentTemperature = convertUnits(temperature, context.scale, device.iosensor?.convertUnitTo);
+          }
+          this.updateHomeKitCharacteristics();
+        } catch (e: any) {
+          this.errorLog(`${device.deviceType}: ${accessory.displayName} `
+            + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+        }
+      };
     }
   }
 
@@ -377,9 +373,8 @@ export class Humidifier extends deviceBase {
       await this.openAPIpushChanges();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` + ` ${this.device.connectionType}, pushChanges will not happen.`,
-      );
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+        + ` ${this.device.connectionType}, pushChanges will not happen.`);
     }
     interval(5000)
       .pipe(take(1))
@@ -414,10 +409,8 @@ export class Humidifier extends deviceBase {
       })
       .catch(async (e: any) => {
         this.apiError(e);
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}` +
-          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-        );
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
         await this.BLEPushConnection();
       });
   }
@@ -458,10 +451,8 @@ export class Humidifier extends deviceBase {
         }
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}` +
-          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-        );
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
       }
     } else if (
       this.HumidifierDehumidifier.TargetHumidifierDehumidifierState ===
@@ -513,10 +504,8 @@ export class Humidifier extends deviceBase {
         }
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} failed pushAutoChanges with ${this.device.connectionType}` +
-          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-        );
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushAutoChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
       }
     } else {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No pushAutoChanges. TargetHumidifierDehumidifierState:`
@@ -559,10 +548,8 @@ export class Humidifier extends deviceBase {
         }
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} failed pushActiveChanges with ${this.device.connectionType}` +
-          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-        );
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushActiveChanges with ${this.device.connectionType}`
+          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
       }
     } else {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No pushActiveChanges. Active: ${this.HumidifierDehumidifier.Active}`);
@@ -640,19 +627,18 @@ export class Humidifier extends deviceBase {
       }
     }
     if (this.HumidifierDehumidifier.CurrentHumidifierDehumidifierState === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}` +
-        ` CurrentHumidifierDehumidifierState: ${this.HumidifierDehumidifier.CurrentHumidifierDehumidifierState}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+        + ` CurrentHumidifierDehumidifierState: ${this.HumidifierDehumidifier.CurrentHumidifierDehumidifierState}`);
     } else {
       this.HumidifierDehumidifier.Service.updateCharacteristic(this.hap.Characteristic.CurrentHumidifierDehumidifierState,
         this.HumidifierDehumidifier.CurrentHumidifierDehumidifierState);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic` +
-        ` CurrentHumidifierDehumidifierState: ${this.HumidifierDehumidifier.CurrentHumidifierDehumidifierState}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
+        + ` CurrentHumidifierDehumidifierState: ${this.HumidifierDehumidifier.CurrentHumidifierDehumidifierState}`);
       this.accessory.context.CurrentHumidifierDehumidifierState = this.HumidifierDehumidifier.CurrentHumidifierDehumidifierState;
     }
     if (this.HumidifierDehumidifier.TargetHumidifierDehumidifierState === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-        + ` TargetHumidifierDehumidifierState: ${this.HumidifierDehumidifier.TargetHumidifierDehumidifierState}`,
-      );
+        + ` TargetHumidifierDehumidifierState: ${this.HumidifierDehumidifier.TargetHumidifierDehumidifierState}`);
     } else {
       this.HumidifierDehumidifier.Service.updateCharacteristic(this.hap.Characteristic.TargetHumidifierDehumidifierState,
         this.HumidifierDehumidifier.TargetHumidifierDehumidifierState);
@@ -668,13 +654,13 @@ export class Humidifier extends deviceBase {
       this.accessory.context.Active = this.HumidifierDehumidifier.Active;
     }
     if (this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}` +
-        ` RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+        + ` RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold}`);
     } else {
       this.HumidifierDehumidifier.Service.updateCharacteristic(this.hap.Characteristic.RelativeHumidityHumidifierThreshold,
         this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic` +
-        ` RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold}`);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
+        + ` RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold}`);
       this.accessory.context.RelativeHumidityHumidifierThreshold = this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold;
     }
     if (!this.device.humidifier?.hide_temperature && !this.BLE) {
@@ -703,16 +689,6 @@ export class Humidifier extends deviceBase {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Refresh Status`);
       await this.openAPIRefreshStatus();
     }
-  }
-
-  minStep(device: device & devicesConfig): number {
-    let set_minStep: number;
-    if (device.humidifier?.set_minStep) {
-      set_minStep = device.humidifier?.set_minStep;
-    } else {
-      set_minStep = 1;
-    }
-    return set_minStep;
   }
 
   async offlineOff(): Promise<void> {
