@@ -1,128 +1,128 @@
-import { CharacteristicValue, PlatformAccessory, Service, API, Logging, HAP } from 'homebridge';
+/* Copyright(C) 2021-2024, donavanbecker (https://github.com/donavanbecker). All rights reserved.
+ *
+ * tv.ts: @switchbot/homebridge-switchbot.
+ */
 import { request } from 'undici';
-import { SwitchBotPlatform } from '../platform.js';
-import { Devices, irDevicesConfig, irdevice, SwitchBotPlatformConfig } from '../settings.js';
+import { Devices } from '../settings.js';
+import { irdeviceBase } from './irdevice.js';
+
+import type { SwitchBotPlatform } from '../platform.js';
+import type { irDevicesConfig, irdevice } from '../settings.js';
+import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 
 /**
  * Platform Accessory
  * An instance of this class is created for each accessory your platform registers
  * Each accessory may expose multiple services of different service types.
  */
-export class TV {
-  public readonly api: API;
-  public readonly log: Logging;
-  public readonly config!: SwitchBotPlatformConfig;
-  protected readonly hap: HAP;
+export class TV extends irdeviceBase {
   // Services
-  tvService!: Service;
-  speakerService: Service;
+  private Television: {
+    Name: CharacteristicValue;
+    ConfiguredName: CharacteristicValue;
+    Service: Service;
+    Active: CharacteristicValue;
+    ActiveIdentifier: CharacteristicValue;
+    SleepDiscoveryMode: CharacteristicValue;
+    RemoteKey: CharacteristicValue;
+  };
+
+  private TelevisionSpeaker: {
+    Name: CharacteristicValue;
+    Service: Service;
+    Active: CharacteristicValue;
+    VolumeControlType: CharacteristicValue;
+    VolumeSelector: CharacteristicValue;
+  };
 
   // Characteristic Values
-  Active!: CharacteristicValue;
-  ActiveIdentifier!: CharacteristicValue;
-  FirmwareRevision!: CharacteristicValue;
-
-  // Config
-  deviceLogging!: string;
-  disablePushOn?: boolean;
-  disablePushOff?: boolean;
-  disablePushDetail?: boolean;
 
   constructor(
-    private readonly platform: SwitchBotPlatform,
-    private accessory: PlatformAccessory,
-    public device: irdevice & irDevicesConfig,
+    readonly platform: SwitchBotPlatform,
+    accessory: PlatformAccessory,
+    device: irdevice & irDevicesConfig,
   ) {
-    this.api = this.platform.api;
-    this.log = this.platform.log;
-    this.config = this.platform.config;
-    this.hap = this.api.hap;
-    // default placeholders
-    this.deviceLogs(device);
-    this.deviceContext();
-    this.disablePushOnChanges(device);
-    this.disablePushOffChanges(device);
-    this.disablePushDetailChanges(device);
-    this.deviceConfig(device);
+    super(platform, accessory, device);
 
-    // set accessory information
-    accessory
-      .getService(this.hap.Service.AccessoryInformation)!
-      .setCharacteristic(this.hap.Characteristic.Name, `${device.deviceName} ${device.remoteType}`)
-      .setCharacteristic(this.hap.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.hap.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.hap.Characteristic.SerialNumber, device.deviceId)
-      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
+    // Initialize Television Service
+    accessory.context.Television = accessory.context.Television ?? {};
+    this.Television = {
+      Name: accessory.context.Television.Name ?? `${accessory.displayName} ${device.remoteType}`,
+      ConfiguredName: accessory.context.Television.ConfiguredName ?? `${accessory.displayName} ${device.remoteType}`,
+      Service: accessory.getService(this.hap.Service.Television) ?? accessory.addService(this.hap.Service.Television) as Service,
+      Active: accessory.context.Active ?? this.hap.Characteristic.Active.INACTIVE,
+      ActiveIdentifier: accessory.context.ActiveIdentifier ?? 1,
+      SleepDiscoveryMode: accessory.context.SleepDiscoveryMode ?? this.hap.Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE,
+      RemoteKey: accessory.context.RemoteKey ?? this.hap.Characteristic.RemoteKey.EXIT,
+    };
+    accessory.context.Television = this.Television as object;
 
-    // set the accessory category
-    const tvServiceCategory = `${accessory.displayName} ${device.remoteType}`;
     switch (device.remoteType) {
       case 'Speaker':
       case 'DIY Speaker':
         accessory.category = this.platform.api.hap.Categories.SPEAKER;
-        (this.tvService = accessory.getService(this.hap.Service.Television)
-          || accessory.addService(this.hap.Service.Television)), tvServiceCategory;
         break;
       case 'IPTV':
       case 'DIY IPTV':
         accessory.category = this.platform.api.hap.Categories.TV_STREAMING_STICK;
-        (this.tvService = accessory.getService(this.hap.Service.Television)
-          || accessory.addService(this.hap.Service.Television)), tvServiceCategory;
         break;
       case 'DVD':
       case 'DIY DVD':
       case 'Set Top Box':
       case 'DIY Set Top Box':
         accessory.category = this.platform.api.hap.Categories.TV_SET_TOP_BOX;
-        (this.tvService = accessory.getService(this.hap.Service.Television)
-          || accessory.addService(this.hap.Service.Television)), tvServiceCategory;
         break;
       default:
         accessory.category = this.platform.api.hap.Categories.TELEVISION;
-
-        // get the Television service if it exists, otherwise create a new Television service
-        // you can create multiple services for each accessory
-        (this.tvService = accessory.getService(this.hap.Service.Television)
-          || accessory.addService(this.hap.Service.Television)), tvServiceCategory;
     }
 
-    this.tvService.getCharacteristic(this.hap.Characteristic.ConfiguredName);
+    this.Television.Service
+      .setCharacteristic(this.hap.Characteristic.SleepDiscoveryMode, this.hap.Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE)
+      .setCharacteristic(this.hap.Characteristic.ConfiguredName, this.Television.ConfiguredName)
+      .getCharacteristic(this.hap.Characteristic.ConfiguredName);
 
-    // set sleep discovery characteristic
-    this.tvService.setCharacteristic(
-      this.hap.Characteristic.SleepDiscoveryMode,
-      this.hap.Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE,
-    );
+    this.Television.Service
+      .setCharacteristic(this.hap.Characteristic.ActiveIdentifier, 1)
+      .getCharacteristic(this.hap.Characteristic.Active)
+      .onGet(() => {
+        return this.Television.Active;
+      })
+      .onSet(this.ActiveSet.bind(this));
 
-    // handle on / off events using the Active characteristic
-    this.tvService.getCharacteristic(this.hap.Characteristic.Active).onSet(this.ActiveSet.bind(this));
+    this.Television.Service
+      .getCharacteristic(this.hap.Characteristic.ActiveIdentifier)
+      .onGet(() => {
+        return this.Television.ActiveIdentifier;
+      })
+      .onSet(this.ActiveIdentifierSet.bind(this));
 
-    this.tvService.setCharacteristic(this.hap.Characteristic.ActiveIdentifier, 1);
+    this.Television.Service
+      .getCharacteristic(this.hap.Characteristic.RemoteKey)
+      .onGet(() => {
+        return this.Television.RemoteKey;
+      })
+      .onSet(this.RemoteKeySet.bind(this));
 
-    // handle input source changes
-    this.tvService.getCharacteristic(this.hap.Characteristic.ActiveIdentifier).onSet(this.ActiveIdentifierSet.bind(this));
+    // Initialize TelevisionSpeaker Service
+    accessory.context.TelevisionSpeaker = accessory.context.TelevisionSpeaker ?? {};
+    this.TelevisionSpeaker = {
+      Name: accessory.context.TelevisionSpeaker.Name ?? `${accessory.displayName} ${device.remoteType} Speaker`,
+      Service: accessory.getService(this.hap.Service.TelevisionSpeaker) ?? accessory.addService(this.hap.Service.TelevisionSpeaker) as Service,
+      Active: accessory.context.Active ?? false,
+      VolumeControlType: accessory.context.VolumeControlType ?? this.hap.Characteristic.VolumeControlType.ABSOLUTE,
+      VolumeSelector: accessory.context.VolumeSelector ?? this.hap.Characteristic.VolumeSelector.INCREMENT,
+    };
+    accessory.context.TelevisionSpeaker = this.TelevisionSpeaker as object;
 
-    // handle remote control input
-    this.tvService.getCharacteristic(this.hap.Characteristic.RemoteKey).onSet(this.RemoteKeySet.bind(this));
-
-    /**
-     * Create a speaker service to allow volume control
-     */
-    // create a new Television Speaker service
-    const speakerService = `${accessory.displayName} Speaker`;
-    (this.speakerService = accessory.getService(this.hap.Service.TelevisionSpeaker)
-      || accessory.addService(this.hap.Service.TelevisionSpeaker)), speakerService;
-
-    this.speakerService.setCharacteristic(this.hap.Characteristic.Name, `${accessory.displayName} Speaker`);
-    if (!this.speakerService.testCharacteristic(this.hap.Characteristic.ConfiguredName)) {
-      this.speakerService.addCharacteristic(this.hap.Characteristic.ConfiguredName, `${accessory.displayName} Speaker`);
-    }
-    this.speakerService
+    this.TelevisionSpeaker.Service
+      .setCharacteristic(this.hap.Characteristic.Name, this.TelevisionSpeaker.Name)
       .setCharacteristic(this.hap.Characteristic.Active, this.hap.Characteristic.Active.ACTIVE)
-      .setCharacteristic(this.hap.Characteristic.VolumeControlType, this.hap.Characteristic.VolumeControlType.ABSOLUTE);
-
-    // handle volume control
-    this.speakerService.getCharacteristic(this.hap.Characteristic.VolumeSelector).onSet(this.VolumeSelectorSet.bind(this));
+      .setCharacteristic(this.hap.Characteristic.VolumeControlType, this.hap.Characteristic.VolumeControlType.ABSOLUTE)
+      .getCharacteristic(this.hap.Characteristic.VolumeSelector)
+      .onGet(() => {
+        return this.TelevisionSpeaker.VolumeSelector;
+      })
+      .onSet(this.VolumeSelectorSet.bind(this));
   }
 
   async VolumeSelectorSet(value: CharacteristicValue): Promise<void> {
@@ -200,14 +200,14 @@ export class TV {
 
   async ActiveIdentifierSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} ActiveIdentifier: ${value}`);
-    this.ActiveIdentifier = value;
+    this.Television.ActiveIdentifier = value;
   }
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active (value): ${value}`);
 
-    this.Active = value;
-    if (this.Active === this.hap.Characteristic.Active.ACTIVE) {
+    this.Television.Active = value;
+    if (this.Television.Active === this.hap.Characteristic.Active.ACTIVE) {
       await this.pushTvOnChanges();
     } else {
       await this.pushTvOffChanges();
@@ -225,10 +225,9 @@ export class TV {
    * TV           "command"       "channelSub"      "default"	        previous channel
    */
   async pushTvOnChanges(): Promise<void> {
-    this.debugLog(
-      `${this.device.remoteType}: ${this.accessory.displayName} pushTvOnChanges Active: ${this.Active},` + ` disablePushOn: ${this.disablePushOn}`,
-    );
-    if (this.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushTvOnChanges`
+      + ` Active: ${this.Television.Active}, disablePushOn: ${this.disablePushOn}`);
+    if (this.Television.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const bodyChange = JSON.stringify({
@@ -241,10 +240,9 @@ export class TV {
   }
 
   async pushTvOffChanges(): Promise<void> {
-    this.debugLog(
-      `${this.device.remoteType}: ${this.accessory.displayName} pushTvOffChanges Active: ${this.Active},` + ` disablePushOff: ${this.disablePushOff}`,
-    );
-    if (this.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOff) {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushTvOffChanges`
+      + ` Active: ${this.Television.Active}, disablePushOff: ${this.disablePushOff}`);
+    if (this.Television.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOff) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
       const bodyChange = JSON.stringify({
@@ -379,8 +377,10 @@ export class TV {
         this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
         this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
         if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-          this.debugErrorLog(`${this.device.remoteType}: ${this.accessory.displayName} `
+          this.debugSuccessLog(`${this.device.remoteType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+          this.successLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+            + ` request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
           this.updateHomeKitCharacteristics();
         } else {
           this.statusCode(statusCode);
@@ -388,291 +388,37 @@ export class TV {
         }
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(
-          `${this.device.remoteType}: ${this.accessory.displayName} failed pushTVChanges with ${this.device.connectionType}` +
-          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-        );
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushTVChanges with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
       }
     } else {
-      this.warnLog(
-        `${this.device.remoteType}: ${this.accessory.displayName}` +
-        ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`,
-      );
+      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+      + ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
     }
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
     // Active
-    if (this.Active === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Active}`);
+    if (this.Television.Active === undefined) {
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Television.Active}`);
     } else {
-      this.accessory.context.Active = this.Active;
-      this.tvService?.updateCharacteristic(this.hap.Characteristic.Active, this.Active);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Active}`);
+      this.accessory.context.Active = this.Television.Active;
+      this.Television.Service.updateCharacteristic(this.hap.Characteristic.Active, this.Television.Active);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Television.Active}`);
     }
     // ActiveIdentifier
-    if (this.ActiveIdentifier === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} ActiveIdentifier: ${this.ActiveIdentifier}`);
+    if (this.Television.ActiveIdentifier === undefined) {
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} ActiveIdentifier: ${this.Television.ActiveIdentifier}`);
     } else {
-      this.accessory.context.ActiveIdentifier = this.ActiveIdentifier;
-      this.tvService?.updateCharacteristic(this.hap.Characteristic.ActiveIdentifier, this.ActiveIdentifier);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}` + ` updateCharacteristic ActiveIdentifier: ${this.ActiveIdentifier}`);
-    }
-  }
-
-  async disablePushOnChanges(device: irdevice & irDevicesConfig): Promise<void> {
-    if (device.disablePushOn === undefined) {
-      this.disablePushOn = false;
-    } else {
-      this.disablePushOn = device.disablePushOn;
-    }
-  }
-
-  async disablePushOffChanges(device: irdevice & irDevicesConfig): Promise<void> {
-    if (device.disablePushOff === undefined) {
-      this.disablePushOff = false;
-    } else {
-      this.disablePushOff = device.disablePushOff;
-    }
-  }
-
-  async disablePushDetailChanges(device: irdevice & irDevicesConfig): Promise<void> {
-    if (device.disablePushDetail === undefined) {
-      this.disablePushDetail = false;
-    } else {
-      this.disablePushDetail = device.disablePushDetail;
-    }
-  }
-
-  async commandType(): Promise<string> {
-    let commandType: string;
-    if (this.device.customize) {
-      commandType = 'customize';
-    } else {
-      commandType = 'command';
-    }
-    return commandType;
-  }
-
-  async commandOn(): Promise<string> {
-    let command: string;
-    if (this.device.customize && this.device.customOn) {
-      command = this.device.customOn;
-    } else {
-      command = 'turnOn';
-    }
-    return command;
-  }
-
-  async commandOff(): Promise<string> {
-    let command: string;
-    if (this.device.customize && this.device.customOff) {
-      command = this.device.customOff;
-    } else {
-      command = 'turnOff';
-    }
-    return command;
-  }
-
-  async statusCode(statusCode: number): Promise<void> {
-    switch (statusCode) {
-      case 151:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Command not supported by this deviceType, statusCode: ${statusCode}`);
-        break;
-      case 152:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device not found, statusCode: ${statusCode}`);
-        break;
-      case 160:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Command is not supported, statusCode: ${statusCode}`);
-        break;
-      case 161:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device is offline, statusCode: ${statusCode}`);
-        break;
-      case 171:
-        this.errorLog(
-          `${this.device.remoteType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. ` +
-          `Hub: ${this.device.hubDeviceId}`,
-        );
-        break;
-      case 190:
-        this.errorLog(
-          `${this.device.remoteType}: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-          ` Or command format is invalid, statusCode: ${statusCode}`,
-        );
-        break;
-      case 100:
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Command successfully sent, statusCode: ${statusCode}`);
-        break;
-      case 200:
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
-        break;
-      case 400:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Bad Request, The client has issued an invalid request. `
-              + `This is commonly used to specify validation errors in a request payload, statusCode: ${statusCode}`);
-        break;
-      case 401:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Unauthorized,	Authorization for the API is required, `
-              + `but the request has not been authenticated, statusCode: ${statusCode}`);
-        break;
-      case 403:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Forbidden,	The request has been authenticated but does not `
-              + `have appropriate permissions, or a requested resource is not found, statusCode: ${statusCode}`);
-        break;
-      case 404:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Not Found,	Specifies the requested path does not exist, `
-          + `statusCode: ${statusCode}`);
-        break;
-      case 406:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Not Acceptable,	The client has requested a MIME type via `
-              + `the Accept header for a value not supported by the server, statusCode: ${statusCode}`);
-        break;
-      case 415:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Unsupported Media Type,	The client has defined a contentType `
-              + `header that is not supported by the server, statusCode: ${statusCode}`);
-        break;
-      case 422:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Unprocessable Entity,	The client has made a valid request, but `
-              + `the server cannot process it. This is often used for APIs for which certain limits have been exceeded, statusCode: ${statusCode}`);
-        break;
-      case 429:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Too Many Requests,	The client has exceeded the number of `
-              + `requests allowed for a given time window, statusCode: ${statusCode}`);
-        break;
-      case 500:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Internal Server Error,	An unexpected error on the SmartThings `
-              + `servers has occurred. These errors should be rare, statusCode: ${statusCode}`);
-        break;
-      default:
-        this.infoLog(
-          `${this.device.remoteType}: ${this.accessory.displayName} Unknown statusCode: ` +
-          `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`,
-        );
+      this.accessory.context.ActiveIdentifier = this.Television.ActiveIdentifier;
+      this.Television.Service.updateCharacteristic(this.hap.Characteristic.ActiveIdentifier, this.Television.ActiveIdentifier);
+      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
+        + ` ActiveIdentifier: ${this.Television.ActiveIdentifier}`);
     }
   }
 
   async apiError(e: any): Promise<void> {
-    this.tvService.updateCharacteristic(this.hap.Characteristic.Active, e);
-    this.tvService.updateCharacteristic(this.hap.Characteristic.ActiveIdentifier, e);
-  }
-
-  async deviceContext() {
-    if (this.Active === undefined) {
-      this.Active = this.hap.Characteristic.Active.INACTIVE;
-    } else {
-      this.Active = this.accessory.context.Active;
-    }
-    if (this.ActiveIdentifier === undefined) {
-      this.ActiveIdentifier = 1;
-    } else {
-      this.ActiveIdentifier = this.accessory.context.ActiveIdentifier;
-    }
-    if (this.FirmwareRevision === undefined) {
-      this.FirmwareRevision = this.platform.version;
-      this.accessory.context.FirmwareRevision = this.FirmwareRevision;
-    }
-  }
-
-  async deviceConfig(device: irdevice & irDevicesConfig): Promise<void> {
-    let config = {};
-    if (device.irtv) {
-      config = device.irtv;
-    }
-    if (device.logging !== undefined) {
-      config['logging'] = device.logging;
-    }
-    if (device.connectionType !== undefined) {
-      config['connectionType'] = device.connectionType;
-    }
-    if (device.external !== undefined) {
-      config['external'] = device.external;
-    }
-    if (device.customOn !== undefined) {
-      config['customOn'] = device.customOn;
-    }
-    if (device.customOff !== undefined) {
-      config['customOff'] = device.customOff;
-    }
-    if (device.customize !== undefined) {
-      config['customize'] = device.customize;
-    }
-    if (device.disablePushOn !== undefined) {
-      config['disablePushOn'] = device.disablePushOn;
-    }
-    if (device.disablePushOff !== undefined) {
-      config['disablePushOff'] = device.disablePushOff;
-    }
-    if (device.disablePushDetail !== undefined) {
-      config['disablePushDetail'] = device.disablePushDetail;
-    }
-    if (Object.entries(config).length !== 0) {
-      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
-    }
-  }
-
-  async deviceLogs(device: irdevice & irDevicesConfig): Promise<void> {
-    if (this.platform.debugMode) {
-      this.deviceLogging = this.accessory.context.logging = 'debugMode';
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
-    } else if (device.logging) {
-      this.deviceLogging = this.accessory.context.logging = device.logging;
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
-    } else if (this.platform.config.options?.logging) {
-      this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
-    } else {
-      this.deviceLogging = this.accessory.context.logging = 'standard';
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
-    }
-  }
-
-  /**
-   * Logging for Device
-   */
-  infoLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      this.platform.log.info(String(...log));
-    }
-  }
-
-  warnLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      this.platform.log.warn(String(...log));
-    }
-  }
-
-  debugWarnLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      if (this.deviceLogging?.includes('debug')) {
-        this.platform.log.warn('[DEBUG]', String(...log));
-      }
-    }
-  }
-
-  errorLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      this.platform.log.error(String(...log));
-    }
-  }
-
-  debugErrorLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      if (this.deviceLogging?.includes('debug')) {
-        this.platform.log.error('[DEBUG]', String(...log));
-      }
-    }
-  }
-
-  debugLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      if (this.deviceLogging === 'debug') {
-        this.platform.log.info('[DEBUG]', String(...log));
-      } else {
-        this.platform.log.debug(String(...log));
-      }
-    }
-  }
-
-  enablingDeviceLogging(): boolean {
-    return this.deviceLogging.includes('debug') || this.deviceLogging === 'standard';
+    this.Television.Service.updateCharacteristic(this.hap.Characteristic.Active, e);
+    this.Television.Service.updateCharacteristic(this.hap.Characteristic.ActiveIdentifier, e);
   }
 }

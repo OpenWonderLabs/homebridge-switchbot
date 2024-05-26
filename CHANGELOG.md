@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [3.5.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.5.0) (2024-05-26)
+
+### What's Changed
+- Add Support for `Water Detector`
+- Add Support for `Battery Circulator Fan`
+- Add BLE support for `Smart Lock`
+- Add `K10+` deviceType Support
+- Add Support for `maxRetries` and `delayBetweenRetries` on OpenAPI status refreshes based on [#959](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/959#issuecomment-2094879876), Thanks [@sametguzeldev](https://github.com/sametguzeldev)
+- Major Refactoring of `device` and `irdevice` files.
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.4.0...v3.5.0
+
 ## [3.4.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.4.0) (2024-02-11)
 
 ### What's Changed

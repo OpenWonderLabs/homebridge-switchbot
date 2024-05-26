@@ -1,125 +1,127 @@
-import { CharacteristicValue, PlatformAccessory, Service, API, Logging, HAP } from 'homebridge';
+/* Copyright(C) 2021-2024, donavanbecker (https://github.com/donavanbecker). All rights reserved.
+ *
+ * light.ts: @switchbot/homebridge-switchbot.
+ */
 import { request } from 'undici';
-import { SwitchBotPlatform } from '../platform.js';
-import { Devices, irDevicesConfig, irdevice, SwitchBotPlatformConfig } from '../settings.js';
+import { Devices } from '../settings.js';
+import { irdeviceBase } from './irdevice.js';
+
+import type { SwitchBotPlatform } from '../platform.js';
+import type { irDevicesConfig, irdevice } from '../settings.js';
+import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 
 /**
  * Platform Accessory
  * An instance of this class is created for each accessory your platform registers
  * Each accessory may expose multiple services of different service types.
  */
-export class Light {
-  public readonly api: API;
-  public readonly log: Logging;
-  public readonly config!: SwitchBotPlatformConfig;
-  protected readonly hap: HAP;
+export class Light extends irdeviceBase {
   // Services
-  lightBulbService?: Service;
-  ProgrammableSwitchServiceOn?: Service;
-  ProgrammableSwitchServiceOff?: Service;
+  private LightBulb?: {
+    Name: CharacteristicValue;
+    Service: Service;
+    On: CharacteristicValue;
+  };
 
-  // Characteristic Values
-  On!: CharacteristicValue;
-  ProgrammableSwitchEventOn?: CharacteristicValue;
-  ProgrammableSwitchOutputStateOn?: CharacteristicValue;
-  ProgrammableSwitchEventOff?: CharacteristicValue;
-  ProgrammableSwitchOutputStateOff?: CharacteristicValue;
-  FirmwareRevision!: CharacteristicValue;
+  private ProgrammableSwitchOn?: {
+    Name: CharacteristicValue;
+    Service: Service;
+    ProgrammableSwitchEvent: CharacteristicValue;
+    ProgrammableSwitchOutputState: CharacteristicValue;
+  };
 
-  // Config
-  deviceLogging!: string;
-  disablePushOn?: boolean;
-  disablePushOff?: boolean;
+  private ProgrammableSwitchOff?: {
+    Name: CharacteristicValue;
+    Service: Service;
+    ProgrammableSwitchEvent: CharacteristicValue;
+    ProgrammableSwitchOutputState: CharacteristicValue;
+  };
 
   constructor(
-    private readonly platform: SwitchBotPlatform,
-    private accessory: PlatformAccessory,
-    public device: irdevice & irDevicesConfig,
+    readonly platform: SwitchBotPlatform,
+    accessory: PlatformAccessory,
+    device: irdevice & irDevicesConfig,
   ) {
-    this.api = this.platform.api;
-    this.log = this.platform.log;
-    this.config = this.platform.config;
-    this.hap = this.api.hap;
-    // default placeholders
-    this.deviceLogs(device);
-    this.deviceContext();
-    this.disablePushOnChanges(device);
-    this.disablePushOffChanges(device);
-    this.deviceConfig(device);
-
-    // set accessory information
-    accessory
-      .getService(this.hap.Service.AccessoryInformation)!
-      .setCharacteristic(this.hap.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.hap.Characteristic.Model, device.remoteType)
-      .setCharacteristic(this.hap.Characteristic.SerialNumber, device.deviceId)
-      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
+    super(platform, accessory, device);
 
     if (!device.irlight?.stateless) {
-      // get the Light service if it exists, otherwise create a new Light service
-      // you can create multiple services for each accessory
-      const lightBulbService = `${accessory.displayName} ${device.remoteType}`;
-      (this.lightBulbService = accessory.getService(this.hap.Service.Lightbulb)
-        || accessory.addService(this.hap.Service.Lightbulb)), lightBulbService;
+      // Initialize LightBulb Service
+      accessory.context.LightBulb = accessory.context.LightBulb ?? {};
+      this.LightBulb = {
+        Name: accessory.context.LightBulb.Name ?? `${accessory.displayName} ${device.remoteType}`,
+        Service: accessory.getService(this.hap.Service.Lightbulb) ?? accessory.addService(this.hap.Service.Lightbulb) as Service,
+        On: accessory.context.On || false,
+      };
+      accessory.context.LightBulb = this.LightBulb as object;
 
-
-      this.lightBulbService.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName);
-      if (!this.lightBulbService.testCharacteristic(this.hap.Characteristic.ConfiguredName)) {
-        this.lightBulbService.addCharacteristic(this.hap.Characteristic.ConfiguredName, accessory.displayName);
-      }
-
-      // handle on / off events using the On characteristic
-      this.lightBulbService.getCharacteristic(this.hap.Characteristic.On).onSet(this.OnSet.bind(this));
-    } else {
-
-      // create a new Stateful Programmable Switch On service
-      const ProgrammableSwitchServiceOn = `${accessory.displayName} ${device.remoteType} On`;
-      (this.ProgrammableSwitchServiceOn = accessory.getService(this.hap.Service.StatefulProgrammableSwitch)
-        || accessory.addService(this.hap.Service.StatefulProgrammableSwitch)), ProgrammableSwitchServiceOn;
-
-
-      this.ProgrammableSwitchServiceOn.setCharacteristic(this.hap.Characteristic.Name, `${accessory.displayName} On`);
-      if (!this.ProgrammableSwitchServiceOn.testCharacteristic(this.hap.Characteristic.ConfiguredName)) {
-        this.ProgrammableSwitchServiceOn.addCharacteristic(this.hap.Characteristic.ConfiguredName, `${accessory.displayName} On`);
-      }
-
-      this.ProgrammableSwitchServiceOn.getCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent).setProps({
-        validValueRanges: [0, 0],
-        minValue: 0,
-        maxValue: 0,
-        validValues: [0],
-      })
+      this.LightBulb.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.LightBulb.Name)
+        .getCharacteristic(this.hap.Characteristic.On)
         .onGet(() => {
-          return this.ProgrammableSwitchEventOn!;
+          return this.LightBulb!.On;
+        })
+        .onSet(this.OnSet.bind(this));
+    } else {
+      // Initialize ProgrammableSwitchOn Service
+      accessory.context.ProgrammableSwitchOn = accessory.context.ProgrammableSwitchOn ?? {};
+      this.ProgrammableSwitchOn = {
+        Name: accessory.context.ProgrammableSwitchOn.Name ?? `${accessory.displayName} ${device.remoteType} On`,
+        Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch)
+        ?? accessory.addService(this.hap.Service.StatefulProgrammableSwitch) as Service,
+        ProgrammableSwitchEvent: accessory.context.ProgrammableSwitchEvent ?? this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
+        ProgrammableSwitchOutputState: accessory.context.ProgrammableSwitchOutputState ?? 0,
+      };
+      accessory.context.ProgrammableSwitchOn = this.ProgrammableSwitchOn as object;
+
+      // Initialize ProgrammableSwitchOn Characteristics
+      this.ProgrammableSwitchOn?.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.ProgrammableSwitchOn.Name)
+        .getCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent).setProps({
+          validValueRanges: [0, 0],
+          minValue: 0,
+          maxValue: 0,
+          validValues: [0],
+        })
+        .onGet(() => {
+          return this.ProgrammableSwitchOn!.ProgrammableSwitchEvent;
         });
 
-      this.ProgrammableSwitchServiceOn.getCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState)
+      this.ProgrammableSwitchOn?.Service
+        .getCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState)
+        .onGet(() => {
+          return this.ProgrammableSwitchOn!.ProgrammableSwitchOutputState;
+        })
         .onSet(this.ProgrammableSwitchOutputStateSetOn.bind(this));
 
+      // Initialize ProgrammableSwitchOff Service
+      accessory.context.ProgrammableSwitchOff = accessory.context.ProgrammableSwitchOff ?? {};
+      this.ProgrammableSwitchOff = {
+        Name: accessory.context.ProgrammableSwitchOff.Name ?? `${accessory.displayName} ${device.remoteType} Off`,
+        Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch)
+        ?? accessory.addService(this.hap.Service.StatefulProgrammableSwitch) as Service,
+        ProgrammableSwitchEvent: accessory.context.ProgrammableSwitchEvent ?? this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
+        ProgrammableSwitchOutputState: accessory.context.ProgrammableSwitchOutputState ?? 0,
+      };
+      accessory.context.ProgrammableSwitchOff = this.ProgrammableSwitchOff as object;
 
-
-      // create a new Stateful Programmable Switch Off service
-      const ProgrammableSwitchServiceOff = `${accessory.displayName} ${device.remoteType} Off`;
-      (this.ProgrammableSwitchServiceOff = accessory.getService(this.hap.Service.StatefulProgrammableSwitch)
-        || accessory.addService(this.hap.Service.StatefulProgrammableSwitch)), ProgrammableSwitchServiceOff;
-
-
-      this.ProgrammableSwitchServiceOff.setCharacteristic(this.hap.Characteristic.Name, `${accessory.displayName} Off`);
-      if (!this.ProgrammableSwitchServiceOff.testCharacteristic(this.hap.Characteristic.ConfiguredName)) {
-        this.ProgrammableSwitchServiceOff.addCharacteristic(this.hap.Characteristic.ConfiguredName, `${accessory.displayName} Off`);
-      }
-
-      this.ProgrammableSwitchServiceOff.getCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent).setProps({
-        validValueRanges: [0, 0],
-        minValue: 0,
-        maxValue: 0,
-        validValues: [0],
-      })
+      // Initialize ProgrammableSwitchOff Characteristics
+      this.ProgrammableSwitchOff?.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.ProgrammableSwitchOff.Name)
+        .getCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent).setProps({
+          validValueRanges: [0, 0],
+          minValue: 0,
+          maxValue: 0,
+          validValues: [0],
+        })
         .onGet(() => {
-          return this.ProgrammableSwitchEventOff!;
+          return this.ProgrammableSwitchOff!.ProgrammableSwitchEvent;
         });
 
-      this.ProgrammableSwitchServiceOff.getCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState)
+      this.ProgrammableSwitchOff?.Service
+        .getCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState)
+        .onGet(() => {
+          return this.ProgrammableSwitchOff!.ProgrammableSwitchOutputState;
+        })
         .onSet(this.ProgrammableSwitchOutputStateSetOff.bind(this));
     }
 
@@ -128,11 +130,13 @@ export class Light {
   async OnSet(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${value}`);
 
-    this.On = value;
-    if (this.On) {
-      await this.pushLightOnChanges();
+    this.LightBulb!.On = value;
+    if (this.LightBulb?.On) {
+      const On = true;
+      await this.pushLightOnChanges(On);
     } else {
-      await this.pushLightOffChanges();
+      const On = false;
+      await this.pushLightOffChanges(On);
     }
     /**
      * pushLightOnChanges and pushLightOffChanges above assume they are measuring the state of the accessory BEFORE
@@ -143,10 +147,10 @@ export class Light {
   async ProgrammableSwitchOutputStateSetOn(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${value}`);
 
-    this.ProgrammableSwitchOutputStateOn = value;
-    if (this.ProgrammableSwitchOutputStateOn === 1) {
-      this.On = true;
-      await this.pushLightOnChanges();
+    this.ProgrammableSwitchOn!.ProgrammableSwitchOutputState = value;
+    if (this.ProgrammableSwitchOn?.ProgrammableSwitchOutputState === 1) {
+      const On = true;
+      await this.pushLightOnChanges(On);
     }
     /**
      * pushLightOnChanges and pushLightOffChanges above assume they are measuring the state of the accessory BEFORE
@@ -157,10 +161,10 @@ export class Light {
   async ProgrammableSwitchOutputStateSetOff(value: CharacteristicValue): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${value}`);
 
-    this.ProgrammableSwitchOutputStateOff = value;
-    if (this.ProgrammableSwitchOutputStateOff === 1) {
-      this.On = false;
-      await this.pushLightOffChanges();
+    this.ProgrammableSwitchOff!.ProgrammableSwitchOutputState = value;
+    if (this.ProgrammableSwitchOff?.ProgrammableSwitchOutputState === 1) {
+      const On = false;
+      await this.pushLightOffChanges(On);
     }
     /**
      * pushLightOnChanges and pushLightOffChanges above assume they are measuring the state of the accessory BEFORE
@@ -180,11 +184,9 @@ export class Light {
    * Light -       "command"       "channelAdd"      "default"	        =        next channel
    * Light -       "command"       "channelSub"      "default"	        =        previous channel
    */
-  async pushLightOnChanges(): Promise<void> {
-    this.debugLog(
-      `${this.device.remoteType}: ${this.accessory.displayName} pushLightOnChanges On: ${this.On},` + ` disablePushOn: ${this.disablePushOn}`,
-    );
-    if (this.On && !this.disablePushOn) {
+  async pushLightOnChanges(On: boolean): Promise<void> {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushLightOnChanges On: ${On}, disablePushOn: ${this.disablePushOn}`);
+    if (On === true && this.disablePushOn === false) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOn();
       const bodyChange = JSON.stringify({
@@ -192,15 +194,13 @@ export class Light {
         parameter: 'default',
         commandType: commandType,
       });
-      await this.pushChanges(bodyChange);
+      await this.pushChanges(bodyChange, On);
     }
   }
 
-  async pushLightOffChanges(): Promise<void> {
-    this.debugLog(
-      `${this.device.remoteType}: ${this.accessory.displayName} pushLightOffChanges On: ${this.On},` + ` disablePushOff: ${this.disablePushOff}`,
-    );
-    if (!this.On && !this.disablePushOff) {
+  async pushLightOffChanges(On: boolean): Promise<void> {
+    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushLightOffChanges On: ${On}, disablePushOff: ${this.disablePushOff}`);
+    if (On === false && this.disablePushOff === false) {
       const commandType: string = await this.commandType();
       const command: string = await this.commandOff();
       const bodyChange = JSON.stringify({
@@ -208,29 +208,11 @@ export class Light {
         parameter: 'default',
         commandType: commandType,
       });
-      await this.pushChanges(bodyChange);
+      await this.pushChanges(bodyChange, On);
     }
   }
 
-  /*async pushLightBrightnessUpChanges(): Promise<void> {
-    const bodyChange = JSON.stringify({
-      command: 'brightnessUp',
-      parameter: 'default',
-      commandType: 'command',
-    });
-    await this.pushChanges(bodyChange);
-  }
-
-  async pushLightBrightnessDownChanges(): Promise<void> {
-    const bodyChange = JSON.stringify({
-      command: 'brightnessDown',
-      parameter: 'default',
-      commandType: 'command',
-    });
-    await this.pushChanges(bodyChange);
-  }*/
-
-  async pushChanges(bodyChange: any): Promise<void> {
+  async pushChanges(bodyChange: any, On: boolean): Promise<void> {
     this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushChanges`);
     if (this.device.connectionType === 'OpenAPI') {
       this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
@@ -245,9 +227,11 @@ export class Light {
         this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
         this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
         if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-          this.debugErrorLog(`${this.device.remoteType}: ${this.accessory.displayName} `
+          this.debugSuccessLog(`${this.device.remoteType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
-          this.accessory.context.On = this.On;
+          this.successLog(`${this.device.remoteType}: ${this.accessory.displayName}`
+            + ` request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
+          this.accessory.context.On = On;
           this.updateHomeKitCharacteristics();
         } else {
           this.statusCode(statusCode);
@@ -255,298 +239,59 @@ export class Light {
         }
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(
-          `${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType}` +
-          ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-        );
+        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
       }
     } else {
-      this.warnLog(
-        `${this.device.remoteType}: ${this.accessory.displayName}` +
-        ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`,
-      );
+      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName} Connection Type: `
+      + `${this.device.connectionType}, commands will not be sent to OpenAPI`);
     }
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
-    if (this.device.irlight?.stateless) {
+    if (!this.device.irlight?.stateless) {
       // On
-      if (this.On === undefined) {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.On}`);
+      if (this.LightBulb?.On === undefined) {
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.LightBulb?.On}`);
       } else {
-        this.accessory.context.On = this.On;
-        this.lightBulbService?.updateCharacteristic(this.hap.Characteristic.On, this.On);
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.On}`);
+        this.accessory.context.On = this.LightBulb.On;
+        this.LightBulb?.Service.updateCharacteristic(this.hap.Characteristic.On, this.LightBulb.On);
+        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.LightBulb.On}`);
       }
     } else {
       // On Stateful Programmable Switch
-      if (this.ProgrammableSwitchOutputStateOn === undefined) {
+      if (this.ProgrammableSwitchOn?.ProgrammableSwitchOutputState === undefined) {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-          + ` ProgrammableSwitchOutputStateOn: ${this.ProgrammableSwitchOutputStateOn}`);
+          + ` ProgrammableSwitchOutputStateOn: ${this.ProgrammableSwitchOn?.ProgrammableSwitchOutputState}`);
       } else {
-        this.accessory.context.ProgrammableSwitchOutputStateOn = this.ProgrammableSwitchOutputStateOn;
-        this.ProgrammableSwitchServiceOn?.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState,
-          this.ProgrammableSwitchOutputStateOn);
+        this.accessory.context.ProgrammableSwitchOutputStateOn = this.ProgrammableSwitchOn.ProgrammableSwitchOutputState;
+        this.ProgrammableSwitchOn?.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState,
+          this.ProgrammableSwitchOn.ProgrammableSwitchOutputState);
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
-          + ` ProgrammableSwitchOutputStateOn: ${this.ProgrammableSwitchOutputStateOn}`);
+          + ` ProgrammableSwitchOutputStateOn: ${this.ProgrammableSwitchOn.ProgrammableSwitchOutputState}`);
       }
       // Off Stateful Programmable Switch
-      if (this.ProgrammableSwitchOutputStateOff === undefined) {
+      if (this.ProgrammableSwitchOff?.ProgrammableSwitchOutputState === undefined) {
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-          + ` ProgrammableSwitchOutputStateOff: ${this.ProgrammableSwitchOutputStateOff}`);
+          + ` ProgrammableSwitchOutputStateOff: ${this.ProgrammableSwitchOff?.ProgrammableSwitchOutputState}`);
       } else {
-        this.accessory.context.ProgrammableSwitchOutputStateOff = this.ProgrammableSwitchOutputStateOff;
-        this.ProgrammableSwitchServiceOff?.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState,
-          this.ProgrammableSwitchOutputStateOff);
+        this.accessory.context.ProgrammableSwitchOutputStateOff = this.ProgrammableSwitchOff.ProgrammableSwitchOutputState;
+        this.ProgrammableSwitchOff.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState,
+          this.ProgrammableSwitchOff.ProgrammableSwitchOutputState);
         this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
-          + ` ProgrammableSwitchOutputStateOff: ${this.ProgrammableSwitchOutputStateOff}`);
+          + ` ProgrammableSwitchOutputStateOff: ${this.ProgrammableSwitchOff?.ProgrammableSwitchOutputState}`);
       }
-    }
-  }
-
-  async disablePushOnChanges(device: irdevice & irDevicesConfig): Promise<void> {
-    if (device.disablePushOn === undefined) {
-      this.disablePushOn = false;
-    } else {
-      this.disablePushOn = device.disablePushOn;
-    }
-  }
-
-  async disablePushOffChanges(device: irdevice & irDevicesConfig): Promise<void> {
-    if (device.disablePushOff === undefined) {
-      this.disablePushOff = false;
-    } else {
-      this.disablePushOff = device.disablePushOff;
-    }
-  }
-
-  async commandType(): Promise<string> {
-    let commandType: string;
-    if (this.device.customize) {
-      commandType = 'customize';
-    } else {
-      commandType = 'command';
-    }
-    return commandType;
-  }
-
-  async commandOn(): Promise<string> {
-    let command: string;
-    if (this.device.customize && this.device.customOn) {
-      command = this.device.customOn;
-    } else {
-      command = 'turnOn';
-    }
-    return command;
-  }
-
-  async commandOff(): Promise<string> {
-    let command: string;
-    if (this.device.customize && this.device.customOff) {
-      command = this.device.customOff;
-    } else {
-      command = 'turnOff';
-    }
-    return command;
-  }
-
-  async statusCode(statusCode: number): Promise<void> {
-    switch (statusCode) {
-      case 151:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Command not supported by this deviceType, statusCode: ${statusCode}`);
-        break;
-      case 152:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device not found, statusCode: ${statusCode}`);
-        break;
-      case 160:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Command is not supported, statusCode: ${statusCode}`);
-        break;
-      case 161:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device is offline, statusCode: ${statusCode}`);
-        break;
-      case 171:
-        this.errorLog(
-          `${this.device.remoteType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. ` +
-          `Hub: ${this.device.hubDeviceId}`,
-        );
-        break;
-      case 190:
-        this.errorLog(
-          `${this.device.remoteType}: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-          ` Or command format is invalid, statusCode: ${statusCode}`,
-        );
-        break;
-      case 100:
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Command successfully sent, statusCode: ${statusCode}`);
-        break;
-      case 200:
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
-        break;
-      case 400:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Bad Request, The client has issued an invalid request. `
-              + `This is commonly used to specify validation errors in a request payload, statusCode: ${statusCode}`);
-        break;
-      case 401:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Unauthorized,	Authorization for the API is required, `
-              + `but the request has not been authenticated, statusCode: ${statusCode}`);
-        break;
-      case 403:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Forbidden,	The request has been authenticated but does not `
-              + `have appropriate permissions, or a requested resource is not found, statusCode: ${statusCode}`);
-        break;
-      case 404:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Not Found,	Specifies the requested path does not exist, `
-          + `statusCode: ${statusCode}`);
-        break;
-      case 406:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Not Acceptable,	The client has requested a MIME type via `
-              + `the Accept header for a value not supported by the server, statusCode: ${statusCode}`);
-        break;
-      case 415:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Unsupported Media Type,	The client has defined a contentType `
-              + `header that is not supported by the server, statusCode: ${statusCode}`);
-        break;
-      case 422:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Unprocessable Entity,	The client has made a valid request, but `
-              + `the server cannot process it. This is often used for APIs for which certain limits have been exceeded, statusCode: ${statusCode}`);
-        break;
-      case 429:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Too Many Requests,	The client has exceeded the number of `
-              + `requests allowed for a given time window, statusCode: ${statusCode}`);
-        break;
-      case 500:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Internal Server Error,	An unexpected error on the SmartThings `
-              + `servers has occurred. These errors should be rare, statusCode: ${statusCode}`);
-        break;
-      default:
-        this.infoLog(
-          `${this.device.remoteType}: ${this.accessory.displayName} Unknown statusCode: ` +
-          `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`,
-        );
     }
   }
 
   async apiError(e: any): Promise<void> {
-    if (this.device.irlight?.stateless) {
-      this.lightBulbService?.updateCharacteristic(this.hap.Characteristic.On, e);
+    if (!this.device.irlight?.stateless) {
+      this.LightBulb?.Service.updateCharacteristic(this.hap.Characteristic.On, e);
     } else {
-      this.ProgrammableSwitchServiceOn?.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent, e);
-      this.ProgrammableSwitchServiceOn?.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState, e);
-      this.ProgrammableSwitchServiceOff?.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent, e);
-      this.ProgrammableSwitchServiceOff?.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState, e);
+      this.ProgrammableSwitchOn?.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent, e);
+      this.ProgrammableSwitchOn?.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState, e);
+      this.ProgrammableSwitchOff?.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent, e);
+      this.ProgrammableSwitchOff?.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState, e);
     }
-  }
-
-  async deviceContext() {
-    if (this.On === undefined) {
-      this.On = false;
-    } else {
-      this.On = this.accessory.context.On;
-    }
-    if (this.FirmwareRevision === undefined) {
-      this.FirmwareRevision = this.platform.version;
-      this.accessory.context.FirmwareRevision = this.FirmwareRevision;
-    }
-  }
-
-  async deviceConfig(device: irdevice & irDevicesConfig): Promise<void> {
-    let config = {};
-    if (device.irlight) {
-      config = device.irlight;
-    }
-    if (device.logging !== undefined) {
-      config['logging'] = device.logging;
-    }
-    if (device.connectionType !== undefined) {
-      config['connectionType'] = device.connectionType;
-    }
-    if (device.external !== undefined) {
-      config['external'] = device.external;
-    }
-    if (device.customOn !== undefined) {
-      config['customOn'] = device.customOn;
-    }
-    if (device.customOff !== undefined) {
-      config['customOff'] = device.customOff;
-    }
-    if (device.customize !== undefined) {
-      config['customize'] = device.customize;
-    }
-    if (device.disablePushOn !== undefined) {
-      config['disablePushOn'] = device.disablePushOn;
-    }
-    if (device.disablePushOff !== undefined) {
-      config['disablePushOff'] = device.disablePushOff;
-    }
-    if (Object.entries(config).length !== 0) {
-      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
-    }
-  }
-
-  async deviceLogs(device: irdevice & irDevicesConfig): Promise<void> {
-    if (this.platform.debugMode) {
-      this.deviceLogging = this.accessory.context.logging = 'debugMode';
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
-    } else if (device.logging) {
-      this.deviceLogging = this.accessory.context.logging = device.logging;
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
-    } else if (this.platform.config.options?.logging) {
-      this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
-    } else {
-      this.deviceLogging = this.accessory.context.logging = 'standard';
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
-    }
-  }
-
-  /**
-   * Logging for Device
-   */
-  infoLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      this.platform.log.info(String(...log));
-    }
-  }
-
-  warnLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      this.platform.log.warn(String(...log));
-    }
-  }
-
-  debugWarnLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      if (this.deviceLogging?.includes('debug')) {
-        this.platform.log.warn('[DEBUG]', String(...log));
-      }
-    }
-  }
-
-  errorLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      this.platform.log.error(String(...log));
-    }
-  }
-
-  debugErrorLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      if (this.deviceLogging?.includes('debug')) {
-        this.platform.log.error('[DEBUG]', String(...log));
-      }
-    }
-  }
-
-  debugLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      if (this.deviceLogging === 'debug') {
-        this.platform.log.info('[DEBUG]', String(...log));
-      } else {
-        this.platform.log.debug(String(...log));
-      }
-    }
-  }
-
-  enablingDeviceLogging(): boolean {
-    return this.deviceLogging.includes('debug') || this.deviceLogging === 'standard';
   }
 }

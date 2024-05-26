@@ -1,106 +1,70 @@
-import asyncmqtt from 'async-mqtt';
-import { CharacteristicValue, PlatformAccessory, Service, Units, API, Logging, HAP } from 'homebridge';
-import { MqttClient } from 'mqtt';
-import { hostname } from 'os';
-import { interval } from 'rxjs';
-import { request } from 'undici';
-import { SwitchBotPlatform } from '../platform.js';
-import { Devices, device, deviceStatus, devicesConfig, SwitchBotPlatformConfig } from '../settings.js';
+/* Copyright(C) 2021-2024, donavanbecker (https://github.com/donavanbecker). All rights reserved.
+ *
+ * hub.ts: @switchbot/homebridge-switchbot.
+ */
+import { Units } from 'homebridge';
+import { deviceBase } from './device.js';
+import { Devices } from '../settings.js';
+import { convertUnits } from '../utils.js';
+import { Subject, interval, skipWhile } from 'rxjs';
 
-export class Hub {
-  public readonly api: API;
-  public readonly log: Logging;
-  public readonly config!: SwitchBotPlatformConfig;
-  protected readonly hap: HAP;
+import type { SwitchBotPlatform } from '../platform.js';
+import type { device, deviceStatus, devicesConfig } from '../settings.js';
+import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+
+export class Hub extends deviceBase {
   // Services
-  lightSensorService?: Service;
-  humidityService?: Service;
-  temperatureService?: Service;
+  private LightSensor?: {
+    Name: CharacteristicValue;
+    Service: Service;
+    CurrentAmbientLightLevel: CharacteristicValue;
+  };
 
-  // Characteristic Values
-  FirmwareRevision!: CharacteristicValue;
-  CurrentTemperature!: CharacteristicValue;
-  CurrentRelativeHumidity!: CharacteristicValue;
-  CurrentAmbientLightLevel!: CharacteristicValue;
+  private HumiditySensor?: {
+    Name: CharacteristicValue;
+    Service: Service;
+    CurrentRelativeHumidity: CharacteristicValue;
+  };
 
-  // OpenAPI Status
-  OpenAPI_FirmwareRevision: deviceStatus['version'];
-  OpenAPI_CurrentTemperature: deviceStatus['temperature'];
-  OpenAPI_CurrentRelativeHumidity: deviceStatus['humidity'];
-  OpenAPI_CurrentAmbientLightLevel!: deviceStatus['brightness'];
+  private TemperatureSensor?: {
+    Name: CharacteristicValue;
+    Service: Service;
+    CurrentTemperature: CharacteristicValue;
+  };
 
-  // OpenAPI Others
-  spaceBetweenLevels!: number;
-
-  //MQTT stuff
-  mqttClient: MqttClient | null = null;
-
-  // EVE history service handler
-  historyService?: any;
-
-  // Config
-  set_minStep!: number;
-  updateRate!: number;
-  set_minLux!: number;
-  set_maxLux!: number;
-  scanDuration!: number;
-  deviceLogging!: string;
-  deviceRefreshRate!: number;
-
-  // Connection
-  private readonly OpenAPI: boolean;
-  private readonly BLE: boolean;
+  // Updates
+  hubUpdateInProgress!: boolean;
+  doHubUpdate!: Subject<void>;
 
   constructor(
-    private readonly platform: SwitchBotPlatform,
-    private accessory: PlatformAccessory,
-    public device: device & devicesConfig,
+    readonly platform: SwitchBotPlatform,
+    accessory: PlatformAccessory,
+    device: device & devicesConfig,
   ) {
-    this.api = this.platform.api;
-    this.log = this.platform.log;
-    this.config = this.platform.config;
-    this.hap = this.api.hap;
-    // Connection
-    this.BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
-    this.OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
-    // default placeholders
-    this.deviceLogs(device);
-    this.refreshRate(device);
-    this.deviceContext();
-    this.setupHistoryService(device);
-    this.setupMqtt(device);
-    this.deviceConfig(device);
+    super(platform, accessory, device);
+    // this is subject we use to track when we need to POST changes to the SwitchBot API
+    this.doHubUpdate = new Subject();
+    this.hubUpdateInProgress = false;
 
-    this.CurrentRelativeHumidity = accessory.context.CurrentRelativeHumidity;
-    this.CurrentTemperature = accessory.context.CurrentTemperature;
-
-    // Retrieve initial values and updateHomekit
-    this.refreshStatus();
-
-    // set accessory information
-    accessory
-      .getService(this.hap.Service.AccessoryInformation)!
-      .setCharacteristic(this.hap.Characteristic.Manufacturer, 'SwitchBot')
-      .setCharacteristic(this.hap.Characteristic.Model, accessory.context.model)
-      .setCharacteristic(this.hap.Characteristic.SerialNumber, device.deviceId)
-      .setCharacteristic(this.hap.Characteristic.FirmwareRevision, accessory.context.FirmwareRevision);
-
-    // Temperature Sensor Service
+    // Initialize Temperature Sensor Service
     if (device.hub?.hide_temperature) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Temperature Sensor Service`);
-      this.temperatureService = this.accessory.getService(this.hap.Service.TemperatureSensor);
-      accessory.removeService(this.temperatureService!);
-    } else if (!this.temperatureService) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Temperature Sensor Service`);
-      const temperatureService = `${accessory.displayName} Temperature Sensor`;
-      (this.temperatureService = this.accessory.getService(this.hap.Service.TemperatureSensor)
-        || this.accessory.addService(this.hap.Service.TemperatureSensor)), temperatureService;
-
-      this.temperatureService.setCharacteristic(this.hap.Characteristic.Name, `${accessory.displayName} Temperature Sensor`);
-      if (!this.temperatureService.testCharacteristic(this.hap.Characteristic.ConfiguredName)) {
-        this.temperatureService.addCharacteristic(this.hap.Characteristic.ConfiguredName, `${accessory.displayName} Temperature Sensor`);
+      if (this.TemperatureSensor) {
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Temperature Sensor Service`);
+        this.TemperatureSensor.Service = this.accessory.getService(this.hap.Service.TemperatureSensor) as Service;
+        accessory.removeService(this.TemperatureSensor.Service);
       }
-      this.temperatureService
+    } else {
+      accessory.context.TemperatureSensor = accessory.context.TemperatureSensor ?? {};
+      this.TemperatureSensor = {
+        Name: accessory.context.TemperatureSensor.Name ?? `${accessory.displayName} Temperature Sensor`,
+        Service: accessory.getService(this.hap.Service.TemperatureSensor) ?? this.accessory.addService(this.hap.Service.TemperatureSensor) as Service,
+        CurrentTemperature: accessory.context.CurrentTemperature ?? 0,
+      };
+      accessory.context.TemperatureSensor = this.TemperatureSensor as object;
+
+      // Initialize Temperature Sensor Characteristic
+      this.TemperatureSensor.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.TemperatureSensor.Name)
         .getCharacteristic(this.hap.Characteristic.CurrentTemperature)
         .setProps({
           unit: Units['CELSIUS'],
@@ -110,312 +74,128 @@ export class Hub {
           minStep: 0.1,
         })
         .onGet(() => {
-          return this.CurrentTemperature!;
+          return this.TemperatureSensor!.CurrentTemperature;
         });
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Temperature Sensor Service Not Added`);
     }
 
-    // Humidity Sensor Service
+    // Initialize Humidity Sensor Service
     if (device.hub?.hide_humidity) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Humidity Sensor Service`);
-      this.humidityService = this.accessory.getService(this.hap.Service.HumiditySensor);
-      accessory.removeService(this.humidityService!);
-    } else if (!this.humidityService) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Humidity Sensor Service`);
-      const humidityService = `${accessory.displayName} Humidity Sensor`;
-      (this.humidityService = this.accessory.getService(this.hap.Service.HumiditySensor)
-        || this.accessory.addService(this.hap.Service.HumiditySensor)), humidityService;
-
-      this.humidityService.setCharacteristic(this.hap.Characteristic.Name, `${accessory.displayName} Humidity Sensor`);
-      if (!this.humidityService.testCharacteristic(this.hap.Characteristic.ConfiguredName)) {
-        this.humidityService.addCharacteristic(this.hap.Characteristic.ConfiguredName, `${accessory.displayName} Humidity Sensor`);
+      if (this.HumiditySensor) {
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Humidity Sensor Service`);
+        this.HumiditySensor.Service = this.accessory.getService(this.hap.Service.HumiditySensor) as Service;
+        accessory.removeService(this.HumiditySensor.Service);
       }
-      this.humidityService
+    } else {
+      accessory.context.HumiditySensor = accessory.context.HumiditySensor ?? {};
+      this.HumiditySensor = {
+        Name: accessory.context.HumiditySensor.Name ?? `${accessory.displayName} Humidity Sensor`,
+        Service: accessory.getService(this.hap.Service.HumiditySensor) ?? this.accessory.addService(this.hap.Service.HumiditySensor) as Service,
+        CurrentRelativeHumidity: accessory.context.CurrentRelativeHumidity ?? 0,
+      };
+      accessory.context.HumiditySensor = this.HumiditySensor as object;
+
+      // Initialize Humidity Sensor Characteristics
+      this.HumiditySensor!.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.HumiditySensor.Name)
         .getCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity)
         .setProps({
           minStep: 0.1,
         })
         .onGet(() => {
-          return this.CurrentRelativeHumidity;
+          return this.HumiditySensor!.CurrentRelativeHumidity;
         });
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Humidity Sensor Service Not Added`);
     }
 
-    // Light Sensor Service
+    // Initialize Light Sensor Service
     if (device.hub?.hide_lightsensor) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
-      this.lightSensorService = this.accessory.getService(this.hap.Service.LightSensor);
-      accessory.removeService(this.lightSensorService!);
-    } else if (!this.lightSensorService) {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Add Light Sensor Service`);
-      const lightSensorService = `${accessory.displayName} Light Sensor`;
-      (this.lightSensorService = this.accessory.getService(this.hap.Service.LightSensor)
-        || this.accessory.addService(this.hap.Service.LightSensor)), lightSensorService;
-
-      this.lightSensorService.setCharacteristic(this.hap.Characteristic.Name, `${accessory.displayName} Light Sensor`);
-      this.lightSensorService.setCharacteristic(this.hap.Characteristic.ConfiguredName, `${accessory.displayName} Light Sensor`);
+      if (this.LightSensor) {
+        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
+        this.LightSensor.Service = this.accessory.getService(this.hap.Service.LightSensor) as Service;
+        accessory.removeService(this.LightSensor.Service);
+      }
     } else {
-      this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Light Sensor Service Not Added`);
+      accessory.context.LightSensor = accessory.context.LightSensor ?? {};
+      this.LightSensor = {
+        Name: accessory.context.LightSensor.Name ?? `${accessory.displayName} Light Sensor`,
+        Service: accessory.getService(this.hap.Service.LightSensor) ?? this.accessory.addService(this.hap.Service.LightSensor) as Service,
+        CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel ?? 0.0001,
+      };
+      accessory.context.LightSensor = this.LightSensor as object;
+
+      // Initialize Light Sensor Characteristics
+      this.LightSensor!.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.LightSensor.Name)
+        .getCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel)
+        .setProps({
+          minStep: 1,
+        })
+        .onGet(() => {
+          return this.LightSensor!.CurrentAmbientLightLevel;
+        });
     }
+
+    // Retrieve initial values and updateHomekit
+    this.refreshStatus();
 
     // Retrieve initial values and update Homekit
     this.updateHomeKitCharacteristics();
 
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
+      .pipe(skipWhile(() => this.hubUpdateInProgress))
       .subscribe(async () => {
         await this.refreshStatus();
       });
 
     //regisiter webhook event handler
-    if (this.device.webhook) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
-        try {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          if (context.scale === 'CELSIUS') {
-            const { temperature, humidity, lightLevel } = context;
-            const { CurrentTemperature, CurrentRelativeHumidity, CurrentAmbientLightLevel } = this;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-              '(temperature, humidity, lightLevel) = ' +
-              `Webhook:(${temperature}, ${humidity}, ${lightLevel}), ` +
-              `current:(${CurrentTemperature}, ${CurrentRelativeHumidity}, ${CurrentAmbientLightLevel})`);
-            this.CurrentRelativeHumidity = humidity;
-            this.CurrentTemperature = temperature;
-            this.set_minLux = this.minLux();
-            this.set_maxLux = this.maxLux();
-            this.spaceBetweenLevels = 19;
-            switch (lightLevel) {
-              case 1:
-                this.CurrentAmbientLightLevel = this.set_minLux;
-                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-                break;
-              case 2:
-                this.CurrentAmbientLightLevel = (this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels;
-                this.debugLog(
-                  `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel},` +
-                  ` Calculation: ${(this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels}`,
-                );
-                break;
-              case 3:
-                this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 2;
-                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-                break;
-              case 4:
-                this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 3;
-                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-                break;
-              case 5:
-                this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 4;
-                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-                break;
-              case 6:
-                this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 5;
-                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-                break;
-              case 7:
-                this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 6;
-                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-                break;
-              case 8:
-                this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 7;
-                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-                break;
-              case 9:
-                this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 8;
-                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-                break;
-              case 10:
-                this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 9;
-                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-                break;
-              case 11:
-                this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 10;
-                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-                break;
-              case 12:
-                this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 11;
-                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-                break;
-              case 13:
-                this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 12;
-                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-                break;
-              case 14:
-                this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 13;
-                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-                break;
-              case 15:
-                this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 14;
-                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-                break;
-              case 16:
-                this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 15;
-                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-                break;
-              case 17:
-                this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 16;
-                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-                break;
-              case 18:
-                this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 17;
-                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-                break;
-              case 19:
-                this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 18;
-                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-                break;
-              case 20:
-              default:
-                this.CurrentAmbientLightLevel = this.set_maxLux;
-                this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-            }
-            this.updateHomeKitCharacteristics();
-          }
-        } catch (e: any) {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
-        }
-      };
-    }
+    this.registerWebhook(accessory, device);
+
   }
 
-  /**
-   * Parse the device status from the SwitchBot api
-   */
-  async parseStatus(): Promise<void> {
-    if (this.BLE) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE not supported`);
-    } else if (this.OpenAPI && this.platform.config.credentials?.token) {
-      await this.openAPIparseStatus();
-    } else {
-      await this.offlineOff();
-      this.debugWarnLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} Connection Type:` + ` ${this.device.connectionType}, parseStatus will not happen.`,
-      );
-    }
-  }
-
-  async openAPIparseStatus(): Promise<void> {
+  async openAPIparseStatus(deviceStatus: deviceStatus): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
     // CurrentRelativeHumidity
     if (!this.device.hub?.hide_humidity) {
-      this.CurrentRelativeHumidity = Number(this.OpenAPI_CurrentRelativeHumidity);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Humidity: ${this.CurrentRelativeHumidity}%`);
+      this.HumiditySensor!.CurrentRelativeHumidity = Number(deviceStatus.body.humidity);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Humidity: ${this.HumiditySensor!.CurrentRelativeHumidity}%`);
     }
 
     // CurrentTemperature
     if (!this.device.hub?.hide_temperature) {
-      this.CurrentTemperature = Number(this.OpenAPI_CurrentTemperature);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Temperature: ${this.CurrentTemperature}°c`);
+      this.TemperatureSensor!.CurrentTemperature = Number(deviceStatus.body.temperature);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Temperature: ${this.TemperatureSensor!.CurrentTemperature}°c`);
     }
 
     // Brightness
     if (!this.device.hub?.hide_lightsensor) {
       if (!this.device.curtain?.hide_lightsensor) {
-        this.set_minLux = this.minLux();
-        this.set_maxLux = this.maxLux();
-        this.spaceBetweenLevels = 19;
-        switch (this.OpenAPI_CurrentAmbientLightLevel) {
-          case 1:
-            this.CurrentAmbientLightLevel = this.set_minLux;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-            break;
-          case 2:
-            this.CurrentAmbientLightLevel = (this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels;
-            this.debugLog(
-              `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel},` +
-              ` Calculation: ${(this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels}`,
-            );
-            break;
-          case 3:
-            this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 2;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-            break;
-          case 4:
-            this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 3;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-            break;
-          case 5:
-            this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 4;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-            break;
-          case 6:
-            this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 5;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-            break;
-          case 7:
-            this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 6;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-            break;
-          case 8:
-            this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 7;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-            break;
-          case 9:
-            this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 8;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-            break;
-          case 10:
-            this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 9;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-            break;
-          case 11:
-            this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 10;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-            break;
-          case 12:
-            this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 11;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-            break;
-          case 13:
-            this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 12;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-            break;
-          case 14:
-            this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 13;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-            break;
-          case 15:
-            this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 14;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-            break;
-          case 16:
-            this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 15;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-            break;
-          case 17:
-            this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 16;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-            break;
-          case 18:
-            this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 17;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-            break;
-          case 19:
-            this.CurrentAmbientLightLevel = ((this.set_maxLux - this.set_minLux) / this.spaceBetweenLevels) * 18;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-            break;
-          case 20:
-          default:
-            this.CurrentAmbientLightLevel = this.set_maxLux;
-            this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel}`);
-        }
-        this.debugLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${this.OpenAPI_CurrentAmbientLightLevel},` +
-          ` CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
-        );
+        const set_minLux = this.device.curtain?.set_minLux ?? 1;
+        const set_maxLux = this.device.curtain?.set_maxLux ?? 6001;
+        const spaceBetweenLevels = 19;
+        const lightLevel = deviceStatus.body.lightLevel;
+        await this.getLightLevel(lightLevel, set_minLux, set_maxLux, spaceBetweenLevels);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${deviceStatus.body.lightLevel},`
+          + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
       }
       if (!this.device.hub?.hide_lightsensor) {
-        this.lightSensorService?.setCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
+        this.LightSensor!.Service.setCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, this.LightSensor!.CurrentAmbientLightLevel);
       }
     }
 
-    // FirmwareRevision
-    this.FirmwareRevision = this.OpenAPI_FirmwareRevision!;
-    this.accessory.context.FirmwareRevision = this.FirmwareRevision;
+    // Firmware Version
+    const version = deviceStatus.body.version?.toString();
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
+    if (deviceStatus.body.version) {
+      const deviceVersion = version?.replace(/^V|-.*$/g, '') ?? '0.0.0';
+      this.accessory
+        .getService(this.hap.Service.AccessoryInformation)!
+        .setCharacteristic(this.hap.Characteristic.HardwareRevision, deviceVersion)
+        .setCharacteristic(this.hap.Characteristic.FirmwareRevision, deviceVersion)
+        .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+        .updateValue(deviceVersion);
+      this.accessory.context.deviceVersion = deviceVersion;
+      this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceVersion: ${this.accessory.context.deviceVersion}`);
+    }
   }
 
   async refreshStatus(): Promise<void> {
@@ -432,21 +212,16 @@ export class Hub {
   async openAPIRefreshStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
     try {
-      const { body, statusCode } = await request(`${Devices}/${this.device.deviceId}/status`, {
-        headers: this.platform.generateHeaders(),
-      });
+      const { body, statusCode } = await this.platform.retryRequest(this.deviceMaxRetries, this.deviceDelayBetweenRetries,
+        `${Devices}/${this.device.deviceId}/status`, { headers: this.platform.generateHeaders() });
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
       const deviceStatus: any = await body.json();
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
       if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-        this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+        this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} `
           + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
-        this.OpenAPI_CurrentTemperature = deviceStatus.body.temperature;
-        this.OpenAPI_CurrentRelativeHumidity = deviceStatus.body.humidity;
-        this.OpenAPI_CurrentAmbientLightLevel = deviceStatus.body.lightLevel;
-        this.OpenAPI_FirmwareRevision = deviceStatus.body.version;
-        this.openAPIparseStatus();
+        this.openAPIparseStatus(deviceStatus);
         this.updateHomeKitCharacteristics();
       } else {
         this.statusCode(statusCode);
@@ -454,10 +229,47 @@ export class Hub {
       }
     } catch (e: any) {
       this.apiError(e);
-      this.errorLog(
-        `${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}` +
-        ` Connection, Error Message: ${JSON.stringify(e.message)}`,
-      );
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
+        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+    }
+  }
+
+  async registerWebhook(accessory: PlatformAccessory, device: device & devicesConfig) {
+    if (device.webhook) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
+        try {
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
+          const { temperature, humidity, lightLevel } = context;
+          const { CurrentTemperature } = this.TemperatureSensor || { CurrentTemperature: undefined };
+          const { CurrentAmbientLightLevel } = this.LightSensor || { CurrentAmbientLightLevel: undefined };
+          const { CurrentRelativeHumidity } = this.HumiditySensor || { CurrentRelativeHumidity: undefined };
+          if (context.scale !== 'CELCIUS' && device.hub?.convertUnitTo === undefined) {
+            this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} received a non-CELCIUS Webhook scale: `
+              + `${context.scale}, Use the *convertUnitsTo* config under Hub settings, if displaying incorrectly in HomeKit.`);
+          }
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
+            '(scale, temperature, humidity, lightLevel) = ' +
+            `Webhook:(${context.scale}, ${convertUnits(temperature, context.scale, device.hub?.convertUnitTo)}, ${humidity}, ${lightLevel}), `
+            + `current:(${CurrentTemperature}, ${CurrentRelativeHumidity}, ${CurrentAmbientLightLevel})`);
+          if (!this.device.hub?.hide_humidity) {
+            this.HumiditySensor!.CurrentRelativeHumidity = humidity;
+          }
+          if (!this.device.hub?.hide_temperature) {
+            this.TemperatureSensor!.CurrentTemperature = convertUnits(temperature, context.scale, device.hub?.convertUnitTo);
+          }
+          if (!this.device.hub?.hide_lightsensor) {
+            const set_minLux = this.device.curtain?.set_minLux ?? 1;
+            const set_maxLux = this.device.curtain?.set_maxLux ?? 6001;
+            const spaceBetweenLevels = 19;
+            await this.getLightLevel(lightLevel, set_minLux, set_maxLux, spaceBetweenLevels);
+          }
+          this.updateHomeKitCharacteristics();
+        } catch (e: any) {
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+            + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+        }
+      };
     }
   }
 
@@ -471,56 +283,58 @@ export class Hub {
 
     // CurrentRelativeHumidity
     if (!this.device.hub?.hide_humidity) {
-      if (this.CurrentRelativeHumidity === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+      if (this.HumiditySensor!.CurrentRelativeHumidity === undefined) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+          + ` CurrentRelativeHumidity: ${this.HumiditySensor!.CurrentRelativeHumidity}`);
       } else {
         if (this.device.mqttURL) {
-          mqttmessage.push(`"humidity": ${this.CurrentRelativeHumidity}`);
+          mqttmessage.push(`"humidity": ${this.HumiditySensor!.CurrentRelativeHumidity}`);
         }
         if (this.device.history) {
-          entry['humidity'] = this.CurrentRelativeHumidity;
+          entry['humidity'] = this.HumiditySensor!.CurrentRelativeHumidity;
         }
-        this.accessory.context.CurrentRelativeHumidity = this.CurrentRelativeHumidity;
-        this.humidityService?.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity, this.CurrentRelativeHumidity);
+        this.accessory.context.CurrentRelativeHumidity = this.HumiditySensor!.CurrentRelativeHumidity;
+        this.HumiditySensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity,
+          this.HumiditySensor!.CurrentRelativeHumidity);
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-          + `updateCharacteristic CurrentRelativeHumidity: ${this.CurrentRelativeHumidity}`);
+          + `updateCharacteristic CurrentRelativeHumidity: ${this.HumiditySensor!.CurrentRelativeHumidity}`);
       }
     }
 
     // CurrentTemperature
     if (!this.device.hub?.hide_temperature) {
-      if (this.CurrentTemperature === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentTemperature: ${this.CurrentTemperature}`);
+      if (this.TemperatureSensor!.CurrentTemperature === undefined) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentTemperature: ${this.TemperatureSensor!.CurrentTemperature}`);
       } else {
         if (this.device.mqttURL) {
-          mqttmessage.push(`"temperature": ${this.CurrentTemperature}`);
+          mqttmessage.push(`"temperature": ${this.TemperatureSensor!.CurrentTemperature}`);
         }
         if (this.device.history) {
-          entry['temp'] = this.CurrentTemperature;
+          entry['temp'] = this.TemperatureSensor!.CurrentTemperature;
         }
-        this.accessory.context.CurrentTemperature = this.CurrentTemperature;
-        this.temperatureService?.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, this.CurrentTemperature);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic CurrentTemperature: ${this.CurrentTemperature}`);
+        this.accessory.context.CurrentTemperature = this.TemperatureSensor!.CurrentTemperature;
+        this.TemperatureSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, this.TemperatureSensor!.CurrentTemperature);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
+          + ` CurrentTemperature: ${this.TemperatureSensor!.CurrentTemperature}`);
       }
     }
 
     // CurrentAmbientLightLevel
     if (!this.device.hub?.hide_lightsensor) {
-      if (this.CurrentAmbientLightLevel === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`);
+      if (this.LightSensor!.CurrentAmbientLightLevel === undefined) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
+          + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
       } else {
         if (this.device.mqttURL) {
-          mqttmessage.push(`"light": ${this.CurrentAmbientLightLevel}`);
+          mqttmessage.push(`"light": ${this.LightSensor!.CurrentAmbientLightLevel}`);
         }
         if (this.device.history) {
-          entry['lux'] = this.CurrentAmbientLightLevel;
+          entry['lux'] = this.LightSensor!.CurrentAmbientLightLevel;
         }
-        this.accessory.context.CurrentAmbientLightLevel = this.CurrentAmbientLightLevel;
-        this.lightSensorService?.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, this.CurrentAmbientLightLevel);
-        this.debugLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} `
-          + `updateCharacteristic CurrentAmbientLightLevel: ${this.CurrentAmbientLightLevel}`,
-        );
+        this.accessory.context.CurrentAmbientLightLevel = this.LightSensor!.CurrentAmbientLightLevel;
+        this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, this.LightSensor!.CurrentAmbientLightLevel);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+          + `updateCharacteristic CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
       }
     }
 
@@ -528,7 +342,7 @@ export class Hub {
     if (this.device.mqttURL) {
       this.mqttPublish(`{${mqttmessage.join(',')}}`);
     }
-    if (Number(this.CurrentRelativeHumidity) > 0) {
+    if (Number(this.HumiditySensor!.CurrentRelativeHumidity) > 0) {
       // reject unreliable data
       if (this.device.history) {
         this.historyService?.addEntry(entry);
@@ -536,301 +350,117 @@ export class Hub {
     }
   }
 
-  /*
-   * Publish MQTT message for topics of
-   * 'homebridge-switchbot/meter/xx:xx:xx:xx:xx:xx'
-   */
-  mqttPublish(message: any) {
-    const mac = this.device.deviceId
-      ?.toLowerCase()
-      .match(/[\s\S]{1,2}/g)
-      ?.join(':');
-    const options = this.device.mqttPubOptions || {};
-    this.mqttClient?.publish(`homebridge-switchbot/hub/${mac}`, `${message}`, options);
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MQTT message: ${message} options:${JSON.stringify(options)}`);
-  }
-
-  /*
-   * Setup MQTT hadler if URL is specified.
-   */
-  async setupMqtt(device: device & devicesConfig): Promise<void> {
-    if (device.mqttURL) {
-      try {
-        const { connectAsync } = asyncmqtt;
-        this.mqttClient = await connectAsync(device.mqttURL, device.mqttOptions || {});
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MQTT connection has been established successfully.`);
-        this.mqttClient.on('error', (e: Error) => {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Failed to publish MQTT messages. ${e}`);
-        });
-      } catch (e) {
-        this.mqttClient = null;
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Failed to establish MQTT connection. ${e}`);
-      }
-    }
-  }
-
-  /*
-   * Setup EVE history graph feature if enabled.
-   */
-  async setupHistoryService(device: device & devicesConfig): Promise<void> {
-    const mac = this.device
-      .deviceId!.match(/.{1,2}/g)!
-      .join(':')
-      .toLowerCase();
-    this.historyService = device.history
-      ? new this.platform.fakegatoAPI('custom', this.accessory, {
-        log: this.platform.log,
-        storage: 'fs',
-        filename: `${hostname().split('.')[0]}_${mac}_persist.json`,
-      })
-      : null;
-  }
-
-  async statusCode(statusCode: number): Promise<void> {
-    switch (statusCode) {
-      case 151:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command not supported by this deviceType, statusCode: ${statusCode}`);
-        break;
-      case 152:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device not found, statusCode: ${statusCode}`);
-        break;
-      case 160:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Command is not supported, statusCode: ${statusCode}`);
-        break;
-      case 161:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device is offline, statusCode: ${statusCode}`);
-        this.offlineOff();
-        break;
-      case 171:
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. ` +
-          `Hub: ${this.device.hubDeviceId}`,
-        );
-        this.offlineOff();
-        break;
-      case 190:
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,` +
-          ` Or command format is invalid, statusCode: ${statusCode}`,
-        );
-        break;
-      case 100:
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Command successfully sent, statusCode: ${statusCode}`);
-        break;
-      case 200:
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
-        break;
-      case 400:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Bad Request, The client has issued an invalid request. `
-            + `This is commonly used to specify validation errors in a request payload, statusCode: ${statusCode}`);
-        break;
-      case 401:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unauthorized,	Authorization for the API is required, `
-            + `but the request has not been authenticated, statusCode: ${statusCode}`);
-        break;
-      case 403:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Forbidden,	The request has been authenticated but does not `
-            + `have appropriate permissions, or a requested resource is not found, statusCode: ${statusCode}`);
-        break;
-      case 404:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Not Found,	Specifies the requested path does not exist, `
-        + `statusCode: ${statusCode}`);
-        break;
-      case 406:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Not Acceptable,	The client has requested a MIME type via `
-            + `the Accept header for a value not supported by the server, statusCode: ${statusCode}`);
-        break;
-      case 415:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unsupported Media Type,	The client has defined a contentType `
-            + `header that is not supported by the server, statusCode: ${statusCode}`);
-        break;
-      case 422:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unprocessable Entity,	The client has made a valid request, `
-            + `but the server cannot process it. This is often used for APIs for which certain limits have been exceeded, statusCode: ${statusCode}`);
-        break;
-      case 429:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Too Many Requests,	The client has exceeded the number of `
-            + `requests allowed for a given time window, statusCode: ${statusCode}`);
-        break;
-      case 500:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Internal Server Error,	An unexpected error on the SmartThings `
-            + `servers has occurred. These errors should be rare, statusCode: ${statusCode}`);
-        break;
-      default:
-        this.infoLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: ` +
-          `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`,
-        );
-    }
-  }
-
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      await this.deviceContext();
-      await this.updateHomeKitCharacteristics();
+      if (!this.device.hub?.hide_temperature) {
+        this.TemperatureSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, this.accessory.context.CurrentTemperature);
+      }
+      if (!this.device.hub?.hide_humidity) {
+        this.HumiditySensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity,
+          this.accessory.context.CurrentRelativeHumidity);
+      }
+      if (!this.device.hub?.hide_lightsensor) {
+        this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel,
+          this.accessory.context.CurrentAmbientLightLevel);
+      }
     }
   }
 
   async apiError(e: any): Promise<void> {
     if (!this.device.hub?.hide_temperature) {
-      this.temperatureService?.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, e);
+      this.TemperatureSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, e);
     }
     if (!this.device.hub?.hide_humidity) {
-      this.humidityService?.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity, e);
+      this.HumiditySensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity, e);
     }
     if (!this.device.hub?.hide_lightsensor) {
-      this.lightSensorService?.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, e);
+      this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, e);
     }
   }
 
-  minLux(): number {
-    if (this.device.curtain?.set_minLux) {
-      this.set_minLux = this.device.curtain?.set_minLux;
-    } else {
-      this.set_minLux = 1;
+  async getLightLevel(lightLevel: any, set_minLux: number, set_maxLux: number, spaceBetweenLevels: number) {
+    switch (lightLevel) {
+      case 1:
+        this.LightSensor!.CurrentAmbientLightLevel = set_minLux;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
+        break;
+      case 2:
+        this.LightSensor!.CurrentAmbientLightLevel = (set_maxLux - set_minLux) / spaceBetweenLevels;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel},`
+          + ` Calculation: ${(set_maxLux - set_minLux) / spaceBetweenLevels}`);
+        break;
+      case 3:
+        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 2;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
+        break;
+      case 4:
+        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 3;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
+        break;
+      case 5:
+        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 4;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
+        break;
+      case 6:
+        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 5;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
+        break;
+      case 7:
+        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 6;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
+        break;
+      case 8:
+        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 7;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
+        break;
+      case 9:
+        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 8;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
+        break;
+      case 10:
+        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 9;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
+        break;
+      case 11:
+        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 10;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
+        break;
+      case 12:
+        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 11;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
+        break;
+      case 13:
+        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 12;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
+        break;
+      case 14:
+        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 13;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
+        break;
+      case 15:
+        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 14;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
+        break;
+      case 16:
+        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 15;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
+        break;
+      case 17:
+        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 16;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
+        break;
+      case 18:
+        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 17;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
+        break;
+      case 19:
+        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 18;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
+        break;
+      case 20:
+      default:
+        this.LightSensor!.CurrentAmbientLightLevel = set_maxLux;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
     }
-    return this.set_minLux;
-  }
-
-  maxLux(): number {
-    if (this.device.curtain?.set_maxLux) {
-      this.set_maxLux = this.device.curtain?.set_maxLux;
-    } else {
-      this.set_maxLux = 6001;
-    }
-    return this.set_maxLux;
-  }
-
-  async deviceContext() {
-    if (this.CurrentRelativeHumidity === undefined) {
-      this.CurrentRelativeHumidity = 0;
-    } else {
-      this.CurrentRelativeHumidity = this.accessory.context.CurrentRelativeHumidity;
-    }
-    if (this.CurrentTemperature === undefined) {
-      this.CurrentTemperature = 0;
-    } else {
-      this.CurrentTemperature = this.accessory.context.CurrentTemperature;
-    }
-    if (this.CurrentAmbientLightLevel === undefined) {
-      this.CurrentAmbientLightLevel = this.set_minLux;
-    } else {
-      this.CurrentAmbientLightLevel = this.accessory.context.CurrentAmbientLightLevel;
-    }
-    if (this.FirmwareRevision === undefined) {
-      this.FirmwareRevision = this.platform.version;
-      this.accessory.context.FirmwareRevision = this.FirmwareRevision;
-    }
-  }
-
-  async refreshRate(device: device & devicesConfig): Promise<void> {
-    // refreshRate
-    if (device.refreshRate) {
-      this.deviceRefreshRate = this.accessory.context.refreshRate = device.refreshRate;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config refreshRate: ${this.deviceRefreshRate}`);
-    } else if (this.platform.config.options!.refreshRate) {
-      this.deviceRefreshRate = this.accessory.context.refreshRate = this.platform.config.options!.refreshRate;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
-    }
-    // updateRate
-    if (device?.curtain?.updateRate) {
-      this.updateRate = device?.curtain?.updateRate;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config Curtain updateRate: ${this.updateRate}`);
-    } else {
-      this.updateRate = 7;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Default Curtain updateRate: ${this.updateRate}`);
-    }
-  }
-
-  async deviceConfig(device: device & devicesConfig): Promise<void> {
-    let config = {};
-    if (device.hub) {
-      config = device.hub;
-    }
-    if (device.connectionType !== undefined) {
-      config['connectionType'] = device.connectionType;
-    }
-    if (device.external !== undefined) {
-      config['external'] = device.external;
-    }
-    if (device.logging !== undefined) {
-      config['logging'] = device.logging;
-    }
-    if (device.refreshRate !== undefined) {
-      config['refreshRate'] = device.refreshRate;
-    }
-    if (device.webhook !== undefined) {
-      config['webhook'] = device.webhook;
-    }
-    if (Object.entries(config).length !== 0) {
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
-    }
-  }
-
-  async deviceLogs(device: device & devicesConfig): Promise<void> {
-    if (this.platform.debugMode) {
-      this.deviceLogging = this.accessory.context.logging = 'debugMode';
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
-    } else if (device.logging) {
-      this.deviceLogging = this.accessory.context.logging = device.logging;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
-    } else if (this.platform.config.options?.logging) {
-      this.deviceLogging = this.accessory.context.logging = this.platform.config.options?.logging;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
-    } else {
-      this.deviceLogging = this.accessory.context.logging = 'standard';
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
-    }
-  }
-
-  /**
-   * Logging for Device
-   */
-  infoLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      this.platform.log.info(String(...log));
-    }
-  }
-
-  warnLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      this.platform.log.warn(String(...log));
-    }
-  }
-
-  debugWarnLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      if (this.deviceLogging?.includes('debug')) {
-        this.platform.log.warn('[DEBUG]', String(...log));
-      }
-    }
-  }
-
-  errorLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      this.platform.log.error(String(...log));
-    }
-  }
-
-  debugErrorLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      if (this.deviceLogging?.includes('debug')) {
-        this.platform.log.error('[DEBUG]', String(...log));
-      }
-    }
-  }
-
-  debugLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      if (this.deviceLogging === 'debug') {
-        this.platform.log.info('[DEBUG]', String(...log));
-      } else {
-        this.platform.log.debug(String(...log));
-      }
-    }
-  }
-
-  enablingDeviceLogging(): boolean {
-    return this.deviceLogging.includes('debug') || this.deviceLogging === 'standard';
   }
 }

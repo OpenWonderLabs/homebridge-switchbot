@@ -1,8 +1,7 @@
 <p class="text-center">
   <img
     src="https://raw.githubusercontent.com/OpenWonderLabs/homebridge-switchbot/latest/branding/Homebridge_x_SwitchBot.svg"
-    alt="homebridge-switchbot logo"
-    style="width: 50%" />
+    alt="homebridge-switchbot logo" style="width: 50%" />
 </p>
 <div id="pageIntro" style="display: none">
   <p class="lead text-center">Thank you for installing <strong>homebridge-switchbot</strong></p>
@@ -10,10 +9,10 @@
   <ol>
     <li class="mb-3">
       Download the SwitchBot App from either the
-      <a href="https://apps.apple.com/us/app/switchbot/id1087374760" target="_blank" rel="noreferrer noopener">App Store</a> or the
-      <a href="https://play.google.com/store/apps/details?id=com.theswitchbot.switchbot&hl=en_US&gl=US" target="_blank" rel="noreferrer noopener"
-        >Play Store</a
-      >.
+      <a href="https://apps.apple.com/us/app/switchbot/id1087374760" target="_blank" rel="noreferrer noopener">App
+        Store</a> or the
+      <a href="https://play.google.com/store/apps/details?id=com.theswitchbot.switchbot&hl=en_US&gl=US" target="_blank"
+        rel="noreferrer noopener">Play Store</a>.
     </li>
     <li class="mb-3">Select <strong>Profile</strong>.</li>
     <li class="mb-3">Select <strong>Preferences</strong>.</li>
@@ -60,7 +59,7 @@
         </tr>
         <tr>
           <th scope="row">Firmware Version</th>
-          <td id="firmwareRevision"></td>
+          <td id="version"></td>
         </tr>
         <tr>
           <th scope="row">Device Type</th>
@@ -84,31 +83,38 @@
       <a href="https://github.com/OpenWonderLabs/homebridge-switchbot/wiki" target="_blank">Wiki Home</a>
     </li>
     <li>
-      <a href="https://github.com/OpenWonderLabs/homebridge-switchbot/wiki/Configuration" target="_blank">Configuration</a>
+      <a href="https://github.com/OpenWonderLabs/homebridge-switchbot/wiki/Configuration"
+        target="_blank">Configuration</a>
     </li>
     <li>
-      <a href="https://github.com/OpenWonderLabs/homebridge-switchbot/wiki/Beta-Version" target="_blank">Beta Version</a>
+      <a href="https://github.com/OpenWonderLabs/homebridge-switchbot/wiki/Beta-Version" target="_blank">Beta
+        Version</a>
     </li>
     <li>
-      <a href="https://github.com/OpenWonderLabs/homebridge-switchbot/wiki/Node-Version" target="_blank">Node Version</a>
+      <a href="https://github.com/OpenWonderLabs/homebridge-switchbot/wiki/Node-Version" target="_blank">Node
+        Version</a>
     </li>
     <li>
-      <a href="https://github.com/OpenWonderLabs/homebridge-switchbot/wiki/Uninstallation" target="_blank">Uninstallation</a>
+      <a href="https://github.com/OpenWonderLabs/homebridge-switchbot/wiki/Uninstallation"
+        target="_blank">Uninstallation</a>
     </li>
   </ul>
   <h5>Features</h5>
   <ul>
     <li>
-      <a href="https://github.com/OpenWonderLabs/homebridge-switchbot/wiki/Supported-Devices" target="_blank">Supported Devices</a>
+      <a href="https://github.com/OpenWonderLabs/homebridge-switchbot/wiki/Supported-Devices" target="_blank">Supported
+        Devices</a>
     </li>
   </ul>
   <h5>Help/About</h5>
   <ul>
     <li>
-      <a href="https://github.com/OpenWonderLabs/homebridge-switchbot/issues/new/choose" target="_blank">Support Request</a>
+      <a href="https://github.com/OpenWonderLabs/homebridge-switchbot/issues/new/choose" target="_blank">Support
+        Request</a>
     </li>
     <li>
-      <a href="https://github.com/OpenWonderLabs/homebridge-switchbot/blob/latest/CHANGELOG.md" target="_blank">Changelog</a>
+      <a href="https://github.com/OpenWonderLabs/homebridge-switchbot/blob/latest/CHANGELOG.md"
+        target="_blank">Changelog</a>
     </li>
   </ul>
 </div>
@@ -162,7 +168,7 @@
           document.getElementById('displayName').innerHTML = thisAcc.displayName;
           document.getElementById('deviceID').innerHTML = context.deviceID;
           document.getElementById('model').innerHTML = context.model;
-          document.getElementById('firmwareRevision').innerHTML = context.firmwareRevision || 'N/A';
+          document.getElementById('version').innerHTML = context.version;
           document.getElementById('deviceType').innerHTML = context.deviceType;
           document.getElementById('connectionType').innerHTML = context.connectionType;
           document.getElementById('deviceTable').style.display = 'inline-table';

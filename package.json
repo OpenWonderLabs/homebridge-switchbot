@@ -1,7 +1,7 @@
 {
   "displayName": "SwitchBot",
   "name": "@switchbot/homebridge-switchbot",
-  "version": "3.4.0",
+  "version": "3.5.0",
   "description": "The SwitchBot plugin allows you to access your SwitchBot device(s) from HomeKit.",
   "author": {
     "name": "SwitchBot",
@@ -24,9 +24,10 @@
   "bugs": {
     "url": "https://github.com/OpenWonderLabs/homebridge-switchbot/issues"
   },
+  "engineStrict": true,
   "engines": {
-    "homebridge": "^1.7.0",
-    "node": "^18 || ^20"
+    "homebridge": "^1.8.2",
+    "node": "^18 || ^20 || ^22"
   },
   "main": "dist/index.js",
   "scripts": {
@@ -76,27 +77,30 @@
     "ir"
   ],
   "dependencies": {
-    "@homebridge/plugin-ui-utils": "^1.0.1",
+    "@homebridge/plugin-ui-utils": "^1.0.3",
     "async-mqtt": "^2.6.3",
     "fakegato-history": "^0.6.4",
-    "homebridge-lib": "^6.7.3",
+    "homebridge-lib": "^7.0.1",
     "rxjs": "^7.8.1",
-    "undici": "^6.6.2"
+    "undici": "^6.18.1"
   },
   "optionalDependencies": {
-    "node-switchbot": "2.0.3"
+    "node-switchbot": "2.1.1"
   },
   "devDependencies": {
-    "@types/node": "^20.11.17",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
-    "eslint": "^8.56.0",
-    "homebridge": "^1.7.0",
-    "homebridge-config-ui-x": "4.55.1",
-    "nodemon": "^3.0.3",
-    "npm-check-updates": "^16.14.15",
-    "rimraf": "^5.0.5",
+    "@eslint/js": "^9.3.0",
+    "@stylistic/eslint-plugin": "^2.1.0",
+    "@types/eslint__js": "^8.42.3",
+    "@types/node": "^20.12.12",
+    "eslint": "^9.3.0",
+    "globals": "^15.3.0",
+    "homebridge": "^1.8.2",
+    "homebridge-config-ui-x": "4.56.2",
+    "nodemon": "^3.1.1",
+    "npm-check-updates": "^16.14.20",
+    "rimraf": "^5.0.7",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^8.0.0-alpha.14"
   }
 }
