@@ -2,6 +2,9 @@
  *
  * device.ts: @switchbot/homebridge-switchbot.
  */
+import { request } from 'undici';
+import { Devices } from '../settings.js';
+
 import type { SwitchBotPlatform } from '../platform.js';
 import type { API, HAP, Logging, PlatformAccessory } from 'homebridge';
 import type { SwitchBotPlatformConfig, irDevicesConfig, irdevice } from '../settings.js';
@@ -187,6 +190,27 @@ export abstract class irdeviceBase {
       .updateValue(deviceVersion);
     accessory.context.deviceVersion = deviceVersion;
     this.debugSuccessLog(`${device.remoteType}: ${accessory.displayName} deviceVersion: ${accessory.context.deviceVersion}`);
+  }
+
+  async pushChangeRequest(bodyChange: string): Promise<{ body: any; statusCode: any; }> {
+    return await request(`${Devices}/${this.device.deviceId}/commands`, {
+      body: bodyChange,
+      method: 'POST',
+      headers: this.platform.generateHeaders(),
+    });
+  }
+
+  async pushStatusCodes(statusCode: any, deviceStatus: any) {
+    this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+    this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
+    this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
+  }
+
+  async successfulPushChange(statusCode: any, deviceStatus: any, bodyChange: any) {
+    this.debugSuccessLog(`${this.device.remoteType}: ${this.accessory.displayName} statusCode: ${statusCode} & deviceStatus `
+      + `StatusCode: ${deviceStatus.statusCode}`);
+    this.successLog(`${this.device.remoteType}: ${this.accessory.displayName} request to SwitchBot API,`
+      + ` body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
   }
 
   async disablePushOnChanges(device: irdevice & irDevicesConfig): Promise<void> {

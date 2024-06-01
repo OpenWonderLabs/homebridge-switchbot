@@ -71,6 +71,7 @@ export interface devicesConfig extends device {
   bleMac?: string;
   model?: string;
   bleModel?: string;
+  bleModelName?: string;
   configDeviceType: string;
   configDeviceName?: string;
   deviceId: string;
@@ -425,7 +426,7 @@ export type serviceData = {
   //Meter Temperature Levels
   temperature?: temperature;
   // Fahrenheit enabled for Meter
-  fahrenheit: boolean;
+  fahrenheit?: boolean;
   // Humidity level for Meter
   humidity?: number;
   //Motion Detected for Contact or Motion Sensors

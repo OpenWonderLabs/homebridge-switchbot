@@ -4,13 +4,15 @@
  */
 
 import { hostname } from 'os';
+import { request } from 'undici';
 import asyncmqtt from 'async-mqtt';
-import { BlindTiltMappingMode, SwitchBotModel, SwitchBotBLEModel, sleep } from '../utils.js';
+import { Devices } from '../settings.js';
+import { BlindTiltMappingMode, SwitchBotModel, SwitchBotBLEModel, SwitchBotBLEModelName, sleep } from '../utils.js';
 
 import type { MqttClient } from 'mqtt';
 import type { SwitchBotPlatform } from '../platform.js';
 import type { API, HAP, Logging, PlatformAccessory } from 'homebridge';
-import type { SwitchBotPlatformConfig, device, devicesConfig } from '../settings.js';
+import type { ad, device, serviceData, SwitchBotPlatformConfig, devicesConfig, deviceStatus } from '../settings.js';
 
 export abstract class deviceBase {
   public readonly api: API;
@@ -365,14 +367,53 @@ export abstract class deviceBase {
       : null;
   }
 
-  async getCustomBLEAddress(switchbot: any) {
+  async switchbotBLE() {
+    const switchbot = await this.platform.connectBLE();
+    // Convert to BLE Address
+    await this.convertBLEAddress();
+    await this.getCustomBLEAddress(switchbot);
+    return switchbot;
+  }
+
+  async convertBLEAddress() {
+    this.device.bleMac = this.device
+      .deviceId!.match(/.{1,2}/g)!
+      .join(':')
+      .toLowerCase();
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+  }
+
+  async monitorAdvertisementPackets(switchbot: any) {
+    await switchbot.startScan({ model: this.device.bleModel, id: this.device.bleMac });
+    // Set an event handler
+    let serviceData: serviceData = { model: this.device.bleModel, modelName: this.device.bleModelName } as serviceData;
+    switchbot.onadvertisement = async (ad: ad) => {
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} ad: ${JSON.stringify(ad, null, '  ')}`);
+      if (this.device.bleMac === ad.address && ad.serviceData.model === this.device.bleModel) {
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${JSON.stringify(ad, null, '  ')}`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} address: ${ad.address}, model: ${ad.serviceData.model}`);
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+        serviceData = ad.serviceData;
+      } else {
+        serviceData = { model: '', modelName: '' } as serviceData;
+        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
+      }
+    };
+    // Wait 10 seconds
+    await switchbot.wait(this.scanDuration * 1000);
+    // Stop to monitor
+    await switchbot.stopScan();
+    return serviceData;
+  }
+
+  async getCustomBLEAddress(switchbot: any): Promise<void> {
     if (this.device.customBLEaddress && this.deviceLogging.includes('debug')) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} customBLEaddress: ${this.device.customBLEaddress}`);
       (async () => {
         // Start to monitor advertisement packets
         await switchbot.startScan({ model: this.device.bleModel });
         // Set an event handler
-        switchbot.onadvertisement = (ad: any) => {
+        switchbot.onadvertisement = async (ad: ad) => {
           this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} ad: ${JSON.stringify(ad, null, '  ')}`);
         };
         await sleep(10000);
@@ -382,27 +423,74 @@ export abstract class deviceBase {
     }
   }
 
+  async pushChangeRequest(bodyChange: string): Promise<{ body: any; statusCode: any; }> {
+    return await request(`${Devices}/${this.device.deviceId}/commands`, {
+      body: bodyChange,
+      method: 'POST',
+      headers: this.platform.generateHeaders(),
+    });
+  }
+
+  async successfulPushChange(statusCode: any, deviceStatus: any, bodyChange: string) {
+    this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode} & deviceStatus`
+      + ` StatusCode: ${deviceStatus.statusCode}`);
+    this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} request to SwitchBot API,`
+      + ` body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
+  }
+
+  async successfulRefreshStatus(statusCode: any, deviceStatus: any) {
+    this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} `
+          + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+  }
+
+  async statusCodes(statusCode: any, deviceStatus: any) {
+    this.statusCode(statusCode);
+    this.statusCode(deviceStatus.statusCode);
+  }
+
+  async refreshStatusCodes(statusCode: number, deviceStatus: deviceStatus): Promise<void> {
+    this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+    this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
+    this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
+  }
+
+  async pushStatusCodes(statusCode: number, deviceStatus: any) {
+    this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+    this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
+    this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
+    this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
+  }
+
+  async deviceRefreshStatus(): Promise<{ body: any; statusCode: any; }> {
+    return await this.platform.retryRequest(this.deviceMaxRetries, this.deviceDelayBetweenRetries,
+      `${Devices}/${this.device.deviceId}/status`, { headers: this.platform.generateHeaders() });
+  }
+
   async getDeviceContext(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
     // Set the accessory context
     switch (device.deviceType) {
       case 'Humidifier':
         device.model = SwitchBotModel.Humidifier;
         device.bleModel = SwitchBotBLEModel.Humidifier;
+        device.bleModelName = SwitchBotBLEModelName.Humidifier;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Hub Mini':
         device.model = SwitchBotModel.HubMini;
         device.bleModel = SwitchBotBLEModel.Unknown;
+        device.bleModelName = SwitchBotBLEModelName.Unknown;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Hub Plus':
         device.model = SwitchBotModel.HubPlus;
         device.bleModel = SwitchBotBLEModel.Unknown;
+        device.bleModelName = SwitchBotBLEModelName.Unknown;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Hub 2':
         device.model = SwitchBotModel.Hub2;
-        device.bleModel = SwitchBotBLEModel.Unknown;
+        device.bleModel = SwitchBotBLEModel.Hub2;
+        device.bleModelName = SwitchBotBLEModelName.Hub2;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Bot':
@@ -413,96 +501,115 @@ export abstract class deviceBase {
       case 'Meter':
         device.model = SwitchBotModel.Meter;
         device.bleModel = SwitchBotBLEModel.Meter;
+        device.bleModelName = SwitchBotBLEModelName.Meter;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'MeterPlus':
         device.model = SwitchBotModel.MeterPlusUS;
         device.bleModel = SwitchBotBLEModel.MeterPlus;
+        device.bleModelName = SwitchBotBLEModelName.MeterPlus;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Meter Plus (JP)':
         device.model = SwitchBotModel.MeterPlusJP;
         device.bleModel = SwitchBotBLEModel.MeterPlus;
+        device.bleModelName = SwitchBotBLEModelName.MeterPlus;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'WoIOSensor':
         device.model = SwitchBotModel.OutdoorMeter;
         device.bleModel = SwitchBotBLEModel.OutdoorMeter;
+        device.bleModelName = SwitchBotBLEModelName.OutdoorMeter;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Water Detector':
         device.model = SwitchBotModel.WaterDetector;
         device.bleModel = SwitchBotBLEModel.Unknown;
+        device.bleModelName = SwitchBotBLEModelName.Unknown;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Motion Sensor':
         device.model = SwitchBotModel.MotionSensor;
         device.bleModel = SwitchBotBLEModel.MotionSensor;
+        device.bleModelName = SwitchBotBLEModelName.MotionSensor;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Contact Sensor':
         device.model = SwitchBotModel.ContactSensor;
         device.bleModel = SwitchBotBLEModel.ContactSensor;
+        device.bleModelName = SwitchBotBLEModelName.ContactSensor;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Curtain':
         device.model = SwitchBotModel.Curtain;
         device.bleModel = SwitchBotBLEModel.Curtain;
+        device.bleModelName = SwitchBotBLEModelName.Curtain;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Curtain3':
         device.model = SwitchBotModel.Curtain3;
         device.bleModel = SwitchBotBLEModel.Curtain3;
+        device.bleModelName = SwitchBotBLEModelName.Curtain3;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Blind Tilt':
         device.model = SwitchBotModel.BlindTilt;
         device.bleModel = SwitchBotBLEModel.BlindTilt;
+        device.bleModelName = SwitchBotBLEModelName.BlindTilt;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Plug':
         device.model = SwitchBotModel.Plug;
         device.bleModel = SwitchBotBLEModel.PlugMiniUS;
+        device.bleModelName = SwitchBotBLEModelName.PlugMini;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Plug Mini (US)':
         device.model = SwitchBotModel.PlugMiniUS;
         device.bleModel = SwitchBotBLEModel.PlugMiniUS;
+        device.bleModelName = SwitchBotBLEModelName.PlugMini;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Plug Mini (JP)':
         device.model = SwitchBotModel.PlugMiniJP;
         device.bleModel = SwitchBotBLEModel.PlugMiniJP;
+        device.bleModelName = SwitchBotBLEModelName.PlugMini;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Smart Lock':
         device.model = SwitchBotModel.Lock;
         device.bleModel = SwitchBotBLEModel.Lock;
+        device.bleModelName = SwitchBotBLEModelName.Lock;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Smart Lock Pro':
         device.model = SwitchBotModel.LockPro;
-        device.bleModel = SwitchBotBLEModel.Unknown;
+        device.bleModel = SwitchBotBLEModel.Lock;
+        device.bleModelName = SwitchBotBLEModelName.Lock;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Color Bulb':
         device.model = SwitchBotModel.ColorBulb;
         device.bleModel = SwitchBotBLEModel.ColorBulb;
+        device.bleModelName = SwitchBotBLEModelName.ColorBulb;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'K10+':
         device.model = SwitchBotModel.K10;
         device.bleModel = SwitchBotBLEModel.Unknown;
+        device.bleModelName = SwitchBotBLEModelName.Unknown;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'WoSweeper':
         device.model = SwitchBotModel.WoSweeper;
         device.bleModel = SwitchBotBLEModel.Unknown;
+        device.bleModelName = SwitchBotBLEModelName.Unknown;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'WoSweeperMini':
         device.model = SwitchBotModel.WoSweeperMini;
         device.bleModel = SwitchBotBLEModel.Unknown;
+        device.bleModelName = SwitchBotBLEModelName.Unknown;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Robot Vacuum Cleaner S1':
@@ -513,51 +620,61 @@ export abstract class deviceBase {
       case 'Robot Vacuum Cleaner S1 Plus':
         device.model = SwitchBotModel.RobotVacuumCleanerS1Plus;
         device.bleModel = SwitchBotBLEModel.Unknown;
+        device.bleModelName = SwitchBotBLEModelName.Unknown;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Robot Vacuum Cleaner S10':
         device.model = SwitchBotModel.RobotVacuumCleanerS10;
         device.bleModel = SwitchBotBLEModel.Unknown;
+        device.bleModelName = SwitchBotBLEModelName.Unknown;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Ceiling Light':
         device.model = SwitchBotModel.CeilingLight;
         device.bleModel = SwitchBotBLEModel.CeilingLight;
+        device.bleModelName = SwitchBotBLEModelName.Unknown;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Ceiling Light Pro':
         device.model = SwitchBotModel.CeilingLightPro;
         device.bleModel = SwitchBotBLEModel.CeilingLightPro;
+        device.bleModelName = SwitchBotBLEModelName.Unknown;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Strip Light':
         device.model = SwitchBotModel.StripLight;
         device.bleModel = SwitchBotBLEModel.StripLight;
+        device.bleModelName = SwitchBotBLEModelName.StripLight;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Indoor Cam':
         device.model = SwitchBotModel.IndoorCam;
         device.bleModel = SwitchBotBLEModel.Unknown;
+        device.bleModelName = SwitchBotBLEModelName.Unknown;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Remote':
         device.model = SwitchBotModel.Remote;
-        device.bleModel = SwitchBotBLEModel.Remote;
+        device.bleModel = SwitchBotBLEModel.Unknown;
+        device.bleModelName = SwitchBotBLEModelName.Unknown;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'remote with screen+':
         device.model = SwitchBotModel.UniversalRemote;
         device.bleModel = SwitchBotBLEModel.Unknown;
+        device.bleModelName = SwitchBotBLEModelName.Unknown;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       case 'Battery Circulator Fan':
         device.model = SwitchBotModel.BatteryCirculatorFan;
         device.bleModel = SwitchBotBLEModel.Unknown;
+        device.bleModelName = SwitchBotBLEModelName.Unknown;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
         break;
       default:
         device.model = SwitchBotModel.Unknown;
         device.bleModel = SwitchBotBLEModel.Unknown;
+        device.bleModelName = SwitchBotBLEModelName.Unknown;
         this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Model: ${device.model}, BLE Model: ${device.bleModel}`);
     }
     accessory.context.model = device.model;

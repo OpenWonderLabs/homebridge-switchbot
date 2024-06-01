@@ -2,8 +2,6 @@
  *
  * light.ts: @switchbot/homebridge-switchbot.
  */
-import { request } from 'undici';
-import { Devices } from '../settings.js';
 import { irdeviceBase } from './irdevice.js';
 
 import type { SwitchBotPlatform } from '../platform.js';
@@ -217,25 +215,16 @@ export class Light extends irdeviceBase {
     if (this.device.connectionType === 'OpenAPI') {
       this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
-        const { body, statusCode } = await request(`${Devices}/${this.device.deviceId}/commands`, {
-          body: bodyChange,
-          method: 'POST',
-          headers: this.platform.generateHeaders(),
-        });
-        this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+        const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
-        this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
-        this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
+        await this.pushStatusCodes(statusCode, deviceStatus);
         if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-          this.debugSuccessLog(`${this.device.remoteType}: ${this.accessory.displayName} `
-            + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
-          this.successLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-            + ` request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
+          await this.successfulPushChange(statusCode, deviceStatus, bodyChange);
           this.accessory.context.On = On;
-          this.updateHomeKitCharacteristics();
+          await this.updateHomeKitCharacteristics();
         } else {
-          this.statusCode(statusCode);
-          this.statusCode(deviceStatus.statusCode);
+          await this.statusCode(statusCode);
+          await this.statusCode(deviceStatus.statusCode);
         }
       } catch (e: any) {
         this.apiError(e);

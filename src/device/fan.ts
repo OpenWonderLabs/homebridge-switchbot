@@ -2,9 +2,7 @@
  *
  * plug.ts: @switchbot/homebridge-switchbot.
  */
-import { request } from 'undici';
 import { deviceBase } from './device.js';
-import { Devices } from '../settings.js';
 import { Subject, debounceTime, interval, skipWhile, take, tap } from 'rxjs';
 
 import type { SwitchBotPlatform } from '../platform.js';
@@ -243,8 +241,6 @@ export class Fan extends deviceBase {
     }
   }
 
-
-
   /**
    * Asks the SwitchBot API for the latest device information
    */
@@ -264,58 +260,39 @@ export class Fan extends deviceBase {
 
   async BLERefreshStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLERefreshStatus`);
-    const switchbot = await this.platform.connectBLE();
-    // Convert to BLE Address
-    this.device.bleMac = this.device
-      .deviceId!.match(/.{1,2}/g)!
-      .join(':')
-      .toLowerCase();
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-    this.getCustomBLEAddress(switchbot);
-    // Start to monitor advertisement packets
-    (async () => {
-      // Start to monitor advertisement packets
-      await switchbot.startScan({ model: this.device.bleModel, id: this.device.bleMac });
-      // Set an event handler
-      switchbot.onadvertisement = (ad: any) => {
-        if (this.device.bleMac === ad.address && ad.model === this.device.bleModel) {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${JSON.stringify(ad, null, '  ')}`);
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} address: ${ad.address}, model: ${ad.model}`);
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-        } else {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-        }
-      };
-      // Wait 10 seconds
-      await switchbot.wait(this.scanDuration * 1000);
-      // Stop to monitor
-      await switchbot.stopScan();
-      // Update HomeKit
-      await this.BLEparseStatus(switchbot.onadvertisement.serviceData);
-      await this.updateHomeKitCharacteristics();
-    })();
+    const switchbot = await this.switchbotBLE();
+
     if (switchbot === undefined) {
       await this.BLERefreshConnection(switchbot);
+    } else {
+    // Start to monitor advertisement packets
+      (async () => {
+      // Start to monitor advertisement packets
+        const serviceData: serviceData = await this.monitorAdvertisementPackets(switchbot);
+        // Update HomeKit
+        if (serviceData.model !== '' && serviceData.modelName !== '') {
+          await this.BLEparseStatus(serviceData);
+          await this.updateHomeKitCharacteristics();
+        } else {
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed to get serviceData, serviceData: ${serviceData}`);
+          await this.BLERefreshConnection(switchbot);
+        }
+      })();
     }
   }
 
   async openAPIRefreshStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
     try {
-      const { body, statusCode } = await this.platform.retryRequest(this.deviceMaxRetries, this.deviceDelayBetweenRetries,
-        `${Devices}/${this.device.deviceId}/status`, { headers: this.platform.generateHeaders() });
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+      const { body, statusCode } = await this.deviceRefreshStatus();
       const deviceStatus: any = await body.json();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
+      await this.refreshStatusCodes(statusCode, deviceStatus);;
       if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-        this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-          + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
-        this.openAPIparseStatus(deviceStatus);
-        this.updateHomeKitCharacteristics();
+        await this.successfulRefreshStatus(statusCode, deviceStatus);
+        await this.openAPIparseStatus(deviceStatus);
+        await this.updateHomeKitCharacteristics();
       } else {
-        this.statusCode(statusCode);
-        this.statusCode(deviceStatus.statusCode);
+        await this.statusCodes(statusCode, deviceStatus);
       }
     } catch (e: any) {
       this.apiError(e);
@@ -412,16 +389,9 @@ export class Fan extends deviceBase {
         + ` On: ${this.Fan.Active} OnCached: ${this.accessory.context.Active}`);
       const switchbot = await this.platform.connectBLE();
       // Convert to BLE Address
-      this.device.bleMac = this.device
-        .deviceId!.match(/.{1,2}/g)!
-        .join(':')
-        .toLowerCase();
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+      await this.convertBLEAddress();
       switchbot
-        .discover({
-          model: this.device.bleModel,
-          id: this.device.bleMac,
-        })
+        .discover({ model: this.device.bleModel, id: this.device.bleMac })
         .then(async (device_list: any) => {
           this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.Fan.Active}`);
           return await this.retryBLE({
@@ -469,24 +439,15 @@ export class Fan extends deviceBase {
       });
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
-        const { body, statusCode } = await request(`${Devices}/${this.device.deviceId}/commands`, {
-          body: bodyChange,
-          method: 'POST',
-          headers: this.platform.generateHeaders(),
-        });
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+        const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
+        await this.pushStatusCodes(statusCode, deviceStatus);
         if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-          this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
-          this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
+          await this.successfulPushChange(statusCode, deviceStatus, bodyChange);
+          await this.updateHomeKitCharacteristics();
         } else {
-          this.statusCode(statusCode);
-          this.statusCode(deviceStatus.statusCode);
+          await this.statusCode(statusCode);
+          await this.statusCode(deviceStatus.statusCode);
         }
       } catch (e: any) {
         this.apiError(e);
@@ -517,24 +478,15 @@ export class Fan extends deviceBase {
       });
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
-        const { body, statusCode } = await request(`${Devices}/${this.device.deviceId}/commands`, {
-          body: bodyChange,
-          method: 'POST',
-          headers: this.platform.generateHeaders(),
-        });
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+        const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
+        await this.pushStatusCodes(statusCode, deviceStatus);
         if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-          this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
-          this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
+          await this.successfulPushChange(statusCode, deviceStatus, bodyChange);
+          await this.updateHomeKitCharacteristics();
         } else {
-          this.statusCode(statusCode);
-          this.statusCode(deviceStatus.statusCode);
+          await this.statusCode(statusCode);
+          await this.statusCode(deviceStatus.statusCode);
         }
       } catch (e: any) {
         this.apiError(e);
@@ -563,24 +515,15 @@ export class Fan extends deviceBase {
       });
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
-        const { body, statusCode } = await request(`${Devices}/${this.device.deviceId}/commands`, {
-          body: bodyChange,
-          method: 'POST',
-          headers: this.platform.generateHeaders(),
-        });
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+        const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
+        await this.pushStatusCodes(statusCode, deviceStatus);
         if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-          this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
-          this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
+          await this.successfulPushChange(statusCode, deviceStatus, bodyChange);
+          await this.updateHomeKitCharacteristics();
         } else {
-          this.statusCode(statusCode);
-          this.statusCode(deviceStatus.statusCode);
+          await this.statusCode(statusCode);
+          await this.statusCode(deviceStatus.statusCode);
         }
       } catch (e: any) {
         this.apiError(e);

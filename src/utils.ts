@@ -51,6 +51,7 @@ export enum SwitchBotBLEModel {
   Humidifier = 'e',
   Meter = 'T',
   MeterPlus = 'i',
+  Hub2 = 'v',
   OutdoorMeter = 'w',
   MotionSensor = 's',
   ContactSensor = 'd',
@@ -59,10 +60,28 @@ export enum SwitchBotBLEModel {
   PlugMiniUS = 'g',
   PlugMiniJP = 'j',
   Lock = 'o',
-  Remote = '',
   CeilingLight = 'q', // Currently only available in Japan.
   CeilingLightPro = 'n', // Currently only available in Japan.
   BlindTilt = 'x',
+  Unknown = 'Unknown',
+}
+
+export enum SwitchBotBLEModelName {
+  Bot = 'WoHand',
+  Hub2 = 'WoHub2',
+  ColorBulb = 'WoBulb',
+  Curtain = 'WoCurtain',
+  Curtain3 = 'WoCurtain3',
+  Humidifier = 'WoHumi',
+  Meter = 'WoSensorTH',
+  Lock = 'WoSmartLock',
+  PlugMini = 'WoPlugMini',
+  StripLight = 'WoStrip',
+  MeterPlus = 'WoSensorTHPlus',
+  OutdoorMeter = 'WoIOSensorTH',
+  ContactSensor = 'WoContact',
+  MotionSensor = 'WoMotion',
+  BlindTilt = 'WoBlindTilt',
   Unknown = 'Unknown',
 }
 

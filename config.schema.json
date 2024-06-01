@@ -275,7 +275,7 @@
                   ],
                   "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType !== 'Hub 2');"
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
                   }
                 },
                 "webhook": {
@@ -1887,15 +1887,15 @@
         {
           "key": "options.refreshRate",
           "description": "<em class='primary-text'>Specifies the interval, in seconds, for retrieving the latest device status from the SwitchBot API.</em>"
-          },
+        },
         {
           "key": "options.updateRate",
           "description": "<em class='primary-text'>Specifies the interval, in seconds, at which devices will request updates from the SwitchBot API while in motion, for Curtain(s) and Blind Tilt(s) only.</em>"
-          },
+        },
         {
           "key": "options.pushRate",
           "description": "<em class='primary-text'>Specifies the interval, in seconds, between pushes to the SwitchBot API.</em>"
-          },
+        },
         "options.logging"
       ]
     }

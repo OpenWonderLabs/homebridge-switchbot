@@ -3,10 +3,8 @@
  * curtain.ts: @switchbot/homebridge-switchbot.
  */
 import { hostname } from 'os';
-import { request } from 'undici';
 import { interval, Subject } from 'rxjs';
 import { deviceBase } from './device.js';
-import { Devices } from '../settings.js';
 import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
 
 import type { SwitchBotPlatform } from '../platform.js';
@@ -296,8 +294,9 @@ export class Curtain extends deviceBase {
 
   async BLEparseStatus(serviceData: serviceData): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
+    this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} ${JSON.stringify(serviceData)}`);
     // CurrentPosition
-    this.WindowCovering.CurrentPosition = 100 - Number(serviceData.position);
+    this.WindowCovering.CurrentPosition = 100 - Number(serviceData.position!);
     await this.setMinMax();
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition ${this.WindowCovering.CurrentPosition}`);
     if (this.setNewTarget) {
@@ -337,21 +336,35 @@ export class Curtain extends deviceBase {
       const set_maxLux = this.device.curtain?.set_maxLux ?? 6001;
       const spaceBetweenLevels = 9;
 
+      serviceData.lightLevel = 1;
       // Brightness
       switch (serviceData.lightLevel) {
         case 1:
+          this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * (serviceData.lightLevel === 1
+            ? set_minLux : 2);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} 1 LightLevel: ${serviceData.lightLevel},`
+        + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
           this.LightSensor!.CurrentAmbientLightLevel = set_minLux;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} 2 LightLevel: ${serviceData.lightLevel},`
+          + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
           break;
         case 2:
+          this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * (Number(serviceData.lightLevel) - 1);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} 1 LightLevel: ${serviceData.lightLevel},`
+          + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
           this.LightSensor!.CurrentAmbientLightLevel = (set_maxLux - set_minLux) / spaceBetweenLevels;
-          this.debugLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel},`
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} 2 LightLevel: ${serviceData.lightLevel},`
+          + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} 3 LightLevel: ${serviceData.lightLevel},`
             + ` Calculation: ${(set_maxLux - set_minLux) / spaceBetweenLevels}`);
           break;
         case 3:
+          this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * (Number(serviceData.lightLevel) - 1);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} 1 LightLevel: ${serviceData.lightLevel},`
+          + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
           this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 2;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel}`);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} 2 LightLevel: ${serviceData.lightLevel},`
+          + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
           this.Battery.ChargingState = this.hap.Characteristic.ChargingState.CHARGING;
           break;
         case 4:
@@ -386,7 +399,12 @@ export class Curtain extends deviceBase {
           break;
         case 10:
         default:
+          this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * (Number(serviceData.lightLevel) - 1);
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} 1 LightLevel: ${serviceData.lightLevel},`
+          + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
           this.LightSensor!.CurrentAmbientLightLevel = set_maxLux;
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} 2 LightLevel: ${serviceData.lightLevel},`
+          + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
           this.debugLog();
       }
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel},`
@@ -506,58 +524,39 @@ export class Curtain extends deviceBase {
 
   async BLERefreshStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLERefreshStatus`);
-    const switchbot = await this.platform.connectBLE();
-    // Convert to BLE Address
-    this.device.bleMac = this.device
-      .deviceId!.match(/.{1,2}/g)!
-      .join(':')
-      .toLowerCase();
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-    this.getCustomBLEAddress(switchbot);
-    // Start to monitor advertisement packets
-    (async () => {
-      // Start to monitor advertisement packets
-      await switchbot.startScan({ model: this.device.bleModel, id: this.device.bleMac });
-      // Set an event handler
-      switchbot.onadvertisement = (ad: any) => {
-        if (this.device.bleMac === ad.address && ad.model === this.device.bleModel) {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${JSON.stringify(ad, null, '  ')}`);
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} address: ${ad.address}, model: ${ad.model}`);
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-        } else {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-        }
-      };
-      // Wait 10 seconds
-      await switchbot.wait(this.scanDuration * 1000);
-      // Stop to monitor
-      await switchbot.stopScan();
-      // Update HomeKit
-      await this.BLEparseStatus(switchbot.onadvertisement.serviceData);
-      await this.updateHomeKitCharacteristics();
-    })();
+    const switchbot = await this.switchbotBLE();
+
     if (switchbot === undefined) {
       await this.BLERefreshConnection(switchbot);
+    } else {
+    // Start to monitor advertisement packets
+      (async () => {
+      // Start to monitor advertisement packets
+        const serviceData: serviceData = await this.monitorAdvertisementPackets(switchbot);
+        // Update HomeKit
+        if (serviceData.model !== '' && serviceData.modelName !== '') {
+          await this.BLEparseStatus(serviceData);
+          await this.updateHomeKitCharacteristics();
+        } else {
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed to get serviceData, serviceData: ${serviceData}`);
+          await this.BLERefreshConnection(switchbot);
+        }
+      })();
     }
   }
 
   async openAPIRefreshStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
     try {
-      const { body, statusCode } = await this.platform.retryRequest(this.deviceMaxRetries, this.deviceDelayBetweenRetries,
-        `${Devices}/${this.device.deviceId}/status`, { headers: this.platform.generateHeaders() });
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+      const { body, statusCode } = await this.deviceRefreshStatus();
       const deviceStatus: any = await body.json();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
+      await this.refreshStatusCodes(statusCode, deviceStatus);
       if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-        this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-          + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
-        this.openAPIparseStatus(deviceStatus);
-        this.updateHomeKitCharacteristics();
+        await this.successfulRefreshStatus(statusCode, deviceStatus);
+        await this.openAPIparseStatus(deviceStatus);
+        await this.updateHomeKitCharacteristics();
       } else {
-        this.statusCode(statusCode);
-        this.statusCode(deviceStatus.statusCode);
+        await this.statusCodes(statusCode, deviceStatus);
       }
     } catch (e: any) {
       this.apiError(e);
@@ -614,17 +613,13 @@ export class Curtain extends deviceBase {
     if (this.WindowCovering.TargetPosition !== this.WindowCovering.CurrentPosition) {
       const switchbot = await this.platform.connectBLE();
       // Convert to BLE Address
-      this.device.bleMac = this.device
-        .deviceId!.match(/.{1,2}/g)!
-        .join(':')
-        .toLowerCase();
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+      await this.convertBLEAddress();
       const { setPositionMode, Mode }: { setPositionMode: number; Mode: string; } = await this.setPerformance();
       const adjustedMode = setPositionMode === 1 ? 0x01 : 0xff;
       this.debugLog(`${this.accessory.displayName} Mode: ${Mode}`);
       if (switchbot !== false) {
         try {
-          const device_list = await switchbot.discover({ model: 'c', quick: true, id: this.device.bleMac });
+          const device_list = await switchbot.discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac });
           this.infoLog(`${this.accessory.displayName} Target Position: ${this.WindowCovering.TargetPosition}`);
 
           await this.retryBLE({
@@ -681,16 +676,9 @@ export class Curtain extends deviceBase {
       });
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
-        const { body, statusCode } = await request(`${Devices}/${this.device.deviceId}/commands`, {
-          body: bodyChange,
-          method: 'POST',
-          headers: this.platform.generateHeaders(),
-        });
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+        const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
+        await this.pushStatusCodes(statusCode, deviceStatus);
         if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
           this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
             + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
@@ -883,8 +871,10 @@ export class Curtain extends deviceBase {
   }
 
   async BLERefreshConnection(switchbot: any): Promise<void> {
-    this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot:`
+    if (switchbot !== undefined) {
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot:`
       + ` ${JSON.stringify(switchbot)}`);
+    }
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Refresh Status`);
       await this.openAPIRefreshStatus();

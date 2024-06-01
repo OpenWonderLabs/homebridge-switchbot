@@ -4,13 +4,12 @@
  */
 import { Units } from 'homebridge';
 import { deviceBase } from './device.js';
-import { Devices } from '../settings.js';
 import { convertUnits } from '../utils.js';
 import { Subject, interval, skipWhile } from 'rxjs';
 
 import type { SwitchBotPlatform } from '../platform.js';
-import type { device, deviceStatus, devicesConfig } from '../settings.js';
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+import type { device, devicesConfig, serviceData, deviceStatus } from '../settings.js';
 
 export class Hub extends deviceBase {
   // Services
@@ -152,6 +151,11 @@ export class Hub extends deviceBase {
 
   }
 
+  async BLEparseStatus(serviceData: serviceData): Promise<void> {
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(serviceData)}`);
+  }
+
   async openAPIparseStatus(deviceStatus: deviceStatus): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
     // CurrentRelativeHumidity
@@ -198,34 +202,58 @@ export class Hub extends deviceBase {
     }
   }
 
+  /**
+   * Asks the SwitchBot API for the latest device information
+   */
   async refreshStatus(): Promise<void> {
-    if (this.BLE) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE not supported`);
+    if (!this.device.enableCloudService && this.OpenAPI) {
+      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus enableCloudService: ${this.device.enableCloudService}`);
+    } else if (this.BLE) {
+      await this.BLERefreshStatus();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type: OpenAPI, refreshStatus will not happen.`);
+      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+        + ` ${this.device.connectionType}, refreshStatus will not happen.`);
+    }
+  }
+
+  async BLERefreshStatus(): Promise<void> {
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLERefreshStatus`);
+    const switchbot = await this.switchbotBLE();
+
+    if (switchbot === undefined) {
+      await this.BLERefreshConnection(switchbot);
+    } else {
+    // Start to monitor advertisement packets
+      (async () => {
+      // Start to monitor advertisement packets
+        const serviceData: serviceData = await this.monitorAdvertisementPackets(switchbot);
+        // Update HomeKit
+        if (serviceData.model !== '' && serviceData.modelName !== '') {
+          await this.BLEparseStatus(serviceData);
+          await this.updateHomeKitCharacteristics();
+        } else {
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed to get serviceData, serviceData: ${serviceData}`);
+          await this.BLERefreshConnection(switchbot);
+        }
+      })();
     }
   }
 
   async openAPIRefreshStatus(): Promise<void> {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
     try {
-      const { body, statusCode } = await this.platform.retryRequest(this.deviceMaxRetries, this.deviceDelayBetweenRetries,
-        `${Devices}/${this.device.deviceId}/status`, { headers: this.platform.generateHeaders() });
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+      const { body, statusCode } = await this.deviceRefreshStatus();
       const deviceStatus: any = await body.json();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
+      await this.refreshStatusCodes(statusCode, deviceStatus);;
       if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-        this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-          + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
-        this.openAPIparseStatus(deviceStatus);
-        this.updateHomeKitCharacteristics();
+        await this.successfulRefreshStatus(statusCode, deviceStatus);
+        await this.openAPIparseStatus(deviceStatus);
+        await this.updateHomeKitCharacteristics();
       } else {
-        this.statusCode(statusCode);
-        this.statusCode(deviceStatus.statusCode);
+        await this.statusCodes(statusCode, deviceStatus);
       }
     } catch (e: any) {
       this.apiError(e);
@@ -347,6 +375,15 @@ export class Hub extends deviceBase {
       if (this.device.history) {
         this.historyService?.addEntry(entry);
       }
+    }
+  }
+
+  async BLERefreshConnection(switchbot: any): Promise<void> {
+    this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot:`
+      + ` ${JSON.stringify(switchbot)}`);
+    if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Refresh Status`);
+      await this.openAPIRefreshStatus();
     }
   }
 
