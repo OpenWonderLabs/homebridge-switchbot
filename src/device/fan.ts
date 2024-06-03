@@ -265,9 +265,9 @@ export class Fan extends deviceBase {
     if (switchbot === undefined) {
       await this.BLERefreshConnection(switchbot);
     } else {
-    // Start to monitor advertisement packets
-      (async () => {
       // Start to monitor advertisement packets
+      (async () => {
+        // Start to monitor advertisement packets
         const serviceData: serviceData = await this.monitorAdvertisementPackets(switchbot);
         // Update HomeKit
         if (serviceData.model !== '' && serviceData.modelName !== '') {
@@ -295,9 +295,8 @@ export class Fan extends deviceBase {
         await this.statusCodes(statusCode, deviceStatus);
       }
     } catch (e: any) {
-      this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+      await this.apiError(e);
+      await this.openAPIRefreshError(e);
     }
   }
 
@@ -370,8 +369,7 @@ export class Fan extends deviceBase {
       await this.openAPIpushChanges();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-        + ` ${this.device.connectionType}, pushChanges will not happen.`);
+      await this.pushChangeDisabled();
     }
     // Refresh the status from the API
     interval(15000)
@@ -405,16 +403,13 @@ export class Fan extends deviceBase {
             },
           });
         })
-        .then(() => {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
-          this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `Active: ${this.Fan.Active} sent over BLE,  sent successfully`);
-          this.Fan.Active = false;
+        .then(async () => {
+          await this.successfulPushChange_BLE('Active', this.Fan.Active, 'BLE API');
+          await this.updateHomeKitCharacteristics();
         })
         .catch(async (e: any) => {
-          this.apiError(e);
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
-            + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+          await this.apiError(e);
+          await this.pushChangeError('BLEpushChanges', e);
           await this.BLEPushConnection();
         });
     } else {
@@ -451,8 +446,7 @@ export class Fan extends deviceBase {
         }
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
-          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+        await this.pushChangeError('openAPIpushChanges', e);
       }
     } else {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges.`
@@ -469,14 +463,14 @@ export class Fan extends deviceBase {
   }
 
   async pushRotationSpeedChanges(): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} pushRotationSpeedChanges`);
+    await this.pushChange('pushRotationSpeedChanges');
     if (this.Fan.SwingMode !== this.accessory.context.SwingMode) {
       const bodyChange = JSON.stringify({
         command: 'setWindSpeed',
         parameter: `${this.Fan.RotationSpeed}`,
         commandType: 'command',
       });
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
+      await this.bodyChange(bodyChange, 'SwitchBot OpenAPI');
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
@@ -490,30 +484,23 @@ export class Fan extends deviceBase {
         }
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushRotationSpeedChanges with ${this.device.connectionType}`
-          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+        await this.pushChangeError('pushRotationSpeedChanges', e);
       }
     } else {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, pushRotationSpeedChanges: ${this.Fan.RotationSpeed}, `
-        + `pushRotationSpeedChangesCached: ${this.accessory.context.RotationSpeed}`);
+      await this.noChanges('RotationSpeed', this.Fan.RotationSpeed, this.accessory.context.RotationSpeed);
     }
   }
 
   async pushSwingModeChanges(): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} pushSwingModeChanges`);
+    await this.pushChange('pushSwingModeChanges');
     if (this.Fan.SwingMode !== this.accessory.context.SwingMode) {
-      let parameter = '';
-      if (this.Fan.SwingMode === this.hap.Characteristic.SwingMode.SWING_ENABLED) {
-        parameter = 'on';
-      } else {
-        parameter = 'off';
-      }
+      const parameter = this.Fan.SwingMode === this.hap.Characteristic.SwingMode.SWING_ENABLED ? 'on' : 'off';
       const bodyChange = JSON.stringify({
         command: 'setOscillation',
         parameter: `${parameter}`,
         commandType: 'command',
       });
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
+      await this.bodyChange(bodyChange, 'SwitchBot OpenAPI');
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
@@ -527,12 +514,10 @@ export class Fan extends deviceBase {
         }
       } catch (e: any) {
         this.apiError(e);
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushSwingModeChanges with ${this.device.connectionType}`
-          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+        await this.pushChangeError('pushSwingModeChanges', e);
       }
     } else {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, SwingMode: ${this.Fan.SwingMode}, `
-        + `SwingModeCached: ${this.accessory.context.SwingMode}`);
+      await this.noChanges('SwingMode', this.Fan.SwingMode, this.accessory.context.SwingMode);
     }
   }
 
@@ -540,10 +525,10 @@ export class Fan extends deviceBase {
    * Handle requests to set the value of the "On" characteristic
    */
   async ActiveSet(value: CharacteristicValue): Promise<void> {
-    if (this.Fan.Active === this.accessory.context.Active) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set Active: ${value}`);
+    if (this.Fan.Active !== this.accessory.context.Active) {
+      await this.changeSet(value, 'Active');
     } else {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Active: ${value}`);
+      await this.noChangeSet(value, 'Active');
     }
 
     this.Fan.Active = value;
@@ -554,10 +539,10 @@ export class Fan extends deviceBase {
    * Handle requests to set the value of the "On" characteristic
    */
   async RotationSpeedSet(value: CharacteristicValue): Promise<void> {
-    if (this.Fan.RotationSpeed === this.accessory.context.RotationSpeed) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set RotationSpeed: ${value}`);
+    if (this.Fan.RotationSpeed !== this.accessory.context.RotationSpeed) {
+      await this.changeSet(value, 'RotationSpeed');
     } else {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set RotationSpeed: ${value}`);
+      await this.noChangeSet(value, 'RotationSpeed');
     }
 
     this.Fan.RotationSpeed = value;
@@ -568,10 +553,10 @@ export class Fan extends deviceBase {
    * Handle requests to set the value of the "On" characteristic
    */
   async SwingModeSet(value: CharacteristicValue): Promise<void> {
-    if (this.Fan.SwingMode === this.accessory.context.SwingMode) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set SwingMode: ${value}`);
+    if (this.Fan.SwingMode !== this.accessory.context.SwingMode) {
+      await this.changeSet(value, 'SwingMode');
     } else {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set SwingMode: ${value}`);
+      await this.noChangeSet(value, 'SwingMode');
     }
 
     this.Fan.SwingMode = value;
@@ -582,10 +567,10 @@ export class Fan extends deviceBase {
    * Handle requests to set the value of the "On" characteristic
    */
   async OnSet(value: CharacteristicValue): Promise<void> {
-    if (this.LightBulb.On === this.accessory.context.On) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set On: ${value}`);
+    if (this.LightBulb.On !== this.accessory.context.On) {
+      await this.changeSet(value, 'On');
     } else {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set On: ${value}`);
+      await this.noChangeSet(value, 'On');
     }
 
     this.LightBulb.On = value;
@@ -596,12 +581,12 @@ export class Fan extends deviceBase {
    * Handle requests to set the value of the "Brightness" characteristic
    */
   async BrightnessSet(value: CharacteristicValue): Promise<void> {
-    if (this.LightBulb.Brightness === this.accessory.context.Brightness) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set Brightness: ${value}`);
+    if (this.LightBulb.Brightness !== this.accessory.context.Brightness) {
+      await this.changeSet(value, 'Brightness');
     } else if (this.LightBulb.On) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Brightness: ${value}`);
+      await this.changeSet(value, 'Brightness');
     } else {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Set Brightness: ${value}`);
+      await this.noChangeSet(value, 'Brightness');
     }
 
     this.LightBulb.Brightness = value;

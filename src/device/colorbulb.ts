@@ -341,9 +341,8 @@ export class ColorBulb extends deviceBase {
         await this.statusCodes(statusCode, deviceStatus);
       }
     } catch (e: any) {
-      this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+      await this.apiError(e);
+      await this.openAPIRefreshError(e);
     }
   }
 
@@ -440,8 +439,7 @@ export class ColorBulb extends deviceBase {
       await this.openAPIpushChanges();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-        + ` ${this.device.connectionType}, pushChanges will not happen.`);
+      await this.pushChangeDisabled();
     }
     // Refresh the status from the API
     interval(15000)
@@ -499,6 +497,7 @@ export class ColorBulb extends deviceBase {
       if (this.LightBulb.On) {
         await this.BLEpushRGBChanges();
       }
+      await this.updateHomeKitCharacteristics();
     } else {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges, On: ${this.LightBulb.On},`
         + ` OnCached: ${this.accessory.context.On}`);
@@ -852,46 +851,20 @@ export class ColorBulb extends deviceBase {
 
   async updateHomeKitCharacteristics(): Promise<void> {
     // On
-    if (this.LightBulb.On === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.LightBulb.On}`);
-    } else {
-      this.accessory.context.On = this.LightBulb.On;
-      this.LightBulb.Service.updateCharacteristic(this.hap.Characteristic.On, this.LightBulb.On);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic On: ${this.LightBulb.On}`);
-    }
+    await this.updateCharacteristic(this.LightBulb.Service, this.hap.Characteristic.On,
+      this.LightBulb.On, 'On');
     // Brightness
-    if (this.LightBulb.Brightness === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Brightness: ${this.LightBulb.Brightness}`);
-    } else {
-      this.accessory.context.Brightness = this.LightBulb.Brightness;
-      this.LightBulb.Service.updateCharacteristic(this.hap.Characteristic.Brightness, this.LightBulb.Brightness);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic Brightness: ${this.LightBulb.Brightness}`);
-    }
+    await this.updateCharacteristic(this.LightBulb.Service, this.hap.Characteristic.Brightness,
+      this.LightBulb.Brightness, 'Brightness');
     // ColorTemperature
-    if (this.LightBulb.ColorTemperature === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ColorTemperature: ${this.LightBulb.ColorTemperature}`);
-    } else {
-      this.accessory.context.ColorTemperature = this.LightBulb.ColorTemperature;
-      this.LightBulb.Service.updateCharacteristic(this.hap.Characteristic.ColorTemperature, this.LightBulb.ColorTemperature);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-        + ` ColorTemperature: ${this.LightBulb.ColorTemperature}`);
-    }
+    await this.updateCharacteristic(this.LightBulb.Service, this.hap.Characteristic.ColorTemperature,
+      this.LightBulb.ColorTemperature, 'ColorTemperature');
     // Hue
-    if (this.LightBulb.Hue === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Hue: ${this.LightBulb.Hue}`);
-    } else {
-      this.accessory.context.Hue = this.LightBulb.Hue;
-      this.LightBulb.Service.updateCharacteristic(this.hap.Characteristic.Hue, this.LightBulb.Hue);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic Hue: ${this.LightBulb.Hue}`);
-    }
+    await this.updateCharacteristic(this.LightBulb.Service, this.hap.Characteristic.Hue,
+      this.LightBulb.Hue, 'Hue');
     // Saturation
-    if (this.LightBulb.Saturation === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Saturation: ${this.LightBulb.Saturation}`);
-    } else {
-      this.accessory.context.Saturation = this.LightBulb.Saturation;
-      this.LightBulb.Service.updateCharacteristic(this.hap.Characteristic.Saturation, this.LightBulb.Saturation);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic Saturation: ${this.LightBulb.Saturation}`);
-    }
+    await this.updateCharacteristic(this.LightBulb.Service, this.hap.Characteristic.Saturation,
+      this.LightBulb.Saturation, 'Saturation');
   }
 
   async adaptiveLighting(device: device & devicesConfig): Promise<void> {

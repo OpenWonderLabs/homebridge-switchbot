@@ -275,9 +275,8 @@ export class MeterPlus extends deviceBase {
         await this.statusCodes(statusCode, deviceStatus);
       }
     } catch (e: any) {
-      this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+      await this.apiError(e);
+      await this.openAPIRefreshError(e);
     }
   }
 

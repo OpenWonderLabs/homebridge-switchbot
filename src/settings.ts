@@ -4,6 +4,7 @@
  */
 import type { IClientOptions } from 'async-mqtt';
 import type { MacAddress, PlatformConfig } from 'homebridge';
+import type { SwitchBotBLEModel, SwitchBotBLEModelName } from './utils';
 /**
  * This is the name of the platform that users will use to register the plugin in the Homebridge config.json
  */
@@ -70,8 +71,8 @@ export type options = {
 export interface devicesConfig extends device {
   bleMac?: string;
   model?: string;
-  bleModel?: string;
-  bleModelName?: string;
+  bleModel?: SwitchBotBLEModel;
+  bleModelName?: SwitchBotBLEModelName;
   configDeviceType: string;
   configDeviceName?: string;
   deviceId: string;

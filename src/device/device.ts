@@ -11,7 +11,7 @@ import { BlindTiltMappingMode, SwitchBotModel, SwitchBotBLEModel, SwitchBotBLEMo
 
 import type { MqttClient } from 'mqtt';
 import type { SwitchBotPlatform } from '../platform.js';
-import type { API, HAP, Logging, PlatformAccessory } from 'homebridge';
+import type { API, CharacteristicValue, HAP, Logging, PlatformAccessory, Service } from 'homebridge';
 import type { ad, device, serviceData, SwitchBotPlatformConfig, devicesConfig, deviceStatus } from '../settings.js';
 
 export abstract class deviceBase {
@@ -384,6 +384,7 @@ export abstract class deviceBase {
   }
 
   async monitorAdvertisementPackets(switchbot: any) {
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Scanning for ${this.device.bleModelName} devices...`);
     await switchbot.startScan({ model: this.device.bleModel, id: this.device.bleMac });
     // Set an event handler
     let serviceData: serviceData = { model: this.device.bleModel, modelName: this.device.bleModelName } as serviceData;
@@ -423,12 +424,9 @@ export abstract class deviceBase {
     }
   }
 
-  async pushChangeRequest(bodyChange: string): Promise<{ body: any; statusCode: any; }> {
-    return await request(`${Devices}/${this.device.deviceId}/commands`, {
-      body: bodyChange,
-      method: 'POST',
-      headers: this.platform.generateHeaders(),
-    });
+  async successfulPushChange_BLE(Characteristic: string, CharacteristicValue: CharacteristicValue, Connection: string) {
+    this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} ${Characteristic}: ${CharacteristicValue}`
+      + ` sent over ${Connection}, sent successfully`);
   }
 
   async successfulPushChange(statusCode: any, deviceStatus: any, bodyChange: string) {
@@ -438,9 +436,50 @@ export abstract class deviceBase {
       + ` body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
   }
 
+  async failedBLEChanges(e: Error): Promise<void> {
+    this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
+      + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+  }
+
+  async bodyChange(bodyChange: string, Connection: string) {
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to ${Connection}, body: ${bodyChange},`);
+  }
+
+  async pushChangeDisabled() {
+    this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
+      + ` ${this.device.connectionType}, pushChanges will not happen.`);
+  }
+
+  async pushChangeRequest(bodyChange: string): Promise<{ body: any; statusCode: any; }> {
+    return await request(`${Devices}/${this.device.deviceId}/commands`, {
+      body: bodyChange,
+      method: 'POST',
+      headers: this.platform.generateHeaders(),
+    });
+  }
+
+  async pushChange(pushChange: string) {
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${pushChange}`);
+  }
+
+  async pushChangeError(Change: string, e: Error) {
+    this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed ${Change} with ${this.device.connectionType}`
+      + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+  }
+
+  async noChanges(Change: string, CharacteristicValue: CharacteristicValue, CharacteristicValueCached: CharacteristicValue) {
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, ${Change}: ${CharacteristicValue}, `
+      + `${Change}Cached: ${CharacteristicValueCached}`);
+  }
+
   async successfulRefreshStatus(statusCode: any, deviceStatus: any) {
     this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-          + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+      + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
+  }
+
+  async openAPIRefreshError(e: Error) {
+    this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
+      + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
   }
 
   async statusCodes(statusCode: any, deviceStatus: any) {
@@ -464,6 +503,45 @@ export abstract class deviceBase {
   async deviceRefreshStatus(): Promise<{ body: any; statusCode: any; }> {
     return await this.platform.retryRequest(this.deviceMaxRetries, this.deviceDelayBetweenRetries,
       `${Devices}/${this.device.deviceId}/status`, { headers: this.platform.generateHeaders() });
+  }
+
+  /**
+  * Update the characteristic value and log the change.
+  * params: Service, Characteristic, CharacteristicValue, CharacteristicName, history
+  * @param Service: Service
+  * @param Characteristic: Characteristic
+  * @param CharacteristicValue: CharacteristicValue | undefined
+  * @param CharacteristicName: string
+  * @param history: object
+  * @return: void
+  *
+  */
+  async updateCharacteristic(Service: Service, Characteristic: any,
+    CharacteristicValue: CharacteristicValue | undefined, CharacteristicName: string, history?: object): Promise<void> {
+    if (CharacteristicValue === undefined) {
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${CharacteristicName}: ${CharacteristicValue}`);
+    } else {
+      if (this.device.mqttURL) {
+        this.mqttPublish(`${CharacteristicName}`, CharacteristicValue.toString());
+      }
+      if (this.device.history) {
+        this.historyService?.addEntry(history);
+      }
+      Service.updateCharacteristic(Characteristic, CharacteristicValue);
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
+        + ` ${CharacteristicName}: ${CharacteristicValue}`);
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} context before: ${this.accessory.context[CharacteristicName]}`);
+      this.accessory.context[CharacteristicName] = CharacteristicValue;
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} context after: ${this.accessory.context[CharacteristicName]}`);
+    }
+  }
+
+  async noChangeSet(value: CharacteristicValue, CharacteristicName: string) {
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set ${CharacteristicName}: ${value}`);
+  }
+
+  async changeSet(value: CharacteristicValue, CharacteristicName: string) {
+    this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set ${CharacteristicName}: ${value}`);
   }
 
   async getDeviceContext(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {

@@ -213,6 +213,11 @@ export abstract class irdeviceBase {
       + ` body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
   }
 
+  async pushChangeError(e: Error) {
+    this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType}`
+      + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+  }
+
   async disablePushOnChanges(device: irdevice & irDevicesConfig): Promise<void> {
     if (device.disablePushOn === undefined) {
       this.disablePushOn = false;

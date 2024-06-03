@@ -632,9 +632,8 @@ export class Bot extends deviceBase {
         await this.statusCodes(statusCode, deviceStatus);
       }
     } catch (e: any) {
-      this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+      await this.apiError(e);
+      await this.openAPIRefreshError(e);
     }
   }
 
@@ -679,8 +678,7 @@ export class Bot extends deviceBase {
       await this.openAPIpushChanges();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-        + ` ${this.device.connectionType}, pushChanges will not happen.`);
+      await this.pushChangeDisabled();
     }
     // Refresh the status from the API
     interval(15000)

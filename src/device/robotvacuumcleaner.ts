@@ -264,9 +264,8 @@ export class RobotVacuumCleaner extends deviceBase {
         await this.statusCodes(statusCode, deviceStatus);
       }
     } catch (e: any) {
-      this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+      await this.apiError(e);
+      await this.openAPIRefreshError(e);
     }
   }
 
@@ -313,8 +312,7 @@ export class RobotVacuumCleaner extends deviceBase {
       await this.openAPIpushChanges();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-        + ` ${this.device.connectionType}, pushChanges will not happen.`);
+      await this.pushChangeDisabled();
     }
     // Refresh the status from the API
     interval(15000)
@@ -388,9 +386,8 @@ export class RobotVacuumCleaner extends deviceBase {
           this.statusCode(deviceStatus.statusCode);
         }
       } catch (e: any) {
-        this.apiError(e);
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
-          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+        await this.apiError(e);
+        await this.pushChangeError(e);
       }
     } else {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges, On: ${this.LightBulb.On}, `
@@ -414,9 +411,8 @@ export class RobotVacuumCleaner extends deviceBase {
         await this.statusCode(deviceStatus.statusCode);
       }
     } catch (e: any) {
-      this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+      await this.apiError(e);
+      await this.pushChangeError(e);
     }
   }
 

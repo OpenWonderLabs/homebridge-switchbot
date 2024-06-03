@@ -265,14 +265,13 @@ export class BlindTilt extends deviceBase {
     this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition: ${this.WindowCovering.CurrentPosition},`
       + ` TargetPosition: ${this.WindowCovering.TargetPosition}, PositionState: ${this.WindowCovering.PositionState},`);
 
-    if (!this.device.blindTilt?.hide_lightsensor) {
-      const set_minLux = this.device.blindTilt?.set_minLux ?? 1;
-      const set_maxLux = this.device.blindTilt?.set_maxLux ?? 6001;
-      const spaceBetweenLevels = 9;
-
+    if (!this.device.blindTilt?.hide_lightsensor && this.LightSensor?.Service) {
       if (this.LightSensor?.CurrentAmbientLightLevel === 0) {
         this.LightSensor!.CurrentAmbientLightLevel = 0.0001;
       }
+      const set_minLux = this.device.blindTilt?.set_minLux ?? 1;
+      const set_maxLux = this.device.blindTilt?.set_maxLux ?? 6001;
+      const spaceBetweenLevels = 9;
 
       // Brightness
       switch (serviceData.lightLevel) {
@@ -465,9 +464,9 @@ export class BlindTilt extends deviceBase {
     if (switchbot === undefined) {
       await this.BLERefreshConnection(switchbot);
     } else {
-    // Start to monitor advertisement packets
-      (async () => {
       // Start to monitor advertisement packets
+      (async () => {
+        // Start to monitor advertisement packets
         const serviceData: serviceData = await this.monitorAdvertisementPackets(switchbot);
         // Update HomeKit
         if (serviceData.model !== '' && serviceData.modelName !== '') {
@@ -495,9 +494,8 @@ export class BlindTilt extends deviceBase {
         await this.statusCodes(statusCode, deviceStatus);
       }
     } catch (e: any) {
-      this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+      await this.apiError(e);
+      await this.openAPIRefreshError(e);
     }
   }
 
@@ -518,7 +516,7 @@ export class BlindTilt extends deviceBase {
           if (!device.blindTilt?.hide_lightsensor) {
             this.LightSensor!.CurrentAmbientLightLevel = lightLevel;
           }
-          this.updateHomeKitCharacteristics();
+          await this.updateHomeKitCharacteristics();
         } catch (e: any) {
           this.errorLog(`${device.deviceType}: ${accessory.displayName} failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
         }
@@ -537,8 +535,7 @@ export class BlindTilt extends deviceBase {
       await this.openAPIpushChanges();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-        + ` ${this.device.connectionType}, pushChanges will not happen.`);
+      await this.pushChangeDisabled();
     }
     // Refresh the status from the API
     interval(15000)
@@ -575,13 +572,12 @@ export class BlindTilt extends deviceBase {
               + `Target Position: ${this.WindowCovering.TargetPosition} sent over BLE,  sent successfully`);
           })
           .catch(async (e: any) => {
-            this.apiError(e);
-            this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
-              + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+            await this.apiError(e);
+            await this.failedBLEChanges(e);
             await this.BLEPushConnection();
           });
       } else {
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection,`);
         await this.BLEPushConnection();
       }
     } else {
@@ -726,106 +722,33 @@ export class BlindTilt extends deviceBase {
     await this.setMinMax();
     // CurrentHorizontalTiltAngle
     if (this.mappingMode === BlindTiltMappingMode.UseTiltForDirection) {
-      if (this.WindowCovering.CurrentHorizontalTiltAngle === undefined || Number.isNaN(this.WindowCovering.CurrentHorizontalTiltAngle)) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-          + ` CurrentHorizontalTiltAngle: ${this.WindowCovering.CurrentHorizontalTiltAngle}`);
-      } else {
-        if (this.device.mqttURL) {
-          this.mqttPublish('CurrentHorizontalTiltAngle', this.WindowCovering.CurrentHorizontalTiltAngle.toString());
-        }
-        this.accessory.context.CurrentHorizontalTiltAngle = this.WindowCovering.CurrentHorizontalTiltAngle;
-        this.WindowCovering.Service.updateCharacteristic(
-          this.hap.Characteristic.CurrentHorizontalTiltAngle,
-          Number(this.WindowCovering.CurrentHorizontalTiltAngle));
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} 
-        updateCharacteristic CurrentHorizontalTiltAngle: ${this.WindowCovering.CurrentHorizontalTiltAngle}`);
-      }
+      await this.updateCharacteristic(this.WindowCovering.Service, this.hap.Characteristic.CurrentHorizontalTiltAngle,
+        this.WindowCovering.CurrentHorizontalTiltAngle, 'CurrentHorizontalTiltAngle');
     }
     // CurrentPosition
-    if (this.WindowCovering.CurrentPosition === undefined || Number.isNaN(this.WindowCovering.CurrentPosition)) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
-    } else {
-      if (this.device.mqttURL) {
-        this.mqttPublish('CurrentPosition', this.WindowCovering.CurrentPosition.toString());
-      }
-      this.accessory.context.CurrentPosition = this.WindowCovering.CurrentPosition;
-      this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, Number(this.WindowCovering.CurrentPosition));
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-        + ` updateCharacteristic CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
-    }
+    await this.updateCharacteristic(this.WindowCovering.Service, this.hap.Characteristic.CurrentPosition,
+      this.WindowCovering.CurrentPosition, 'CurrentPosition');
     // PositionState
-    if (this.WindowCovering.PositionState === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} PositionState: ${this.WindowCovering.PositionState}`);
-    } else {
-      if (this.device.mqttURL) {
-        this.mqttPublish('PositionState', this.WindowCovering.PositionState.toString());
-      }
-      this.accessory.context.PositionState = this.WindowCovering.PositionState;
-      this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.PositionState, Number(this.WindowCovering.PositionState));
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-        + ` PositionState: ${this.WindowCovering.PositionState}`);
-    }
+    await this.updateCharacteristic(this.WindowCovering.Service, this.hap.Characteristic.PositionState,
+      this.WindowCovering.PositionState, 'PositionState');
     // TargetPosition
-    if (this.WindowCovering.TargetPosition === undefined || Number.isNaN(this.WindowCovering.TargetPosition)) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} TargetPosition: ${this.WindowCovering.TargetPosition}`);
-    } else {
-      if (this.device.mqttURL) {
-        this.mqttPublish('TargetPosition', this.WindowCovering.TargetPosition.toString());
-      }
-      this.accessory.context.TargetPosition = this.WindowCovering.TargetPosition;
-      this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, Number(this.WindowCovering.TargetPosition));
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-        + ` TargetPosition: ${this.WindowCovering.TargetPosition}`);
-    }
+    await this.updateCharacteristic(this.WindowCovering.Service, this.hap.Characteristic.TargetPosition,
+      this.WindowCovering.TargetPosition, 'TargetPosition');
     // CurrentAmbientLightLevel
-    if (!this.device.blindTilt?.hide_lightsensor) {
-      if (this.LightSensor!.CurrentAmbientLightLevel === undefined || Number.isNaN(this.LightSensor!.CurrentAmbientLightLevel)) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-          + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
-      } else {
-        if (this.device.mqttURL) {
-          this.mqttPublish('CurrentAmbientLightLevel', this.LightSensor!.CurrentAmbientLightLevel.toString());
-        }
-        this.accessory.context.CurrentAmbientLightLevel = this.LightSensor!.CurrentAmbientLightLevel;
-        this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, this.LightSensor!.CurrentAmbientLightLevel);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-          + ` updateCharacteristic CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
-      }
+    if (!this.device.blindTilt?.hide_lightsensor && this.LightSensor?.Service) {
+      const history = { time: Math.round(new Date().valueOf() / 1000), lux: this.LightSensor.CurrentAmbientLightLevel };
+      await this.updateCharacteristic(this.LightSensor?.Service, this.hap.Characteristic.CurrentAmbientLightLevel,
+        this.LightSensor?.CurrentAmbientLightLevel, 'CurrentAmbientLightLevel', history);
     }
     // BatteryLevel
-    if (this.Battery.BatteryLevel === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel}`);
-    } else {
-      if (this.device.mqttURL) {
-        this.mqttPublish('BatteryLevel', this.Battery.BatteryLevel.toString());
-      }
-      this.accessory.context.BatteryLevel = this.Battery.BatteryLevel;
-      this.Battery?.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, this.Battery.BatteryLevel);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.Battery.BatteryLevel}`);
-    }
+    await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.BatteryLevel,
+      this.Battery.BatteryLevel, 'BatteryLevel');
     // StatusLowBattery
-    if (this.Battery.StatusLowBattery === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.Battery.StatusLowBattery}`);
-    } else {
-      if (this.device.mqttURL) {
-        this.mqttPublish('StatusLowBattery', this.Battery.StatusLowBattery.toString());
-      }
-      this.accessory.context.StatusLowBattery = this.Battery.StatusLowBattery;
-      this.Battery?.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-        + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
-    }
-    if (this.Battery.ChargingState === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ChargingState: ${this.Battery.ChargingState}`);
-    } else {
-      if (this.device.mqttURL) {
-        this.mqttPublish('ChargingState', this.Battery.ChargingState.toString());
-      }
-      this.accessory.context.ChargingState = this.Battery.ChargingState;
-      this.Battery.Service.updateCharacteristic(this.hap.Characteristic.ChargingState, this.Battery.ChargingState);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-        + ` ChargingState: ${this.Battery.ChargingState}`);
-    }
+    await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.StatusLowBattery,
+      this.Battery.StatusLowBattery, 'StatusLowBattery');
+    // ChargingState
+    await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.ChargingState,
+      this.Battery.ChargingState, 'ChargingState');
   }
 
   async BLEPushConnection() {
