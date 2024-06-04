@@ -521,9 +521,7 @@ export abstract class deviceBase {
     if (CharacteristicValue === undefined) {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${CharacteristicName}: ${CharacteristicValue}`);
     } else {
-      if (this.device.mqttURL) {
-        this.mqttPublish(`${CharacteristicName}`, CharacteristicValue.toString());
-      }
+      await this.mqtt(CharacteristicName, CharacteristicValue);
       if (this.device.history) {
         this.historyService?.addEntry(history);
       }
@@ -533,6 +531,12 @@ export abstract class deviceBase {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} context before: ${this.accessory.context[CharacteristicName]}`);
       this.accessory.context[CharacteristicName] = CharacteristicValue;
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} context after: ${this.accessory.context[CharacteristicName]}`);
+    }
+  }
+
+  async mqtt(CharacteristicName: string, CharacteristicValue: CharacteristicValue) {
+    if (this.device.mqttURL) {
+      this.mqttPublish(CharacteristicName, CharacteristicValue.toString());
     }
   }
 

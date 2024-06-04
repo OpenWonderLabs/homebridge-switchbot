@@ -648,36 +648,31 @@ export class BlindTilt extends deviceBase {
    * Handle requests to set the value of the "Target Horizontal Tilt" characteristic
    */
   async TargetHorizontalTiltAngleSet(value: CharacteristicValue): Promise<void> {
-    if (this.WindowCovering.TargetHorizontalTiltAngle === this.accessory.context.TargetHorizontalTiltAngle) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set TargetHorizontalTiltAngle: ${value}`);
+    if (this.WindowCovering.TargetHorizontalTiltAngle !== this.accessory.context.TargetHorizontalTiltAngle) {
+      await this.changeSet(value, 'TargetHorizontalTiltAngle');
     } else {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set TargetHorizontalTiltAngle: ${value}`);
+      await this.noChangeSet(value, 'TargetHorizontalTiltAngle');
     }
 
     //value = value < 0 ? -90 : 90;
     this.WindowCovering.TargetHorizontalTiltAngle = value;
-    if (this.device.mqttURL) {
-      this.mqttPublish('TargetHorizontalTiltAngle', this.WindowCovering.TargetHorizontalTiltAngle.toString());
-    }
-
-    this.startUpdatingBlindTiltIfNeeded();
+    await this.mqtt('TargetHorizontalTiltAngle', this.WindowCovering.TargetHorizontalTiltAngle);
+    await this.startUpdatingBlindTiltIfNeeded();
   }
 
   /**
    * Handle requests to set the value of the "Target Position" characteristic
    */
   async TargetPositionSet(value: CharacteristicValue): Promise<void> {
-    if (this.WindowCovering.TargetPosition === this.accessory.context.TargetPosition) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set TargetPosition: ${value}`);
+    if (this.WindowCovering.TargetPosition !== this.accessory.context.TargetPosition) {
+      await this.changeSet(value, 'TargetPosition');
     } else {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set TargetPosition: ${value}`);
+      await this.noChangeSet(value, 'TargetPosition');
     }
 
     this.WindowCovering.TargetPosition = value;
-    if (this.device.mqttURL) {
-      this.mqttPublish('TargetPosition', this.WindowCovering.TargetPosition.toString());
-    }
-    this.startUpdatingBlindTiltIfNeeded();
+    await this.mqtt('TargetPosition', this.WindowCovering.TargetPosition);
+    await this.startUpdatingBlindTiltIfNeeded();
   }
 
   async startUpdatingBlindTiltIfNeeded(): Promise<void> {

@@ -685,26 +685,27 @@ export class Curtain extends deviceBase {
     this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.HoldPosition, this.WindowCovering.HoldPosition);
 
     this.WindowCovering.TargetPosition = value;
-    if (this.device.mqttURL) {
-      this.mqttPublish('TargetPosition', this.WindowCovering.TargetPosition.toString());
-      this.mqttPublish('HoldPosition', this.WindowCovering.HoldPosition.toString()); // Convert boolean to string
-    }
+    await this.mqtt('TargetPosition', this.WindowCovering.TargetPosition);
+    await this.mqtt('HoldPosition', this.WindowCovering.HoldPosition);
+    await this.startUpdatingCurtainIfNeeded();
+  }
 
+  async startUpdatingCurtainIfNeeded() {
     await this.setMinMax();
-    if (value > this.WindowCovering.CurrentPosition) {
+    if (this.WindowCovering.TargetPosition > this.WindowCovering.CurrentPosition) {
       this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.INCREASING;
       this.setNewTarget = true;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${value},`
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${this.WindowCovering.TargetPosition},`
         + ` CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
-    } else if (value < this.WindowCovering.CurrentPosition) {
+    } else if (this.WindowCovering.TargetPosition < this.WindowCovering.CurrentPosition) {
       this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.DECREASING;
       this.setNewTarget = true;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${value},`
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${this.WindowCovering.TargetPosition},`
         + ` CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
     } else {
       this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.STOPPED;
       this.setNewTarget = false;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${value},`
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${this.WindowCovering.TargetPosition},`
         + ` CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
     }
     this.WindowCovering.Service.setCharacteristic(this.hap.Characteristic.PositionState, this.WindowCovering.PositionState);

@@ -387,7 +387,7 @@ export class RobotVacuumCleaner extends deviceBase {
         }
       } catch (e: any) {
         await this.apiError(e);
-        await this.pushChangeError(e);
+        await this.pushChangeError('openAPIpushChanges', e);
       }
     } else {
       this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges, On: ${this.LightBulb.On}, `
@@ -412,7 +412,7 @@ export class RobotVacuumCleaner extends deviceBase {
       }
     } catch (e: any) {
       await this.apiError(e);
-      await this.pushChangeError(e);
+      await this.pushChangeError('openAPIpushBrightnessChanges', e);
     }
   }
 
