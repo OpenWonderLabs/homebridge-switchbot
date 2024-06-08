@@ -60,7 +60,7 @@
      - `rfkill unblock bluetooth`
 
   3. Also make sure, that the computer can discover the SwitchBot device: 
-     - `sudo bluetoothcl`
+     - `sudo bluetoothctl`
      - `scan on`
 
      This lists all discovered Bluetooth devices. The BLE address of the SwitchBot device should be included in this list, otherwise your computer does not discover it.
