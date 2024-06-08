@@ -49,6 +49,22 @@
      - Copy BLE Mac aka `deviceId`
   4. Input your `deviceId` into the Device Config
 
+## Troubleshooting
+
+- ### If using Linux / Raspberry Pi OS
+
+  1. `bluetoothctl` must be installed on the device, otherwise it cannot communicate via Bluetooth. Enable it with `sudo bluetoothctl power on`.
+
+  2. If errors occur, while enabling it, restart the process:
+     - `rfkill block bluetooth`
+     - `rfkill unblock bluetooth`
+
+  3. Also make sure, that the computer can discover the SwitchBot device: 
+     - `sudo bluetoothcl`
+     - `scan on`
+
+     This lists all discovered Bluetooth devices. The BLE address of the SwitchBot device should be included in this list, otherwise your computer does not discover it.
+
 ## Supported SwitchBot Devices
 
 - [SwitchBot Humidifier](https://www.switch-bot.com/products/switchbot-smart-humidifier)
