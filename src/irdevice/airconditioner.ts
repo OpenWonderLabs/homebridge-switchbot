@@ -28,6 +28,7 @@ export class AirConditioner extends irdeviceBase {
   };
 
   meter?: PlatformAccessory;
+
   private HumiditySensor?: {
     Name: CharacteristicValue;
     Service: Service;
@@ -548,73 +549,34 @@ export class AirConditioner extends irdeviceBase {
   async updateHomeKitCharacteristics(): Promise<void> {
     await this.debugLog('updateHomeKitCharacteristics');
     // Active
-    if (this.HeaterCooler.Active === undefined) {
-      await this.debugLog(`Active: ${this.HeaterCooler.Active}`);
-    } else {
-      this.accessory.context.Active = this.HeaterCooler.Active;
-      this.HeaterCooler.Service.updateCharacteristic(this.hap.Characteristic.Active, this.HeaterCooler.Active);
-      await this.debugLog(`updateCharacteristic Active: ${this.HeaterCooler.Active}`);
-    }
+    await this.updateCharacteristic(this.HeaterCooler.Service, this.hap.Characteristic.Active,
+      this.HeaterCooler.Active, 'Active');
     // RotationSpeed
-    if (this.HeaterCooler.RotationSpeed === undefined) {
-      await this.debugLog(`RotationSpeed: ${this.HeaterCooler.RotationSpeed}`);
-    } else {
-      this.accessory.context.RotationSpeed = this.HeaterCooler.RotationSpeed;
-      this.HeaterCooler.Service.updateCharacteristic(this.hap.Characteristic.RotationSpeed, this.HeaterCooler.RotationSpeed);
-      await this.debugLog('updateCharacteristic'
-        + ` RotationSpeed: ${this.HeaterCooler.RotationSpeed}`);
-    }
+    await this.updateCharacteristic(this.HeaterCooler.Service, this.hap.Characteristic.RotationSpeed,
+      this.HeaterCooler.RotationSpeed, 'RotationSpeed');
     // CurrentTemperature
-    if (this.HeaterCooler.CurrentTemperature === undefined) {
-      await this.debugLog(`CurrentTemperature: ${this.HeaterCooler.CurrentTemperature}`);
-    } else {
-      this.accessory.context.CurrentTemperature = this.HeaterCooler.CurrentTemperature;
-      this.HeaterCooler.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, this.HeaterCooler.CurrentTemperature);
-      await this.debugLog('updateCharacteristic'
-        + ` CurrentTemperature: ${this.HeaterCooler.CurrentTemperature}`);
-    }
-    // CurrentRelativeHumidity
-    if (this.meter) {
-      if (this.HumiditySensor!.CurrentRelativeHumidity === undefined) {
-        await this.debugLog(`CurrentRelativeHumidity: ${this.HumiditySensor!.CurrentRelativeHumidity}`);
-      } else {
-        this.accessory.context.CurrentRelativeHumidity = this.HumiditySensor!.CurrentRelativeHumidity;
-        this.HeaterCooler.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity,
-          this.HumiditySensor!.CurrentRelativeHumidity);
-        await this.debugLog('updateCharacteristic'
-          + ` CurrentRelativeHumidity: ${this.HumiditySensor!.CurrentRelativeHumidity}`);
-      }
-    }
+    await this.updateCharacteristic(this.HeaterCooler.Service, this.hap.Characteristic.CurrentTemperature,
+      this.HeaterCooler.CurrentTemperature, 'CurrentTemperature');
     // TargetHeaterCoolerState
-    if (this.HeaterCooler.TargetHeaterCoolerState === undefined) {
-      await this.debugLog(`TargetHeaterCoolerState: ${this.HeaterCooler.TargetHeaterCoolerState}`);
-    } else {
-      this.accessory.context.TargetHeaterCoolerState = this.HeaterCooler.TargetHeaterCoolerState;
-      this.HeaterCooler.Service.updateCharacteristic(this.hap.Characteristic.TargetHeaterCoolerState, this.HeaterCooler.TargetHeaterCoolerState);
-      await this.debugLog('updateCharacteristic'
-        + ` TargetHeaterCoolerState: ${this.HeaterCooler.TargetHeaterCoolerState}`);
-    }
+    await this.updateCharacteristic(this.HeaterCooler.Service, this.hap.Characteristic.TargetHeaterCoolerState,
+      this.HeaterCooler.TargetHeaterCoolerState, 'TargetHeaterCoolerState');
     // CurrentHeaterCoolerState
-    if (this.HeaterCooler.CurrentHeaterCoolerState === undefined) {
-      await this.debugLog(`CurrentHeaterCoolerState: ${this.HeaterCooler.CurrentHeaterCoolerState}`);
-    } else {
-      this.accessory.context.CurrentHeaterCoolerState = this.HeaterCooler.CurrentHeaterCoolerState;
-      this.HeaterCooler.Service.updateCharacteristic(this.hap.Characteristic.CurrentHeaterCoolerState, this.HeaterCooler.CurrentHeaterCoolerState);
-      await this.debugLog(`updateCharacteristic CurrentHeaterCoolerState: ${this.HeaterCooler.CurrentHeaterCoolerState}`);
-    }
-    // ThresholdTemperature
-    if (this.HeaterCooler.ThresholdTemperature === undefined) {
-      await this.debugLog(`ThresholdTemperature: ${this.HeaterCooler.ThresholdTemperature}`);
-    } else {
-      this.accessory.context.ThresholdTemperature = this.HeaterCooler.ThresholdTemperature;
-      this.HeaterCooler.Service.updateCharacteristic(this.hap.Characteristic.HeatingThresholdTemperature, this.HeaterCooler.ThresholdTemperature);
-      this.HeaterCooler.Service.updateCharacteristic(this.hap.Characteristic.CoolingThresholdTemperature, this.HeaterCooler.ThresholdTemperature);
-      await this.debugLog('updateCharacteristic'
-        + ` ThresholdTemperature: ${this.HeaterCooler.ThresholdTemperature}`);
+    await this.updateCharacteristic(this.HeaterCooler.Service, this.hap.Characteristic.CurrentHeaterCoolerState,
+      this.HeaterCooler.CurrentHeaterCoolerState, 'CurrentHeaterCoolerState');
+    // HeatingThresholdTemperature
+    await this.updateCharacteristic(this.HeaterCooler.Service, this.hap.Characteristic.HeatingThresholdTemperature,
+      this.HeaterCooler.ThresholdTemperature, 'ThresholdTemperature');
+    // CoolingThresholdTemperature
+    await this.updateCharacteristic(this.HeaterCooler.Service, this.hap.Characteristic.CoolingThresholdTemperature,
+      this.HeaterCooler.ThresholdTemperature, 'ThresholdTemperature');
+    if (this.meter && this.HumiditySensor?.Service) {
+      // CurrentRelativeHumidity
+      await this.updateCharacteristic(this.HumiditySensor.Service, this.hap.Characteristic.CurrentRelativeHumidity,
+        this.HumiditySensor.CurrentRelativeHumidity, 'CurrentRelativeHumidity');
     }
   }
 
-  async apiError({ e }: { e: any }): Promise<void> {
+  async apiError(e: any): Promise<void> {
     this.HeaterCooler.Service.updateCharacteristic(this.hap.Characteristic.Active, e);
     this.HeaterCooler.Service.updateCharacteristic(this.hap.Characteristic.RotationSpeed, e);
     this.HeaterCooler.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, e);

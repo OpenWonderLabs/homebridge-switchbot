@@ -200,19 +200,13 @@ export class CeilingLight extends deviceBase {
     // On
     this.LightBulb.On = deviceStatus.power;
     await this.debugLog(`On: ${this.LightBulb.On}`);
-
     // Brightness
     this.LightBulb.Brightness = deviceStatus.brightness;
     await this.debugLog(`Brightness: ${this.LightBulb.Brightness}`);
-
     // ColorTemperature
-    if (!Number.isNaN(deviceStatus.colorTemperature)) {
-      await this.debugLog(`OpenAPI ColorTemperature: ${deviceStatus.colorTemperature}`);
-      const miredColorTemperature = Math.round(1000000 / deviceStatus.colorTemperature);
-      this.LightBulb.ColorTemperature = Math.max(Math.min(miredColorTemperature, 500), 140);
-      await this.debugLog(`ColorTemperature: ${this.LightBulb.ColorTemperature}`);
-    }
-
+    const miredColorTemperature = Math.round(1000000 / deviceStatus.colorTemperature);
+    this.LightBulb.ColorTemperature = Math.max(Math.min(miredColorTemperature, 500), 140);
+    await this.debugLog(`ColorTemperature: ${this.LightBulb.ColorTemperature}`);
     // Firmware Version
     const version = deviceStatus.version.toString();
     await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
@@ -240,7 +234,8 @@ export class CeilingLight extends deviceBase {
     this.LightBulb.Brightness = context.brightness;
     await this.debugLog(`Brightness: ${this.LightBulb.Brightness}`);
     // ColorTemperature
-    this.LightBulb.ColorTemperature = Math.max(Math.min(context.colorTemperature, 500), 140);
+    const miredColorTemperature = Math.round(1000000 / context.colorTemperature);
+    this.LightBulb.ColorTemperature = Math.max(Math.min(miredColorTemperature, 500), 140);
     await this.debugLog(`ColorTemperature: ${this.LightBulb.ColorTemperature}`);
   }
 
@@ -473,7 +468,7 @@ export class CeilingLight extends deviceBase {
   async pushColorTemperatureChanges(): Promise<void> {
     await this.debugLog('pushColorTemperatureChanges');
     if (this.LightBulb.ColorTemperature !== this.accessory.context.ColorTemperature) {
-      const kelvin = Math.round(1000000 / Number(this.LightBulb.ColorTemperature));
+      const kelvin = Math.round(1000000 * Number(this.LightBulb.ColorTemperature));
       this.accessory.context.kelvin = kelvin;
       const bodyChange = JSON.stringify({
         command: 'setColorTemperature',

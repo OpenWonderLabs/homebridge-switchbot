@@ -200,7 +200,8 @@ export class ColorBulb extends deviceBase {
     this.LightBulb.Saturation = saturation;
     await this.debugLog(`Saturation: ${this.LightBulb.Saturation}`);
     // ColorTemperature
-    this.LightBulb.ColorTemperature = Math.max(Math.min(serviceData.color_temperature, 500), 140);
+    const miredColorTemperature = Math.round(1000000 / serviceData.color_temperature);
+    this.LightBulb.ColorTemperature = Math.max(Math.min(miredColorTemperature, 500), 140);
     await this.debugLog(`ColorTemperature: ${this.LightBulb.ColorTemperature}`);
   }
 
@@ -209,35 +210,28 @@ export class ColorBulb extends deviceBase {
    */
   async openAPIparseStatus(deviceStatus: colorBulbStatus): Promise<void> {
     await this.debugLog('openAPIparseStatus');
-
     // On
     this.LightBulb.On = deviceStatus.power === 'on' ? true : false;
     await this.debugLog(`On: ${this.LightBulb.On}`);
-
     // Brightness
     this.LightBulb.Brightness = deviceStatus.brightness;
     await this.debugLog(`Brightness: ${this.LightBulb.Brightness}`);
-
     // Color, Hue & Brightness
     await this.debugLog(`color: ${JSON.stringify(deviceStatus.color)}`);
     const [red, green, blue] = deviceStatus.color.split(':');
     await this.debugLog(`red: ${JSON.stringify(red)}, green: ${JSON.stringify(green)}, blue: ${JSON.stringify(blue)}`);
     const [hue, saturation] = rgb2hs(red, green, blue);
     await this.debugLog(`hs: ${JSON.stringify(rgb2hs(red, green, blue))}`);
-
     // Hue
     this.LightBulb.Hue = hue;
     await this.debugLog(`Hue: ${this.LightBulb.Hue}`);
-
     // Saturation
     this.LightBulb.Saturation = saturation;
     await this.debugLog(`Saturation: ${this.LightBulb.Saturation}`);
-
     // ColorTemperature
     const miredColorTemperature = Math.round(1000000 / deviceStatus.colorTemperature);
     this.LightBulb.ColorTemperature = Math.max(Math.min(miredColorTemperature, 500), 140);
     await this.debugLog(`ColorTemperature: ${this.LightBulb.ColorTemperature}`);
-
     // Firmware Version
     const version = deviceStatus.version.toString();
     await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
@@ -278,7 +272,8 @@ export class ColorBulb extends deviceBase {
     this.LightBulb.Saturation = saturation;
     await this.debugLog(`Saturation: ${this.LightBulb.Saturation}`);
     // ColorTemperature
-    this.LightBulb.ColorTemperature = Math.max(Math.min(context.colorTemperature, 500), 140);
+    const miredColorTemperature = Math.round(1000000 / context.colorTemperature);
+    this.LightBulb.ColorTemperature = Math.max(Math.min(miredColorTemperature, 500), 140);
     await this.debugLog(`ColorTemperature: ${this.LightBulb.ColorTemperature}`);
   }
 
@@ -489,6 +484,8 @@ export class ColorBulb extends deviceBase {
   async BLEpushColorTemperatureChanges(): Promise<void> {
     await this.debugLog('BLEpushColorTemperatureChanges');
     if (this.LightBulb.ColorTemperature !== this.accessory.context.ColorTemperature) {
+      const kelvin = Math.round(1000000 / Number(this.LightBulb.ColorTemperature));
+      this.accessory.context.kelvin = kelvin;
       const switchbot = await this.platform.connectBLE(this.accessory, this.device);
       await this.convertBLEAddress();
       if (switchbot !== false) {
@@ -496,7 +493,7 @@ export class ColorBulb extends deviceBase {
           .discover({ model: this.device.bleModel, id: this.device.bleMac })
           .then(async (device_list: any) => {
             await this.infoLog(`ColorTemperature: ${this.LightBulb.ColorTemperature}`);
-            return await device_list[0].setColorTemperature(this.LightBulb.ColorTemperature);
+            return await device_list[0].setColorTemperature(kelvin);
           })
           .then(async () => {
             await this.successLog(`ColorTemperature: ${this.LightBulb.ColorTemperature} sent over SwitchBot BLE,  sent successfully`);

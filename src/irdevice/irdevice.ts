@@ -218,13 +218,13 @@ export abstract class irdeviceBase {
   async updateCharacteristic(Service: Service, Characteristic: any,
     CharacteristicValue: CharacteristicValue | undefined, CharacteristicName: string): Promise<void> {
     if (CharacteristicValue === undefined) {
-      await await this.debugLog(`${CharacteristicName}: ${CharacteristicValue}`);
+      await this.debugLog(`${CharacteristicName}: ${CharacteristicValue}`);
     } else {
       Service.updateCharacteristic(Characteristic, CharacteristicValue);
-      await await this.debugLog(`updateCharacteristic ${CharacteristicName}: ${CharacteristicValue}`);
-      await await this.debugWarnLog(`context before: ${this.accessory.context[CharacteristicName]}`);
+      await this.debugLog(`updateCharacteristic ${CharacteristicName}: ${CharacteristicValue}`);
+      await this.debugWarnLog(`context before: ${this.accessory.context[CharacteristicName]}`);
       this.accessory.context[CharacteristicName] = CharacteristicValue;
-      await await this.debugWarnLog(`context after: ${this.accessory.context[CharacteristicName]}`);
+      await this.debugWarnLog(`context after: ${this.accessory.context[CharacteristicName]}`);
     }
   }
 

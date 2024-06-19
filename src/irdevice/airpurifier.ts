@@ -23,6 +23,7 @@ export class AirPurifier extends irdeviceBase {
     RotationSpeed: CharacteristicValue;
     CurrentAirPurifierState: CharacteristicValue;
     TargetAirPurifierState: CharacteristicValue;
+    CurrentHeaterCoolerState: CharacteristicValue;
   };
 
   private TemperatureSensor: {
@@ -36,7 +37,6 @@ export class AirPurifier extends irdeviceBase {
   CurrentAPTemp!: CharacteristicValue;
   CurrentAPMode!: CharacteristicValue;
   CurrentAPFanSpeed!: CharacteristicValue;
-  CurrentHeaterCoolerState!: CharacteristicValue;
 
   // Others
   Busy: any;
@@ -64,6 +64,7 @@ export class AirPurifier extends irdeviceBase {
       RotationSpeed: accessory.context.RotationSpeed ?? 0,
       CurrentAirPurifierState: accessory.context.CurrentAirPurifierState ?? this.hap.Characteristic.CurrentAirPurifierState.INACTIVE,
       TargetAirPurifierState: accessory.context.TargetAirPurifierState ?? this.hap.Characteristic.TargetAirPurifierState.AUTO,
+      CurrentHeaterCoolerState: accessory.context.CurrentHeaterCoolerState ?? this.hap.Characteristic.CurrentHeaterCoolerState.INACTIVE,
     };
     accessory.context.AirPurifier = this.AirPurifier as object;
 
@@ -187,7 +188,7 @@ export class AirPurifier extends irdeviceBase {
       + ` disablePushOff: ${this.disablePushOff},  disablePushOn: ${this.disablePushOn}`);
     if (!this.Busy) {
       this.Busy = true;
-      this.CurrentHeaterCoolerState = this.hap.Characteristic.CurrentHeaterCoolerState.IDLE;
+      this.AirPurifier.CurrentHeaterCoolerState = this.hap.Characteristic.CurrentHeaterCoolerState.IDLE;
     }
     clearTimeout(this.Timeout);
 
@@ -210,12 +211,12 @@ export class AirPurifier extends irdeviceBase {
     });
     if (this.AirPurifier.Active === 1) {
       if ((Number(this.TemperatureSensor!.CurrentTemperature) || 24) < (this.LastTemperature || 30)) {
-        this.CurrentHeaterCoolerState = this.hap.Characteristic.CurrentHeaterCoolerState.COOLING;
+        this.AirPurifier.CurrentHeaterCoolerState = this.hap.Characteristic.CurrentHeaterCoolerState.COOLING;
       } else {
-        this.CurrentHeaterCoolerState = this.hap.Characteristic.CurrentHeaterCoolerState.HEATING;
+        this.AirPurifier.CurrentHeaterCoolerState = this.hap.Characteristic.CurrentHeaterCoolerState.HEATING;
       }
     } else {
-      this.CurrentHeaterCoolerState = this.hap.Characteristic.CurrentHeaterCoolerState.INACTIVE;
+      this.AirPurifier.CurrentHeaterCoolerState = this.hap.Characteristic.CurrentHeaterCoolerState.INACTIVE;
     }
     await this.pushChanges(bodyChange);
   }
@@ -247,40 +248,17 @@ export class AirPurifier extends irdeviceBase {
   async updateHomeKitCharacteristics(): Promise<void> {
     await this.debugLog('updateHomeKitCharacteristics');
     // Active
-    if (this.AirPurifier.Active === undefined) {
-      await this.debugLog(`Active: ${this.AirPurifier.Active}`);
-    } else {
-      this.accessory.context.Active = this.AirPurifier.Active;
-      this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.Active, this.AirPurifier.Active);
-      await this.debugLog(`updateCharacteristic Active: ${this.AirPurifier.Active}`);
-    }
+    await this.updateCharacteristic(this.AirPurifier.Service, this.hap.Characteristic.Active,
+      this.AirPurifier.Active, 'Active');
     // CurrentAirPurifierState
-    if (this.AirPurifier.CurrentAirPurifierState === undefined) {
-      await this.debugLog(`CurrentAirPurifierState: ${this.AirPurifier.CurrentAirPurifierState}`);
-    } else {
-      this.accessory.context.CurrentAirPurifierState = this.AirPurifier.CurrentAirPurifierState;
-      this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.CurrentAirPurifierState, this.AirPurifier.CurrentAirPurifierState);
-      await this.debugLog('updateCharacteristic'
-        + ` CurrentAirPurifierState: ${this.AirPurifier.CurrentAirPurifierState}`);
-    }
+    await this.updateCharacteristic(this.AirPurifier.Service, this.hap.Characteristic.CurrentAirPurifierState,
+      this.AirPurifier.CurrentAirPurifierState, 'CurrentAirPurifierState');
     // CurrentHeaterCoolerState
-    if (this.CurrentHeaterCoolerState === undefined) {
-      await this.debugLog(`CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
-    } else {
-      this.accessory.context.CurrentHeaterCoolerState = this.CurrentHeaterCoolerState;
-      this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.CurrentHeaterCoolerState, this.CurrentHeaterCoolerState);
-      await this.debugLog('updateCharacteristic'
-        + ` CurrentHeaterCoolerState: ${this.CurrentHeaterCoolerState}`);
-    }
+    await this.updateCharacteristic(this.AirPurifier.Service, this.hap.Characteristic.CurrentHeaterCoolerState,
+      this.AirPurifier.CurrentHeaterCoolerState, 'CurrentHeaterCoolerState');
     // CurrentTemperature
-    if (this.TemperatureSensor.CurrentTemperature === undefined) {
-      await this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}`);
-    } else {
-      this.accessory.context.CurrentTemperature = this.TemperatureSensor.CurrentTemperature;
-      this.TemperatureSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, this.TemperatureSensor.CurrentTemperature);
-      await this.debugLog('updateCharacteristic'
-        + ` CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}`);
-    }
+    await this.updateCharacteristic(this.TemperatureSensor.Service, this.hap.Characteristic.CurrentTemperature,
+      this.TemperatureSensor.CurrentTemperature, 'CurrentTemperature');
   }
 
   async apiError(e: any): Promise<void> {
