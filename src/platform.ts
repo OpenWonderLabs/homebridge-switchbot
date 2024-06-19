@@ -48,6 +48,7 @@ import type { MqttClient } from 'mqtt';
 import type { Dispatcher } from 'undici';
 import type { irdevice } from './types/irdevicelist.js';
 import type { Server, IncomingMessage, ServerResponse } from 'http';
+import type { deviceWebhook } from './types/devicewebhookstatus.js';
 import type { blindTilt, curtain, curtain3, device } from './types/devicelist.js';
 import type { API, DynamicPlatformPlugin, Logging, PlatformAccessory } from 'homebridge';
 import type { SwitchBotPlatformConfig, devicesConfig, irDevicesConfig } from './settings.js';
@@ -76,7 +77,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
   public readonly fakegatoAPI: any;
   public readonly eve: any;
-  public readonly webhookEventHandler: { [x: string]: (context: any) => void } = {};
+  public readonly webhookEventHandler!: deviceWebhook;
 
   constructor(
     log: Logging,

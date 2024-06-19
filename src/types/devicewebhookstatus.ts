@@ -2,9 +2,7 @@
  *
  * devicestatus.ts: @switchbot/homebridge-switchbot platform class.
  */
-export { deviceWebhook };
-
-type deviceWebhook = {
+export type deviceWebhook = {
   eventType: string,
   eventVersion: string,
   context: deviceWebhookContext
