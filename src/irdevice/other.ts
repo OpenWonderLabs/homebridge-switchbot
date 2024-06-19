@@ -99,7 +99,7 @@ export class Others extends irdeviceBase {
         On: accessory.context.On ?? false,
       };
       accessory.context.Switch = this.Switch as object;
-      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Switch`);
+      this.debugWarnLog('Displaying as Switch');
 
       this.Switch.Service
         .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
@@ -128,7 +128,7 @@ export class Others extends irdeviceBase {
         On: accessory.context.On ?? false,
       };
       accessory.context.GarageDoor = this.GarageDoor as object;
-      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Garage Door Opener`);
+      this.debugWarnLog('Displaying as Garage Door Opener');
 
       this.GarageDoor.Service
         .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
@@ -158,7 +158,7 @@ export class Others extends irdeviceBase {
         On: accessory.context.On ?? false,
       };
       accessory.context.Door = this.Door as object;
-      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Door`);
+      this.debugWarnLog('Displaying as Door');
 
       this.Door!.Service
         .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
@@ -194,7 +194,7 @@ export class Others extends irdeviceBase {
         On: accessory.context.On ?? false,
       };
       accessory.context.Window = this.Window as object;
-      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Window`);
+      this.debugWarnLog('Displaying as Window');
 
       this.Window!.Service.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
         .setCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED)
@@ -229,7 +229,7 @@ export class Others extends irdeviceBase {
         On: accessory.context.On ?? false,
       };
       accessory.context.WindowCovering = this.WindowCovering as object;
-      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Window Covering`);
+      this.debugWarnLog('Displaying as Window Covering');
 
       this.WindowCovering.Service
         .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
@@ -265,7 +265,7 @@ export class Others extends irdeviceBase {
         On: accessory.context.On ?? false,
       };
       accessory.context.LockMechanism = this.LockMechanism as object;
-      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Lock`);
+      this.debugWarnLog('Displaying as Lock');
 
       this.LockMechanism.Service
         .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
@@ -294,7 +294,7 @@ export class Others extends irdeviceBase {
         On: accessory.context.On ?? false,
       };
       accessory.context.Faucet = this.Faucet as object;
-      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Faucet`);
+      this.debugWarnLog('Displaying as Faucet');
 
       this.Faucet.Service
         .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
@@ -323,7 +323,7 @@ export class Others extends irdeviceBase {
         On: accessory.context.On ?? false,
       };
       accessory.context.Fan = this.Fan as object;
-      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Fan`);
+      this.debugWarnLog('Displaying as Fan');
 
       this.Fan.Service
         .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
@@ -353,7 +353,7 @@ export class Others extends irdeviceBase {
         On: accessory.context.On ?? false,
       };
       accessory.context.StatefulProgrammableSwitch = this.StatefulProgrammableSwitch as object;
-      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Stateful Programmable Switch`);
+      this.debugWarnLog('Displaying as Stateful Programmable Switch');
 
       this.StatefulProgrammableSwitch.Service
         .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
@@ -382,7 +382,7 @@ export class Others extends irdeviceBase {
         On: accessory.context.On ?? false,
       };
       accessory.context.Outlet = this.Outlet as object;
-      this.debugWarnLog(`${this.device.remoteType}: ${accessory.displayName} Displaying as Outlet`);
+      this.debugWarnLog('Displaying as Outlet');
 
       this.Outlet.Service
         .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
@@ -411,7 +411,7 @@ export class Others extends irdeviceBase {
   async OnSet(value: CharacteristicValue): Promise<void> {
     let On: boolean;
     if (this.otherDeviceType === 'garagedoor') {
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Set TargetDoorState: ${value}`);
+      this.infoLog(`Set TargetDoorState: ${value}`);
       if (value === this.hap.Characteristic.TargetDoorState.CLOSED) {
         this.GarageDoor!.On = false;
       } else {
@@ -419,7 +419,7 @@ export class Others extends irdeviceBase {
       }
       On = this.GarageDoor!.On;
     } else if (this.otherDeviceType === 'door') {
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Set TargetPosition: ${value}`);
+      this.infoLog(`Set TargetPosition: ${value}`);
       if (value === 0) {
         this.Door!.On = false;
       } else {
@@ -427,7 +427,7 @@ export class Others extends irdeviceBase {
       }
       On = this.Door!.On;
     } else if (this.otherDeviceType === 'window') {
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Set TargetPosition: ${value}`);
+      this.infoLog(`Set TargetPosition: ${value}`);
       if (value === 0) {
         this.Window!.On = false;
       } else {
@@ -435,7 +435,7 @@ export class Others extends irdeviceBase {
       }
       On = this.Window!.On;
     } else if (this.otherDeviceType === 'windowcovering') {
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Set TargetPosition: ${value}`);
+      this.infoLog(`Set TargetPosition: ${value}`);
       if (value === 0) {
         this.WindowCovering!.On = false;
       } else {
@@ -443,7 +443,7 @@ export class Others extends irdeviceBase {
       }
       On = this.WindowCovering!.On;
     } else if (this.otherDeviceType === 'lock') {
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Set LockTargetState: ${value}`);
+      this.infoLog(`Set LockTargetState: ${value}`);
       if (value === this.hap.Characteristic.LockTargetState.SECURED) {
         this.LockMechanism!.On = false;
       } else {
@@ -451,7 +451,7 @@ export class Others extends irdeviceBase {
       }
       On = this.LockMechanism!.On;
     } else if (this.otherDeviceType === 'faucet') {
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Active: ${value}`);
+      this.infoLog(`Set Active: ${value}`);
       if (value === this.hap.Characteristic.Active.INACTIVE) {
         this.Faucet!.On = false;
       } else {
@@ -459,7 +459,7 @@ export class Others extends irdeviceBase {
       }
       On = this.Faucet!.On;
     } else if (this.otherDeviceType === 'stateful') {
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Set ProgrammableSwitchOutputState: ${value}`);
+      this.infoLog(`Set ProgrammableSwitchOutputState: ${value}`);
       if (value === 0) {
         this.StatefulProgrammableSwitch!.On = false;
       } else {
@@ -468,7 +468,7 @@ export class Others extends irdeviceBase {
 
       On = this.StatefulProgrammableSwitch!.On;
     } else {
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Set On: ${value}`);
+      this.infoLog(`Set On: ${value}`);
       this.Outlet!.On = value;
       On = this.Outlet!.On ? true : false;
     }
@@ -492,7 +492,7 @@ export class Others extends irdeviceBase {
    * Other -       "command"       "channelSub"      "default"	        =        previous channel
    */
   async pushOnChanges(On: boolean): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOnChanges On: ${On},`
+    await this.debugLog(`pushOnChanges On: ${On},`
       + ` disablePushOn: ${this.disablePushOn}, customize: ${this.device.customize}, customOn: ${this.device.customOn}`);
     if (this.device.customize) {
       if (On === true && !this.disablePushOn) {
@@ -506,12 +506,12 @@ export class Others extends irdeviceBase {
         await this.pushChanges(bodyChange);
       }
     } else {
-      this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} On Command not set`);
+      this.errorLog('On Command not set');
     }
   }
 
   async pushOffChanges(On: boolean): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOffChanges On: ${On},`
+    await this.debugLog(`pushOffChanges On: ${On},`
       + ` disablePushOff: ${this.disablePushOff}, customize: ${this.device.customize}, customOff: ${this.device.customOff}`);
     if (this.device.customize) {
       if (On === false && !this.disablePushOff) {
@@ -525,14 +525,14 @@ export class Others extends irdeviceBase {
         await this.pushChanges(bodyChange);
       }
     } else {
-      this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Off Command not set.`);
+      this.errorLog('Off Command not set.');
     }
   }
 
   async pushChanges(bodyChange: any): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushChanges`);
+    await this.debugLog('pushChanges');
     if (this.device.connectionType === 'OpenAPI') {
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
+      this.infoLog(`Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
@@ -549,165 +549,165 @@ export class Others extends irdeviceBase {
         await this.pushChangeError(e);
       }
     } else {
-      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-        + ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
+      await this.warnLog(`Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
     }
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
+    await this.debugLog('updateHomeKitCharacteristics');
     if (this.otherDeviceType === 'garagedoor') {
       if (this.GarageDoor!.On === undefined) {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.GarageDoor!.On}`);
+        await this.debugLog(`On: ${this.GarageDoor!.On}`);
       } else {
         if (this.GarageDoor!.On) {
           this.GarageDoor!.Service.updateCharacteristic(this.hap.Characteristic.TargetDoorState, this.hap.Characteristic.TargetDoorState.OPEN);
           this.GarageDoor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentDoorState, this.hap.Characteristic.CurrentDoorState.OPEN);
-          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
+          await this.debugLog('updateCharacteristic'
             + ` TargetDoorState: Open, CurrentDoorState: Open (${this.GarageDoor!.On})`);
         } else {
           this.GarageDoor!.Service.updateCharacteristic(this.hap.Characteristic.TargetDoorState, this.hap.Characteristic.TargetDoorState.CLOSED);
           this.GarageDoor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentDoorState, this.hap.Characteristic.CurrentDoorState.CLOSED);
-          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
+          await this.debugLog('updateCharacteristic'
             + ` TargetDoorState: Closed, CurrentDoorState: Closed (${this.GarageDoor!.On})`);
         }
       }
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Garage Door On: ${this.GarageDoor!.On}`);
+      await this.debugLog(`Garage Door On: ${this.GarageDoor!.On}`);
     } else if (this.otherDeviceType === 'door') {
       if (this.Door!.On === undefined) {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.Door!.On}`);
+        await this.debugLog(`On: ${this.Door!.On}`);
       } else {
         if (this.Door!.On) {
           this.Door!.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 100);
           this.Door!.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 100);
           this.Door!.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED);
-          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
+          await this.debugLog('updateCharacteristic'
             + ` TargetPosition: 100, CurrentPosition: 100 (${this.Door!.On})`);
         } else {
           this.Door!.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 0);
           this.Door!.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 0);
           this.Door!.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED);
-          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
+          await this.debugLog('updateCharacteristic'
             + ` TargetPosition: 0, CurrentPosition: 0 (${this.Door!.On})`);
         }
       }
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Door On: ${this.Door!.On}`);
+      await this.debugLog(`Door On: ${this.Door!.On}`);
     } else if (this.otherDeviceType === 'window') {
       if (this.Window!.On === undefined) {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.Window!.On}`);
+        await this.debugLog(`On: ${this.Window!.On}`);
       } else {
         if (this.Window!.On) {
           this.Window!.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 100);
           this.Window!.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 100);
           this.Window!.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED);
-          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
+          await this.debugLog('updateCharacteristic'
             + ` TargetPosition: 100, CurrentPosition: 100 (${this.Window!.On})`);
         } else {
           this.Window!.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 0);
           this.Window!.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 0);
           this.Window!.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED);
-          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
+          await this.debugLog('updateCharacteristic'
             + ` TargetPosition: 0, CurrentPosition: 0 (${this.Window!.On})`);
         }
       }
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Window On: ${this.Window!.On}`);
+      await this.debugLog(`Window On: ${this.Window!.On}`);
     } else if (this.otherDeviceType === 'windowcovering') {
       if (this.WindowCovering!.On === undefined) {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.WindowCovering!.On}`);
+        await this.debugLog(`On: ${this.WindowCovering!.On}`);
       } else {
         if (this.WindowCovering!.On) {
           this.WindowCovering!.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 100);
           this.WindowCovering!.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 100);
           this.WindowCovering!.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED);
-          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
+          await this.debugLog('updateCharacteristic'
             + ` TargetPosition: 100, CurrentPosition: 100 (${this.WindowCovering!.On})`);
         } else {
           this.WindowCovering!.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 0);
           this.WindowCovering!.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 0);
           this.WindowCovering!.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED);
-          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
+          await this.debugLog('updateCharacteristic'
             + ` TargetPosition: 0, CurrentPosition: 0 (${this.WindowCovering!.On})`);
         }
       }
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Window Covering On: ${this.WindowCovering!.On}`);
+      await this.debugLog(`Window Covering On: ${this.WindowCovering!.On}`);
     } else if (this.otherDeviceType === 'lock') {
       if (this.LockMechanism?.On === undefined) {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.LockMechanism?.On}`);
+        await this.debugLog(`On: ${this.LockMechanism?.On}`);
       } else {
         if (this.LockMechanism.On) {
           this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockTargetState,
             this.hap.Characteristic.LockTargetState.UNSECURED);
           this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockCurrentState,
             this.hap.Characteristic.LockCurrentState.UNSECURED);
-          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
+          await this.debugLog('updateCharacteristic'
             + ` LockTargetState: UNSECURED, LockCurrentState: UNSECURE (${this.LockMechanism.On})`);
         } else {
           this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockTargetState,
             this.hap.Characteristic.LockTargetState.SECURED);
           this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockCurrentState,
             this.hap.Characteristic.LockCurrentState.SECURED);
-          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
+          await this.debugLog('updateCharacteristic'
             + ` LockTargetState: SECURED, LockCurrentState: SECURED (${this.LockMechanism.On})`);
         }
       }
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Lock On: ${this.LockMechanism?.On}`);
+      await this.debugLog(`Lock On: ${this.LockMechanism?.On}`);
     } else if (this.otherDeviceType === 'faucet') {
       if (this.Faucet!.On === undefined) {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.Faucet!.On}`);
+        await this.debugLog(`On: ${this.Faucet!.On}`);
       } else {
         if (this.Faucet!.On) {
           this.Faucet!.Service.updateCharacteristic(this.hap.Characteristic.Active, this.hap.Characteristic.Active.ACTIVE);
-          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Faucet!.On}`);
+          await this.debugLog(`updateCharacteristic Active: ${this.Faucet!.On}`);
         } else {
           this.Faucet!.Service.updateCharacteristic(this.hap.Characteristic.Active, this.hap.Characteristic.Active.INACTIVE);
-          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Faucet!.On}`);
+          await this.debugLog(`updateCharacteristic Active: ${this.Faucet!.On}`);
         }
       }
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Faucet On: ${this.Faucet!.On}`);
+      await this.debugLog(`Faucet On: ${this.Faucet!.On}`);
     } else if (this.otherDeviceType === 'fan') {
       if (this.Fan!.On === undefined) {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.Fan!.On}`);
+        await this.debugLog(`On: ${this.Fan!.On}`);
       } else {
         if (this.Fan!.On) {
           this.Fan!.Service.updateCharacteristic(this.hap.Characteristic.On, this.Fan!.On);
-          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.Fan!.On}`);
+          await this.debugLog(`updateCharacteristic On: ${this.Fan!.On}`);
         } else {
           this.Fan!.Service.updateCharacteristic(this.hap.Characteristic.On, this.Fan!.On);
-          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.Fan!.On}`);
+          await this.debugLog(`updateCharacteristic On: ${this.Fan!.On}`);
         }
       }
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Fan On: ${this.Fan!.On}`);
+      await this.debugLog(`Fan On: ${this.Fan!.On}`);
     } else if (this.otherDeviceType === 'stateful') {
       if (this.StatefulProgrammableSwitch!.On === undefined) {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.StatefulProgrammableSwitch!.On}`);
+        await this.debugLog(`On: ${this.StatefulProgrammableSwitch!.On}`);
       } else {
         if (this.StatefulProgrammableSwitch!.On) {
           this.StatefulProgrammableSwitch!.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent,
             this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS);
           this.StatefulProgrammableSwitch!.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState, 1);
-          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
+          await this.debugLog('updateCharacteristic'
             + ` ProgrammableSwitchEvent: SINGLE, ProgrammableSwitchOutputState: 1 (${this.StatefulProgrammableSwitch!.On})`);
         } else {
           this.StatefulProgrammableSwitch!.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent,
             this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS);
           this.StatefulProgrammableSwitch!.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState, 0);
-          this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
+          await this.debugLog('updateCharacteristic'
             + ` ProgrammableSwitchEvent: SINGLE, ProgrammableSwitchOutputState: 0 (${this.StatefulProgrammableSwitch!.On})`);
         }
       }
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} StatefulProgrammableSwitch On: ${this.StatefulProgrammableSwitch!.On}`);
+      await this.debugLog(`StatefulProgrammableSwitch On: ${this.StatefulProgrammableSwitch!.On}`);
     } else if (this.otherDeviceType === 'switch') {
       if (this.Switch!.On === undefined) {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.Switch!.On}`);
+        await this.debugLog(`On: ${this.Switch!.On}`);
       } else {
         this.Switch!.Service.updateCharacteristic(this.hap.Characteristic.On, this.Switch!.On);
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.Switch!.On}`);
+        await this.debugLog(`updateCharacteristic On: ${this.Switch!.On}`);
       }
     } else {
       if (this.Outlet!.On === undefined) {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.Outlet!.On}`);
+        await this.debugLog(`On: ${this.Outlet!.On}`);
       } else {
         this.Outlet!.Service.updateCharacteristic(this.hap.Characteristic.On, this.Outlet!.On);
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.Outlet!.On}`);
+        await this.debugLog(`updateCharacteristic On: ${this.Outlet!.On}`);
       }
     }
   }
@@ -770,7 +770,7 @@ export class Others extends irdeviceBase {
     // If Outlet.Service still present, then remove first
     if (this.Outlet?.Service) {
       this.Outlet.Service = this.accessory.getService(this.hap.Service.Outlet) as Service;
-      this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Outlet Service`);
+      this.warnLog('Removing Leftover Outlet Service');
       accessory.removeService(this.Outlet.Service);
     }
   }
@@ -779,7 +779,7 @@ export class Others extends irdeviceBase {
     // If GarageDoor.Service still present, then remove first
     if (this.GarageDoor?.Service) {
       this.GarageDoor.Service = this.accessory.getService(this.hap.Service.GarageDoorOpener) as Service;
-      this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Garage Door Service`);
+      this.warnLog('Removing Leftover Garage Door Service');
       accessory.removeService(this.GarageDoor.Service);
     }
   }
@@ -788,7 +788,7 @@ export class Others extends irdeviceBase {
     // If Door.Service still present, then remove first
     if (this.Door?.Service) {
       this.Door.Service = this.accessory.getService(this.hap.Service.Door) as Service;
-      this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Door Service`);
+      this.warnLog('Removing Leftover Door Service');
       accessory.removeService(this.Door.Service);
     }
   }
@@ -797,7 +797,7 @@ export class Others extends irdeviceBase {
     // If Lock.Service still present, then remove first
     if (this.LockMechanism?.Service) {
       this.LockMechanism.Service = this.accessory.getService(this.hap.Service.LockMechanism) as Service;
-      this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Lock Service`);
+      this.warnLog('Removing Leftover Lock Service');
       accessory.removeService(this.LockMechanism.Service);
     }
   }
@@ -806,7 +806,7 @@ export class Others extends irdeviceBase {
     // If Faucet.Service still present, then remove first
     if (this.Faucet?.Service) {
       this.Faucet.Service = this.accessory.getService(this.hap.Service.Faucet) as Service;
-      this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Faucet Service`);
+      this.warnLog('Removing Leftover Faucet Service');
       accessory.removeService(this.Faucet.Service);
     }
   }
@@ -815,7 +815,7 @@ export class Others extends irdeviceBase {
     // If Fan Service still present, then remove first
     if (this.Fan?.Service) {
       this.Fan.Service = this.accessory.getService(this.hap.Service.Fan) as Service;
-      this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Fan Service`);
+      this.warnLog('Removing Leftover Fan Service');
       accessory.removeService(this.Fan.Service);
     }
   }
@@ -824,7 +824,7 @@ export class Others extends irdeviceBase {
     // If Window.Service still present, then remove first
     if (this.Window?.Service) {
       this.Window.Service = this.accessory.getService(this.hap.Service.Window) as Service;
-      this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Window Service`);
+      this.warnLog('Removing Leftover Window Service');
       accessory.removeService(this.Window.Service);
     }
   }
@@ -833,7 +833,7 @@ export class Others extends irdeviceBase {
     // If WindowCovering.Service still present, then remove first
     if (this.WindowCovering?.Service) {
       this.WindowCovering.Service = this.accessory.getService(this.hap.Service.WindowCovering) as Service;
-      this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Window Covering Service`);
+      this.warnLog('Removing Leftover Window Covering Service');
       accessory.removeService(this.WindowCovering.Service);
     }
   }
@@ -842,7 +842,7 @@ export class Others extends irdeviceBase {
     // If StatefulProgrammableSwitch.Service still present, then remove first
     if (this.StatefulProgrammableSwitch?.Service) {
       this.StatefulProgrammableSwitch.Service = this.accessory.getService(this.hap.Service.StatefulProgrammableSwitch) as Service;
-      this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Stateful Programmable Switch Service`);
+      this.warnLog('Removing Leftover Stateful Programmable Switch Service');
       accessory.removeService(this.StatefulProgrammableSwitch.Service);
     }
   }
@@ -851,7 +851,7 @@ export class Others extends irdeviceBase {
     // If Switch.Service still present, then remove first
     if (this.Switch?.Service) {
       this.Switch.Service = this.accessory.getService(this.hap.Service.Switch) as Service;
-      this.warnLog(`${this.device.remoteType}: ${accessory.displayName} Removing Leftover Switch Service`);
+      this.warnLog('Removing Leftover Switch Service');
       accessory.removeService(this.Switch.Service);
     }
   }
@@ -859,15 +859,15 @@ export class Others extends irdeviceBase {
   async getOtherConfigSettings(device: irdevice & irDevicesConfig): Promise<void> {
     if (!device.other?.deviceType && this.accessory.context.deviceType) {
       this.otherDeviceType = this.accessory.context.deviceType;
-      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Type: ${this.otherDeviceType}, from Accessory Cache.`);
+      await this.debugWarnLog(`Using Device Type: ${this.otherDeviceType}, from Accessory Cache.`);
     } else if (device.other?.deviceType) {
       this.accessory.context.deviceType = device.other.deviceType;
-      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Accessory Cache: ${this.accessory.context.deviceType}`);
+      await this.debugWarnLog(`Accessory Cache: ${this.accessory.context.deviceType}`);
       this.otherDeviceType = this.accessory.context.deviceType;
-      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Type: ${this.otherDeviceType}`);
+      await this.debugWarnLog(`Using Device Type: ${this.otherDeviceType}`);
     } else {
       this.otherDeviceType = 'outlet';
-      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName} no deviceType set, using default deviceType: ${this.otherDeviceType}`);
+      this.warnLog(`no deviceType set, using default deviceType: ${this.otherDeviceType}`);
     }
   }
 }

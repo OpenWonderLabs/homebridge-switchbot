@@ -278,7 +278,7 @@ export class ColorBulb extends deviceBase {
     this.LightBulb.Saturation = saturation;
     await this.debugLog(`Saturation: ${this.LightBulb.Saturation}`);
     // ColorTemperature
-    this.LightBulb.ColorTemperature = context.colorTemperature;
+    this.LightBulb.ColorTemperature = Math.max(Math.min(context.colorTemperature, 500), 140);
     await this.debugLog(`ColorTemperature: ${this.LightBulb.ColorTemperature}`);
   }
 

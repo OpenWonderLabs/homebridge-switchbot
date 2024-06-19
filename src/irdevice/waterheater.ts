@@ -49,7 +49,7 @@ export class WaterHeater extends irdeviceBase {
   }
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${value}`);
+    await this.debugLog(`Active: ${value}`);
 
     this.Valve.Active = value;
     if (this.Valve.Active === this.hap.Characteristic.Active.ACTIVE) {
@@ -68,7 +68,7 @@ export class WaterHeater extends irdeviceBase {
    * WaterHeater     "command"       "turnOn"          "default"	       set to ON state
    */
   async pushWaterHeaterOnChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushWaterHeaterOnChanges Active: ${this.Valve.Active},`
+    await this.debugLog(`pushWaterHeaterOnChanges Active: ${this.Valve.Active},`
       + ` disablePushOn: ${this.disablePushOn}`);
     if (this.Valve.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType();
@@ -83,7 +83,7 @@ export class WaterHeater extends irdeviceBase {
   }
 
   async pushWaterHeaterOffChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushWaterHeaterOffChanges Active: ${this.Valve.Active},`
+    await this.debugLog(`pushWaterHeaterOffChanges Active: ${this.Valve.Active},`
       + ` disablePushOff: ${this.disablePushOff}`);
     if (this.Valve.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOff) {
       const commandType: string = await this.commandType();
@@ -98,9 +98,9 @@ export class WaterHeater extends irdeviceBase {
   }
 
   async pushChanges(bodyChange: any): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushChanges`);
+    await this.debugLog('pushChanges');
     if (this.device.connectionType === 'OpenAPI') {
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
+      this.infoLog(`Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
@@ -117,19 +117,19 @@ export class WaterHeater extends irdeviceBase {
         await this.pushChangeError(e);
       }
     } else {
-      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-        + ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
+      await this.warnLog(`Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
     }
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
+    await this.debugLog('updateHomeKitCharacteristics');
     // Active
     if (this.Valve.Active === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Valve.Active}`);
+      await this.debugLog(`Active: ${this.Valve.Active}`);
     } else {
       this.accessory.context.Active = this.Valve.Active;
       this.Valve.Service.updateCharacteristic(this.hap.Characteristic.Active, this.Valve.Active);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Valve.Active}`);
+      await this.debugLog(`updateCharacteristic Active: ${this.Valve.Active}`);
     }
   }
 

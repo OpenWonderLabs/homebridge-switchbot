@@ -208,11 +208,8 @@ export class CeilingLight extends deviceBase {
     // ColorTemperature
     if (!Number.isNaN(deviceStatus.colorTemperature)) {
       await this.debugLog(`OpenAPI ColorTemperature: ${deviceStatus.colorTemperature}`);
-      const mired = Math.round(1000000 / deviceStatus.colorTemperature);
-
-      this.LightBulb.ColorTemperature = Number(mired);
-
-      this.LightBulb.ColorTemperature = Math.max(Math.min(this.LightBulb.ColorTemperature, 500), 140);
+      const miredColorTemperature = Math.round(1000000 / deviceStatus.colorTemperature);
+      this.LightBulb.ColorTemperature = Math.max(Math.min(miredColorTemperature, 500), 140);
       await this.debugLog(`ColorTemperature: ${this.LightBulb.ColorTemperature}`);
     }
 
@@ -243,7 +240,7 @@ export class CeilingLight extends deviceBase {
     this.LightBulb.Brightness = context.brightness;
     await this.debugLog(`Brightness: ${this.LightBulb.Brightness}`);
     // ColorTemperature
-    this.LightBulb.ColorTemperature = context.colorTemperature;
+    this.LightBulb.ColorTemperature = Math.max(Math.min(context.colorTemperature, 500), 140);
     await this.debugLog(`ColorTemperature: ${this.LightBulb.ColorTemperature}`);
   }
 

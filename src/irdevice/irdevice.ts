@@ -6,7 +6,7 @@ import { request } from 'undici';
 import { Devices } from '../settings.js';
 
 import type { SwitchBotPlatform } from '../platform.js';
-import type { API, HAP, Logging, PlatformAccessory } from 'homebridge';
+import type { API, HAP, Logging, PlatformAccessory, Service, CharacteristicValue } from 'homebridge';
 import type { SwitchBotPlatformConfig, irDevicesConfig } from '../settings.js';
 import type { irdevice } from '../types/irdevicelist.js';
 
@@ -53,16 +53,16 @@ export abstract class irdeviceBase {
   async getDeviceLogSettings(device: irdevice & irDevicesConfig): Promise<void> {
     if (this.platform.debugMode) {
       this.deviceLogging = this.accessory.context.logging = 'debugMode';
-      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Debug Mode Logging: ${this.deviceLogging}`);
+      await this.debugWarnLog(`Using Debug Mode Logging: ${this.deviceLogging}`);
     } else if (device.logging) {
       this.deviceLogging = this.accessory.context.logging = device.logging;
-      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Device Config Logging: ${this.deviceLogging}`);
+      await this.debugWarnLog(`Using Device Config Logging: ${this.deviceLogging}`);
     } else if (this.config.logging) {
       this.deviceLogging = this.accessory.context.logging = this.config.logging;
-      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Using Platform Config Logging: ${this.deviceLogging}`);
+      await this.debugWarnLog(`Using Platform Config Logging: ${this.deviceLogging}`);
     } else {
       this.deviceLogging = this.accessory.context.logging = 'standard';
-      this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} Logging Not Set, Using: ${this.deviceLogging}`);
+      await this.debugWarnLog(`Logging Not Set, Using: ${this.deviceLogging}`);
     }
   }
 
@@ -137,7 +137,7 @@ export abstract class irdeviceBase {
     const config = Object.assign({}, deviceConfig, irairConfig, irpurConfig, ircamConfig, irfanConfig, irlightConfig, otherConfig,
       irtvConfig, irvcConfig, irwhConfig);
     if (Object.entries(config).length !== 0) {
-      this.debugSuccessLog(`${this.device.remoteType}: ${this.accessory.displayName} Config: ${JSON.stringify(config)}`);
+      this.debugSuccessLog(`Config: ${JSON.stringify(config)}`);
     }
   }
 
@@ -172,7 +172,7 @@ export abstract class irdeviceBase {
       }
     }
     const version = deviceFirmwareVersion.toString();
-    this.debugLog(`${this.device.remoteType}: ${accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
+    await this.debugLog(`${this.device.remoteType}: ${accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
     let deviceVersion: string;
     if (version?.includes('.') === false) {
       const replace = version?.replace(/^V|-.*$/g, '');
@@ -201,21 +201,48 @@ export abstract class irdeviceBase {
     });
   }
 
+  async successfulStatusCodes(statusCode: any, deviceStatus: any) {
+    return (statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100);
+  }
+
+  /**
+  * Update the characteristic value and log the change.
+  *
+  * @param Service: Service
+  * @param Characteristic: Characteristic
+  * @param CharacteristicValue: CharacteristicValue | undefined
+  * @param CharacteristicName: string
+  * @return: void
+  *
+  */
+  async updateCharacteristic(Service: Service, Characteristic: any,
+    CharacteristicValue: CharacteristicValue | undefined, CharacteristicName: string): Promise<void> {
+    if (CharacteristicValue === undefined) {
+      await await this.debugLog(`${CharacteristicName}: ${CharacteristicValue}`);
+    } else {
+      Service.updateCharacteristic(Characteristic, CharacteristicValue);
+      await await this.debugLog(`updateCharacteristic ${CharacteristicName}: ${CharacteristicValue}`);
+      await await this.debugWarnLog(`context before: ${this.accessory.context[CharacteristicName]}`);
+      this.accessory.context[CharacteristicName] = CharacteristicValue;
+      await await this.debugWarnLog(`context after: ${this.accessory.context[CharacteristicName]}`);
+    }
+  }
+
   async pushStatusCodes(statusCode: any, deviceStatus: any) {
-    this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
-    this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
-    this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
+    await this.debugWarnLog(`statusCode: ${statusCode}`);
+    await this.debugWarnLog(`deviceStatus: ${JSON.stringify(deviceStatus)}`);
+    await this.debugWarnLog(`deviceStatus statusCode: ${deviceStatus.statusCode}`);
   }
 
   async successfulPushChange(statusCode: any, deviceStatus: any, bodyChange: any) {
-    this.debugSuccessLog(`${this.device.remoteType}: ${this.accessory.displayName} statusCode: ${statusCode} & deviceStatus `
+    this.debugSuccessLog(`statusCode: ${statusCode} & deviceStatus `
       + `StatusCode: ${deviceStatus.statusCode}`);
-    this.successLog(`${this.device.remoteType}: ${this.accessory.displayName} request to SwitchBot API,`
+    this.successLog('request to SwitchBot API,'
       + ` body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
   }
 
   async pushChangeError(e: Error) {
-    this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType}`
+    this.errorLog(`failed pushChanges with ${this.device.connectionType}`
       + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
   }
 
@@ -278,69 +305,66 @@ export abstract class irdeviceBase {
   async statusCode(statusCode: number): Promise<void> {
     switch (statusCode) {
       case 151:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Command not supported by this deviceType, statusCode: ${statusCode}`);
+        this.errorLog(`Command not supported by this deviceType, statusCode: ${statusCode}`);
         break;
       case 152:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device not found, statusCode: ${statusCode}`);
+        this.errorLog(`Device not found, statusCode: ${statusCode}`);
         break;
       case 160:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Command is not supported, statusCode: ${statusCode}`);
+        this.errorLog(`Command is not supported, statusCode: ${statusCode}`);
         break;
       case 161:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device is offline, statusCode: ${statusCode}`);
+        this.errorLog(`Device is offline, statusCode: ${statusCode}`);
         break;
       case 171:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. `
-          + `Hub: ${this.device.hubDeviceId}`);
+        this.errorLog(`Hub Device is offline, statusCode: ${statusCode}. Hub: ${this.device.hubDeviceId}`);
         break;
       case 190:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Device internal error due to device states not synchronized with`
-          + ` server, Or command format is invalid, statusCode: ${statusCode}`);
+        this.errorLog('Device internal error due to device states not synchronized with server, Or command format is invalid,'
+          + ` statusCode: ${statusCode}`);
         break;
       case 100:
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Command successfully sent, statusCode: ${statusCode}`);
+        await this.debugLog(`Command successfully sent, statusCode: ${statusCode}`);
         break;
       case 200:
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`);
+        await this.debugLog(`Request successful, statusCode: ${statusCode}`);
         break;
       case 400:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Bad Request, The client has issued an invalid request. `
-          + `This is commonly used to specify validation errors in a request payload, statusCode: ${statusCode}`);
+        this.errorLog('Bad Request, The client has issued an invalid request. This is commonly used to specify validation errors in a request'
+          + ` payload, statusCode: ${statusCode}`);
         break;
       case 401:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Unauthorized,	Authorization for the API is required, `
-          + `but the request has not been authenticated, statusCode: ${statusCode}`);
+        this.errorLog(`Unauthorized, Authorization for the API is required, but the request has not been authenticated, statusCode: ${statusCode}`);
         break;
       case 403:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Forbidden,	The request has been authenticated but does not `
-          + `have appropriate permissions, or a requested resource is not found, statusCode: ${statusCode}`);
+        this.errorLog('Forbidden,	The request has been authenticated but does not have appropriate permissions, or a requested resource is not'
+          + ` found, statusCode: ${statusCode}`);
         break;
       case 404:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Not Found,	Specifies the requested path does not exist, `
-          + `statusCode: ${statusCode}`);
+        this.errorLog(`Not Found,	Specifies the requested path does not exist, statusCode: ${statusCode}`);
         break;
       case 406:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Not Acceptable,	The client has requested a MIME type via `
-          + `the Accept header for a value not supported by the server, statusCode: ${statusCode}`);
+        this.errorLog('Not Acceptable, The client has requested a MIME type via the Accept header for a value not supported by the server,'
+          + ` statusCode: ${statusCode}`);
         break;
       case 415:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Unsupported Media Type,	The client has defined a contentType `
-          + `header that is not supported by the server, statusCode: ${statusCode}`);
+        this.errorLog('Unsupported Media Type,	The client has defined a contentType header that is not supported by the server,'
+          + ` statusCode: ${statusCode}`);
         break;
       case 422:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Unprocessable Entity,	The client has made a valid request, `
-          + `but the server cannot process it. This is often used for APIs for which certain limits have been exceeded, statusCode: ${statusCode}`);
+        this.errorLog('Unprocessable Entity,	The client has made a valid request, but the server cannot process it. This is often used for APIs'
+          + ` for which certain limits have been exceeded, statusCode: ${statusCode}`);
         break;
       case 429:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Too Many Requests,	The client has exceeded the number of `
-          + `requests allowed for a given time window, statusCode: ${statusCode}`);
+        this.errorLog('Too Many Requests,	The client has exceeded the number of requests allowed for a given time window,'
+          + ` statusCode: ${statusCode}`);
         break;
       case 500:
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} Internal Server Error,	An unexpected error on the SmartThings `
-          + `servers has occurred. These errors should be rare, statusCode: ${statusCode}`);
+        this.errorLog('Internal Server Error,	An unexpected error on the SmartThings servers has occurred. These errors should be rare,'
+          + ` statusCode: ${statusCode}`);
         break;
       default:
-        this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Unknown statusCode: `
+        this.infoLog('Unknown statusCode: '
           + `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
     }
   }
@@ -348,65 +372,65 @@ export abstract class irdeviceBase {
   /**
    * Logging for Device
    */
-  infoLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      this.log.info(String(...log));
+  async infoLog(...log: any[]): Promise<void> {
+    if (await this.enablingDeviceLogging()) {
+      this.log.info(`${this.device.remoteType}: ${this.accessory.displayName}`, String(...log));
     }
   }
 
-  successLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      this.platform.log.success(String(...log));
+  async successLog(...log: any[]): Promise<void> {
+    if (await this.enablingDeviceLogging()) {
+      this.log.success(`${this.device.remoteType}: ${this.accessory.displayName}`, String(...log));
     }
   }
 
-  debugSuccessLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
+  async debugSuccessLog(...log: any[]): Promise<void> {
+    if (await this.enablingDeviceLogging()) {
       if (this.deviceLogging?.includes('debug')) {
-        this.log.success('[DEBUG]', String(...log));
+        this.log.success(`[DEBUG] ${this.device.remoteType}: ${this.accessory.displayName}`, String(...log));
       }
     }
   }
 
-  warnLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      this.log.warn(String(...log));
+  async warnLog(...log: any[]): Promise<void> {
+    if (await this.enablingDeviceLogging()) {
+      this.log.warn(`${this.device.remoteType}: ${this.accessory.displayName}`, String(...log));
     }
   }
 
-  debugWarnLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
+  async debugWarnLog(...log: any[]): Promise<void> {
+    if (await this.enablingDeviceLogging()) {
       if (this.deviceLogging?.includes('debug')) {
-        this.log.warn('[DEBUG]', String(...log));
+        this.log.warn(`[DEBUG] ${this.device.remoteType}: ${this.accessory.displayName}`, String(...log));
       }
     }
   }
 
-  errorLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
-      this.log.error(String(...log));
+  async errorLog(...log: any[]): Promise<void> {
+    if (await this.enablingDeviceLogging()) {
+      this.log.error(`${this.device.remoteType}: ${this.accessory.displayName}`, String(...log));
     }
   }
 
-  debugErrorLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
+  async debugErrorLog(...log: any[]): Promise<void> {
+    if (await this.enablingDeviceLogging()) {
       if (this.deviceLogging?.includes('debug')) {
-        this.log.error('[DEBUG]', String(...log));
+        this.log.error(`[DEBUG] ${this.device.remoteType}: ${this.accessory.displayName}`, String(...log));
       }
     }
   }
 
-  debugLog(...log: any[]): void {
-    if (this.enablingDeviceLogging()) {
+  async debugLog(...log: any[]): Promise<void> {
+    if (await this.enablingDeviceLogging()) {
       if (this.deviceLogging === 'debug') {
-        this.log.info('[DEBUG]', String(...log));
+        this.log.info(`[DEBUG] ${this.device.remoteType}: ${this.accessory.displayName}`, String(...log));
       } else {
-        this.log.debug(String(...log));
+        this.log.debug(`${this.device.remoteType}: ${this.accessory.displayName}`, String(...log));
       }
     }
   }
 
-  enablingDeviceLogging(): boolean {
+  async enablingDeviceLogging(): Promise<boolean> {
     return this.deviceLogging.includes('debug') || this.deviceLogging === 'standard';
   }
 }

@@ -48,7 +48,7 @@ export class VacuumCleaner extends irdeviceBase {
   }
 
   async OnSet(value: CharacteristicValue): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${value}`);
+    await this.debugLog(`On: ${value}`);
 
     // Set the requested state
     this.Switch.On = value;
@@ -66,7 +66,7 @@ export class VacuumCleaner extends irdeviceBase {
    * Vacuum Cleaner    "command"       "turnOn"       "default"	      set to ON state
    */
   async pushOnChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOnChanges`
+    await this.debugLog('pushOnChanges'
       + ` On: ${this.Switch.On}, disablePushOn: ${this.disablePushOn}`);
     if (this.Switch.On && !this.disablePushOn) {
       const commandType: string = await this.commandType();
@@ -81,7 +81,7 @@ export class VacuumCleaner extends irdeviceBase {
   }
 
   async pushOffChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOffChanges`
+    await this.debugLog('pushOffChanges'
       + ` On: ${this.Switch.On}, disablePushOff: ${this.disablePushOff}`);
     if (!this.Switch.On && !this.disablePushOff) {
       const commandType: string = await this.commandType();
@@ -96,9 +96,9 @@ export class VacuumCleaner extends irdeviceBase {
   }
 
   async pushChanges(bodyChange: any): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushChanges`);
+    await this.debugLog('pushChanges');
     if (this.device.connectionType === 'OpenAPI') {
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
+      await this.infoLog(`Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
@@ -115,19 +115,19 @@ export class VacuumCleaner extends irdeviceBase {
         await this.pushChangeError(e);
       }
     } else {
-      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-        + ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
+      await this.warnLog(`Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
     }
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
+    await this.debugLog('updateHomeKitCharacteristics');
     // On
     if (this.Switch.On === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.Switch.On}`);
+      await this.debugLog(`On: ${this.Switch.On}`);
     } else {
       this.accessory.context.On = this.Switch.On;
       this.Switch.Service.updateCharacteristic(this.hap.Characteristic.On, this.Switch.On);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.Switch.On}`);
+      await this.debugLog(`updateCharacteristic On: ${this.Switch.On}`);
     }
   }
 
