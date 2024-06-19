@@ -10,7 +10,7 @@ type deviceWebhook = {
   context: deviceWebhookContext
 };
 
-type deviceWebhookContext = {
+export type deviceWebhookContext = {
   //properties on all devices
   deviceMac: string;
   deviceType: string;

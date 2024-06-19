@@ -34,23 +34,23 @@ import { AirConditioner } from './irdevice/airconditioner.js';
 import { Buffer } from 'buffer';
 import { request } from 'undici';
 import asyncmqtt from 'async-mqtt';
-import { isBlindTiltDevice, isCurtainDevice, sleep } from './utils.js';
 import { createServer } from 'http';
 import { queueScheduler } from 'rxjs';
 import fakegato from 'fakegato-history';
 import crypto, { randomUUID } from 'crypto';
 import { readFileSync, writeFileSync } from 'fs';
 import { EveHomeKitTypes } from 'homebridge-lib/EveHomeKitTypes';
+import { isBlindTiltDevice, isCurtainDevice, sleep } from './utils.js';
 import { PLATFORM_NAME, PLUGIN_NAME, Devices, setupWebhook, updateWebhook, deleteWebhook, queryWebhook } from './settings.js';
 
 import type { UrlObject } from 'url';
 import type { MqttClient } from 'mqtt';
 import type { Dispatcher } from 'undici';
+import type { irdevice } from './types/irdevicelist.js';
 import type { Server, IncomingMessage, ServerResponse } from 'http';
+import type { blindTilt, curtain, curtain3, device } from './types/devicelist.js';
 import type { API, DynamicPlatformPlugin, Logging, PlatformAccessory } from 'homebridge';
 import type { SwitchBotPlatformConfig, devicesConfig, irDevicesConfig } from './settings.js';
-import type { irdevice } from './types/irdevicelist.js';
-import type { blindTilt, curtain, curtain3, device } from './types/devicelist.js';
 
 /**
  * HomebridgePlatform
@@ -76,7 +76,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
   public readonly fakegatoAPI: any;
   public readonly eve: any;
-  public readonly webhookEventHandler;
+  public readonly webhookEventHandler: { [x: string]: (context: any) => void } = {};
 
   constructor(
     log: Logging,
@@ -154,27 +154,27 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       try {
         const { connectAsync } = asyncmqtt;
         this.mqttClient = await connectAsync(this.config.options?.mqttURL, this.config.options.mqttOptions || {});
-        this.debugLog('MQTT connection has been established successfully.');
-        this.mqttClient.on('error', (e: Error) => {
-          this.errorLog(`Failed to publish MQTT messages. ${e}`);
+        await this.debugLog('MQTT connection has been established successfully.');
+        this.mqttClient.on('error', async (e: Error) => {
+          await this.errorLog(`Failed to publish MQTT messages. ${e}`);
         });
         if (!this.config.options?.webhookURL) {
           // receive webhook events via MQTT
-          this.infoLog(`Webhook is configured to be received through ${this.config.options.mqttURL}/homebridge-switchbot/webhook.`);
+          await this.infoLog(`Webhook is configured to be received through ${this.config.options.mqttURL}/homebridge-switchbot/webhook.`);
           this.mqttClient.subscribe('homebridge-switchbot/webhook/+');
           this.mqttClient.on('message', async (topic: string, message) => {
             try {
-              this.debugLog(`Received Webhook via MQTT: ${topic}=${message}`);
+              await this.debugLog(`Received Webhook via MQTT: ${topic}=${message}`);
               const context = JSON.parse(message.toString());
               this.webhookEventHandler[context.deviceMac]?.(context);
             } catch (e: any) {
-              this.errorLog(`Failed to handle webhook event. Error:${e}`);
+              await this.errorLog(`Failed to handle webhook event. Error:${e}`);
             }
           });
         }
       } catch (e) {
         this.mqttClient = null;
-        this.errorLog(`Failed to establish MQTT connection. ${e}`);
+        await this.errorLog(`Failed to establish MQTT connection. ${e}`);
       }
     }
   }
@@ -298,9 +298,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
             }),
           });
           const response: any = await body.json();
-          this.debugLog(`deleteWebhook: url:${url}`);
-          this.debugLog(`deleteWebhook: body:${JSON.stringify(response)}`);
-          this.debugLog(`deleteWebhook: statusCode:${statusCode}`);
+          this.debugLog(`deleteWebhook: url:${url}, body:${JSON.stringify(response)}, statusCode:${statusCode}`);
           if (statusCode !== 200 || response?.statusCode !== 100) {
             this.errorLog(`Failed to delete webhook. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`);
           } else {
@@ -2660,67 +2658,67 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   async statusCode(statusCode: number): Promise<void> {
     switch (statusCode) {
       case 151:
-        this.errorLog(`Command not supported by this device type, statusCode: ${statusCode}, Submit Feature Request Here: ` +
+        await this.errorLog(`Command not supported by this device type, statusCode: ${statusCode}, Submit Feature Request Here: ` +
           'https://tinyurl.com/SwitchBotFeatureRequest');
         break;
       case 152:
-        this.errorLog(`Device not found, statusCode: ${statusCode}`);
+        await this.errorLog(`Device not found, statusCode: ${statusCode}`);
         break;
       case 160:
-        this.errorLog(`Command is not supported, statusCode: ${statusCode}, Submit Bugs Here: https://tinyurl.com/SwitchBotBug`);
+        await this.errorLog(`Command is not supported, statusCode: ${statusCode}, Submit Bugs Here: https://tinyurl.com/SwitchBotBug`);
         break;
       case 161:
-        this.errorLog(`Device is offline, statusCode: ${statusCode}`);
+        await this.errorLog(`Device is offline, statusCode: ${statusCode}`);
         break;
       case 171:
-        this.errorLog(`is offline, statusCode: ${statusCode}`);
+        await this.errorLog(`is offline, statusCode: ${statusCode}`);
         break;
       case 190:
-        this.errorLog(`Requests reached the daily limit, statusCode: ${statusCode}`);
+        await this.errorLog(`Requests reached the daily limit, statusCode: ${statusCode}`);
         break;
       case 100:
-        this.debugLog(`Command successfully sent, statusCode: ${statusCode}`);
+        await this.debugLog(`Command successfully sent, statusCode: ${statusCode}`);
         break;
       case 200:
-        this.debugLog(`Request successful, statusCode: ${statusCode}`);
+        await this.debugLog(`Request successful, statusCode: ${statusCode}`);
         break;
       case 400:
-        this.errorLog('Bad Request, The client has issued an invalid request. This is commonly used to specify validation errors in a request '
+        await this.errorLog('Bad Request, The client has issued an invalid request. This is commonly used to specify validation errors in a request '
           + `payload, statusCode: ${statusCode}`);
         break;
       case 401:
-        this.errorLog('Unauthorized,	Authorization for the API is required, but the request has not been authenticated, '
+        await this.errorLog('Unauthorized,	Authorization for the API is required, but the request has not been authenticated, '
           + `statusCode: ${statusCode}`);
         break;
       case 403:
-        this.errorLog('Forbidden,	The request has been authenticated but does not have appropriate permissions, or a requested resource is not '
+        await this.errorLog('Forbidden,	The request has been authenticated but does not have appropriate permissions, or a requested resource is not '
           + `found, statusCode: ${statusCode}`);
         break;
       case 404:
-        this.errorLog(`Not Found,	Specifies the requested path does not exist, statusCode: ${statusCode}`);
+        await this.errorLog(`Not Found,	Specifies the requested path does not exist, statusCode: ${statusCode}`);
         break;
       case 406:
-        this.errorLog('Not Acceptable,	The client has requested a MIME type via the Accept header for a value not supported by the server, '
+        await this.errorLog('Not Acceptable,	The client has requested a MIME type via the Accept header for a value not supported by the server, '
           + `statusCode: ${statusCode}`);
         break;
       case 415:
-        this.errorLog('Unsupported Media Type,	The client has defined a contentType header that is not supported by the server, '
+        await this.errorLog('Unsupported Media Type,	The client has defined a contentType header that is not supported by the server, '
           + `statusCode: ${statusCode}`);
         break;
       case 422:
-        this.errorLog('Unprocessable Entity,	The client has made a valid request, but the server cannot process it. This is often used for '
+        await this.errorLog('Unprocessable Entity,	The client has made a valid request, but the server cannot process it. This is often used for '
           + `APIs for which certain limits have been exceeded, statusCode: ${statusCode}`);
         break;
       case 429:
-        this.errorLog('Too Many Requests,	The client has exceeded the number of requests allowed for a given time window, '
+        await this.errorLog('Too Many Requests,	The client has exceeded the number of requests allowed for a given time window, '
           + `statusCode: ${statusCode}`);
         break;
       case 500:
-        this.errorLog('Internal Server Error,	An unexpected error on the SmartThings servers has occurred. These errors should be rare, '
+        await this.errorLog('Internal Server Error,	An unexpected error on the SmartThings servers has occurred. These errors should be rare, '
           + `statusCode: ${statusCode}`);
         break;
       default:
-        this.errorLog(`Unknown statusCode, statusCode: ${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
+        await this.errorLog(`Unknown statusCode, statusCode: ${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
     }
   }
 
@@ -2736,13 +2734,13 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         if (statusCode === 200 || statusCode === 100) {
           return { body, statusCode };
         } else {
-          this.debugLog(`Received status code: ${statusCode}`);
+          await this.debugLog(`Received status code: ${statusCode}`);
         }
       } catch (error: any) {
-        this.errorLog(`Error making request: ${error.message}`);
+        await this.errorLog(`Error making request: ${error.message}`);
       }
       retryCount++;
-      this.debugLog(`Retry attempt ${retryCount} of ${maxRetries}`);
+      await this.debugLog(`Retry attempt ${retryCount} of ${maxRetries}`);
       await sleep(delayBetweenRetries);
     }
     return { body: null, statusCode: -1 };
@@ -2754,9 +2752,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     try {
       const SwitchBot = (await import('node-switchbot')).SwitchBot;
       queueScheduler.schedule(() => (switchbot = new SwitchBot()));
+      await this.debugLog(`${device.deviceType}: ${accessory.displayName} 'node-switchbot' found: ${switchbot}`);
     } catch (e: any) {
       switchbot = false;
-      this.errorLog(`${device.deviceType}: ${accessory.displayName} 'node-switchbot' found: ${switchbot}, Error: ${e}`);
+      await this.errorLog(`${device.deviceType}: ${accessory.displayName} 'node-switchbot' found: ${switchbot}, Error: ${e}`);
     }
     return switchbot;
   }
@@ -2768,7 +2767,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         'utf-8',
       ),
     );
-    this.debugLog(`Plugin Version: ${json.version}`);
+    await this.debugLog(`Plugin Version: ${json.version}`);
     this.version = json.version;
   }
 
@@ -2804,7 +2803,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         platformConfig.delayBetweenRetries = this.delayBetweenRetries / 1000;
       }
       if (Object.entries(platformConfig).length !== 0) {
-        this.debugLog(`Platform Config: ${JSON.stringify(platformConfig)}`);
+        await this.debugLog(`Platform Config: ${JSON.stringify(platformConfig)}`);
       }
       this.platformConfig = platformConfig;
     }
@@ -2814,13 +2813,13 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     this.debugMode = process.argv.includes('-D') || process.argv.includes('--debug');
     if (this.config.options?.logging === 'debug' || this.config.options?.logging === 'standard' || this.config.options?.logging === 'none') {
       this.platformLogging = this.config.options.logging;
-      this.debugWarnLog(`Using Config Logging: ${this.platformLogging}`);
+      await this.debugWarnLog(`Using Config Logging: ${this.platformLogging}`);
     } else if (this.debugMode) {
       this.platformLogging = 'debugMode';
-      this.debugWarnLog(`Using ${this.platformLogging} Logging`);
+      await this.debugWarnLog(`Using ${this.platformLogging} Logging`);
     } else {
       this.platformLogging = 'standard';
-      this.debugWarnLog(`Using ${this.platformLogging} Logging`);
+      await this.debugWarnLog(`Using ${this.platformLogging} Logging`);
     }
   }
 
@@ -2828,56 +2827,56 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
    * If device level logging is turned on, log to log.warn
    * Otherwise send debug logs to log.debug
    */
-  infoLog(...log: any[]): void {
-    if (this.enablingPlatformLogging()) {
+  async infoLog(...log: any[]): Promise<void> {
+    if (await this.enablingPlatformLogging()) {
       this.log.info(String(...log));
     }
   }
 
-  successLog(...log: any[]): void {
-    if (this.enablingPlatformLogging()) {
+  async successLog(...log: any[]): Promise<void> {
+    if (await this.enablingPlatformLogging()) {
       this.log.success(String(...log));
     }
   }
 
-  debugSuccessLog(...log: any[]): void {
-    if (this.enablingPlatformLogging()) {
+  async debugSuccessLog(...log: any[]): Promise<void> {
+    if (await this.enablingPlatformLogging()) {
       if (this.platformLogging?.includes('debug')) {
         this.log.success('[DEBUG]', String(...log));
       }
     }
   }
 
-  warnLog(...log: any[]): void {
-    if (this.enablingPlatformLogging()) {
+  async warnLog(...log: any[]): Promise<void> {
+    if (await this.enablingPlatformLogging()) {
       this.log.warn(String(...log));
     }
   }
 
-  debugWarnLog(...log: any[]): void {
-    if (this.enablingPlatformLogging()) {
+  async debugWarnLog(...log: any[]): Promise<void> {
+    if (await this.enablingPlatformLogging()) {
       if (this.platformLogging?.includes('debug')) {
         this.log.warn('[DEBUG]', String(...log));
       }
     }
   }
 
-  errorLog(...log: any[]): void {
-    if (this.enablingPlatformLogging()) {
+  async errorLog(...log: any[]): Promise<void> {
+    if (await this.enablingPlatformLogging()) {
       this.log.error(String(...log));
     }
   }
 
-  debugErrorLog(...log: any[]): void {
-    if (this.enablingPlatformLogging()) {
+  async debugErrorLog(...log: any[]): Promise<void> {
+    if (await this.enablingPlatformLogging()) {
       if (this.platformLogging?.includes('debug')) {
         this.log.error('[DEBUG]', String(...log));
       }
     }
   }
 
-  debugLog(...log: any[]): void {
-    if (this.enablingPlatformLogging()) {
+  async debugLog(...log: any[]): Promise<void> {
+    if (await this.enablingPlatformLogging()) {
       if (this.platformLogging === 'debugMode') {
         this.log.debug(String(...log));
       } else if (this.platformLogging === 'debug') {
@@ -2886,7 +2885,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  enablingPlatformLogging(): boolean {
+  async enablingPlatformLogging(): Promise<boolean> {
     return this.platformLogging?.includes('debug') || this.platformLogging === 'standard';
   }
 }
