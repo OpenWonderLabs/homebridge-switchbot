@@ -424,7 +424,7 @@ export class BlindTilt extends deviceBase {
   async registerWebhook(): Promise<void> {
     if (this.device.webhook) {
       await this.debugLog('is listening webhook.');
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context: blindTiltWebhookContext) => {
         try {
           await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
           await this.parseStatusWebhook(context);
