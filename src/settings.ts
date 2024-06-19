@@ -3,8 +3,10 @@
  * settings.ts: @switchbot/homebridge-switchbot platform class.
  */
 import type { IClientOptions } from 'async-mqtt';
-import type { MacAddress, PlatformConfig } from 'homebridge';
-import type { SwitchBotBLEModel, SwitchBotBLEModelName } from './utils';
+import type { PlatformConfig } from 'homebridge';
+import type { device } from './types/devicelist';
+import type { irdevice } from './types/irdevicelist';
+import type { SwitchBotBLEModel, SwitchBotBLEModelName, SwitchBotBLEModelFriendlyName } from 'node-switchbot';
 /**
  * This is the name of the platform that users will use to register the plugin in the Homebridge config.json
  */
@@ -40,20 +42,20 @@ export const updateWebhook = 'https://api.switch-bot.com/v1.1/webhook/updateWebh
  */
 export const deleteWebhook = 'https://api.switch-bot.com/v1.1/webhook/deleteWebhook';
 
+
 //Config
 export interface SwitchBotPlatformConfig extends PlatformConfig {
   credentials?: credentials;
-  options?: options | Record<string, never>;
+  options?: options;
 }
-
-export type credentials = {
+interface credentials {
   token?: any;
   secret?: any;
   notice?: any;
   openToken?: any;
-};
+}
 
-export type options = {
+interface options {
   refreshRate?: number;
   updateRate?: number;
   pushRate?: number;
@@ -71,8 +73,9 @@ export type options = {
 export interface devicesConfig extends device {
   bleMac?: string;
   model?: string;
-  bleModel?: SwitchBotBLEModel;
-  bleModelName?: SwitchBotBLEModelName;
+  bleModel: SwitchBotBLEModel;
+  bleModelName: SwitchBotBLEModelName;
+  bleModelFriednlyName: SwitchBotBLEModelFriendlyName;
   configDeviceType: string;
   configDeviceName?: string;
   deviceId: string;
@@ -113,19 +116,19 @@ export interface devicesConfig extends device {
   hub?: hub;
 }
 
-export type meter = {
+interface meter {
   hide_temperature?: boolean;
   convertUnitTo?: string;
   hide_humidity?: boolean;
 };
 
-export type iosensor = {
+interface iosensor {
   hide_temperature?: boolean;
   convertUnitTo?: string;
   hide_humidity?: boolean;
 };
 
-export type bot = {
+interface bot {
   mode?: string;
   deviceType?: string;
   doublePress?: number;
@@ -134,12 +137,12 @@ export type bot = {
   multiPress?: boolean;
 };
 
-export type humidifier = {
+interface humidifier {
   hide_temperature?: boolean;
   set_minStep?: number;
 };
 
-export type curtain = {
+interface curtain {
   disable_group?: boolean;
   hide_lightsensor?: boolean;
   set_minLux?: number;
@@ -151,7 +154,7 @@ export type curtain = {
   setOpenMode?: string;
 };
 
-export type blindTilt = {
+interface blindTilt {
   mode?: string;
   hide_lightsensor?: boolean;
   set_minLux?: number;
@@ -163,44 +166,44 @@ export type blindTilt = {
   setOpenMode?: string;
 };
 
-export type contact = {
+interface contact {
   hide_lightsensor?: boolean;
   set_minLux?: number;
   set_maxLux?: number;
   hide_motionsensor?: boolean;
 };
 
-export type motion = {
+interface motion {
   hide_lightsensor?: boolean;
   set_minLux?: number;
   set_maxLux?: number;
 };
 
-export type waterdetector = {
+interface waterdetector {
   hide_leak?: boolean;
 };
 
-export type colorbulb = {
+interface colorbulb {
   set_minStep?: number;
   adaptiveLightingShift?: number;
 };
 
-export type striplight = {
+interface striplight {
   set_minStep?: number;
   adaptiveLightingShift?: number;
 };
 
-export type ceilinglight = {
+interface ceilinglight {
   set_minStep?: number;
   adaptiveLightingShift?: number;
 };
 
-export type lock = {
+interface lock {
   hide_contactsensor?: boolean;
   activate_latchbutton?: boolean;
 };
 
-export type hub = {
+interface hub {
   hide_temperature?: boolean;
   convertUnitTo?: string;
   hide_humidity?: boolean;
@@ -233,7 +236,7 @@ export interface irDevicesConfig extends irdevice {
   other?: other;
 }
 
-export type irfan = {
+interface irfan {
   swing_mode?: boolean;
   rotation_speed?: boolean;
   set_minStep?: number;
@@ -241,11 +244,11 @@ export type irfan = {
   set_min?: number;
 };
 
-export type irlight = {
+interface irlight {
   stateless?: boolean;
 };
 
-export type irair = {
+interface irair {
   hide_automode?: boolean;
   set_max_heat?: number;
   set_min_heat?: number;
@@ -256,218 +259,6 @@ export type irair = {
   meterUuid?: string;
 };
 
-export type other = {
+interface other {
   deviceType?: string;
 };
-
-export type body = {
-  command: string;
-  parameter: string;
-  commandType: string;
-};
-
-//a list of physical devices.
-export type deviceList = {
-  device: device[];
-};
-
-export type device = {
-  //device ID.
-  deviceId?: string;
-  //device name.
-  deviceName: string;
-  //device type.
-  deviceType: string;
-  //determines if Cloud Service is enabled or not for the current device.
-  enableCloudService: boolean;
-  //device's parent Hub ID.
-  hubDeviceId: string;
-  //only available for Curtain devices. a list of Curtain device IDs such that the Curtain devices are being paired or grouped.
-  curtainDevicesIds?: string[];
-  //only available for Blind Titl devices. a list of Blind Tilt device IDs such that the Blind Tilt devices are being paired or grouped.
-  blindTiltDevicesIds?: string[];
-  //only available for Curtain/Lock devices. determines if the open position and the close position of a device have been properly calibrated or not
-  calibrate?: boolean;
-  //only available for Curtain devices. determines if a Curtain is paired with or grouped with another Curtain or not.
-  group?: boolean;
-  //only available for Curtain devices. determines if a Curtain is the master device or not when paired with or grouped with another Curtain.
-  master?: boolean;
-  //only available for Curtain devices. the opening direction of a Curtain.
-  openDirection?: string;
-  //the opening direction of a Blind Tilt device
-  direction?: string;
-  //the current position, 0-100
-  slidePosition?: string;
-  //the version of the device
-  version?: string;
-  // Fan Mode:  direct mode: direct; natural mode: "natural"; sleep mode: "sleep"; ultra quiet mode: "baby"
-  mode: string;
-  //the current battery level
-  battery: number;
-  //ON/OFF state
-  power: string;
-  //set nightlight status. turn off: off; mode 1: 1; mode 2: 2
-  nightStatus: number;
-  //set horizontal oscillation. turn on: on; turn off: off
-  oscillation: string;
-  //set vertical oscillation. turn on: on; turn off: off
-  verticalOscillation: string;
-  //battery charge status. charging or uncharged
-  chargingStatus: string;
-  //fan speed. 1~100
-  fanSpeed: number;
-};
-
-//a list of virtual infrared remote devices.
-export type infraredRemoteList = {
-  device: irdevice[];
-};
-
-export type irdevice = {
-  deviceId?: string; //device ID
-  deviceName: string; //device name
-  remoteType: string; //device type
-  hubDeviceId: string; //remote device's parent Hub ID
-  model: string; //device model
-};
-
-export type deviceStatus = {
-  statusCode: number;
-  message: string;
-  body: deviceStatusBody;
-};
-
-export type deviceStatusBody = {
-  //v1.1 of API
-  deviceId: string;
-  deviceType: string;
-  hubDeviceId: string;
-  power?: string;
-  calibrate?: boolean;
-  group?: boolean;
-  moving?: boolean;
-  slidePosition?: number;
-  temperature?: number;
-  humidity?: number;
-  lockState?: string;
-  doorState?: string;
-  moveDetected?: boolean;
-  brightness?: string | number;
-  openState?: string;
-  colorTemperature?: number;
-  voltage?: number;
-  weight?: number;
-  electricityOfDay?: number;
-  electricCurrent?: number;
-  color?: string;
-  workingStatus?: string;
-  onlineStatus?: string;
-  battery?: number;
-  deviceName?: string;
-  nebulizationEfficiency?: number;
-  auto?: boolean;
-  childLock?: boolean;
-  sound?: boolean;
-  lackWater?: boolean;
-  version?: number;
-  direction?: string;
-  runStatus?: string;
-  mode?: number | string;
-  speed?: number;
-  shaking?: boolean;
-  shakeCenter?: string;
-  shakeRange?: string;
-  status?: number;
-  lightLevel?: number;
-  nightStatus: number;
-  oscillation: string;
-  verticalOscillation: string;
-  chargingStatus: string;
-  fanSpeed: number;
-};
-
-export type ad = {
-  id: string;
-  address: string;
-  rssi: number;
-  serviceData: serviceData;
-};
-
-export type serviceData = {
-  //Model of BLE SwitchBot Device
-  model: string;
-  //Model Name of BLE SwitchBot Device
-  modelName: string;
-  //Mode for Bot either Press or Switch
-  mode?: boolean;
-  //Bot/ColorBulb State
-  state?: string | boolean;
-  //Lock door open
-  door_open?: string;
-  //Lock Status
-  status?: string;
-  //ColorBulb Power
-  power?: boolean;
-  //ColorBulb R
-  red?: number;
-  //ColorBulb G
-  green?: number;
-  //ColorBulb B
-  blue?: number;
-  //ColorBulb Color temperature
-  color_temperature?: number;
-  //Battery percentage left on Bot, Meter, Motion, Contact, PlugMini, and Curtain
-  battery?: number;
-  //Humidifier's humidity level percentage
-  percentage?: boolean | string;
-  //Humidifier's state
-  onState?: boolean;
-  //Humidifier's AutoMode
-  autoMode?: boolean;
-  //Meter Temperature Levels
-  temperature?: temperature;
-  // Fahrenheit enabled for Meter
-  fahrenheit?: boolean;
-  // Humidity level for Meter
-  humidity?: number;
-  //Motion Detected for Contact or Motion Sensors
-  movement?: boolean;
-  //Motion ((lightLevel == 1) ? 'dark' : ((lightLevel == 2) ? 'bright' : 'unknown'))
-  //Contact ((lightLevel == 0) ? 'dark' : 'bright')
-  //Curtain (light sensor level (1-10))
-  //Light Level
-  lightLevel?: number | string | boolean;
-  //Contact DoorState
-  doorState?: number | string;
-  //Is Curtain Calibrated
-  calibration?: boolean;
-  //Current Curtain Positon %
-  position?: number;
-  //Is Curtain Moving?
-  inMotion?: boolean;
-  //PlugMini - Is there a delay?
-  delay?: boolean;
-  //PlugMini - Is there a Timer?
-  timer?: boolean;
-  //PlugMini - Is the UTC time has been synchronized?
-  syncUtcTime?: boolean;
-  //PlugMini - The Wifi RSSI Signal
-  wifiRssi?: number;
-  //PlugMini - Whether the Plug Mini is overloaded, more than 15A current overload
-  overload?: boolean;
-  //PlugMini - Plug Mini current power value of the load
-  currentPower?: number;
-  //Color Bulb's brightness level
-  brightness?: boolean | string;
-};
-
-export type temperature = {
-  c: number;
-  f: number;
-};
-
-export type switchbot = {
-  discover: (arg0: { duration?: any; model: string; quick: boolean; id?: MacAddress }) => Promise<any>;
-  wait: (arg0: number) => any;
-};
-

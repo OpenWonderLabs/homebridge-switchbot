@@ -34,7 +34,7 @@ import { AirConditioner } from './irdevice/airconditioner.js';
 import { Buffer } from 'buffer';
 import { request } from 'undici';
 import asyncmqtt from 'async-mqtt';
-import { sleep } from './utils.js';
+import { isBlindTiltDevice, isCurtainDevice, sleep } from './utils.js';
 import { createServer } from 'http';
 import { queueScheduler } from 'rxjs';
 import fakegato from 'fakegato-history';
@@ -48,7 +48,9 @@ import type { MqttClient } from 'mqtt';
 import type { Dispatcher } from 'undici';
 import type { Server, IncomingMessage, ServerResponse } from 'http';
 import type { API, DynamicPlatformPlugin, Logging, PlatformAccessory } from 'homebridge';
-import type { irdevice, device, SwitchBotPlatformConfig, devicesConfig, irDevicesConfig } from './settings.js';
+import type { SwitchBotPlatformConfig, devicesConfig, irDevicesConfig } from './settings.js';
+import type { irdevice } from './types/irdevicelist.js';
+import type { blindTilt, curtain, curtain3, device } from './types/devicelist.js';
 
 /**
  * HomebridgePlatform
@@ -74,7 +76,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
   public readonly fakegatoAPI: any;
   public readonly eve: any;
-  public readonly webhookEventHandler: { [x: string]: (context: { [x: string]: any }) => void } = {};
+  public readonly webhookEventHandler;
 
   constructor(
     log: Logging,
@@ -164,7 +166,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
             try {
               this.debugLog(`Received Webhook via MQTT: ${topic}=${message}`);
               const context = JSON.parse(message.toString());
-              await this.webhookEventHandler[context.deviceMac]?.(context);
+              this.webhookEventHandler[context.deviceMac]?.(context);
             } catch (e: any) {
               this.errorLog(`Failed to handle webhook event. Error:${e}`);
             }
@@ -201,7 +203,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
                     const options = this.config.options?.mqttPubOptions || {};
                     this.mqttClient?.publish(`homebridge-switchbot/webhook/${mac}`, `${JSON.stringify(body.context)}`, options);
                   }
-                  await this.webhookEventHandler[body.context.deviceMac]?.(body.context);
+                  this.webhookEventHandler[body.context.deviceMac]?.(body.context);
                 } catch (e: any) {
                   this.errorLog(`Failed to handle webhook event. Error:${e}`);
                 }
@@ -1402,15 +1404,17 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
       }
 
-      if (device.group && !device.curtain?.disable_group) {
-        this.debugLog(
-          'Your Curtains are grouped, ' +
+      if (isBlindTiltDevice(device)) {
+        if (device.group && !device.curtain?.disable_group) {
+          this.debugLog(
+            'Your Curtains are grouped, ' +
           `, Secondary curtain automatically hidden. Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
-      } else {
-        if (device.master) {
-          this.warnLog(`Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
         } else {
-          this.errorLog(`Secondary Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
+          if (device.master) {
+            this.warnLog(`Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
+          } else {
+            this.errorLog(`Secondary Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
+          }
         }
       }
 
@@ -1474,15 +1478,18 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.infoLog(`Adding new accessory: ${device.deviceName} ${device.deviceType} DeviceID: ${device.deviceId}`);
       }
 
-      if (device.group && !device.curtain?.disable_group) {
-        this.debugLog(
-          'Your Curtains are grouped, ' +
+
+      if (isCurtainDevice(device)) {
+        if (device.group && !device.curtain?.disable_group) {
+          this.debugLog(
+            'Your Curtains are grouped, ' +
           `, Secondary curtain automatically hidden. Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
-      } else {
-        if (device.master) {
-          this.warnLog(`Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
         } else {
-          this.errorLog(`Secondary Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
+          if (device.master) {
+            this.warnLog(`Main Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
+          } else {
+            this.errorLog(`Secondary Curtain: ${device.deviceName}, DeviceID: ${device.deviceId}`);
+          }
         }
       }
 
@@ -1944,9 +1951,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       existingAccessory.context.model = device.remoteType;
       existingAccessory.context.deviceID = device.deviceId;
       existingAccessory.displayName = device.configDeviceName || device.deviceName;
-      if (device.version && !device.firmware) {
-        existingAccessory.context.version = device.version;
-      }
       existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
       this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} DeviceID: ${device.deviceId}`);
       existingAccessory.context.connectionType = device.connectionType;
@@ -2466,18 +2470,32 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  async registerCurtains(device: device & devicesConfig) {
-    switch (device.deviceType) {
-      case 'Curtain':
-      case 'Curtain3':
-        this.debugWarnLog(`deviceName: ${device.deviceName} deviceId: ${device.deviceId}, curtainDevicesIds: ${device.curtainDevicesIds}, master: `
-          + `${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group}, connectionType: ${device.connectionType}`);
-        break;
-      default:
-        this.debugWarnLog(`deviceName: ${device.deviceName} deviceId: ${device.deviceId}, blindTiltDevicesIds: ${device.blindTiltDevicesIds}, master:`
-          + ` ${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group}, connectionType: ${device.connectionType}`);
+  async registerCurtains(device: device & devicesConfig): Promise<boolean> {
+    /*function isCurtainDevice(device: device & devicesConfig): device is (curtain | curtain3) & devicesConfig {
+      return device.deviceType === 'Curtain' || device.deviceType === 'Curtain3';
     }
 
+    function isBlindTiltDevice(device: device & devicesConfig): device is blindTilt & devicesConfig {
+      return device.deviceType === 'Blind Tilt';
+    }*/
+    let registerWindowCovering: boolean;
+    if (isCurtainDevice(device)) {
+      this.debugWarnLog(`deviceName: ${device.deviceName} deviceId: ${device.deviceId}, curtainDevicesIds: ${device.curtainDevicesIds}, master: `
+        + `${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group}, connectionType: ${device.connectionType}`);
+      registerWindowCovering = await this.registerWindowCovering(device);
+    } else if (isBlindTiltDevice(device)) {
+      this.debugWarnLog(`deviceName: ${device.deviceName} deviceId: ${device.deviceId}, blindTiltDevicesIds: ${device.blindTiltDevicesIds},`
+        + ` master: ${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group},`
+        + ` connectionType: ${device.connectionType}`);
+      registerWindowCovering =await this.registerWindowCovering(device);
+    } else {
+      registerWindowCovering = false;
+    }
+    return registerWindowCovering;
+  }
+
+  async registerWindowCovering(device: ((curtain | curtain3) & devicesConfig) | (blindTilt & devicesConfig)) {
+    this.debugLog(device.master);
     let registerCurtain: boolean;
     if (device.master && device.group) {
       // OpenAPI: Master Curtains/Blind Tilt in Group
@@ -2731,14 +2749,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   // BLE Connection
-  async connectBLE() {
+  async connectBLE(accessory: PlatformAccessory, device: device & devicesConfig) {
     let switchbot: any;
     try {
       const SwitchBot = (await import('node-switchbot')).SwitchBot;
       queueScheduler.schedule(() => (switchbot = new SwitchBot()));
     } catch (e: any) {
       switchbot = false;
-      this.errorLog(`Was 'node-switchbot' found: ${switchbot}, Error: ${e}`);
+      this.errorLog(`${device.deviceType}: ${accessory.displayName} 'node-switchbot' found: ${switchbot}, Error: ${e}`);
     }
     return switchbot;
   }

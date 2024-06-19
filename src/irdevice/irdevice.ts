@@ -7,7 +7,8 @@ import { Devices } from '../settings.js';
 
 import type { SwitchBotPlatform } from '../platform.js';
 import type { API, HAP, Logging, PlatformAccessory } from 'homebridge';
-import type { SwitchBotPlatformConfig, irDevicesConfig, irdevice } from '../settings.js';
+import type { SwitchBotPlatformConfig, irDevicesConfig } from '../settings.js';
+import type { irdevice } from '../types/irdevicelist.js';
 
 export abstract class irdeviceBase {
   public readonly api: API;
@@ -179,7 +180,7 @@ export abstract class irdeviceBase {
       const validVersion = match?.join('.');
       deviceVersion = validVersion ?? '0.0.0';
     } else {
-      deviceVersion = version?.replace(/^V|-.*$/g, '') ?? '0.0.0';
+      deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0';
     }
     accessory
       .getService(this.hap.Service.AccessoryInformation)!

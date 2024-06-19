@@ -3,11 +3,16 @@
  * plug.ts: @switchbot/homebridge-switchbot.
  */
 import { deviceBase } from './device.js';
+import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot';
 import { Subject, debounceTime, interval, skipWhile, take, tap } from 'rxjs';
 
+import type { devicesConfig } from '../settings.js';
+import type { device } from '../types/devicelist.js';
 import type { SwitchBotPlatform } from '../platform.js';
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
-import type { device, devicesConfig, serviceData, deviceStatus } from '../settings.js';
+import type { batteryCirculatorFanServiceData } from '../types/bledevicestatus.js';
+import type { batteryCirculatorFanStatus } from '../types/devicestatus.js';
+import type { batteryCirculatorFanWebhookContext } from '../types/devicewebhookstatus.js';
 
 export class Fan extends deviceBase {
   // Services
@@ -149,15 +154,15 @@ export class Fan extends deviceBase {
     // Update Homekit
     this.updateHomeKitCharacteristics();
 
+    //regisiter webhook event handler
+    this.registerWebhook();
+
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
       .pipe(skipWhile(() => this.fanUpdateInProgress))
       .subscribe(async () => {
         await this.refreshStatus();
       });
-
-    //regisiter webhook event handler
-    this.registerWebhook(accessory, device);
 
     // Watch for Plug change events
     // We put in a debounce of 100ms so we don't make duplicate calls
@@ -172,64 +177,54 @@ export class Fan extends deviceBase {
         try {
           await this.pushChanges();
         } catch (e: any) {
-          this.apiError(e);
-          this.errorLog(`${device.deviceType}: ${accessory.displayName} failed pushChanges with ${device.connectionType} Connection,`
-            + ` Error Message: ${JSON.stringify(e.message)}`);
+          await this.apiError(e);
+          await this.errorLog(`failed pushChanges with ${device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`);
         }
         this.fanUpdateInProgress = false;
       });
   }
 
-  async BLEparseStatus(serviceData: serviceData): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
-
-    // State
-    switch (serviceData.state) {
-      case 'on':
-        this.Fan.Active = true;
-        break;
-      default:
-        this.Fan.Active = false;
-    }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.Fan.Active}`);
+  async BLEparseStatus(serviceData: batteryCirculatorFanServiceData): Promise<void> {
+    await this.debugLog('BLEparseStatus');
+    // Active
+    this.Fan.Active = serviceData.state === 'on' ? this.hap.Characteristic.Active.ACTIVE : this.hap.Characteristic.Active.INACTIVE;
+    await this.debugLog(`Active: ${this.Fan.Active}`);
   }
 
-  async openAPIparseStatus(deviceStatus: deviceStatus) {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
+  async openAPIparseStatus(deviceStatus: batteryCirculatorFanStatus) {
+    await this.debugLog('openAPIparseStatus');
 
     // Active
-    this.Fan.Active = deviceStatus.body.power === 'on' ? this.hap.Characteristic.Active.ACTIVE : this.hap.Characteristic.Active.INACTIVE;
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Active: ${this.Fan.Active}`);
+    this.Fan.Active = deviceStatus.power === 'on' ? this.hap.Characteristic.Active.ACTIVE : this.hap.Characteristic.Active.INACTIVE;
+    this.debugLog(`Active: ${this.Fan.Active}`);
 
     // SwingMode
-    this.Fan.SwingMode = deviceStatus.body.oscillation === 'on' ?
+    this.Fan.SwingMode = deviceStatus.oscillation === 'on' ?
       this.hap.Characteristic.SwingMode.SWING_ENABLED : this.hap.Characteristic.SwingMode.SWING_DISABLED;
+    await this.debugLog(`SwingMode: ${this.Fan.SwingMode}`);
 
     // RotationSpeed
-    this.Fan.RotationSpeed = deviceStatus.body.fanSpeed;
+    this.Fan.RotationSpeed = deviceStatus.fanSpeed;
+    await this.debugLog(`RotationSpeed: ${this.Fan.RotationSpeed}`);
 
     // ChargingState
-    this.Battery.ChargingState = deviceStatus.body.chargingStatus === 'charging' ?
+    this.Battery.ChargingState = deviceStatus.chargingStatus === 'charging' ?
       this.hap.Characteristic.ChargingState.CHARGING : this.hap.Characteristic.ChargingState.NOT_CHARGING;
 
     // BatteryLevel
-    this.Battery.BatteryLevel = Number(deviceStatus.body.battery);
-    if (this.Battery.BatteryLevel < 10) {
-      this.Battery.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
-    } else {
-      this.Battery.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
-    }
-    if (Number.isNaN(this.Battery.BatteryLevel)) {
-      this.Battery.BatteryLevel = 100;
-    }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel},`
-      + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+    this.Battery.BatteryLevel = Number(deviceStatus.battery);
+    await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
+
+    // StatusLowBattery
+    this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
+      ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
 
     // Firmware Version
-    const version = deviceStatus.body.version?.toString();
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
-    if (deviceStatus.body.version) {
-      const deviceVersion = version?.replace(/^V|-.*$/g, '') ?? '0.0.0';
+    const version = deviceStatus.version.toString();
+    await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
+    if (deviceStatus.version) {
+      const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0';
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
         .setCharacteristic(this.hap.Characteristic.HardwareRevision, deviceVersion)
@@ -237,7 +232,48 @@ export class Fan extends deviceBase {
         .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
         .updateValue(deviceVersion);
       this.accessory.context.deviceVersion = deviceVersion;
-      this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceVersion: ${this.accessory.context.deviceVersion}`);
+      await this.debugSuccessLog(`deviceVersion: ${this.accessory.context.deviceVersion}`);
+    }
+  }
+
+  async parseStatusWebhook(context: batteryCirculatorFanWebhookContext): Promise<void> {
+    await this.debugLog('parseStatusWebhook');
+    await this.debugLog(`(version, battery, powerState, oscillation, chargingStatus, fanSpeed) = Webhook:(${context.version}, ${context.battery},`
+      + ` ${context.powerState}, ${context.oscillation}, ${context.chargingStatus}, ${context.fanSpeed}),`
+      + ` current:(${this.accessory.context.deviceVersion}, ${this.Battery.BatteryLevel}, ${this.Fan.Active}, ${this.Fan.SwingMode},`
+      + ` ${this.Battery.ChargingState}, ${this.Fan.RotationSpeed})`);
+    // Active
+    this.Fan.Active = context.powerState === 'ON' ? this.hap.Characteristic.Active.ACTIVE : this.hap.Characteristic.Active.INACTIVE;
+    await this.debugLog(`Active: ${this.Fan.Active}`);
+    // SwingMode
+    this.Fan.SwingMode = context.oscillation === 'on' ?
+      this.hap.Characteristic.SwingMode.SWING_ENABLED : this.hap.Characteristic.SwingMode.SWING_DISABLED;
+    await this.debugLog(`SwingMode: ${this.Fan.SwingMode}`);
+    // RotationSpeed
+    this.Fan.RotationSpeed = context.fanSpeed;
+    await this.debugLog(`RotationSpeed: ${this.Fan.RotationSpeed}`);
+    // BatteryLevel
+    this.Battery.BatteryLevel = context.battery;
+    await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
+    // StatusLowBattery
+    this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
+      ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+    // ChargingState
+    this.Battery.ChargingState = context.chargingStatus === 'charging' ?
+      this.hap.Characteristic.ChargingState.CHARGING : this.hap.Characteristic.ChargingState.NOT_CHARGING;
+    await this.debugLog(`ChargingState: ${this.Battery.ChargingState}`);
+    // FirmwareVersion
+    if (context.version) {
+      const deviceVersion = context.version.replace(/^V|-.*$/g, '') ?? '0.0.0';
+      this.accessory
+        .getService(this.hap.Service.AccessoryInformation)!
+        .setCharacteristic(this.hap.Characteristic.HardwareRevision, deviceVersion)
+        .setCharacteristic(this.hap.Characteristic.FirmwareRevision, deviceVersion)
+        .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
+        .updateValue(deviceVersion);
+      this.accessory.context.deviceVersion = deviceVersion;
+      await this.debugSuccessLog(`deviceVersion: ${this.accessory.context.deviceVersion}`);
     }
   }
 
@@ -246,20 +282,19 @@ export class Fan extends deviceBase {
    */
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus enableCloudService: ${this.device.enableCloudService}`);
+      await this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`);
     } else if (this.BLE) {
       await this.BLERefreshStatus();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-        + ` ${this.device.connectionType}, refreshStatus will not happen.`);
+      await this.debugWarnLog(`Connection Type: ${this.device.connectionType}, refreshStatus will not happen.`);
     }
   }
 
   async BLERefreshStatus(): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLERefreshStatus`);
+    await this.debugLog('BLERefreshStatus');
     const switchbot = await this.switchbotBLE();
 
     if (switchbot === undefined) {
@@ -268,13 +303,13 @@ export class Fan extends deviceBase {
       // Start to monitor advertisement packets
       (async () => {
         // Start to monitor advertisement packets
-        const serviceData: serviceData = await this.monitorAdvertisementPackets(switchbot);
+        const serviceData = await this.monitorAdvertisementPackets(switchbot) as unknown as batteryCirculatorFanServiceData;
         // Update HomeKit
-        if (serviceData.model !== '' && serviceData.modelName !== '') {
+        if (serviceData.model === SwitchBotBLEModel.Unknown && SwitchBotBLEModelName.Unknown) {
           await this.BLEparseStatus(serviceData);
           await this.updateHomeKitCharacteristics();
         } else {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed to get serviceData, serviceData: ${serviceData}`);
+          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
           await this.BLERefreshConnection(switchbot);
         }
       })();
@@ -282,71 +317,39 @@ export class Fan extends deviceBase {
   }
 
   async openAPIRefreshStatus(): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
+    await this.debugLog('openAPIRefreshStatus');
     try {
       const { body, statusCode } = await this.deviceRefreshStatus();
       const deviceStatus: any = await body.json();
-      await this.refreshStatusCodes(statusCode, deviceStatus);;
-      if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-        await this.successfulRefreshStatus(statusCode, deviceStatus);
-        await this.openAPIparseStatus(deviceStatus);
+      await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);;
+      if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
+        await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
+        await this.openAPIparseStatus(deviceStatus.body);
         await this.updateHomeKitCharacteristics();
       } else {
-        await this.statusCodes(statusCode, deviceStatus);
+        await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
+        await this.debugWarnLog(statusCode, deviceStatus);
       }
     } catch (e: any) {
       await this.apiError(e);
-      await this.openAPIRefreshError(e);
+      await this.errorLog(`failed openAPIRefreshStatus with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`);
     }
   }
 
-  async registerWebhook(accessory: PlatformAccessory, device: device & devicesConfig) {
-    if (device.webhook) {
-      this.debugLog(`${device.deviceType}: ${accessory.displayName} is listening webhook.`);
-      this.platform.webhookEventHandler[device.deviceId] = async (context) => {
+  async registerWebhook() {
+    if (this.device.webhook) {
+      await this.debugLog('is listening webhook.');
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
         try {
-          this.debugLog(`${device.deviceType}: ${accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          const { version, battery, powerState, oscillation, chargingStatus, fanSpeed } = context;
-          const { Active, SwingMode, RotationSpeed } = this.Fan;
-          const { BatteryLevel, ChargingState } = this.Battery;
-          const { FirmwareRevision } = accessory.context;
-          this.debugLog(`${device.deviceType}: ${accessory.displayName} (version, battery, powerState, oscillation, chargingStatus, fanSpeed) = `
-            + `Webhook:(${version}, ${battery}, ${powerState}, ${oscillation}, ${chargingStatus}, ${fanSpeed}), `
-            + `current:(${FirmwareRevision}, ${BatteryLevel}, ${Active}, ${SwingMode}, ${ChargingState}, ${RotationSpeed})`);
-
-          // Active
-          this.Fan.Active = powerState === 'ON' ? this.hap.Characteristic.Active.ACTIVE : this.hap.Characteristic.Active.INACTIVE;
-
-          // SwingMode
-          this.Fan.SwingMode = oscillation === 'on' ?
-            this.hap.Characteristic.SwingMode.SWING_ENABLED : this.hap.Characteristic.SwingMode.SWING_DISABLED;
-
-          // RotationSpeed
-          this.Fan.RotationSpeed = fanSpeed;
-
-          // ChargingState
-          this.Battery.ChargingState = chargingStatus === 'charging' ?
-            this.hap.Characteristic.ChargingState.CHARGING : this.hap.Characteristic.ChargingState.NOT_CHARGING;
-
-          // BatteryLevel
-          this.Battery.BatteryLevel = battery;
-
-          // Firmware Version
-          if (version) {
-            accessory.context.version = version;
-            accessory
-              .getService(this.hap.Service.AccessoryInformation)!
-              .setCharacteristic(this.hap.Characteristic.FirmwareRevision, accessory.context.version)
-              .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
-              .updateValue(accessory.context.version);
-          }
-          this.updateHomeKitCharacteristics();
+          await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
+          await this.parseStatusWebhook(context);
+          await this.updateHomeKitCharacteristics();
         } catch (e: any) {
-          this.errorLog(`${device.deviceType}: ${accessory.displayName} failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
         }
       };
     } else {
-      this.debugLog(`${device.deviceType}: ${accessory.displayName} is not listening webhook.`);
+      await this.debugLog('is not listening webhook.');
     }
   }
 
@@ -362,14 +365,25 @@ export class Fan extends deviceBase {
 
   async pushChanges(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} pushChanges enableCloudService: ${this.device.enableCloudService}`);
+      await this.errorLog(`pushChanges enableCloudService: ${this.device.enableCloudService}`);
     } else if (this.BLE) {
       await this.BLEpushChanges();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges();
+      if (this.Fan.Active) {
+        await this.debugLog(`Active: ${this.Fan.Active}`);
+        // Push RotationSpeed Update
+        await this.debugLog(`RotationSpeed: ${this.Fan.RotationSpeed}`);
+        await this.pushRotationSpeedChanges();
+        // Push SwingMode Update
+        await this.debugLog(`SwingMode: ${this.Fan.SwingMode}`);
+        await this.pushSwingModeChanges();
+      } else {
+        await this.debugLog('BLE (RotationSpeed) & (SwingMode) changes will not happen, as the device is Off.');
+      }
     } else {
       await this.offlineOff();
-      await this.pushChangeDisabled();
+      await this.debugWarnLog(`Connection Type: ${this.device.connectionType}, pushChanges will not happen.`);
     }
     // Refresh the status from the API
     interval(15000)
@@ -381,118 +395,107 @@ export class Fan extends deviceBase {
   }
 
   async BLEpushChanges(): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges`);
+    await this.debugLog('BLEpushChanges');
     if (this.Fan.Active !== this.accessory.context.Active) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges`
-        + ` On: ${this.Fan.Active} OnCached: ${this.accessory.context.Active}`);
-      const switchbot = await this.platform.connectBLE();
-      // Convert to BLE Address
+      await this.debugLog(`BLEpushChanges On: ${this.Fan.Active} OnCached: ${this.accessory.context.Active}`);
+      const switchbot = await this.platform.connectBLE(this.accessory, this.device);
       await this.convertBLEAddress();
-      switchbot
-        .discover({ model: this.device.bleModel, id: this.device.bleMac })
-        .then(async (device_list: any) => {
-          this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} On: ${this.Fan.Active}`);
-          return await this.retryBLE({
-            max: await this.maxRetryBLE(),
-            fn: async () => {
-              if (this.Fan.Active) {
-                return await device_list[0].turnOn({ id: this.device.bleMac });
-              } else {
-                return await device_list[0].turnOff({ id: this.device.bleMac });
-              }
-            },
+      if (switchbot !== false) {
+        switchbot
+          .discover({ model: this.device.bleModel, id: this.device.bleMac })
+          .then(async (device_list: any) => {
+            return await this.retryBLE({
+              max: await this.maxRetryBLE(),
+              fn: async () => {
+                if (this.Fan.Active) {
+                  return await device_list[0].turnOn({ id: this.device.bleMac });
+                } else {
+                  return await device_list[0].turnOff({ id: this.device.bleMac });
+                }
+              },
+            });
+          })
+          .then(async () => {
+            await this.successLog(`Active: ${this.Fan.Active} sent over SwitchBot BLE,  sent successfully`);
+            await this.updateHomeKitCharacteristics();
+          })
+          .catch(async (e: any) => {
+            await this.apiError(e);
+            await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`);
+            await this.BLEPushConnection();
           });
-        })
-        .then(async () => {
-          await this.successfulPushChange_BLE('Active', this.Fan.Active, 'BLE API');
-          await this.updateHomeKitCharacteristics();
-        })
-        .catch(async (e: any) => {
-          await this.apiError(e);
-          await this.pushChangeError('BLEpushChanges', e);
-          await this.BLEPushConnection();
-        });
+      } else {
+        await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
+        await this.BLEPushConnection();
+      }
     } else {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges,`
-        + ` Active: ${this.Fan.Active}, ActiveCached: ${this.accessory.context.Active}`);
+      await this.debugLog(`No change (BLEpushChanges), Active: ${this.Fan.Active}, ActiveCached: ${this.accessory.context.Active}`);
     }
   }
 
   async openAPIpushChanges() {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges`);
+    await this.debugLog('openAPIpushChanges');
     if (this.Fan.Active !== this.accessory.context.Active) {
-      let command = '';
-      if (this.Fan.Active) {
-        command = 'turnOn';
-      } else {
-        command = 'turnOff';
-      }
+      const command = this.Fan.Active ? 'turnOn' : 'turnOff';
       const bodyChange = JSON.stringify({
         command: `${command}`,
         parameter: 'default',
         commandType: 'command',
       });
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
+      await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`);
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
-        await this.pushStatusCodes(statusCode, deviceStatus);
-        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-          await this.successfulPushChange(statusCode, deviceStatus, bodyChange);
+        await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
+        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
+          await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
           await this.updateHomeKitCharacteristics();
         } else {
           await this.statusCode(statusCode);
           await this.statusCode(deviceStatus.statusCode);
         }
       } catch (e: any) {
-        this.apiError(e);
-        await this.pushChangeError('openAPIpushChanges', e);
+        await this.apiError(e);
+        await this.errorLog(`failed openAPIpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`);
       }
     } else {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No openAPIpushChanges.`
-        + `On: ${this.Fan.Active}, ActiveCached: ${this.accessory.context.Active}`);
-    }
-    // Push RotationSpeed Update
-    if (this.Fan.Active) {
-      await this.pushRotationSpeedChanges();
-    }
-    // Push SwingMode Update
-    if (this.Fan.Active) {
-      await this.pushSwingModeChanges();
+      await this.debugLog(`No changes (openAPIpushChanges), Active: ${this.Fan.Active}, ActiveCached: ${this.accessory.context.Active}`);
     }
   }
 
   async pushRotationSpeedChanges(): Promise<void> {
-    await this.pushChange('pushRotationSpeedChanges');
+    await this.debugLog('pushRotationSpeedChanges');
     if (this.Fan.SwingMode !== this.accessory.context.SwingMode) {
       const bodyChange = JSON.stringify({
         command: 'setWindSpeed',
         parameter: `${this.Fan.RotationSpeed}`,
         commandType: 'command',
       });
-      await this.bodyChange(bodyChange, 'SwitchBot OpenAPI');
+      await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`);
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
-        await this.pushStatusCodes(statusCode, deviceStatus);
-        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-          await this.successfulPushChange(statusCode, deviceStatus, bodyChange);
+        await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
+        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
+          await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
           await this.updateHomeKitCharacteristics();
         } else {
           await this.statusCode(statusCode);
           await this.statusCode(deviceStatus.statusCode);
         }
       } catch (e: any) {
-        this.apiError(e);
-        await this.pushChangeError('pushRotationSpeedChanges', e);
+        await this.apiError(e);
+        await this.errorLog(`failed pushRotationSpeedChanges with ${this.device.connectionType} Connection,`
+          + ` Error Message: ${JSON.stringify(e.message)}`);
       }
     } else {
-      await this.noChanges('RotationSpeed', this.Fan.RotationSpeed, this.accessory.context.RotationSpeed);
+      await this.debugLog(`No changes (pushRotationSpeedChanges), RotationSpeed: ${this.Fan.RotationSpeed},`
+        + ` RotationSpeedCached: ${this.accessory.context.RotationSpeed}`);
     }
   }
 
   async pushSwingModeChanges(): Promise<void> {
-    await this.pushChange('pushSwingModeChanges');
+    await this.debugLog('pushSwingModeChanges');
     if (this.Fan.SwingMode !== this.accessory.context.SwingMode) {
       const parameter = this.Fan.SwingMode === this.hap.Characteristic.SwingMode.SWING_ENABLED ? 'on' : 'off';
       const bodyChange = JSON.stringify({
@@ -500,24 +503,25 @@ export class Fan extends deviceBase {
         parameter: `${parameter}`,
         commandType: 'command',
       });
-      await this.bodyChange(bodyChange, 'SwitchBot OpenAPI');
+      await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`);
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
-        await this.pushStatusCodes(statusCode, deviceStatus);
-        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-          await this.successfulPushChange(statusCode, deviceStatus, bodyChange);
+        await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
+        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
+          await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
           await this.updateHomeKitCharacteristics();
         } else {
           await this.statusCode(statusCode);
           await this.statusCode(deviceStatus.statusCode);
         }
       } catch (e: any) {
-        this.apiError(e);
-        await this.pushChangeError('pushSwingModeChanges', e);
+        await this.apiError(e);
+        await this.errorLog(`failed pushSwingModeChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`);
       }
     } else {
-      await this.noChanges('SwingMode', this.Fan.SwingMode, this.accessory.context.SwingMode);
+      await this.debugLog(`No changes (pushSwingModeChanges), SwingMode: ${this.Fan.SwingMode},`
+        + ` SwingModeCached: ${this.accessory.context.SwingMode}`);
     }
   }
 
@@ -526,9 +530,9 @@ export class Fan extends deviceBase {
    */
   async ActiveSet(value: CharacteristicValue): Promise<void> {
     if (this.Fan.Active !== this.accessory.context.Active) {
-      await this.changeSet(value, 'Active');
+      await this.infoLog(`Set Active: ${value}`);
     } else {
-      await this.noChangeSet(value, 'Active');
+      await this.debugLog(`No Changes, Active: ${value}`);
     }
 
     this.Fan.Active = value;
@@ -540,9 +544,9 @@ export class Fan extends deviceBase {
    */
   async RotationSpeedSet(value: CharacteristicValue): Promise<void> {
     if (this.Fan.RotationSpeed !== this.accessory.context.RotationSpeed) {
-      await this.changeSet(value, 'RotationSpeed');
+      await this.infoLog(`Set RotationSpeed ${value}`);
     } else {
-      await this.noChangeSet(value, 'RotationSpeed');
+      await this.debugLog(`No Changes, RotationSpeed: ${value}`);
     }
 
     this.Fan.RotationSpeed = value;
@@ -554,9 +558,9 @@ export class Fan extends deviceBase {
    */
   async SwingModeSet(value: CharacteristicValue): Promise<void> {
     if (this.Fan.SwingMode !== this.accessory.context.SwingMode) {
-      await this.changeSet(value, 'SwingMode');
+      await this.infoLog(`Set SwingMode ${value}`);
     } else {
-      await this.noChangeSet(value, 'SwingMode');
+      await this.debugLog(`No Changes, SwingMode: ${value}`);
     }
 
     this.Fan.SwingMode = value;
@@ -568,9 +572,9 @@ export class Fan extends deviceBase {
    */
   async OnSet(value: CharacteristicValue): Promise<void> {
     if (this.LightBulb.On !== this.accessory.context.On) {
-      await this.changeSet(value, 'On');
+      await this.infoLog(`Set On: ${value}`);
     } else {
-      await this.noChangeSet(value, 'On');
+      await this.debugLog(`No Changes, On: ${value}`);
     }
 
     this.LightBulb.On = value;
@@ -581,12 +585,14 @@ export class Fan extends deviceBase {
    * Handle requests to set the value of the "Brightness" characteristic
    */
   async BrightnessSet(value: CharacteristicValue): Promise<void> {
-    if (this.LightBulb.Brightness !== this.accessory.context.Brightness) {
-      await this.changeSet(value, 'Brightness');
-    } else if (this.LightBulb.On) {
-      await this.changeSet(value, 'Brightness');
+    if (this.LightBulb.On && (this.LightBulb.Brightness !== this.accessory.context.Brightness)) {
+      await this.infoLog(`Set Brightness: ${value}`);
     } else {
-      await this.noChangeSet(value, 'Brightness');
+      if (this.LightBulb.On) {
+        this.debugLog(`No Changes, Brightness: ${value}`);
+      } else {
+        this.debugLog(`Set Brightness: ${value}, On: ${this.LightBulb.On}`);
+      }
     }
 
     this.LightBulb.Brightness = value;
@@ -595,68 +601,42 @@ export class Fan extends deviceBase {
 
   async updateHomeKitCharacteristics(): Promise<void> {
     // Active
-    if (this.Fan.Active === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Active: ${this.Fan.Active}`);
-    } else {
-      this.accessory.context.Active = this.Fan.Active;
-      this.Fan.Service.updateCharacteristic(this.hap.Characteristic.Active, this.Fan.Active);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Fan.Active}`);
-    }
+    await this.updateCharacteristic(this.Fan.Service, this.hap.Characteristic.Active,
+      this.Fan.Active, 'Active');
     // RotationSpeed
-    if (this.Fan.RotationSpeed === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} RotationSpeed: ${this.Fan.RotationSpeed}`);
-    } else {
-      this.accessory.context.RotationSpeed = this.Fan.RotationSpeed;
-      this.Fan.Service.updateCharacteristic(this.hap.Characteristic.RotationSpeed, this.Fan.RotationSpeed);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic RotationSpeed: ${this.Fan.RotationSpeed}`);
-    }
+    await this.updateCharacteristic(this.Fan.Service, this.hap.Characteristic.RotationSpeed,
+      this.Fan.RotationSpeed, 'RotationSpeed');
     // SwingMode
-    if (this.Fan.SwingMode === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} SwingMode: ${this.Fan.SwingMode}`);
-    } else {
-      this.accessory.context.SwingMode = this.Fan.SwingMode;
-      this.Fan.Service.updateCharacteristic(this.hap.Characteristic.SwingMode, this.Fan.SwingMode);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic SwingMode: ${this.Fan.SwingMode}`);
-    }
-    // BateryLevel
-    if (this.Battery.BatteryLevel === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel}`);
-    } else {
-      this.accessory.context.BatteryLevel = this.Battery.BatteryLevel;
-      this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, this.Battery.BatteryLevel);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.Battery.BatteryLevel}`);
-    }
+    await this.updateCharacteristic(this.Fan.Service, this.hap.Characteristic.SwingMode,
+      this.Fan.SwingMode, 'SwingMode');
+    // BatteryLevel
+    await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.BatteryLevel,
+      this.Battery.BatteryLevel, 'BatteryLevel');
     // ChargingState
-    if (this.Battery.ChargingState === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ChargingState: ${this.Battery.ChargingState}`);
-    } else {
-      this.accessory.context.ChargingState = this.Battery.ChargingState;
-      this.Battery.Service.updateCharacteristic(this.hap.Characteristic.ChargingState, this.Battery.ChargingState);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic ChargingState: ${this.Battery.ChargingState}`);
-    }
+    await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.ChargingState,
+      this.Battery.ChargingState, 'ChargingState');
     // StatusLowBattery
-    if (this.Battery.StatusLowBattery === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.Battery.StatusLowBattery}`);
-    } else {
-      this.accessory.context.StatusLowBattery = this.Battery.StatusLowBattery;
-      this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-        + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
-    }
+    await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.StatusLowBattery,
+      this.Battery.StatusLowBattery, 'StatusLowBattery');
+    // On
+    await this.updateCharacteristic(this.LightBulb.Service, this.hap.Characteristic.On,
+      this.LightBulb.On, 'On');
+    // Brightness
+    await this.updateCharacteristic(this.LightBulb.Service, this.hap.Characteristic.Brightness,
+      this.LightBulb.Brightness, 'Brightness');
   }
 
   async BLEPushConnection() {
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Push Changes`);
+      await this.warnLog('Using OpenAPI Connection to Push Changes');
       await this.openAPIpushChanges();
     }
   }
 
   async BLERefreshConnection(switchbot: any): Promise<void> {
-    this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot:`
-      + ` ${JSON.stringify(switchbot)}`);
+    await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(switchbot)}`);
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Refresh Status`);
+      await this.warnLog('Using OpenAPI Connection to Refresh Status');
       await this.openAPIRefreshStatus();
     }
   }
@@ -666,6 +646,8 @@ export class Fan extends deviceBase {
       this.Fan.Service.updateCharacteristic(this.hap.Characteristic.Active, this.hap.Characteristic.Active.INACTIVE);
       this.Fan.Service.updateCharacteristic(this.hap.Characteristic.RotationSpeed, 0);
       this.Fan.Service.updateCharacteristic(this.hap.Characteristic.SwingMode, this.hap.Characteristic.SwingMode.SWING_DISABLED);
+      this.LightBulb.Service.updateCharacteristic(this.hap.Characteristic.On, false);
+      this.LightBulb.Service.updateCharacteristic(this.hap.Characteristic.Brightness, 0);
     }
   }
 
@@ -673,5 +655,7 @@ export class Fan extends deviceBase {
     this.Fan.Service.updateCharacteristic(this.hap.Characteristic.Active, e);
     this.Fan.Service.updateCharacteristic(this.hap.Characteristic.RotationSpeed, e);
     this.Fan.Service.updateCharacteristic(this.hap.Characteristic.SwingMode, e);
+    this.LightBulb.Service.updateCharacteristic(this.hap.Characteristic.On, e);
+    this.LightBulb.Service.updateCharacteristic(this.hap.Characteristic.Brightness, e);
   }
 }

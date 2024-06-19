@@ -85,12 +85,45 @@ export enum SwitchBotBLEModelName {
   Unknown = 'Unknown',
 }
 
+export enum SwitchBotBLEModelFriendlyName {
+  Bot = 'Bot',
+  Hub2 = 'Hub 2',
+  ColorBulb = 'Color Bulb',
+  Curtain = 'Curtain',
+  Curtain3 = 'Curtain 3',
+  Humidifier = 'Humidifier',
+  Meter = 'Meter',
+  Lock = 'Lock',
+  LockPro = 'Lock Pro',
+  PlugMini = 'Plug Mini',
+  StripLight = 'Strip Light',
+  MeterPlus = 'Meter Plus',
+  OutdoorMeter = 'Outdoor Meter',
+  ContactSensor = 'Contact Sensor',
+  MotionSensor = 'Motion Sensor',
+  BlindTilt = 'Blind Tilt',
+  CeilingLight = 'Ceiling Light',
+  CeilingLightPro = 'Ceiling Light Pro',
+  Unknown = 'Unknown',
+}
+
 export enum BlindTiltMappingMode {
   OnlyUp = 'only_up',
   OnlyDown = 'only_down',
   DownAndUp = 'down_and_up',
   UpAndDown = 'up_and_down',
   UseTiltForDirection = 'use_tilt_for_direction',
+}
+
+import type { devicesConfig } from './settings.js';
+import type { blindTilt, curtain, curtain3, device } from './types/devicelist.js';
+
+export function isCurtainDevice(device: device & devicesConfig): device is (curtain | curtain3) & devicesConfig {
+  return device.deviceType === 'Curtain' || device.deviceType === 'Curtain3';
+}
+
+export function isBlindTiltDevice(device: device & devicesConfig): device is blindTilt & devicesConfig {
+  return device.deviceType === 'Blind Tilt';
 }
 
 export function sleep(ms: number): Promise<void> {
