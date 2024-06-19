@@ -145,7 +145,7 @@ export class WaterDetector extends deviceBase {
     await this.debugLog('openAPIparseStatus');
     if (!this.device.waterdetector?.hide_leak && this.LeakSensor?.Service) {
       // StatusActive
-      this.LeakSensor.StatusActive = deviceStatus.status ? true : false;
+      this.LeakSensor.StatusActive = deviceStatus.battery === 0 ? false : true;
       await this.debugLog(`StatusActive: ${this.LeakSensor.StatusActive}`);
       // LeakDetected
       this.LeakSensor.LeakDetected = deviceStatus.status;

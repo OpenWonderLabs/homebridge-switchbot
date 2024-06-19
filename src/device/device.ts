@@ -841,48 +841,48 @@ export abstract class deviceBase {
    */
   async infoLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
-      this.log.info(`${this.device.deviceType}: ${this.accessory.displayName} `, String(...log));
+      this.log.info(`${this.device.deviceType}: ${this.accessory.displayName}`, String(...log));
     }
   }
 
   async successLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
-      this.log.success(`${this.device.deviceType}: ${this.accessory.displayName} `, String(...log));
+      this.log.success(`${this.device.deviceType}: ${this.accessory.displayName}`, String(...log));
     }
   }
 
   async debugSuccessLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
       if (this.deviceLogging?.includes('debug')) {
-        this.log.success(`[DEBUG] ${this.device.deviceType}: ${this.accessory.displayName} `, String(...log));
+        this.log.success(`[DEBUG] ${this.device.deviceType}: ${this.accessory.displayName}`, String(...log));
       }
     }
   }
 
   async warnLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
-      this.log.warn(`${this.device.deviceType}: ${this.accessory.displayName} `, String(...log));
+      this.log.warn(`${this.device.deviceType}: ${this.accessory.displayName}`, String(...log));
     }
   }
 
   async debugWarnLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
       if (this.deviceLogging?.includes('debug')) {
-        this.log.warn(`[DEBUG] ${this.device.deviceType}: ${this.accessory.displayName} `, String(...log));
+        this.log.warn(`[DEBUG] ${this.device.deviceType}: ${this.accessory.displayName}`, String(...log));
       }
     }
   }
 
   async errorLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
-      this.log.error(`${this.device.deviceType}: ${this.accessory.displayName} `, String(...log));
+      this.log.error(`${this.device.deviceType}: ${this.accessory.displayName}`, String(...log));
     }
   }
 
   async debugErrorLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
       if (this.deviceLogging?.includes('debug')) {
-        this.log.error(`[DEBUG] ${this.device.deviceType}: ${this.accessory.displayName} `, String(...log));
+        this.log.error(`[DEBUG] ${this.device.deviceType}: ${this.accessory.displayName}`, String(...log));
       }
     }
   }
@@ -890,9 +890,9 @@ export abstract class deviceBase {
   async debugLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
       if (this.deviceLogging === 'debug') {
-        this.log.info(`[DEBUG] ${this.device.deviceType}: ${this.accessory.displayName} `, String(...log));
+        this.log.info(`[DEBUG] ${this.device.deviceType}: ${this.accessory.displayName}`, String(...log));
       } else {
-        this.log.debug(`${this.device.deviceType}: ${this.accessory.displayName} `, String(...log));
+        this.log.debug(`${this.device.deviceType}: ${this.accessory.displayName}`, String(...log));
       }
     }
   }
