@@ -110,7 +110,7 @@ export class WaterDetector extends deviceBase {
     this.refreshStatus();
 
     // Retrieve initial values and updateHomekit
-    this.updateHomeKitCharacteristics();
+    // this.updateHomeKitCharacteristics();
 
     //regisiter webhook event handler
     this.registerWebhook();
@@ -162,7 +162,7 @@ export class WaterDetector extends deviceBase {
     await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
     // FirmwareVersion
     const version = deviceStatus.version.toString();
-    await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
+    await this.debugLog(`FirmwareVersion: ${version.replace(/^V|-.*$/g, '')}`);
     if (deviceStatus.version) {
       const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0';
       this.accessory
