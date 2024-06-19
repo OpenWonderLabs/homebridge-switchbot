@@ -106,6 +106,7 @@ export class WaterDetector extends deviceBase {
     }
 
     // Retrieve initial values and updateHomekit
+    this.debugLog('retrieve initial values and Update Homekit');
     this.refreshStatus();
 
     // Retrieve initial values and updateHomekit
@@ -118,6 +119,7 @@ export class WaterDetector extends deviceBase {
     interval(this.deviceRefreshRate * 1000)
       .pipe(skipWhile(() => this.WaterDetectorUpdateInProgress))
       .subscribe(async () => {
+        await this.debugLog(`update interval: ${this.deviceRefreshRate * 1000} seconds`);
         await this.refreshStatus();
       });
   }
