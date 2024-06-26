@@ -229,7 +229,7 @@ export class AirPurifier extends irdeviceBase {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
         await this.pushStatusCodes(statusCode, deviceStatus);
-        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
+        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
           await this.successfulPushChange(statusCode, deviceStatus, bodyChange);
           await this.updateHomeKitCharacteristics();
         } else {
@@ -262,10 +262,10 @@ export class AirPurifier extends irdeviceBase {
   }
 
   async apiError(e: any): Promise<void> {
-    this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.CurrentHeaterCoolerState, e);
-    this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.CurrentAirPurifierState, e);
-    this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.TargetAirPurifierState, e);
     this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.Active, e);
+    this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.TargetAirPurifierState, e);
+    this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.CurrentAirPurifierState, e);
+    this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.CurrentHeaterCoolerState, e);
     this.TemperatureSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, e);
   }
 }

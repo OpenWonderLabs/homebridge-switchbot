@@ -32,6 +32,15 @@ export class CeilingLight extends deviceBase {
     ColorTemperature?: CharacteristicValue;
   };
 
+  // OpenAPI
+  deviceStatus!: ceilingLightStatus | ceilingLightProStatus;
+
+  //Webhook
+  webhookContext!: ceilingLightWebhookContext | ceilingLightProWebhookContext;
+
+  // BLE
+  serviceData!: ceilingLightServiceData | ceilingLightProServiceData;
+
   // Adaptive Lighting
   AdaptiveLightingController?: ControllerConstructor | Controller<ControllerServiceMap>;
   adaptiveLightingShift?: number;
@@ -147,10 +156,12 @@ export class CeilingLight extends deviceBase {
       .onSet(this.SaturationSet.bind(this));
 
     // Retrieve initial values and updateHomekit
+    this.debugLog('Retrieve initial values and update Homekit');
     this.refreshStatus();
 
-    // Update Homekit
-    this.updateHomeKitCharacteristics();
+    //regisiter webhook event handler
+    this.debugLog('Registering Webhook Event Handler');
+    this.registerWebhook();
 
     //regisiter webhook event handler
     this.registerWebhook();
@@ -185,32 +196,46 @@ export class CeilingLight extends deviceBase {
   /**
    * Parse the device status from the SwitchBotBLE API
    */
-  async BLEparseStatus(serviceData: ceilingLightServiceData | ceilingLightProServiceData): Promise<void> {
+  async BLEparseStatus(): Promise<void> {
     await this.debugLog('BLEparseStatus');
+    await this.debugLog(`(power, brightness, colorTemperature) = BLE:(${this.serviceData.state}, ${this.serviceData.brightness}, `
+      + `${this.serviceData.color_temperature}), current:(${this.LightBulb.On}, ${this.LightBulb.Brightness}, ${this.LightBulb.ColorTemperature})`);
+
     // On
-    this.LightBulb.On = serviceData.state;
+    this.LightBulb.On = this.serviceData.state;
     await this.debugLog(`On: ${this.LightBulb.On}`);
+
+    // ColorTemperature
+    const miredColorTemperature = Math.round(1000000 / this.serviceData.color_temperature);
+    this.LightBulb.ColorTemperature = Math.max(Math.min(miredColorTemperature, 500), 140);
+    await this.debugLog(`ColorTemperature: ${this.LightBulb.ColorTemperature}`);
   }
 
   /**
    * Parse the device status from the SwitchBot OpenAPI
    */
-  async openAPIparseStatus(deviceStatus: ceilingLightStatus | ceilingLightProStatus): Promise<void> {
+  async openAPIparseStatus(): Promise<void> {
     await this.debugLog('openAPIparseStatus');
+    await this.debugLog(`(power, brightness, colorTemperature) = OpenAPI:(${this.deviceStatus.power}, ${this.deviceStatus.brightness}, `
+      + `${this.deviceStatus.colorTemperature}), current:(${this.LightBulb.On}, ${this.LightBulb.Brightness}, ${this.LightBulb.ColorTemperature})`);
+
     // On
-    this.LightBulb.On = deviceStatus.power;
+    this.LightBulb.On = this.deviceStatus.power;
     await this.debugLog(`On: ${this.LightBulb.On}`);
+
     // Brightness
-    this.LightBulb.Brightness = deviceStatus.brightness;
+    this.LightBulb.Brightness = this.deviceStatus.brightness;
     await this.debugLog(`Brightness: ${this.LightBulb.Brightness}`);
+
     // ColorTemperature
-    const miredColorTemperature = Math.round(1000000 / deviceStatus.colorTemperature);
+    const miredColorTemperature = Math.round(1000000 / this.deviceStatus.colorTemperature);
     this.LightBulb.ColorTemperature = Math.max(Math.min(miredColorTemperature, 500), 140);
     await this.debugLog(`ColorTemperature: ${this.LightBulb.ColorTemperature}`);
+
     // Firmware Version
-    const version = deviceStatus.version.toString();
-    await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
-    if (deviceStatus.version) {
+    if (this.deviceStatus.version) {
+      const version = this.deviceStatus.version.toString();
+      await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
       const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0';
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
@@ -223,18 +248,21 @@ export class CeilingLight extends deviceBase {
     }
   }
 
-  async parseStatusWebhook(context: ceilingLightWebhookContext | ceilingLightProWebhookContext): Promise<void> {
+  async parseStatusWebhook(): Promise<void> {
     await this.debugLog('parseStatusWebhook');
-    await this.debugLog(`(powerState, brightness, colorTemperature) = Webhook:(${context.powerState}, ${context.brightness},`
-      + ` ${context.colorTemperature}), current:(${this.LightBulb.On}, ${this.LightBulb.Brightness}, ${this.LightBulb.ColorTemperature})`);
+    await this.debugLog(`(powerState, brightness, colorTemperature) = Webhook:(${this.webhookContext.powerState}, ${this.webhookContext.brightness}, `
+      + `${this.webhookContext.colorTemperature}), current:(${this.LightBulb.On}, ${this.LightBulb.Brightness}, ${this.LightBulb.ColorTemperature})`);
+
     // On
-    this.LightBulb.On = context.powerState === 'ON' ? true : false;
+    this.LightBulb.On = this.webhookContext.powerState === 'ON' ? true : false;
     await this.debugLog(`On: ${this.LightBulb.On}`);
+
     // Brightness
-    this.LightBulb.Brightness = context.brightness;
+    this.LightBulb.Brightness = this.webhookContext.brightness;
     await this.debugLog(`Brightness: ${this.LightBulb.Brightness}`);
+
     // ColorTemperature
-    const miredColorTemperature = Math.round(1000000 / context.colorTemperature);
+    const miredColorTemperature = Math.round(1000000 / this.webhookContext.colorTemperature);
     this.LightBulb.ColorTemperature = Math.max(Math.min(miredColorTemperature, 500), 140);
     await this.debugLog(`ColorTemperature: ${this.LightBulb.ColorTemperature}`);
   }
@@ -268,7 +296,8 @@ export class CeilingLight extends deviceBase {
         // Update HomeKit
         if ((serviceData.model === SwitchBotBLEModel.CeilingLight || SwitchBotBLEModel.CeilingLightPro)
           && serviceData.modelName === SwitchBotBLEModelName.CeilingLight || SwitchBotBLEModelName.CeilingLightPro) {
-          await this.BLEparseStatus(serviceData);
+          this.serviceData = serviceData;
+          await this.BLEparseStatus();
           await this.updateHomeKitCharacteristics();
         } else {
           await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
@@ -286,7 +315,8 @@ export class CeilingLight extends deviceBase {
       await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);;
       if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
         await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
-        await this.openAPIparseStatus(deviceStatus.body);
+        this.deviceStatus = deviceStatus.body;
+        await this.openAPIparseStatus();
         await this.updateHomeKitCharacteristics();
       } else {
         await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
@@ -301,10 +331,11 @@ export class CeilingLight extends deviceBase {
   async registerWebhook() {
     if (this.device.webhook) {
       await this.debugLog('is listening webhook.');
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context: ceilingLightWebhookContext | ceilingLightProWebhookContext) => {
+      this.webhookEventHandler[this.device.deviceId] = async (context: ceilingLightWebhookContext | ceilingLightProWebhookContext) => {
         try {
           await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
-          await this.parseStatusWebhook(context);
+          this.webhookContext = context;
+          await this.parseStatusWebhook();
           await this.updateHomeKitCharacteristics();
         } catch (e: any) {
           await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);

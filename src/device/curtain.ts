@@ -40,6 +40,15 @@ export class Curtain extends deviceBase {
     CurrentAmbientLightLevel?: CharacteristicValue;
   };
 
+  // OpenAPI
+  deviceStatus!: curtainStatus;
+
+  //Webhook
+  webhookContext!: curtainWebhookContext | curtain3WebhookContext;
+
+  // BLE
+  serviceData!: curtainServiceData | curtain3ServiceData;
+
   // Target
   setNewTarget!: boolean;
   setNewTargetTimer!: NodeJS.Timeout;
@@ -175,12 +184,11 @@ export class Curtain extends deviceBase {
     }
 
     // Retrieve initial values and updateHomekit
+    this.debugLog('Retrieve initial values and update Homekit');
     this.refreshStatus();
 
-    // Update Homekit
-    this.updateHomeKitCharacteristics();
-
     //regisiter webhook event handler
+    this.debugLog('Registering Webhook Event Handler');
     this.registerWebhook();
 
     // History
@@ -293,22 +301,24 @@ export class Curtain extends deviceBase {
     }, 10 * 60 * 1000);
   }
 
-  async BLEparseStatus(serviceData: curtainServiceData | curtain3ServiceData): Promise<void> {
+  async BLEparseStatus(): Promise<void> {
     await this.debugLog('BLEparseStatus');
+    await this.debugLog(`(position, battery) = BLE:(${this.serviceData.position}, ${this.serviceData.battery}),`
+      + ` current:(${this.WindowCovering.CurrentPosition}, ${this.Battery.BatteryLevel})`);
     // CurrentPosition
-    this.WindowCovering.CurrentPosition = 100 - serviceData.position;
+    this.WindowCovering.CurrentPosition = 100 -this.serviceData.position;
     await this.getCurrentPostion();
     // CurrentAmbientLightLevel
     if (!this.device.curtain?.hide_lightsensor && this.LightSensor?.Service) {
       const set_minLux = this.device.curtain?.set_minLux ?? 1;
       const set_maxLux = this.device.curtain?.set_maxLux ?? 6001;
-      const lightLevel = Number(serviceData.lightLevel);
+      const lightLevel = this.serviceData.lightLevel;
       this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 19);
-      this.debugLog(`LightLevel: ${serviceData.lightLevel},`
+      this.debugLog(`LightLevel: ${this.serviceData.lightLevel},`
         + ` CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`);
     }
     // BatteryLevel
-    this.Battery.BatteryLevel = Number(serviceData.battery);
+    this.Battery.BatteryLevel = this.serviceData.battery;
     await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
     // StatusLowBattery
     this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
@@ -316,16 +326,18 @@ export class Curtain extends deviceBase {
     await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
   }
 
-  async openAPIparseStatus(deviceStatus: curtainStatus): Promise<void> {
+  async openAPIparseStatus(): Promise<void> {
     await this.debugLog('openAPIparseStatus');
+    await this.debugLog(`(slidePosition, battery) = OpenAPI:(${this.deviceStatus.slidePosition}, ${this.deviceStatus.battery}),`
+      + ` current:(${this.WindowCovering.CurrentPosition}, ${this.Battery.BatteryLevel})`);
     // CurrentPosition
-    this.WindowCovering.CurrentPosition = 100 - deviceStatus.slidePosition;
+    this.WindowCovering.CurrentPosition = 100 - this.deviceStatus.slidePosition;
     await this.setMinMax();
     await this.debugLog(`Curtain ${this.accessory.displayName} CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
     if (this.setNewTarget) {
       await this.infoLog('Checking Status ...');
     }
-    if (this.setNewTarget && deviceStatus.moving) {
+    if (this.setNewTarget && this.deviceStatus.moving) {
       await this.setMinMax();
       if (Number(this.WindowCovering.TargetPosition) > this.WindowCovering.CurrentPosition) {
         await this.debugLog(`Closing, CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
@@ -351,25 +363,29 @@ export class Curtain extends deviceBase {
     }
     await this.debugLog(`CurrentPosition: ${this.WindowCovering.CurrentPosition}, TargetPosition: ${this.WindowCovering.TargetPosition},`
       + ` PositionState: ${this.WindowCovering.PositionState},`);
+
     // Brightness
     if (!this.device.curtain?.hide_lightsensor && this.LightSensor?.Service) {
       const set_minLux = this.device.curtain?.set_minLux ?? 1;
       const set_maxLux = this.device.curtain?.set_maxLux ?? 6001;
-      const lightLevel = deviceStatus.lightLevel === 'bright' ? set_maxLux : set_minLux;
+      const lightLevel = this.deviceStatus.lightLevel === 'bright' ? set_maxLux : set_minLux;
       this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2);
       await this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
         + ` CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`);
     }
+
     // BatteryLevel
-    this.Battery.BatteryLevel = Number(deviceStatus.battery);
+    this.Battery.BatteryLevel = this.deviceStatus.battery;
     await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
+
     // StatusLowBattery
     this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
       ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+
     // Firmware Version
-    if (deviceStatus.version) {
-      const version = deviceStatus.version.toString();
+    if (this.deviceStatus.version) {
+      const version = this.deviceStatus.version.toString();
       await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
       const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0';
       this.accessory
@@ -383,16 +399,19 @@ export class Curtain extends deviceBase {
     }
   }
 
-  async parseStatusWebhook(context: curtainWebhookContext | curtain3WebhookContext): Promise<void> {
+  async parseStatusWebhook(): Promise<void> {
     await this.debugLog('parseStatusWebhook');
-    await this.debugLog(`(slidePosition, battery) = Webhook:(${context.slidePosition}, ${context.battery}),`
+    await this.debugLog(`(slidePosition, battery) = Webhook:(${this.webhookContext.slidePosition}, ${this.webhookContext.battery}),`
       + ` current:(${this.WindowCovering.CurrentPosition}, ${this.Battery.BatteryLevel})`);
+
     // CurrentPosition
-    this.WindowCovering.CurrentPosition = 100 - context.slidePosition;
+    this.WindowCovering.CurrentPosition = 100 - this.webhookContext.slidePosition;
     await this.getCurrentPostion();
+
     // BatteryLevel
-    this.Battery.BatteryLevel = context.battery;
+    this.Battery.BatteryLevel = this.webhookContext.battery;
     await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
+
     // StatusLowBattery
     this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
       ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
@@ -429,7 +448,8 @@ export class Curtain extends deviceBase {
         // Update HomeKit
         if ((serviceData.model === SwitchBotBLEModel.Curtain || SwitchBotBLEModel.Curtain3)
           && (serviceData.modelName === SwitchBotBLEModelName.Curtain || SwitchBotBLEModelName.Curtain3)) {
-          await this.BLEparseStatus(serviceData);
+          this.serviceData = serviceData;
+          await this.BLEparseStatus();
           await this.updateHomeKitCharacteristics();
         } else {
           await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
@@ -447,7 +467,8 @@ export class Curtain extends deviceBase {
       await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);;
       if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
         await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
-        await this.openAPIparseStatus(deviceStatus.body);
+        this.deviceStatus = deviceStatus.body;
+        await this.openAPIparseStatus();
         await this.updateHomeKitCharacteristics();
       } else {
         await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
@@ -462,10 +483,11 @@ export class Curtain extends deviceBase {
   async registerWebhook() {
     if (this.device.webhook) {
       await this.debugLog('is listening webhook.');
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context: curtainWebhookContext | curtain3WebhookContext) => {
+      this.webhookEventHandler[this.device.deviceId] = async (context: curtainWebhookContext | curtain3WebhookContext) => {
         try {
           await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
-          await this.parseStatusWebhook(context);
+          this.webhookContext = context;
+          await this.parseStatusWebhook();
           await this.updateHomeKitCharacteristics();
         } catch (e: any) {
           await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);

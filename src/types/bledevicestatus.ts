@@ -16,8 +16,9 @@ export type ad = {
   rssi: number;
   serviceData: botServiceData | colorBulbServiceData | contactSensorServiceData |
     curtainServiceData | curtain3ServiceData | stripLightServiceData | lockServiceData |
-    lockProServiceData | meterServiceData | meterPlusServiceData | motionSensorServiceData |
-    plugMiniUSServiceData | plugMiniJPServiceData | blindTiltServiceData;
+    lockProServiceData | meterServiceData | meterPlusServiceData | motionSensorServiceData | outdoorMeterServiceData |
+    plugMiniUSServiceData | plugMiniJPServiceData | blindTiltServiceData | ceilingLightServiceData | ceilingLightProServiceData |
+    hub2ServiceData | batteryCirculatorFanServiceData | waterLeakDetectorServiceData | humidifierServiceData | robotVacuumCleanerServiceData;
 };
 
 type serviceData = {
@@ -271,6 +272,7 @@ export type batteryCirculatorFanServiceData = serviceData & {
   modelName: SwitchBotBLEModelName.Unknown,
   modelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,
   state: string;
+  fanSpeed: number;
 };
 
 export type waterLeakDetectorServiceData = serviceData & {

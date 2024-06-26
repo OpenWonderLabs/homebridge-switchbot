@@ -21,6 +21,15 @@ export class Plug extends deviceBase {
     On: CharacteristicValue;
   };
 
+  // OpenAPI
+  deviceStatus!: plugStatus | plugMiniStatus;
+
+  //Webhook
+  webhookContext!: plugWebhookContext | plugMiniUSWebhookContext | plugMiniJPWebhookContext;
+
+  // BLE
+  serviceData!: plugMiniUSServiceData | plugMiniJPServiceData;
+
   // Updates
   plugUpdateInProgress!: boolean;
   doPlugUpdate!: Subject<void>;
@@ -54,12 +63,11 @@ export class Plug extends deviceBase {
       .onSet(this.OnSet.bind(this));
 
     // Retrieve initial values and updateHomekit
+    this.debugLog('Retrieve initial values and update Homekit');
     this.refreshStatus();
 
-    // Update Homekit
-    this.updateHomeKitCharacteristics();
-
     //regisiter webhook event handler
+    this.debugLog('Registering Webhook Event Handler');
     this.registerWebhook();
 
     // Start an update interval
@@ -89,22 +97,27 @@ export class Plug extends deviceBase {
       });
   }
 
-  async BLEparseStatus(serviceData: plugMiniUSServiceData | plugMiniJPServiceData): Promise<void> {
+  async BLEparseStatus(): Promise<void> {
     await this.debugLog('BLEparseStatus');
+    await this.debugLog(`(powerState) = BLE: (${this.serviceData.state}), current:(${this.Outlet.On})`);
+
     // On
-    this.Outlet.On = serviceData.state === 'on' ? true : false;
+    this.Outlet.On = this.serviceData.state === 'on' ? true : false;
     await this.debugLog(`On: ${this.Outlet.On}`);
   }
 
-  async openAPIparseStatus(deviceStatus: plugStatus | plugMiniStatus) {
+  async openAPIparseStatus() {
     await this.debugLog('openAPIparseStatus');
+    await this.debugLog(`(powerState) = OpenAPI: (${this.deviceStatus.power}), current:(${this.Outlet.On})`);
+
     // On
-    this.Outlet.On = deviceStatus.power === 'on' ? true : false;
+    this.Outlet.On = this.deviceStatus.power === 'on' ? true : false;
     await this.debugLog(`On: ${this.Outlet.On}`);
+
     // Firmware Version
-    const version = deviceStatus.version.toString();
-    await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
-    if (deviceStatus.version) {
+    if (this.deviceStatus.version) {
+      const version = this.deviceStatus.version.toString();
+      await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
       const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0';
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
@@ -117,11 +130,12 @@ export class Plug extends deviceBase {
     }
   }
 
-  async parseStatusWebhook(context: plugWebhookContext | plugMiniUSWebhookContext | plugMiniJPWebhookContext): Promise<void> {
+  async parseStatusWebhook(): Promise<void> {
     await this.debugLog('parseStatusWebhook');
-    await this.debugLog(`(powerState) = Webhook: (${context.powerState}), current:(${this.Outlet.On})`);
+    await this.debugLog(`(powerState) = Webhook: (${this.webhookContext.powerState}), current:(${this.Outlet.On})`);
+
     // On
-    this.Outlet.On = context.powerState === 'ON' ? true : false;
+    this.Outlet.On = this.webhookContext.powerState === 'ON' ? true : false;
     await this.debugLog(`On: ${this.Outlet.On}`);
   }
 
@@ -155,7 +169,8 @@ export class Plug extends deviceBase {
         // Update HomeKit
         if ((serviceData.model === SwitchBotBLEModel.PlugMiniUS || SwitchBotBLEModel.PlugMiniJP)
           && serviceData.modelName === (SwitchBotBLEModelName.PlugMini || SwitchBotBLEModelName.PlugMini)) {
-          await this.BLEparseStatus(serviceData);
+          this.serviceData = serviceData;
+          await this.BLEparseStatus();
           await this.updateHomeKitCharacteristics();
         } else {
           await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
@@ -173,7 +188,8 @@ export class Plug extends deviceBase {
       await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);;
       if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
         await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
-        await this.openAPIparseStatus(deviceStatus.body);
+        this.deviceStatus = deviceStatus.body;
+        await this.openAPIparseStatus();
         await this.updateHomeKitCharacteristics();
       } else {
         await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
@@ -188,11 +204,12 @@ export class Plug extends deviceBase {
   async registerWebhook() {
     if (this.device.webhook) {
       await this.debugLog('is listening webhook.');
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context: plugWebhookContext | plugMiniUSWebhookContext
+      this.webhookEventHandler[this.device.deviceId] = async (context: plugWebhookContext | plugMiniUSWebhookContext
         | plugMiniJPWebhookContext) => {
         try {
           await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
-          await this.parseStatusWebhook(context);
+          this.webhookContext = context;
+          await this.parseStatusWebhook();
           await this.updateHomeKitCharacteristics();
         } catch (e: any) {
           await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);

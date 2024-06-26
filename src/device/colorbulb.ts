@@ -32,6 +32,15 @@ export class ColorBulb extends deviceBase {
     ColorTemperature?: CharacteristicValue;
   };
 
+  // OpenAPI
+  deviceStatus!: colorBulbStatus;
+
+  //Webhook
+  webhookContext!: colorBulbWebhookContext;
+
+  // BLE
+  serviceData!: colorBulbServiceData;
+
   // Adaptive Lighting
   AdaptiveLightingController?: ControllerConstructor | Controller<ControllerServiceMap>;
   adaptiveLightingShift?: number;
@@ -143,10 +152,12 @@ export class ColorBulb extends deviceBase {
       .onSet(this.SaturationSet.bind(this));
 
     // Retrieve initial values and updateHomekit
+    this.debugLog('Retrieve initial values and update Homekit');
     this.refreshStatus();
 
-    // Update Homekit
-    this.updateHomeKitCharacteristics();
+    //regisiter webhook event handler
+    this.debugLog('Registering Webhook Event Handler');
+    this.registerWebhook();
 
     //regisiter webhook event handler
     this.registerWebhook();
@@ -181,18 +192,18 @@ export class ColorBulb extends deviceBase {
   /**
    * Parse the device status from the SwitchBotBLE API
    */
-  async BLEparseStatus(serviceData: colorBulbServiceData): Promise<void> {
+  async BLEparseStatus(): Promise<void> {
     await this.debugLog('BLEparseStatus');
     // On
-    this.LightBulb.On = serviceData.power;
+    this.LightBulb.On = this.serviceData.power;
     await this.debugLog(`On: ${this.LightBulb.On}`);
     // Brightness
-    this.LightBulb.Brightness = serviceData.brightness;
+    this.LightBulb.Brightness = this.serviceData.brightness;
     await this.debugLog(`Brightness: ${this.LightBulb.Brightness}`);
     // Color, Hue & Brightness
-    await this.debugLog(`red: ${serviceData.red}, green: ${serviceData.green}, blue: ${serviceData.blue}`);
-    const [hue, saturation] = rgb2hs(serviceData.red, serviceData.green, serviceData.blue);
-    await this.debugLog(`hs: ${JSON.stringify(rgb2hs(serviceData.red, serviceData.green, serviceData.blue))}`);
+    await this.debugLog(`red: ${this.serviceData.red}, green: ${this.serviceData.green}, blue: ${this.serviceData.blue}`);
+    const [hue, saturation] = rgb2hs(this.serviceData.red, this.serviceData.green, this.serviceData.blue);
+    await this.debugLog(`hs: ${JSON.stringify(rgb2hs(this.serviceData.red, this.serviceData.green, this.serviceData.blue))}`);
     // Hue
     this.LightBulb.Hue = hue;
     await this.debugLog(`Hue: ${this.LightBulb.Hue}`);
@@ -200,7 +211,7 @@ export class ColorBulb extends deviceBase {
     this.LightBulb.Saturation = saturation;
     await this.debugLog(`Saturation: ${this.LightBulb.Saturation}`);
     // ColorTemperature
-    const miredColorTemperature = Math.round(1000000 / serviceData.color_temperature);
+    const miredColorTemperature = Math.round(1000000 / this.serviceData.color_temperature);
     this.LightBulb.ColorTemperature = Math.max(Math.min(miredColorTemperature, 500), 140);
     await this.debugLog(`ColorTemperature: ${this.LightBulb.ColorTemperature}`);
   }
@@ -208,17 +219,17 @@ export class ColorBulb extends deviceBase {
   /**
    * Parse the device status from the SwitchBot OpenAPI
    */
-  async openAPIparseStatus(deviceStatus: colorBulbStatus): Promise<void> {
+  async openAPIparseStatus(): Promise<void> {
     await this.debugLog('openAPIparseStatus');
     // On
-    this.LightBulb.On = deviceStatus.power === 'on' ? true : false;
+    this.LightBulb.On = this.deviceStatus.power === 'on' ? true : false;
     await this.debugLog(`On: ${this.LightBulb.On}`);
     // Brightness
-    this.LightBulb.Brightness = deviceStatus.brightness;
+    this.LightBulb.Brightness = this.deviceStatus.brightness;
     await this.debugLog(`Brightness: ${this.LightBulb.Brightness}`);
     // Color, Hue & Brightness
-    await this.debugLog(`color: ${JSON.stringify(deviceStatus.color)}`);
-    const [red, green, blue] = deviceStatus.color.split(':');
+    await this.debugLog(`color: ${JSON.stringify(this.deviceStatus.color)}`);
+    const [red, green, blue] = this.deviceStatus.color.split(':');
     await this.debugLog(`red: ${JSON.stringify(red)}, green: ${JSON.stringify(green)}, blue: ${JSON.stringify(blue)}`);
     const [hue, saturation] = rgb2hs(red, green, blue);
     await this.debugLog(`hs: ${JSON.stringify(rgb2hs(red, green, blue))}`);
@@ -229,13 +240,13 @@ export class ColorBulb extends deviceBase {
     this.LightBulb.Saturation = saturation;
     await this.debugLog(`Saturation: ${this.LightBulb.Saturation}`);
     // ColorTemperature
-    const miredColorTemperature = Math.round(1000000 / deviceStatus.colorTemperature);
+    const miredColorTemperature = Math.round(1000000 / this.deviceStatus.colorTemperature);
     this.LightBulb.ColorTemperature = Math.max(Math.min(miredColorTemperature, 500), 140);
     await this.debugLog(`ColorTemperature: ${this.LightBulb.ColorTemperature}`);
     // Firmware Version
-    const version = deviceStatus.version.toString();
-    await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
-    if (deviceStatus.version) {
+    if (this.deviceStatus.version) {
+      const version = this.deviceStatus.version.toString();
+      await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
       const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0';
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
@@ -248,20 +259,20 @@ export class ColorBulb extends deviceBase {
     }
   }
 
-  async parseStatusWebhook(context: colorBulbWebhookContext): Promise<void> {
+  async parseStatusWebhook(): Promise<void> {
     await this.debugLog('parseStatusWebhook');
-    await this.debugLog(`(powerState, brightness, color, colorTemperature) = Webhook:(${context.powerState}, ${context.brightness}, ${context.color},`
-    + ` ${context.colorTemperature}), current:(${this.LightBulb.On}, ${this.LightBulb.Brightness}, ${this.LightBulb.Hue},`
-    + ` ${this.LightBulb.Saturation}, ${this.LightBulb.ColorTemperature})`);
+    await this.debugLog(`(powerState, brightness, color, colorTemperature) = Webhook:(${this.webhookContext.powerState},`
+      + ` ${this.webhookContext.brightness}, ${this.webhookContext.color}, ${this.webhookContext.colorTemperature}), current:(${this.LightBulb.On},`
+      + ` ${this.LightBulb.Brightness}, ${this.LightBulb.Hue}, ${this.LightBulb.Saturation}, ${this.LightBulb.ColorTemperature})`);
     // On
-    this.LightBulb.On = context.powerState === 'ON' ? true : false;
+    this.LightBulb.On = this.webhookContext.powerState === 'ON' ? true : false;
     await this.debugLog(`On: ${this.LightBulb.On}`);
     // Brightness
-    this.LightBulb.Brightness = context.brightness;
+    this.LightBulb.Brightness = this.webhookContext.brightness;
     await this.debugLog(`Brightness: ${this.LightBulb.Brightness}`);
     // Color, Hue & Brightness
-    await this.debugLog(`color: ${JSON.stringify(context.color)}`);
-    const [red, green, blue] = context.color.split(':');
+    await this.debugLog(`color: ${JSON.stringify(this.webhookContext.color)}`);
+    const [red, green, blue] = this.webhookContext.color.split(':');
     await this.debugLog(`red: ${JSON.stringify(red)}, green: ${JSON.stringify(green)}, blue: ${JSON.stringify(blue)}`);
     const [hue, saturation] = rgb2hs(red, green, blue);
     await this.debugLog(`hs: ${JSON.stringify(rgb2hs(red, green, blue))}`);
@@ -272,7 +283,7 @@ export class ColorBulb extends deviceBase {
     this.LightBulb.Saturation = saturation;
     await this.debugLog(`Saturation: ${this.LightBulb.Saturation}`);
     // ColorTemperature
-    const miredColorTemperature = Math.round(1000000 / context.colorTemperature);
+    const miredColorTemperature = Math.round(1000000 / this.webhookContext.colorTemperature);
     this.LightBulb.ColorTemperature = Math.max(Math.min(miredColorTemperature, 500), 140);
     await this.debugLog(`ColorTemperature: ${this.LightBulb.ColorTemperature}`);
   }
@@ -306,7 +317,8 @@ export class ColorBulb extends deviceBase {
         const serviceData = await this.monitorAdvertisementPackets(switchbot) as colorBulbServiceData;
         // Update HomeKit
         if (serviceData.model === SwitchBotBLEModel.ColorBulb && serviceData.modelName === SwitchBotBLEModelName.ColorBulb) {
-          await this.BLEparseStatus(serviceData);
+          this.serviceData = serviceData;
+          await this.BLEparseStatus();
           await this.updateHomeKitCharacteristics();
         } else {
           await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
@@ -324,7 +336,8 @@ export class ColorBulb extends deviceBase {
       await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);;
       if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
         await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
-        await this.openAPIparseStatus(deviceStatus.body);
+        this.deviceStatus = deviceStatus.body;
+        await this.openAPIparseStatus();
         await this.updateHomeKitCharacteristics();
       } else {
         await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
@@ -339,10 +352,11 @@ export class ColorBulb extends deviceBase {
   async registerWebhook() {
     if (this.device.webhook) {
       await this.debugLog('is listening webhook.');
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context: colorBulbWebhookContext) => {
+      this.webhookEventHandler[this.device.deviceId] = async (context: colorBulbWebhookContext) => {
         try {
           await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
-          await this.parseStatusWebhook(context);
+          this.webhookContext = context;
+          await this.parseStatusWebhook();
           await this.updateHomeKitCharacteristics();
         } catch (e: any) {
           await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);

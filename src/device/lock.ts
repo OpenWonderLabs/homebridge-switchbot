@@ -42,6 +42,15 @@ export class Lock extends deviceBase {
     On: CharacteristicValue;
   };
 
+  // OpenAPI
+  deviceStatus!: lockStatus | lockProStatus;
+
+  //Webhook
+  webhookContext!: lockWebhookContext | lockProWebhookContext;
+
+  // BLE
+  serviceData!: lockServiceData | lockProServiceData;
+
   // Updates
   lockUpdateInProgress!: boolean;
   doLockUpdate!: Subject<void>;
@@ -153,12 +162,11 @@ export class Lock extends deviceBase {
     }
 
     // Retrieve initial values and updateHomekit
+    this.debugLog('Retrieve initial values and update Homekit');
     this.refreshStatus();
 
-    // Update Homekit
-    this.updateHomeKitCharacteristics();
-
     //regisiter webhook event handler
+    this.debugLog('Registering Webhook Event Handler');
     this.registerWebhook();
 
     // Start an update interval
@@ -188,57 +196,70 @@ export class Lock extends deviceBase {
       });
   }
 
-  async BLEparseStatus(serviceData: lockServiceData | lockProServiceData): Promise<void> {
+  async BLEparseStatus(): Promise<void> {
     await this.debugLog('BLEparseStatus');
+    await this.debugLog(`(lockState) = BLE:(${this.serviceData.status}), current:(${this.LockMechanism.LockCurrentState})`);
+
     // LockCurrentState
-    this.LockMechanism.LockCurrentState = serviceData.status === 'locked'
+    this.LockMechanism.LockCurrentState = this.serviceData.status === 'locked'
       ? this.hap.Characteristic.LockCurrentState.SECURED : this.hap.Characteristic.LockCurrentState.UNSECURED;
     await this.debugLog(`LockCurrentState: ${this.LockMechanism.LockCurrentState}`);
+
     // LockTargetState
-    this.LockMechanism.LockTargetState = serviceData.status === 'locked'
+    this.LockMechanism.LockTargetState = this.serviceData.status === 'locked'
       ? this.hap.Characteristic.LockTargetState.SECURED : this.hap.Characteristic.LockTargetState.UNSECURED;
     await this.debugLog(`LockTargetState: ${this.LockMechanism.LockTargetState}`);
+
     // Contact Sensor
     if (!this.device.lock?.hide_contactsensor && this.ContactSensor?.Service) {
-      this.ContactSensor.ContactSensorState = serviceData.door_open === 'opened'
+      this.ContactSensor.ContactSensorState = this.serviceData.door_open === 'opened'
         ? this.hap.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED : this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED;
       await this.debugLog(`ContactSensorState: ${this.ContactSensor.ContactSensorState}`);
     }
+
     // BatteryLevel
-    this.Battery.BatteryLevel = Number(serviceData.battery);
+    this.Battery.BatteryLevel = this.serviceData.battery;
     await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
+
     // StatusLowBattery
     this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
       ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
   }
 
-  async openAPIparseStatus(deviceStatus: lockStatus | lockProStatus): Promise<void> {
+  async openAPIparseStatus(): Promise<void> {
     await this.debugLog('openAPIparseStatus');
+    await this.debugLog(`(lockState) = OpenAPI:(${this.deviceStatus.lockState}), current:(${this.LockMechanism.LockCurrentState})`);
+
     // LockCurrentState
-    this.LockMechanism.LockCurrentState = deviceStatus.lockState === 'locked'
+    this.LockMechanism.LockCurrentState = this.deviceStatus.lockState === 'locked'
       ? this.hap.Characteristic.LockCurrentState.SECURED : this.hap.Characteristic.LockCurrentState.UNSECURED;
     await this.debugLog(`LockCurrentState: ${this.LockMechanism.LockCurrentState}`);
+
     // LockTargetState
-    this.LockMechanism.LockTargetState = deviceStatus.lockState === 'locked'
+    this.LockMechanism.LockTargetState = this.deviceStatus.lockState === 'locked'
       ? this.hap.Characteristic.LockTargetState.SECURED : this.hap.Characteristic.LockTargetState.UNSECURED;
     await this.debugLog(`LockTargetState: ${this.LockMechanism.LockTargetState}`);
+
     // ContactSensorState
     if (!this.device.lock?.hide_contactsensor && this.ContactSensor?.Service) {
-      this.ContactSensor.ContactSensorState = deviceStatus.doorState === 'opened'
+      this.ContactSensor.ContactSensorState = this.deviceStatus.doorState === 'opened'
         ? this.hap.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED : this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED;
       await this.debugLog(`ContactSensorState: ${this.ContactSensor.ContactSensorState}`);
     }
+
     // BatteryLevel
-    this.Battery.BatteryLevel = Number(deviceStatus.battery);
+    this.Battery.BatteryLevel = this.deviceStatus.battery;
     await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
+
     // StatusLowBattery
     this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
       ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+
     // Firmware Version
-    if (deviceStatus.version) {
-      const version = deviceStatus.version.toString();
+    if (this.deviceStatus.version) {
+      const version = this.deviceStatus.version.toString();
       await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
       const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0';
       this.accessory
@@ -252,15 +273,17 @@ export class Lock extends deviceBase {
     }
   }
 
-  async parseStatusWebhook(context: lockWebhookContext | lockProWebhookContext): Promise<void> {
+  async parseStatusWebhook(): Promise<void> {
     await this.debugLog('parseStatusWebhook');
-    await this.debugLog(`(lockState) = Webhook:(${context.lockState}), current:(${this.LockMechanism.LockCurrentState})`);
+    await this.debugLog(`(lockState) = Webhook:(${this.webhookContext.lockState}), current:(${this.LockMechanism.LockCurrentState})`);
+
     // LockCurrentState
-    this.LockMechanism.LockCurrentState = context.lockState === 'LOCKED'
+    this.LockMechanism.LockCurrentState = this.webhookContext.lockState === 'LOCKED'
       ? this.hap.Characteristic.LockCurrentState.SECURED : this.hap.Characteristic.LockCurrentState.UNSECURED;
     await this.debugLog(`LockCurrentState: ${this.LockMechanism.LockCurrentState}`);
+
     // LockTargetState
-    this.LockMechanism.LockTargetState = context.lockState === 'LOCKED'
+    this.LockMechanism.LockTargetState = this.webhookContext.lockState === 'LOCKED'
       ? this.hap.Characteristic.LockTargetState.SECURED : this.hap.Characteristic.LockTargetState.UNSECURED;
     await this.debugLog(`LockTargetState: ${this.LockMechanism.LockTargetState}`);
   }
@@ -295,7 +318,8 @@ export class Lock extends deviceBase {
         // Update HomeKit
         if ((serviceData.model === SwitchBotBLEModel.Lock || SwitchBotBLEModel.LockPro)
           && (serviceData.modelName === SwitchBotBLEModelName.Lock || SwitchBotBLEModelName.LockPro)) {
-          await this.BLEparseStatus(serviceData);
+          this.serviceData = serviceData;
+          await this.BLEparseStatus();
           await this.updateHomeKitCharacteristics();
         } else {
           await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
@@ -313,7 +337,8 @@ export class Lock extends deviceBase {
       await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);;
       if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
         await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
-        await this.openAPIparseStatus(deviceStatus.body);
+        this.deviceStatus = deviceStatus.body;
+        await this.openAPIparseStatus();
         await this.updateHomeKitCharacteristics();
       } else {
         await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
@@ -328,10 +353,11 @@ export class Lock extends deviceBase {
   async registerWebhook() {
     if (this.device.webhook) {
       await this.debugLog('is listening webhook.');
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context: lockWebhookContext | lockProWebhookContext) => {
+      this.webhookEventHandler[this.device.deviceId] = async (context: lockWebhookContext | lockProWebhookContext) => {
         try {
           await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
-          await this.parseStatusWebhook(context);
+          this.webhookContext = context;
+          await this.parseStatusWebhook();
           await this.updateHomeKitCharacteristics();
         } catch (e: any) {
           await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);

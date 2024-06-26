@@ -202,7 +202,7 @@ export abstract class irdeviceBase {
   }
 
   async successfulStatusCodes(statusCode: any, deviceStatus: any) {
-    return (statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100);
+    return await this.successfulStatusCodes(statusCode, deviceStatus);
   }
 
   /**

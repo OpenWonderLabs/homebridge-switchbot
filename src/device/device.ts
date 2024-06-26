@@ -6,16 +6,18 @@
 import { hostname } from 'os';
 import { request } from 'undici';
 import asyncmqtt from 'async-mqtt';
-import { Devices } from '../settings.js';
+import { createServer } from 'http';
 import { BlindTiltMappingMode, sleep } from '../utils.js';
+import { Devices, deleteWebhook, queryWebhook, setupWebhook, updateWebhook } from '../settings.js';
+import { SwitchBotModel, SwitchBotBLEModel, SwitchBotBLEModelName, SwitchBotBLEModelFriendlyName } from 'node-switchbot';
 
 import type { MqttClient } from 'mqtt';
 import type { device } from '../types/devicelist.js';
 import type { ad } from '../types/bledevicestatus.js';
 import type { SwitchBotPlatform } from '../platform.js';
+import type { Server, IncomingMessage, ServerResponse } from 'http';
 import type { SwitchBotPlatformConfig, devicesConfig } from '../settings.js';
 import type { API, CharacteristicValue, HAP, Logging, PlatformAccessory, Service } from 'homebridge';
-import { SwitchBotModel, SwitchBotBLEModel, SwitchBotBLEModelName, SwitchBotBLEModelFriendlyName } from 'node-switchbot';
 
 export abstract class deviceBase {
   public readonly api: API;
@@ -39,6 +41,15 @@ export abstract class deviceBase {
   protected deviceModel!: SwitchBotModel;
   protected deviceBLEModel!: SwitchBotBLEModel;
 
+  // Webhook
+  protected readonly webhookEventHandler: { [x: string]: (context: any) => void } = {};
+  protected webhookEventListener: Server | null = null;
+
+  // MQTT
+  protected deviceMqttURL!: string;
+  protected deviceMqttOptions!: any;
+  protected deviceMqttPubOptions!: any;
+
   // BLE
   protected scanDuration!: number;
 
@@ -47,6 +58,8 @@ export abstract class deviceBase {
 
   //MQTT stuff
   protected mqttClient: MqttClient | null = null;
+
+
 
   constructor(
     protected readonly platform: SwitchBotPlatform,
@@ -68,7 +81,9 @@ export abstract class deviceBase {
     this.getDeviceConfigSettings(accessory, device);
     this.getDeviceContext(accessory, device);
     this.getDeviceScanDuration(accessory, device);
+    this.getMqttSettings(device);
     this.setupMqtt(device);
+    this.setupwebhook();
 
     // Set accessory information
     accessory
@@ -76,82 +91,41 @@ export abstract class deviceBase {
       .setCharacteristic(this.hap.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.hap.Characteristic.AppMatchingIdentifier, 'id1087374760')
       .setCharacteristic(this.hap.Characteristic.Name, device.deviceName ?? accessory.displayName)
-      .setCharacteristic(this.hap.Characteristic.ConfiguredName, device.deviceName ?? accessory.displayName)
+      //.setCharacteristic(this.hap.Characteristic.ConfiguredName, device.deviceName ?? accessory.displayName)
       .setCharacteristic(this.hap.Characteristic.Model, device.model ?? accessory.context.model)
       .setCharacteristic(this.hap.Characteristic.ProductData, device.deviceId ?? accessory.context.deviceId)
       .setCharacteristic(this.hap.Characteristic.SerialNumber, device.deviceId);
   }
 
   async getDeviceLogSettings(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
-    if (this.platform.debugMode) {
-      this.deviceLogging = accessory.context.logging = 'debugMode';
-      this.debugWarnLog(`Using Debug Mode Logging: ${this.deviceLogging}`);
-    } else if (device.logging) {
-      this.deviceLogging = accessory.context.logging = device.logging;
-      this.debugWarnLog(`Using Device Config Logging: ${this.deviceLogging}`);
-    } else if (this.config.logging) {
-      this.deviceLogging = accessory.context.logging = this.config.logging;
-      this.debugWarnLog(`Using Platform Config Logging: ${this.deviceLogging}`);
-    } else {
-      this.deviceLogging = accessory.context.logging = 'standard';
-      this.debugWarnLog(`Logging Not Set, Using: ${this.deviceLogging}`);
-    }
+    this.deviceLogging = this.platform.debugMode ? 'debugMode' : device.logging ?? this.config.logging ?? 'standard';
+    const logging = this.platform.debugMode ? 'Debug Mode' : device.logging ? 'Device Config' : this.config.logging ? 'Platform Config' : 'Default';
+    accessory.context.deviceLogging = this.deviceLogging;
+    await this.debugLog(`Using ${logging} Logging: ${this.deviceLogging}`);
   }
 
   async getDeviceRateSettings(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
     // refreshRate
-    if (device.refreshRate) {
-      this.deviceRefreshRate = device.refreshRate;
-      this.debugLog(`Using Device Config refreshRate: ${this.deviceRefreshRate}`);
-    } else if (this.config.options?.refreshRate) {
-      this.deviceRefreshRate = this.config.options.refreshRate;
-      this.debugLog(`Using Platform Config refreshRate: ${this.deviceRefreshRate}`);
-    } else {
-      this.deviceRefreshRate = 5;
-      this.debugLog(`Using Default refreshRate: ${this.deviceRefreshRate}`);
-    }
+    this.deviceRefreshRate = device.refreshRate ?? this.config.options?.refreshRate ?? 5;
     accessory.context.deviceRefreshRate = this.deviceRefreshRate;
-    // updateRate
-    if (device.updateRate) {
-      this.deviceUpdateRate = device.updateRate;
-      this.debugLog(`Using Device Config updateRate: ${this.deviceUpdateRate}`);
-    } else if (this.config.options?.updateRate) {
-      this.deviceUpdateRate = this.config.options.updateRate;
-      this.debugLog(`Using Platform Config updateRate: ${this.deviceUpdateRate}`);
-    } else {
-      this.deviceUpdateRate = 5;
-      this.debugLog(`Using Default updateRate: ${this.deviceUpdateRate}`);
-    }
+    const refreshRate = device.refreshRate ? 'Device Config' : this.config.options?.refreshRate ? 'Platform Config' : 'Default';
+    this.deviceUpdateRate = device.updateRate ?? this.config.options?.updateRate ?? 5;
     accessory.context.deviceUpdateRate = this.deviceUpdateRate;
-    // pushRate
-    if (device.pushRate) {
-      this.devicePushRate = device.pushRate;
-      this.debugLog(`Using Device Config pushRate: ${this.deviceUpdateRate}`);
-    } else if (this.config.options?.pushRate) {
-      this.devicePushRate = this.config.options.pushRate;
-      this.debugLog(`Using Platform Config pushRate: ${this.deviceUpdateRate}`);
-    } else {
-      this.devicePushRate = 1;
-      this.debugLog(`Using Default pushRate: ${this.deviceUpdateRate}`);
-    }
+    const updateRate = device.updateRate ? 'Device Config' : this.config.options?.updateRate ? 'Platform Config' : 'Default';
+    this.devicePushRate = device.pushRate ?? this.config.options?.pushRate ?? 1;
     accessory.context.devicePushRate = this.devicePushRate;
+    const pushRate = device.pushRate ? 'Device Config' : this.config.options?.pushRate ? 'Platform Config' : 'Default';
+    await this.debugLog(`Using ${refreshRate} refreshRate: ${this.deviceRefreshRate}, ${updateRate} updateRate: ${this.deviceUpdateRate},`
+      + ` ${pushRate} pushRate: ${this.devicePushRate}`);
   }
 
   async getDeviceRetry(device: device & devicesConfig): Promise<void> {
-    if (device.maxRetries) {
-      this.deviceMaxRetries = device.maxRetries;
-      this.debugLog(`Using Device Max Retries: ${this.deviceMaxRetries}`);
-    } else {
-      this.deviceMaxRetries = 5; // Maximum number of retries
-      this.debugLog(`Max Retries Not Set, Using: ${this.deviceMaxRetries}`);
-    }
-    if (device.delayBetweenRetries) {
-      this.deviceDelayBetweenRetries = device.delayBetweenRetries * 1000;
-      this.debugLog(`Using Device Delay Between Retries: ${this.deviceDelayBetweenRetries}`);
-    } else {
-      this.deviceDelayBetweenRetries = 3000; // Delay between retries in milliseconds
-      this.debugLog(`Delay Between Retries Not Set, Using: ${this.deviceDelayBetweenRetries}`);
-    }
+    this.deviceMaxRetries = device.maxRetries ?? 5;
+    const maxRetries = device.maxRetries ? 'Device' : 'Default';
+    this.deviceDelayBetweenRetries = device.delayBetweenRetries ? (device.delayBetweenRetries * 1000) : 3000;
+    const delayBetweenRetries = device.delayBetweenRetries ? 'Device' : 'Default';
+    await this.debugLog(`Using ${maxRetries} Max Retries: ${this.deviceMaxRetries},`
+      + ` ${delayBetweenRetries} Delay Between Retries: ${this.deviceDelayBetweenRetries}`);
   }
 
   async retryBLE({ max, fn }: { max: number; fn: { (): any; (): Promise<any> } }): Promise<null> {
@@ -167,14 +141,12 @@ export abstract class deviceBase {
   }
 
   async maxRetryBLE(): Promise<number> {
-    if (this.device.maxRetry) {
-      return this.device.maxRetry;
-    } else {
-      return 5;
-    }
+    return this.device.maxRetry ? this.device.maxRetry : 5;
   }
 
   async getDeviceScanDuration(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
+    this.scanDuration = device.scanDuration ? (this.deviceUpdateRate > device.scanDuration) ? this.deviceUpdateRate : device.scanDuration
+      ? (this.deviceUpdateRate > 1) ? this.deviceUpdateRate : 1 : this.deviceUpdateRate : 1;
     if (device.scanDuration) {
       if (this.deviceUpdateRate > device.scanDuration) {
         this.scanDuration = this.deviceUpdateRate;
@@ -319,21 +291,10 @@ export abstract class deviceBase {
     const numberOfLevels = spaceBetweenLevels + 1;
     this.debugLog(`LightLevel: ${lightLevel}, set_minLux: ${set_minLux}, set_maxLux: ${set_maxLux}, spaceBetweenLevels: ${spaceBetweenLevels},`
       + ` numberOfLevels: ${numberOfLevels}`);
-    let CurrentAmbientLightLevel: number;
-    switch (lightLevel) {
-      case 1:
-        CurrentAmbientLightLevel = set_minLux;
-        this.debugLog(`LightLevel: ${lightLevel}, set_minLux: ${set_minLux}`);
-        break;
-      case numberOfLevels:
-        CurrentAmbientLightLevel = set_maxLux;
-        this.debugLog(`LightLevel: ${lightLevel}, set_maxLux: ${set_maxLux}`);
-        break;
-      default:
-        CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * (Number(lightLevel) - 1);
-        this.debugLog(`LightLevel: ${lightLevel}`);
-    }
-    this.debugLog(`CurrentAmbientLightLevel: ${CurrentAmbientLightLevel}`);
+    const CurrentAmbientLightLevel = lightLevel === 1 ? set_minLux : lightLevel = numberOfLevels
+      ? set_maxLux : ((set_maxLux - set_minLux) / spaceBetweenLevels) * (Number(lightLevel) - 1);
+    await this.debugLog(`CurrentAmbientLightLevel: ${CurrentAmbientLightLevel}, LightLevel: ${lightLevel}, set_minLux: ${set_minLux},`
+      + ` set_maxLux: ${set_maxLux}`);
     return CurrentAmbientLightLevel;
   }
 
@@ -342,22 +303,29 @@ export abstract class deviceBase {
    * 'homebridge-switchbot/${this.device.deviceType}/xx:xx:xx:xx:xx:xx'
    */
   async mqttPublish(message: string, topic?: string) {
-    const mac = this.device.deviceId
-      ?.toLowerCase()
-      .match(/[\s\S]{1,2}/g)
-      ?.join(':');
-    const options = this.device.mqttPubOptions || {};
-    let mqttTopic: string;
-    let mqttMessageTopic: string;
-    if (topic) {
-      mqttTopic = `/${topic}`;
-      mqttMessageTopic = `${topic}/`;
-    } else {
-      mqttTopic = '';
-      mqttMessageTopic = '';
-    }
+    const mac = this.device.deviceId?.toLowerCase().match(/[\s\S]{1,2}/g)?.join(':');
+    const options = this.device.mqttPubOptions ?? {};
+    const mqttTopic = topic ? `/${topic}` : '';
+    const mqttMessageTopic = topic ? `${topic}/` : '';
     this.mqttClient?.publish(`homebridge-switchbot/${this.device.deviceType}/${mac}${mqttTopic}`, `${message}`, options);
     this.debugLog(`MQTT message: ${mqttMessageTopic}${message} options:${JSON.stringify(options)}`);
+  }
+
+  /*
+   * MQTT Settings
+   */
+  async getMqttSettings(device: device & devicesConfig): Promise<void> {
+    // mqttURL
+    this.deviceMqttURL = device.mqttURL ?? this.config.options?.mqttURL ?? '';
+    const mqttURL = device.mqttURL ? 'Device Config' : this.config.options?.mqttURL ? 'Platform Config' : 'Default';
+    // mqttOptions
+    this.deviceMqttOptions = device.mqttOptions ?? this.config.options?.mqttOptions ?? {};
+    const mqttOptions = device.mqttOptions ? 'Device Config' : this.config.options?.mqttOptions ? 'Platform Config' : 'Default';
+    // mqttPubOptions
+    this.deviceMqttPubOptions = device.mqttPubOptions ?? this.config.options?.mqttPubOptions ?? {};
+    const mqttPubOptions = device.mqttPubOptions ? 'Device Config' : this.config.options?.mqttPubOptions ? 'Platform Config' : 'Default';
+    await this.debugLog(`Using ${mqttURL} MQTT URL: ${this.deviceMqttURL}, ${mqttOptions} mqttOptions: ${JSON.stringify(this.deviceMqttOptions)},`
+      + ` ${mqttPubOptions} mqttPubOptions: ${JSON.stringify(this.deviceMqttPubOptions)}`);
   }
 
   /*
@@ -376,6 +344,168 @@ export abstract class deviceBase {
         this.mqttClient = null;
         this.errorLog(`Failed to establish MQTT connection. ${e}`);
       }
+    }
+  }
+
+  async setupDeviceMqtt(): Promise<void> {
+    if (this.config.options?.mqttURL) {
+      try {
+        const { connectAsync } = asyncmqtt;
+        this.mqttClient = await connectAsync(this.config.options?.mqttURL, this.config.options.mqttOptions || {});
+        await this.debugLog('MQTT connection has been established successfully.');
+        this.mqttClient.on('error', async (e: Error) => {
+          await this.errorLog(`Failed to publish MQTT messages. ${e}`);
+        });
+        if (!this.config.options?.webhookURL) {
+          // receive webhook events via MQTT
+          await this.infoLog(`Webhook is configured to be received through ${this.config.options.mqttURL}/homebridge-switchbot/webhook.`);
+          this.mqttClient.subscribe('homebridge-switchbot/webhook/+');
+          this.mqttClient.on('message', async (topic: string, message) => {
+            try {
+              await this.debugLog(`Received Webhook via MQTT: ${topic}=${message}`);
+              const context = JSON.parse(message.toString());
+              this.webhookEventHandler[context.deviceMac]?.(context);
+            } catch (e: any) {
+              await this.errorLog(`Failed to handle webhook event. Error:${e}`);
+            }
+          });
+        }
+      } catch (e) {
+        this.mqttClient = null;
+        await this.errorLog(`Failed to establish MQTT connection. ${e}`);
+      }
+    }
+  }
+
+  async setupwebhook() {
+    //webhook configuration
+    if (this.config.options?.webhookURL) {
+      const url = this.config.options?.webhookURL;
+
+      try {
+        const xurl = new URL(url);
+        const port = Number(xurl.port);
+        const path = xurl.pathname;
+        this.webhookEventListener = createServer((request: IncomingMessage, response: ServerResponse) => {
+          try {
+            if (request.url === path && request.method === 'POST') {
+              request.on('data', async (data) => {
+                try {
+                  const body = JSON.parse(data);
+                  await this.debugLog(`Received Webhook: ${JSON.stringify(body)}`);
+                  if (this.config.options?.mqttURL) {
+                    const mac = body.context.deviceMac
+                      ?.toLowerCase()
+                      .match(/[\s\S]{1,2}/g)
+                      ?.join(':');
+                    const options = this.config.options?.mqttPubOptions || {};
+                    this.mqttClient?.publish(`homebridge-switchbot/webhook/${mac}`, `${JSON.stringify(body.context)}`, options);
+                  }
+                  this.webhookEventHandler[body.context.deviceMac]?.(body.context);
+                } catch (e: any) {
+                  this.errorLog(`Failed to handle webhook event. Error:${e}`);
+                }
+              });
+              response.writeHead(200, { 'Content-Type': 'text/plain' });
+              response.end('OK');
+            }
+            // else {
+            //   response.writeHead(403, {'Content-Type': 'text/plain'});
+            //   response.end(`NG`);
+            // }
+          } catch (e: any) {
+            this.errorLog(`Failed to handle webhook event. Error:${e}`);
+          }
+        }).listen(port ? port : 80);
+      } catch (e: any) {
+        this.errorLog(`Failed to create webhook listener. Error:${e.message}`);
+        return;
+      }
+
+      try {
+        const { body, statusCode } = await request(setupWebhook, {
+          method: 'POST',
+          headers: this.platform.generateHeaders(),
+          body: JSON.stringify({
+            'action': 'setupWebhook',
+            'url': url,
+            'deviceList': 'ALL',
+          }),
+        });
+        const response: any = await body.json();
+        await this.debugLog(`setupWebhook: url:${url}`);
+        await this.debugLog(`setupWebhook: body:${JSON.stringify(response)}`);
+        await this.debugLog(`setupWebhook: statusCode:${statusCode}`);
+        if (statusCode !== 200 || response?.statusCode !== 100) {
+          this.errorLog(`Failed to configure webhook. Existing webhook well be overridden. HTTP:${statusCode} API:${response?.statusCode} `
+            + `message:${response?.message}`);
+        }
+      } catch (e: any) {
+        this.errorLog(`Failed to configure webhook. Error: ${e.message}`);
+      }
+
+      try {
+        const { body, statusCode } = await request(updateWebhook, {
+          method: 'POST', headers: this.platform.generateHeaders(), body: JSON.stringify({
+            'action': 'updateWebhook',
+            'config': {
+              'url': url,
+              'enable': true,
+            },
+          }),
+        });
+        const response: any = await body.json();
+        await this.debugLog(`updateWebhook: url:${url}`);
+        await this.debugLog(`updateWebhook: body:${JSON.stringify(response)}`);
+        await this.debugLog(`updateWebhook: statusCode:${statusCode}`);
+        if (statusCode !== 200 || response?.statusCode !== 100) {
+          this.errorLog(`Failed to update webhook. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`);
+        }
+      } catch (e: any) {
+        this.errorLog(`Failed to update webhook. Error:${e.message}`);
+      }
+
+      try {
+        const { body, statusCode } = await request(queryWebhook, {
+          method: 'POST',
+          headers: this.platform.generateHeaders(),
+          body: JSON.stringify({
+            'action': 'queryUrl',
+          }),
+        });
+        const response: any = await body.json();
+        await this.debugLog(`queryWebhook: body:${JSON.stringify(response)}`);
+        await this.debugLog(`queryWebhook: statusCode:${statusCode}`);
+        if (statusCode !== 200 || response?.statusCode !== 100) {
+          this.errorLog(`Failed to query webhook. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`);
+        } else {
+          this.infoLog(`Listening webhook on ${response?.body?.urls[0]}`);
+        }
+      } catch (e: any) {
+        this.errorLog(`Failed to query webhook. Error:${e}`);
+      }
+
+      this.api.on('shutdown', async () => {
+        try {
+          const { body, statusCode } = await request(deleteWebhook, {
+            method: 'POST',
+            headers: this.platform.generateHeaders(),
+            body: JSON.stringify({
+              'action': 'deleteWebhook',
+              'url': url,
+            }),
+          });
+          const response: any = await body.json();
+          await this.debugLog(`deleteWebhook: url:${url}, body:${JSON.stringify(response)}, statusCode:${statusCode}`);
+          if (statusCode !== 200 || response?.statusCode !== 100) {
+            this.errorLog(`Failed to delete webhook. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`);
+          } else {
+            this.infoLog('Unregistered webhook to close listening.');
+          }
+        } catch (e: any) {
+          this.errorLog(`Failed to delete webhook. Error:${e.message}`);
+        }
+      });
     }
   }
 

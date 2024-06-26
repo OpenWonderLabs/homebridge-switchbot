@@ -105,7 +105,7 @@ export class WaterHeater extends irdeviceBase {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
         await this.pushStatusCodes(statusCode, deviceStatus);
-        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
+        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
           await this.successfulPushChange(statusCode, deviceStatus, bodyChange);
           await this.updateHomeKitCharacteristics();
         } else {
@@ -124,13 +124,8 @@ export class WaterHeater extends irdeviceBase {
   async updateHomeKitCharacteristics(): Promise<void> {
     await this.debugLog('updateHomeKitCharacteristics');
     // Active
-    if (this.Valve.Active === undefined) {
-      await this.debugLog(`Active: ${this.Valve.Active}`);
-    } else {
-      this.accessory.context.Active = this.Valve.Active;
-      this.Valve.Service.updateCharacteristic(this.hap.Characteristic.Active, this.Valve.Active);
-      await this.debugLog(`updateCharacteristic Active: ${this.Valve.Active}`);
-    }
+    await this.updateCharacteristic(this.Valve.Service, this.hap.Characteristic.Active,
+      this.Valve.Active, 'Active');
   }
 
   async apiError({ e }: { e: any }): Promise<void> {

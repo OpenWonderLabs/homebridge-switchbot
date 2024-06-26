@@ -352,7 +352,7 @@ export class AirConditioner extends irdeviceBase {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
         await this.pushStatusCodes(statusCode, deviceStatus);
-        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
+        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
           await this.successfulPushChange(statusCode, deviceStatus, bodyChange);
           await this.updateHomeKitCharacteristics();
         } else {
@@ -501,39 +501,25 @@ export class AirConditioner extends irdeviceBase {
   }
 
   async ThresholdTemperatureGet(): Promise<CharacteristicValue> {
+    this.HeaterCooler.Active = this.HeaterCooler.Active === undefined ? this.hap.Characteristic.Active.INACTIVE
+      : this.HeaterCooler.Active ?? this.accessory.context.Active;
 
-    if (this.HeaterCooler.Active === undefined) {
-      this.HeaterCooler.Active = this.hap.Characteristic.Active.INACTIVE;
-    } else {
-      this.HeaterCooler.Active = this.HeaterCooler.Active ? this.HeaterCooler.Active : this.accessory.context.Active;
-    }
+    this.HeaterCooler.CurrentTemperature = (this.HeaterCooler.CurrentTemperature === undefined
+      && this.accessory.context.CurrentTemperature === undefined) ? 24 : this.HeaterCooler.CurrentTemperature
+      ?? this.accessory.context.CurrentTemperature;
 
-    if (this.HeaterCooler.CurrentTemperature === undefined && this.accessory.context.CurrentTemperature === undefined) {
-      this.HeaterCooler.CurrentTemperature = 24;
-    } else {
-      this.HeaterCooler.CurrentTemperature = this.HeaterCooler.CurrentTemperature || this.accessory.context.CurrentTemperature;
-    }
+    this.HeaterCooler.ThresholdTemperature = this.HeaterCooler.ThresholdTemperature === undefined ? 24 : this.HeaterCooler.ThresholdTemperature
+    ?? this.accessory.context.ThresholdTemperature;
 
-    if (this.HeaterCooler.ThresholdTemperature === undefined && this.accessory.context.ThresholdTemperature === undefined) {
-      this.HeaterCooler.ThresholdTemperature = 24;
-    } else {
-      this.HeaterCooler.ThresholdTemperature = this.HeaterCooler.ThresholdTemperature || this.accessory.context.ThresholdTemperature;
-    }
-
-    if (this.HeaterCooler.RotationSpeed === undefined && this.accessory.context.RotationSpeed === undefined) {
-      this.HeaterCooler.RotationSpeed = 4;
-    } else {
-      this.HeaterCooler.RotationSpeed = this.HeaterCooler.RotationSpeed || this.accessory.context.RotationSpeed;
-    }
+    this.HeaterCooler.RotationSpeed = (this.HeaterCooler.RotationSpeed === undefined && this.accessory.context.RotationSpeed === undefined) ? 4
+      : this.HeaterCooler.RotationSpeed ?? this.accessory.context.RotationSpeed;
 
     await this.getAirConditionerConfigSettings(this.accessory, this.device);
 
-    if (this.meter) {
-      if (this.HumiditySensor!.CurrentRelativeHumidity === undefined && this.accessory.context.CurrentRelativeHumidity === undefined) {
-        this.HumiditySensor!.CurrentRelativeHumidity = 0;
-      } else {
-        this.HumiditySensor!.CurrentRelativeHumidity = this.HumiditySensor!.CurrentRelativeHumidity || this.accessory.context.CurrentRelativeHumidity;
-      }
+    if (this.meter && this.HumiditySensor?.Service) {
+      this.HumiditySensor.CurrentRelativeHumidity = (this.HumiditySensor.CurrentRelativeHumidity === undefined
+        && this.accessory.context.CurrentRelativeHumidity === undefined) ? 0 : this.HumiditySensor.CurrentRelativeHumidity
+        ?? this.accessory.context.CurrentRelativeHumidity;
     }
     await this.debugLog(`Get ThresholdTemperature: ${this.HeaterCooler.ThresholdTemperature}`);
     return this.HeaterCooler.ThresholdTemperature;
@@ -588,42 +574,10 @@ export class AirConditioner extends irdeviceBase {
   }
 
   async getAirConditionerConfigSettings(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): Promise<void> {
-    if (this.device.irair?.hide_automode) {
-      this.hide_automode = device.irair?.hide_automode;
-      accessory.context.hide_automode = this.hide_automode;
-    } else {
-      this.hide_automode = device.irair?.hide_automode;
-      accessory.context.hide_automode = this.hide_automode;
-    }
-
-    if (this.device.irair?.set_max_heat) {
-      this.set_max_heat = device.irair?.set_max_heat;
-      accessory.context.set_max_heat = this.set_max_heat;
-    } else {
-      this.set_max_heat = 35;
-      accessory.context.set_max_heat = this.set_max_heat;
-    }
-    if (this.device.irair?.set_min_heat) {
-      this.set_min_heat = device.irair?.set_min_heat;
-      accessory.context.set_min_heat = this.set_min_heat;
-    } else {
-      this.set_min_heat = 0;
-      accessory.context.set_min_heat = this.set_min_heat;
-    }
-
-    if (this.device.irair?.set_max_cool) {
-      this.set_max_cool = device.irair?.set_max_cool;
-      accessory.context.set_max_cool = this.set_max_cool;
-    } else {
-      this.set_max_cool = 35;
-      accessory.context.set_max_cool = this.set_max_cool;
-    }
-    if (this.device.irair?.set_min_cool) {
-      this.set_min_cool = device.irair?.set_min_cool;
-      accessory.context.set_min_cool = this.set_min_cool;
-    } else {
-      this.set_min_cool = 0;
-      accessory.context.set_min_cool = this.set_min_cool;
-    }
+    accessory.context.hide_automode = this.hide_automode = device.irair?.hide_automode;
+    accessory.context.set_max_heat = this.set_max_heat = device.irair?.set_max_heat ?? 35;
+    accessory.context.set_min_heat = this.set_min_heat = device.irair?.set_min_heat ?? 0;
+    accessory.context.set_max_cool = this.set_max_cool = device.irair?.set_max_cool ?? 35;
+    accessory.context.set_min_cool = this.set_min_cool = device.irair?.set_min_cool ?? 0;
   }
 }

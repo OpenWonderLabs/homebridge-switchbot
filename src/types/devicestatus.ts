@@ -154,7 +154,7 @@ export type humidifierStatus = deviceStatus & {
 
 export type blindTiltStatus = deviceStatus & {
   calibrate: boolean;
-  battery: boolean;
+  battery: number;
   direction: string;
   slidePosition: string;
   lightLevel?: 'bright' | 'dim';

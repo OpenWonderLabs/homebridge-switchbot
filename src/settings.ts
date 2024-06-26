@@ -56,18 +56,18 @@ interface credentials {
 }
 
 interface options {
-  refreshRate?: number;
-  updateRate?: number;
-  pushRate?: number;
-  maxRetries?: number;
-  delayBetweenRetries?: number;
-  logging?: string;
   devices?: devicesConfig[];
   irdevices?: irDevicesConfig[];
-  webhookURL?: string;
   mqttURL?: string;
   mqttOptions?: IClientOptions;
   mqttPubOptions?: IClientOptions;
+  webhookURL?: string;
+  maxRetries?: number;
+  delayBetweenRetries?: number;
+  refreshRate?: number;
+  updateRate?: number;
+  pushRate?: number;
+  logging?: string;
 };
 
 export interface devicesConfig extends device {
@@ -111,7 +111,7 @@ export interface devicesConfig extends device {
   colorbulb?: colorbulb;
   striplight?: striplight;
   ceilinglight?: ceilinglight;
-  plug?: Record<any, any>;
+  plug?: plug;
   lock?: lock;
   hub?: hub;
 }
@@ -197,6 +197,8 @@ interface ceilinglight {
   set_minStep?: number;
   adaptiveLightingShift?: number;
 };
+
+type plug = object;
 
 interface lock {
   hide_contactsensor?: boolean;

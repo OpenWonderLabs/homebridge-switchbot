@@ -88,6 +88,15 @@ export class Bot extends deviceBase {
     On: CharacteristicValue;
   };
 
+  // OpenAPI
+  deviceStatus!: botStatus;
+
+  //Webhook
+  webhookContext!: botWebhookContext;
+
+  // BLE
+  serviceData!: botServiceData;
+
   // Config
   botMode!: string;
   allowPush?: boolean;
@@ -459,12 +468,11 @@ export class Bot extends deviceBase {
     }
 
     // Retrieve initial values and updateHomekit
+    this.debugLog('Retrieve initial values and update Homekit');
     this.refreshStatus();
 
-    // Retrieve initial values and updateHomekit
-    this.updateHomeKitCharacteristics();
-
-    // regisiter webhook event handler
+    //regisiter webhook event handler
+    this.debugLog('Registering Webhook Event Handler');
     this.registerWebhook();
 
     // Start an update interval
@@ -505,23 +513,26 @@ export class Bot extends deviceBase {
   /**
    * Parse the device status from the SwitchBotBLE API
    */
-  async BLEparseStatus(serviceData: botServiceData): Promise<void> {
+  async BLEparseStatus(): Promise<void> {
     await this.debugLog('BLEparseStatus');
+    await this.debugLog(`(power, battery, deviceMode) = BLE:(${this.serviceData.state}, ${this.serviceData.battery}, ${this.serviceData.mode}),`
+      + ` current:(${this.accessory.context.On}, ${this.Battery.BatteryLevel}, ${this.botMode})`);
+
     // BLEmode (true if Switch Mode) | (false if Press Mode)
-    if (serviceData.mode) {
+    if (this.serviceData.mode) {
       this.accessory.context.On = await this.getOn();
       if (this.getOn() === undefined) {
-        this.setOn(Boolean(serviceData.state));
+        this.setOn(Boolean(this.serviceData.state));
       }
-      this.debugLog(`Switch Mode, mode: ${serviceData.mode}, On: ${this.accessory.context.On}`);
+      this.debugLog(`Switch Mode, mode: ${this.serviceData.mode}, On: ${this.accessory.context.On}`);
     } else {
       this.setOn(false);
       this.accessory.context.On = await this.getOn();
-      this.debugLog(`Press Mode, mode: ${serviceData.mode}, On: ${this.accessory.context.On}`);
+      this.debugLog(`Press Mode, mode: ${this.serviceData.mode}, On: ${this.accessory.context.On}`);
     }
 
     // BatteryLevel
-    this.Battery.BatteryLevel = Number(serviceData.battery);
+    this.Battery.BatteryLevel = this.serviceData.battery;
     await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
 
     // StatusLowBattery
@@ -534,8 +545,12 @@ export class Bot extends deviceBase {
   /**
    * Parse the device status from the SwitchBot OpenAPI
    */
-  async openAPIparseStatus(deviceStatus: botStatus): Promise<void> {
+  async openAPIparseStatus(): Promise<void> {
     await this.debugLog('openAPIparseStatus');
+    await this.debugLog(`(power, battery, deviceMode) = API:(${this.deviceStatus.power}, ${this.deviceStatus.battery}, ${this.botMode}),`
+      + ` current:(${this.accessory.context.On}, ${this.Battery.BatteryLevel}, ${this.botMode})`);
+
+    // On
     if (this.botMode === 'press') {
       this.setOn(false);
       this.accessory.context.On = await this.getOn();
@@ -548,7 +563,7 @@ export class Bot extends deviceBase {
     await this.debugLog(`On: ${this.accessory.context.On}`);
 
     // Battery Level
-    this.Battery.BatteryLevel = Number(deviceStatus.battery);
+    this.Battery.BatteryLevel = this.deviceStatus.battery;
     await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
 
     // StatusLowBattery
@@ -557,9 +572,9 @@ export class Bot extends deviceBase {
     await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
 
     // Firmware Version
-    const version = deviceStatus.version.toString();
-    this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
-    if (deviceStatus.version) {
+    if (this.deviceStatus.version) {
+      const version = this.deviceStatus.version.toString();
+      this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
       const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0';
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
@@ -572,24 +587,28 @@ export class Bot extends deviceBase {
     }
   }
 
-  async parseStatusWebhook(context: botWebhookContext): Promise<void> {
+  async parseStatusWebhook(): Promise<void> {
     await this.debugLog('parseStatusWebhook');
     const getOn = await this.getOn();
-    await this.debugLog(`(power, battery, deviceMode) = Webhook:(${context.power}, ${context.battery}, ${context.deviceMode}),`
-      + ` current:(${getOn}, ${this.Battery.BatteryLevel}, ${this.botMode})`);
+    await this.debugLog(`(power, battery, deviceMode) = Webhook:(${this.webhookContext.power}, ${this.webhookContext.battery},`
+      + ` ${this.webhookContext.deviceMode}), current:(${getOn}, ${this.Battery.BatteryLevel}, ${this.botMode})`);
+
     // On
-    const setOn = context.power === 'on' ? true : false;
+    const setOn = this.webhookContext.power === 'on' ? true : false;
     await this.setOn(setOn);
     await this.debugLog(`On: ${setOn}`);
+
     // BatteryLevel
-    this.Battery.BatteryLevel = context.battery;
+    this.Battery.BatteryLevel = this.webhookContext.battery;
     await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
+
     // StatusLowBattery
     this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
       ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+
     // Mode
-    this.botMode = context.deviceMode;
+    this.botMode = this.webhookContext.deviceMode;
     await this.debugLog(`Mode: ${this.botMode}`);
   }
 
@@ -622,7 +641,8 @@ export class Bot extends deviceBase {
         const serviceData = await this.monitorAdvertisementPackets(switchbot) as botServiceData;
         // Update HomeKit
         if (serviceData.model === SwitchBotBLEModel.Bot && serviceData.modelName === SwitchBotBLEModelName.Bot) {
-          await this.BLEparseStatus(serviceData);
+          this.serviceData = serviceData;
+          await this.BLEparseStatus();
           await this.updateHomeKitCharacteristics();
         } else {
           await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
@@ -640,7 +660,8 @@ export class Bot extends deviceBase {
       await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);;
       if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
         await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
-        await this.openAPIparseStatus(deviceStatus.body);
+        this.deviceStatus = deviceStatus.body;
+        await this.openAPIparseStatus();
         await this.updateHomeKitCharacteristics();
       } else {
         await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
@@ -655,10 +676,11 @@ export class Bot extends deviceBase {
   async registerWebhook() {
     if (this.device.webhook) {
       await this.debugLog('is listening webhook.');
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context: botWebhookContext) => {
+      this.webhookEventHandler[this.device.deviceId] = async (context: botWebhookContext) => {
         try {
           await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
-          await this.parseStatusWebhook(context);
+          this.webhookContext = context;
+          await this.parseStatusWebhook();
           await this.updateHomeKitCharacteristics();
         } catch (e: any) {
           await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);

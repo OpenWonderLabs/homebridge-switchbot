@@ -369,7 +369,7 @@ export class TV extends irdeviceBase {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
         await this.pushStatusCodes(statusCode, deviceStatus);
-        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
+        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
           await this.successfulPushChange(statusCode, deviceStatus, bodyChange);
           await this.updateHomeKitCharacteristics();
         } else {
@@ -388,22 +388,11 @@ export class TV extends irdeviceBase {
   async updateHomeKitCharacteristics(): Promise<void> {
     await this.debugLog('updateHomeKitCharacteristics');
     // Active
-    if (this.Television.Active === undefined) {
-      await this.debugLog(`Active: ${this.Television.Active}`);
-    } else {
-      this.accessory.context.Active = this.Television.Active;
-      this.Television.Service.updateCharacteristic(this.hap.Characteristic.Active, this.Television.Active);
-      await this.debugLog(`updateCharacteristic Active: ${this.Television.Active}`);
-    }
+    await this.updateCharacteristic(this.Television.Service, this.hap.Characteristic.Active,
+      this.Television.Active, 'Active');
     // ActiveIdentifier
-    if (this.Television.ActiveIdentifier === undefined) {
-      await this.debugLog(`ActiveIdentifier: ${this.Television.ActiveIdentifier}`);
-    } else {
-      this.accessory.context.ActiveIdentifier = this.Television.ActiveIdentifier;
-      this.Television.Service.updateCharacteristic(this.hap.Characteristic.ActiveIdentifier, this.Television.ActiveIdentifier);
-      await this.debugLog('updateCharacteristic'
-        + ` ActiveIdentifier: ${this.Television.ActiveIdentifier}`);
-    }
+    await this.updateCharacteristic(this.Television.Service, this.hap.Characteristic.ActiveIdentifier,
+      this.Television.ActiveIdentifier, 'ActiveIdentifier');
   }
 
   async apiError(e: any): Promise<void> {

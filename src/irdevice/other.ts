@@ -537,7 +537,7 @@ export class Others extends irdeviceBase {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
         await this.pushStatusCodes(statusCode, deviceStatus);
-        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
+        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
           await this.successfulPushChange(statusCode, deviceStatus, bodyChange);
           await this.updateHomeKitCharacteristics();
         } else {

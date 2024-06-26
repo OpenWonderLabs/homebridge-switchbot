@@ -32,6 +32,15 @@ export class StripLight extends deviceBase {
     ColorTemperature?: CharacteristicValue;
   };
 
+  // OpenAPI
+  deviceStatus!: stripLightStatus;
+
+  //Webhook
+  webhookContext!: stripLightWebhookContext;
+
+  // BLE
+  serviceData!: stripLightServiceData;
+
   // Adaptive Lighting
   AdaptiveLightingController?: ControllerConstructor | Controller<ControllerServiceMap>;
   adaptiveLightingShift?: number;
@@ -146,12 +155,11 @@ export class StripLight extends deviceBase {
       .onSet(this.SaturationSet.bind(this));
 
     // Retrieve initial values and updateHomekit
+    this.debugLog('Retrieve initial values and update Homekit');
     this.refreshStatus();
 
-    // Update Homekit
-    this.updateHomeKitCharacteristics();
-
     //regisiter webhook event handler
+    this.debugLog('Registering Webhook Event Handler');
     this.registerWebhook();
 
     // Start an update interval
@@ -181,20 +189,24 @@ export class StripLight extends deviceBase {
       });
   }
 
-  async BLEparseStatus(serviceData: stripLightServiceData): Promise<void> {
+  async BLEparseStatus(): Promise<void> {
     await this.debugLog('BLEparseStatus');
+    await this.debugLog(`(power, brightness, color) = BLE:(${this.serviceData.power}, ${this.serviceData.brightness},`
+      + ` ${this.serviceData.red}:${this.serviceData.green}:${this.serviceData.blue}), current:(${this.LightBulb.On},`
+      + ` ${this.LightBulb.Brightness}, ${this.LightBulb.Hue}, ${this.LightBulb.Saturation})`);
+
     // On
-    this.LightBulb.On = serviceData.power;
+    this.LightBulb.On = this.serviceData.power;
     await this.debugLog(`On: ${this.LightBulb.On}`);
 
     // Brightness
-    this.LightBulb.Brightness = serviceData.brightness;
+    this.LightBulb.Brightness = this.serviceData.brightness;
     await this.debugLog(`Brightness: ${this.LightBulb.Brightness}`);
 
     // Color, Hue & Brightness
-    await this.debugLog(`red: ${serviceData.red}, green: ${serviceData.green}, blue: ${serviceData.blue}`);
-    const [hue, saturation] = rgb2hs(serviceData.red, serviceData.green, serviceData.blue);
-    await this.debugLog(`hs: ${JSON.stringify(rgb2hs(serviceData.red, serviceData.green, serviceData.blue))}`);
+    await this.debugLog(`red: ${this.serviceData.red}, green: ${this.serviceData.green}, blue: ${this.serviceData.blue}`);
+    const [hue, saturation] = rgb2hs(this.serviceData.red, this.serviceData.green, this.serviceData.blue);
+    await this.debugLog(`hs: ${JSON.stringify(rgb2hs(this.serviceData.red, this.serviceData.green, this.serviceData.blue))}`);
 
     // Hue
     this.LightBulb.Hue = hue;
@@ -205,19 +217,23 @@ export class StripLight extends deviceBase {
     this.debugLog(`Saturation: ${this.LightBulb.Saturation}`);
   }
 
-  async openAPIparseStatus(deviceStatus: stripLightStatus): Promise<void> {
+  async openAPIparseStatus(): Promise<void> {
     await this.debugLog('openAPIparseStatus');
+    await this.debugLog(`(power, brightness, color) = API:(${this.deviceStatus.power}, ${this.deviceStatus.brightness},`
+      + ` ${this.deviceStatus.color}), current:(${this.LightBulb.On}, ${this.LightBulb.Brightness}, ${this.LightBulb.Hue},`
+      + ` ${this.LightBulb.Saturation})`);
+
     // On
-    this.LightBulb.On = deviceStatus.power === 'on' ? true : false;
+    this.LightBulb.On = this.deviceStatus.power === 'on' ? true : false;
     await this.debugLog(`On: ${this.LightBulb.On}`);
 
     // Brightness
-    this.LightBulb.Brightness = deviceStatus.brightness;
+    this.LightBulb.Brightness = this.deviceStatus.brightness;
     await this.debugLog(`Brightness: ${this.LightBulb.Brightness}`);
 
     // Color, Hue & Brightness
-    await this.debugLog(`color: ${JSON.stringify(deviceStatus.color)}`);
-    const [red, green, blue] = deviceStatus.color.split(':');
+    await this.debugLog(`color: ${JSON.stringify(this.deviceStatus.color)}`);
+    const [red, green, blue] = this.deviceStatus.color.split(':');
     await this.debugLog(`red: ${JSON.stringify(red)}, green: ${JSON.stringify(green)}, blue: ${JSON.stringify(blue)}`);
     const [hue, saturation] = rgb2hs(red, green, blue);
     await this.debugLog(`hs: ${JSON.stringify(rgb2hs(red, green, blue))}`);
@@ -231,9 +247,9 @@ export class StripLight extends deviceBase {
     await this.debugLog(`Saturation: ${this.LightBulb.Saturation}`);
 
     // Firmware Version
-    const version = deviceStatus.version.toString();
-    await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
-    if (deviceStatus.version) {
+    if (this.deviceStatus.version) {
+      const version = this.deviceStatus.version.toString();
+      await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
       const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0';
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
@@ -246,22 +262,23 @@ export class StripLight extends deviceBase {
     }
   }
 
-  async parseStatusWebhook(context: stripLightWebhookContext): Promise<void> {
+  async parseStatusWebhook(): Promise<void> {
     await this.debugLog('parseStatusWebhook');
-    await this.debugLog(`(powerState, brightness, color) = Webhook:(${context.powerState}, ${context.brightness}, ${context.color}),`
-      + ` current:(${this.LightBulb.On}, ${this.LightBulb.Brightness}, ${this.LightBulb.Hue}, ${this.LightBulb.Saturation})`);
+    await this.debugLog(`(powerState, brightness, color) = Webhook:(${this.webhookContext.powerState}, ${this.webhookContext.brightness},`
+      + ` ${this.webhookContext.color}), current:(${this.LightBulb.On}, ${this.LightBulb.Brightness}, ${this.LightBulb.Hue},`
+      + ` ${this.LightBulb.Saturation})`);
 
     // On
-    this.LightBulb.On = context.powerState === 'ON' ? true : false;
+    this.LightBulb.On = this.webhookContext.powerState === 'ON' ? true : false;
     await this.debugLog(`On: ${this.LightBulb.On}`);
 
     // Brightness
-    this.LightBulb.Brightness = context.brightness;
+    this.LightBulb.Brightness = this.webhookContext.brightness;
     await this.debugLog(`Brightness: ${this.LightBulb.Brightness}`);
 
     // Color, Hue & Brightness
-    await this.debugLog(`color: ${JSON.stringify(context.color)}`);
-    const [red, green, blue] = context.color.split(':');
+    await this.debugLog(`color: ${JSON.stringify(this.webhookContext.color)}`);
+    const [red, green, blue] = this.webhookContext.color.split(':');
     await this.debugLog(`red: ${JSON.stringify(red)}, green: ${JSON.stringify(green)}, blue: ${JSON.stringify(blue)}`);
     const [hue, saturation] = rgb2hs(red, green, blue);
     await this.debugLog(`hs: ${JSON.stringify(rgb2hs(red, green, blue))}`);
@@ -304,7 +321,8 @@ export class StripLight extends deviceBase {
         const serviceData = await this.monitorAdvertisementPackets(switchbot) as stripLightServiceData;
         // Update HomeKit
         if (serviceData.model === SwitchBotBLEModel.StripLight && serviceData.modelName === SwitchBotBLEModelName.StripLight) {
-          await this.BLEparseStatus(serviceData);
+          this.serviceData = serviceData;
+          await this.BLEparseStatus();
           await this.updateHomeKitCharacteristics();
         } else {
           await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
@@ -322,7 +340,8 @@ export class StripLight extends deviceBase {
       await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);;
       if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
         await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
-        await this.openAPIparseStatus(deviceStatus.body);
+        this.deviceStatus = deviceStatus.body;
+        await this.openAPIparseStatus();
         await this.updateHomeKitCharacteristics();
       } else {
         await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
@@ -337,10 +356,11 @@ export class StripLight extends deviceBase {
   async registerWebhook() {
     if (this.device.webhook) {
       await this.debugLog('is listening webhook.');
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context: stripLightWebhookContext) => {
+      this.webhookEventHandler[this.device.deviceId] = async (context: stripLightWebhookContext) => {
         try {
           await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
-          await this.parseStatusWebhook(context);
+          this.webhookContext = context;
+          await this.parseStatusWebhook();
           await this.updateHomeKitCharacteristics();
         } catch (e: any) {
           await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);

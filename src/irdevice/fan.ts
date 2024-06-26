@@ -206,7 +206,7 @@ export class IRFan extends irdeviceBase {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
         await this.pushStatusCodes(statusCode, deviceStatus);
-        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
+        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
           await this.successfulPushChange(statusCode, deviceStatus, bodyChange);
           await this.updateHomeKitCharacteristics();
         } else {
@@ -224,27 +224,15 @@ export class IRFan extends irdeviceBase {
 
   async updateHomeKitCharacteristics(): Promise<void> {
     await this.debugLog('updateHomeKitCharacteristics');
-    if (this.Fan.Active === undefined) {
-      await this.debugLog(`Active: ${this.Fan.Active}`);
-    } else {
-      this.accessory.context.Active = this.Fan.Active;
-      this.Fan.Service.updateCharacteristic(this.hap.Characteristic.Active, this.Fan.Active);
-      await this.debugLog(`updateCharacteristic Active: ${this.Fan.Active}`);
-    }
-    if (this.Fan.SwingMode === undefined) {
-      await this.debugLog(`SwingMode: ${this.Fan.SwingMode}`);
-    } else {
-      this.accessory.context.SwingMode = this.Fan.SwingMode;
-      this.Fan.Service.updateCharacteristic(this.hap.Characteristic.SwingMode, this.Fan.SwingMode);
-      await this.debugLog(`updateCharacteristic SwingMode: ${this.Fan.SwingMode}`);
-    }
-    if (this.Fan.RotationSpeed === undefined) {
-      await this.debugLog(`RotationSpeed: ${this.Fan.RotationSpeed}`);
-    } else {
-      this.accessory.context.RotationSpeed = this.Fan.RotationSpeed;
-      this.Fan.Service.updateCharacteristic(this.hap.Characteristic.RotationSpeed, this.Fan.RotationSpeed);
-      await this.debugLog(`updateCharacteristic RotationSpeed: ${this.Fan.RotationSpeed}`);
-    }
+    // Active
+    await this.updateCharacteristic(this.Fan.Service, this.hap.Characteristic.Active,
+      this.Fan.Active, 'Active');
+    // SwingMode
+    await this.updateCharacteristic(this.Fan.Service, this.hap.Characteristic.SwingMode,
+      this.Fan.SwingMode, 'SwingMode');
+    // RotationSpeed
+    await this.updateCharacteristic(this.Fan.Service, this.hap.Characteristic.RotationSpeed,
+      this.Fan.RotationSpeed, 'RotationSpeed');
   }
 
   async apiError(e: any): Promise<void> {

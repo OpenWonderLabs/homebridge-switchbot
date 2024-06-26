@@ -41,6 +41,15 @@ export class Motion extends deviceBase {
     CurrentAmbientLightLevel: CharacteristicValue;
   };
 
+  // OpenAPI
+  deviceStatus!: motionSensorStatus;
+
+  //Webhook
+  webhookContext!: motionSensorWebhookContext;
+
+  // BLE
+  serviceData!: motionSensorServiceData;
+
   // Updates
   motionUbpdateInProgress!: boolean;
   doMotionUpdate!: Subject<void>;
@@ -126,14 +135,12 @@ export class Motion extends deviceBase {
         });
     };
 
-
     // Retrieve initial values and updateHomekit
+    this.debugLog('Retrieve initial values and update Homekit');
     this.refreshStatus();
 
-    // Retrieve initial values and updateHomekit
-    this.updateHomeKitCharacteristics();
-
     //regisiter webhook event handler
+    this.debugLog('Registering Webhook Event Handler');
     this.registerWebhook();
 
     // Start an update interval
@@ -144,52 +151,62 @@ export class Motion extends deviceBase {
       });
   }
 
-  async BLEparseStatus(serviceData: motionSensorServiceData): Promise<void> {
+  async BLEparseStatus(): Promise<void> {
     await this.debugLog('BLEparseStatus');
+    await this.debugLog(`(moveDetected) = BLE: (${this.serviceData.movement}), current: (${this.MotionSensor.MotionDetected})`);
+
     // Movement
-    this.MotionSensor.MotionDetected = serviceData.movement;
+    this.MotionSensor.MotionDetected = this.serviceData.movement;
     await this.debugLog(`MotionDetected: ${this.MotionSensor.MotionDetected}`);
+
     // CurrentAmbientLightLevel
     if (!this.device.motion?.hide_lightsensor && this.LightSensor?.Service) {
       const set_minLux = this.device.blindTilt?.set_minLux ?? 1;
       const set_maxLux = this.device.blindTilt?.set_maxLux ?? 6001;
-      const lightLevel = serviceData.lightLevel === 'bright' ? set_maxLux : set_minLux;
+      const lightLevel = this.serviceData.lightLevel === 'bright' ? set_maxLux : set_minLux;
       this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2);
-      await this.debugLog(`LightLevel: ${serviceData.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`);
+      await this.debugLog(`LightLevel: ${this.serviceData.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`);
     }
+
     // BatteryLevel
-    this.Battery.BatteryLevel = serviceData.battery;
+    this.Battery.BatteryLevel = this.serviceData.battery;
     await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
+
     // StatusLowBattery
     this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
       ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
   }
 
-  async openAPIparseStatus(deviceStatus: motionSensorStatus): Promise<void> {
+  async openAPIparseStatus(): Promise<void> {
     await this.debugLog('openAPIparseStatus');
+    await this.debugLog(`(moveDetected) = OpenAPI: (${this.deviceStatus.moveDetected}), current: (${this.MotionSensor.MotionDetected})`);
+
     // Motion State
-    this.MotionSensor.MotionDetected = deviceStatus.moveDetected;
+    this.MotionSensor.MotionDetected = this.deviceStatus.moveDetected;
     await this.debugLog(`MotionDetected: ${this.MotionSensor.MotionDetected}`);
+
     // CurrentAmbientLightLevel
     if (!this.device.motion?.hide_lightsensor && this.LightSensor?.Service) {
       const set_minLux = this.device.blindTilt?.set_minLux ?? 1;
       const set_maxLux = this.device.blindTilt?.set_maxLux ?? 6001;
-      const lightLevel = deviceStatus.brightness === 'bright' ? set_maxLux : set_minLux;
+      const lightLevel = this.deviceStatus.brightness === 'bright' ? set_maxLux : set_minLux;
       this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2);
-      await this.debugLog(`LightLevel: ${deviceStatus.brightness}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`);
+      await this.debugLog(`LightLevel: ${this.deviceStatus.brightness}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`);
     }
     // BatteryLevel
-    this.Battery.BatteryLevel = Number(deviceStatus.battery);
+    this.Battery.BatteryLevel = this.deviceStatus.battery;
     await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
+
     // StatusLowBattery
     this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
       ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+
     // FirmwareVersion
-    const version = deviceStatus.version.toString();
-    await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
-    if (deviceStatus.version) {
+    if (this.deviceStatus.version) {
+      const version = this.deviceStatus.version.toString();
+      await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
       const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0';
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
@@ -202,11 +219,12 @@ export class Motion extends deviceBase {
     }
   }
 
-  async parseStatusWebhook(context: motionSensorWebhookContext): Promise<void> {
+  async parseStatusWebhook(): Promise<void> {
     await this.debugLog('parseStatusWebhook');
-    await this.debugLog(`(detectionState) = Webhook: (${context.detectionState}), current: (${this.MotionSensor.MotionDetected})`);
+    await this.debugLog(`(detectionState) = Webhook: (${this.webhookContext.detectionState}), current: (${this.MotionSensor.MotionDetected})`);
+
     // MotionDetected
-    this.MotionSensor.MotionDetected = context.detectionState === 'DETECTED' ? true : false;
+    this.MotionSensor.MotionDetected = this.webhookContext.detectionState === 'DETECTED' ? true : false;
     await this.debugLog(`MotionDetected: ${this.MotionSensor.MotionDetected}`);
   }
 
@@ -239,7 +257,8 @@ export class Motion extends deviceBase {
         const serviceData = await this.monitorAdvertisementPackets(switchbot) as motionSensorServiceData;
         // Update HomeKit
         if (serviceData.model === SwitchBotBLEModel.MotionSensor && serviceData.modelName === SwitchBotBLEModelName.MotionSensor) {
-          await this.BLEparseStatus(serviceData);
+          this.serviceData = serviceData;
+          await this.BLEparseStatus();
           await this.updateHomeKitCharacteristics();
         } else {
           await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
@@ -257,7 +276,8 @@ export class Motion extends deviceBase {
       await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);;
       if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
         await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
-        await this.openAPIparseStatus(deviceStatus.body);
+        this.deviceStatus = deviceStatus.body;
+        await this.openAPIparseStatus();
         await this.updateHomeKitCharacteristics();
       } else {
         await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
@@ -272,10 +292,11 @@ export class Motion extends deviceBase {
   async registerWebhook() {
     if (this.device.webhook) {
       await this.debugLog('is listening webhook.');
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context: motionSensorWebhookContext) => {
+      this.webhookEventHandler[this.device.deviceId] = async (context: motionSensorWebhookContext) => {
         try {
           await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
-          await this.parseStatusWebhook(context);
+          this.webhookContext = context;
+          await this.parseStatusWebhook();
           await this.updateHomeKitCharacteristics();
         } catch (e: any) {
           await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);

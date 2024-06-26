@@ -35,6 +35,15 @@ export class RobotVacuumCleaner extends deviceBase {
     ChargingState: CharacteristicValue;
   };
 
+  // OpenAPI
+  deviceStatus!: robotVacuumCleanerS1Status | robotVacuumCleanerS1PlusStatus | floorCleaningRobotS10Status;
+
+  //Webhook
+  webhookContext!: robotVacuumCleanerS1WebhookContext | robotVacuumCleanerS1PlusWebhookContext | floorCleaningRobotS10WebhookContext;
+
+  // BLE
+  serviceData!: robotVacuumCleanerServiceData;
+
   // Updates
   robotVacuumCleanerUpdateInProgress!: boolean;
   doRobotVacuumCleanerUpdate!: Subject<void>;
@@ -115,12 +124,11 @@ export class RobotVacuumCleaner extends deviceBase {
       });
 
     // Retrieve initial values and updateHomekit
+    this.debugLog('Retrieve initial values and update Homekit');
     this.refreshStatus();
 
-    // Update Homekit
-    this.updateHomeKitCharacteristics();
-
     //regisiter webhook event handler
+    this.debugLog('Registering Webhook Event Handler');
     this.registerWebhook();
 
     // Start an update interval
@@ -150,39 +158,51 @@ export class RobotVacuumCleaner extends deviceBase {
       });
   }
 
-  async BLEparseStatus(serviceData: robotVacuumCleanerServiceData): Promise<void> {
+  async BLEparseStatus(): Promise<void> {
     await this.debugLog('BLEparseStatus');
+    await this.debugLog(`(state, battery) = BLE: (${this.serviceData.state}, ${this.serviceData.battery}),`
+      + ` current: (${this.LightBulb.On}, ${this.Battery.BatteryLevel})`);
+
     // On
-    this.LightBulb.On = serviceData.state === 'on' ? true : false;
+    this.LightBulb.On = this.serviceData.state === 'on' ? true : false;
     await this.debugLog(`On: ${this.LightBulb.On}`);
+
     // BatteryLevel
-    this.Battery.BatteryLevel = Number(serviceData.battery);
+    this.Battery.BatteryLevel = this.serviceData.battery;
     await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
+
     // StatusLowBattery
     this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
       ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
   }
 
-  async openAPIparseStatus(deviceStatus: robotVacuumCleanerS1Status | robotVacuumCleanerS1PlusStatus | floorCleaningRobotS10Status) {
+  async openAPIparseStatus() {
     await this.debugLog('openAPIparseStatus');
+    await this.debugLog(`(onlineStatus, battery, workingStatus) = API: (${this.deviceStatus.onlineStatus}, ${this.deviceStatus.battery},`
+      + ` ${this.deviceStatus.workingStatus}), current: (${this.LightBulb.On}, ${this.Battery.BatteryLevel}, ${this.Battery.ChargingState})`);
+
     // On
-    this.LightBulb.On = deviceStatus.onlineStatus === 'online' ? true : false;
+    this.LightBulb.On = this.deviceStatus.onlineStatus === 'online' ? true : false;
     await this.debugLog(`On: ${this.LightBulb.On}`);
+
     // BatteryLevel
-    this.Battery.BatteryLevel = Number(deviceStatus.battery);
+    this.Battery.BatteryLevel = this.deviceStatus.battery;
     await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
+
     // StatusLowBattery
     this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
       ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+
     // ChargingState
-    this.Battery.ChargingState = deviceStatus.workingStatus === 'Charging'
+    this.Battery.ChargingState = this.deviceStatus.workingStatus === 'Charging'
       ? this.hap.Characteristic.ChargingState.CHARGING : this.hap.Characteristic.ChargingState.NOT_CHARGING;
     await this.debugLog(`ChargingState: ${this.Battery.ChargingState}`);
+
     // Firmware Version
-    if (deviceStatus.version) {
-      const version = deviceStatus.version.toString();
+    if (this.deviceStatus.version) {
+      const version = this.deviceStatus.version.toString();
       await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
       const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0';
       this.accessory
@@ -196,23 +216,26 @@ export class RobotVacuumCleaner extends deviceBase {
     }
   }
 
-  async parseStatusWebhook(context: robotVacuumCleanerS1WebhookContext | robotVacuumCleanerS1PlusWebhookContext
-    | floorCleaningRobotS10WebhookContext): Promise<void> {
+  async parseStatusWebhook(): Promise<void> {
     await this.debugLog('parseStatusWebhook');
-    await this.debugLog(`(onlineStatus, battery, workingStatus) = Webhook: (${context.onlineStatus}, ${context.battery}, ${context.workingStatus}),`
-      + ` current: (${this.LightBulb.On}, ${this.Battery.BatteryLevel}, ${this.Battery.ChargingState})`);
+    await this.debugLog(`(onlineStatus, battery, workingStatus) = Webhook: (${this.webhookContext.onlineStatus}, ${this.webhookContext.battery},`
+      + ` ${this.webhookContext.workingStatus}), current: (${this.LightBulb.On}, ${this.Battery.BatteryLevel}, ${this.Battery.ChargingState})`);
+
     // On
-    this.LightBulb.On = context.onlineStatus === 'online' ? true : false;
+    this.LightBulb.On = this.webhookContext.onlineStatus === 'online' ? true : false;
     await this.debugLog(`On: ${this.LightBulb.On}`);
+
     // BatteryLevel
-    this.Battery.BatteryLevel = Number(context.battery);
+    this.Battery.BatteryLevel = this.webhookContext.battery;
     await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
+
     // StatusLowBattery
     this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
       ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+
     // ChargingState
-    this.Battery.ChargingState = context.workingStatus === 'Charging'
+    this.Battery.ChargingState = this.webhookContext.workingStatus === 'Charging'
       ? this.hap.Characteristic.ChargingState.CHARGING : this.hap.Characteristic.ChargingState.NOT_CHARGING;
     await this.debugLog(`ChargingState: ${this.Battery.ChargingState}`);
   }
@@ -246,7 +269,8 @@ export class RobotVacuumCleaner extends deviceBase {
         const serviceData = await this.monitorAdvertisementPackets(switchbot) as unknown as robotVacuumCleanerServiceData;
         // Update HomeKit
         if (serviceData.model === SwitchBotBLEModel.Unknown && serviceData.modelName === SwitchBotBLEModelName.Unknown) {
-          await this.BLEparseStatus(serviceData);
+          this.serviceData = serviceData;
+          await this.BLEparseStatus();
           await this.updateHomeKitCharacteristics();
         } else {
           await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
@@ -264,7 +288,8 @@ export class RobotVacuumCleaner extends deviceBase {
       await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);;
       if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
         await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
-        await this.openAPIparseStatus(deviceStatus.body);
+        this.deviceStatus = deviceStatus.body;
+        await this.openAPIparseStatus();
         await this.updateHomeKitCharacteristics();
       } else {
         await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
@@ -279,11 +304,12 @@ export class RobotVacuumCleaner extends deviceBase {
   async registerWebhook() {
     if (this.device.webhook) {
       await this.debugLog('is listening webhook.');
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context: robotVacuumCleanerS1WebhookContext
+      this.webhookEventHandler[this.device.deviceId] = async (context: robotVacuumCleanerS1WebhookContext
         | robotVacuumCleanerS1PlusWebhookContext | floorCleaningRobotS10WebhookContext) => {
         try {
           await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
-          await this.parseStatusWebhook(context);
+          this.webhookContext = context;
+          await this.parseStatusWebhook();
           await this.updateHomeKitCharacteristics();
         } catch (e: any) {
           await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);

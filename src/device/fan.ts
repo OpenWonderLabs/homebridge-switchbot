@@ -39,6 +39,15 @@ export class Fan extends deviceBase {
     Brightness: CharacteristicValue;
   };
 
+  // OpenAPI
+  deviceStatus!: batteryCirculatorFanStatus;
+
+  //Webhook
+  webhookContext!: batteryCirculatorFanWebhookContext;
+
+  // BLE
+  serviceData!: batteryCirculatorFanServiceData;
+
   // Updates
   fanUpdateInProgress!: boolean;
   doFanUpdate!: Subject<void>;
@@ -149,10 +158,12 @@ export class Fan extends deviceBase {
       .onSet(this.BrightnessSet.bind(this));
 
     // Retrieve initial values and updateHomekit
+    this.debugLog('Retrieve initial values and update Homekit');
     this.refreshStatus();
 
-    // Update Homekit
-    this.updateHomeKitCharacteristics();
+    //regisiter webhook event handler
+    this.debugLog('Registering Webhook Event Handler');
+    this.registerWebhook();
 
     //regisiter webhook event handler
     this.registerWebhook();
@@ -184,35 +195,45 @@ export class Fan extends deviceBase {
       });
   }
 
-  async BLEparseStatus(serviceData: batteryCirculatorFanServiceData): Promise<void> {
+  async BLEparseStatus(): Promise<void> {
     await this.debugLog('BLEparseStatus');
+    await this.debugLog(`(powerState, fanSpeed) = BLE:(${this.serviceData.state}, ${this.serviceData.fanSpeed}), current:(${this.Fan.Active},`
+      + ` ${this.Fan.RotationSpeed})`);
+
     // Active
-    this.Fan.Active = serviceData.state === 'on' ? this.hap.Characteristic.Active.ACTIVE : this.hap.Characteristic.Active.INACTIVE;
+    this.Fan.Active = this.serviceData.state === 'on' ? this.hap.Characteristic.Active.ACTIVE : this.hap.Characteristic.Active.INACTIVE;
     await this.debugLog(`Active: ${this.Fan.Active}`);
+
+    // RotationSpeed
+    this.Fan.RotationSpeed = this.serviceData.fanSpeed;
   }
 
-  async openAPIparseStatus(deviceStatus: batteryCirculatorFanStatus) {
+  async openAPIparseStatus() {
     await this.debugLog('openAPIparseStatus');
+    await this.debugLog(`(version, battery, powerState, oscillation, chargingStatus, fanSpeed) = OpenAPI:(${this.deviceStatus.version},`
+      + ` ${this.deviceStatus.battery}, ${this.deviceStatus.power}, ${this.deviceStatus.oscillation}, ${this.deviceStatus.chargingStatus},`
+      + ` ${this.deviceStatus.fanSpeed}), current:(${this.accessory.context.deviceVersion}, ${this.Battery.BatteryLevel}, ${this.Fan.Active},`
+      + ` ${this.Fan.SwingMode}, ${this.Battery.ChargingState}, ${this.Fan.RotationSpeed})`);
 
     // Active
-    this.Fan.Active = deviceStatus.power === 'on' ? this.hap.Characteristic.Active.ACTIVE : this.hap.Characteristic.Active.INACTIVE;
+    this.Fan.Active = this.deviceStatus.power === 'on' ? this.hap.Characteristic.Active.ACTIVE : this.hap.Characteristic.Active.INACTIVE;
     this.debugLog(`Active: ${this.Fan.Active}`);
 
     // SwingMode
-    this.Fan.SwingMode = deviceStatus.oscillation === 'on' ?
+    this.Fan.SwingMode = this.deviceStatus.oscillation === 'on' ?
       this.hap.Characteristic.SwingMode.SWING_ENABLED : this.hap.Characteristic.SwingMode.SWING_DISABLED;
     await this.debugLog(`SwingMode: ${this.Fan.SwingMode}`);
 
     // RotationSpeed
-    this.Fan.RotationSpeed = deviceStatus.fanSpeed;
+    this.Fan.RotationSpeed = this.deviceStatus.fanSpeed;
     await this.debugLog(`RotationSpeed: ${this.Fan.RotationSpeed}`);
 
     // ChargingState
-    this.Battery.ChargingState = deviceStatus.chargingStatus === 'charging' ?
+    this.Battery.ChargingState = this.deviceStatus.chargingStatus === 'charging' ?
       this.hap.Characteristic.ChargingState.CHARGING : this.hap.Characteristic.ChargingState.NOT_CHARGING;
 
     // BatteryLevel
-    this.Battery.BatteryLevel = Number(deviceStatus.battery);
+    this.Battery.BatteryLevel = this.deviceStatus.battery;
     await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
 
     // StatusLowBattery
@@ -221,9 +242,9 @@ export class Fan extends deviceBase {
     await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
 
     // Firmware Version
-    const version = deviceStatus.version.toString();
-    await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
-    if (deviceStatus.version) {
+    if (this.deviceStatus.version) {
+      const version = this.deviceStatus.version.toString();
+      await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
       const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0';
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
@@ -236,36 +257,43 @@ export class Fan extends deviceBase {
     }
   }
 
-  async parseStatusWebhook(context: batteryCirculatorFanWebhookContext): Promise<void> {
+  async parseStatusWebhook(): Promise<void> {
     await this.debugLog('parseStatusWebhook');
-    await this.debugLog(`(version, battery, powerState, oscillation, chargingStatus, fanSpeed) = Webhook:(${context.version}, ${context.battery},`
-      + ` ${context.powerState}, ${context.oscillation}, ${context.chargingStatus}, ${context.fanSpeed}),`
-      + ` current:(${this.accessory.context.deviceVersion}, ${this.Battery.BatteryLevel}, ${this.Fan.Active}, ${this.Fan.SwingMode},`
-      + ` ${this.Battery.ChargingState}, ${this.Fan.RotationSpeed})`);
+    await this.debugLog(`(version, battery, powerState, oscillation, chargingStatus, fanSpeed) = Webhook:(${this.webhookContext.version},`
+      + ` ${this.webhookContext.battery}, ${this.webhookContext.powerState}, ${this.webhookContext.oscillation},`
+      + ` ${this.webhookContext.chargingStatus}, ${this.webhookContext.fanSpeed}), current:(${this.accessory.context.deviceVersion},`
+      + ` ${this.Battery.BatteryLevel}, ${this.Fan.Active}, ${this.Fan.SwingMode}, ${this.Battery.ChargingState}, ${this.Fan.RotationSpeed})`);
+
     // Active
-    this.Fan.Active = context.powerState === 'ON' ? this.hap.Characteristic.Active.ACTIVE : this.hap.Characteristic.Active.INACTIVE;
+    this.Fan.Active = this.webhookContext.powerState === 'ON' ? this.hap.Characteristic.Active.ACTIVE : this.hap.Characteristic.Active.INACTIVE;
     await this.debugLog(`Active: ${this.Fan.Active}`);
+
     // SwingMode
-    this.Fan.SwingMode = context.oscillation === 'on' ?
+    this.Fan.SwingMode = this.webhookContext.oscillation === 'on' ?
       this.hap.Characteristic.SwingMode.SWING_ENABLED : this.hap.Characteristic.SwingMode.SWING_DISABLED;
     await this.debugLog(`SwingMode: ${this.Fan.SwingMode}`);
+
     // RotationSpeed
-    this.Fan.RotationSpeed = context.fanSpeed;
+    this.Fan.RotationSpeed = this.webhookContext.fanSpeed;
     await this.debugLog(`RotationSpeed: ${this.Fan.RotationSpeed}`);
+
     // BatteryLevel
-    this.Battery.BatteryLevel = context.battery;
+    this.Battery.BatteryLevel = this.webhookContext.battery;
     await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
+
     // StatusLowBattery
     this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
       ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+
     // ChargingState
-    this.Battery.ChargingState = context.chargingStatus === 'charging' ?
+    this.Battery.ChargingState = this.webhookContext.chargingStatus === 'charging' ?
       this.hap.Characteristic.ChargingState.CHARGING : this.hap.Characteristic.ChargingState.NOT_CHARGING;
     await this.debugLog(`ChargingState: ${this.Battery.ChargingState}`);
+
     // FirmwareVersion
-    if (context.version) {
-      const deviceVersion = context.version.replace(/^V|-.*$/g, '') ?? '0.0.0';
+    if (this.webhookContext.version) {
+      const deviceVersion = this.webhookContext.version.replace(/^V|-.*$/g, '') ?? '0.0.0';
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
         .setCharacteristic(this.hap.Characteristic.HardwareRevision, deviceVersion)
@@ -303,10 +331,11 @@ export class Fan extends deviceBase {
       // Start to monitor advertisement packets
       (async () => {
         // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchbot) as unknown as batteryCirculatorFanServiceData;
+        const serviceData = await this.monitorAdvertisementPackets(switchbot) as batteryCirculatorFanServiceData;
         // Update HomeKit
         if (serviceData.model === SwitchBotBLEModel.Unknown && SwitchBotBLEModelName.Unknown) {
-          await this.BLEparseStatus(serviceData);
+          this.serviceData = serviceData;
+          await this.BLEparseStatus();
           await this.updateHomeKitCharacteristics();
         } else {
           await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
@@ -324,7 +353,8 @@ export class Fan extends deviceBase {
       await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);;
       if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
         await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
-        await this.openAPIparseStatus(deviceStatus.body);
+        this.deviceStatus = deviceStatus.body;
+        await this.openAPIparseStatus();
         await this.updateHomeKitCharacteristics();
       } else {
         await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
@@ -339,10 +369,11 @@ export class Fan extends deviceBase {
   async registerWebhook() {
     if (this.device.webhook) {
       await this.debugLog('is listening webhook.');
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context: batteryCirculatorFanWebhookContext) => {
+      this.webhookEventHandler[this.device.deviceId] = async (context: batteryCirculatorFanWebhookContext) => {
         try {
           await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
-          await this.parseStatusWebhook(context);
+          this.webhookContext = context;
+          await this.parseStatusWebhook();
           await this.updateHomeKitCharacteristics();
         } catch (e: any) {
           await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);

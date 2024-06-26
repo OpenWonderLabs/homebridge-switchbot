@@ -39,6 +39,15 @@ export class Humidifier extends deviceBase {
     CurrentTemperature: CharacteristicValue;
   };
 
+  // OpenAPI
+  deviceStatus!: humidifierStatus;
+
+  //Webhook
+  webhookContext!: humidifierWebhookContext;
+
+  // BLE
+  serviceData!: humidifierServiceData;
+
   // Updates
   humidifierUpdateInProgress!: boolean;
   doHumidifierUpdate!: Subject<void>;
@@ -139,12 +148,11 @@ export class Humidifier extends deviceBase {
     }
 
     // Retrieve initial values and updateHomekit
+    this.debugLog('Retrieve initial values and update Homekit');
     this.refreshStatus();
 
-    // Retrieve initial values and updateHomekit
-    this.updateHomeKitCharacteristics();
-
     //regisiter webhook event handler
+    this.debugLog('Registering Webhook Event Handler');
     this.registerWebhook();
 
     // Start an update interval
@@ -174,18 +182,23 @@ export class Humidifier extends deviceBase {
       });
   }
 
-  async BLEparseStatus(serviceData: humidifierServiceData): Promise<void> {
+  async BLEparseStatus(): Promise<void> {
     await this.debugLog('BLEparseStatus');
+    await this.debugLog(`(onState, percentage, autoMode) = BLE:(${this.serviceData.onState}, ${this.serviceData.percentage},`
+      + ` ${this.serviceData.autoMode}), current:(${this.HumidifierDehumidifier.Active}, ${this.HumidifierDehumidifier.CurrentRelativeHumidity},`
+      + ` ${this.HumidifierDehumidifier.TargetHumidifierDehumidifierState}, ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold})`,
+    );
+
     // Active
-    this.HumidifierDehumidifier.Active = serviceData.onState ? this.hap.Characteristic.Active.ACTIVE : this.hap.Characteristic.Active.INACTIVE;
+    this.HumidifierDehumidifier.Active = this.serviceData.onState ? this.hap.Characteristic.Active.ACTIVE : this.hap.Characteristic.Active.INACTIVE;
     await this.debugLog(`Active: ${this.HumidifierDehumidifier.Active}`);
 
     // Current Relative Humidity
-    this.HumidifierDehumidifier.CurrentRelativeHumidity = serviceData.percentage;
+    this.HumidifierDehumidifier.CurrentRelativeHumidity = this.serviceData.percentage;
     await this.debugLog(`CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`);
 
     // Target Humidifier Dehumidifier State
-    switch (serviceData.autoMode) {
+    switch (this.serviceData.autoMode) {
       case true:
         this.HumidifierDehumidifier.TargetHumidifierDehumidifierState =
           this.hap.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER_OR_DEHUMIDIFIER;
@@ -194,7 +207,7 @@ export class Humidifier extends deviceBase {
         break;
       default:
         this.HumidifierDehumidifier.TargetHumidifierDehumidifierState = this.hap.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER;
-        this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold = serviceData.percentage > 100 ? 100 : serviceData.percentage;
+        this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold = this.serviceData.percentage > 100 ? 100 : this.serviceData.percentage;
         if (this.HumidifierDehumidifier.CurrentRelativeHumidity > this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold) {
           this.HumidifierDehumidifier.CurrentHumidifierDehumidifierState = this.hap.Characteristic.CurrentHumidifierDehumidifierState.IDLE;
         } else if (this.HumidifierDehumidifier.Active === this.hap.Characteristic.Active.INACTIVE) {
@@ -208,24 +221,30 @@ export class Humidifier extends deviceBase {
       + ` CurrentHumidifierDehumidifierState: ${this.HumidifierDehumidifier.CurrentHumidifierDehumidifierState}`);
   }
 
-  async openAPIparseStatus(deviceStatus: humidifierStatus): Promise<void> {
+  async openAPIparseStatus(): Promise<void> {
     await this.debugLog('openAPIparseStatus');
+    await this.debugLog(`(power, auto, temperature, lackWater, nebulizationEfficiency, version) = OpenAPI:(${this.deviceStatus.power},`
+      + ` ${this.deviceStatus.auto}, ${this.deviceStatus.temperature}, ${this.deviceStatus.lackWater},`
+      + ` ${this.deviceStatus.nebulizationEfficiency}, ${this.deviceStatus.version}), current:(${this.HumidifierDehumidifier.Active},`
+      + ` ${this.HumidifierDehumidifier.CurrentRelativeHumidity}, ${this.HumidifierDehumidifier.TargetHumidifierDehumidifierState},`
+      + ` ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold})`);
+
     // Active
-    this.HumidifierDehumidifier.Active = deviceStatus.power === 'on'
+    this.HumidifierDehumidifier.Active = this.deviceStatus.power === 'on'
       ? this.hap.Characteristic.Active.ACTIVE : this.hap.Characteristic.Active.INACTIVE;
     await this.debugLog(`Active: ${this.HumidifierDehumidifier.Active}`);
 
     // Current Relative Humidity
-    this.HumidifierDehumidifier.CurrentRelativeHumidity = deviceStatus.temperature!;
+    this.HumidifierDehumidifier.CurrentRelativeHumidity = this.deviceStatus.temperature!;
     await this.debugLog(`CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`);
 
     // Current Temperature
     if (!this.device.humidifier?.hide_temperature && this.TemperatureSensor?.Service) {
-      this.TemperatureSensor.CurrentTemperature = deviceStatus.temperature;
+      this.TemperatureSensor.CurrentTemperature = this.deviceStatus.temperature;
       await this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}`);
     }
     // Target Humidifier Dehumidifier State
-    switch (deviceStatus.auto) {
+    switch (this.deviceStatus.auto) {
       case true:
         this.HumidifierDehumidifier.TargetHumidifierDehumidifierState =
           this.hap.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER_OR_DEHUMIDIFIER;
@@ -234,8 +253,8 @@ export class Humidifier extends deviceBase {
         break;
       default:
         this.HumidifierDehumidifier.TargetHumidifierDehumidifierState = this.hap.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER;
-        this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold = deviceStatus.nebulizationEfficiency > 100
-          ? 100 : deviceStatus.nebulizationEfficiency;
+        this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold = this.deviceStatus.nebulizationEfficiency > 100
+          ? 100 : this.deviceStatus.nebulizationEfficiency;
         if (this.HumidifierDehumidifier.CurrentRelativeHumidity > this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold) {
           this.HumidifierDehumidifier.CurrentHumidifierDehumidifierState = this.hap.Characteristic.CurrentHumidifierDehumidifierState.IDLE;
         } else if (this.HumidifierDehumidifier.Active === this.hap.Characteristic.Active.INACTIVE) {
@@ -249,7 +268,7 @@ export class Humidifier extends deviceBase {
       + ` CurrentHumidifierDehumidifierState: ${this.HumidifierDehumidifier.CurrentHumidifierDehumidifierState}`);
 
     // Water Level
-    if (deviceStatus.lackWater) {
+    if (this.deviceStatus.lackWater) {
       this.HumidifierDehumidifier.WaterLevel = 0;
     } else {
       this.HumidifierDehumidifier.WaterLevel = 100;
@@ -257,8 +276,8 @@ export class Humidifier extends deviceBase {
     await this.debugLog(`WaterLevel: ${this.HumidifierDehumidifier.WaterLevel}`);
 
     // Firmware Version
-    if (deviceStatus.version) {
-      const version = deviceStatus.version.toString();
+    if (this.deviceStatus.version) {
+      const version = this.deviceStatus.version.toString();
       await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
       const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0';
       this.accessory
@@ -272,18 +291,20 @@ export class Humidifier extends deviceBase {
     }
   }
 
-  async parseStatusWebhook(context: humidifierWebhookContext): Promise<void> {
+  async parseStatusWebhook(): Promise<void> {
     await this.debugLog('parseStatusWebhook');
-    await this.debugLog(`(temperature, humidity) = Webhook:(${convertUnits(context.temperature, context.scale, this.device.iosensor?.convertUnitTo)},`
-    + ` ${context.humidity}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumidifierDehumidifier.CurrentRelativeHumidity})`);
+    await this.debugLog(`(temperature, humidity) = Webhook:(${convertUnits(this.webhookContext.temperature, this.webhookContext.scale,
+      this.device.iosensor?.convertUnitTo)}, ${this.webhookContext.humidity}), current:(${this.TemperatureSensor?.CurrentTemperature},`
+      + ` ${this.HumidifierDehumidifier.CurrentRelativeHumidity})`);
 
     // CurrentRelativeHumidity
-    this.HumidifierDehumidifier.CurrentRelativeHumidity = context.humidity;
+    this.HumidifierDehumidifier.CurrentRelativeHumidity = this.webhookContext.humidity;
     await this.debugLog(`CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`);
 
     // CurrentTemperature
     if (!this.device.humidifier?.hide_temperature && this.TemperatureSensor?.Service) {
-      this.TemperatureSensor.CurrentTemperature = convertUnits(context.temperature, context.scale, this.device.iosensor?.convertUnitTo);
+      this.TemperatureSensor.CurrentTemperature = convertUnits(this.webhookContext.temperature, this.webhookContext.scale,
+        this.device.iosensor?.convertUnitTo);
       await this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}`);
     }
   }
@@ -314,10 +335,11 @@ export class Humidifier extends deviceBase {
       // Start to monitor advertisement packets
       (async () => {
         // Start to monitor advertisement packets
-        const serviceData= await this.monitorAdvertisementPackets(switchbot) as unknown as humidifierServiceData;
+        const serviceData = await this.monitorAdvertisementPackets(switchbot) as humidifierServiceData;
         // Update HomeKit
         if (serviceData.model === SwitchBotBLEModel.Humidifier && serviceData.modelName === SwitchBotBLEModelName.Humidifier) {
-          await this.BLEparseStatus(serviceData);
+          this.serviceData = serviceData;
+          await this.BLEparseStatus();
           await this.updateHomeKitCharacteristics();
         } else {
           await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
@@ -335,7 +357,8 @@ export class Humidifier extends deviceBase {
       await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);;
       if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
         await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
-        await this.openAPIparseStatus(deviceStatus.body);
+        this.deviceStatus = deviceStatus.body;
+        await this.openAPIparseStatus();
         await this.updateHomeKitCharacteristics();
       } else {
         await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
@@ -350,10 +373,11 @@ export class Humidifier extends deviceBase {
   async registerWebhook() {
     if (this.device.webhook) {
       await this.debugLog('is listening webhook.');
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context: humidifierWebhookContext) => {
+      this.webhookEventHandler[this.device.deviceId] = async (context: humidifierWebhookContext) => {
         try {
           await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
-          await this.parseStatusWebhook(context);
+          this.webhookContext = context;
+          await this.parseStatusWebhook();
           await this.updateHomeKitCharacteristics();
         } catch (e: any) {
           await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
@@ -414,8 +438,8 @@ export class Humidifier extends deviceBase {
       }
     } else {
       await this.debugLog(`No changes (BLEpushChanges), Active: ${this.HumidifierDehumidifier.Active},`
-      + ` RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold},`
-      + ` CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`);
+        + ` RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold},`
+        + ` CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`);
     }
   }
 
@@ -423,7 +447,7 @@ export class Humidifier extends deviceBase {
     await this.debugLog('openAPIpushChanges');
     if ((this.HumidifierDehumidifier.TargetHumidifierDehumidifierState === this.hap.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER)
       && (this.HumidifierDehumidifier.Active === this.hap.Characteristic.Active.ACTIVE)
-    && (this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold !== this.HumidifierDehumidifier.CurrentRelativeHumidity)) {
+      && (this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold !== this.HumidifierDehumidifier.CurrentRelativeHumidity)) {
       await this.debugLog(`Auto Off, RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold}!`);
       const bodyChange = JSON.stringify({
         command: 'setMode',

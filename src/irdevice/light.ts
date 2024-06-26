@@ -219,7 +219,7 @@ export class Light extends irdeviceBase {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
         await this.pushStatusCodes(statusCode, deviceStatus);
-        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
+        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
           await this.successfulPushChange(statusCode, deviceStatus, bodyChange);
           this.accessory.context.On = On;
           await this.updateHomeKitCharacteristics();
@@ -239,34 +239,20 @@ export class Light extends irdeviceBase {
 
   async updateHomeKitCharacteristics(): Promise<void> {
     await this.debugLog('updateHomeKitCharacteristics');
-    if (!this.device.irlight?.stateless) {
+    if (!this.device.irlight?.stateless && this.LightBulb?.Service) {
       // On
-      if (this.LightBulb?.On === undefined) {
-        await this.debugLog(`On: ${this.LightBulb?.On}`);
-      } else {
-        this.accessory.context.On = this.LightBulb.On;
-        this.LightBulb?.Service.updateCharacteristic(this.hap.Characteristic.On, this.LightBulb.On);
-        await this.debugLog(`updateCharacteristic On: ${this.LightBulb.On}`);
-      }
+      await this.updateCharacteristic(this.LightBulb.Service, this.hap.Characteristic.On,
+        this.LightBulb.On, 'On');
     } else {
+      if (this.ProgrammableSwitchOn?.Service) {
       // On Stateful Programmable Switch
-      if (this.ProgrammableSwitchOn?.ProgrammableSwitchOutputState === undefined) {
-        await this.debugLog(`ProgrammableSwitchOutputStateOn: ${this.ProgrammableSwitchOn?.ProgrammableSwitchOutputState}`);
-      } else {
-        this.accessory.context.ProgrammableSwitchOutputStateOn = this.ProgrammableSwitchOn.ProgrammableSwitchOutputState;
-        this.ProgrammableSwitchOn?.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState,
-          this.ProgrammableSwitchOn.ProgrammableSwitchOutputState);
-        this.debugLog('updateCharacteristic'
-          + ` ProgrammableSwitchOutputStateOn: ${this.ProgrammableSwitchOn.ProgrammableSwitchOutputState}`);
+        await this.updateCharacteristic(this.ProgrammableSwitchOn.Service, this.hap.Characteristic.ProgrammableSwitchOutputState,
+          this.ProgrammableSwitchOn.ProgrammableSwitchOutputState, 'ProgrammableSwitchOutputState');
       }
+      if (this.ProgrammableSwitchOff?.Service) {
       // Off Stateful Programmable Switch
-      if (this.ProgrammableSwitchOff?.ProgrammableSwitchOutputState === undefined) {
-        await this.debugLog(`ProgrammableSwitchOutputStateOff: ${this.ProgrammableSwitchOff?.ProgrammableSwitchOutputState}`);
-      } else {
-        this.accessory.context.ProgrammableSwitchOutputStateOff = this.ProgrammableSwitchOff.ProgrammableSwitchOutputState;
-        this.ProgrammableSwitchOff.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState,
-          this.ProgrammableSwitchOff.ProgrammableSwitchOutputState);
-        await this.debugLog(`updateCharacteristic ProgrammableSwitchOutputStateOff: ${this.ProgrammableSwitchOff?.ProgrammableSwitchOutputState}`);
+        await this.updateCharacteristic(this.ProgrammableSwitchOff.Service, this.hap.Characteristic.ProgrammableSwitchOutputState,
+          this.ProgrammableSwitchOff.ProgrammableSwitchOutputState, 'ProgrammableSwitchOutputState');
       }
     }
   }

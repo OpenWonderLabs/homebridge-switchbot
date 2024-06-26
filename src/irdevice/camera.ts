@@ -106,7 +106,7 @@ export class Camera extends irdeviceBase {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
         await this.pushStatusCodes(statusCode, deviceStatus);
-        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
+        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
           await this.successfulPushChange(statusCode, deviceStatus, bodyChange);
           await this.updateHomeKitCharacteristics();
         } else {
@@ -124,14 +124,9 @@ export class Camera extends irdeviceBase {
 
   async updateHomeKitCharacteristics(): Promise<void> {
     await this.debugLog('updateHomeKitCharacteristics');
-    // On
-    if (this.Switch.On === undefined) {
-      await this.debugLog(`On: ${this.Switch.On}`);
-    } else {
-      this.accessory.context.On = this.Switch.On;
-      this.Switch.Service.updateCharacteristic(this.hap.Characteristic.On, this.Switch.On);
-      await this.debugLog(`updateCharacteristic On: ${this.Switch.On}`);
-    }
+    // Active
+    await this.updateCharacteristic(this.Switch.Service, this.hap.Characteristic.On,
+      this.Switch.On, 'On');
   }
 
   async apiError(e: any): Promise<void> {
