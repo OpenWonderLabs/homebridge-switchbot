@@ -213,6 +213,7 @@ interface hub {
 };
 
 export interface irDevicesConfig extends irdevice {
+  configDeviceName?: string;
   configRemoteType?: string;
   connectionType?: string;
   hide_device?: boolean;
