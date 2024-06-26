@@ -54,6 +54,9 @@ export class RobotVacuumCleaner extends deviceBase {
     device: device & devicesConfig,
   ) {
     super(platform, accessory, device);
+    // Set category
+    accessory.category = this.hap.Categories.OTHER;
+
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doRobotVacuumCleanerUpdate = new Subject();
     this.robotVacuumCleanerUpdateInProgress = false;

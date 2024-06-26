@@ -66,6 +66,9 @@ export class BlindTilt extends deviceBase {
     device: device & devicesConfig,
   ) {
     super(platform, accessory, device);
+    // Set category
+    accessory.category = this.hap.Categories.WINDOW_COVERING;
+
     // default placeholders
     this.mappingMode = (device.blindTilt?.mode as BlindTiltMappingMode) ?? BlindTiltMappingMode.OnlyUp;
     this.debugLog(`Mapping mode: ${this.mappingMode}`);

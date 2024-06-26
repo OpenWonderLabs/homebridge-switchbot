@@ -59,20 +59,20 @@ export class TV extends irdeviceBase {
     switch (device.remoteType) {
       case 'Speaker':
       case 'DIY Speaker':
-        accessory.category = this.platform.api.hap.Categories.SPEAKER;
+        accessory.category = this.hap.Categories.SPEAKER;
         break;
       case 'IPTV':
       case 'DIY IPTV':
-        accessory.category = this.platform.api.hap.Categories.TV_STREAMING_STICK;
+        accessory.category = this.hap.Categories.TV_STREAMING_STICK;
         break;
       case 'DVD':
       case 'DIY DVD':
       case 'Set Top Box':
       case 'DIY Set Top Box':
-        accessory.category = this.platform.api.hap.Categories.TV_SET_TOP_BOX;
+        accessory.category = this.hap.Categories.TV_SET_TOP_BOX;
         break;
       default:
-        accessory.category = this.platform.api.hap.Categories.TELEVISION;
+        accessory.category = this.hap.Categories.TELEVISION;
     }
 
     this.Television.Service

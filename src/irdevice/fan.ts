@@ -31,6 +31,8 @@ export class IRFan extends irdeviceBase {
     device: irdevice & irDevicesConfig,
   ) {
     super(platform, accessory, device);
+    // Set category
+    accessory.category = this.hap.Categories.FAN;
 
     // Initialize Switch Service
     accessory.context.Fan = accessory.context.Fan ?? {};

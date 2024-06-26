@@ -54,6 +54,8 @@ export class AirPurifier extends irdeviceBase {
     device: irdevice & irDevicesConfig,
   ) {
     super(platform, accessory, device);
+    // Set category
+    accessory.category = this.hap.Categories.AIR_PURIFIER;
 
     // Initialize AirPurifier Service
     accessory.context.AirPurifier = accessory.context.AirPurifier ?? {};

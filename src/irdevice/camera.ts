@@ -28,6 +28,8 @@ export class Camera extends irdeviceBase {
     device: irdevice & irDevicesConfig,
   ) {
     super(platform, accessory, device);
+    // Set category
+    accessory.category = this.hap.Categories.CAMERA;
 
     // Initialize Switch Service
     accessory.context.Switch = accessory.context.Switch ?? {};

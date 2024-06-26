@@ -58,6 +58,9 @@ export class Humidifier extends deviceBase {
     device: device & devicesConfig,
   ) {
     super(platform, accessory, device);
+    // Set category
+    accessory.category = this.hap.Categories.AIR_HUMIDIFIER;
+
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doHumidifierUpdate = new Subject();
     this.humidifierUpdateInProgress = false;

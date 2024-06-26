@@ -55,6 +55,9 @@ export class CeilingLight extends deviceBase {
     device: device & devicesConfig,
   ) {
     super(platform, accessory, device);
+    // Set category
+    accessory.category = this.hap.Categories.LIGHTBULB;
+
     // default placeholders
     this.adaptiveLighting(device);
 

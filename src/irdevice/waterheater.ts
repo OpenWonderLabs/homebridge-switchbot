@@ -28,6 +28,8 @@ export class WaterHeater extends irdeviceBase {
     device: irdevice & irDevicesConfig,
   ) {
     super(platform, accessory, device);
+    // Set category
+    accessory.category = this.hap.Categories.FAUCET;
 
     // Initialize Switch Service
     accessory.context.Valve = accessory.context.Valve ?? {};

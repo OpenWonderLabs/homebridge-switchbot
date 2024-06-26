@@ -56,12 +56,13 @@ export class AirConditioner extends irdeviceBase {
     device: irdevice & irDevicesConfig,
   ) {
     super(platform, accessory, device);
+    // Set category
+    accessory.category = this.hap.Categories.AIR_CONDITIONER;
 
     // default placeholders
     this.getAirConditionerConfigSettings(accessory, device);
 
     this.ValidValues = this.hide_automode ? [1, 2] : [0, 1, 2];
-
 
     // Initialize HeaterCooler Service
     accessory.context.HeaterCooler = accessory.context.HeaterCooler ?? {};

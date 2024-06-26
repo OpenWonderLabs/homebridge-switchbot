@@ -42,6 +42,8 @@ export class Light extends irdeviceBase {
     device: irdevice & irDevicesConfig,
   ) {
     super(platform, accessory, device);
+    // Set category
+    accessory.category = this.hap.Categories.LIGHTBULB;
 
     if (!device.irlight?.stateless) {
       // Initialize LightBulb Service

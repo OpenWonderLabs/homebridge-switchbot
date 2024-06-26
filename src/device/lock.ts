@@ -61,6 +61,9 @@ export class Lock extends deviceBase {
     device: device & devicesConfig,
   ) {
     super(platform, accessory, device);
+    // Set category
+    accessory.category = this.hap.Categories.DOOR_LOCK;
+
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doLockUpdate = new Subject();
     this.lockUpdateInProgress = false;

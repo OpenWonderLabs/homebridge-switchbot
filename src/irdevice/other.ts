@@ -85,6 +85,8 @@ export class Others extends irdeviceBase {
     device: irdevice & irDevicesConfig,
   ) {
     super(platform, accessory, device);
+    // Set category
+    accessory.category = this.hap.Categories.OTHER;
 
     // default placeholders
     this.getOtherConfigSettings(device);

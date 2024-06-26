@@ -55,6 +55,9 @@ export class Hub extends deviceBase {
     device: device & devicesConfig,
   ) {
     super(platform, accessory, device);
+    // Set category
+    accessory.category = this.hap.Categories.SENSOR;
+
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doHubUpdate = new Subject();
     this.hubUpdateInProgress = false;

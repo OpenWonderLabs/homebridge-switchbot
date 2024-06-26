@@ -58,6 +58,9 @@ export class Fan extends deviceBase {
     device: device & devicesConfig,
   ) {
     super(platform, accessory, device);
+    // Set category
+    accessory.category = this.hap.Categories.FAN;
+
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doFanUpdate = new Subject();
     this.fanUpdateInProgress = false;

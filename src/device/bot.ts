@@ -115,6 +115,7 @@ export class Bot extends deviceBase {
     device: device & devicesConfig,
   ) {
     super(platform, accessory, device);
+
     // default placeholders
     this.getBotConfigSettings(device);
 
@@ -140,6 +141,9 @@ export class Bot extends deviceBase {
 
     // deviceType
     if (this.botDeviceType === 'switch') {
+      // Set category
+      accessory.category = this.hap.Categories.SWITCH
+      ;
       // Initialize Switch Service
       accessory.context.Switch = accessory.context.Switch ?? {};
       this.Switch = {
@@ -171,6 +175,9 @@ export class Bot extends deviceBase {
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
     } else if (this.botDeviceType === 'garagedoor') {
+      // Set category
+      accessory.category = this.hap.Categories.GARAGE_DOOR_OPENER;
+
       // Initialize GarageDoor Service
       accessory.context.GarageDoor = accessory.context.GarageDoor ?? {};
       this.GarageDoor = {
@@ -207,6 +214,9 @@ export class Bot extends deviceBase {
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
     } else if (this.botDeviceType === 'door') {
+      // Set category
+      accessory.category = this.hap.Categories.DOOR;
+
       // Initialize Door Service
       accessory.context.Door = accessory.context.Door ?? {};
       this.Door = {
@@ -243,6 +253,9 @@ export class Bot extends deviceBase {
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
     } else if (this.botDeviceType === 'window') {
+      // Set category
+      accessory.category = this.hap.Categories.WINDOW;
+
       // Initialize Window Service
       accessory.context.Window = accessory.context.Window ?? {};
       this.Window = {
@@ -279,6 +292,9 @@ export class Bot extends deviceBase {
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
     } else if (this.botDeviceType === 'windowcovering') {
+      // Set category
+      accessory.category = this.hap.Categories.WINDOW_COVERING;
+
       // Initialize WindowCovering Service
       accessory.context.WindowCovering = accessory.context.WindowCovering ?? {};
       this.WindowCovering = {
@@ -315,6 +331,9 @@ export class Bot extends deviceBase {
       this.removeGarageDoorService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
     } else if (this.botDeviceType === 'lock') {
+      // Set category
+      accessory.category = this.hap.Categories.DOOR_LOCK;
+
       // Initialize Lock Service
       accessory.context.LockMechanism = accessory.context.LockMechanism ?? {};
       this.LockMechanism = {
@@ -345,6 +364,9 @@ export class Bot extends deviceBase {
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
     } else if (this.botDeviceType === 'faucet') {
+      // Set category
+      accessory.category = this.hap.Categories.FAUCET;
+
       // Initialize Faucet Service
       accessory.context.Faucet = accessory.context.Faucet ?? {};
       this.Faucet = {
@@ -375,6 +397,9 @@ export class Bot extends deviceBase {
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
     } else if (this.botDeviceType === 'fan') {
+      // Set category
+      accessory.category = this.hap.Categories.FAN;
+
       // Initialize Fan Service
       accessory.context.Fan = accessory.context.Fan ?? {};
       this.Fan = {
@@ -405,6 +430,9 @@ export class Bot extends deviceBase {
       this.removeWindowCoveringService(accessory);
       this.removeStatefulProgrammableSwitchService(accessory);
     } else if (this.botDeviceType === 'stateful') {
+      // Set category
+      accessory.category = this.hap.Categories.PROGRAMMABLE_SWITCH;
+
       // Initialize StatefulProgrammableSwitch Service
       accessory.context.StatefulProgrammableSwitch = accessory.context.StatefulProgrammableSwitch ?? {};
       this.StatefulProgrammableSwitch = {
@@ -436,6 +464,9 @@ export class Bot extends deviceBase {
       this.removeGarageDoorService(accessory);
       this.removeWindowCoveringService(accessory);
     } else {
+      // Set category
+      accessory.category = this.hap.Categories.OUTLET;
+
       // Initialize Switch property
       accessory.context.Outlet = accessory.context.Outlet ?? {};
       this.Outlet = {
