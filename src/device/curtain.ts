@@ -624,7 +624,7 @@ export class Curtain extends deviceBase {
       this.debugLog(`${this.accessory.displayName} Mode: ${Mode}`);
       if (switchbot !== false) {
         try {
-          const device_list = await switchbot.discover({ model: 'c', quick: true, id: this.device.bleMac });
+          const device_list = await switchbot.discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac });
           this.infoLog(`${this.accessory.displayName} Target Position: ${this.WindowCovering.TargetPosition}`);
 
           await this.retryBLE({
