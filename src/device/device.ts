@@ -80,7 +80,7 @@ export abstract class deviceBase {
       .setCharacteristic(this.hap.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.hap.Characteristic.AppMatchingIdentifier, 'id1087374760')
       .setCharacteristic(this.hap.Characteristic.Name, device.deviceName ?? accessory.displayName)
-      .setCharacteristic(this.hap.Characteristic.ConfiguredName, String(device.deviceName ?? accessory.displayName))
+      .setCharacteristic(this.hap.Characteristic.ConfiguredName, device.deviceName)
       .setCharacteristic(this.hap.Characteristic.Model, device.model ?? accessory.context.model)
       .setCharacteristic(this.hap.Characteristic.ProductData, device.deviceId ?? accessory.context.deviceId)
       .setCharacteristic(this.hap.Characteristic.SerialNumber, device.deviceId);

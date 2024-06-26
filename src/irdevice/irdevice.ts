@@ -44,7 +44,7 @@ export abstract class irdeviceBase {
       .setCharacteristic(this.hap.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.hap.Characteristic.AppMatchingIdentifier, 'id1087374760')
       .setCharacteristic(this.hap.Characteristic.Name, accessory.context.name ?? accessory.displayName)
-      .setCharacteristic(this.hap.Characteristic.ConfiguredName, String(accessory.context.name ?? accessory.displayName))
+      .setCharacteristic(this.hap.Characteristic.ConfiguredName, device.deviceName)
       .setCharacteristic(this.hap.Characteristic.Model, accessory.context.model ?? 'Unknown')
       .setCharacteristic(this.hap.Characteristic.ProductData, accessory.context.deviceId)
       .setCharacteristic(this.hap.Characteristic.SerialNumber, accessory.context.deviceId);
