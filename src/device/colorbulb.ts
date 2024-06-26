@@ -352,7 +352,7 @@ export class ColorBulb extends deviceBase {
   async registerWebhook() {
     if (this.device.webhook) {
       await this.debugLog('is listening webhook.');
-      this.webhookEventHandler[this.device.deviceId] = async (context: colorBulbWebhookContext) => {
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context: colorBulbWebhookContext) => {
         try {
           await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
           this.webhookContext = context;

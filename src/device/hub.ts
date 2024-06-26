@@ -333,7 +333,7 @@ export class Hub extends deviceBase {
   async registerWebhook(): Promise<void> {
     if (this.device.webhook) {
       await this.debugLog('is listening webhook.');
-      this.webhookEventHandler[this.device.deviceId] = async (context: hub2WebhookContext) => {
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context: hub2WebhookContext) => {
         try {
           await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
           this.webhookContext = context;

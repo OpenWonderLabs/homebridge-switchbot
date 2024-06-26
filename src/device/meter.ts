@@ -320,7 +320,7 @@ export class Meter extends deviceBase {
   async registerWebhook() {
     if (this.device.webhook) {
       await this.debugLog('is listening webhook.');
-      this.webhookEventHandler[this.device.deviceId] = async (context: meterWebhookContext) => {
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context: meterWebhookContext) => {
         try {
           await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
           this.webhookContext = context;

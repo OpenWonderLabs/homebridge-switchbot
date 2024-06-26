@@ -292,7 +292,7 @@ export class Motion extends deviceBase {
   async registerWebhook() {
     if (this.device.webhook) {
       await this.debugLog('is listening webhook.');
-      this.webhookEventHandler[this.device.deviceId] = async (context: motionSensorWebhookContext) => {
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context: motionSensorWebhookContext) => {
         try {
           await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
           this.webhookContext = context;

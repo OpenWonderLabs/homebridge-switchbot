@@ -676,7 +676,7 @@ export class Bot extends deviceBase {
   async registerWebhook() {
     if (this.device.webhook) {
       await this.debugLog('is listening webhook.');
-      this.webhookEventHandler[this.device.deviceId] = async (context: botWebhookContext) => {
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context: botWebhookContext) => {
         try {
           await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
           this.webhookContext = context;
