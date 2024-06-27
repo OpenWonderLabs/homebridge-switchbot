@@ -659,32 +659,14 @@ export abstract class deviceBase {
         device.bleModelName = SwitchBotBLEModelName.Unknown;
         device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Unknown;
     }
-    this.debugLog(`Model: ${device.model}, BLE Model: ${device.bleModel}, BLE Model Name: ${device.bleModelName}, `
+    await this.debugLog(`Model: ${device.model}, BLE Model: ${device.bleModel}, BLE Model Name: ${device.bleModelName}, `
       + `BLE Model Friendly Name: ${device.bleModelFriednlyName}`);
     accessory.context.model = device.model;
     accessory.context.bleModel = device.bleModel;
     accessory.context.bleModelName = device.bleModelName;
     accessory.context.bleModelFriednlyName = device.bleModelFriednlyName;
 
-    // Firmware Version
-    let deviceFirmwareVersion: string;
-    if (device.firmware) {
-      deviceFirmwareVersion = device.firmware;
-      this.debugSuccessLog(`1 FirmwareRevision: ${device.firmware}`);
-    } else if (device.version) {
-      deviceFirmwareVersion = JSON.stringify(device.version);
-      this.debugSuccessLog(`2 FirmwareRevision: ${device.version}`);
-    } else if (accessory.context.deviceVersion) {
-      deviceFirmwareVersion = accessory.context.deviceVersion;
-      this.debugSuccessLog(`3 FirmwareRevision: ${accessory.context.deviceVersion}`);
-    } else {
-      deviceFirmwareVersion = this.platform.version ?? '0.0.0';
-      if (this.platform.version) {
-        this.debugSuccessLog(`4 FirmwareRevision: ${this.platform.version}`);
-      } else {
-        this.debugSuccessLog(`5 FirmwareRevision: ${deviceFirmwareVersion}`);
-      }
-    }
+    const deviceFirmwareVersion = device.firmware ?? device.version ?? accessory.context.version ?? this.platform.version ?? '0.0.0';
     const version = deviceFirmwareVersion.toString();
     this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
     let deviceVersion: string;
@@ -703,8 +685,8 @@ export abstract class deviceBase {
       .setCharacteristic(this.hap.Characteristic.FirmwareRevision, deviceVersion)
       .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
       .updateValue(deviceVersion);
-    accessory.context.deviceVersion = deviceVersion;
-    this.debugSuccessLog(`deviceVersion: ${accessory.context.deviceVersion}`);
+    accessory.context.version = deviceVersion;
+    this.debugSuccessLog(`version: ${accessory.context.version}`);
   }
 
   async statusCode(statusCode: number): Promise<void> {

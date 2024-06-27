@@ -240,8 +240,8 @@ export class BlindTilt extends deviceBase {
   async BLEparseStatus(): Promise<void> {
     await this.debugLog('BLEparseStatus');
     await this.debugLog(`(direction, slidePosition, battery, version) = BLE:(${this.serviceData.tilt}, ${this.serviceData.tilt},`
-      + ` ${this.serviceData.battery}, ${this.accessory.context.deviceVersion}), current:(${this.WindowCovering.CurrentHorizontalTiltAngle},`
-      + ` ${this.WindowCovering.CurrentPosition}, ${this.Battery.BatteryLevel}, ${this.accessory.context.deviceVersion})`);
+      + ` ${this.serviceData.battery}, ${this.accessory.context.version}), current:(${this.WindowCovering.CurrentHorizontalTiltAngle},`
+      + ` ${this.WindowCovering.CurrentPosition}, ${this.Battery.BatteryLevel}, ${this.accessory.context.version})`);
 
     // CurrentPosition
     this.WindowCovering.CurrentPosition = 100 - Number(this.serviceData.tilt);
@@ -305,7 +305,7 @@ export class BlindTilt extends deviceBase {
     await this.debugLog('openAPIparseStatus');
     await this.debugLog(`(direction, slidePosition, battery, version) = OpenAPI:(${this.deviceStatus.direction}, ${this.deviceStatus.slidePosition},`
       + ` ${this.deviceStatus.battery}, ${this.deviceStatus.version}), current:(${this.WindowCovering.CurrentHorizontalTiltAngle},`
-      + ` ${this.WindowCovering.CurrentPosition}, ${this.Battery.BatteryLevel}, ${this.accessory.context.deviceVersion})`);
+      + ` ${this.WindowCovering.CurrentPosition}, ${this.Battery.BatteryLevel}, ${this.accessory.context.version})`);
 
     // CurrentPosition
     await this.getCurrentPosttionDirection(this.deviceStatus.direction, this.deviceStatus.slidePosition);
@@ -345,15 +345,15 @@ export class BlindTilt extends deviceBase {
       .setCharacteristic(this.hap.Characteristic.FirmwareRevision, deviceVersion)
       .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
       .updateValue(deviceVersion);
-    this.accessory.context.deviceVersion = deviceVersion;
-    await this.debugLog(`deviceVersion: ${this.accessory.context.deviceVersion}`);
+    this.accessory.context.version = deviceVersion;
+    await this.debugLog(`version: ${this.accessory.context.version}`);
   }
 
   async parseStatusWebhook(): Promise<void> {
     await this.debugLog('parseStatusWebhook');
     await this.debugLog(`(slidePosition, battery, version) = Webhook:(${this.webhookContext.direction}, ${this.webhookContext.slidePosition},`
       + ` ${this.webhookContext.battery}, ${this.webhookContext.version}, current:(${this.WindowCovering.CurrentHorizontalTiltAngle},`
-      + ` ${this.WindowCovering.CurrentPosition}, ${this.Battery.BatteryLevel}, ${this.accessory.context.deviceVersion})`);
+      + ` ${this.WindowCovering.CurrentPosition}, ${this.Battery.BatteryLevel}, ${this.accessory.context.version})`);
     // CurrentPosition and CurrentHorizontalTiltAngle
     await this.getCurrentPosttionDirection(this.webhookContext.direction, this.webhookContext.slidePosition);
     // BatteryLevel
@@ -371,8 +371,8 @@ export class BlindTilt extends deviceBase {
       .setCharacteristic(this.hap.Characteristic.FirmwareRevision, deviceVersion)
       .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
       .updateValue(deviceVersion);
-    this.accessory.context.deviceVersion = deviceVersion;
-    await this.debugSuccessLog(`deviceVersion: ${this.accessory.context.deviceVersion}`);
+    this.accessory.context.version = deviceVersion;
+    await this.debugSuccessLog(`version: ${this.accessory.context.version}`);
   }
 
   /**

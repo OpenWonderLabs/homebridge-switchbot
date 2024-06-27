@@ -375,7 +375,7 @@ export class AirConditioner extends irdeviceBase {
     if (this.meter?.context?.CurrentTemperature) {
       this.accessory.context.CurrentTemperature = this.meter.context.CurrentTemperature;
       await this.debugLog(''
-        + `Using CurrentTemperature from ${this.meter.context.deviceType} (${this.meter.context.deviceID})`);
+        + `Using CurrentTemperature from ${this.meter.context.deviceType} (${this.meter.context.deviceId})`);
     }
 
     this.HeaterCooler.CurrentTemperature = this.accessory.context.CurrentTemperature || 24;
@@ -387,7 +387,7 @@ export class AirConditioner extends irdeviceBase {
     if (this.meter?.context?.CurrentRelativeHumidity) {
       this.accessory.context.CurrentRelativeHumidity = this.meter.context.CurrentRelativeHumidity;
       await this.debugLog(''
-        + `Using CurrentRelativeHumidity from ${this.meter.context.deviceType} (${this.meter.context.deviceID})`);
+        + `Using CurrentRelativeHumidity from ${this.meter.context.deviceType} (${this.meter.context.deviceId})`);
     }
 
     this.HumiditySensor!.CurrentRelativeHumidity = this.accessory.context.CurrentRelativeHumidity || 0;

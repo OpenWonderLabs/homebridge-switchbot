@@ -215,7 +215,7 @@ export class Fan extends deviceBase {
     await this.debugLog('openAPIparseStatus');
     await this.debugLog(`(version, battery, powerState, oscillation, chargingStatus, fanSpeed) = OpenAPI:(${this.deviceStatus.version},`
       + ` ${this.deviceStatus.battery}, ${this.deviceStatus.power}, ${this.deviceStatus.oscillation}, ${this.deviceStatus.chargingStatus},`
-      + ` ${this.deviceStatus.fanSpeed}), current:(${this.accessory.context.deviceVersion}, ${this.Battery.BatteryLevel}, ${this.Fan.Active},`
+      + ` ${this.deviceStatus.fanSpeed}), current:(${this.accessory.context.version}, ${this.Battery.BatteryLevel}, ${this.Fan.Active},`
       + ` ${this.Fan.SwingMode}, ${this.Battery.ChargingState}, ${this.Fan.RotationSpeed})`);
 
     // Active
@@ -255,8 +255,8 @@ export class Fan extends deviceBase {
         .setCharacteristic(this.hap.Characteristic.FirmwareRevision, deviceVersion)
         .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
         .updateValue(deviceVersion);
-      this.accessory.context.deviceVersion = deviceVersion;
-      await this.debugSuccessLog(`deviceVersion: ${this.accessory.context.deviceVersion}`);
+      this.accessory.context.version = deviceVersion;
+      await this.debugSuccessLog(`version: ${this.accessory.context.version}`);
     }
   }
 
@@ -264,7 +264,7 @@ export class Fan extends deviceBase {
     await this.debugLog('parseStatusWebhook');
     await this.debugLog(`(version, battery, powerState, oscillation, chargingStatus, fanSpeed) = Webhook:(${this.webhookContext.version},`
       + ` ${this.webhookContext.battery}, ${this.webhookContext.powerState}, ${this.webhookContext.oscillation},`
-      + ` ${this.webhookContext.chargingStatus}, ${this.webhookContext.fanSpeed}), current:(${this.accessory.context.deviceVersion},`
+      + ` ${this.webhookContext.chargingStatus}, ${this.webhookContext.fanSpeed}), current:(${this.accessory.context.version},`
       + ` ${this.Battery.BatteryLevel}, ${this.Fan.Active}, ${this.Fan.SwingMode}, ${this.Battery.ChargingState}, ${this.Fan.RotationSpeed})`);
 
     // Active
@@ -303,8 +303,8 @@ export class Fan extends deviceBase {
         .setCharacteristic(this.hap.Characteristic.FirmwareRevision, deviceVersion)
         .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
         .updateValue(deviceVersion);
-      this.accessory.context.deviceVersion = deviceVersion;
-      await this.debugSuccessLog(`deviceVersion: ${this.accessory.context.deviceVersion}`);
+      this.accessory.context.version = deviceVersion;
+      await this.debugSuccessLog(`version: ${this.accessory.context.version}`);
     }
   }
 

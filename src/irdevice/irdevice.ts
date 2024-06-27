@@ -146,31 +146,8 @@ export abstract class irdeviceBase {
     accessory.context.model = device.remoteType;
     accessory.context.deviceId = device.deviceId;
     accessory.context.remoteType = device.remoteType;
-    if (device.firmware) {
-      accessory.context.firmware = device.firmware;
-    } else if (device.firmware === undefined || accessory.context.firmware === undefined) {
-      device.firmware = this.platform.version;
-      accessory.context.firmware = device.firmware;
-    } else {
-      accessory.context.firmware = 'Unknown';
-    }
 
-    // Firmware Version
-    let deviceFirmwareVersion: string;
-    if (device.firmware) {
-      deviceFirmwareVersion = device.firmware;
-      this.debugSuccessLog(`${device.remoteType}: ${accessory.displayName} 1 FirmwareRevision: ${device.firmware}`);
-    } else if (accessory.context.deviceVersion) {
-      deviceFirmwareVersion = accessory.context.deviceVersion;
-      this.debugSuccessLog(`${device.remoteType}: ${accessory.displayName} 2 FirmwareRevision: ${accessory.context.deviceVersion}`);
-    } else {
-      deviceFirmwareVersion = this.platform.version ?? '0.0.0';
-      if (this.platform.version) {
-        this.debugSuccessLog(`${device.remoteType}: ${accessory.displayName} 3 FirmwareRevision: ${this.platform.version}`);
-      } else {
-        this.debugSuccessLog(`${device.remoteType}: ${accessory.displayName} 4 FirmwareRevision: ${deviceFirmwareVersion}`);
-      }
-    }
+    const deviceFirmwareVersion = device.firmware ?? accessory.context.version ?? this.platform.version ?? '0.0.0';
     const version = deviceFirmwareVersion.toString();
     await this.debugLog(`${this.device.remoteType}: ${accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
     let deviceVersion: string;
@@ -189,8 +166,8 @@ export abstract class irdeviceBase {
       .setCharacteristic(this.hap.Characteristic.FirmwareRevision, deviceVersion)
       .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
       .updateValue(deviceVersion);
-    accessory.context.deviceVersion = deviceVersion;
-    this.debugSuccessLog(`${device.remoteType}: ${accessory.displayName} deviceVersion: ${accessory.context.deviceVersion}`);
+    accessory.context.version = deviceVersion;
+    this.debugSuccessLog(`version: ${accessory.context.version}`);
   }
 
   async pushChangeRequest(bodyChange: string): Promise<{ body: any; statusCode: any; }> {
