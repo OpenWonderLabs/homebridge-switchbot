@@ -149,7 +149,7 @@ export abstract class irdeviceBase {
 
     const deviceFirmwareVersion = device.firmware ?? accessory.context.version ?? this.platform.version ?? '0.0.0';
     const version = deviceFirmwareVersion.toString();
-    await this.debugLog(`${this.device.remoteType}: ${accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
+    await this.debugLog(`version: ${version?.replace(/^V|-.*$/g, '')}`);
     let deviceVersion: string;
     if (version?.includes('.') === false) {
       const replace = version?.replace(/^V|-.*$/g, '');

@@ -266,7 +266,7 @@ export class Curtain extends deviceBase {
     });
     const motion: Service =
       this.accessory.getService(this.hap.Service.MotionSensor) ||
-      this.accessory.addService(this.hap.Service.MotionSensor, `${this.accessory.displayName} Motion`);
+      this.accessory.addService(this.hap.Service.MotionSensor, 'Motion');
     motion.addOptionalCharacteristic(this.platform.eve.Characteristics.LastActivation);
     motion.getCharacteristic(this.platform.eve.Characteristics.LastActivation).onGet(() => {
       const lastActivation = this.accessory.context.lastActivation
@@ -335,7 +335,7 @@ export class Curtain extends deviceBase {
     // CurrentPosition
     this.WindowCovering.CurrentPosition = 100 - this.deviceStatus.slidePosition;
     await this.setMinMax();
-    await this.debugLog(`Curtain ${this.accessory.displayName} CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
+    await this.debugLog(`CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
     if (this.setNewTarget) {
       await this.infoLog('Checking Status ...');
     }
@@ -372,8 +372,7 @@ export class Curtain extends deviceBase {
       const set_maxLux = this.device.curtain?.set_maxLux ?? 6001;
       const lightLevel = this.deviceStatus.lightLevel === 'bright' ? set_maxLux : set_minLux;
       this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2);
-      await this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-        + ` CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`);
+      await this.debugLog(`CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`);
     }
 
     // BatteryLevel

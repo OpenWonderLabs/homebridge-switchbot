@@ -91,10 +91,10 @@ export class ColorBulb extends deviceBase {
       });
       accessory.configureController(this.AdaptiveLightingController);
       accessory.context.adaptiveLighting = true;
-      this.debugLog(`${device.deviceType}: ${this.accessory.displayName} adaptiveLighting: ${accessory.context.adaptiveLighting},`
+      this.debugLog(`adaptiveLighting: ${accessory.context.adaptiveLighting},`
         + ` adaptiveLightingShift: ${this.adaptiveLightingShift}`);
     }
-    this.debugLog(`${device.deviceType}: ${this.accessory.displayName} adaptiveLightingShift: ${this.adaptiveLightingShift}`);
+    this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`);
 
     // Initialize LightBulb Characteristics
     this.LightBulb.Service
@@ -476,7 +476,7 @@ export class ColorBulb extends deviceBase {
         switchbot
           .discover({ model: this.device.bleModel, id: this.device.bleMac })
           .then(async (device_list: any) => {
-            await this.infoLog(`${this.accessory.displayName} Target Brightness: ${this.LightBulb.Brightness}`);
+            await this.infoLog(`Target Brightness: ${this.LightBulb.Brightness}`);
             return await device_list[0].setBrightness(this.LightBulb.Brightness);
           })
           .then(async () => {

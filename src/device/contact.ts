@@ -119,7 +119,7 @@ export class Contact extends deviceBase {
     // Initialize Motion Sensor Service
     if (this.device.contact?.hide_motionsensor) {
       if (this.MotionSensor) {
-        this.debugLog(`${device.deviceType}: ${accessory.displayName} Removing Motion Sensor Service`);
+        this.debugLog('Removing Motion Sensor Service');
         this.MotionSensor.Service = accessory.getService(this.hap.Service.MotionSensor) as Service;
         accessory.removeService(this.MotionSensor.Service);
       }
@@ -145,7 +145,7 @@ export class Contact extends deviceBase {
     // Initialize Light Sensor Service
     if (device.contact?.hide_lightsensor) {
       if (this.LightSensor) {
-        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
+        this.debugLog('Removing Light Sensor Service');
         this.LightSensor.Service = accessory.getService(this.hap.Service.LightSensor) as Service;
         accessory.removeService(this.LightSensor.Service);
       }

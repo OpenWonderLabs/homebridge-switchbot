@@ -97,7 +97,7 @@ export class IOSensor extends deviceBase {
     // InitializeTemperature Sensor Service
     if (device.iosensor?.hide_temperature) {
       if (this.TemperatureSensor) {
-        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Temperature Sensor Service`);
+        this.debugLog('Removing Temperature Sensor Service');
         this.TemperatureSensor.Service = this.accessory.getService(this.hap.Service.TemperatureSensor) as Service;
         accessory.removeService(this.TemperatureSensor.Service);
       }
@@ -129,7 +129,7 @@ export class IOSensor extends deviceBase {
     // Initialize Humidity Sensor Service
     if (device.iosensor?.hide_humidity) {
       if (this.HumiditySensor) {
-        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Humidity Sensor Service`);
+        this.debugLog('Removing Humidity Sensor Service');
         this.HumiditySensor.Service = this.accessory.getService(this.hap.Service.HumiditySensor) as Service;
         accessory.removeService(this.HumiditySensor.Service);
       }

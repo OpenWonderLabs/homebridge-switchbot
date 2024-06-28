@@ -91,11 +91,11 @@ export class WaterDetector extends deviceBase {
     // Initialize Leak Sensor Service
     if (device.waterdetector?.hide_leak) {
       if (this.LeakSensor) {
-        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leak Sensor Service`);
+        this.debugLog('Removing Leak Sensor Service');
         this.LeakSensor.Service = this.accessory.getService(this.hap.Service.LeakSensor) as Service;
         accessory.removeService(this.LeakSensor.Service);
       } else {
-        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Leak Sensor Service Not Found`);
+        this.debugLog('Leak Sensor Service Not Found');
       }
     } else {
       accessory.context.LeakSensor = accessory.context.LeakSensor ?? {};

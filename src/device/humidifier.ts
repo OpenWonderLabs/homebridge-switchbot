@@ -122,7 +122,7 @@ export class Humidifier extends deviceBase {
     // Initialize the Temperature Sensor Service
     if (device.humidifier?.hide_temperature) {
       if (this.TemperatureSensor) {
-        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Temperature Sensor Service`);
+        this.debugLog('Removing Temperature Sensor Service');
         this.TemperatureSensor!.Service = this.accessory.getService(this.hap.Service.TemperatureSensor) as Service;
         accessory.removeService(this.TemperatureSensor!.Service);
       }
