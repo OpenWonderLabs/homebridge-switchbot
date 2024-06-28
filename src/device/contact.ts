@@ -3,13 +3,16 @@
  * contact.ts: @switchbot/homebridge-switchbot.
  */
 import { deviceBase } from './device.js';
-import { interval, Subject } from 'rxjs';
-import { Devices } from '../settings.js';
-import { skipWhile } from 'rxjs/operators';
+import { Subject, interval, skipWhile } from 'rxjs';
+import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot';
 
+import type { devicesConfig } from '../settings.js';
+import type { device } from '../types/devicelist.js';
 import type { SwitchBotPlatform } from '../platform.js';
+import type { contactSensorServiceData } from '../types/bledevicestatus.js';
 import type { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import type { device, devicesConfig, serviceData, deviceStatus } from '../settings.js';
+import type { contactSensorStatus } from '../types/devicestatus.js';
+import type { contactSensorWebhookContext } from '../types/devicewebhookstatus.js';
 
 /**
  * Platform Accessory
@@ -43,6 +46,15 @@ export class Contact extends deviceBase {
     CurrentAmbientLightLevel: CharacteristicValue;
   };
 
+  // OpenAPI
+  deviceStatus!: contactSensorStatus;
+
+  //Webhook
+  webhookContext!: contactSensorWebhookContext;
+
+  // BLE
+  serviceData!: contactSensorServiceData;
+
   // Updates
   contactUpdateInProgress!: boolean;
   doContactUpdate!: Subject<void>;
@@ -53,6 +65,9 @@ export class Contact extends deviceBase {
     device: device & devicesConfig,
   ) {
     super(platform, accessory, device);
+    // Set category
+    accessory.category = this.hap.Categories.SENSOR;
+
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doContactUpdate = new Subject();
     this.contactUpdateInProgress = false;
@@ -104,7 +119,7 @@ export class Contact extends deviceBase {
     // Initialize Motion Sensor Service
     if (this.device.contact?.hide_motionsensor) {
       if (this.MotionSensor) {
-        this.debugLog(`${device.deviceType}: ${accessory.displayName} Removing Motion Sensor Service`);
+        this.debugLog('Removing Motion Sensor Service');
         this.MotionSensor.Service = accessory.getService(this.hap.Service.MotionSensor) as Service;
         accessory.removeService(this.MotionSensor.Service);
       }
@@ -130,7 +145,7 @@ export class Contact extends deviceBase {
     // Initialize Light Sensor Service
     if (device.contact?.hide_lightsensor) {
       if (this.LightSensor) {
-        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
+        this.debugLog('Removing Light Sensor Service');
         this.LightSensor.Service = accessory.getService(this.hap.Service.LightSensor) as Service;
         accessory.removeService(this.LightSensor.Service);
       }
@@ -154,10 +169,15 @@ export class Contact extends deviceBase {
     }
 
     // Retrieve initial values and updateHomekit
+    this.debugLog('Retrieve initial values and update Homekit');
     this.refreshStatus();
 
-    // Retrieve initial values and updateHomekit
-    this.updateHomeKitCharacteristics();
+    //regisiter webhook event handler
+    this.debugLog('Registering Webhook Event Handler');
+    this.registerWebhook();
+
+    //regisiter webhook event handler
+    this.registerWebhook();
 
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
@@ -165,131 +185,99 @@ export class Contact extends deviceBase {
       .subscribe(async () => {
         await this.refreshStatus();
       });
-
-    //regisiter webhook event handler
-    this.registerWebhook(accessory, device);
   }
 
-  async BLEparseStatus(serviceData: serviceData): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
-    // Door State
-    switch (serviceData.doorState) {
-      case 'open':
-      case 1:
-        this.ContactSensor.ContactSensorState = this.hap.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
-        break;
-      case 'close':
-      case 0:
-        this.ContactSensor.ContactSensorState = this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED;
-        break;
-      default:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} timeout no closed, doorstate: ${serviceData.doorState}`);
+  async BLEparseStatus(): Promise<void> {
+    await this.debugLog('BLEparseStatus');
+    // ContactSensorState
+    this.ContactSensor.ContactSensorState = this.serviceData.doorState === 'open'
+      ? this.hap.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED : this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED;
+    await this.debugLog(`ContactSensorState: ${this.ContactSensor.ContactSensorState}`);
+
+    // MotionDetected
+    if (!this.device.contact?.hide_motionsensor && this.MotionSensor?.Service) {
+      this.MotionSensor.MotionDetected = this.serviceData.movement;
+      await this.debugLog(`MotionDetected: ${this.MotionSensor.MotionDetected}`);
     }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensor.ContactSensorState}`);
-    if (
-      this.ContactSensor.ContactSensorState !== this.accessory.context.ContactSensorState &&
-      this.hap.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED
-    ) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Opened`);
+    // CurrentAmbientLightLevel
+    if (!this.device.contact?.hide_lightsensor && this.LightSensor?.Service) {
+      const set_minLux = this.device.blindTilt?.set_minLux ?? 1;
+      const set_maxLux = this.device.blindTilt?.set_maxLux ?? 6001;
+      const lightLevel = this.serviceData.lightLevel === 'bright' ? set_maxLux : set_minLux;
+      this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2);
+      await this.debugLog(`LightLevel: ${this.serviceData.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`);
     }
-    // Movement
-    if (!this.device.contact?.hide_motionsensor) {
-      this.MotionSensor!.MotionDetected = Boolean(serviceData.movement);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MotionDetected: ${this.MotionSensor!.MotionDetected}`);
-      if (this.MotionSensor!.MotionDetected !== this.accessory.context.MotionDetected && this.MotionSensor!.MotionDetected) {
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Detected Motion`);
-      }
-    }
-    // Light Level
-    if (!this.device.contact?.hide_lightsensor) {
-      const set_minLux = this.device.contact?.set_minLux ?? 1;
-      const set_maxLux = this.device.contact?.set_maxLux ?? 6001;
-      switch (serviceData.lightLevel) {
-        case true:
-          this.LightSensor!.CurrentAmbientLightLevel = set_minLux;
-          break;
-        default:
-          this.LightSensor!.CurrentAmbientLightLevel = set_maxLux;
-      }
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel},`
-        + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
-      if (this.LightSensor!.CurrentAmbientLightLevel !== this.accessory.context.CurrentAmbientLightLevel) {
-        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-          + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
-      }
-    }
-    // Battery
-    if (serviceData.battery === undefined) {
-      serviceData.battery === 100;
-    }
-    this.Battery.BatteryLevel = Number(serviceData.battery);
-    if (this.Battery.BatteryLevel < 10) {
-      this.Battery.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
-    } else {
-      this.Battery.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
-    }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel}, `
-      + `StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+    // BatteryLevel
+    this.Battery.BatteryLevel = this.serviceData.battery;
+    await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
+    // StatusLowBattery
+    this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
+      ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
   }
 
-  async openAPIparseStatus(deviceStatus: deviceStatus): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
+  async openAPIparseStatus(): Promise<void> {
+    await this.debugLog('openAPIparseStatus');
     // Contact State
-    if (deviceStatus.body.openState === 'open') {
-      this.ContactSensor.ContactSensorState = this.hap.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensor.ContactSensorState}`);
-    } else if (deviceStatus.body.openState === 'close') {
-      this.ContactSensor.ContactSensorState = this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensor.ContactSensorState}`);
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openState: ${deviceStatus.body.openState}`);
-    }
-    // Motion State
-    if (!this.device.contact?.hide_motionsensor) {
-      this.MotionSensor!.MotionDetected = deviceStatus.body.moveDetected!;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MotionDetected: ${this.MotionSensor!.MotionDetected}`);
+    this.ContactSensor.ContactSensorState = this.deviceStatus.openState === 'open'
+      ? this.hap.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED : this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED;
+    await this.debugLog(`ContactSensorState: ${this.ContactSensor.ContactSensorState}`);
+
+    // MotionDetected
+    if (!this.device.contact?.hide_motionsensor && this.MotionSensor?.Service) {
+      this.MotionSensor.MotionDetected = this.deviceStatus.moveDetected;
+      await this.debugLog(`MotionDetected: ${this.MotionSensor.MotionDetected}`);
     }
     // Light Level
-    if (!this.device.contact?.hide_lightsensor) {
-      const set_minLux = this.device.contact?.set_minLux ?? 1;
-      const set_maxLux = this.device.contact?.set_maxLux ?? 6001;
-      switch (deviceStatus.body.brightness) {
-        case 'dim':
-          this.LightSensor!.CurrentAmbientLightLevel = set_minLux;
-          break;
-        case 'bright':
-        default:
-          this.LightSensor!.CurrentAmbientLightLevel = set_maxLux;
-      }
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-        + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
+    if (!this.device.contact?.hide_lightsensor && this.LightSensor?.Service) {
+      const set_minLux = this.device.blindTilt?.set_minLux ?? 1;
+      const set_maxLux = this.device.blindTilt?.set_maxLux ?? 6001;
+      const lightLevel = this.deviceStatus.brightness === 'bright' ? set_maxLux : set_minLux;
+      this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2);
+      await this.debugLog(`LightLevel: ${this.deviceStatus.brightness}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`);
     }
-    // Battery
-    if (deviceStatus.body.battery === undefined) {
-      deviceStatus.body.battery === 100;
-    }
-    this.Battery.BatteryLevel = Number(deviceStatus.body.battery);
-    if (this.Battery.BatteryLevel < 10) {
-      this.Battery.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
-    } else {
-      this.Battery.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
-    }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel}, `
-      + `StatusLowBattery: ${this.Battery.StatusLowBattery}`);
-
-    // Firmware Version
-    const version = deviceStatus.body.version?.toString();
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
-    if (deviceStatus.body.version) {
-      const deviceVersion = version?.replace(/^V|-.*$/g, '') ?? '0.0.0';
+    // BatteryLevel
+    this.Battery.BatteryLevel = this.deviceStatus.battery;
+    await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
+    // StatusLowBattery
+    this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
+      ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+    // FirmwareVersion
+    if (this.deviceStatus.version) {
+      const version = this.deviceStatus.version.toString();
+      await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
+      const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0';
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
         .setCharacteristic(this.hap.Characteristic.HardwareRevision, deviceVersion)
         .setCharacteristic(this.hap.Characteristic.FirmwareRevision, deviceVersion)
         .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
         .updateValue(deviceVersion);
-      this.accessory.context.deviceVersion = deviceVersion;
-      this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceVersion: ${this.accessory.context.deviceVersion}`);
+      this.accessory.context.version = deviceVersion;
+      await this.debugLog(`version: ${this.accessory.context.version}`);
+    }
+  }
+
+  async parseStatusWebhook(): Promise<void> {
+    await this.debugLog('parseStatusWebhook');
+    await this.debugLog(`(detectionState, brightness, openState) = Webhook:(${this.webhookContext.detectionState}, ${this.webhookContext.brightness},`
+      + ` ${this.webhookContext.openState}), current:(${this.MotionSensor?.MotionDetected}, ${this.LightSensor?.CurrentAmbientLightLevel},`
+      + ` ${this.ContactSensor.ContactSensorState})`);
+    // ContactSensorState
+    this.ContactSensor.ContactSensorState = this.webhookContext.openState === 'open' ? 1 : 0;
+    await this.debugLog(`ContactSensorState: ${this.ContactSensor.ContactSensorState}`);
+    if (!this.device.contact?.hide_motionsensor && this.MotionSensor?.Service) {
+      // MotionDetected
+      this.MotionSensor.MotionDetected = this.webhookContext.detectionState === 'DETECTED' ? true : false;
+      await this.debugLog(`MotionDetected: ${this.MotionSensor.MotionDetected}`);
+    }
+    if (!this.device.contact?.hide_lightsensor && this.LightSensor?.Service) {
+      const set_minLux = this.device.blindTilt?.set_minLux ?? 1;
+      const set_maxLux = this.device.blindTilt?.set_maxLux ?? 6001;
+      const lightLevel = this.webhookContext.brightness === 'bright' ? set_maxLux : set_minLux;
+      this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2);
+      await this.debugLog(`LightLevel: ${this.webhookContext.brightness}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`);
     }
   }
 
@@ -298,111 +286,77 @@ export class Contact extends deviceBase {
    */
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus enableCloudService: ${this.device.enableCloudService}`);
+      await this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`);
     } else if (this.BLE) {
       await this.BLERefreshStatus();
-    } else if (this.OpenAPI) {
+    } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-        + ` ${this.device.connectionType}, refreshStatus will not happen.`);
+      await this.debugWarnLog(`Connection Type: ${this.device.connectionType}, refreshStatus will not happen.`);
     }
   }
 
   async BLERefreshStatus(): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLERefreshStatus`);
-    const switchbot = await this.platform.connectBLE();
-    // Convert to BLE Address
-    this.device.bleMac = this.device
-      .deviceId!.match(/.{1,2}/g)!
-      .join(':')
-      .toLowerCase();
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-    this.getCustomBLEAddress(switchbot);
-    // Start to monitor advertisement packets
-    (async () => {
-      // Start to monitor advertisement packets
-      await switchbot.startScan({ model: this.device.bleModel, id: this.device.bleMac });
-      // Set an event handler
-      switchbot.onadvertisement = (ad: any) => {
-        if (this.device.bleMac === ad.address && ad.model === this.device.bleModel) {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${JSON.stringify(ad, null, '  ')}`);
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} address: ${ad.address}, model: ${ad.model}`);
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-        } else {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-        }
-      };
-      // Wait 10 seconds
-      await switchbot.wait(this.scanDuration * 1000);
-      // Stop to monitor
-      await switchbot.stopScan();
-      // Update HomeKit
-      await this.BLEparseStatus(switchbot.onadvertisement.serviceData);
-      await this.updateHomeKitCharacteristics();
-    })();
+    await this.debugLog('BLERefreshStatus');
+    const switchbot = await this.switchbotBLE();
+
     if (switchbot === undefined) {
       await this.BLERefreshConnection(switchbot);
+    } else {
+    // Start to monitor advertisement packets
+      (async () => {
+      // Start to monitor advertisement packets
+        const serviceData = await this.monitorAdvertisementPackets(switchbot) as contactSensorServiceData;
+        // Update HomeKit
+        if (serviceData.model === SwitchBotBLEModel.ContactSensor && serviceData.modelName === SwitchBotBLEModelName.ContactSensor) {
+          this.serviceData = serviceData;
+          await this.BLEparseStatus();
+          await this.updateHomeKitCharacteristics();
+        } else {
+          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
+          await this.BLERefreshConnection(switchbot);
+        }
+      })();
     }
   }
 
   async openAPIRefreshStatus(): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
+    await this.debugLog('openAPIRefreshStatus');
     try {
-      const { body, statusCode } = await this.platform.retryRequest(this.deviceMaxRetries, this.deviceDelayBetweenRetries,
-        `${Devices}/${this.device.deviceId}/status`, { headers: this.platform.generateHeaders() });
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+      const { body, statusCode } = await this.deviceRefreshStatus();
       const deviceStatus: any = await body.json();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
-      if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-        this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-          + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
-        this.openAPIparseStatus(deviceStatus);
-        this.updateHomeKitCharacteristics();
+      await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);;
+      if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
+        await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
+        this.deviceStatus = deviceStatus.body;
+        await this.openAPIparseStatus();
+        await this.updateHomeKitCharacteristics();
       } else {
-        this.statusCode(statusCode);
-        this.statusCode(deviceStatus.statusCode);
-        if (deviceStatus.statusCode === 161 || deviceStatus.statusCode === 171) {
-          this.offlineOff();
-        }
+        await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
+        await this.debugWarnLog(statusCode, deviceStatus);
       }
     } catch (e: any) {
-      this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+      await this.apiError(e);
+      await this.errorLog(`failed openAPIRefreshStatus with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`);
     }
   }
 
-  async registerWebhook(accessory: PlatformAccessory, device: device & devicesConfig) {
-    if (device.webhook) {
-      this.debugLog(`${device.deviceType}: ${accessory.displayName} is listening webhook.`);
-      this.platform.webhookEventHandler[device.deviceId] = async (context) => {
+  async registerWebhook() {
+    if (this.device.webhook) {
+      await this.debugLog('is listening webhook.');
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context: contactSensorWebhookContext) => {
         try {
-          this.debugLog(`${device.deviceType}: ${accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          const { detectionState, brightness, openState } = context;
-          const { ContactSensorState } = this.ContactSensor;
-          const { CurrentAmbientLightLevel } = this.LightSensor ?? {};
-          const { MotionDetected } = this.MotionSensor ?? {};
-          this.debugLog(`${device.deviceType}: ${accessory.displayName} (detectionState, brightness, openState) = Webhook:(${detectionState}, `
-            + `${brightness}, ${openState}), current:(${MotionDetected}, ${CurrentAmbientLightLevel}, ${ContactSensorState})`);
-          const set_minLux = this.device.contact?.set_minLux ?? 1;
-          const set_maxLux = this.device.contact?.set_maxLux ?? 6001;
-          this.ContactSensor.ContactSensorState = openState === 'open' ? 1 : 0;
-          if (!device.contact?.hide_motionsensor) {
-            this.MotionSensor!.MotionDetected = detectionState === 'DETECTED' ? true : false;
-          }
-          if (!device.contact?.hide_lightsensor) {
-            this.LightSensor!.CurrentAmbientLightLevel = brightness === 'bright' ? set_maxLux : set_minLux;
-          }
-          this.updateHomeKitCharacteristics();
+          await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
+          this.webhookContext = context;
+          await this.parseStatusWebhook();
+          await this.updateHomeKitCharacteristics();
         } catch (e: any) {
-          this.errorLog(`${device.deviceType}: ${accessory.displayName} failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
         }
       };
     } else {
-      this.debugLog(`${device.deviceType}: ${accessory.displayName} is not listening webhook.`);
+      await this.debugLog('is not listening webhook.');
     }
   }
 
@@ -410,57 +364,31 @@ export class Contact extends deviceBase {
    * Updates the status for each of the HomeKit Characteristics
    */
   async updateHomeKitCharacteristics(): Promise<void> {
-    if (this.ContactSensor.ContactSensorState === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ContactSensorState: ${this.ContactSensor.ContactSensorState}`);
-    } else {
-      this.accessory.context.ContactSensorState = this.ContactSensor.ContactSensorState;
-      this.ContactSensor.Service.updateCharacteristic(this.hap.Characteristic.ContactSensorState, this.ContactSensor.ContactSensorState);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-        + ` ContactSensorState: ${this.ContactSensor.ContactSensorState}`);
+    // ContactSensorState
+    await this.updateCharacteristic(this.ContactSensor.Service, this.hap.Characteristic.ContactSensorState,
+      this.ContactSensor.ContactSensorState, 'ContactSensorState');
+    // MotionDetected
+    if (!this.device.contact?.hide_motionsensor && this.MotionSensor?.Service) {
+      await this.updateCharacteristic(this.MotionSensor.Service, this.hap.Characteristic.MotionDetected,
+        this.MotionSensor.MotionDetected, 'MotionDetected');
     }
-    if (!this.device.contact?.hide_motionsensor) {
-      if (this.MotionSensor!.MotionDetected === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} MotionDetected: ${this.MotionSensor!.MotionDetected}`);
-      } else {
-        this.accessory.context.MotionDetected = this.MotionSensor!.MotionDetected;
-        this.MotionSensor!.Service.updateCharacteristic(this.hap.Characteristic.MotionDetected, this.MotionSensor!.MotionDetected);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-          + ` MotionDetected: ${this.MotionSensor!.MotionDetected}`);
-      }
+    // CurrentAmbientLightLevel
+    if (!this.device.contact?.hide_lightsensor && this.LightSensor?.Service) {
+      await this.updateCharacteristic(this.LightSensor.Service, this.hap.Characteristic.CurrentAmbientLightLevel,
+        this.LightSensor.CurrentAmbientLightLevel, 'CurrentAmbientLightLevel');
     }
-    if (!this.device.contact?.hide_lightsensor) {
-      if (this.LightSensor?.CurrentAmbientLightLevel === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-          + ` CurrentAmbientLightLevel: ${this.LightSensor?.CurrentAmbientLightLevel}`);
-      } else {
-        this.accessory.context.CurrentAmbientLightLevel = this.LightSensor.CurrentAmbientLightLevel;
-        this.LightSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, this.LightSensor.CurrentAmbientLightLevel);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-          + ` updateCharacteristic CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`);
-      }
-    }
-    if (this.Battery.BatteryLevel === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel}`);
-    } else {
-      this.accessory.context.BatteryLevel = this.Battery.BatteryLevel;
-      this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, this.Battery.BatteryLevel);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.Battery.BatteryLevel}`);
-    }
-    if (this.Battery.StatusLowBattery === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.Battery.StatusLowBattery}`);
-    } else {
-      this.accessory.context.StatusLowBattery = this.Battery.StatusLowBattery;
-      this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-        + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
-    }
+    // BatteryLevel
+    await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.BatteryLevel,
+      this.Battery.BatteryLevel, 'BatteryLevel');
+    // StatusLowBattery
+    await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.StatusLowBattery,
+      this.Battery.StatusLowBattery, 'StatusLowBattery');
   }
 
   async BLERefreshConnection(switchbot: any): Promise<void> {
-    this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot:`
-      + ` ${JSON.stringify(switchbot)}`);
+    await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(switchbot)}`);
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Refresh Status`);
+      await this.warnLog('Using OpenAPI Connection to Refresh Status');
       await this.openAPIRefreshStatus();
     }
   }
@@ -469,11 +397,11 @@ export class Contact extends deviceBase {
     if (this.device.offline) {
       this.ContactSensor.Service.updateCharacteristic(this.hap.Characteristic.ContactSensorState,
         this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED);
-      if (!this.device.contact?.hide_motionsensor) {
-        this.MotionSensor!.Service.updateCharacteristic(this.hap.Characteristic.MotionDetected, false);
+      if (!this.device.contact?.hide_motionsensor && this.MotionSensor?.Service) {
+        this.MotionSensor.Service.updateCharacteristic(this.hap.Characteristic.MotionDetected, false);
       }
-      if (!this.device.contact?.hide_lightsensor) {
-        this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, 100);
+      if (!this.device.contact?.hide_lightsensor && this.LightSensor?.Service) {
+        this.LightSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, 100);
       }
     }
   }
@@ -481,13 +409,13 @@ export class Contact extends deviceBase {
   async apiError(e: any): Promise<void> {
     this.ContactSensor.Service.updateCharacteristic(this.hap.Characteristic.ContactSensorState, e);
     this.ContactSensor.Service.updateCharacteristic(this.hap.Characteristic.StatusActive, e);
-    if (!this.device.contact?.hide_motionsensor) {
-      this.MotionSensor!.Service.updateCharacteristic(this.hap.Characteristic.MotionDetected, e);
-      this.MotionSensor!.Service.updateCharacteristic(this.hap.Characteristic.StatusActive, e);
+    if (!this.device.contact?.hide_motionsensor && this.MotionSensor?.Service) {
+      this.MotionSensor.Service.updateCharacteristic(this.hap.Characteristic.MotionDetected, e);
+      this.MotionSensor.Service.updateCharacteristic(this.hap.Characteristic.StatusActive, e);
     }
-    if (!this.device.contact?.hide_lightsensor) {
-      this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, e);
-      this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.StatusActive, e);
+    if (!this.device.contact?.hide_lightsensor && this.LightSensor?.Service) {
+      this.LightSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, e);
+      this.LightSensor.Service.updateCharacteristic(this.hap.Characteristic.StatusActive, e);
     }
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e);
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, e);

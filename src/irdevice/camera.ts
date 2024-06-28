@@ -2,12 +2,11 @@
  *
  * camera.ts: @switchbot/homebridge-switchbot.
  */
-import { request } from 'undici';
-import { Devices } from '../settings.js';
 import { irdeviceBase } from './irdevice.js';
 
 import type { SwitchBotPlatform } from '../platform.js';
-import type { irDevicesConfig, irdevice } from '../settings.js';
+import type { irDevicesConfig } from '../settings.js';
+import type { irdevice } from '../types/irdevicelist.js';
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 
 /**
@@ -29,6 +28,8 @@ export class Camera extends irdeviceBase {
     device: irdevice & irDevicesConfig,
   ) {
     super(platform, accessory, device);
+    // Set category
+    accessory.category = this.hap.Categories.CAMERA;
 
     // Initialize Switch Service
     accessory.context.Switch = accessory.context.Switch ?? {};
@@ -49,7 +50,7 @@ export class Camera extends irdeviceBase {
   }
 
   async OnSet(value: CharacteristicValue): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${value}`);
+    await this.debugLog(`On: ${value}`);
 
     this.Switch.On = value;
     if (this.Switch.On) {
@@ -70,7 +71,7 @@ export class Camera extends irdeviceBase {
    * Camera -        "command"       "channelSub"      "default"	        =        previous channel
    */
   async pushOnChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOnChanges On: ${this.Switch.On},`
+    await this.debugLog(`pushOnChanges On: ${this.Switch.On},`
       + ` disablePushOn: ${this.disablePushOn}`);
     if (this.Switch.On && !this.disablePushOn) {
       const commandType: string = await this.commandType();
@@ -85,7 +86,7 @@ export class Camera extends irdeviceBase {
   }
 
   async pushOffChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOffChanges On: ${this.Switch.On},`
+    await this.debugLog(`pushOffChanges On: ${this.Switch.On},`
       + ` disablePushOff: ${this.disablePushOff}`);
     if (!this.Switch.On && !this.disablePushOff) {
       const commandType: string = await this.commandType();
@@ -100,49 +101,34 @@ export class Camera extends irdeviceBase {
   }
 
   async pushChanges(bodyChange: any): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushChanges`);
+    await this.debugLog('pushChanges');
     if (this.device.connectionType === 'OpenAPI') {
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
+      this.infoLog(`Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
-        const { body, statusCode } = await request(`${Devices}/${this.device.deviceId}/commands`, {
-          body: bodyChange,
-          method: 'POST',
-          headers: this.platform.generateHeaders(),
-        });
-        this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+        const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
-        this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
-        this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
-        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-          this.debugSuccessLog(`${this.device.remoteType}: ${this.accessory.displayName} `
-            + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
-          this.successLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-            + ` request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
-          this.updateHomeKitCharacteristics();
+        await this.pushStatusCodes(statusCode, deviceStatus);
+        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
+          await this.successfulPushChange(statusCode, deviceStatus, bodyChange);
+          await this.updateHomeKitCharacteristics();
         } else {
-          this.statusCode(statusCode);
-          this.statusCode(deviceStatus.statusCode);
+          await this.statusCode(statusCode);
+          await this.statusCode(deviceStatus.statusCode);
         }
       } catch (e: any) {
-        this.apiError(e);
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType}`
-          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+        await this.apiError(e);
+        await this.pushChangeError(e);
       }
     } else {
-      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-        + ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
+      await this.warnLog(`Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
     }
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
-    // On
-    if (this.Switch.On === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} On: ${this.Switch.On}`);
-    } else {
-      this.accessory.context.On = this.Switch.On;
-      this.Switch.Service.updateCharacteristic(this.hap.Characteristic.On, this.Switch.On);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic On: ${this.Switch.On}`);
-    }
+    await this.debugLog('updateHomeKitCharacteristics');
+    // Active
+    await this.updateCharacteristic(this.Switch.Service, this.hap.Characteristic.On,
+      this.Switch.On, 'On');
   }
 
   async apiError(e: any): Promise<void> {

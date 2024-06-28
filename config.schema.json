@@ -275,7 +275,7 @@
                   ],
                   "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType !== 'Hub 2');"
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
                   }
                 },
                 "webhook": {
@@ -965,7 +965,7 @@
                   }
                 },
                 "mqttURL": {
-                  "title": "MQTT URL",
+                  "title": "MQTT URL (Device Specific)",
                   "type": "string",
                   "placeholder": "192.168.7.1",
                   "condition": {
@@ -973,14 +973,14 @@
                   }
                 },
                 "mqttOptions": {
-                  "title": "MQTT Options",
+                  "title": "MQTT Options (Device Specific)",
                   "type": "string",
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].mqttURL && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Water Detector' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
                   }
                 },
                 "mqttPubOptions": {
-                  "title": "MQTT Pub Options",
+                  "title": "MQTT Pub Options (Device Specific)",
                   "type": "string",
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].mqttURL && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Water Detector' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
@@ -1652,6 +1652,19 @@
             "type": "string",
             "placeholder": "http://${FQDN}:${PORT}/${PATH}"
           },
+          "mqttURL": {
+            "title": "MQTT URL",
+            "type": "string",
+            "placeholder": "192.168.7.1"
+          },
+          "mqttOptions": {
+            "title": "MQTT Options",
+            "type": "string"
+          },
+          "mqttPubOptions": {
+            "title": "MQTT Pub Options",
+            "type": "string"
+          },
           "maxRetries": {
             "title": "Max Retries for OpenAPI",
             "type": "number",
@@ -1882,20 +1895,23 @@
       "expanded": false,
       "items": [
         "options.webhookURL",
+        "options.mqttURL",
+        "options.mqttOptions",
+        "options.mqttPubOptions",
         "options.maxRetries",
         "options.delayBetweenRetries",
         {
           "key": "options.refreshRate",
           "description": "<em class='primary-text'>Specifies the interval, in seconds, for retrieving the latest device status from the SwitchBot API.</em>"
-          },
+        },
         {
           "key": "options.updateRate",
           "description": "<em class='primary-text'>Specifies the interval, in seconds, at which devices will request updates from the SwitchBot API while in motion, for Curtain(s) and Blind Tilt(s) only.</em>"
-          },
+        },
         {
           "key": "options.pushRate",
           "description": "<em class='primary-text'>Specifies the interval, in seconds, between pushes to the SwitchBot API.</em>"
-          },
+        },
         "options.logging"
       ]
     }

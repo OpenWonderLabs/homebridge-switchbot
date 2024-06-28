@@ -4,12 +4,16 @@
  */
 import { Units } from 'homebridge';
 import { deviceBase } from './device.js';
-import { Devices } from '../settings.js';
 import { convertUnits } from '../utils.js';
-import { Subject, interval, skipWhile } from 'rxjs';
+import { Subject, interval, skipWhile} from 'rxjs';
+import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot';
 
+import type { devicesConfig } from '../settings.js';
+import type { device } from '../types/devicelist.js';
 import type { SwitchBotPlatform } from '../platform.js';
-import type { device, deviceStatus, devicesConfig } from '../settings.js';
+import type { hub2ServiceData } from '../types/bledevicestatus.js';
+import type { hub2Status } from '../types/devicestatus.js';
+import type { hub2WebhookContext } from '../types/devicewebhookstatus.js';
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 
 export class Hub extends deviceBase {
@@ -32,6 +36,15 @@ export class Hub extends deviceBase {
     CurrentTemperature: CharacteristicValue;
   };
 
+  // OpenAPI
+  deviceStatus!: hub2Status;
+
+  //Webhook
+  webhookContext!: hub2WebhookContext;
+
+  // BLE
+  serviceData!: hub2ServiceData;
+
   // Updates
   hubUpdateInProgress!: boolean;
   doHubUpdate!: Subject<void>;
@@ -42,6 +55,9 @@ export class Hub extends deviceBase {
     device: device & devicesConfig,
   ) {
     super(platform, accessory, device);
+    // Set category
+    accessory.category = this.hap.Categories.SENSOR;
+
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doHubUpdate = new Subject();
     this.hubUpdateInProgress = false;
@@ -49,7 +65,7 @@ export class Hub extends deviceBase {
     // Initialize Temperature Sensor Service
     if (device.hub?.hide_temperature) {
       if (this.TemperatureSensor) {
-        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Temperature Sensor Service`);
+        this.debugLog('Removing Temperature Sensor Service');
         this.TemperatureSensor.Service = this.accessory.getService(this.hap.Service.TemperatureSensor) as Service;
         accessory.removeService(this.TemperatureSensor.Service);
       }
@@ -81,7 +97,7 @@ export class Hub extends deviceBase {
     // Initialize Humidity Sensor Service
     if (device.hub?.hide_humidity) {
       if (this.HumiditySensor) {
-        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Humidity Sensor Service`);
+        this.debugLog('Removing Humidity Sensor Service');
         this.HumiditySensor.Service = this.accessory.getService(this.hap.Service.HumiditySensor) as Service;
         accessory.removeService(this.HumiditySensor.Service);
       }
@@ -109,7 +125,7 @@ export class Hub extends deviceBase {
     // Initialize Light Sensor Service
     if (device.hub?.hide_lightsensor) {
       if (this.LightSensor) {
-        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
+        this.debugLog('Removing Light Sensor Service');
         this.LightSensor.Service = this.accessory.getService(this.hap.Service.LightSensor) as Service;
         accessory.removeService(this.LightSensor.Service);
       }
@@ -135,10 +151,12 @@ export class Hub extends deviceBase {
     }
 
     // Retrieve initial values and updateHomekit
+    this.debugLog('Retrieve initial values and update Homekit');
     this.refreshStatus();
 
-    // Retrieve initial values and update Homekit
-    this.updateHomeKitCharacteristics();
+    //regisiter webhook event handler
+    this.debugLog('Registering Webhook Event Handler');
+    this.registerWebhook();
 
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
@@ -147,129 +165,189 @@ export class Hub extends deviceBase {
         await this.refreshStatus();
       });
 
-    //regisiter webhook event handler
-    this.registerWebhook(accessory, device);
-
   }
 
-  async openAPIparseStatus(deviceStatus: deviceStatus): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
+  async BLEparseStatus(): Promise<void> {
+    await this.debugLog('BLEparseStatus');
+    await this.debugLog(`(temperature, humidity, lightLevel) = BLE:(${this.serviceData.temperature}, ${this.serviceData.humidity},`
+      + ` ${this.serviceData.lightLevel}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity},`
+      + ` ${this.LightSensor?.CurrentAmbientLightLevel})`);
+
+    // CurrentTemperature
+    if (!this.device.hub?.hide_temperature && this.TemperatureSensor?.Service) {
+      this.TemperatureSensor.CurrentTemperature = this.serviceData.temperature;
+      await this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}°c`);
+    }
+
     // CurrentRelativeHumidity
-    if (!this.device.hub?.hide_humidity) {
-      this.HumiditySensor!.CurrentRelativeHumidity = Number(deviceStatus.body.humidity);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Humidity: ${this.HumiditySensor!.CurrentRelativeHumidity}%`);
+    if (!this.device.hub?.hide_humidity && this.HumiditySensor?.Service) {
+      this.HumiditySensor!.CurrentRelativeHumidity = this.serviceData.humidity;
+      await this.debugLog(`CurrentRelativeHumidity: ${this.HumiditySensor.CurrentRelativeHumidity}%`);
+    }
+
+    // CurrentAmbientLightLevel
+    if (!this.device.hub?.hide_lightsensor && this.LightSensor?.Service) {
+      const set_minLux = this.device.blindTilt?.set_minLux ?? 1;
+      const set_maxLux = this.device.blindTilt?.set_maxLux ?? 6001;
+      const lightLevel = this.serviceData.lightLevel;
+      this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 19);
+      await this.debugLog(`LightLevel: ${this.serviceData.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`);
+    }
+  }
+
+  async openAPIparseStatus(): Promise<void> {
+    await this.debugLog('openAPIparseStatus');
+    await this.debugLog(`(temperature, humidity, lightLevel) = OpenAPI:(${this.deviceStatus.temperature}, ${this.deviceStatus.humidity},`
+      + ` ${this.deviceStatus.lightLevel}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity},`
+      + ` ${this.LightSensor?.CurrentAmbientLightLevel})`);
+
+    // CurrentRelativeHumidity
+    if (!this.device.hub?.hide_humidity && this.HumiditySensor?.Service) {
+      this.HumiditySensor.CurrentRelativeHumidity = this.deviceStatus.humidity;
+      await this.debugLog(`CurrentRelativeHumidity: ${this.HumiditySensor.CurrentRelativeHumidity}%`);
     }
 
     // CurrentTemperature
-    if (!this.device.hub?.hide_temperature) {
-      this.TemperatureSensor!.CurrentTemperature = Number(deviceStatus.body.temperature);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Temperature: ${this.TemperatureSensor!.CurrentTemperature}°c`);
+    if (!this.device.hub?.hide_temperature && this.TemperatureSensor?.Service) {
+      this.TemperatureSensor.CurrentTemperature = this.deviceStatus.temperature;
+      await this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}°c`);
     }
 
-    // Brightness
-    if (!this.device.hub?.hide_lightsensor) {
-      if (!this.device.curtain?.hide_lightsensor) {
-        const set_minLux = this.device.curtain?.set_minLux ?? 1;
-        const set_maxLux = this.device.curtain?.set_maxLux ?? 6001;
-        const spaceBetweenLevels = 19;
-        const lightLevel = deviceStatus.body.lightLevel;
-        await this.getLightLevel(lightLevel, set_minLux, set_maxLux, spaceBetweenLevels);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${deviceStatus.body.lightLevel},`
-          + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
-      }
-      if (!this.device.hub?.hide_lightsensor) {
-        this.LightSensor!.Service.setCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, this.LightSensor!.CurrentAmbientLightLevel);
-      }
+    // LightSensor
+    if (!this.device.hub?.hide_lightsensor && this.LightSensor?.Service) {
+      const set_minLux = this.device.blindTilt?.set_minLux ?? 1;
+      const set_maxLux = this.device.blindTilt?.set_maxLux ?? 6001;
+      const lightLevel = this.deviceStatus.lightLevel;
+      this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 19);
+      await this.debugLog(`LightLevel: ${this.deviceStatus.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
     }
 
     // Firmware Version
-    const version = deviceStatus.body.version?.toString();
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
-    if (deviceStatus.body.version) {
-      const deviceVersion = version?.replace(/^V|-.*$/g, '') ?? '0.0.0';
+    if (this.deviceStatus.version) {
+      const version = this.deviceStatus.version.toString();
+      await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
+      const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0';
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
         .setCharacteristic(this.hap.Characteristic.HardwareRevision, deviceVersion)
         .setCharacteristic(this.hap.Characteristic.FirmwareRevision, deviceVersion)
         .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
         .updateValue(deviceVersion);
-      this.accessory.context.deviceVersion = deviceVersion;
-      this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceVersion: ${this.accessory.context.deviceVersion}`);
+      this.accessory.context.version = deviceVersion;
+      await this.debugSuccessLog(`version: ${this.accessory.context.version}`);
     }
   }
 
+  async parseStatusWebhook(): Promise<void> {
+    await this.debugLog('parseStatusWebhook');
+    await this.debugLog(`(scale, temperature, humidity, lightLevel) = Webhook:(${this.webhookContext.scale},`
+      + ` ${convertUnits(this.webhookContext.temperature, this.webhookContext.scale, this.device.hub?.convertUnitTo)},`
+      + ` ${this.webhookContext.humidity}, ${this.webhookContext.lightLevel}), current:(${this.TemperatureSensor?.CurrentTemperature},`
+      + ` ${this.HumiditySensor?.CurrentRelativeHumidity}, ${this.LightSensor?.CurrentAmbientLightLevel})`);
+    // Check if the scale is not CELSIUS
+    if (this.webhookContext.scale !== 'CELSIUS' && this.device.hub?.convertUnitTo === undefined) {
+      await this.warnLog(`received a non-CELSIUS Webhook scale: ${this.webhookContext.scale}, Use the *convertUnitsTo* config under Hub settings,`
+        + ' if displaying incorrectly in HomeKit.');
+    }
+
+    // CurrentRelativeHumidity
+    if (!this.device.hub?.hide_humidity && this.HumiditySensor?.Service) {
+      this.HumiditySensor.CurrentRelativeHumidity = this.webhookContext.humidity;
+      await this.debugLog(`CurrentRelativeHumidity: ${this.HumiditySensor.CurrentRelativeHumidity}`);
+    }
+
+    // CurrentTemperature
+    if (!this.device.hub?.hide_temperature && this.TemperatureSensor?.Service) {
+      this.TemperatureSensor.CurrentTemperature = convertUnits(this.webhookContext.temperature, this.webhookContext.scale,
+        this.device.hub?.convertUnitTo);
+      await this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}`);
+    }
+
+    // CurrentAmbientLightLevel
+    if (!this.device.hub?.hide_lightsensor && this.LightSensor?.Service) {
+      const set_minLux = this.device.blindTilt?.set_minLux ?? 1;
+      const set_maxLux = this.device.blindTilt?.set_maxLux ?? 6001;
+      this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(this.webhookContext.lightLevel, set_minLux, set_maxLux, 19);
+      await this.debugLog(`CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`);
+    }
+  }
+
+  /**
+   * Asks the SwitchBot API for the latest device information
+   */
   async refreshStatus(): Promise<void> {
-    if (this.BLE) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE not supported`);
+    if (!this.device.enableCloudService && this.OpenAPI) {
+      await this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`);
+    } else if (this.BLE) {
+      await this.BLERefreshStatus();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type: OpenAPI, refreshStatus will not happen.`);
+      await this.debugWarnLog(`Connection Type: ${this.device.connectionType}, refreshStatus will not happen.`);
+    }
+  }
+
+  async BLERefreshStatus(): Promise<void> {
+    await this.debugLog('BLERefreshStatus');
+    const switchbot = await this.switchbotBLE();
+
+    if (switchbot === undefined) {
+      await this.BLERefreshConnection(switchbot);
+    } else {
+    // Start to monitor advertisement packets
+      (async () => {
+      // Start to monitor advertisement packets
+        const serviceData = await this.monitorAdvertisementPackets(switchbot) as hub2ServiceData;
+        // Update HomeKit
+        if (serviceData.model === SwitchBotBLEModel.Hub2 && serviceData.modelName === SwitchBotBLEModelName.Hub2) {
+          this.serviceData = serviceData;
+          await this.BLEparseStatus();
+          await this.updateHomeKitCharacteristics();
+        } else {
+          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
+          await this.BLERefreshConnection(switchbot);
+        }
+      })();
     }
   }
 
   async openAPIRefreshStatus(): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
+    await this.debugLog('openAPIRefreshStatus');
     try {
-      const { body, statusCode } = await this.platform.retryRequest(this.deviceMaxRetries, this.deviceDelayBetweenRetries,
-        `${Devices}/${this.device.deviceId}/status`, { headers: this.platform.generateHeaders() });
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+      const { body, statusCode } = await this.deviceRefreshStatus();
       const deviceStatus: any = await body.json();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
-      if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-        this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-          + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
-        this.openAPIparseStatus(deviceStatus);
-        this.updateHomeKitCharacteristics();
+      await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);;
+      if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
+        await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
+        this.deviceStatus = deviceStatus.body;
+        await this.openAPIparseStatus();
+        await this.updateHomeKitCharacteristics();
       } else {
-        this.statusCode(statusCode);
-        this.statusCode(deviceStatus.statusCode);
+        await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
+        await this.debugWarnLog(statusCode, deviceStatus);
       }
     } catch (e: any) {
-      this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+      await this.apiError(e);
+      await this.errorLog(`failed openAPIRefreshStatus with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`);
     }
   }
 
-  async registerWebhook(accessory: PlatformAccessory, device: device & devicesConfig) {
-    if (device.webhook) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} is listening webhook.`);
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context) => {
+  async registerWebhook(): Promise<void> {
+    if (this.device.webhook) {
+      await this.debugLog('is listening webhook.');
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context: hub2WebhookContext) => {
         try {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          const { temperature, humidity, lightLevel } = context;
-          const { CurrentTemperature } = this.TemperatureSensor || { CurrentTemperature: undefined };
-          const { CurrentAmbientLightLevel } = this.LightSensor || { CurrentAmbientLightLevel: undefined };
-          const { CurrentRelativeHumidity } = this.HumiditySensor || { CurrentRelativeHumidity: undefined };
-          if (context.scale !== 'CELCIUS' && device.hub?.convertUnitTo === undefined) {
-            this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} received a non-CELCIUS Webhook scale: `
-              + `${context.scale}, Use the *convertUnitsTo* config under Hub settings, if displaying incorrectly in HomeKit.`);
-          }
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ` +
-            '(scale, temperature, humidity, lightLevel) = ' +
-            `Webhook:(${context.scale}, ${convertUnits(temperature, context.scale, device.hub?.convertUnitTo)}, ${humidity}, ${lightLevel}), `
-            + `current:(${CurrentTemperature}, ${CurrentRelativeHumidity}, ${CurrentAmbientLightLevel})`);
-          if (!this.device.hub?.hide_humidity) {
-            this.HumiditySensor!.CurrentRelativeHumidity = humidity;
-          }
-          if (!this.device.hub?.hide_temperature) {
-            this.TemperatureSensor!.CurrentTemperature = convertUnits(temperature, context.scale, device.hub?.convertUnitTo);
-          }
-          if (!this.device.hub?.hide_lightsensor) {
-            const set_minLux = this.device.curtain?.set_minLux ?? 1;
-            const set_maxLux = this.device.curtain?.set_maxLux ?? 6001;
-            const spaceBetweenLevels = 19;
-            await this.getLightLevel(lightLevel, set_minLux, set_maxLux, spaceBetweenLevels);
-          }
-          this.updateHomeKitCharacteristics();
+          await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
+          this.webhookContext = context;
+          await this.parseStatusWebhook();
+          await this.updateHomeKitCharacteristics();
         } catch (e: any) {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
         }
       };
+    }else {
+      await this.debugLog('is not listening webhook.');
     }
   }
 
@@ -278,189 +356,56 @@ export class Hub extends deviceBase {
    */
 
   async updateHomeKitCharacteristics(): Promise<void> {
-    const mqttmessage: string[] = [];
-    const entry = { time: Math.round(new Date().valueOf() / 1000) };
-
     // CurrentRelativeHumidity
-    if (!this.device.hub?.hide_humidity) {
-      if (this.HumiditySensor!.CurrentRelativeHumidity === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-          + ` CurrentRelativeHumidity: ${this.HumiditySensor!.CurrentRelativeHumidity}`);
-      } else {
-        if (this.device.mqttURL) {
-          mqttmessage.push(`"humidity": ${this.HumiditySensor!.CurrentRelativeHumidity}`);
-        }
-        if (this.device.history) {
-          entry['humidity'] = this.HumiditySensor!.CurrentRelativeHumidity;
-        }
-        this.accessory.context.CurrentRelativeHumidity = this.HumiditySensor!.CurrentRelativeHumidity;
-        this.HumiditySensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity,
-          this.HumiditySensor!.CurrentRelativeHumidity);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-          + `updateCharacteristic CurrentRelativeHumidity: ${this.HumiditySensor!.CurrentRelativeHumidity}`);
-      }
+    if (!this.device.hub?.hide_humidity && this.HumiditySensor?.Service) {
+      await this.updateCharacteristic(this.HumiditySensor.Service, this.hap.Characteristic.CurrentRelativeHumidity,
+        this.HumiditySensor.CurrentRelativeHumidity, 'CurrentRelativeHumidity');
     }
-
     // CurrentTemperature
-    if (!this.device.hub?.hide_temperature) {
-      if (this.TemperatureSensor!.CurrentTemperature === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentTemperature: ${this.TemperatureSensor!.CurrentTemperature}`);
-      } else {
-        if (this.device.mqttURL) {
-          mqttmessage.push(`"temperature": ${this.TemperatureSensor!.CurrentTemperature}`);
-        }
-        if (this.device.history) {
-          entry['temp'] = this.TemperatureSensor!.CurrentTemperature;
-        }
-        this.accessory.context.CurrentTemperature = this.TemperatureSensor!.CurrentTemperature;
-        this.TemperatureSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, this.TemperatureSensor!.CurrentTemperature);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-          + ` CurrentTemperature: ${this.TemperatureSensor!.CurrentTemperature}`);
-      }
+    if (!this.device.hub?.hide_temperature && this.TemperatureSensor?.Service) {
+      await this.updateCharacteristic(this.TemperatureSensor.Service, this.hap.Characteristic.CurrentTemperature,
+        this.TemperatureSensor.CurrentTemperature, 'CurrentTemperature');
     }
-
     // CurrentAmbientLightLevel
-    if (!this.device.hub?.hide_lightsensor) {
-      if (this.LightSensor!.CurrentAmbientLightLevel === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-          + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
-      } else {
-        if (this.device.mqttURL) {
-          mqttmessage.push(`"light": ${this.LightSensor!.CurrentAmbientLightLevel}`);
-        }
-        if (this.device.history) {
-          entry['lux'] = this.LightSensor!.CurrentAmbientLightLevel;
-        }
-        this.accessory.context.CurrentAmbientLightLevel = this.LightSensor!.CurrentAmbientLightLevel;
-        this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, this.LightSensor!.CurrentAmbientLightLevel);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-          + `updateCharacteristic CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
-      }
+    if (!this.device.hub?.hide_lightsensor && this.LightSensor?.Service) {
+      await this.updateCharacteristic(this.LightSensor.Service, this.hap.Characteristic.CurrentAmbientLightLevel,
+        this.LightSensor.CurrentAmbientLightLevel, 'CurrentAmbientLightLevel');
     }
+  }
 
-    // MQTT
-    if (this.device.mqttURL) {
-      this.mqttPublish(`{${mqttmessage.join(',')}}`);
-    }
-    if (Number(this.HumiditySensor!.CurrentRelativeHumidity) > 0) {
-      // reject unreliable data
-      if (this.device.history) {
-        this.historyService?.addEntry(entry);
-      }
+  async BLERefreshConnection(switchbot: any): Promise<void> {
+    await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(switchbot)}`);
+    if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
+      await this.warnLog('Using OpenAPI Connection to Refresh Status');
+      await this.openAPIRefreshStatus();
     }
   }
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      if (!this.device.hub?.hide_temperature) {
-        this.TemperatureSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, this.accessory.context.CurrentTemperature);
+      if (!this.device.hub?.hide_temperature && this.TemperatureSensor?.Service) {
+        this.TemperatureSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, this.accessory.context.CurrentTemperature);
       }
-      if (!this.device.hub?.hide_humidity) {
-        this.HumiditySensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity,
+      if (!this.device.hub?.hide_humidity && this.HumiditySensor?.Service) {
+        this.HumiditySensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity,
           this.accessory.context.CurrentRelativeHumidity);
       }
-      if (!this.device.hub?.hide_lightsensor) {
-        this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel,
+      if (!this.device.hub?.hide_lightsensor && this.LightSensor?.Service) {
+        this.LightSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel,
           this.accessory.context.CurrentAmbientLightLevel);
       }
     }
   }
 
   async apiError(e: any): Promise<void> {
-    if (!this.device.hub?.hide_temperature) {
-      this.TemperatureSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, e);
+    if (!this.device.hub?.hide_temperature && this.TemperatureSensor?.Service) {
+      this.TemperatureSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, e);
     }
-    if (!this.device.hub?.hide_humidity) {
-      this.HumiditySensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity, e);
+    if (!this.device.hub?.hide_humidity && this.HumiditySensor?.Service) {
+      this.HumiditySensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity, e);
     }
-    if (!this.device.hub?.hide_lightsensor) {
-      this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, e);
-    }
-  }
-
-  async getLightLevel(lightLevel: any, set_minLux: number, set_maxLux: number, spaceBetweenLevels: number) {
-    switch (lightLevel) {
-      case 1:
-        this.LightSensor!.CurrentAmbientLightLevel = set_minLux;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
-        break;
-      case 2:
-        this.LightSensor!.CurrentAmbientLightLevel = (set_maxLux - set_minLux) / spaceBetweenLevels;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel},`
-          + ` Calculation: ${(set_maxLux - set_minLux) / spaceBetweenLevels}`);
-        break;
-      case 3:
-        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 2;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
-        break;
-      case 4:
-        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 3;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
-        break;
-      case 5:
-        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 4;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
-        break;
-      case 6:
-        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 5;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
-        break;
-      case 7:
-        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 6;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
-        break;
-      case 8:
-        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 7;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
-        break;
-      case 9:
-        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 8;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
-        break;
-      case 10:
-        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 9;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
-        break;
-      case 11:
-        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 10;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
-        break;
-      case 12:
-        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 11;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
-        break;
-      case 13:
-        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 12;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
-        break;
-      case 14:
-        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 13;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
-        break;
-      case 15:
-        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 14;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
-        break;
-      case 16:
-        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 15;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
-        break;
-      case 17:
-        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 16;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
-        break;
-      case 18:
-        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 17;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
-        break;
-      case 19:
-        this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 18;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
-        break;
-      case 20:
-      default:
-        this.LightSensor!.CurrentAmbientLightLevel = set_maxLux;
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${lightLevel}`);
+    if (!this.device.hub?.hide_lightsensor && this.LightSensor?.Service) {
+      this.LightSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, e);
     }
   }
 }

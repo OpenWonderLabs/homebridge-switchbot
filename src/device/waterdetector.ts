@@ -3,13 +3,16 @@
  * waterdetector.ts: @switchbot/homebridge-switchbot.
  */
 import { deviceBase } from './device.js';
-import { interval, Subject } from 'rxjs';
-import { Devices } from '../settings.js';
-import { skipWhile } from 'rxjs/operators';
+import { Subject, interval, skipWhile } from 'rxjs';
+import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot';
 
+import type { devicesConfig } from '../settings.js';
+import type { device } from '../types/devicelist.js';
 import type { SwitchBotPlatform } from '../platform.js';
+import type { waterLeakDetectorServiceData } from '../types/bledevicestatus.js';
 import type { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import type { device, devicesConfig, serviceData, deviceStatus } from '../settings.js';
+import type { waterLeakDetectorStatus } from '../types/devicestatus.js';
+import type { waterLeakDetectorWebhookContext } from '../types/devicewebhookstatus.js';
 
 /**
  * Platform Accessory
@@ -33,6 +36,15 @@ export class WaterDetector extends deviceBase {
     LeakDetected: CharacteristicValue;
   };
 
+  // OpenAPI
+  deviceStatus!: waterLeakDetectorStatus;
+
+  //Webhook
+  webhookContext!: waterLeakDetectorWebhookContext;
+
+  // BLE
+  serviceData!: waterLeakDetectorServiceData;
+
   // Updates
   WaterDetectorUpdateInProgress!: boolean;
   doWaterDetectorUpdate: Subject<void>;
@@ -43,6 +55,8 @@ export class WaterDetector extends deviceBase {
     device: device & devicesConfig,
   ) {
     super(platform, accessory, device);
+    // Set category
+    accessory.category = this.hap.Categories.SENSOR;
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doWaterDetectorUpdate = new Subject();
@@ -77,11 +91,11 @@ export class WaterDetector extends deviceBase {
     // Initialize Leak Sensor Service
     if (device.waterdetector?.hide_leak) {
       if (this.LeakSensor) {
-        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Leak Sensor Service`);
+        this.debugLog('Removing Leak Sensor Service');
         this.LeakSensor.Service = this.accessory.getService(this.hap.Service.LeakSensor) as Service;
         accessory.removeService(this.LeakSensor.Service);
       } else {
-        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Leak Sensor Service Not Found`);
+        this.debugLog('Leak Sensor Service Not Found');
       }
     } else {
       accessory.context.LeakSensor = accessory.context.LeakSensor ?? {};
@@ -104,177 +118,192 @@ export class WaterDetector extends deviceBase {
     }
 
     // Retrieve initial values and updateHomekit
+    this.debugLog('Retrieve initial values and update Homekit');
     this.refreshStatus();
 
-    // Retrieve initial values and updateHomekit
-    this.updateHomeKitCharacteristics();
+    //regisiter webhook event handler
+    this.debugLog('Registering Webhook Event Handler');
+    this.registerWebhook();
 
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
       .pipe(skipWhile(() => this.WaterDetectorUpdateInProgress))
       .subscribe(async () => {
+        await this.debugLog(`update interval: ${this.deviceRefreshRate * 1000} seconds`);
         await this.refreshStatus();
       });
-
-    //regisiter webhook event handler
-    this.registerWebhook(accessory, device);
   }
 
-  async BLEparseStatus(serviceData: serviceData): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
-    // Battery
-    this.Battery.BatteryLevel = Number(serviceData.battery);
-    if (this.Battery.BatteryLevel < 15) {
-      this.Battery.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
-    } else {
-      this.Battery.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
-    }
-    this.debugLog(`${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel}, StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+  async BLEparseStatus(): Promise<void> {
+    await this.debugLog('BLEparseStatus');
+    await this.debugLog(`(state, status, battery) = BLE: (${this.serviceData.state}, ${this.serviceData.status}, ${this.serviceData.battery}),`
+      + ` current:(${this.LeakSensor?.LeakDetected}, ${this.Battery.BatteryLevel})`);
 
-    // LeakDetected
-    if (this.device.waterdetector?.hide_leak) {
-      this.LeakSensor!.LeakDetected = serviceData.status!;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LeakDetected: ${this.LeakSensor!.LeakDetected}`);
-    }
-  }
+    //LeakSensor
+    if (this.device.waterdetector?.hide_leak && this.LeakSensor?.Service) {
 
-  async openAPIparseStatus(deviceStatus: deviceStatus): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
+      // StatusActive
+      this.LeakSensor.StatusActive = this.serviceData.state;
+      await this.debugLog(`StatusActive: ${this.LeakSensor.StatusActive}`);
+
+      // LeakDetected
+      this.LeakSensor.LeakDetected = this.serviceData.status;
+      this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}`);
+    }
+    // BatteryLevel
+    this.Battery.BatteryLevel = this.serviceData.battery;
+    await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
     // StatusLowBattery
-    this.Battery.BatteryLevel = Number(deviceStatus.body.battery);
-    if (this.Battery.BatteryLevel < 10) {
-      this.Battery.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
-    } else {
-      this.Battery.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
+      ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+  }
+
+  async openAPIparseStatus(): Promise<void> {
+    await this.debugLog('openAPIparseStatus');
+    await this.debugLog(`(status, battery) = OpenAPI: (${this.deviceStatus.status}, ${this.deviceStatus.battery}),`
+      + ` current:(${this.LeakSensor?.LeakDetected}, ${this.Battery.BatteryLevel})`);
+
+    //LeakSensor
+    if (!this.device.waterdetector?.hide_leak && this.LeakSensor?.Service) {
+
+      // StatusActive
+      this.LeakSensor.StatusActive = this.deviceStatus.battery === 0 ? false : true;
+      await this.debugLog(`StatusActive: ${this.LeakSensor.StatusActive}`);
+
+      // LeakDetected
+      this.LeakSensor.LeakDetected = this.deviceStatus.status;
+      this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}`);
     }
-    this.debugLog(`${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel}, StatusLowBattery: ${this.Battery.StatusLowBattery}`);
 
     // BatteryLevel
-    if (Number.isNaN(this.Battery.BatteryLevel)) {
-      this.Battery.BatteryLevel = 100;
-    }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel}`);
+    this.Battery.BatteryLevel = this.deviceStatus.battery;
+    await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
 
-    // LeakDetected
-    if (!this.device.waterdetector?.hide_leak) {
-      this.LeakSensor!.LeakDetected = deviceStatus.body.status!;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LeakDetected: ${this.LeakSensor!.LeakDetected}`);
-    }
+    // StatusLowBattery
+    this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
+      ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
 
-    // Firmware Version
-    const version = deviceStatus.body.version?.toString();
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
-    if (deviceStatus.body.version) {
-      const deviceVersion = version?.replace(/^V|-.*$/g, '') ?? '0.0.0';
+    // FirmwareVersion
+    if (this.deviceStatus.version) {
+      const version = this.deviceStatus.version.toString();
+      await this.debugLog(`FirmwareVersion: ${version.replace(/^V|-.*$/g, '')}`);
+      const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0';
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
         .setCharacteristic(this.hap.Characteristic.HardwareRevision, deviceVersion)
         .setCharacteristic(this.hap.Characteristic.FirmwareRevision, deviceVersion)
         .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
         .updateValue(deviceVersion);
-      this.accessory.context.deviceVersion = deviceVersion;
-      this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceVersion: ${this.accessory.context.deviceVersion}`);
+      this.accessory.context.version = deviceVersion;
+      await this.debugSuccessLog(`version: ${this.accessory.context.version}`);
     }
   }
 
+  async parseStatusWebhook(): Promise<void> {
+    await this.debugLog('parseStatusWebhook');
+    await this.debugLog(`(detectionState, battery) = Webhook: (${this.webhookContext.detectionState}, ${this.webhookContext.battery}),`
+      + ` current:(${this.LeakSensor?.LeakDetected}, ${this.Battery.BatteryLevel})`);
+
+    //LeakSensor
+    if (!this.device.waterdetector?.hide_leak && this.LeakSensor?.Service) {
+
+      // StatusActive
+      this.LeakSensor.StatusActive = this.webhookContext.detectionState ? true : false;
+      await this.debugLog(`StatusActive: ${this.LeakSensor.StatusActive}`);
+
+      // LeakDetected
+      this.LeakSensor.LeakDetected = this.webhookContext.detectionState;
+      await this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}`);
+    }
+
+    // BatteryLevel
+    this.Battery.BatteryLevel = this.webhookContext.battery;
+    await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
+
+    // StatusLowBattery
+    this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
+      ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+  }
+
+  /**
+   * Asks the SwitchBot API for the latest device information
+   */
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus enableCloudService: ${this.device.enableCloudService}`);
+      await this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`);
     } else if (this.BLE) {
       await this.BLERefreshStatus();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-        + ` ${this.device.connectionType}, refreshStatus will not happen.`);
+      await this.debugWarnLog(`Connection Type: ${this.device.connectionType}, refreshStatus will not happen.`);
     }
   }
 
   async BLERefreshStatus(): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLERefreshStatus`);
-    const switchbot = await this.platform.connectBLE();
-    // Convert to BLE Address
-    this.device.bleMac = this.device
-      .deviceId!.match(/.{1,2}/g)!
-      .join(':')
-      .toLowerCase();
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-    this.getCustomBLEAddress(switchbot);
-    // Start to monitor advertisement packets
-    (async () => {
-      // Start to monitor advertisement packets
-      await switchbot.startScan({ model: this.device.bleModel, id: this.device.bleMac });
-      // Set an event handler
-      switchbot.onadvertisement = (ad: any) => {
-        if (this.device.bleMac === ad.address && ad.model === this.device.bleModel) {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${JSON.stringify(ad, null, '  ')}`);
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} address: ${ad.address}, model: ${ad.model}`);
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-        } else {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-        }
-      };
-      // Wait 10 seconds
-      await switchbot.wait(this.scanDuration * 1000);
-      // Stop to monitor
-      await switchbot.stopScan();
-      // Update HomeKit
-      await this.BLEparseStatus(switchbot.onadvertisement.serviceData);
-      await this.updateHomeKitCharacteristics();
-    })();
+    await this.debugLog('BLERefreshStatus');
+    const switchbot = await this.switchbotBLE();
+
     if (switchbot === undefined) {
       await this.BLERefreshConnection(switchbot);
+    } else {
+      // Start to monitor advertisement packets
+      (async () => {
+        // Start to monitor advertisement packets
+        const serviceData = await this.monitorAdvertisementPackets(switchbot) as waterLeakDetectorServiceData;
+        // Update HomeKit
+        if (serviceData.model === SwitchBotBLEModel.Unknown && serviceData.modelName === SwitchBotBLEModelName.Unknown) {
+          this.serviceData = serviceData;
+          await this.BLEparseStatus();
+          await this.updateHomeKitCharacteristics();
+        } else {
+          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
+          await this.BLERefreshConnection(switchbot);
+        }
+      })();
     }
   }
 
   async openAPIRefreshStatus(): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
+    await this.debugLog('openAPIRefreshStatus');
     try {
-      const { body, statusCode } = await this.platform.retryRequest(this.deviceMaxRetries, this.deviceDelayBetweenRetries,
-        `${Devices}/${this.device.deviceId}/status`, { headers: this.platform.generateHeaders() });
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+      const { body, statusCode } = await this.deviceRefreshStatus();
       const deviceStatus: any = await body.json();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
-      if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-        this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-          + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
-        this.openAPIparseStatus(deviceStatus);
-        this.updateHomeKitCharacteristics();
+      await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);;
+      if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
+        await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
+        this.deviceStatus = deviceStatus.body;
+        await this.openAPIparseStatus();
+        await this.updateHomeKitCharacteristics();
       } else {
-        this.statusCode(statusCode);
-        this.statusCode(deviceStatus.statusCode);
+        await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
+        await this.debugWarnLog(statusCode, deviceStatus);
       }
     } catch (e: any) {
-      this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+      await this.apiError(e);
+      await this.errorLog(`failed openAPIRefreshStatus with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`);
     }
   }
 
-  async registerWebhook(accessory: PlatformAccessory, device: device & devicesConfig) {
-    if (device.webhook) {
-      this.debugLog(`${device.deviceType}: ${accessory.displayName} is listening webhook.`);
-      this.platform.webhookEventHandler[device.deviceId] = async (context) => {
+  async registerWebhook() {
+    if (this.device.webhook) {
+      await this.debugLog('is listening webhook.');
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context: waterLeakDetectorWebhookContext) => {
         try {
-          this.debugLog(`${device.deviceType}: ${accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          const { detectionState, battery } = context;
-          const { LeakDetected } = this.LeakSensor ? this.LeakSensor : { LeakDetected: undefined };
-          const { BatteryLevel } = this.Battery ? this.Battery : { BatteryLevel: undefined };
-          this.debugLog(`${device.deviceType}: ${accessory.displayName} (detectionState, battery) = Webhook: (${detectionState}, ${battery}), `
-            + `current: (${LeakDetected}, ${BatteryLevel})`);
-          if (!device.waterdetector?.hide_leak) {
-            this.LeakSensor!.LeakDetected = detectionState;
-          }
-          this.Battery.BatteryLevel = battery;
-          this.updateHomeKitCharacteristics();
+          await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
+          this.webhookContext = context;
+          await this.parseStatusWebhook();
+          await this.updateHomeKitCharacteristics();
         } catch (e: any) {
-          this.errorLog(`${device.deviceType}: ${accessory.displayName} failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
         }
       };
     } else {
-      this.debugLog(`${device.deviceType}: ${accessory.displayName} is not listening webhook.`);
+      await this.debugLog('is not listening webhook.');
     }
   }
 
@@ -282,75 +311,43 @@ export class WaterDetector extends deviceBase {
    * Updates the status for each of the HomeKit Characteristics
    */
   async updateHomeKitCharacteristics(): Promise<void> {
-    const mqttmessage: string[] = [];
-    const entry = { time: Math.round(new Date().valueOf() / 1000) };
-    if (!this.device.waterdetector?.hide_leak) {
-      if (this.LeakSensor!.LeakDetected === undefined) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LeakDetected: ${this.LeakSensor!.LeakDetected}`);
-      } else {
-        if (this.device.mqttURL) {
-          mqttmessage.push(`"LeakDetected": ${this.LeakSensor!.LeakDetected}`);
-        }
-        if (this.device.history) {
-          entry['leak'] = this.LeakSensor!.LeakDetected;
-        }
-        this.accessory.context.LeakDetected = this.LeakSensor!.LeakDetected;
-        this.LeakSensor!.Service.updateCharacteristic(this.hap.Characteristic.LeakDetected, this.LeakSensor!.LeakDetected);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic LeakDetected: ${this.LeakSensor!.LeakDetected}`);
-      }
+    if (!this.device.waterdetector?.hide_leak && this.LeakSensor?.Service) {
+      // StatusActive
+      await this.updateCharacteristic(this.LeakSensor.Service, this.hap.Characteristic.StatusActive,
+        this.LeakSensor.StatusActive, 'StatusActive');
+      // LeakDetected
+      await this.updateCharacteristic(this.LeakSensor.Service, this.hap.Characteristic.LeakDetected,
+        this.LeakSensor.LeakDetected, 'LeakDetected');
     }
-    if (this.Battery.BatteryLevel === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel}`);
-    } else {
-      if (this.device.mqttURL) {
-        mqttmessage.push(`"battery": ${this.Battery.BatteryLevel}`);
-      }
-      this.accessory.context.BatteryLevel = this.Battery.BatteryLevel;
-      this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, this.Battery.BatteryLevel);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.Battery.BatteryLevel}`);
-    }
-    if (this.Battery.StatusLowBattery === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.Battery.StatusLowBattery}`);
-    } else {
-      if (this.device.mqttURL) {
-        mqttmessage.push(`"lowBattery": ${this.Battery.StatusLowBattery}`);
-      }
-      this.accessory.context.StatusLowBattery = this.Battery.StatusLowBattery;
-      this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-        + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
-    }
-    if (this.device.mqttURL) {
-      this.mqttPublish(`{${mqttmessage.join(',')}}`);
-    }
-    if (!this.device.waterdetector?.hide_leak) {
-      if (Number(this.LeakSensor!.LeakDetected) > 0) {
-        // reject unreliable data
-        if (this.device.history) {
-          this.historyService?.addEntry(entry);
-        }
-      }
-    }
+    // BatteryLevel
+    await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.BatteryLevel,
+      this.Battery.BatteryLevel, 'BatteryLevel');
+    // StatusLowBattery
+    await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.StatusLowBattery,
+      this.Battery.StatusLowBattery, 'StatusLowBattery');
   }
 
   async BLERefreshConnection(switchbot: any): Promise<void> {
-    this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot:`
-      + ` ${JSON.stringify(switchbot)}`);
+    await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(switchbot)}`);
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Refresh Status`);
+      await this.warnLog('Using OpenAPI Connection to Refresh Status');
       await this.openAPIRefreshStatus();
     }
   }
 
   async offlineOff(): Promise<void> {
-    if (this.device.offline && !this.device.waterdetector?.hide_leak) {
-      this.LeakSensor!.Service.updateCharacteristic(this.hap.Characteristic.LeakDetected, this.hap.Characteristic.LeakDetected.LEAK_NOT_DETECTED);
+    if (this.device.offline) {
+      if (!this.device.waterdetector?.hide_leak && this.LeakSensor?.Service) {
+        this.LeakSensor.Service.updateCharacteristic(this.hap.Characteristic.StatusActive, false);
+        this.LeakSensor.Service.updateCharacteristic(this.hap.Characteristic.LeakDetected, this.hap.Characteristic.LeakDetected.LEAK_NOT_DETECTED);
+      }
     }
   }
 
-  async apiError(e: any): Promise<void> {
-    if (!this.device.waterdetector?.hide_leak) {
-      this.LeakSensor!.Service.updateCharacteristic(this.hap.Characteristic.LeakDetected, e);
+  async apiError(e: any): Promise < void> {
+    if(!this.device.waterdetector?.hide_leak && this.LeakSensor?.Service) {
+      this.LeakSensor.Service.updateCharacteristic(this.hap.Characteristic.StatusActive, e);
+      this.LeakSensor.Service.updateCharacteristic(this.hap.Characteristic.LeakDetected, e);
     }
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e);
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, e);

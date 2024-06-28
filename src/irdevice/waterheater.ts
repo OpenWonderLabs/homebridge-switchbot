@@ -2,12 +2,11 @@
  *
  * waterheater.ts: @switchbot/homebridge-switchbot.
  */
-import { request } from 'undici';
-import { Devices } from '../settings.js';
 import { irdeviceBase } from './irdevice.js';
 
 import type { SwitchBotPlatform } from '../platform.js';
-import type { irDevicesConfig, irdevice } from '../settings.js';
+import type { irDevicesConfig } from '../settings.js';
+import type { irdevice } from '../types/irdevicelist.js';
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 
 /**
@@ -29,6 +28,8 @@ export class WaterHeater extends irdeviceBase {
     device: irdevice & irDevicesConfig,
   ) {
     super(platform, accessory, device);
+    // Set category
+    accessory.category = this.hap.Categories.FAUCET;
 
     // Initialize Switch Service
     accessory.context.Valve = accessory.context.Valve ?? {};
@@ -50,7 +51,7 @@ export class WaterHeater extends irdeviceBase {
   }
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${value}`);
+    await this.debugLog(`Active: ${value}`);
 
     this.Valve.Active = value;
     if (this.Valve.Active === this.hap.Characteristic.Active.ACTIVE) {
@@ -69,7 +70,7 @@ export class WaterHeater extends irdeviceBase {
    * WaterHeater     "command"       "turnOn"          "default"	       set to ON state
    */
   async pushWaterHeaterOnChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushWaterHeaterOnChanges Active: ${this.Valve.Active},`
+    await this.debugLog(`pushWaterHeaterOnChanges Active: ${this.Valve.Active},`
       + ` disablePushOn: ${this.disablePushOn}`);
     if (this.Valve.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType();
@@ -84,7 +85,7 @@ export class WaterHeater extends irdeviceBase {
   }
 
   async pushWaterHeaterOffChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushWaterHeaterOffChanges Active: ${this.Valve.Active},`
+    await this.debugLog(`pushWaterHeaterOffChanges Active: ${this.Valve.Active},`
       + ` disablePushOff: ${this.disablePushOff}`);
     if (this.Valve.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOff) {
       const commandType: string = await this.commandType();
@@ -99,49 +100,34 @@ export class WaterHeater extends irdeviceBase {
   }
 
   async pushChanges(bodyChange: any): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushChanges`);
+    await this.debugLog('pushChanges');
     if (this.device.connectionType === 'OpenAPI') {
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
+      this.infoLog(`Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
-        const { body, statusCode } = await request(`${Devices}/${this.device.deviceId}/commands`, {
-          body: bodyChange,
-          method: 'POST',
-          headers: this.platform.generateHeaders(),
-        });
-        this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+        const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
-        this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
-        this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
-        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-          this.debugSuccessLog(`${this.device.remoteType}: ${this.accessory.displayName} `
-            + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
-          this.successLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-            + ` request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
-          this.updateHomeKitCharacteristics();
+        await this.pushStatusCodes(statusCode, deviceStatus);
+        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
+          await this.successfulPushChange(statusCode, deviceStatus, bodyChange);
+          await this.updateHomeKitCharacteristics();
         } else {
-          this.statusCode(statusCode);
-          this.statusCode(deviceStatus.statusCode);
+          await this.statusCode(statusCode);
+          await this.statusCode(deviceStatus.statusCode);
         }
       } catch (e: any) {
-        this.apiError(e);
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType}`
-          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+        await this.apiError(e);
+        await this.pushChangeError(e);
       }
     } else {
-      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-        + ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
+      await this.warnLog(`Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
     }
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
+    await this.debugLog('updateHomeKitCharacteristics');
     // Active
-    if (this.Valve.Active === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Valve.Active}`);
-    } else {
-      this.accessory.context.Active = this.Valve.Active;
-      this.Valve.Service.updateCharacteristic(this.hap.Characteristic.Active, this.Valve.Active);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Valve.Active}`);
-    }
+    await this.updateCharacteristic(this.Valve.Service, this.hap.Characteristic.Active,
+      this.Valve.Active, 'Active');
   }
 
   async apiError({ e }: { e: any }): Promise<void> {

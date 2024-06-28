@@ -2,12 +2,11 @@
  *
  * tv.ts: @switchbot/homebridge-switchbot.
  */
-import { request } from 'undici';
-import { Devices } from '../settings.js';
 import { irdeviceBase } from './irdevice.js';
 
 import type { SwitchBotPlatform } from '../platform.js';
-import type { irDevicesConfig, irdevice } from '../settings.js';
+import type { irDevicesConfig } from '../settings.js';
+import type { irdevice } from '../types/irdevicelist.js';
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 
 /**
@@ -60,20 +59,20 @@ export class TV extends irdeviceBase {
     switch (device.remoteType) {
       case 'Speaker':
       case 'DIY Speaker':
-        accessory.category = this.platform.api.hap.Categories.SPEAKER;
+        accessory.category = this.hap.Categories.SPEAKER;
         break;
       case 'IPTV':
       case 'DIY IPTV':
-        accessory.category = this.platform.api.hap.Categories.TV_STREAMING_STICK;
+        accessory.category = this.hap.Categories.TV_STREAMING_STICK;
         break;
       case 'DVD':
       case 'DIY DVD':
       case 'Set Top Box':
       case 'DIY Set Top Box':
-        accessory.category = this.platform.api.hap.Categories.TV_SET_TOP_BOX;
+        accessory.category = this.hap.Categories.TV_SET_TOP_BOX;
         break;
       default:
-        accessory.category = this.platform.api.hap.Categories.TELEVISION;
+        accessory.category = this.hap.Categories.TELEVISION;
     }
 
     this.Television.Service
@@ -126,7 +125,7 @@ export class TV extends irdeviceBase {
   }
 
   async VolumeSelectorSet(value: CharacteristicValue): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} VolumeSelector: ${value}`);
+    await this.debugLog(`VolumeSelector: ${value}`);
     if (value === this.hap.Characteristic.VolumeSelector.INCREMENT) {
       this.pushVolumeUpChanges();
     } else {
@@ -137,61 +136,61 @@ export class TV extends irdeviceBase {
   async RemoteKeySet(value: CharacteristicValue): Promise<void> {
     switch (value) {
       case this.hap.Characteristic.RemoteKey.REWIND: {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: REWIND`);
+        await this.debugLog('Set Remote Key Pressed: REWIND');
         break;
       }
       case this.hap.Characteristic.RemoteKey.FAST_FORWARD: {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: FAST_FORWARD`);
+        await this.debugLog('Set Remote Key Pressed: FAST_FORWARD');
         break;
       }
       case this.hap.Characteristic.RemoteKey.NEXT_TRACK: {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: NEXT_TRACK`);
+        await this.debugLog('Set Remote Key Pressed: NEXT_TRACK');
         break;
       }
       case this.hap.Characteristic.RemoteKey.PREVIOUS_TRACK: {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: PREVIOUS_TRACK`);
+        await this.debugLog('Set Remote Key Pressed: PREVIOUS_TRACK');
         break;
       }
       case this.hap.Characteristic.RemoteKey.ARROW_UP: {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: ARROW_UP`);
+        await this.debugLog('Set Remote Key Pressed: ARROW_UP');
         //this.pushUpChanges();
         break;
       }
       case this.hap.Characteristic.RemoteKey.ARROW_DOWN: {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: ARROW_DOWN`);
+        await this.debugLog('Set Remote Key Pressed: ARROW_DOWN');
         //this.pushDownChanges();
         break;
       }
       case this.hap.Characteristic.RemoteKey.ARROW_LEFT: {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: ARROW_LEFT`);
+        await this.debugLog('Set Remote Key Pressed: ARROW_LEFT');
         //this.pushLeftChanges();
         break;
       }
       case this.hap.Characteristic.RemoteKey.ARROW_RIGHT: {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: ARROW_RIGHT`);
+        await this.debugLog('Set Remote Key Pressed: ARROW_RIGHT');
         //this.pushRightChanges();
         break;
       }
       case this.hap.Characteristic.RemoteKey.SELECT: {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: SELECT`);
+        await this.debugLog('Set Remote Key Pressed: SELECT');
         //this.pushOkChanges();
         break;
       }
       case this.hap.Characteristic.RemoteKey.BACK: {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: BACK`);
+        await this.debugLog('Set Remote Key Pressed: BACK');
         //this.pushBackChanges();
         break;
       }
       case this.hap.Characteristic.RemoteKey.EXIT: {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: EXIT`);
+        await this.debugLog('Set Remote Key Pressed: EXIT');
         break;
       }
       case this.hap.Characteristic.RemoteKey.PLAY_PAUSE: {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: PLAY_PAUSE`);
+        await this.debugLog('Set Remote Key Pressed: PLAY_PAUSE');
         break;
       }
       case this.hap.Characteristic.RemoteKey.INFORMATION: {
-        this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Set Remote Key Pressed: INFORMATION`);
+        await this.debugLog('Set Remote Key Pressed: INFORMATION');
         //this.pushMenuChanges();
         break;
       }
@@ -199,12 +198,12 @@ export class TV extends irdeviceBase {
   }
 
   async ActiveIdentifierSet(value: CharacteristicValue): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} ActiveIdentifier: ${value}`);
+    await this.debugLog(`ActiveIdentifier: ${value}`);
     this.Television.ActiveIdentifier = value;
   }
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active (value): ${value}`);
+    await this.debugLog(`Active (value): ${value}`);
 
     this.Television.Active = value;
     if (this.Television.Active === this.hap.Characteristic.Active.ACTIVE) {
@@ -225,7 +224,7 @@ export class TV extends irdeviceBase {
    * TV           "command"       "channelSub"      "default"	        previous channel
    */
   async pushTvOnChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushTvOnChanges`
+    await this.debugLog('pushTvOnChanges'
       + ` Active: ${this.Television.Active}, disablePushOn: ${this.disablePushOn}`);
     if (this.Television.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType();
@@ -240,7 +239,7 @@ export class TV extends irdeviceBase {
   }
 
   async pushTvOffChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushTvOffChanges`
+    await this.debugLog('pushTvOffChanges'
       + ` Active: ${this.Television.Active}, disablePushOff: ${this.disablePushOff}`);
     if (this.Television.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOff) {
       const commandType: string = await this.commandType();
@@ -255,7 +254,7 @@ export class TV extends irdeviceBase {
   }
 
   async pushOkChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushOkChanges disablePushDetail: ${this.disablePushDetail}`);
+    await this.debugLog(`pushOkChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
       const bodyChange = JSON.stringify({
         command: 'Ok',
@@ -267,7 +266,7 @@ export class TV extends irdeviceBase {
   }
 
   async pushBackChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushBackChanges disablePushDetail: ${this.disablePushDetail}`);
+    await this.debugLog(`pushBackChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
       const bodyChange = JSON.stringify({
         command: 'Back',
@@ -279,7 +278,7 @@ export class TV extends irdeviceBase {
   }
 
   async pushMenuChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushMenuChanges disablePushDetail: ${this.disablePushDetail}`);
+    await this.debugLog(`pushMenuChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
       const bodyChange = JSON.stringify({
         command: 'Menu',
@@ -291,7 +290,7 @@ export class TV extends irdeviceBase {
   }
 
   async pushUpChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushUpChanges disablePushDetail: ${this.disablePushDetail}`);
+    await this.debugLog(`pushUpChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
       const bodyChange = JSON.stringify({
         command: 'Up',
@@ -303,7 +302,7 @@ export class TV extends irdeviceBase {
   }
 
   async pushDownChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushDownChanges disablePushDetail: ${this.disablePushDetail}`);
+    await this.debugLog(`pushDownChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
       const bodyChange = JSON.stringify({
         command: 'Down',
@@ -315,7 +314,7 @@ export class TV extends irdeviceBase {
   }
 
   async pushRightChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushRightChanges disablePushDetail: ${this.disablePushDetail}`);
+    await this.debugLog(`pushRightChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
       const bodyChange = JSON.stringify({
         command: 'Right',
@@ -327,7 +326,7 @@ export class TV extends irdeviceBase {
   }
 
   async pushLeftChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushLeftChanges disablePushDetail: ${this.disablePushDetail}`);
+    await this.debugLog(`pushLeftChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
       const bodyChange = JSON.stringify({
         command: 'Left',
@@ -339,7 +338,7 @@ export class TV extends irdeviceBase {
   }
 
   async pushVolumeUpChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushVolumeUpChanges disablePushDetail: ${this.disablePushDetail}`);
+    await this.debugLog(`pushVolumeUpChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
       const bodyChange = JSON.stringify({
         command: 'volumeAdd',
@@ -351,7 +350,7 @@ export class TV extends irdeviceBase {
   }
 
   async pushVolumeDownChanges(): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushVolumeDownChanges disablePushDetail: ${this.disablePushDetail}`);
+    await this.debugLog(`pushVolumeDownChanges disablePushDetail: ${this.disablePushDetail}`);
     if (!this.disablePushDetail) {
       const bodyChange = JSON.stringify({
         command: 'volumeSub',
@@ -363,58 +362,37 @@ export class TV extends irdeviceBase {
   }
 
   async pushTVChanges(bodyChange: any): Promise<void> {
-    this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} pushTVChanges`);
+    await this.debugLog('pushTVChanges');
     if (this.device.connectionType === 'OpenAPI') {
-      this.infoLog(`${this.device.remoteType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
+      await this.infoLog(`Sending request to SwitchBot API, body: ${bodyChange},`);
       try {
-        const { body, statusCode } = await request(`${Devices}/${this.device.deviceId}/commands`, {
-          body: bodyChange,
-          method: 'POST',
-          headers: this.platform.generateHeaders(),
-        });
-        this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+        const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
-        this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
-        this.debugWarnLog(`${this.device.remoteType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
-        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-          this.debugSuccessLog(`${this.device.remoteType}: ${this.accessory.displayName} `
-            + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
-          this.successLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-            + ` request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
-          this.updateHomeKitCharacteristics();
+        await this.pushStatusCodes(statusCode, deviceStatus);
+        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
+          await this.successfulPushChange(statusCode, deviceStatus, bodyChange);
+          await this.updateHomeKitCharacteristics();
         } else {
-          this.statusCode(statusCode);
-          this.statusCode(deviceStatus.statusCode);
+          await this.statusCode(statusCode);
+          await this.statusCode(deviceStatus.statusCode);
         }
       } catch (e: any) {
-        this.apiError(e);
-        this.errorLog(`${this.device.remoteType}: ${this.accessory.displayName} failed pushTVChanges with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+        await this.apiError(e);
+        await this.pushChangeError(e);
       }
     } else {
-      this.warnLog(`${this.device.remoteType}: ${this.accessory.displayName}`
-      + ` Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
+      await this.warnLog(`Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`);
     }
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
+    await this.debugLog('updateHomeKitCharacteristics');
     // Active
-    if (this.Television.Active === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} Active: ${this.Television.Active}`);
-    } else {
-      this.accessory.context.Active = this.Television.Active;
-      this.Television.Service.updateCharacteristic(this.hap.Characteristic.Active, this.Television.Active);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic Active: ${this.Television.Active}`);
-    }
+    await this.updateCharacteristic(this.Television.Service, this.hap.Characteristic.Active,
+      this.Television.Active, 'Active');
     // ActiveIdentifier
-    if (this.Television.ActiveIdentifier === undefined) {
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} ActiveIdentifier: ${this.Television.ActiveIdentifier}`);
-    } else {
-      this.accessory.context.ActiveIdentifier = this.Television.ActiveIdentifier;
-      this.Television.Service.updateCharacteristic(this.hap.Characteristic.ActiveIdentifier, this.Television.ActiveIdentifier);
-      this.debugLog(`${this.device.remoteType}: ${this.accessory.displayName} updateCharacteristic`
-        + ` ActiveIdentifier: ${this.Television.ActiveIdentifier}`);
-    }
+    await this.updateCharacteristic(this.Television.Service, this.hap.Characteristic.ActiveIdentifier,
+      this.Television.ActiveIdentifier, 'ActiveIdentifier');
   }
 
   async apiError(e: any): Promise<void> {

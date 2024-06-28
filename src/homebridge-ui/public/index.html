@@ -51,7 +51,7 @@
       <tbody>
         <tr>
           <th scope="row">Device ID</th>
-          <td id="deviceID"></td>
+          <td id="deviceId"></td>
         </tr>
         <tr>
           <th scope="row">Model</th>
@@ -166,7 +166,7 @@
           const thisAcc = cachedAccessories.find((x) => x.UUID === UUID);
           const context = thisAcc.context;
           document.getElementById('displayName').innerHTML = thisAcc.displayName;
-          document.getElementById('deviceID').innerHTML = context.deviceID;
+          document.getElementById('deviceId').innerHTML = context.deviceId;
           document.getElementById('model').innerHTML = context.model;
           document.getElementById('version').innerHTML = context.version;
           document.getElementById('deviceType').innerHTML = context.deviceType;

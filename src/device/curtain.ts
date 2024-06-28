@@ -3,14 +3,16 @@
  * curtain.ts: @switchbot/homebridge-switchbot.
  */
 import { hostname } from 'os';
-import { request } from 'undici';
-import { interval, Subject } from 'rxjs';
 import { deviceBase } from './device.js';
-import { Devices } from '../settings.js';
-import { debounceTime, skipWhile, take, tap } from 'rxjs/operators';
+import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot';
+import { Subject, debounceTime, interval, skipWhile, take, tap } from 'rxjs';
 
+import type { devicesConfig } from '../settings.js';
+import type { device } from '../types/devicelist.js';
 import type { SwitchBotPlatform } from '../platform.js';
-import type { device, devicesConfig, serviceData, deviceStatus } from '../settings.js';
+import type { curtainStatus } from '../types/devicestatus.js';
+import type { curtainServiceData, curtain3ServiceData } from '../types/bledevicestatus.js';
+import type { curtain3WebhookContext, curtainWebhookContext } from '../types/devicewebhookstatus.js';
 import type { Service, PlatformAccessory, CharacteristicValue, CharacteristicChange } from 'homebridge';
 
 export class Curtain extends deviceBase {
@@ -38,6 +40,15 @@ export class Curtain extends deviceBase {
     CurrentAmbientLightLevel?: CharacteristicValue;
   };
 
+  // OpenAPI
+  deviceStatus!: curtainStatus;
+
+  //Webhook
+  webhookContext!: curtainWebhookContext | curtain3WebhookContext;
+
+  // BLE
+  serviceData!: curtainServiceData | curtain3ServiceData;
+
   // Target
   setNewTarget!: boolean;
   setNewTargetTimer!: NodeJS.Timeout;
@@ -52,8 +63,9 @@ export class Curtain extends deviceBase {
     device: device & devicesConfig,
   ) {
     super(platform, accessory, device);
-    // default placeholder
-    this.history(device);
+    // Set category
+    accessory.category = this.hap.Categories.WINDOW_COVERING;
+
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doCurtainUpdate = new Subject();
     this.curtainUpdateInProgress = false;
@@ -149,7 +161,7 @@ export class Curtain extends deviceBase {
     // Initialize LightSensor Service
     if (device.curtain?.hide_lightsensor) {
       if (this.LightSensor?.Service) {
-        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Removing Light Sensor Service`);
+        this.debugLog('Removing Light Sensor Service');
         this.LightSensor.Service = this.accessory.getService(this.hap.Service.LightSensor) as Service;
         accessory.removeService(this.LightSensor.Service);
         accessory.context.LightSensor = {};
@@ -174,10 +186,15 @@ export class Curtain extends deviceBase {
     }
 
     // Retrieve initial values and updateHomekit
+    this.debugLog('Retrieve initial values and update Homekit');
     this.refreshStatus();
 
-    // Update Homekit
-    this.updateHomeKitCharacteristics();
+    //regisiter webhook event handler
+    this.debugLog('Registering Webhook Event Handler');
+    this.registerWebhook();
+
+    // History
+    this.history();
 
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
@@ -186,9 +203,6 @@ export class Curtain extends deviceBase {
         await this.refreshStatus();
       });
 
-    //regisiter webhook event handler
-    this.registerWebhook(accessory, device);
-
     // update slide progress
     interval(this.deviceUpdateRate * 1000)
       //.pipe(skipWhile(() => this.curtainUpdateInProgress))
@@ -196,8 +210,7 @@ export class Curtain extends deviceBase {
         if (this.WindowCovering.PositionState === this.hap.Characteristic.PositionState.STOPPED) {
           return;
         }
-        this.debugLog(`${this.device.deviceType}: ${accessory.displayName} Refresh Status When Moving,`
-          + ` PositionState: ${this.WindowCovering.PositionState}`);
+        await this.debugLog(`Refresh Status When Moving, PositionState: ${this.WindowCovering.PositionState}`);
         await this.refreshStatus();
       });
 
@@ -214,19 +227,18 @@ export class Curtain extends deviceBase {
         try {
           await this.pushChanges();
         } catch (e: any) {
-          this.apiError(e);
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed pushChanges with ${this.device.connectionType} Connection,`
-            + ` Error Message: ${JSON.stringify(e.message)}`);
+          await this.apiError(e);
+          await this.errorLog(`failed pushChanges with ${device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`);
         }
         this.curtainUpdateInProgress = false;
       });
 
     // Setup EVE history features
-    this.setupHistoryService(accessory, device);
+    this.setupHistoryService();
   }
 
-  private history(device: device & devicesConfig) {
-    if (device.history === true) {
+  async history() {
+    if (this.device.history === true) {
       // initialize when this accessory is newly created.
       this.accessory.context.lastActivation = this.accessory.context.lastActivation ?? 0;
     } else {
@@ -238,8 +250,8 @@ export class Curtain extends deviceBase {
   /*
    * Setup EVE history features for curtain devices.
    */
-  async setupHistoryService(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
-    if (device.history !== true) {
+  async setupHistoryService(): Promise<void> {
+    if (this.device.history !== true) {
       return;
     }
 
@@ -254,7 +266,7 @@ export class Curtain extends deviceBase {
     });
     const motion: Service =
       this.accessory.getService(this.hap.Service.MotionSensor) ||
-      this.accessory.addService(this.hap.Service.MotionSensor, `${this.accessory.displayName} Motion`);
+      this.accessory.addService(this.hap.Service.MotionSensor, 'Motion');
     motion.addOptionalCharacteristic(this.platform.eve.Characteristics.LastActivation);
     motion.getCharacteristic(this.platform.eve.Characteristics.LastActivation).onGet(() => {
       const lastActivation = this.accessory.context.lastActivation
@@ -286,319 +298,220 @@ export class Curtain extends deviceBase {
       time: Math.round(new Date().valueOf() / 1000),
       motion: motion,
     });
-    setTimeout(
-      () => {
-        this.updateHistory();
-      },
-      10 * 60 * 1000,
-    );
+    setTimeout(async () => {
+      await this.updateHistory();
+    }, 10 * 60 * 1000);
   }
 
-  async BLEparseStatus(serviceData: serviceData): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEparseStatus`);
+  async BLEparseStatus(): Promise<void> {
+    await this.debugLog('BLEparseStatus');
+    await this.debugLog(`(position, battery) = BLE:(${this.serviceData.position}, ${this.serviceData.battery}),`
+      + ` current:(${this.WindowCovering.CurrentPosition}, ${this.Battery.BatteryLevel})`);
     // CurrentPosition
-    this.WindowCovering.CurrentPosition = 100 - Number(serviceData.position);
-    await this.setMinMax();
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition ${this.WindowCovering.CurrentPosition}`);
-    if (this.setNewTarget) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Checking Status ...`);
-      await this.setMinMax();
-      if (Number(this.WindowCovering.TargetPosition) > this.WindowCovering.CurrentPosition) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Closing, CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
-        this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.INCREASING;
-        this.WindowCovering.Service.getCharacteristic(this.hap.Characteristic.PositionState).updateValue(this.WindowCovering.PositionState);
-        this.debugLog(`${this.device.deviceType}: ${this.WindowCovering.CurrentPosition} INCREASING`
-          + ` PositionState: ${this.WindowCovering.PositionState}`);
-      } else if (Number(this.WindowCovering.TargetPosition) < this.WindowCovering.CurrentPosition) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Opening, CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
-        this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.DECREASING;
-        this.WindowCovering.Service.getCharacteristic(this.hap.Characteristic.PositionState).updateValue(this.WindowCovering.PositionState);
-        this.debugLog(`${this.device.deviceType}: ${this.WindowCovering.CurrentPosition} DECREASING`
-          + ` PositionState: ${this.WindowCovering.PositionState}`);
-      } else {
-        this.debugLog(`${this.device.deviceType}: ${this.WindowCovering.CurrentPosition} Standby,`
-          + ` CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
-        this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.STOPPED;
-        this.WindowCovering.Service.getCharacteristic(this.hap.Characteristic.PositionState).updateValue(this.WindowCovering.PositionState);
-        this.debugLog(`${this.device.deviceType}: ${this.WindowCovering.CurrentPosition} STOPPED`
-          + ` PositionState: ${this.WindowCovering.PositionState}`);
-      }
-    } else {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Standby, CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
-      this.WindowCovering.TargetPosition = this.WindowCovering.CurrentPosition;
-      this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.STOPPED;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Stopped`);
-    }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition: ${this.WindowCovering.CurrentPosition},`
-      + ` TargetPosition: ${this.WindowCovering.TargetPosition}, PositionState: ${this.WindowCovering.PositionState},`);
-
-    if (!this.device.curtain?.hide_lightsensor) {
+    this.WindowCovering.CurrentPosition = 100 -this.serviceData.position;
+    await this.getCurrentPostion();
+    // CurrentAmbientLightLevel
+    if (!this.device.curtain?.hide_lightsensor && this.LightSensor?.Service) {
       const set_minLux = this.device.curtain?.set_minLux ?? 1;
       const set_maxLux = this.device.curtain?.set_maxLux ?? 6001;
-      const spaceBetweenLevels = 9;
-
-      // Brightness
-      switch (serviceData.lightLevel) {
-        case 1:
-          this.LightSensor!.CurrentAmbientLightLevel = set_minLux;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel}`);
-          break;
-        case 2:
-          this.LightSensor!.CurrentAmbientLightLevel = (set_maxLux - set_minLux) / spaceBetweenLevels;
-          this.debugLog(
-            `${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel},`
-            + ` Calculation: ${(set_maxLux - set_minLux) / spaceBetweenLevels}`);
-          break;
-        case 3:
-          this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 2;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel}`);
-          this.Battery.ChargingState = this.hap.Characteristic.ChargingState.CHARGING;
-          break;
-        case 4:
-          this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 3;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel}`);
-          this.Battery.ChargingState = this.hap.Characteristic.ChargingState.CHARGING;
-          break;
-        case 5:
-          this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 4;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel}`);
-          this.Battery.ChargingState = this.hap.Characteristic.ChargingState.CHARGING;
-          break;
-        case 6:
-          this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 5;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel}`);
-          this.Battery.ChargingState = this.hap.Characteristic.ChargingState.CHARGING;
-          break;
-        case 7:
-          this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 6;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel}`);
-          this.Battery.ChargingState = this.hap.Characteristic.ChargingState.CHARGING;
-          break;
-        case 8:
-          this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 7;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel}`);
-          this.Battery.ChargingState = this.hap.Characteristic.ChargingState.CHARGING;
-          break;
-        case 9:
-          this.LightSensor!.CurrentAmbientLightLevel = ((set_maxLux - set_minLux) / spaceBetweenLevels) * 8;
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel}`);
-          this.Battery.ChargingState = this.hap.Characteristic.ChargingState.CHARGING;
-          break;
-        case 10:
-        default:
-          this.LightSensor!.CurrentAmbientLightLevel = set_maxLux;
-          this.debugLog();
-      }
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} LightLevel: ${serviceData.lightLevel},`
-        + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
+      const lightLevel = this.serviceData.lightLevel;
+      this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 19);
+      this.debugLog(`LightLevel: ${this.serviceData.lightLevel},`
+        + ` CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`);
     }
-    // Battery
-    this.Battery.BatteryLevel = Number(serviceData.battery);
-    if (this.Battery.BatteryLevel < 10) {
-      this.Battery.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
-    } else {
-      this.Battery.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
-    }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel},`
-      + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+    // BatteryLevel
+    this.Battery.BatteryLevel = this.serviceData.battery;
+    await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
+    // StatusLowBattery
+    this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
+      ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
   }
 
-  async openAPIparseStatus(deviceStatus: deviceStatus): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIparseStatus`);
+  async openAPIparseStatus(): Promise<void> {
+    await this.debugLog('openAPIparseStatus');
+    await this.debugLog(`(slidePosition, battery) = OpenAPI:(${this.deviceStatus.slidePosition}, ${this.deviceStatus.battery}),`
+      + ` current:(${this.WindowCovering.CurrentPosition}, ${this.Battery.BatteryLevel})`);
     // CurrentPosition
-    this.WindowCovering!.CurrentPosition = 100 - Number(deviceStatus.body.slidePosition);
+    this.WindowCovering.CurrentPosition = 100 - this.deviceStatus.slidePosition;
     await this.setMinMax();
-    this.debugLog(`Curtain ${this.accessory.displayName} CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
+    await this.debugLog(`CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
     if (this.setNewTarget) {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Checking Status ...`);
+      await this.infoLog('Checking Status ...');
     }
-
-    if (this.setNewTarget && deviceStatus.body.moving) {
+    if (this.setNewTarget && this.deviceStatus.moving) {
       await this.setMinMax();
       if (Number(this.WindowCovering.TargetPosition) > this.WindowCovering.CurrentPosition) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Closing, CurrentPosition: ${this.WindowCovering.CurrentPosition} `);
+        await this.debugLog(`Closing, CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
         this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.INCREASING;
         this.WindowCovering.Service.getCharacteristic(this.hap.Characteristic.PositionState).updateValue(this.WindowCovering.PositionState);
-        this.debugLog(`${this.device.deviceType}: ${this.WindowCovering.CurrentPosition} INCREASING`
-          + ` PositionState: ${this.WindowCovering.PositionState}`);
+        await this.debugLog(`Increasing, PositionState: ${this.WindowCovering.PositionState}`);
       } else if (Number(this.WindowCovering.TargetPosition) < this.WindowCovering.CurrentPosition) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Opening, CurrentPosition: ${this.WindowCovering.CurrentPosition} `);
+        await this.debugLog(`Opening, CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
         this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.DECREASING;
         this.WindowCovering.Service.getCharacteristic(this.hap.Characteristic.PositionState).updateValue(this.WindowCovering.PositionState);
-        this.debugLog(`${this.device.deviceType}: ${this.WindowCovering.CurrentPosition} DECREASING`
-          + ` PositionState: ${this.WindowCovering.PositionState}`);
+        await this.debugLog(`Decreasing, PositionState: ${this.WindowCovering.PositionState}`);
       } else {
-        this.debugLog(`${this.device.deviceType}: ${this.WindowCovering.CurrentPosition} Standby,`
-          + ` CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
+        await this.debugLog(`Standby, CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
         this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.STOPPED;
         this.WindowCovering.Service.getCharacteristic(this.hap.Characteristic.PositionState).updateValue(this.WindowCovering.PositionState);
-        this.debugLog(`${this.device.deviceType}: ${this.WindowCovering.CurrentPosition} STOPPED`
-          + ` PositionState: ${this.WindowCovering.PositionState}`);
+        await this.debugLog(`Stopped, PositionState: ${this.WindowCovering.PositionState}`);
       }
     } else {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Standby, CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
+      await this.debugLog(`Standby, CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
       this.WindowCovering.TargetPosition = this.WindowCovering.CurrentPosition;
       this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.STOPPED;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Stopped`);
+      await this.debugLog(`Stopped, PositionState: ${this.WindowCovering.PositionState}`);
     }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition: ${this.WindowCovering.CurrentPosition},`
-      + ` TargetPosition: ${this.WindowCovering.TargetPosition}, PositionState: ${this.WindowCovering.PositionState},`);
+    await this.debugLog(`CurrentPosition: ${this.WindowCovering.CurrentPosition}, TargetPosition: ${this.WindowCovering.TargetPosition},`
+      + ` PositionState: ${this.WindowCovering.PositionState},`);
 
     // Brightness
-    if (!this.device.curtain?.hide_lightsensor) {
+    if (!this.device.curtain?.hide_lightsensor && this.LightSensor?.Service) {
       const set_minLux = this.device.curtain?.set_minLux ?? 1;
       const set_maxLux = this.device.curtain?.set_maxLux ?? 6001;
-      switch (deviceStatus.body.brightness) {
-        case 'bright':
-          this.LightSensor!.CurrentAmbientLightLevel = set_maxLux;
-          this.Battery.ChargingState = this.hap.Characteristic.ChargingState.CHARGING;
-          break;
-        case 'dim':
-        default:
-          this.LightSensor!.CurrentAmbientLightLevel = set_minLux;
-      }
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-        + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
+      const lightLevel = this.deviceStatus.lightLevel === 'bright' ? set_maxLux : set_minLux;
+      this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2);
+      await this.debugLog(`CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`);
     }
 
     // BatteryLevel
-    this.Battery.BatteryLevel = Number(deviceStatus.body.battery);
-    if (this.Battery.BatteryLevel < 10) {
-      this.Battery.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
-    } else {
-      this.Battery.StatusLowBattery = this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
-    }
-    if (Number.isNaN(this.Battery.BatteryLevel)) {
-      this.Battery.BatteryLevel = 100;
-    }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel},`
-      + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+    this.Battery.BatteryLevel = this.deviceStatus.battery;
+    await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
+
+    // StatusLowBattery
+    this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
+      ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
 
     // Firmware Version
-    const version = deviceStatus.body.version?.toString();
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Firmware Version: ${version?.replace(/^V|-.*$/g, '')}`);
-    if (deviceStatus.body.version) {
-      const deviceVersion = version?.replace(/^V|-.*$/g, '') ?? '0.0.0';
+    if (this.deviceStatus.version) {
+      const version = this.deviceStatus.version.toString();
+      await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
+      const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0';
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
         .setCharacteristic(this.hap.Characteristic.HardwareRevision, deviceVersion)
         .setCharacteristic(this.hap.Characteristic.FirmwareRevision, deviceVersion)
         .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
         .updateValue(deviceVersion);
-      this.accessory.context.deviceVersion = deviceVersion;
-      this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceVersion: ${this.accessory.context.deviceVersion}`);
+      this.accessory.context.version = deviceVersion;
+      await this.debugSuccessLog(`version: ${this.accessory.context.version}`);
     }
   }
 
+  async parseStatusWebhook(): Promise<void> {
+    await this.debugLog('parseStatusWebhook');
+    await this.debugLog(`(slidePosition, battery) = Webhook:(${this.webhookContext.slidePosition}, ${this.webhookContext.battery}),`
+      + ` current:(${this.WindowCovering.CurrentPosition}, ${this.Battery.BatteryLevel})`);
+
+    // CurrentPosition
+    this.WindowCovering.CurrentPosition = 100 - this.webhookContext.slidePosition;
+    await this.getCurrentPostion();
+
+    // BatteryLevel
+    this.Battery.BatteryLevel = this.webhookContext.battery;
+    await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
+
+    // StatusLowBattery
+    this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
+      ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+  }
+
+  /**
+   * Asks the SwitchBot API for the latest device information
+   */
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} refreshStatus enableCloudService: ${this.device.enableCloudService}`);
+      await this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`);
     } else if (this.BLE) {
       await this.BLERefreshStatus();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-        + ` ${this.device.connectionType}, refreshStatus will not happen.`);
+      await this.debugWarnLog(`Connection Type: ${this.device.connectionType}, refreshStatus will not happen.`);
     }
   }
 
   async BLERefreshStatus(): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLERefreshStatus`);
-    const switchbot = await this.platform.connectBLE();
-    // Convert to BLE Address
-    this.device.bleMac = this.device
-      .deviceId!.match(/.{1,2}/g)!
-      .join(':')
-      .toLowerCase();
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
-    this.getCustomBLEAddress(switchbot);
-    // Start to monitor advertisement packets
-    (async () => {
-      // Start to monitor advertisement packets
-      await switchbot.startScan({ model: this.device.bleModel, id: this.device.bleMac });
-      // Set an event handler
-      switchbot.onadvertisement = (ad: any) => {
-        if (this.device.bleMac === ad.address && ad.model === this.device.bleModel) {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ${JSON.stringify(ad, null, '  ')}`);
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} address: ${ad.address}, model: ${ad.model}`);
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-        } else {
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} serviceData: ${JSON.stringify(ad.serviceData)}`);
-        }
-      };
-      // Wait 10 seconds
-      await switchbot.wait(this.scanDuration * 1000);
-      // Stop to monitor
-      await switchbot.stopScan();
-      // Update HomeKit
-      await this.BLEparseStatus(switchbot.onadvertisement.serviceData);
-      await this.updateHomeKitCharacteristics();
-    })();
+    await this.debugLog('BLERefreshStatus');
+    const switchbot = await this.switchbotBLE();
+
     if (switchbot === undefined) {
       await this.BLERefreshConnection(switchbot);
+    } else {
+    // Start to monitor advertisement packets
+      (async () => {
+      // Start to monitor advertisement packets
+        const serviceData = await this.monitorAdvertisementPackets(switchbot) as curtainServiceData | curtain3ServiceData;
+        // Update HomeKit
+        if ((serviceData.model === SwitchBotBLEModel.Curtain || SwitchBotBLEModel.Curtain3)
+          && (serviceData.modelName === SwitchBotBLEModelName.Curtain || SwitchBotBLEModelName.Curtain3)) {
+          this.serviceData = serviceData;
+          await this.BLEparseStatus();
+          await this.updateHomeKitCharacteristics();
+        } else {
+          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
+          await this.BLERefreshConnection(switchbot);
+        }
+      })();
     }
   }
 
   async openAPIRefreshStatus(): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIRefreshStatus`);
+    await this.debugLog('openAPIRefreshStatus');
     try {
-      const { body, statusCode } = await this.platform.retryRequest(this.deviceMaxRetries, this.deviceDelayBetweenRetries,
-        `${Devices}/${this.device.deviceId}/status`, { headers: this.platform.generateHeaders() });
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+      const { body, statusCode } = await this.deviceRefreshStatus();
       const deviceStatus: any = await body.json();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
-      if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-        this.debugSuccessLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-          + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
-        this.openAPIparseStatus(deviceStatus);
-        this.updateHomeKitCharacteristics();
+      await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);;
+      if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
+        await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
+        this.deviceStatus = deviceStatus.body;
+        await this.openAPIparseStatus();
+        await this.updateHomeKitCharacteristics();
       } else {
-        this.statusCode(statusCode);
-        this.statusCode(deviceStatus.statusCode);
+        await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
+        await this.debugWarnLog(statusCode, deviceStatus);
       }
     } catch (e: any) {
-      this.apiError(e);
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIRefreshStatus with ${this.device.connectionType}`
-        + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+      await this.apiError(e);
+      await this.errorLog(`failed openAPIRefreshStatus with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`);
     }
   }
 
-  async registerWebhook(accessory: PlatformAccessory, device: device & devicesConfig) {
-    if (device.webhook) {
-      this.debugLog(`${device.deviceType}: ${accessory.displayName} is listening webhook.`);
-      this.platform.webhookEventHandler[device.deviceId] = async (context) => {
+  async registerWebhook() {
+    if (this.device.webhook) {
+      await this.debugLog('is listening webhook.');
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context: curtainWebhookContext | curtain3WebhookContext) => {
         try {
-          this.debugLog(`${device.deviceType}: ${accessory.displayName} received Webhook: ${JSON.stringify(context)}`);
-          const { slidePosition, battery } = context;
-          this.debugLog(`${device.deviceType}: ${accessory.displayName} ` +
-            '(slidePosition, battery) = ' +
-            `Webhook:(${slidePosition}, ${battery}), `
-            + `current:(${this.WindowCovering.CurrentPosition}, ${this.Battery.BatteryLevel})`);
-          this.WindowCovering.CurrentPosition = slidePosition;
-          this.Battery.BatteryLevel = battery;
-          this.updateHomeKitCharacteristics();
+          await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
+          this.webhookContext = context;
+          await this.parseStatusWebhook();
+          await this.updateHomeKitCharacteristics();
         } catch (e: any) {
-          this.errorLog(`${device.deviceType}: ${accessory.displayName} `
-            + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
         }
       };
+    } else {
+      await this.debugLog('is not listening webhook.');
     }
   }
 
+  /**
+   * Pushes the requested changes to the SwitchBot API
+   */
   async pushChanges(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
-      this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} pushChanges enableCloudService: ${this.device.enableCloudService}`);
+      await this.errorLog(`pushChanges enableCloudService: ${this.device.enableCloudService}`);
     } else if (this.BLE) {
       await this.BLEpushChanges();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges();
     } else {
       await this.offlineOff();
-      this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} Connection Type:`
-        + ` ${this.device.connectionType}, pushChanges will not happen.`);
+      await this.debugWarnLog(`Connection Type: ${this.device.connectionType}, pushChanges will not happen.`);
     }
     // Refresh the status from the API
     interval(15000)
@@ -610,104 +523,84 @@ export class Curtain extends deviceBase {
   }
 
   async BLEpushChanges(): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLEpushChanges`);
+    await this.debugLog('BLEpushChanges');
     if (this.WindowCovering.TargetPosition !== this.WindowCovering.CurrentPosition) {
-      const switchbot = await this.platform.connectBLE();
-      // Convert to BLE Address
-      this.device.bleMac = this.device
-        .deviceId!.match(/.{1,2}/g)!
-        .join(':')
-        .toLowerCase();
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BLE Address: ${this.device.bleMac}`);
+      const switchbot = await this.platform.connectBLE(this.accessory, this.device);
+      await this.convertBLEAddress();
       const { setPositionMode, Mode }: { setPositionMode: number; Mode: string; } = await this.setPerformance();
       const adjustedMode = setPositionMode === 1 ? 0x01 : 0xff;
-      this.debugLog(`${this.accessory.displayName} Mode: ${Mode}`);
+      await this.debugLog(`Mode: ${Mode}, setPositionMode: ${setPositionMode}`);
       if (switchbot !== false) {
-        try {
-          const device_list = await switchbot.discover({ model: 'c', quick: true, id: this.device.bleMac });
-          this.infoLog(`${this.accessory.displayName} Target Position: ${this.WindowCovering.TargetPosition}`);
-
-          await this.retryBLE({
-            max: await this.maxRetryBLE(),
-            fn: async () => {
-              await device_list[0].runToPos(100 - Number(this.WindowCovering.TargetPosition), adjustedMode);
-            },
+        switchbot
+          .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
+          .then(async (device_list: any) => {
+            return await this.retryBLE({
+              max: await this.maxRetryBLE(),
+              fn: async () => {
+                return await device_list[0].runToPos(100 - Number(this.WindowCovering.TargetPosition), adjustedMode);
+              },
+            });
+          })
+          .then(async () => {
+            await this.successLog(`TargetPostion: ${this.WindowCovering.TargetPosition} sent over SwitchBot BLE,  sent successfully`);
+            await this.updateHomeKitCharacteristics();
+          })
+          .catch(async (e: any) => {
+            await this.apiError(e);
+            await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`);
+            await this.BLEPushConnection();
           });
-
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Done.`);
-          this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `TargetPosition: ${this.WindowCovering.TargetPosition} sent over BLE,  sent successfully`);
-        } catch (e) {
-          this.apiError(e);
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed BLEpushChanges with ${this.device.connectionType}`
-            + ` Connection, Error Message: ${JSON.stringify((e as Error).message)}`);
-          await this.BLEPushConnection();
-          throw new Error('Connection error');
-        }
       } else {
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection`);
+        await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
         await this.BLEPushConnection();
       }
     } else {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No BLEpushChanges, CurrentPosition & TargetPosition Are the Same.`
-        + `  CurrentPosition: ${this.WindowCovering.CurrentPosition}, TargetPosition  ${this.WindowCovering.TargetPosition}`);
+      await this.debugLog(`No changes (BLEpushChanges), TargetPosition: ${this.WindowCovering.TargetPosition},`
+        + ` CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
     }
   }
 
   async openAPIpushChanges(): Promise<void> {
-    let command: string;
-    let parameter: string;
-    let commandType: string;
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} openAPIpushChanges`);
+    await this.debugLog('openAPIpushChanges');
     if (this.WindowCovering.TargetPosition !== this.WindowCovering.CurrentPosition || this.device.disableCaching) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Pushing ${this.WindowCovering.TargetPosition}`);
+      await this.debugLog(`Pushing ${this.WindowCovering.TargetPosition}`);
       const adjustedTargetPosition = 100 - Number(this.WindowCovering.TargetPosition);
       const { setPositionMode, Mode }: { setPositionMode: number; Mode: string; } = await this.setPerformance();
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Mode: ${Mode}`);
+      await this.debugLog(`Mode: ${Mode}, setPositionMode: ${setPositionMode}`);
       const adjustedMode = setPositionMode || 'ff';
+      let bodyChange: string;
       if (this.WindowCovering.HoldPosition) {
-        command = 'pause';
-        parameter = 'default';
-        commandType = 'command';
-      } else {
-        command = 'setPosition';
-        parameter = `0,${adjustedMode},${adjustedTargetPosition}`;
-        commandType = 'command';
-      }
-      const bodyChange = JSON.stringify({
-        command: command,
-        parameter: parameter,
-        commandType: commandType,
-      });
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Sending request to SwitchBot API, body: ${bodyChange},`);
-      try {
-        const { body, statusCode } = await request(`${Devices}/${this.device.deviceId}/commands`, {
-          body: bodyChange,
-          method: 'POST',
-          headers: this.platform.generateHeaders(),
+        bodyChange = JSON.stringify({
+          command: 'pause',
+          parameter: 'default',
+          commandType: 'command',
         });
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode}`);
+      } else {
+        bodyChange = JSON.stringify({
+          command: 'setPosition',
+          parameter: `0,${adjustedMode},${adjustedTargetPosition}`,
+          commandType: 'command',
+        });
+      }
+      await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`);
+      try {
+        const { body, statusCode } = await this.pushChangeRequest(bodyChange);
         const deviceStatus: any = await body.json();
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`);
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`);
-        this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`);
-        if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-          this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`);
-          this.successLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-            + `request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`);
+        await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
+        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
+          await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
+          await this.updateHomeKitCharacteristics();
         } else {
-          this.statusCode(statusCode);
-          this.statusCode(deviceStatus.statusCode);
+          await this.statusCode(statusCode);
+          await this.statusCode(deviceStatus.statusCode);
         }
       } catch (e: any) {
-        this.apiError(e);
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed openAPIpushChanges with ${this.device.connectionType}`
-          + ` Connection, Error Message: ${JSON.stringify(e.message)}`);
+        await this.apiError(e);
+        await this.errorLog(`failed openAPIpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`);
       }
     } else {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No OpenAPI Changes, CurrentPosition & TargetPosition Are the Same.`
-        + ` CurrentPosition: ${this.WindowCovering.CurrentPosition}, TargetPosition  ${this.WindowCovering.TargetPosition}`);
+      await this.debugLog(`No changes (openAPIpushChanges), CurrentPosition: ${this.WindowCovering.CurrentPosition},`
+        + ` TargetPosition: ${this.WindowCovering.TargetPosition}`);
     }
   }
 
@@ -715,10 +608,10 @@ export class Curtain extends deviceBase {
    * Handle requests to set the value of the "Target Position" characteristic
    */
   async TargetPositionSet(value: CharacteristicValue): Promise<void> {
-    if (this.WindowCovering.TargetPosition === this.accessory.context.TargetPosition) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} No Changes, Set TargetPosition: ${value}`);
+    if (this.WindowCovering.TargetPosition !== this.accessory.context.TargetPosition) {
+      await this.infoLog(`Set TargetPosition: ${value}`);
     } else {
-      this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Set TargetPosition: ${value}`);
+      await this.debugLog(`No Changes, TargetPosition: ${value}`);
     }
 
     // Set HoldPosition to false when TargetPosition is changed
@@ -726,27 +619,25 @@ export class Curtain extends deviceBase {
     this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.HoldPosition, this.WindowCovering.HoldPosition);
 
     this.WindowCovering.TargetPosition = value;
-    if (this.device.mqttURL) {
-      this.mqttPublish('TargetPosition', this.WindowCovering.TargetPosition.toString());
-      this.mqttPublish('HoldPosition', this.WindowCovering.HoldPosition.toString()); // Convert boolean to string
-    }
+    await this.mqtt('TargetPosition', this.WindowCovering.TargetPosition);
+    await this.mqtt('HoldPosition', this.WindowCovering.HoldPosition);
+    await this.startUpdatingCurtainIfNeeded();
+  }
 
+  async startUpdatingCurtainIfNeeded() {
     await this.setMinMax();
-    if (value > this.WindowCovering.CurrentPosition) {
+    if (this.WindowCovering.TargetPosition > this.WindowCovering.CurrentPosition) {
       this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.INCREASING;
       this.setNewTarget = true;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${value},`
-        + ` CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
-    } else if (value < this.WindowCovering.CurrentPosition) {
+      await this.debugLog(`value: ${this.WindowCovering.TargetPosition}, CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
+    } else if (this.WindowCovering.TargetPosition < this.WindowCovering.CurrentPosition) {
       this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.DECREASING;
       this.setNewTarget = true;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${value},`
-        + ` CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
+      await this.debugLog(`value: ${this.WindowCovering.TargetPosition}, CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
     } else {
       this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.STOPPED;
       this.setNewTarget = false;
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} value: ${value},`
-        + ` CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
+      await this.debugLog(`value: ${this.WindowCovering.TargetPosition}, CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
     }
     this.WindowCovering.Service.setCharacteristic(this.hap.Characteristic.PositionState, this.WindowCovering.PositionState);
     this.WindowCovering.Service.getCharacteristic(this.hap.Characteristic.PositionState).updateValue(this.WindowCovering.PositionState);
@@ -756,10 +647,10 @@ export class Curtain extends deviceBase {
      * The minimum time depends on the network control latency.
      */
     clearTimeout(this.setNewTargetTimer);
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateRate: ${this.deviceUpdateRate}`);
+    await this.debugLog(`deviceUpdateRate: ${this.deviceUpdateRate}`);
     if (this.setNewTarget) {
-      this.setNewTargetTimer = setTimeout(() => {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} setNewTarget ${this.setNewTarget} timeout`);
+      this.setNewTargetTimer = setTimeout(async () => {
+        await this.debugLog(`setNewTarget ${this.setNewTarget} timeout`);
         this.setNewTarget = false;
       }, this.deviceUpdateRate * 1000);
     }
@@ -770,123 +661,53 @@ export class Curtain extends deviceBase {
    * Handle requests to set the value of the "Target Position" characteristic
    */
   async HoldPositionSet(value: CharacteristicValue): Promise<void> {
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} HoldPosition: ${value}`);
+    this.debugLog(`HoldPosition: ${value}`);
     this.WindowCovering.HoldPosition = value;
     this.doCurtainUpdate.next();
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
     await this.setMinMax();
-    if (this.WindowCovering.CurrentPosition === undefined || Number.isNaN(this.WindowCovering.CurrentPosition)) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
-    } else {
-      this.accessory.context.CurrentPosition = this.WindowCovering.CurrentPosition;
-      this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, Number(this.WindowCovering.CurrentPosition));
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-        + ` CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
-      if (this.device.mqttURL) {
-        this.mqttPublish('CurrentPosition', this.WindowCovering.CurrentPosition.toString()); // Convert to string
-      }
+    // CurrentPosition
+    await this.updateCharacteristic(this.WindowCovering.Service, this.hap.Characteristic.CurrentPosition,
+      this.WindowCovering.CurrentPosition, 'CurrentPosition');
+    // PositionState
+    await this.updateCharacteristic(this.WindowCovering.Service, this.hap.Characteristic.PositionState,
+      this.WindowCovering.PositionState, 'PositionState');
+    // TargetPosition
+    await this.updateCharacteristic(this.WindowCovering.Service, this.hap.Characteristic.TargetPosition,
+      this.WindowCovering.TargetPosition, 'TargetPosition');
+    // HoldPosition
+    await this.updateCharacteristic(this.WindowCovering.Service, this.hap.Characteristic.HoldPosition,
+      this.WindowCovering.HoldPosition, 'HoldPosition');
+    // CurrentAmbientLightLevel
+    if (!this.device.curtain?.hide_lightsensor && this.LightSensor?.Service) {
+      const history = { time: Math.round(new Date().valueOf() / 1000), lux: this.LightSensor.CurrentAmbientLightLevel };
+      await this.updateCharacteristic(this.LightSensor?.Service, this.hap.Characteristic.CurrentAmbientLightLevel,
+        this.LightSensor?.CurrentAmbientLightLevel, 'CurrentAmbientLightLevel', history);
     }
-    if (this.WindowCovering.PositionState === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} PositionState: ${this.WindowCovering.PositionState}`);
-    } else {
-      if (this.device.mqttURL) {
-        this.mqttPublish('PositionState', this.WindowCovering.PositionState.toString());
-      }
-      this.accessory.context.PositionState = this.WindowCovering.PositionState;
-      this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.PositionState, Number(this.WindowCovering.PositionState));
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-        + ` PositionState: ${this.WindowCovering.PositionState}`);
-    }
-    if (this.WindowCovering.TargetPosition === undefined || Number.isNaN(this.WindowCovering.TargetPosition)) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} TargetPosition: ${this.WindowCovering.TargetPosition}`);
-    } else {
-      if (this.device.mqttURL) {
-        this.mqttPublish('TargetPosition', this.WindowCovering.TargetPosition.toString());
-      }
-      this.accessory.context.TargetPosition = this.WindowCovering.TargetPosition;
-      this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, Number(this.WindowCovering.TargetPosition));
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-        + ` TargetPosition: ${this.WindowCovering.TargetPosition}`);
-    }
-    if (this.WindowCovering.HoldPosition === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} HoldPosition: ${this.WindowCovering.HoldPosition}`);
-    } else {
-      if (this.device.mqttURL) {
-        this.mqttPublish('HoldPosition', this.WindowCovering.HoldPosition.toString());
-      }
-      this.accessory.context.HoldPosition = this.WindowCovering.HoldPosition;
-      this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.HoldPosition, this.WindowCovering.HoldPosition);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-        + ` HoldPosition: ${this.WindowCovering.HoldPosition}`);
-    }
-    if (!this.device.curtain?.hide_lightsensor) {
-      if (this.LightSensor!.CurrentAmbientLightLevel === undefined || Number.isNaN(this.LightSensor!.CurrentAmbientLightLevel)) {
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-          + ` CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
-      } else {
-        if (this.device.mqttURL) {
-          this.mqttPublish('CurrentAmbientLightLevel', this.LightSensor!.CurrentAmbientLightLevel.toString());
-        }
-        this.accessory.context.CurrentAmbientLightLevel = this.LightSensor!.CurrentAmbientLightLevel;
-        this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, this.LightSensor!.CurrentAmbientLightLevel);
-        this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName}`
-          + ` updateCharacteristic CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`);
-        if (this.device.history) {
-          this.historyService?.addEntry({
-            time: Math.round(new Date().valueOf() / 1000),
-            lux: this.LightSensor!.CurrentAmbientLightLevel,
-          });
-        }
-      }
-    }
-    if (this.Battery.BatteryLevel === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.Battery.BatteryLevel}`);
-    } else {
-      if (this.device.mqttURL) {
-        this.mqttPublish('BatteryLevel', this.Battery.BatteryLevel.toString());
-      }
-      this.accessory.context.BatteryLevel = this.Battery.BatteryLevel;
-      this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, this.Battery.BatteryLevel);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic BatteryLevel: ${this.Battery.BatteryLevel}`);
-    }
-    if (this.Battery.StatusLowBattery === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} StatusLowBattery: ${this.Battery.StatusLowBattery}`);
-    } else {
-      if (this.device.mqttURL) {
-        this.mqttPublish('StatusLowBattery', this.Battery.StatusLowBattery.toString());
-      }
-      this.accessory.context.StatusLowBattery = this.Battery.StatusLowBattery;
-      this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-        + ` StatusLowBattery: ${this.Battery.StatusLowBattery}`);
-    }
-    if (this.Battery.ChargingState === undefined) {
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} ChargingState: ${this.Battery.ChargingState}`);
-    } else {
-      if (this.device.mqttURL) {
-        this.mqttPublish('ChargingState', this.Battery.ChargingState.toString());
-      }
-      this.accessory.context.ChargingState = this.Battery.ChargingState;
-      this.Battery.Service.updateCharacteristic(this.hap.Characteristic.ChargingState, this.Battery.ChargingState);
-      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} updateCharacteristic`
-        + ` ChargingState: ${this.Battery.ChargingState}`);
-    }
+    // BatteryLevel
+    await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.BatteryLevel,
+      this.Battery.BatteryLevel, 'BatteryLevel');
+    // StatusLowBattery
+    await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.StatusLowBattery,
+      this.Battery.StatusLowBattery, 'StatusLowBattery');
+    // ChargingState
+    await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.ChargingState,
+      this.Battery.ChargingState, 'ChargingState');
   }
 
   async BLEPushConnection() {
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Push Changes`);
+      await this.warnLog('Using OpenAPI Connection to Push Changes');
       await this.openAPIpushChanges();
     }
   }
 
   async BLERefreshConnection(switchbot: any): Promise<void> {
-    this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot:`
-      + ` ${JSON.stringify(switchbot)}`);
+    await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(switchbot)}`);
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
-      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Refresh Status`);
+      await this.warnLog('Using OpenAPI Connection to Refresh Status');
       await this.openAPIRefreshStatus();
     }
   }
@@ -918,6 +739,38 @@ export class Curtain extends deviceBase {
       }
     }
     return { setPositionMode, Mode };
+  }
+
+  async getCurrentPostion() {
+    await this.setMinMax();
+    await this.debugLog(`CurrentPosition ${this.WindowCovering.CurrentPosition}`);
+    if (this.setNewTarget) {
+      this.infoLog('Checking Status ...');
+      await this.setMinMax();
+      if (this.WindowCovering.TargetPosition > this.WindowCovering.CurrentPosition) {
+        await this.debugLog(`Closing, CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
+        this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.INCREASING;
+        this.WindowCovering.Service.getCharacteristic(this.hap.Characteristic.PositionState).updateValue(this.WindowCovering.PositionState);
+        await this.debugLog(`Increasing, PositionState: ${this.WindowCovering.PositionState}`);
+      } else if (this.WindowCovering.TargetPosition < this.WindowCovering.CurrentPosition) {
+        await this.debugLog(`Opening, CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
+        this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.DECREASING;
+        this.WindowCovering.Service.getCharacteristic(this.hap.Characteristic.PositionState).updateValue(this.WindowCovering.PositionState);
+        await this.debugLog(`Decreasing, PositionState: ${this.WindowCovering.PositionState}`);
+      } else {
+        await this.debugLog(`Standby, CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
+        this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.STOPPED;
+        this.WindowCovering.Service.getCharacteristic(this.hap.Characteristic.PositionState).updateValue(this.WindowCovering.PositionState);
+        await this.debugLog(`Stopped, PositionState: ${this.WindowCovering.PositionState}`);
+      }
+    } else {
+      await this.debugLog(`Standby, CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
+      this.WindowCovering.TargetPosition = this.WindowCovering.CurrentPosition;
+      this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.STOPPED;
+      await this.debugLog(`Stopped, PositionState: ${this.WindowCovering.PositionState}`);
+    }
+    await this.debugLog(`CurrentPosition: ${this.WindowCovering.CurrentPosition}, TargetPosition: ${this.WindowCovering.TargetPosition},`
+      + ` PositionState: ${this.WindowCovering.PositionState},`);
   }
 
   async setMinMax(): Promise<void> {
@@ -953,9 +806,9 @@ export class Curtain extends deviceBase {
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e);
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, e);
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.ChargingState, e);
-    if (!this.device.curtain?.hide_lightsensor) {
-      this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, e);
-      this.LightSensor!.Service.updateCharacteristic(this.hap.Characteristic.StatusActive, e);
+    if (!this.device.curtain?.hide_lightsensor && this.LightSensor?.Service) {
+      this.LightSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, e);
+      this.LightSensor.Service.updateCharacteristic(this.hap.Characteristic.StatusActive, e);
     }
   }
 }
