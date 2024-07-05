@@ -108,7 +108,7 @@
     - Must supply `deviceId` & `deviceName` to Device Config
     - Check `Enable Bluetooth Low Energy (BLE) Connection` on Device Config
 - [SwitchBot Blind Tilt](https://us.switch-bot.com/products/switchbot-blind-tilt)
-  - Supports OpenAPI Connection Only
+  - Supports OpenAPI & partial Bluetooth Low Energy (BLE) Connections
   - If using OpenAPI:
     - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub 2](https://us.switch-bot.com/products/switchbot-hub-2) Required
     - Enable Cloud Services for Device on SwitchBot App
@@ -116,13 +116,13 @@
 - [SwitchBot Ceiling Light](https://www.switchbot.jp/collections/all/products/switchbot-ceiling-light)
 - [SwitchBot Ceiling Light Pro](https://www.switchbot.jp/collections/all/products/switchbot-ceiling-light)
 - [SwitchBot Light Strip](https://www.switch-bot.com/products/switchbot-light-strip)
-  - Supports OpenAPI Connection Only
+  - Supports OpenAPI & partial Bluetooth Low Energy (BLE) Connections
   - If using OpenAPI:
     - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub 2](https://us.switch-bot.com/products/switchbot-hub-2) Required
     - Enable Cloud Services for Device on SwitchBot App
 - [SwitchBot Lock](https://us.switch-bot.com/products/switchbot-lock)
-- [SwitchBot Lock](https://www.switchbot.jp/products/switchbot-lock-pro)
-  - Supports OpenAPI Connection Only
+- [SwitchBot Lock Pro](https://www.switchbot.jp/products/switchbot-lock-pro)
+  - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
   - If using OpenAPI:
     - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub 2](https://us.switch-bot.com/products/switchbot-hub-2) Required
     - Enable Cloud Services for Device on SwitchBot App
@@ -134,7 +134,7 @@
 - [SwitchBot Plug](https://www.switch-bot.com/products/switchbot-plug)
 - [SwitchBot Plug Mini (US)](https://www.switch-bot.com/products/switchbot-plug-mini)
 - [SwitchBot Plug Mini (JP)](https://www.switchbot.jp/products/switchbot-plug-mini)
-  - Supports OpenAPI Connection Only
+  - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
   - If using OpenAPI:
     - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub 2](https://us.switch-bot.com/products/switchbot-hub-2) Required
     - Enable Cloud Services for Device on SwitchBot App
@@ -152,8 +152,12 @@
     - Must supply `deviceId` & `deviceName` to Device Config
     - Check `Enable Bluetooth Low Energy (BLE) Connection` on Device Config
 - [SwitchBot Hub 2](https://us.switch-bot.com/products/switchbot-hub-2)
+  - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
+    - Enables Humidity, Temperature, and Light Sensor
+- [SwitchBot Battery Circulator Fan](https://us.switch-bot.com/products/switchbot-battery-circulator-fan)
   - Supports OpenAPI Connection Only
-    - Enables Humidity and Temperature Sensor
+- [SwitchBot Water Leak Detector](https://us.switch-bot.com/products/switchbot-water-leak-detector)
+  - Supports OpenAPI Connection Only
 
 ## Supported IR Devices
 
