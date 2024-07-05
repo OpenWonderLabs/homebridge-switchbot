@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. This projec
 ## [3.5.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.5.1) (2024-06-27)
 
 ### What's Changed
+- Fix issue `RangeError: Maximum call stack size exceeded` introduced in `v3.5.0`
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.5.0...v3.5.1
@@ -35,7 +36,7 @@ All notable changes to this project will be documented in this file. This projec
 
 ### What's Changed
 - Add config that allows you to set `cool` and `heat`: `min` & `max`
-- Fix node-switchbot import [#928](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/928), Thanks [@dnicolson](https://github.com/dnicolson)
+- Fixed node-switchbot import [#928](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/928), Thanks [@dnicolson](https://github.com/dnicolson)
 - Code cleanup: Remove unnecessary await keyword [#929](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/929), Thanks [@dnicolson](https://github.com/dnicolson)
 - Code cleanup: Remove empty image tag [#930](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/930), Thanks [@dnicolson](https://github.com/dnicolson)
 - Housekeeping and updated dependencies.
@@ -61,7 +62,7 @@ All notable changes to this project will be documented in this file. This projec
 ## [3.1.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.1.2) (2024-02-05)
 
 ### What's Changed
-- Fix node-switchbot import issue.
+- Fixed node-switchbot import issue.
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.1.1...v3.1.2
@@ -69,9 +70,9 @@ All notable changes to this project will be documented in this file. This projec
 ## [3.1.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.1.1) (2024-02-05)
 
 ### What's Changed
-- Fix BLE connection [#907](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/907), Thanks [@dnicolson](https://github.com/dnicolson)
-- Fix BLE curtain mode [#908](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/908), Thanks [@dnicolson](https://github.com/dnicolson)
-- Fix curtain characteristic warning [#909](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/909), Thanks [@dnicolson](https://github.com/dnicolson)
+- Fixed BLE connection [#907](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/907), Thanks [@dnicolson](https://github.com/dnicolson)
+- Fixed BLE curtain mode [#908](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/908), Thanks [@dnicolson](https://github.com/dnicolson)
+- Fixed curtain characteristic warning [#909](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/909), Thanks [@dnicolson](https://github.com/dnicolson)
 - Revert curtain retry functionality [#911](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/911), Thanks [@dnicolson](https://github.com/dnicolson)
 - Code Cleaup [#910](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/910) [#912](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/912) [#913](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/913)  [#917](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/917), Thanks [@dnicolson](https://github.com/dnicolson)
 - Housekeeping and updated dependencies.
@@ -82,7 +83,7 @@ All notable changes to this project will be documented in this file. This projec
 
 ### What's Changed
 - Offical support for [Curtain 3](https://www.switch-bot.com/pages/switchbot-curtain-3), `deviceType`: `Curtain3`.
-- Fix Issue with which provented plugin from loading.
+- Fixed issue with which prevented the plugin from loading.
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.0.0...v3.1.0
@@ -143,7 +144,7 @@ All notable changes to this project will be documented in this file. This projec
 ### What's Changed
 
 - Add Support for Stateless button on IR Lights [#863](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/863)
-- Fix noble [#864](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/864)
+- Fix noble version [#864](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/864)
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.11.0...v2.12.0
