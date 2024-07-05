@@ -480,6 +480,7 @@ export abstract class deviceBase {
       case 'Bot':
         device.model = SwitchBotModel.Bot;
         device.bleModel = SwitchBotBLEModel.Bot;
+        device.bleModelName = SwitchBotBLEModelName.Bot;
         device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Bot;
         break;
       case 'Meter':
@@ -599,6 +600,7 @@ export abstract class deviceBase {
       case 'Robot Vacuum Cleaner S1':
         device.model = SwitchBotModel.RobotVacuumCleanerS1;
         device.bleModel = SwitchBotBLEModel.Unknown;
+        device.bleModelName = SwitchBotBLEModelName.Unknown;
         device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Unknown;
         break;
       case 'Robot Vacuum Cleaner S1 Plus':
