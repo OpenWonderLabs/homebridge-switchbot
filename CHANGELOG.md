@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file. This projec
 ## [3.5.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.5.1) (2024-06-27)
 
 ### What's Changed
-- Fix issue `RangeError: Maximum call stack size exceeded` introduced in `v3.5.0`
+- Fixed issue `RangeError: Maximum call stack size exceeded` introduced in `v3.5.0`
+- Fixed Bot deviceType issue which wouldn't use config service or remove leftover services.
+- Fixed Other IR deviceType issue which wouldn't use config service or remove leftover services.
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.5.0...v3.5.1

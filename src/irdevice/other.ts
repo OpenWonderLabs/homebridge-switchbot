@@ -770,92 +770,132 @@ export class Others extends irdeviceBase {
 
   async removeOutletService(accessory: PlatformAccessory): Promise<void> {
     // If Outlet.Service still present, then remove first
-    if (this.Outlet?.Service) {
-      this.Outlet.Service = this.accessory.getService(this.hap.Service.Outlet) as Service;
-      this.warnLog('Removing Leftover Outlet Service');
-      accessory.removeService(this.Outlet.Service);
-    }
+    accessory.context.Outlet = accessory.context.Outlet ?? {};
+    this.Outlet = {
+      Name: accessory.context.Outlet.Name ?? `${accessory.displayName} Outlet`,
+      Service: accessory.getService(this.hap.Service.Outlet) as Service,
+      On: accessory.context.On ?? false,
+    };
+    accessory.context.Outlet = this.Outlet as object;
+    this.warnLog('Removing any leftover Outlet Service');
+    accessory.removeService(this.Outlet.Service);
   }
 
   async removeGarageDoorService(accessory: PlatformAccessory): Promise<void> {
     // If GarageDoor.Service still present, then remove first
-    if (this.GarageDoor?.Service) {
-      this.GarageDoor.Service = this.accessory.getService(this.hap.Service.GarageDoorOpener) as Service;
-      this.warnLog('Removing Leftover Garage Door Service');
-      accessory.removeService(this.GarageDoor.Service);
-    }
+    accessory.context.GarageDoor = accessory.context.GarageDoor ?? {};
+    this.GarageDoor = {
+      Name: accessory.context.GarageDoor.Name ?? `${accessory.displayName} Garage Door`,
+      Service: accessory.getService(this.hap.Service.GarageDoorOpener) as Service,
+      On: accessory.context.On ?? false,
+    };
+    accessory.context.GarageDoor = this.GarageDoor as object;
+    this.warnLog('Removing any leftover Garage Door Service');
+    accessory.removeService(this.GarageDoor.Service);
   }
 
   async removeDoorService(accessory: PlatformAccessory): Promise<void> {
     // If Door.Service still present, then remove first
-    if (this.Door?.Service) {
-      this.Door.Service = this.accessory.getService(this.hap.Service.Door) as Service;
-      this.warnLog('Removing Leftover Door Service');
-      accessory.removeService(this.Door.Service);
-    }
+    accessory.context.Door = accessory.context.Door ?? {};
+    this.Door = {
+      Name: accessory.context.Door.Name ?? `${accessory.displayName} Door`,
+      Service: accessory.getService(this.hap.Service.Door) as Service,
+      On: accessory.context.On ?? false,
+    };
+    accessory.context.Door = this.Door as object;
+    this.warnLog('Removing any leftover Door Service');
+    accessory.removeService(this.Door.Service);
   }
 
   async removeLockService(accessory: PlatformAccessory): Promise<void> {
     // If Lock.Service still present, then remove first
-    if (this.LockMechanism?.Service) {
-      this.LockMechanism.Service = this.accessory.getService(this.hap.Service.LockMechanism) as Service;
-      this.warnLog('Removing Leftover Lock Service');
-      accessory.removeService(this.LockMechanism.Service);
-    }
+    accessory.context.LockMechanism = accessory.context.LockMechanism ?? {};
+    this.LockMechanism = {
+      Name: accessory.context.LockMechanism.Name ?? `${accessory.displayName} Lock`,
+      Service: accessory.getService(this.hap.Service.LockMechanism) as Service,
+      On: accessory.context.On ?? false,
+    };
+    accessory.context.LockMechanism = this.LockMechanism as object;
+    this.warnLog('Removing any leftover Lock Service');
+    accessory.removeService(this.LockMechanism.Service);
   }
 
   async removeFaucetService(accessory: PlatformAccessory): Promise<void> {
     // If Faucet.Service still present, then remove first
-    if (this.Faucet?.Service) {
-      this.Faucet.Service = this.accessory.getService(this.hap.Service.Faucet) as Service;
-      this.warnLog('Removing Leftover Faucet Service');
-      accessory.removeService(this.Faucet.Service);
-    }
+    accessory.context.Faucet = accessory.context.Faucet ?? {};
+    this.Faucet = {
+      Name: accessory.context.Faucet.Name ?? `${accessory.displayName} Faucet`,
+      Service: accessory.getService(this.hap.Service.Faucet) as Service,
+      On: accessory.context.On ?? false,
+    };
+    accessory.context.Faucet = this.Faucet as object;
+    this.warnLog('Removing any leftover Faucet Service');
+    accessory.removeService(this.Faucet.Service);
   }
 
   async removeFanService(accessory: PlatformAccessory): Promise<void> {
     // If Fan Service still present, then remove first
-    if (this.Fan?.Service) {
-      this.Fan.Service = this.accessory.getService(this.hap.Service.Fan) as Service;
-      this.warnLog('Removing Leftover Fan Service');
-      accessory.removeService(this.Fan.Service);
-    }
+    accessory.context.Fan = accessory.context.Fan ?? {};
+    this.Fan = {
+      Name: accessory.context.Fan.Name ?? `${accessory.displayName} Fan`,
+      Service: accessory.getService(this.hap.Service.Fanv2) as Service,
+      On: accessory.context.On ?? false,
+    };
+    accessory.context.Fan = this.Fan as object;
+    this.warnLog('Removing any leftover Fan Service');
+    accessory.removeService(this.Fan.Service);
   }
 
   async removeWindowService(accessory: PlatformAccessory): Promise<void> {
     // If Window.Service still present, then remove first
-    if (this.Window?.Service) {
-      this.Window.Service = this.accessory.getService(this.hap.Service.Window) as Service;
-      this.warnLog('Removing Leftover Window Service');
-      accessory.removeService(this.Window.Service);
-    }
+    accessory.context.Window = accessory.context.Window ?? {};
+    this.Window = {
+      Name: accessory.context.Window.Name ?? `${accessory.displayName} Window`,
+      Service: accessory.getService(this.hap.Service.Window) as Service,
+      On: accessory.context.On ?? false,
+    };
+    accessory.context.Window = this.Window as object;
+    this.warnLog('Removing any leftover Window Service');
+    accessory.removeService(this.Window.Service);
   }
 
   async removeWindowCoveringService(accessory: PlatformAccessory): Promise<void> {
     // If WindowCovering.Service still present, then remove first
-    if (this.WindowCovering?.Service) {
-      this.WindowCovering.Service = this.accessory.getService(this.hap.Service.WindowCovering) as Service;
-      this.warnLog('Removing Leftover Window Covering Service');
-      accessory.removeService(this.WindowCovering.Service);
-    }
+    accessory.context.WindowCovering = accessory.context.WindowCovering ?? {};
+    this.WindowCovering = {
+      Name: accessory.context.WindowCovering.Name ?? `${accessory.displayName} Window Covering`,
+      Service: accessory.getService(this.hap.Service.WindowCovering) as Service,
+      On: accessory.context.On ?? false,
+    };
+    accessory.context.WindowCovering = this.WindowCovering as object;
+    this.warnLog('Removing any leftover Window Covering Service');
+    accessory.removeService(this.WindowCovering.Service);
   }
 
   async removeStatefulProgrammableSwitchService(accessory: PlatformAccessory): Promise<void> {
     // If StatefulProgrammableSwitch.Service still present, then remove first
-    if (this.StatefulProgrammableSwitch?.Service) {
-      this.StatefulProgrammableSwitch.Service = this.accessory.getService(this.hap.Service.StatefulProgrammableSwitch) as Service;
-      this.warnLog('Removing Leftover Stateful Programmable Switch Service');
-      accessory.removeService(this.StatefulProgrammableSwitch.Service);
-    }
+    accessory.context.StatefulProgrammableSwitch = accessory.context.StatefulProgrammableSwitch ?? {};
+    this.StatefulProgrammableSwitch = {
+      Name: accessory.context.StatefulProgrammableSwitch.Name ?? `${accessory.displayName} Stateful Programmable Switch`,
+      Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch) as Service,
+      On: accessory.context.On ?? false,
+    };
+    accessory.context.StatefulProgrammableSwitch = this.StatefulProgrammableSwitch as object;
+    this.warnLog('Removing any leftover Stateful Programmable Switch Service');
+    accessory.removeService(this.StatefulProgrammableSwitch.Service);
   }
 
   async removeSwitchService(accessory: PlatformAccessory): Promise<void> {
     // If Switch.Service still present, then remove first
-    if (this.Switch?.Service) {
-      this.Switch.Service = this.accessory.getService(this.hap.Service.Switch) as Service;
-      this.warnLog('Removing Leftover Switch Service');
-      accessory.removeService(this.Switch.Service);
-    }
+    accessory.context.Switch = accessory.context.Switch ?? {};
+    this.Switch = {
+      Name: accessory.context.Switch.Name ?? `${accessory.displayName} Switch`,
+      Service: accessory.getService(this.hap.Service.Switch) as Service,
+      On: accessory.context.On ?? false,
+    };
+    accessory.context.Switch = this.Switch as object;
+    this.warnLog('Removing any leftover Switch Service');
+    accessory.removeService(this.Switch.Service);
   }
 
   async getOtherConfigSettings(device: irdevice & irDevicesConfig): Promise<void> {
