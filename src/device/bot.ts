@@ -1162,92 +1162,132 @@ export class Bot extends deviceBase {
 
   async removeOutletService(accessory: PlatformAccessory): Promise<void> {
     // If outletService still present, then remove first
-    if (this.Outlet?.Service) {
-      this.Outlet.Service = this.accessory.getService(this.hap.Service.Outlet) as Service;
-      await this.warnLog('Removing Leftover Outlet Service');
-      accessory.removeService(this.Outlet.Service);
-    }
+    accessory.context.Outlet = accessory.context.Outlet ?? {};
+    this.Outlet = {
+      Name: accessory.context.Outlet.Name ?? accessory.displayName,
+      Service: accessory.getService(this.hap.Service.Outlet) as Service,
+      On: accessory.context.On ?? false,
+    };
+    accessory.context.Outlet = this.Outlet as object;
+    await this.warnLog('Removing any leftover Outlet Service');
+    accessory.removeService(this.Outlet.Service);
   }
 
   async removeGarageDoorService(accessory: PlatformAccessory): Promise<void> {
     // If garageDoorService still present, then remove first
-    if (this.GarageDoor?.Service) {
-      this.GarageDoor.Service = this.accessory.getService(this.hap.Service.GarageDoorOpener) as Service;
-      await this.warnLog('Removing Leftover Garage Door Service');
-      accessory.removeService(this.GarageDoor.Service);
-    }
+    accessory.context.GarageDoor = accessory.context.GarageDoor ?? {};
+    this.GarageDoor = {
+      Name: accessory.context.GarageDoor.Name ?? accessory.displayName,
+      Service: accessory.getService(this.hap.Service.GarageDoorOpener) as Service,
+      On: accessory.context.On ?? false,
+    };
+    accessory.context.GarageDoor = this.GarageDoor as object;
+    await this.warnLog('Removing any leftover Garage Door Service');
+    accessory.removeService(this.GarageDoor.Service);
   }
 
   async removeDoorService(accessory: PlatformAccessory): Promise<void> {
     // If doorService still present, then remove first
-    if (this.Door?.Service) {
-      this.Door.Service = this.accessory.getService(this.hap.Service.Door) as Service;
-      await this.warnLog('Removing Leftover Door Service');
-      accessory.removeService(this.Door.Service);
-    }
+    accessory.context.Door = accessory.context.Door ?? {};
+    this.Door = {
+      Name: accessory.context.Door.Name ?? accessory.displayName,
+      Service: accessory.getService(this.hap.Service.Door) as Service,
+      On: accessory.context.On ?? false,
+    };
+    accessory.context.Door = this.Door as object;
+    await this.warnLog('Removing any leftover Door Service');
+    accessory.removeService(this.Door.Service);
   }
 
   async removeLockService(accessory: PlatformAccessory): Promise<void> {
     // If lockService still present, then remove first
-    if (this.LockMechanism?.Service) {
-      this.LockMechanism.Service = this.accessory.getService(this.hap.Service.LockMechanism) as Service;
-      this.warnLog('Removing Leftover Lock Service');
-      accessory.removeService(this.LockMechanism.Service);
-    }
+    accessory.context.LockMechanism = accessory.context.LockMechanism ?? {};
+    this.LockMechanism = {
+      Name: accessory.context.LockMechanism.Name ?? accessory.displayName,
+      Service: accessory.getService(this.hap.Service.LockMechanism) as Service,
+      On: accessory.context.On ?? false,
+    };
+    accessory.context.LockMechanism = this.LockMechanism as object;
+    this.warnLog('Removing any leftover Lock Service');
+    accessory.removeService(this.LockMechanism.Service);
   }
 
   async removeFaucetService(accessory: PlatformAccessory): Promise<void> {
     // If faucetService still present, then remove first
-    if (this.Faucet?.Service) {
-      this.Faucet.Service = this.accessory.getService(this.hap.Service.Faucet) as Service;
-      await this.warnLog('Removing Leftover Faucet Service');
-      accessory.removeService(this.Faucet.Service);
-    }
+    accessory.context.Faucet = accessory.context.Faucet ?? {};
+    this.Faucet = {
+      Name: accessory.context.Faucet.Name ?? accessory.displayName,
+      Service: accessory.getService(this.hap.Service.Valve) as Service,
+      On: accessory.context.On ?? false,
+    };
+    accessory.context.Faucet = this.Faucet as object;
+    await this.warnLog('Removing any leftover Faucet Service');
+    accessory.removeService(this.Faucet.Service);
   }
 
   async removeFanService(accessory: PlatformAccessory): Promise<void> {
     // If fanService still present, then remove first
-    if (this.Fan?.Service) {
-      this.Fan.Service = this.accessory.getService(this.hap.Service.Fanv2) as Service;
-      this.warnLog('Removing Leftover Fan Service');
-      accessory.removeService(this.Fan.Service);
-    }
+    accessory.context.Fan = accessory.context.Fan ?? {};
+    this.Fan = {
+      Name: accessory.context.Fan.Name ?? accessory.displayName,
+      Service: accessory.getService(this.hap.Service.Fan) as Service,
+      On: accessory.context.On ?? false,
+    };
+    accessory.context.Fan = this.Fan as object;
+    this.warnLog('Removing any leftover Fan Service');
+    accessory.removeService(this.Fan.Service);
   }
 
   async removeWindowService(accessory: PlatformAccessory): Promise<void> {
     // If windowService still present, then remove first
-    if (this.Window?.Service) {
-      this.Window.Service = this.accessory.getService(this.hap.Service.Window) as Service;
-      await this.warnLog('Removing Leftover Window Service');
-      accessory.removeService(this.Window.Service);
-    }
+    accessory.context.Window = accessory.context.Window ?? {};
+    this.Window = {
+      Name: accessory.context.Window.Name ?? accessory.displayName,
+      Service: accessory.getService(this.hap.Service.Window) as Service,
+      On: accessory.context.On ?? false,
+    };
+    accessory.context.Window = this.Window as object;
+    await this.warnLog('Removing any leftover Window Service');
+    accessory.removeService(this.Window.Service);
   }
 
   async removeWindowCoveringService(accessory: PlatformAccessory): Promise<void> {
     // If windowCoveringService still present, then remove first
-    if (this.WindowCovering?.Service) {
-      this.WindowCovering.Service = this.accessory.getService(this.hap.Service.WindowCovering) as Service;
-      await this.warnLog('Removing Leftover Window Covering Service');
-      accessory.removeService(this.WindowCovering.Service);
-    }
+    accessory.context.WindowCovering = accessory.context.WindowCovering ?? {};
+    this.WindowCovering = {
+      Name: accessory.context.WindowCovering.Name ?? accessory.displayName,
+      Service: accessory.getService(this.hap.Service.WindowCovering) as Service,
+      On: accessory.context.On ?? false,
+    };
+    accessory.context.WindowCovering = this.WindowCovering as object;
+    await this.warnLog('Removing any leftover Window Covering Service');
+    accessory.removeService(this.WindowCovering.Service);
   }
 
   async removeStatefulProgrammableSwitchService(accessory: PlatformAccessory): Promise<void> {
     // If statefulProgrammableSwitchService still present, then remove first
-    if (this.StatefulProgrammableSwitch?.Service) {
-      this.StatefulProgrammableSwitch.Service = this.accessory.getService(this.hap.Service.StatefulProgrammableSwitch) as Service;
-      await this.warnLog('Removing Leftover Stateful Programmable Switch Service');
-      accessory.removeService(this.StatefulProgrammableSwitch.Service);
-    }
+    accessory.context.StatefulProgrammableSwitch = accessory.context.StatefulProgrammableSwitch ?? {};
+    this.StatefulProgrammableSwitch = {
+      Name: accessory.context.StatefulProgrammableSwitch.Name ?? accessory.displayName,
+      Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch) as Service,
+      On: accessory.context.On ?? false,
+    };
+    accessory.context.StatefulProgrammableSwitch = this.StatefulProgrammableSwitch as object;
+    await this.warnLog('Removing any leftover Stateful Programmable Switch Service');
+    accessory.removeService(this.StatefulProgrammableSwitch.Service);
   }
 
   async removeSwitchService(accessory: PlatformAccessory): Promise<void> {
     // If switchService still present, then remove first
-    if (this.Switch?.Service) {
-      this.Switch.Service = this.accessory.getService(this.hap.Service.Switch) as Service;
-      await this.warnLog('Removing Leftover Switch Service');
-      accessory.removeService(this.Switch.Service);
-    }
+    accessory.context.Switch = accessory.context.Switch ?? {};
+    this.Switch = {
+      Name: accessory.context.Switch.Name ?? accessory.displayName,
+      Service: accessory.getService(this.hap.Service.Switch) as Service,
+      On: accessory.context.On ?? false,
+    };
+    accessory.context.Switch = this.Switch as object;
+    await this.warnLog('Removing any leftover Switch Service');
+    accessory.removeService(this.Switch.Service);
   }
 
   async getOn(): Promise<boolean> {
@@ -1322,63 +1362,43 @@ export class Bot extends deviceBase {
 
   async getBotConfigSettings(device: device & devicesConfig) {
     //Bot Device Type
-    if (!device.bot?.deviceType && this.accessory.context.deviceType) {
-      this.botDeviceType = this.accessory.context.deviceType;
-      await this.debugWarnLog(`Using Device Type: ${this.botDeviceType}, from Accessory Cache.`);
-    } else if (device.bot?.deviceType) {
-      this.accessory.context.deviceType = device.bot.deviceType;
-      await this.debugWarnLog(`Accessory Cache: ${this.accessory.context.deviceType}`);
-      this.botDeviceType = this.accessory.context.deviceType;
-      await this.debugWarnLog(`Using Device Type: ${this.botDeviceType}`);
-    } else {
-      this.botDeviceType = 'outlet';
-      await this.errorLog(`No Device Type Set, deviceType: ${this.device.bot?.deviceType}`);
-      await this.warnLog(`Using default deviceType: ${this.botDeviceType}`);
-    }
+    this.botDeviceType = this.accessory.context.botDeviceType === device.bot?.deviceType ? this.accessory.context.botDeviceType
+      : device.bot?.deviceType ?? 'outlet';
+    const botDeviceType = this.accessory.context.botDeviceType ? `Using Device Type: ${this.botDeviceType}, from Accessory Cache.`
+      : device.bot?.deviceType ? `Using Device Type: ${this.botDeviceType}`
+        : `No Device Type Set, deviceType: ${this.device.bot?.deviceType}, Using default deviceType: ${this.botDeviceType}`;
+    await this.debugWarnLog(botDeviceType);
+    this.accessory.context.botDeviceType = this.botDeviceType;
     // Bot Mode
-    if (!device.bot?.mode) {
-      this.botMode = 'switch';
-      await this.warnLog('does not have bot mode set in the Plugin\'s SwitchBot Device Settings,');
-      await this.warnLog(`is defaulting to "${this.botMode}" mode, you may experience issues.`);
-    } else if (device.bot?.mode === 'switch') {
-      this.botMode = 'switch';
-      await this.debugLog(`Using Bot Mode: ${this.botMode}`);
-    } else if (device.bot?.mode === 'press') {
-      this.botMode = 'press';
-      await this.debugLog(`Using Bot Mode: ${this.botMode}`);
-    } else if (device.bot?.mode === 'multipress') {
-      this.botMode = 'multipress';
-      await this.debugLog(`Using Bot Mode: ${this.botMode}`);
-    } else {
-      throw new Error(`Bot Mode: ${this.botMode}`);
-    }
-
+    this.botMode = this.accessory.context.botMode ?? device.bot?.mode ?? 'switch';
+    const botMode = this.accessory.context.botMode ? `Using Bot Mode: ${this.botMode}, from Accessory Cache.`
+      : device.bot?.mode ? `Using Bot Mode: ${this.botMode}` : `No Bot Mode Set, Using default Bot Mode: ${this.botMode}`;
+    await this.debugWarnLog(botMode);
+    this.accessory.context.botMode = this.botMode;
     // Bot Double Press
-    if (device.bot?.doublePress) {
-      this.doublePress = device.bot?.doublePress;
-      this.accessory.context.doublePress = this.doublePress;
-    } else {
-      this.doublePress = 1;
-    }
-
+    this.doublePress = this.accessory.context.doublePress ?? device.bot?.doublePress ?? 1;
+    const doublePress = this.accessory.context.doublePress ? `Using Double Press: ${this.doublePress}, from Accessory Cache.`
+      : device.bot?.doublePress ? `Using Double Press: ${this.doublePress}`
+        : `No Double Press Set, Using default Double Press: ${this.doublePress}`;
+    await this.debugWarnLog(doublePress);
+    this.accessory.context.doublePress = this.doublePress;
     // Bot Press PushRate
-    if (device?.bot?.pushRatePress) {
-      this.pushRatePress = device?.bot?.pushRatePress;
-      await this.debugLog(`Using Device Config Bot pushRatePress: ${this.pushRatePress}`);
-    } else {
-      this.pushRatePress = 15;
-      await this.debugLog(`Using Default Bot pushRatePress: ${this.pushRatePress}`);
-    }
-
+    this.pushRatePress = this.accessory.context.pushRatePress ?? device.bot?.pushRatePress ?? 15;
+    const pushRatePress = this.accessory.context.pushRatePress ? `Using Push Rate Press: ${this.pushRatePress}, from Accessory Cache.`
+      : device.bot?.pushRatePress ? `Using Bot Push Rate Press: ${this.pushRatePress}`
+        : `No Push Rate Press Set, Using default Push Rate Press: ${this.pushRatePress}`;
+    await this.debugWarnLog(pushRatePress);
+    this.accessory.context.pushRatePress = this.pushRatePress;
     // Bot Allow Push
-    if (device.bot?.allowPush) {
-      this.allowPush = true;
-    } else {
-      this.allowPush = false;
-    }
-    await this.debugLog(`Allowing Push Changes: ${this.allowPush}`);
+    this.allowPush = this.accessory.context.allowPush ?? device.bot?.allowPush ?? false;
+    const allowPush = this.accessory.context.allowPush ? `Using Allow Push: ${this.allowPush}, from Accessory Cache.`
+      : device.bot?.allowPush ? `Using Allow Push: ${this.allowPush}`
+        : `No Allow Push Set, Using default Allow Push: ${this.allowPush}`;
+    await this.debugWarnLog(allowPush);
+    this.accessory.context.allowPush = this.allowPush;
     // Bot Multi Press Count
     this.multiPressCount = 0;
+    await this.debugWarnLog(`Multi Press Count: ${this.multiPressCount}`);
   }
 
   async BLEPushConnection() {
@@ -1389,7 +1409,7 @@ export class Bot extends deviceBase {
   }
 
   async BLERefreshConnection(switchbot: any): Promise<void> {
-    await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(switchbot)}`);
+    await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       await this.warnLog('Using OpenAPI Connection to Refresh Status');
       await this.openAPIRefreshStatus();

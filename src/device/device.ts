@@ -69,7 +69,7 @@ export abstract class deviceBase {
     this.getDeviceLogSettings(accessory, device);
     this.getDeviceRateSettings(accessory, device);
     this.getDeviceRetry(device);
-    this.getDeviceConfigSettings(accessory, device);
+    this.getDeviceConfigSettings(device);
     this.getDeviceContext(accessory, device);
     this.getDeviceScanDuration(accessory, device);
     this.getMqttSettings(device);
@@ -98,9 +98,11 @@ export abstract class deviceBase {
     this.deviceRefreshRate = device.refreshRate ?? this.config.options?.refreshRate ?? 5;
     accessory.context.deviceRefreshRate = this.deviceRefreshRate;
     const refreshRate = device.refreshRate ? 'Device Config' : this.config.options?.refreshRate ? 'Platform Config' : 'Default';
+    // updateRate
     this.deviceUpdateRate = device.updateRate ?? this.config.options?.updateRate ?? 5;
     accessory.context.deviceUpdateRate = this.deviceUpdateRate;
     const updateRate = device.updateRate ? 'Device Config' : this.config.options?.updateRate ? 'Platform Config' : 'Default';
+    // pushRate
     this.devicePushRate = device.pushRate ?? this.config.options?.pushRate ?? 1;
     accessory.context.devicePushRate = this.devicePushRate;
     const pushRate = device.pushRate ? 'Device Config' : this.config.options?.pushRate ? 'Platform Config' : 'Default';
@@ -160,7 +162,7 @@ export abstract class deviceBase {
     }
   }
 
-  async getDeviceConfigSettings(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
+  async getDeviceConfigSettings(device: device & devicesConfig): Promise<void> {
     const deviceConfig = {};
     if (device.logging !== 'standard') {
       deviceConfig['logging'] = device.logging;
@@ -478,6 +480,7 @@ export abstract class deviceBase {
       case 'Bot':
         device.model = SwitchBotModel.Bot;
         device.bleModel = SwitchBotBLEModel.Bot;
+        device.bleModelName = SwitchBotBLEModelName.Bot;
         device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Bot;
         break;
       case 'Meter':
@@ -597,6 +600,7 @@ export abstract class deviceBase {
       case 'Robot Vacuum Cleaner S1':
         device.model = SwitchBotModel.RobotVacuumCleanerS1;
         device.bleModel = SwitchBotBLEModel.Unknown;
+        device.bleModelName = SwitchBotBLEModelName.Unknown;
         device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Unknown;
         break;
       case 'Robot Vacuum Cleaner S1 Plus':

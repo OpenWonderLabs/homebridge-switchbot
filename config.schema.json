@@ -1441,6 +1441,12 @@
                           "enum": [
                             "WoIOSensor"
                           ]
+                        },
+                        {
+                          "title": "Humidifier",
+                          "enum": [
+                            "Humidifier"
+                          ]
                         }
                       ],
                       "condition": {
@@ -1676,17 +1682,17 @@
             "placeholder": 3
           },
           "refreshRate": {
-            "title": "Device Refresh Rate",
+            "title": "Refresh Rate",
             "type": "number",
             "placeholder": 360
           },
           "updateRate": {
-            "title": "Device Update Rate",
+            "title": "Update Rate",
             "type": "number",
             "placeholder": 5
           },
           "pushRate": {
-            "title": "Device Push Rate",
+            "title": "Push Rate",
             "type": "number",
             "placeholder": 1
           },
@@ -1763,17 +1769,8 @@
             "options.devices[].configDeviceType",
             "options.devices[].connectionType",
             "options.devices[].webhook",
-            "options.devices[].hub.hide_temperature",
-            "options.devices[].hub.convertUnitTo",
-            "options.devices[].hub.hide_humidity",
-            "options.devices[].hub.hide_lightsensor",
-            "options.devices[].scanDuration",
-            "options.devices[].disableCaching",
-            "options.devices[].maxRetries",
-            "options.devices[].delayBetweenRetries",
-            "options.devices[].maxRetry",
-            "options.devices[].bot.mode",
             "options.devices[].bot.deviceType",
+            "options.devices[].bot.mode",
             "options.devices[].bot.allowPush",
             "options.devices[].bot.doublePress",
             "options.devices[].bot.pushRatePress",
@@ -1783,6 +1780,10 @@
             "options.devices[].iosensor.hide_temperature",
             "options.devices[].iosensor.convertUnitTo",
             "options.devices[].iosensor.hide_humidity",
+            "options.devices[].hub.hide_temperature",
+            "options.devices[].hub.convertUnitTo",
+            "options.devices[].hub.hide_humidity",
+            "options.devices[].hub.hide_lightsensor",
             "options.devices[].waterdetector.hide_leak",
             "options.devices[].humidifier.set_minStep",
             "options.devices[].humidifier.hide_temperature",
@@ -1815,11 +1816,16 @@
             "options.devices[].striplight.adaptiveLightingShift",
             "options.devices[].lock.hide_contactsensor",
             "options.devices[].lock.activate_latchbutton",
+            "options.devices[].disableCaching",
+            "options.devices[].maxRetries",
+            "options.devices[].delayBetweenRetries",
+            "options.devices[].maxRetry",
             "options.devices[].mqttURL",
             "options.devices[].mqttOptions",
             "options.devices[].mqttPubOptions",
             "options.devices[].history",
             "options.devices[].firmware",
+            "options.devices[].scanDuration",
             {
               "key": "options.devices[].refreshRate",
               "description": "<em class='primary-text'>Specifies the interval, in seconds, for retrieving the latest device status from the SwitchBot API. This interval applies only to this specific device.</em>"
