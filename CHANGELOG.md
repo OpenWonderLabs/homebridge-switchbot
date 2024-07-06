@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [3.6.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.6.0) (2024-07-06)
+
+### What's Changed
+- Add Humdifier as `meterType` for IR AirConditioner
+- Fix Bot `botDeviceType` issue
+- Fix Other IR `deviceType` issue
+- Fix `RangeError: Maximum call stack size exceeded` error
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.5.1...v3.6.0
+
 ## [3.5.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.5.1) (2024-06-27)
 
 ### What's Changed
