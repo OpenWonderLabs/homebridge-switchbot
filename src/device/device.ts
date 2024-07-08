@@ -364,7 +364,6 @@ export abstract class deviceBase {
     // Set an event handler
     let serviceData = { model: this.device.bleModel, modelName: this.device.bleModelName } as ad['serviceData'];
     switchbot.onadvertisement = async (ad: ad) => {
-      this.warnLog(`ad: ${JSON.stringify(ad, null, '  ')}`);
       if (this.device.bleMac === ad.address && ad.serviceData.model === this.device.bleModel) {
         this.debugLog(`${JSON.stringify(ad, null, '  ')}`);
         this.debugLog(`address: ${ad.address}, model: ${ad.serviceData.model}`);
