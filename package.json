@@ -98,9 +98,9 @@
     "homebridge-config-ui-x": "4.56.4",
     "nodemon": "^3.1.4",
     "npm-check-updates": "^16.14.20",
-    "rimraf": "^5.0.8",
+    "rimraf": "^6.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.3",
-    "typescript-eslint": "^8.0.0-alpha.39"
+    "typescript-eslint": "^8.0.0-alpha.41"
   }
 }

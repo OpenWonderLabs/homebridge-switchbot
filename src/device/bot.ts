@@ -551,6 +551,7 @@ export class Bot extends deviceBase {
 
     // BLEmode (true if Switch Mode) | (false if Press Mode)
     if (this.serviceData.mode) {
+      await this.setOn(this.serviceData.state);
       this.accessory.context.On = await this.getOn();
       if (this.getOn() === undefined) {
         this.setOn(Boolean(this.serviceData.state));
@@ -586,6 +587,7 @@ export class Bot extends deviceBase {
       this.setOn(false);
       this.accessory.context.On = await this.getOn();
     } else {
+      this.setOn(this.deviceStatus.power === 'on' ? true : false);
       this.accessory.context.On = await this.getOn();
       if (this.getOn() === undefined) {
         this.setOn(false);
