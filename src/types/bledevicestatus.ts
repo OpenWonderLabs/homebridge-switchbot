@@ -291,6 +291,7 @@ export type humidifierServiceData = serviceData & {
   onState: boolean;
   autoMode: boolean;
   percentage: number;
+  humidity: number;
 };
 
 export type robotVacuumCleanerServiceData = serviceData & {

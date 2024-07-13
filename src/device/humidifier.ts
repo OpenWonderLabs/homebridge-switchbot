@@ -197,7 +197,7 @@ export class Humidifier extends deviceBase {
     await this.debugLog(`Active: ${this.HumidifierDehumidifier.Active}`);
 
     // Current Relative Humidity
-    this.HumidifierDehumidifier.CurrentRelativeHumidity = validHumidity(this.serviceData.percentage);
+    this.HumidifierDehumidifier.CurrentRelativeHumidity = validHumidity(this.serviceData.humidity);
     await this.debugLog(`CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`);
 
     // Target Humidifier Dehumidifier State
