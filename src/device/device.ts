@@ -444,9 +444,9 @@ export abstract class deviceBase {
       }
       Service.updateCharacteristic(Characteristic, CharacteristicValue);
       this.debugLog(`updateCharacteristic ${CharacteristicName}: ${CharacteristicValue}`);
-      this.debugWarnLog(`context before: ${this.accessory.context[CharacteristicName]}`);
+      this.debugWarnLog(`${CharacteristicName} context before: ${this.accessory.context[CharacteristicName]}`);
       this.accessory.context[CharacteristicName] = CharacteristicValue;
-      this.debugWarnLog(`context after: ${this.accessory.context[CharacteristicName]}`);
+      this.debugWarnLog(`${CharacteristicName} context after: ${this.accessory.context[CharacteristicName]}`);
     }
   }
 

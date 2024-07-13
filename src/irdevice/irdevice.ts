@@ -206,9 +206,9 @@ export abstract class irdeviceBase {
     } else {
       Service.updateCharacteristic(Characteristic, CharacteristicValue);
       await this.debugLog(`updateCharacteristic ${CharacteristicName}: ${CharacteristicValue}`);
-      await this.debugWarnLog(`context before: ${this.accessory.context[CharacteristicName]}`);
+      await this.debugWarnLog(`${CharacteristicName} context before: ${this.accessory.context[CharacteristicName]}`);
       this.accessory.context[CharacteristicName] = CharacteristicValue;
-      await this.debugWarnLog(`context after: ${this.accessory.context[CharacteristicName]}`);
+      await this.debugWarnLog(`${CharacteristicName} context after: ${this.accessory.context[CharacteristicName]}`);
     }
   }
 
@@ -363,6 +363,7 @@ export abstract class irdeviceBase {
   validateAndCleanString(displayName: string, name: string, value: string): string {
     const validPattern = /^[a-zA-Z0-9][a-zA-Z0-9 ']*[a-zA-Z0-9]$/;
     const invalidCharsPattern = /[^a-zA-Z0-9 ']/g;
+    const invalidStartEndPattern = /^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g;
 
     if (!validPattern.test(value)) {
       this.warnLog(`WARNING: The accessory '${displayName}' has an invalid '${name}' characteristic ('${value}'). Please use only alphanumeric,`
@@ -370,10 +371,16 @@ export abstract class irdeviceBase {
               + ' prevent the accessory from being added in the Home App or cause unresponsiveness.');
 
       // Remove invalid characters
-      value = value.replace(invalidCharsPattern, '');
+      if (invalidCharsPattern.test(value)) {
+        this.warnLog(`Removing invalid characters from '${name}' characteristic`);
+        value = value.replace(invalidCharsPattern, '');
+      }
 
       // Ensure it starts and ends with an alphanumeric character
-      value = value.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '');
+      if (invalidStartEndPattern.test(value)) {
+        this.warnLog(`Removing invalid starting or ending characters from '${name}' characteristic`);
+        value = value.replace(invalidStartEndPattern, '');
+      }
     }
 
     return value;
