@@ -115,7 +115,6 @@ export enum BlindTiltMappingMode {
   UseTiltForDirection = 'use_tilt_for_direction',
 }
 
-import type { Nullable, CharacteristicValue } from 'homebridge';
 import type { devicesConfig } from './settings.js';
 import type { blindTilt, curtain, curtain3, device } from './types/devicelist.js';
 
@@ -129,16 +128,6 @@ export function isBlindTiltDevice(device: device & devicesConfig): device is bli
 
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-export function checkName(displayName: string, name: string, value: Nullable<CharacteristicValue>): string {
-  if (typeof value === 'string' && !(new RegExp(/^[\p{L}\p{N}][\p{L}\p{N} ']*[\p{L}\p{N}]$/u)).test(value)) {
-    return `WARNING: The accessory '${displayName}' has an invalid '${name}' characteristic ('${value}'). Please use only alphanumeric, space, and`
-    + ' apostrophe characters. Ensure it starts and ends with an alphabetic or numeric character, and avoid emojis. This may prevent the accessory '
-    + 'from being added in the Home App or cause unresponsiveness.';
-  } else {
-    return 'false';
-  }
 }
 
 /**

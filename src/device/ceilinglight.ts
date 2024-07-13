@@ -42,8 +42,9 @@ export class CeilingLight extends deviceBase {
   serviceData!: ceilingLightServiceData | ceilingLightProServiceData;
 
   // Adaptive Lighting
+  adaptiveLighting!: boolean;
+  adaptiveLightingShift!: number;
   AdaptiveLightingController?: ControllerConstructor | Controller<ControllerServiceMap>;
-  adaptiveLightingShift?: number;
 
   // Updates
   ceilingLightUpdateInProgress!: boolean;
@@ -59,7 +60,7 @@ export class CeilingLight extends deviceBase {
     accessory.category = this.hap.Categories.LIGHTBULB;
 
     // default placeholders
-    this.adaptiveLighting(device);
+    this.getAdaptiveLightingSettings(accessory, device);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doCeilingLightUpdate = new Subject();
@@ -78,23 +79,24 @@ export class CeilingLight extends deviceBase {
     };
     accessory.context.LightBulb = this.LightBulb as object;
 
-    // Adaptive Lighting
-    if (this.adaptiveLightingShift === -1 && accessory.context.adaptiveLighting) {
+    if (this.adaptiveLighting && this.adaptiveLightingShift === -1 && this.LightBulb) {
       accessory.removeService(this.LightBulb.Service);
       this.LightBulb.Service = accessory.addService(this.hap.Service.Lightbulb);
       accessory.context.adaptiveLighting = false;
-      this.debugLog(`adaptiveLighting: ${accessory.context.adaptiveLighting}`);
-    }
-    if (this.adaptiveLightingShift !== -1) {
+      this.debugLog(`adaptiveLighting: ${this.adaptiveLighting}`);
+    } else if (this.adaptiveLighting && this.adaptiveLightingShift >= 0 && this.LightBulb) {
       this.AdaptiveLightingController = new platform.api.hap.AdaptiveLightingController(this.LightBulb.Service, {
+        controllerMode: this.hap.AdaptiveLightingControllerMode.AUTOMATIC,
         customTemperatureAdjustment: this.adaptiveLightingShift,
       });
-      this.accessory.configureController(this.AdaptiveLightingController);
-      this.accessory.context.adaptiveLighting = true;
-      this.debugLog(`adaptiveLighting: ${this.accessory.context.adaptiveLighting},`
-        + ` adaptiveLightingShift: ${this.adaptiveLightingShift}`);
+      accessory.configureController(this.AdaptiveLightingController);
+      accessory.context.adaptiveLighting = true;
+      this.debugLog(`adaptiveLighting: ${this.adaptiveLighting}, adaptiveLightingShift: ${this.adaptiveLightingShift}`,
+      );
+    } else {
+      accessory.context.adaptiveLighting = false;
+      this.debugLog(`adaptiveLighting: ${accessory.context.adaptiveLighting}`);
     }
-    this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`);
 
     // Initialize LightBulb Characteristics
     this.LightBulb.Service
@@ -700,13 +702,18 @@ export class CeilingLight extends deviceBase {
       this.LightBulb.Saturation, 'Saturation');
   }
 
-  async adaptiveLighting(device: device & devicesConfig): Promise<void> {
+  async getAdaptiveLightingSettings(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
+    // Adaptive Lighting
+    this.adaptiveLighting = accessory.context.adaptiveLighting ?? true;
+    await this.debugLog(`adaptiveLighting: ${this.adaptiveLighting}`);
+    // Adaptive Lighting Shift
     if (device.ceilinglight?.adaptiveLightingShift) {
       this.adaptiveLightingShift = device.ceilinglight.adaptiveLightingShift;
+      this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`);
     } else {
       this.adaptiveLightingShift = 0;
+      this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`);
     }
-    await this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`);
   }
 
   async BLEPushConnection() {

@@ -3,7 +3,7 @@
  * blindtilt.ts: @switchbot/homebridge-switchbot.
  */
 import { deviceBase } from './device.js';
-import { hs2rgb, rgb2hs, m2hs, checkName } from '../utils.js';
+import { hs2rgb, rgb2hs, m2hs } from '../utils.js';
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot';
 import { Subject, debounceTime, interval, skipWhile, take, tap } from 'rxjs';
 
@@ -42,8 +42,9 @@ export class ColorBulb extends deviceBase {
   serviceData!: colorBulbServiceData;
 
   // Adaptive Lighting
+  adaptiveLighting!: boolean;
+  adaptiveLightingShift!: number;
   AdaptiveLightingController?: ControllerConstructor | Controller<ControllerServiceMap>;
-  adaptiveLightingShift?: number;
 
   // Updates
   colorBulbUpdateInProgress!: boolean;
@@ -59,12 +60,11 @@ export class ColorBulb extends deviceBase {
     accessory.category = this.hap.Categories.LIGHTBULB;
 
     // default placeholders
-    this.adaptiveLighting(device);
+    this.getAdaptiveLightingSettings(accessory, device);
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doColorBulbUpdate = new Subject();
     this.colorBulbUpdateInProgress = false;
-
 
     // Initialize LightBulb property
     accessory.context.LightBulb = accessory.context.LightBulb ?? {};
@@ -79,30 +79,24 @@ export class ColorBulb extends deviceBase {
     };
     accessory.context.LightBulb = this.LightBulb as object;
 
-    const check = checkName(accessory.context.LightBulb.Name, 'Name', accessory.context.LightBulb.Name);
-    if (check !== 'false') {
-      accessory.context.LightBulb.Name = device.deviceName ?? accessory.displayName;
-    } else {
-      this.warnLog(check);
-    }
-
-    // Adaptive Lighting
-    if (this.adaptiveLightingShift === -1 && accessory.context.adaptiveLighting) {
+    if (this.adaptiveLighting && this.adaptiveLightingShift === -1 && this.LightBulb) {
       accessory.removeService(this.LightBulb.Service);
       this.LightBulb.Service = accessory.addService(this.hap.Service.Lightbulb);
       accessory.context.adaptiveLighting = false;
-      this.debugLog(`adaptiveLighting: ${accessory.context.adaptiveLighting}`);
-    }
-    if (this.adaptiveLightingShift !== -1) {
+      this.debugLog(`adaptiveLighting: ${this.adaptiveLighting}`);
+    } else if (this.adaptiveLighting && this.adaptiveLightingShift >= 0 && this.LightBulb) {
       this.AdaptiveLightingController = new platform.api.hap.AdaptiveLightingController(this.LightBulb.Service, {
+        controllerMode: this.hap.AdaptiveLightingControllerMode.AUTOMATIC,
         customTemperatureAdjustment: this.adaptiveLightingShift,
       });
       accessory.configureController(this.AdaptiveLightingController);
       accessory.context.adaptiveLighting = true;
-      this.debugLog(`adaptiveLighting: ${accessory.context.adaptiveLighting},`
-        + ` adaptiveLightingShift: ${this.adaptiveLightingShift}`);
+      this.debugLog(`adaptiveLighting: ${this.adaptiveLighting}, adaptiveLightingShift: ${this.adaptiveLightingShift}`,
+      );
+    } else {
+      accessory.context.adaptiveLighting = false;
+      this.debugLog(`adaptiveLighting: ${accessory.context.adaptiveLighting}`);
     }
-    this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`);
 
     // Initialize LightBulb Characteristics
     this.LightBulb.Service
@@ -841,13 +835,18 @@ export class ColorBulb extends deviceBase {
       this.LightBulb.Saturation, 'Saturation');
   }
 
-  async adaptiveLighting(device: device & devicesConfig): Promise<void> {
+  async getAdaptiveLightingSettings(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
+    // Adaptive Lighting
+    this.adaptiveLighting = accessory.context.adaptiveLighting ?? true;
+    await this.debugLog(`adaptiveLighting: ${this.adaptiveLighting}`);
+    // Adaptive Lighting Shift
     if (device.colorbulb?.adaptiveLightingShift) {
       this.adaptiveLightingShift = device.colorbulb.adaptiveLightingShift;
+      this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`);
     } else {
       this.adaptiveLightingShift = 0;
+      this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`);
     }
-    await this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`);
   }
 
   async BLEPushConnection() {
