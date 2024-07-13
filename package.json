@@ -85,7 +85,7 @@
     "undici": "^6.19.2"
   },
   "optionalDependencies": {
-    "node-switchbot": "2.2.1-beta.1"
+    "node-switchbot": "2.2.1-beta.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.7.0",
