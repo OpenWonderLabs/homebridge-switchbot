@@ -71,6 +71,10 @@ export class Hub extends deviceBase {
       }
     } else {
       accessory.context.TemperatureSensor = accessory.context.TemperatureSensor ?? {};
+      if (accessory.context.TemperatureSensor.Name) {
+        accessory.context.TemperatureSensor.Name = this.validateAndCleanString(accessory.context.TemperatureSensor.Name,
+          'TemperatureSensor Name', accessory.context.TemperatureSensor.Name);
+      }
       this.TemperatureSensor = {
         Name: accessory.context.TemperatureSensor.Name ?? `${accessory.displayName} Temperature Sensor`,
         Service: accessory.getService(this.hap.Service.TemperatureSensor) ?? this.accessory.addService(this.hap.Service.TemperatureSensor) as Service,
@@ -103,6 +107,10 @@ export class Hub extends deviceBase {
       }
     } else {
       accessory.context.HumiditySensor = accessory.context.HumiditySensor ?? {};
+      if (accessory.context.HumiditySensor.Name) {
+        accessory.context.HumiditySensor.Name = this.validateAndCleanString(accessory.context.HumiditySensor.Name,
+          'HumiditySensor Name', accessory.context.HumiditySensor.Name);
+      }
       this.HumiditySensor = {
         Name: accessory.context.HumiditySensor.Name ?? `${accessory.displayName} Humidity Sensor`,
         Service: accessory.getService(this.hap.Service.HumiditySensor) ?? this.accessory.addService(this.hap.Service.HumiditySensor) as Service,
@@ -131,6 +139,10 @@ export class Hub extends deviceBase {
       }
     } else {
       accessory.context.LightSensor = accessory.context.LightSensor ?? {};
+      if (accessory.context.LightSensor.Name) {
+        accessory.context.LightSensor.Name = this.validateAndCleanString(accessory.context.LightSensor.Name,
+          'LightSensor Name', accessory.context.LightSensor.Name);
+      }
       this.LightSensor = {
         Name: accessory.context.LightSensor.Name ?? `${accessory.displayName} Light Sensor`,
         Service: accessory.getService(this.hap.Service.LightSensor) ?? this.accessory.addService(this.hap.Service.LightSensor) as Service,

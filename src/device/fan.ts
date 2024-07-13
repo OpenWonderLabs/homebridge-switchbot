@@ -67,6 +67,10 @@ export class Fan extends deviceBase {
 
     // Initialize Fan Service
     accessory.context.Fan = accessory.context.Fan ?? {};
+    if (accessory.context.Fan.Name) {
+      accessory.context.Fan.Name = this.validateAndCleanString(accessory.context.Fan.Name,
+        'Fan Name', accessory.context.Fan.Name);
+    }
     this.Fan = {
       Name: accessory.context.Fan.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.Fanv2) ?? accessory.addService(this.hap.Service.Fanv2) as Service,
@@ -102,6 +106,10 @@ export class Fan extends deviceBase {
 
     // Initialize Battery Service
     accessory.context.Battery = accessory.context.Battery ?? {};
+    if (accessory.context.Battery.Name) {
+      accessory.context.Battery.Name = this.validateAndCleanString(accessory.context.Battery.Name,
+        'Battery Name', accessory.context.Battery.Name);
+    }
     this.Battery = {
       Name: accessory.context.Battery.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
@@ -135,6 +143,10 @@ export class Fan extends deviceBase {
 
     // Initialize LightBulb Service
     accessory.context.LightBulb = accessory.context.LightBulb ?? {};
+    if (accessory.context.LightBulb.Name) {
+      accessory.context.LightBulb.Name = this.validateAndCleanString(accessory.context.LightBulb.Name,
+        'LightBulb Name', accessory.context.LightBulb.Name);
+    }
     this.LightBulb = {
       Name: accessory.context.LightBulb.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.Lightbulb) ?? accessory.addService(this.hap.Service.Lightbulb) as Service,

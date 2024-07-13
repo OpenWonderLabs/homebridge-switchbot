@@ -49,6 +49,10 @@ export class Plug extends deviceBase {
 
     // Initialize Outlet Service
     accessory.context.Outlet = accessory.context.Outlet ?? {};
+    if (accessory.context.Outlet.Name) {
+      accessory.context.Outlet.Name = this.validateAndCleanString(accessory.context.Outlet.Name,
+        'Outlet Name', accessory.context.Outlet.Name);
+    }
     this.Outlet = {
       Name: accessory.context.Outlet.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.Outlet) ?? accessory.addService(this.hap.Service.Outlet) as Service,
@@ -58,7 +62,7 @@ export class Plug extends deviceBase {
 
     // Initialize Outlet Characteristics
     this.Outlet.Service
-      .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
+      .setCharacteristic(this.hap.Characteristic.Name, this.Outlet.Name)
       .getCharacteristic(this.hap.Characteristic.On)
       .onGet(() => {
         return this.Outlet.On;

@@ -63,6 +63,10 @@ export class RobotVacuumCleaner extends deviceBase {
 
     // Initialize Lightbulb Service
     accessory.context.LightBulb = accessory.context.LightBulb ?? {};
+    if (accessory.context.LightBulb.Name) {
+      accessory.context.LightBulb.Name = this.validateAndCleanString(accessory.context.LightBulb.Name,
+        'LightBulb Name', accessory.context.LightBulb.Name);
+    }
     this.LightBulb = {
       Name: accessory.context.LightBulb.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.Lightbulb) ?? accessory.addService(this.hap.Service.Lightbulb) as Service,
@@ -73,7 +77,7 @@ export class RobotVacuumCleaner extends deviceBase {
 
     // Initialize LightBulb Characteristics
     this.LightBulb.Service
-      .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
+      .setCharacteristic(this.hap.Characteristic.Name, this.LightBulb.Name)
       .getCharacteristic(this.hap.Characteristic.On)
       .onGet(() => {
         return this.LightBulb.On;
@@ -97,6 +101,10 @@ export class RobotVacuumCleaner extends deviceBase {
 
     // Initialize Battery Service
     accessory.context.Battery = accessory.context.Battery ?? {};
+    if (accessory.context.Battery.Name) {
+      accessory.context.Battery.Name = this.validateAndCleanString(accessory.context.Battery.Name,
+        'Battery Name', accessory.context.Battery.Name);
+    }
     this.Battery = {
       Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,

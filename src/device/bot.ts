@@ -115,8 +115,12 @@ export class Bot extends deviceBase {
     this.doBotUpdate = new Subject();
     this.botUpdateInProgress = false;
 
-    accessory.context.Battery = accessory.context.Battery ?? {};
     // Initialize Battery property
+    accessory.context.Battery = accessory.context.Battery ?? {};
+    if (accessory.context.Battery.Name) {
+      accessory.context.Battery.Name = this.validateAndCleanString(accessory.context.Battery.Name,
+        'Battery Name', accessory.context.Battery.Name);
+    }
     this.Battery = {
       Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
@@ -136,6 +140,10 @@ export class Bot extends deviceBase {
       accessory.category = this.hap.Categories.SWITCH;
       // Initialize Switch Service
       accessory.context.Switch = accessory.context.Switch ?? {};
+      if (accessory.context.Switch.Name) {
+        accessory.context.Switch.Name = this.validateAndCleanString(accessory.context.Switch.Name,
+          'Switch Name', accessory.context.Switch.Name);
+      }
       this.Switch = {
         Name: accessory.context.Switch.Name ?? accessory.displayName,
         Service: accessory.getService(this.hap.Service.Switch) ?? accessory.addService(this.hap.Service.Switch) as Service,
@@ -162,6 +170,10 @@ export class Bot extends deviceBase {
       accessory.category = this.hap.Categories.GARAGE_DOOR_OPENER;
       // Initialize GarageDoor Service
       accessory.context.GarageDoor = accessory.context.GarageDoor ?? {};
+      if (accessory.context.GarageDoor.Name) {
+        accessory.context.GarageDoor.Name = this.validateAndCleanString(accessory.context.GarageDoor.Name,
+          'GarageDoor Name', accessory.context.GarageDoor.Name);
+      }
       this.GarageDoor = {
         Name: accessory.context.GarageDoor.Name ?? accessory.displayName,
         Service: accessory.getService(this.hap.Service.GarageDoorOpener) ?? accessory.addService(this.hap.Service.GarageDoorOpener) as Service,
@@ -195,6 +207,10 @@ export class Bot extends deviceBase {
       accessory.category = this.hap.Categories.DOOR;
       // Initialize Door Service
       accessory.context.Door = accessory.context.Door ?? {};
+      if (accessory.context.Door.Name) {
+        accessory.context.Door.Name = this.validateAndCleanString(accessory.context.Door.Name,
+          'Door Name', accessory.context.Door.Name);
+      }
       this.Door = {
         Name: accessory.context.Door.Name ?? accessory.displayName,
         Service: accessory.getService(this.hap.Service.Door) ?? accessory.addService(this.hap.Service.Door) as Service,
@@ -227,6 +243,10 @@ export class Bot extends deviceBase {
       accessory.category = this.hap.Categories.WINDOW;
       // Initialize Window Service
       accessory.context.Window = accessory.context.Window ?? {};
+      if (accessory.context.Window.Name) {
+        accessory.context.Window.Name = this.validateAndCleanString(accessory.context.Window.Name,
+          'Window Name', accessory.context.Window.Name);
+      }
       this.Window = {
         Name: accessory.context.Window.Name ?? accessory.displayName,
         Service: accessory.getService(this.hap.Service.Window) ?? accessory.addService(this.hap.Service.Window) as Service,
@@ -259,6 +279,10 @@ export class Bot extends deviceBase {
       accessory.category = this.hap.Categories.WINDOW_COVERING;
       // Initialize WindowCovering Service
       accessory.context.WindowCovering = accessory.context.WindowCovering ?? {};
+      if (accessory.context.WindowCovering.Name) {
+        accessory.context.WindowCovering.Name = this.validateAndCleanString(accessory.context.WindowCovering.Name,
+          'WindowCovering Name', accessory.context.WindowCovering.Name);
+      }
       this.WindowCovering = {
         Name: accessory.context.WindowCovering.Name ?? accessory.displayName,
         Service: accessory.getService(this.hap.Service.WindowCovering) ?? accessory.addService(this.hap.Service.WindowCovering) as Service,
@@ -292,6 +316,10 @@ export class Bot extends deviceBase {
       accessory.category = this.hap.Categories.DOOR_LOCK;
       // Initialize Lock Service
       accessory.context.LockMechanism = accessory.context.LockMechanism ?? {};
+      if (accessory.context.LockMechanism.Name) {
+        accessory.context.LockMechanism.Name = this.validateAndCleanString(accessory.context.LockMechanism.Name,
+          'LockMechanism Name', accessory.context.LockMechanism.Name);
+      }
       this.LockMechanism = {
         Name: accessory.context.LockMechanism.Name ?? accessory.displayName,
         Service: accessory.getService(this.hap.Service.LockMechanism) ?? accessory.addService(this.hap.Service.LockMechanism) as Service,
@@ -319,6 +347,10 @@ export class Bot extends deviceBase {
       accessory.category = this.hap.Categories.FAUCET;
       // Initialize Faucet Service
       accessory.context.Faucet = accessory.context.Faucet ?? {};
+      if (accessory.context.Faucet.Name) {
+        accessory.context.Faucet.Name = this.validateAndCleanString(accessory.context.Faucet.Name,
+          'Faucet Name', accessory.context.Faucet.Name);
+      }
       this.Faucet = {
         Name: accessory.context.Faucet.Name ?? accessory.displayName,
         Service: accessory.getService(this.hap.Service.Faucet) ?? accessory.addService(this.hap.Service.Faucet) as Service,
@@ -345,6 +377,10 @@ export class Bot extends deviceBase {
       accessory.category = this.hap.Categories.FAN;
       // Initialize Fan Service
       accessory.context.Fan = accessory.context.Fan ?? {};
+      if (accessory.context.Fan.Name) {
+        accessory.context.Fan.Name = this.validateAndCleanString(accessory.context.Fan.Name,
+          'Fan Name', accessory.context.Fan.Name);
+      }
       this.Fan = {
         Name: accessory.context.Fan.Name ?? accessory.displayName,
         Service: accessory.getService(this.hap.Service.Fanv2) ?? accessory.addService(this.hap.Service.Fanv2) as Service,
@@ -371,6 +407,10 @@ export class Bot extends deviceBase {
       accessory.category = this.hap.Categories.PROGRAMMABLE_SWITCH;
       // Initialize StatefulProgrammableSwitch Service
       accessory.context.StatefulProgrammableSwitch = accessory.context.StatefulProgrammableSwitch ?? {};
+      if (accessory.context.StatefulProgrammableSwitch.Name) {
+        accessory.context.StatefulProgrammableSwitch.Name = this.validateAndCleanString(accessory.context.StatefulProgrammableSwitch.Name,
+          'StatefulProgrammableSwitch Name', accessory.context.StatefulProgrammableSwitch.Name);
+      }
       this.StatefulProgrammableSwitch = {
         Name: accessory.context.StatefulProgrammableSwitch.Name ?? accessory.displayName,
         Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch)
@@ -398,6 +438,10 @@ export class Bot extends deviceBase {
       accessory.category = this.hap.Categories.OUTLET;
       // Initialize Switch property
       accessory.context.Outlet = accessory.context.Outlet ?? {};
+      if (accessory.context.Outlet.Name) {
+        accessory.context.Outlet.Name = this.validateAndCleanString(accessory.context.Outlet.Name,
+          'Outlet Name', accessory.context.Outlet.Name);
+      }
       this.Outlet = {
         Name: accessory.context.Outlet.Name ?? accessory.displayName,
         Service: accessory.getService(this.hap.Service.Outlet) ?? accessory.addService(this.hap.Service.Outlet) as Service,

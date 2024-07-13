@@ -59,6 +59,10 @@ export class AirPurifier extends irdeviceBase {
 
     // Initialize AirPurifier Service
     accessory.context.AirPurifier = accessory.context.AirPurifier ?? {};
+    if (accessory.context.AirPurifier.Name) {
+      accessory.context.AirPurifier.Name = this.validateAndCleanString(accessory.context.AirPurifier.Name,
+        'AirPurifier Name', accessory.context.AirPurifier.Name);
+    }
     this.AirPurifier = {
       Name: accessory.context.AirPurifier.Name ?? `${accessory.displayName} Air Purifier`,
       Service: accessory.getService(this.hap.Service.AirPurifier) ?? accessory.addService(this.hap.Service.AirPurifier) as Service,
@@ -93,6 +97,10 @@ export class AirPurifier extends irdeviceBase {
 
     // Initialize TemperatureSensor Service
     accessory.context.TemperatureSensor = accessory.context.TemperatureSensor ?? {};
+    if (accessory.context.TemperatureSensor.Name) {
+      accessory.context.TemperatureSensor.Name = this.validateAndCleanString(accessory.context.TemperatureSensor.Name,
+        'TemperatureSensor Name', accessory.context.TemperatureSensor.Name);
+    }
     this.TemperatureSensor = {
       Name: accessory.context.TemperatureSensor.Name ?? `${accessory.displayName} Temperature Sensor`,
       Service: accessory.getService(this.hap.Service.TemperatureSensor) ?? accessory.addService(this.hap.Service.TemperatureSensor) as Service,

@@ -70,6 +70,10 @@ export class IOSensor extends deviceBase {
 
     // Initialize Battery Service
     accessory.context.Battery = accessory.context.Battery ?? {};
+    if (accessory.context.Battery.Name) {
+      accessory.context.Battery.Name = this.validateAndCleanString(accessory.context.Battery.Name,
+        'Battery Name', accessory.context.Battery.Name);
+    }
     this.Battery = {
       Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
@@ -103,6 +107,10 @@ export class IOSensor extends deviceBase {
       }
     } else {
       accessory.context.TemperatureSensor = accessory.context.TemperatureSensor ?? {};
+      if (accessory.context.TemperatureSensor.Name) {
+        accessory.context.TemperatureSensor.Name = this.validateAndCleanString(accessory.context.TemperatureSensor.Name,
+          'TemperatureSensor Name', accessory.context.TemperatureSensor.Name);
+      }
       this.TemperatureSensor = {
         Name: accessory.context.TemperatureSensor.Name ?? `${accessory.displayName} Temperature Sensor`,
         Service: accessory.getService(this.hap.Service.TemperatureSensor) ?? this.accessory.addService(this.hap.Service.TemperatureSensor) as Service,
@@ -135,6 +143,10 @@ export class IOSensor extends deviceBase {
       }
     } else {
       accessory.context.HumiditySensor = accessory.context.HumiditySensor ?? {};
+      if (accessory.context.HumiditySensor.Name) {
+        accessory.context.HumiditySensor.Name = this.validateAndCleanString(accessory.context.HumiditySensor.Name,
+          'HumiditySensor Name', accessory.context.HumiditySensor.Name);
+      }
       this.HumiditySensor = {
         Name: accessory.context.HumiditySensor.Name ?? `${accessory.displayName} Humidity Sensor`,
         Service: accessory.getService(this.hap.Service.HumiditySensor) ?? this.accessory.addService(this.hap.Service.HumiditySensor) as Service,

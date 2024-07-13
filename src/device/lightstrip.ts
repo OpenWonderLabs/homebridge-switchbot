@@ -68,6 +68,10 @@ export class StripLight extends deviceBase {
 
     // Initialize the LightBulb Service
     accessory.context.LightBulb = accessory.context.LightBulb ?? {};
+    if (accessory.context.LightBulb.Name) {
+      accessory.context.LightBulb.Name = this.validateAndCleanString(accessory.context.LightBulb.Name,
+        'LightBulb Name', accessory.context.LightBulb.Name);
+    }
     this.LightBulb = {
       Name: accessory.context.LightBulb.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.Lightbulb) ?? accessory.addService(this.hap.Service.Lightbulb) as Service,

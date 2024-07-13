@@ -70,6 +70,10 @@ export class Lock extends deviceBase {
 
     // Initialize LockMechanism Service
     accessory.context.LockMechanism = accessory.context.LockMechanism ?? {};
+    if (accessory.context.LockMechanism.Name) {
+      accessory.context.LockMechanism.Name = this.validateAndCleanString(accessory.context.LockMechanism.Name,
+        'LockMechanism Name', accessory.context.LockMechanism.Name);
+    }
     this.LockMechanism = {
       Name: accessory.context.LockMechanism.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.LockMechanism) ?? accessory.addService(this.hap.Service.LockMechanism) as Service,
@@ -89,6 +93,10 @@ export class Lock extends deviceBase {
 
     // Initialize Battery property
     accessory.context.Battery = accessory.context.Battery ?? {};
+    if (accessory.context.Battery.Name) {
+      accessory.context.Battery.Name = this.validateAndCleanString(accessory.context.Battery.Name,
+        'Battery Name', accessory.context.Battery.Name);
+    }
     this.Battery = {
       Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
@@ -121,6 +129,10 @@ export class Lock extends deviceBase {
       }
     } else {
       accessory.context.ContactSensor = accessory.context.ContactSensor ?? {};
+      if (accessory.context.ContactSensor.Name) {
+        accessory.context.ContactSensor.Name = this.validateAndCleanString(accessory.context.ContactSensor.Name,
+          'ContactSensor Name', accessory.context.ContactSensor.Name);
+      }
       this.ContactSensor = {
         Name: accessory.context.ContactSensor.Name ?? `${accessory.displayName} Contact Sensor`,
         Service: accessory.getService(this.hap.Service.ContactSensor) ?? this.accessory.addService(this.hap.Service.ContactSensor) as Service,
@@ -147,6 +159,10 @@ export class Lock extends deviceBase {
       }
     } else {
       accessory.context.Switch = accessory.context.Switch ?? {};
+      if (accessory.context.Switch.Name) {
+        accessory.context.Switch.Name = this.validateAndCleanString(accessory.context.Switch.Name,
+          'Switch Name', accessory.context.Switch.Name);
+      }
       this.Switch = {
         Name: accessory.context.Switch.Name ?? `${accessory.displayName} Latch`,
         Service: accessory.getService(this.hap.Service.Switch) ?? accessory.addService(this.hap.Service.Switch) as Service,

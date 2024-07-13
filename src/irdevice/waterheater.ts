@@ -41,7 +41,7 @@ export class WaterHeater extends irdeviceBase {
     accessory.context.Valve = this.Valve as object;
 
     this.Valve.Service
-      .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
+      .setCharacteristic(this.hap.Characteristic.Name, this.Valve.Name)
       .setCharacteristic(this.hap.Characteristic.ValveType, this.hap.Characteristic.ValveType.GENERIC_VALVE)
       .getCharacteristic(this.hap.Characteristic.Active)
       .onGet(() => {
