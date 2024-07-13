@@ -438,21 +438,22 @@ export class Curtain extends deviceBase {
   async BLERefreshStatus(): Promise<void> {
     await this.debugLog('BLERefreshStatus');
     if (this.config.options?.BLE) {
-      await this.debugLog('is listening to BLE.');
-      this.platform.bleEventHandler[this.device.deviceId] = async (context: curtainServiceData | curtain3ServiceData) => {
+      await this.debugLog('is listening to Platform BLE.');
+      this.device.bleMac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase();
+      await this.debugLog(`bleMac: ${this.device.bleMac}`);
+      this.platform.bleEventHandler[this.device.bleMac] = async (context: curtainServiceData | curtain3ServiceData) => {
         try {
-          await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
+          await this.debugLog(`received BLE: ${JSON.stringify(context)}`);
           this.serviceData = context;
-          await this.parseStatusWebhook();
+          await this.BLEparseStatus();
           await this.updateHomeKitCharacteristics();
         } catch (e: any) {
           await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`);
         }
       };
     } else {
-      await this.debugLog('is not listening to BLE.');
+      await this.debugLog('is using Device BLE Scanning.');
       const switchbot = await this.switchbotBLE();
-
       if (switchbot === undefined) {
         await this.BLERefreshConnection(switchbot);
       } else {

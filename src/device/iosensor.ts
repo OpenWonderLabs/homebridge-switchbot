@@ -283,25 +283,41 @@ export class IOSensor extends deviceBase {
 
   async BLERefreshStatus(): Promise<void> {
     await this.debugLog('BLERefreshStatus');
-    const switchbot = await this.switchbotBLE();
-
-    if (switchbot === undefined) {
-      await this.BLERefreshConnection(switchbot);
-    } else {
-    // Start to monitor advertisement packets
-      (async () => {
-      // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchbot) as outdoorMeterServiceData;
-        // Update HomeKit
-        if (serviceData.model === SwitchBotBLEModel.OutdoorMeter && serviceData.modelName === SwitchBotBLEModelName.OutdoorMeter) {
-          this.serviceData = serviceData;
+    if (this.config.options?.BLE) {
+      await this.debugLog('is listening to Platform BLE.');
+      this.device.bleMac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase();
+      await this.debugLog(`bleMac: ${this.device.bleMac}`);
+      this.platform.bleEventHandler[this.device.bleMac] = async (context: outdoorMeterServiceData) => {
+        try {
+          await this.debugLog(`received BLE: ${JSON.stringify(context)}`);
+          this.serviceData = context;
           await this.BLEparseStatus();
           await this.updateHomeKitCharacteristics();
-        } else {
-          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
-          await this.BLERefreshConnection(switchbot);
+        } catch (e: any) {
+          await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`);
         }
-      })();
+      };
+    } else {
+      await this.debugLog('is using Device BLE Scanning.');
+      const switchbot = await this.switchbotBLE();
+      if (switchbot === undefined) {
+        await this.BLERefreshConnection(switchbot);
+      } else {
+        // Start to monitor advertisement packets
+        (async () => {
+          // Start to monitor advertisement packets
+          const serviceData = await this.monitorAdvertisementPackets(switchbot) as outdoorMeterServiceData;
+          // Update HomeKit
+          if (serviceData.model === SwitchBotBLEModel.OutdoorMeter && serviceData.modelName === SwitchBotBLEModelName.OutdoorMeter) {
+            this.serviceData = serviceData;
+            await this.BLEparseStatus();
+            await this.updateHomeKitCharacteristics();
+          } else {
+            await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
+            await this.BLERefreshConnection(switchbot);
+          }
+        })();
+      }
     }
   }
 

@@ -330,9 +330,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           // Set an event handler to monitor advertisement packets
           switchbot.onadvertisement = async (ad: any) => {
             try {
-              this.bleEventHandler[ad.id]?.(ad);
+              this.bleEventHandler[ad.address]?.(ad.serviceData);
             } catch (e: any) {
-              this.errorLog(`Failed to handle BLE event. Error:${e}`);
+              await this.errorLog(`Failed to handle BLE event. Error:${e}`);
             }
           };
         })();

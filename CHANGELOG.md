@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [3.7.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.7.0) (2024-07-XX)
+
+### What's Changed
+- Add Platform BLE Scanning
+  - Enable by setting `Enable BLE Scanning` setting under Advanced Settings.
+  - Will update devices as data is received.
+- Fix Bot and Other `On` issues.
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.6.0...v3.7.0
+
 ## [3.6.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.6.0) (2024-07-06)
 
 ### What's Changed
