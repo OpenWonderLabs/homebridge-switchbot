@@ -374,7 +374,7 @@ export abstract class deviceBase {
         this.debugLog(`serviceData: ${JSON.stringify(ad.serviceData)}`);
       }
     };
-    // Wait 10 seconds
+    // Wait
     await switchbot.wait(this.scanDuration * 1000);
     // Stop to monitor
     await switchbot.stopScan();

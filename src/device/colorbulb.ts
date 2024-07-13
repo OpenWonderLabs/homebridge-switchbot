@@ -3,7 +3,7 @@
  * blindtilt.ts: @switchbot/homebridge-switchbot.
  */
 import { deviceBase } from './device.js';
-import { hs2rgb, rgb2hs, m2hs } from '../utils.js';
+import { hs2rgb, rgb2hs, m2hs, checkName } from '../utils.js';
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot';
 import { Subject, debounceTime, interval, skipWhile, take, tap } from 'rxjs';
 
@@ -65,6 +65,7 @@ export class ColorBulb extends deviceBase {
     this.doColorBulbUpdate = new Subject();
     this.colorBulbUpdateInProgress = false;
 
+
     // Initialize LightBulb property
     accessory.context.LightBulb = accessory.context.LightBulb ?? {};
     this.LightBulb = {
@@ -77,6 +78,13 @@ export class ColorBulb extends deviceBase {
       ColorTemperature: accessory.context.ColorTemperature ?? 140,
     };
     accessory.context.LightBulb = this.LightBulb as object;
+
+    const check = checkName(accessory.context.LightBulb.Name, 'Name', accessory.context.LightBulb.Name);
+    if (check !== 'false') {
+      accessory.context.LightBulb.Name = device.deviceName ?? accessory.displayName;
+    } else {
+      this.warnLog(check);
+    }
 
     // Adaptive Lighting
     if (this.adaptiveLightingShift === -1 && accessory.context.adaptiveLighting) {
