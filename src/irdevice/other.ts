@@ -79,7 +79,7 @@ export class Others extends irdeviceBase {
     super(platform, accessory, device);
 
     // default placeholders
-    this.getOtherConfigSettings(device);
+    this.getOtherConfigSettings(accessory, device);
 
     // deviceType
     if (this.otherDeviceType === 'switch') {
@@ -869,18 +869,10 @@ export class Others extends irdeviceBase {
     accessory.removeService(this.Switch.Service);
   }
 
-  async getOtherConfigSettings(device: irdevice & irDevicesConfig): Promise<void> {
-    if (!device.other?.deviceType && this.accessory.context.deviceType) {
-      this.otherDeviceType = this.accessory.context.deviceType;
-      await this.debugWarnLog(`Using Device Type: ${this.otherDeviceType}, from Accessory Cache.`);
-    } else if (device.other?.deviceType) {
-      this.accessory.context.deviceType = device.other.deviceType;
-      await this.debugWarnLog(`Accessory Cache: ${this.accessory.context.deviceType}`);
-      this.otherDeviceType = this.accessory.context.deviceType;
-      await this.debugWarnLog(`Using Device Type: ${this.otherDeviceType}`);
-    } else {
-      this.otherDeviceType = 'outlet';
-      this.warnLog(`no deviceType set, using default deviceType: ${this.otherDeviceType}`);
-    }
+  async getOtherConfigSettings(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): Promise<void> {
+    this.otherDeviceType = accessory.context.otherDeviceType ? accessory.context.otherDeviceType
+      : device.other?.deviceType ? device.other.deviceType : 'outlet';
+    const deviceType = accessory.context.otherDeviceType ? 'Accessory Cache': device.other?.deviceType ? 'Device Config' : 'Default';
+    await this.debugLog(`Use ${deviceType} Type: ${this.otherDeviceType}`);
   }
 }
