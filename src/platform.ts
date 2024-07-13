@@ -336,6 +336,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
             }
           };
         })();
+
+        this.api.on('shutdown', async () => {
+          try {
+            switchbot.stopScan();
+            this.infoLog('Stopped BLE scanning to close listening.');
+          } catch (e: any) {
+            this.errorLog(`Failed to stop Platform BLE scanning. Error:${e.message}`);
+          }
+        });
       }
     } else {
       await this.debugLog('Platform BLE is not enabled');
