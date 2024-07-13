@@ -4,8 +4,8 @@
  */
 import { Units } from 'homebridge';
 import { deviceBase } from './device.js';
-import { convertUnits } from '../utils.js';
 import { Subject, interval, skipWhile} from 'rxjs';
+import { validHumidity, convertUnits } from '../utils.js';
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot';
 
 import type { devicesConfig } from '../settings.js';
@@ -181,7 +181,7 @@ export class Hub extends deviceBase {
 
     // CurrentRelativeHumidity
     if (!this.device.hub?.hide_humidity && this.HumiditySensor?.Service) {
-      this.HumiditySensor!.CurrentRelativeHumidity = this.serviceData.humidity;
+      this.HumiditySensor!.CurrentRelativeHumidity = validHumidity(this.serviceData.humidity, 0, 100);
       await this.debugLog(`CurrentRelativeHumidity: ${this.HumiditySensor.CurrentRelativeHumidity}%`);
     }
 

@@ -5,9 +5,9 @@
 import { Units } from 'homebridge';
 import { deviceBase } from './device.js';
 import { Subject, interval, skipWhile } from 'rxjs';
+import { convertUnits, validHumidity } from '../utils.js';
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot';
 
-import { convertUnits } from '../utils.js';
 import type { devicesConfig } from '../settings.js';
 import type { device } from '../types/devicelist.js';
 import type { SwitchBotPlatform } from '../platform.js';
@@ -175,7 +175,7 @@ export class MeterPlus extends deviceBase {
 
     // CurrentRelativeHumidity
     if (!this.device.iosensor?.hide_humidity && this.HumiditySensor?.Service) {
-      this.HumiditySensor.CurrentRelativeHumidity = this.serviceData.humidity;
+      this.HumiditySensor.CurrentRelativeHumidity = validHumidity(this.serviceData.humidity, 0, 100);
       await this.debugLog(`CurrentRelativeHumidity: ${this.HumiditySensor.CurrentRelativeHumidity}%`);
     }
     // Current Temperature
