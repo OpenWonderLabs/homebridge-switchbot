@@ -3,7 +3,7 @@
  * humidifier.ts: @switchbot/homebridge-switchbot.
  */
 import { deviceBase } from './device.js';
-import { convertUnits } from '../utils.js';
+import { convertUnits, validHumidity } from '../utils.js';
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot';
 import { Subject, debounceTime, interval, skipWhile, take, tap } from 'rxjs';
 
@@ -197,7 +197,7 @@ export class Humidifier extends deviceBase {
     await this.debugLog(`Active: ${this.HumidifierDehumidifier.Active}`);
 
     // Current Relative Humidity
-    this.HumidifierDehumidifier.CurrentRelativeHumidity = this.serviceData.percentage;
+    this.HumidifierDehumidifier.CurrentRelativeHumidity = validHumidity(this.serviceData.percentage);
     await this.debugLog(`CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`);
 
     // Target Humidifier Dehumidifier State
@@ -238,7 +238,7 @@ export class Humidifier extends deviceBase {
     await this.debugLog(`Active: ${this.HumidifierDehumidifier.Active}`);
 
     // Current Relative Humidity
-    this.HumidifierDehumidifier.CurrentRelativeHumidity = this.deviceStatus.temperature!;
+    this.HumidifierDehumidifier.CurrentRelativeHumidity = validHumidity(this.deviceStatus.humidity);
     await this.debugLog(`CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`);
 
     // Current Temperature
@@ -301,7 +301,7 @@ export class Humidifier extends deviceBase {
       + ` ${this.HumidifierDehumidifier.CurrentRelativeHumidity})`);
 
     // CurrentRelativeHumidity
-    this.HumidifierDehumidifier.CurrentRelativeHumidity = this.webhookContext.humidity;
+    this.HumidifierDehumidifier.CurrentRelativeHumidity = validHumidity(this.webhookContext.humidity);
     await this.debugLog(`CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`);
 
     // CurrentTemperature
