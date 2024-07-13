@@ -355,11 +355,11 @@ export abstract class deviceBase {
       .deviceId!.match(/.{1,2}/g)!
       .join(':')
       .toLowerCase();
-    this.debugLog(`BLE Address: ${this.device.bleMac}`);
+    await this.debugLog(`BLE Address: ${this.device.bleMac}`);
   }
 
   async monitorAdvertisementPackets(switchbot: any) {
-    this.debugLog(`Scanning for ${this.device.bleModelName} devices...`);
+    await this.debugLog(`Scanning for ${this.device.bleModelName} devices...`);
     await switchbot.startScan({ model: this.device.bleModel, id: this.device.bleMac });
     // Set an event handler
     let serviceData = { model: this.device.bleModel, modelName: this.device.bleModelName } as ad['serviceData'];

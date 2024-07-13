@@ -61,6 +61,7 @@ interface options {
   mqttURL?: string;
   mqttOptions?: IClientOptions;
   mqttPubOptions?: IClientOptions;
+  BLE?: boolean;
   webhookURL?: string;
   maxRetries?: number;
   delayBetweenRetries?: number;

@@ -78,6 +78,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   public readonly eve: any;
   public readonly fakegatoAPI: any;
   public readonly webhookEventHandler: { [x: string]: (context: any) => void } = {};
+  public readonly bleEventHandler: { [x: string]: (context: any) => void } = {};
 
   constructor(
     log: Logging,
@@ -148,6 +149,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     this.setupMqtt();
     this.setupwebhook();
+    this.setupBlE();
   }
 
   async setupMqtt(): Promise<void> {
@@ -309,6 +311,34 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           this.errorLog(`Failed to delete webhook. Error:${e.message}`);
         }
       });
+    }
+  }
+
+  async setupBlE() {
+    if (this.config.options?.BLE) {
+      await this.debugLog('setupBLE');
+      const SwitchBot = (await import('node-switchbot')).SwitchBot;
+      const switchbot = new SwitchBot();
+      if (switchbot === undefined) {
+        await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
+      } else {
+        // Start to monitor advertisement packets
+        (async () => {
+          // Start to monitor advertisement packets
+          await this.debugLog('Scanning for BLE SwitchBot devices...');
+          await switchbot.startScan();
+          // Set an event handler to monitor advertisement packets
+          switchbot.onadvertisement = async (ad: any) => {
+            try {
+              this.bleEventHandler[ad.id]?.(ad);
+            } catch (e: any) {
+              this.errorLog(`Failed to handle BLE event. Error:${e}`);
+            }
+          };
+        })();
+      }
+    } else {
+      await this.debugLog('Platform BLE is not enabled');
     }
   }
 

@@ -425,7 +425,7 @@ export class Curtain extends deviceBase {
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       await this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`);
-    } else if (this.BLE) {
+    } else if (this.BLE || this.config.options?.BLE) {
       await this.BLERefreshStatus();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
@@ -437,26 +437,41 @@ export class Curtain extends deviceBase {
 
   async BLERefreshStatus(): Promise<void> {
     await this.debugLog('BLERefreshStatus');
-    const switchbot = await this.switchbotBLE();
-
-    if (switchbot === undefined) {
-      await this.BLERefreshConnection(switchbot);
-    } else {
-    // Start to monitor advertisement packets
-      (async () => {
-      // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchbot) as curtainServiceData | curtain3ServiceData;
-        // Update HomeKit
-        if ((serviceData.model === SwitchBotBLEModel.Curtain || SwitchBotBLEModel.Curtain3)
-          && (serviceData.modelName === SwitchBotBLEModelName.Curtain || SwitchBotBLEModelName.Curtain3)) {
-          this.serviceData = serviceData;
-          await this.BLEparseStatus();
+    if (this.config.options?.BLE) {
+      await this.debugLog('is listening to BLE.');
+      this.platform.bleEventHandler[this.device.deviceId] = async (context: curtainServiceData | curtain3ServiceData) => {
+        try {
+          await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
+          this.serviceData = context;
+          await this.parseStatusWebhook();
           await this.updateHomeKitCharacteristics();
-        } else {
-          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
-          await this.BLERefreshConnection(switchbot);
+        } catch (e: any) {
+          await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`);
         }
-      })();
+      };
+    } else {
+      await this.debugLog('is not listening to BLE.');
+      const switchbot = await this.switchbotBLE();
+
+      if (switchbot === undefined) {
+        await this.BLERefreshConnection(switchbot);
+      } else {
+        // Start to monitor advertisement packets
+        (async () => {
+          // Start to monitor advertisement packets
+          const serviceData = await this.monitorAdvertisementPackets(switchbot) as curtainServiceData | curtain3ServiceData;
+          // Update HomeKit
+          if ((serviceData.model === SwitchBotBLEModel.Curtain || SwitchBotBLEModel.Curtain3)
+          && (serviceData.modelName === SwitchBotBLEModelName.Curtain || SwitchBotBLEModelName.Curtain3)) {
+            this.serviceData = serviceData;
+            await this.BLEparseStatus();
+            await this.updateHomeKitCharacteristics();
+          } else {
+            await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
+            await this.BLERefreshConnection(switchbot);
+          }
+        })();
+      }
     }
   }
 
