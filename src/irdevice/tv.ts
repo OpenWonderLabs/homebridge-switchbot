@@ -45,17 +45,9 @@ export class TV extends irdeviceBase {
 
     // Initialize Television Service
     accessory.context.Television = accessory.context.Television ?? {};
-    if (accessory.context.Television.Name) {
-      accessory.context.Television.Name = this.validateAndCleanString(accessory.context.Television.Name,
-        'Television Name', accessory.context.Television.Name);
-    }
-    if (accessory.context.Television.ConfiguredName) {
-      accessory.context.Television.ConfiguredName = this.validateAndCleanString(accessory.context.Television.ConfiguredName,
-        'Television ConfiguredName', accessory.context.Television.ConfiguredName);
-    }
     this.Television = {
-      Name: accessory.context.Television.Name ?? `${accessory.displayName} ${device.remoteType}`,
-      ConfiguredName: accessory.context.Television.ConfiguredName ?? `${accessory.displayName} ${device.remoteType}`,
+      Name: accessory.displayName,
+      ConfiguredName: accessory.displayName,
       Service: accessory.getService(this.hap.Service.Television) ?? accessory.addService(this.hap.Service.Television) as Service,
       Active: accessory.context.Active ?? this.hap.Characteristic.Active.INACTIVE,
       ActiveIdentifier: accessory.context.ActiveIdentifier ?? 1,
@@ -112,12 +104,8 @@ export class TV extends irdeviceBase {
 
     // Initialize TelevisionSpeaker Service
     accessory.context.TelevisionSpeaker = accessory.context.TelevisionSpeaker ?? {};
-    if (accessory.context.TelevisionSpeaker.Name) {
-      accessory.context.TelevisionSpeaker.Name = this.validateAndCleanString(accessory.context.TelevisionSpeaker.Name,
-        'TelevisionSpeaker Name', accessory.context.TelevisionSpeaker.Name);
-    }
     this.TelevisionSpeaker = {
-      Name: accessory.context.TelevisionSpeaker.Name ?? `${accessory.displayName} ${device.remoteType} Speaker`,
+      Name: `${accessory.displayName} Speaker`,
       Service: accessory.getService(this.hap.Service.TelevisionSpeaker) ?? accessory.addService(this.hap.Service.TelevisionSpeaker) as Service,
       Active: accessory.context.Active ?? false,
       VolumeControlType: accessory.context.VolumeControlType ?? this.hap.Characteristic.VolumeControlType.ABSOLUTE,

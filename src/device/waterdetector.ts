@@ -64,12 +64,8 @@ export class WaterDetector extends deviceBase {
 
     // Initialize Battery Service
     accessory.context.Battery = accessory.context.Battery ?? {};
-    if (accessory.context.Battery.Name) {
-      accessory.context.Battery.Name = this.validateAndCleanString(accessory.context.Battery.Name,
-        'Battery Name', accessory.context.Battery.Name);
-    }
     this.Battery = {
-      Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
+      Name: `${accessory.displayName} Battery`,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel ?? 100,
       StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
@@ -103,12 +99,8 @@ export class WaterDetector extends deviceBase {
       }
     } else {
       accessory.context.LeakSensor = accessory.context.LeakSensor ?? {};
-      if (accessory.context.LeakSensor.Name) {
-        accessory.context.LeakSensor.Name = this.validateAndCleanString(accessory.context.LeakSensor.Name,
-          'LeakSensor Name', accessory.context.LeakSensor.Name);
-      }
       this.LeakSensor = {
-        Name: accessory.context.LeakSensor.Name ?? `${accessory.displayName} Leak Sensor`,
+        Name: `${accessory.displayName} Leak Sensor`,
         Service: accessory.getService(this.hap.Service.LeakSensor) ?? this.accessory.addService(this.hap.Service.LeakSensor) as Service,
         StatusActive: accessory.context.StatusActive ?? false,
         LeakDetected: accessory.context.LeakDetected ?? this.hap.Characteristic.LeakDetected.LEAK_NOT_DETECTED,

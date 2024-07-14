@@ -87,12 +87,8 @@ export class Others extends irdeviceBase {
       accessory.category = this.hap.Categories.SWITCH;
       // Initialize Switch Service
       accessory.context.Switch = accessory.context.Switch ?? {};
-      if (accessory.context.Switch.Name) {
-        accessory.context.Switch.Name = this.validateAndCleanString(accessory.context.Switch.Name,
-          'Switch Name', accessory.context.Switch.Name);
-      }
       this.Switch = {
-        Name: accessory.context.Switch.Name ?? accessory.displayName,
+        Name: accessory.displayName,
         Service: accessory.getService(this.hap.Service.Switch) ?? accessory.addService(this.hap.Service.Switch) as Service,
       };
       accessory.context.Switch = this.Switch as object;
@@ -117,12 +113,8 @@ export class Others extends irdeviceBase {
       accessory.category = this.hap.Categories.GARAGE_DOOR_OPENER;
       // Initialize GarageDoor Service
       accessory.context.GarageDoor = accessory.context.GarageDoor ?? {};
-      if (accessory.context.GarageDoor.Name) {
-        accessory.context.GarageDoor.Name = this.validateAndCleanString(accessory.context.GarageDoor.Name,
-          'GarageDoor Name', accessory.context.GarageDoor.Name);
-      }
       this.GarageDoor = {
-        Name: accessory.context.GarageDoor.Name ?? accessory.displayName,
+        Name: accessory.displayName,
         Service: accessory.getService(this.hap.Service.GarageDoorOpener) ?? accessory.addService(this.hap.Service.GarageDoorOpener) as Service,
       };
       accessory.context.GarageDoor = this.GarageDoor as object;
@@ -154,12 +146,8 @@ export class Others extends irdeviceBase {
       accessory.category = this.hap.Categories.DOOR;
       // Initialize Door Service
       accessory.context.Door = accessory.context.Door ?? {};
-      if (accessory.context.Door.Name) {
-        accessory.context.Door.Name = this.validateAndCleanString(accessory.context.Door.Name,
-          'Door Name', accessory.context.Door.Name);
-      }
       this.Door = {
-        Name: accessory.context.Door.Name ?? accessory.displayName,
+        Name: accessory.displayName,
         Service: accessory.getService(this.hap.Service.Door) ?? accessory.addService(this.hap.Service.Door) as Service,
       };
       accessory.context.Door = this.Door as object;
@@ -190,12 +178,8 @@ export class Others extends irdeviceBase {
       accessory.category = this.hap.Categories.WINDOW;
       // Initialize Window Service
       accessory.context.Window = accessory.context.Window ?? {};
-      if (accessory.context.Window.Name) {
-        accessory.context.Window.Name = this.validateAndCleanString(accessory.context.Window.Name,
-          'Window Name', accessory.context.Window.Name);
-      }
       this.Window = {
-        Name: accessory.context.Window.Name ?? accessory.displayName,
+        Name: accessory.displayName,
         Service: accessory.getService(this.hap.Service.Window) ?? accessory.addService(this.hap.Service.Window) as Service,
       };
       accessory.context.Window = this.Window as object;
@@ -226,12 +210,8 @@ export class Others extends irdeviceBase {
       accessory.category = this.hap.Categories.WINDOW_COVERING;
       // Initialize WindowCovering Service
       accessory.context.WindowCovering = accessory.context.WindowCovering ?? {};
-      if (accessory.context.WindowCovering.Name) {
-        accessory.context.WindowCovering.Name = this.validateAndCleanString(accessory.context.WindowCovering.Name,
-          'WindowCovering Name', accessory.context.WindowCovering.Name);
-      }
       this.WindowCovering = {
-        Name: accessory.context.WindowCovering.Name ?? accessory.displayName,
+        Name: accessory.displayName,
         Service: accessory.getService(this.hap.Service.WindowCovering) ?? accessory.addService(this.hap.Service.WindowCovering) as Service,
       };
       accessory.context.WindowCovering = this.WindowCovering as object;
@@ -263,12 +243,8 @@ export class Others extends irdeviceBase {
       accessory.category = this.hap.Categories.DOOR_LOCK;
       // Initialize Lock Service
       accessory.context.LockMechanism = accessory.context.LockMechanism ?? {};
-      if (accessory.context.LockMechanism.Name) {
-        accessory.context.LockMechanism.Name = this.validateAndCleanString(accessory.context.LockMechanism.Name,
-          'LockMechanism Name', accessory.context.LockMechanism.Name);
-      }
       this.LockMechanism = {
-        Name: accessory.context.LockMechanism.Name ?? accessory.displayName,
+        Name: accessory.displayName,
         Service: accessory.getService(this.hap.Service.LockMechanism) ?? accessory.addService(this.hap.Service.LockMechanism) as Service,
       };
       accessory.context.LockMechanism = this.LockMechanism as object;
@@ -294,12 +270,8 @@ export class Others extends irdeviceBase {
       accessory.category = this.hap.Categories.FAUCET;
       // Initialize Faucet Service
       accessory.context.Faucet = accessory.context.Faucet ?? {};
-      if (accessory.context.Faucet.Name) {
-        accessory.context.Faucet.Name = this.validateAndCleanString(accessory.context.Faucet.Name,
-          'Faucet Name', accessory.context.Faucet.Name);
-      }
       this.Faucet = {
-        Name: accessory.context.Faucet.Name ?? accessory.displayName,
+        Name: accessory.displayName,
         Service: accessory.getService(this.hap.Service.Faucet) ?? accessory.addService(this.hap.Service.Faucet) as Service,
       };
       accessory.context.Faucet = this.Faucet as object;
@@ -324,12 +296,8 @@ export class Others extends irdeviceBase {
       accessory.category = this.hap.Categories.FAN;
       // Initialize Fan Service
       accessory.context.Fan = accessory.context.Fan ?? {};
-      if (accessory.context.Fan.Name) {
-        accessory.context.Fan.Name = this.validateAndCleanString(accessory.context.Fan.Name,
-          'Fan Name', accessory.context.Fan.Name);
-      }
       this.Fan = {
-        Name: accessory.context.Fan.Name ?? accessory.displayName,
+        Name: accessory.displayName,
         Service: accessory.getService(this.hap.Service.Fanv2) ?? accessory.addService(this.hap.Service.Fanv2) as Service,
       };
       accessory.context.Fan = this.Fan as object;
@@ -354,12 +322,8 @@ export class Others extends irdeviceBase {
       accessory.category = this.hap.Categories.PROGRAMMABLE_SWITCH;
       // Initialize StatefulProgrammableSwitch Service
       accessory.context.StatefulProgrammableSwitch = accessory.context.StatefulProgrammableSwitch ?? {};
-      if (accessory.context.StatefulProgrammableSwitch.Name) {
-        accessory.context.StatefulProgrammableSwitch.Name = this.validateAndCleanString(accessory.context.StatefulProgrammableSwitch.Name,
-          'StatefulProgrammableSwitch Name', accessory.context.StatefulProgrammableSwitch.Name);
-      }
       this.StatefulProgrammableSwitch = {
-        Name: accessory.context.StatefulProgrammableSwitch.Name ?? accessory.displayName,
+        Name: accessory.displayName,
         Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch)
           ?? accessory.addService(this.hap.Service.StatefulProgrammableSwitch) as Service,
       };
@@ -385,12 +349,8 @@ export class Others extends irdeviceBase {
       accessory.category = this.hap.Categories.OUTLET;
       // Initialize Switch property
       accessory.context.Outlet = accessory.context.Outlet ?? {};
-      if (accessory.context.Outlet.Name) {
-        accessory.context.Outlet.Name = this.validateAndCleanString(accessory.context.Outlet.Name,
-          'Outlet Name', accessory.context.Outlet.Name);
-      }
       this.Outlet = {
-        Name: accessory.context.Outlet.Name ?? accessory.displayName,
+        Name: accessory.displayName,
         Service: accessory.getService(this.hap.Service.Outlet) ?? accessory.addService(this.hap.Service.Outlet) as Service,
       };
       accessory.context.Outlet = this.Outlet as object;
@@ -753,7 +713,7 @@ export class Others extends irdeviceBase {
     // If Outlet.Service still present, then remove first
     accessory.context.Outlet = accessory.context.Outlet ?? {};
     this.Outlet = {
-      Name: accessory.context.Outlet.Name ?? `${accessory.displayName} Outlet`,
+      Name: accessory.displayName,
       Service: accessory.getService(this.hap.Service.Outlet) as Service,
     };
     accessory.context.Outlet = this.Outlet as object;
@@ -765,7 +725,7 @@ export class Others extends irdeviceBase {
     // If GarageDoor.Service still present, then remove first
     accessory.context.GarageDoor = accessory.context.GarageDoor ?? {};
     this.GarageDoor = {
-      Name: accessory.context.GarageDoor.Name ?? `${accessory.displayName} Garage Door`,
+      Name: accessory.displayName,
       Service: accessory.getService(this.hap.Service.GarageDoorOpener) as Service,
     };
     accessory.context.GarageDoor = this.GarageDoor as object;
@@ -777,7 +737,7 @@ export class Others extends irdeviceBase {
     // If Door.Service still present, then remove first
     accessory.context.Door = accessory.context.Door ?? {};
     this.Door = {
-      Name: accessory.context.Door.Name ?? `${accessory.displayName} Door`,
+      Name: accessory.displayName,
       Service: accessory.getService(this.hap.Service.Door) as Service,
     };
     accessory.context.Door = this.Door as object;
@@ -789,7 +749,7 @@ export class Others extends irdeviceBase {
     // If Lock.Service still present, then remove first
     accessory.context.LockMechanism = accessory.context.LockMechanism ?? {};
     this.LockMechanism = {
-      Name: accessory.context.LockMechanism.Name ?? `${accessory.displayName} Lock`,
+      Name: accessory.displayName,
       Service: accessory.getService(this.hap.Service.LockMechanism) as Service,
     };
     accessory.context.LockMechanism = this.LockMechanism as object;
@@ -801,7 +761,7 @@ export class Others extends irdeviceBase {
     // If Faucet.Service still present, then remove first
     accessory.context.Faucet = accessory.context.Faucet ?? {};
     this.Faucet = {
-      Name: accessory.context.Faucet.Name ?? `${accessory.displayName} Faucet`,
+      Name: accessory.displayName,
       Service: accessory.getService(this.hap.Service.Faucet) as Service,
     };
     accessory.context.Faucet = this.Faucet as object;
@@ -813,7 +773,7 @@ export class Others extends irdeviceBase {
     // If Fan Service still present, then remove first
     accessory.context.Fan = accessory.context.Fan ?? {};
     this.Fan = {
-      Name: accessory.context.Fan.Name ?? `${accessory.displayName} Fan`,
+      Name: accessory.displayName,
       Service: accessory.getService(this.hap.Service.Fanv2) as Service,
     };
     accessory.context.Fan = this.Fan as object;
@@ -825,7 +785,7 @@ export class Others extends irdeviceBase {
     // If Window.Service still present, then remove first
     accessory.context.Window = accessory.context.Window ?? {};
     this.Window = {
-      Name: accessory.context.Window.Name ?? `${accessory.displayName} Window`,
+      Name: accessory.displayName,
       Service: accessory.getService(this.hap.Service.Window) as Service,
     };
     accessory.context.Window = this.Window as object;
@@ -837,7 +797,7 @@ export class Others extends irdeviceBase {
     // If WindowCovering.Service still present, then remove first
     accessory.context.WindowCovering = accessory.context.WindowCovering ?? {};
     this.WindowCovering = {
-      Name: accessory.context.WindowCovering.Name ?? `${accessory.displayName} Window Covering`,
+      Name: accessory.displayName,
       Service: accessory.getService(this.hap.Service.WindowCovering) as Service,
     };
     accessory.context.WindowCovering = this.WindowCovering as object;
@@ -849,7 +809,7 @@ export class Others extends irdeviceBase {
     // If StatefulProgrammableSwitch.Service still present, then remove first
     accessory.context.StatefulProgrammableSwitch = accessory.context.StatefulProgrammableSwitch ?? {};
     this.StatefulProgrammableSwitch = {
-      Name: accessory.context.StatefulProgrammableSwitch.Name ?? `${accessory.displayName} Stateful Programmable Switch`,
+      Name: accessory.displayName,
       Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch) as Service,
     };
     accessory.context.StatefulProgrammableSwitch = this.StatefulProgrammableSwitch as object;
@@ -861,7 +821,7 @@ export class Others extends irdeviceBase {
     // If Switch.Service still present, then remove first
     accessory.context.Switch = accessory.context.Switch ?? {};
     this.Switch = {
-      Name: accessory.context.Switch.Name ?? `${accessory.displayName} Switch`,
+      Name: accessory.displayName,
       Service: accessory.getService(this.hap.Service.Switch) as Service,
     };
     accessory.context.Switch = this.Switch as object;

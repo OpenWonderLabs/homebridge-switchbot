@@ -48,12 +48,8 @@ export class Light extends irdeviceBase {
     if (!device.irlight?.stateless) {
       // Initialize LightBulb Service
       accessory.context.LightBulb = accessory.context.LightBulb ?? {};
-      if (accessory.context.LightBulb.Name) {
-        accessory.context.LightBulb.Name = this.validateAndCleanString(accessory.context.LightBulb.Name,
-          'LightBulb Name', accessory.context.LightBulb.Name);
-      }
       this.LightBulb = {
-        Name: accessory.context.LightBulb.Name ?? `${accessory.displayName} ${device.remoteType}`,
+        Name: accessory.displayName,
         Service: accessory.getService(this.hap.Service.Lightbulb) ?? accessory.addService(this.hap.Service.Lightbulb) as Service,
         On: accessory.context.On || false,
       };
@@ -69,12 +65,8 @@ export class Light extends irdeviceBase {
     } else {
       // Initialize ProgrammableSwitchOn Service
       accessory.context.ProgrammableSwitchOn = accessory.context.ProgrammableSwitchOn ?? {};
-      if (accessory.context.ProgrammableSwitchOn.Name) {
-        accessory.context.ProgrammableSwitchOn.Name = this.validateAndCleanString(accessory.context.ProgrammableSwitchOn.Name,
-          'ProgrammableSwitchOn Name', accessory.context.ProgrammableSwitchOn.Name);
-      }
       this.ProgrammableSwitchOn = {
-        Name: accessory.context.ProgrammableSwitchOn.Name ?? `${accessory.displayName} ${device.remoteType} On`,
+        Name: `${accessory.displayName} On`,
         Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch)
         ?? accessory.addService(this.hap.Service.StatefulProgrammableSwitch) as Service,
         ProgrammableSwitchEvent: accessory.context.ProgrammableSwitchEvent ?? this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,
@@ -104,12 +96,8 @@ export class Light extends irdeviceBase {
 
       // Initialize ProgrammableSwitchOff Service
       accessory.context.ProgrammableSwitchOff = accessory.context.ProgrammableSwitchOff ?? {};
-      if (accessory.context.ProgrammableSwitchOff.Name) {
-        accessory.context.ProgrammableSwitchOff.Name = this.validateAndCleanString(accessory.context.ProgrammableSwitchOff.Name,
-          'ProgrammableSwitchOff Name', accessory.context.ProgrammableSwitchOff.Name);
-      }
       this.ProgrammableSwitchOff = {
-        Name: accessory.context.ProgrammableSwitchOff.Name ?? `${accessory.displayName} ${device.remoteType} Off`,
+        Name: `${accessory.displayName} Off`,
         Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch)
         ?? accessory.addService(this.hap.Service.StatefulProgrammableSwitch) as Service,
         ProgrammableSwitchEvent: accessory.context.ProgrammableSwitchEvent ?? this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS,

@@ -49,12 +49,8 @@ export class Plug extends deviceBase {
 
     // Initialize Outlet Service
     accessory.context.Outlet = accessory.context.Outlet ?? {};
-    if (accessory.context.Outlet.Name) {
-      accessory.context.Outlet.Name = this.validateAndCleanString(accessory.context.Outlet.Name,
-        'Outlet Name', accessory.context.Outlet.Name);
-    }
     this.Outlet = {
-      Name: accessory.context.Outlet.Name ?? accessory.displayName,
+      Name: accessory.displayName,
       Service: accessory.getService(this.hap.Service.Outlet) ?? accessory.addService(this.hap.Service.Outlet) as Service,
       On: accessory.context.On || false,
     };

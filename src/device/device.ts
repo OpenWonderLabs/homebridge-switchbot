@@ -79,18 +79,11 @@ export abstract class deviceBase {
       .getService(this.hap.Service.AccessoryInformation)!
       .setCharacteristic(this.hap.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.hap.Characteristic.AppMatchingIdentifier, 'id1087374760')
-      .setCharacteristic(this.hap.Characteristic.Name, this.validName(accessory, device))
-      .setCharacteristic(this.hap.Characteristic.ConfiguredName, this.validName(accessory, device))
-      .setCharacteristic(this.hap.Characteristic.Model, device.model ?? accessory.context.model)
-      .setCharacteristic(this.hap.Characteristic.ProductData, device.deviceId ?? accessory.context.deviceId)
+      .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
+      .setCharacteristic(this.hap.Characteristic.ConfiguredName, accessory.displayName)
+      .setCharacteristic(this.hap.Characteristic.Model, device.model)
+      .setCharacteristic(this.hap.Characteristic.ProductData, device.deviceId)
       .setCharacteristic(this.hap.Characteristic.SerialNumber, device.deviceId);
-  }
-
-  public validName(accessory: PlatformAccessory, device: device & devicesConfig) {
-    const Name = device.configDeviceName ?? device.deviceName ?? accessory.displayName;
-    const NameOfName = device.configDeviceName ? 'configDeviceName' : device.deviceName ? 'deviceName' : 'displayName';
-    const validName = this.validateAndCleanString(Name, NameOfName, Name);
-    return validName;
   }
 
   async getDeviceLogSettings(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
@@ -770,39 +763,6 @@ export abstract class deviceBase {
       default:
         this.infoLog(`Unknown statusCode: ${statusCode}, Submit Bugs Here: https://tinyurl.com/SwitchBotBug`);
     }
-  }
-
-  /**
-   * Validate and clean a string value for a Name Characteristic.
- * @param displayName
- * @param name
- * @param value
- * @returns string value
- */
-  validateAndCleanString(displayName: string, name: string, value: string): string {
-    const validPattern = /^[a-zA-Z0-9][a-zA-Z0-9 ']*[a-zA-Z0-9]$/;
-    const invalidCharsPattern = /[^a-zA-Z0-9 ']/g;
-    const invalidStartEndPattern = /^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g;
-
-    if (!validPattern.test(value)) {
-      this.warnLog(`WARNING: The accessory '${displayName}' has an invalid '${name}' characteristic ('${value}'). Please use only alphanumeric,`
-              + ' space, and apostrophe characters. Ensure it starts and ends with an alphabetic or numeric character, and avoid emojis. This may'
-              + ' prevent the accessory from being added in the Home App or cause unresponsiveness.');
-
-      // Remove invalid characters
-      if (invalidCharsPattern.test(value)) {
-        this.warnLog(`Removing invalid characters from '${name}' characteristic`);
-        value = value.replace(invalidCharsPattern, '');
-      }
-
-      // Ensure it starts and ends with an alphanumeric character
-      if (invalidStartEndPattern.test(value)) {
-        this.warnLog(`Removing invalid starting or ending characters from '${name}' characteristic`);
-        value = value.replace(invalidStartEndPattern, '');
-      }
-    }
-
-    return value;
   }
 
   /**

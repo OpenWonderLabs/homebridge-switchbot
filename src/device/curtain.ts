@@ -73,12 +73,8 @@ export class Curtain extends deviceBase {
 
     // Initialize WindowCovering Service
     accessory.context.WindowCovering = accessory.context.WindowCovering ?? {};
-    if (accessory.context.WindowCovering.Name) {
-      accessory.context.WindowCovering.Name = this.validateAndCleanString(accessory.context.WindowCovering.Name,
-        'WindowCovering Name', accessory.context.WindowCovering.Name);
-    }
     this.WindowCovering = {
-      Name: accessory.context.WindowCovering.Name ?? accessory.displayName,
+      Name: accessory.displayName,
       Service: accessory.getService(this.hap.Service.WindowCovering) ?? accessory.addService(this.hap.Service.WindowCovering) as Service,
       PositionState: accessory.context.PositionState ?? this.hap.Characteristic.PositionState.STOPPED,
       TargetPosition: accessory.context.TargetPosition ?? 100,
@@ -133,12 +129,8 @@ export class Curtain extends deviceBase {
 
     // Initialize Battery Service
     accessory.context.Battery = accessory.context.Battery ?? {};
-    if (accessory.context.Battery.Name) {
-      accessory.context.Battery.Name = this.validateAndCleanString(accessory.context.Battery.Name,
-        'Battery Name', accessory.context.Battery.Name);
-    }
     this.Battery = {
-      Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
+      Name: `${accessory.displayName} Battery`,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel ?? 100,
       StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
@@ -176,12 +168,8 @@ export class Curtain extends deviceBase {
       }
     } else {
       accessory.context.LightSensor = accessory.context.LightSensor ?? {};
-      if (accessory.context.LightSensor.Name) {
-        accessory.context.LightSensor.Name = this.validateAndCleanString(accessory.context.LightSensor.Name,
-          'LightSensor Name', accessory.context.LightSensor.Name);
-      }
       this.LightSensor = {
-        Name: accessory.context.LightSensor.Name ?? `${accessory.displayName} Light Sensor`,
+        Name: `${accessory.displayName} Light Sensor`,
         Service: accessory.getService(this.hap.Service.LightSensor) ?? this.accessory.addService(this.hap.Service.LightSensor) as Service,
         CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel ?? 0.0001,
       };

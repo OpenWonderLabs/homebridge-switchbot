@@ -73,7 +73,7 @@ interface options {
 
 export interface devicesConfig extends device {
   bleMac?: string;
-  model?: string;
+  model: string;
   bleModel: SwitchBotBLEModel;
   bleModelName: SwitchBotBLEModelName;
   bleModelFriednlyName: SwitchBotBLEModelFriendlyName;

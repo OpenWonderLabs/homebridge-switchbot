@@ -66,12 +66,8 @@ export class AirConditioner extends irdeviceBase {
 
     // Initialize HeaterCooler Service
     accessory.context.HeaterCooler = accessory.context.HeaterCooler ?? {};
-    if (accessory.context.HeaterCooler.Name) {
-      accessory.context.HeaterCooler.Name = this.validateAndCleanString(accessory.context.HeaterCooler.Name,
-        'HeaterCooler Name', accessory.context.HeaterCooler.Name);
-    }
     this.HeaterCooler = {
-      Name: accessory.context.HeaterCooler.Name ?? `${accessory.displayName} ${device.remoteType}`,
+      Name: accessory.displayName,
       Service: accessory.getService(this.hap.Service.HeaterCooler) ?? accessory.addService(this.hap.Service.HeaterCooler) as Service,
       Active: accessory.context.Active ?? this.hap.Characteristic.Active.INACTIVE,
       CurrentHeaterCoolerState: accessory.context.CurrentHeaterCoolerState ?? this.hap.Characteristic.CurrentHeaterCoolerState.IDLE,
@@ -155,12 +151,8 @@ export class AirConditioner extends irdeviceBase {
       const meterUuid = this.platform.api.hap.uuid.generate(`${this.device.irair.meterId}-${this.device.irair.meterType}`);
       this.meter = this.platform.accessories.find((accessory) => accessory.UUID === meterUuid);
       accessory.context.HumiditySensor = accessory.context.HumiditySensor ?? {};
-      if (accessory.context.HumiditySensor.Name) {
-        accessory.context.HumiditySensor.Name = this.validateAndCleanString(accessory.context.HumiditySensor.Name,
-          'HumiditySensor Name', accessory.context.HumiditySensor.Name);
-      }
       this.HumiditySensor = {
-        Name: accessory.context.HumiditySensor ?? this.meter!.displayName,
+        Name: this.meter!.displayName,
         Service: this.meter!.getService(this.hap.Service.HumiditySensor) ?? this.meter!.addService(this.hap.Service.HumiditySensor) as Service,
         CurrentRelativeHumidity: this.meter!.context.CurrentRelativeHumidity || 0,
       };

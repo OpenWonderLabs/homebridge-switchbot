@@ -74,12 +74,8 @@ export class Contact extends deviceBase {
 
     // Initialize Contact Sensor Service
     accessory.context.ContactSensor = accessory.context.ContactSensor ?? {};
-    if (accessory.context.ContactSensor.Name) {
-      accessory.context.ContactSensor.Name = this.validateAndCleanString(accessory.context.ContactSensor.Name,
-        'ContactSensor Name', accessory.context.ContactSensor.Name);
-    }
     this.ContactSensor = {
-      Name: accessory.context.ContactSensor.Name ?? accessory.displayName,
+      Name: accessory.displayName,
       Service: accessory.getService(this.hap.Service.ContactSensor) ?? accessory.addService(this.hap.Service.ContactSensor) as Service,
       ContactSensorState: accessory.context.ContactSensorState ?? this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED,
     };
@@ -96,12 +92,8 @@ export class Contact extends deviceBase {
 
     // Initialize Battery Service
     accessory.context.Battery = accessory.context.Battery ?? {};
-    if (accessory.context.Battery.Name) {
-      accessory.context.Battery.Name = this.validateAndCleanString(accessory.context.Battery.Name,
-        'Battery Name', accessory.context.Battery.Name);
-    }
     this.Battery = {
-      Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
+      Name: `${accessory.displayName} Battery`,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel ?? 100,
       StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
@@ -133,12 +125,8 @@ export class Contact extends deviceBase {
       }
     } else {
       accessory.context.MotionSensor = accessory.context.MotionSensor ?? {};
-      if (accessory.context.MotionSensor.Name) {
-        accessory.context.MotionSensor.Name = this.validateAndCleanString(accessory.context.MotionSensor.Name,
-          'MotionSensor Name', accessory.context.MotionSensor.Name);
-      }
       this.MotionSensor = {
-        Name: accessory.context.MotionSensor.Name ?? `${accessory.displayName} Motion Sensor`,
+        Name: `${accessory.displayName} Motion Sensor`,
         Service: accessory.getService(this.hap.Service.MotionSensor) ?? accessory.addService(this.hap.Service.MotionSensor) as Service,
         MotionDetected: accessory.context.MotionDetected ?? false,
       };
@@ -163,12 +151,8 @@ export class Contact extends deviceBase {
       }
     } else {
       accessory.context.LightSensor = accessory.context.LightSensor ?? {};
-      if (accessory.context.LightSensor.Name) {
-        accessory.context.LightSensor.Name = this.validateAndCleanString(accessory.context.LightSensor.Name,
-          'LightSensor Name', accessory.context.LightSensor.Name);
-      }
       this.LightSensor = {
-        Name: accessory.context.LightSensor.Name ?? `${accessory.displayName} Light Sensor`,
+        Name: `${accessory.displayName} Light Sensor`,
         Service: accessory.getService(this.hap.Service.LightSensor) ?? accessory.addService(this.hap.Service.LightSensor) as Service,
         CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel ?? 0.0001,
       };

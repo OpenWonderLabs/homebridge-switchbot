@@ -63,12 +63,8 @@ export class RobotVacuumCleaner extends deviceBase {
 
     // Initialize Lightbulb Service
     accessory.context.LightBulb = accessory.context.LightBulb ?? {};
-    if (accessory.context.LightBulb.Name) {
-      accessory.context.LightBulb.Name = this.validateAndCleanString(accessory.context.LightBulb.Name,
-        'LightBulb Name', accessory.context.LightBulb.Name);
-    }
     this.LightBulb = {
-      Name: accessory.context.LightBulb.Name ?? accessory.displayName,
+      Name: accessory.displayName,
       Service: accessory.getService(this.hap.Service.Lightbulb) ?? accessory.addService(this.hap.Service.Lightbulb) as Service,
       On: accessory.context.On ?? false,
       Brightness: accessory.context.Brightness ?? 0,
@@ -101,12 +97,8 @@ export class RobotVacuumCleaner extends deviceBase {
 
     // Initialize Battery Service
     accessory.context.Battery = accessory.context.Battery ?? {};
-    if (accessory.context.Battery.Name) {
-      accessory.context.Battery.Name = this.validateAndCleanString(accessory.context.Battery.Name,
-        'Battery Name', accessory.context.Battery.Name);
-    }
     this.Battery = {
-      Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
+      Name: `${accessory.displayName} Battery`,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel ?? 100,
       StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,

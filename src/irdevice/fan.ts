@@ -36,12 +36,8 @@ export class IRFan extends irdeviceBase {
 
     // Initialize Switch Service
     accessory.context.Fan = accessory.context.Fan ?? {};
-    if (accessory.context.Fan.Name) {
-      accessory.context.Fan.Name = this.validateAndCleanString(accessory.context.Fan.Name,
-        'Fan Name', accessory.context.Fan.Name);
-    }
     this.Fan = {
-      Name: accessory.context.Fan.Name ?? `${accessory.displayName} Fan`,
+      Name: accessory.displayName,
       Service: accessory.getService(this.hap.Service.Fanv2) ?? accessory.addService(this.hap.Service.Fanv2) as Service,
       Active: accessory.context.Active ?? this.hap.Characteristic.Active.INACTIVE,
       SwingMode: accessory.context.SwingMode ?? this.hap.Characteristic.SwingMode.SWING_DISABLED,
