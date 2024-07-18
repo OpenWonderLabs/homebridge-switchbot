@@ -104,8 +104,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     };
 
     // Plugin Configuration
-    this.getPlatformConfigSettings();
     this.getPlatformLogSettings();
+    this.getPlatformConfigSettings();
     this.getVersion();
 
     // Finish initializing the platform
@@ -2907,7 +2907,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   async getPlatformLogSettings() {
-    this.debugMode = process.argv.includes('-D') || process.argv.includes('--debug');
+    this.debugMode = process.argv.includes('-D') ?? process.argv.includes('--debug');
     if (this.config.options?.logging === 'debug' || this.config.options?.logging === 'standard' || this.config.options?.logging === 'none') {
       this.platformLogging = this.config.options.logging;
       await this.debugWarnLog(`Using Config Logging: ${this.platformLogging}`);
@@ -2971,7 +2971,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
   async debugSuccessLog(...log: any[]): Promise<void> {
     if (await this.enablingPlatformLogging()) {
-      if (this.platformLogging?.includes('debug')) {
+      if (await this.loggingIsDebug()) {
         this.log.success('[DEBUG]', String(...log));
       }
     }
@@ -2985,7 +2985,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
   async debugWarnLog(...log: any[]): Promise<void> {
     if (await this.enablingPlatformLogging()) {
-      if (this.platformLogging?.includes('debug')) {
+      if (await this.loggingIsDebug()) {
         this.log.warn('[DEBUG]', String(...log));
       }
     }
@@ -2999,7 +2999,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
   async debugErrorLog(...log: any[]): Promise<void> {
     if (await this.enablingPlatformLogging()) {
-      if (this.platformLogging?.includes('debug')) {
+      if (await this.loggingIsDebug()) {
         this.log.error('[DEBUG]', String(...log));
       }
     }
@@ -3007,15 +3007,19 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
   async debugLog(...log: any[]): Promise<void> {
     if (await this.enablingPlatformLogging()) {
-      if (this.platformLogging === 'debugMode') {
-        this.log.debug(String(...log));
-      } else if (this.platformLogging === 'debug') {
+      if (this.platformLogging === 'debug') {
         this.log.info('[DEBUG]', String(...log));
+      } else if (this.platformLogging === 'debugMode') {
+        this.log.debug(String(...log));
       }
     }
   }
 
+  async loggingIsDebug(): Promise<boolean> {
+    return this.platformLogging === 'debugMode' || this.platformLogging === 'debug';
+  }
+
   async enablingPlatformLogging(): Promise<boolean> {
-    return this.platformLogging?.includes('debug') || this.platformLogging === 'standard';
+    return this.platformLogging === 'debugMode' || this.platformLogging === 'debug' || this.platformLogging === 'standard';
   }
 }

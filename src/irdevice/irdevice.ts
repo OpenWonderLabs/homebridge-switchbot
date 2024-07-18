@@ -363,7 +363,7 @@ export abstract class irdeviceBase {
 
   async debugSuccessLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
-      if (this.deviceLogging?.includes('debug')) {
+      if (await this.loggingIsDebug()) {
         this.log.success(`[DEBUG] ${this.device.remoteType}: ${this.accessory.displayName}`, String(...log));
       }
     }
@@ -377,7 +377,7 @@ export abstract class irdeviceBase {
 
   async debugWarnLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
-      if (this.deviceLogging?.includes('debug')) {
+      if (await this.loggingIsDebug()) {
         this.log.warn(`[DEBUG] ${this.device.remoteType}: ${this.accessory.displayName}`, String(...log));
       }
     }
@@ -391,7 +391,7 @@ export abstract class irdeviceBase {
 
   async debugErrorLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
-      if (this.deviceLogging?.includes('debug')) {
+      if (await this.loggingIsDebug()) {
         this.log.error(`[DEBUG] ${this.device.remoteType}: ${this.accessory.displayName}`, String(...log));
       }
     }
@@ -401,13 +401,17 @@ export abstract class irdeviceBase {
     if (await this.enablingDeviceLogging()) {
       if (this.deviceLogging === 'debug') {
         this.log.info(`[DEBUG] ${this.device.remoteType}: ${this.accessory.displayName}`, String(...log));
-      } else {
+      } else if (this.deviceLogging === 'debugMode') {
         this.log.debug(`${this.device.remoteType}: ${this.accessory.displayName}`, String(...log));
       }
     }
   }
 
+  async loggingIsDebug(): Promise<boolean> {
+    return this.deviceLogging === 'debugMode' || this.deviceLogging === 'debug';
+  }
+
   async enablingDeviceLogging(): Promise<boolean> {
-    return this.deviceLogging.includes('debug') || this.deviceLogging === 'standard';
+    return this.deviceLogging === 'debugMode' || this.deviceLogging === 'debug' || this.deviceLogging === 'standard';
   }
 }
