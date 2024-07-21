@@ -1,7 +1,7 @@
 {
   "displayName": "SwitchBot",
   "name": "@switchbot/homebridge-switchbot",
-  "version": "3.6.0",
+  "version": "3.7.0",
   "description": "The SwitchBot plugin allows you to access your SwitchBot device(s) from HomeKit.",
   "author": {
     "name": "SwitchBot",
@@ -26,7 +26,7 @@
   },
   "engineStrict": true,
   "engines": {
-    "homebridge": "^1.8.3 || ^2.0.0",
+    "homebridge": "^1.8.4 || ^2.0.0-alpha.0",
     "node": "^18 || ^20 || ^22"
   },
   "main": "dist/index.js",
@@ -40,7 +40,9 @@
     "prepublishOnly": "npm run lint && npm run build && npm run plugin-ui ",
     "postpublish": "npm run clean",
     "clean": "rimraf ./dist",
-    "test": "npm run lint"
+    "test": "npm run lint",
+    "docs": "typedoc",
+    "lint-docs": "typedoc --emit none --treatWarningsAsErrors"
   },
   "funding": [
     {
@@ -85,7 +87,7 @@
     "undici": "^6.19.2"
   },
   "optionalDependencies": {
-    "node-switchbot": "2.2.1-beta.3"
+    "node-switchbot": "2.3.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.7.0",
@@ -94,12 +96,13 @@
     "@types/node": "^20.14.11",
     "eslint": "^9.7.0",
     "globals": "^15.8.0",
-    "homebridge": "^1.8.3",
+    "homebridge": "^1.8.4",
     "homebridge-config-ui-x": "4.56.4",
     "nodemon": "^3.1.4",
     "npm-check-updates": "^16.14.20",
     "rimraf": "^6.0.1",
     "ts-node": "^10.9.2",
+    "typedoc": "^0.26.5",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.0-alpha.44"
   }

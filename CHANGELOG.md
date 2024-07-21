@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [3.7.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.7.0) (2024-07-XX)
+## [3.7.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.7.0) (2024-07-21)
 
 ### What's Changed
 - Add Platform BLE Scanning
