@@ -70,7 +70,7 @@ export class Motion extends deviceBase {
     // Initialize Motion Sensor property
     accessory.context.MotionSensor = accessory.context.MotionSensor ?? {};
     this.MotionSensor = {
-      Name: accessory.context.MotionSensor.Name ?? `${accessory.displayName} Motion Sensor`,
+      Name: `${accessory.displayName} Motion Sensor`,
       Service: accessory.getService(this.hap.Service.MotionSensor) ?? accessory.addService(this.hap.Service.MotionSensor) as Service,
       MotionDetected: accessory.context.MotionDetected ?? false,
     };
@@ -78,18 +78,17 @@ export class Motion extends deviceBase {
 
     // Initialize Motion Sensor Characteristics
     this.MotionSensor.Service
-      .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
+      .setCharacteristic(this.hap.Characteristic.Name, this.MotionSensor.Name)
       .setCharacteristic(this.hap.Characteristic.StatusActive, true)
       .getCharacteristic(this.hap.Characteristic.MotionDetected)
       .onGet(() => {
         return this.MotionSensor.MotionDetected;
       });
-    accessory.context.MotionSensorName = this.MotionSensor.Name;
 
     // Initialize Battery Service
     accessory.context.Battery = accessory.context.Battery ?? {};
     this.Battery = {
-      Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
+      Name: `${accessory.displayName} Battery`,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel ?? 100,
       StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
@@ -122,15 +121,15 @@ export class Motion extends deviceBase {
     } else {
       accessory.context.LightSensor = accessory.context.LightSensor ?? {};
       this.LightSensor = {
-        Name: accessory.context.LightSensor.Name ?? `${accessory.displayName} Light Sensor`,
+        Name: `${accessory.displayName} Light Sensor`,
         Service: accessory.getService(this.hap.Service.LightSensor) ?? this.accessory.addService(this.hap.Service.LightSensor) as Service,
         CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel ?? 0.0001,
       };
       accessory.context.LightSensor = this.LightSensor as object;
 
       // Initialize LightSensor Characteristics
-      this.LightSensor!.Service
-        .setCharacteristic(this.hap.Characteristic.Name, this.LightSensor!.Name)
+      this.LightSensor.Service
+        .setCharacteristic(this.hap.Characteristic.Name, this.LightSensor.Name)
         .setCharacteristic(this.hap.Characteristic.StatusActive, true)
         .getCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel)
         .onGet(() => {
@@ -237,7 +236,7 @@ export class Motion extends deviceBase {
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       await this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`);
-    } else if (this.BLE) {
+    } else if (this.BLE || this.config.options?.BLE) {
       await this.BLERefreshStatus();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
@@ -249,25 +248,41 @@ export class Motion extends deviceBase {
 
   async BLERefreshStatus(): Promise<void> {
     await this.debugLog('BLERefreshStatus');
-    const switchbot = await this.switchbotBLE();
-
-    if (switchbot === undefined) {
-      await this.BLERefreshConnection(switchbot);
-    } else {
-    // Start to monitor advertisement packets
-      (async () => {
-      // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchbot) as motionSensorServiceData;
-        // Update HomeKit
-        if (serviceData.model === SwitchBotBLEModel.MotionSensor && serviceData.modelName === SwitchBotBLEModelName.MotionSensor) {
-          this.serviceData = serviceData;
+    if (this.config.options?.BLE) {
+      await this.debugLog('is listening to Platform BLE.');
+      this.device.bleMac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase();
+      await this.debugLog(`bleMac: ${this.device.bleMac}`);
+      this.platform.bleEventHandler[this.device.bleMac] = async (context: motionSensorServiceData) => {
+        try {
+          await this.debugLog(`received BLE: ${JSON.stringify(context)}`);
+          this.serviceData = context;
           await this.BLEparseStatus();
           await this.updateHomeKitCharacteristics();
-        } else {
-          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
-          await this.BLERefreshConnection(switchbot);
+        } catch (e: any) {
+          await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`);
         }
-      })();
+      };
+    } else {
+      await this.debugLog('is using Device BLE Scanning.');
+      const switchbot = await this.switchbotBLE();
+      if (switchbot === undefined) {
+        await this.BLERefreshConnection(switchbot);
+      } else {
+        // Start to monitor advertisement packets
+        (async () => {
+          // Start to monitor advertisement packets
+          const serviceData = await this.monitorAdvertisementPackets(switchbot) as motionSensorServiceData;
+          // Update HomeKit
+          if (serviceData.model === SwitchBotBLEModel.MotionSensor && serviceData.modelName === SwitchBotBLEModelName.MotionSensor) {
+            this.serviceData = serviceData;
+            await this.BLEparseStatus();
+            await this.updateHomeKitCharacteristics();
+          } else {
+            await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
+            await this.BLERefreshConnection(switchbot);
+          }
+        })();
+      }
     }
   }
 

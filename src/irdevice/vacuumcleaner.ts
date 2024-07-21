@@ -34,7 +34,7 @@ export class VacuumCleaner extends irdeviceBase {
     // Initialize Switch Service
     accessory.context.Switch = accessory.context.Switch ?? {};
     this.Switch = {
-      Name: accessory.context.Switch.Name ?? `${accessory.displayName} ${device.remoteType}`,
+      Name: accessory.displayName,
       Service: accessory.getService(this.hap.Service.Switch) ?? accessory.addService(this.hap.Service.Switch) as Service,
       On: accessory.context.On ?? false,
     };

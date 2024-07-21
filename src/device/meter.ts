@@ -4,8 +4,8 @@
  */
 import { Units } from 'homebridge';
 import { deviceBase } from './device.js';
-import { convertUnits } from '../utils.js';
 import { Subject, interval, skipWhile } from 'rxjs';
+import { convertUnits, validHumidity } from '../utils.js';
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot';
 
 import type { devicesConfig } from '../settings.js';
@@ -66,7 +66,7 @@ export class Meter extends deviceBase {
     // Initialize Battery Service
     accessory.context.Battery = accessory.context.Battery ?? {};
     this.Battery = {
-      Name: accessory.context.Battery.Name ?? `${accessory.displayName} Battery`,
+      Name: `${accessory.displayName} Battery`,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel ?? 100,
       StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
@@ -98,7 +98,7 @@ export class Meter extends deviceBase {
     } else {
       accessory.context.TemperatureSensor = accessory.context.TemperatureSensor ?? {};
       this.TemperatureSensor = {
-        Name: accessory.context.TemperatureSensor.Name ?? `${accessory.displayName} Temperature Sensor`,
+        Name: `${accessory.displayName} Temperature Sensor`,
         Service: accessory.getService(this.hap.Service.TemperatureSensor) ?? this.accessory.addService(this.hap.Service.TemperatureSensor) as Service,
         CurrentTemperature: accessory.context.CurrentTemperature ?? 30,
       };
@@ -129,14 +129,14 @@ export class Meter extends deviceBase {
     } else {
       accessory.context.HumiditySensor = accessory.context.HumiditySensor ?? {};
       this.HumiditySensor = {
-        Name: accessory.context.HumiditySensorName ?? `${accessory.displayName} Humidity Sensor`,
+        Name: `${accessory.displayName} Humidity Sensor`,
         Service: accessory.getService(this.hap.Service.HumiditySensor) ?? this.accessory.addService(this.hap.Service.HumiditySensor) as Service,
         CurrentRelativeHumidity: accessory.context.CurrentRelativeHumidity ?? 50,
       };
       accessory.context.HumiditySensor = this.HumiditySensor as object;
 
       // Initialize Humidity Sensor Characteristics
-      this.HumiditySensor!.Service
+      this.HumiditySensor.Service
         .setCharacteristic(this.hap.Characteristic.Name, this.HumiditySensor.Name)
         .getCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity)
         .setProps({
@@ -170,7 +170,7 @@ export class Meter extends deviceBase {
 
     // CurrentRelativeHumidity
     if (!this.device.iosensor?.hide_humidity && this.HumiditySensor?.Service) {
-      this.HumiditySensor.CurrentRelativeHumidity = this.serviceData.humidity;
+      this.HumiditySensor.CurrentRelativeHumidity = validHumidity(this.serviceData.humidity, 0, 100);
       await this.debugLog(`CurrentRelativeHumidity: ${this.HumiditySensor.CurrentRelativeHumidity}%`);
     }
 
@@ -265,7 +265,7 @@ export class Meter extends deviceBase {
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       await this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`);
-    } else if (this.BLE) {
+    } else if (this.BLE || this.config.options?.BLE) {
       await this.BLERefreshStatus();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
@@ -277,25 +277,41 @@ export class Meter extends deviceBase {
 
   async BLERefreshStatus(): Promise<void> {
     await this.debugLog('BLERefreshStatus');
-    const switchbot = await this.switchbotBLE();
-
-    if (switchbot === undefined) {
-      await this.BLERefreshConnection(switchbot);
-    } else {
-    // Start to monitor advertisement packets
-      (async () => {
-      // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchbot) as meterServiceData;
-        // Update HomeKit
-        if (serviceData.model === SwitchBotBLEModel.Meter && serviceData.modelName === SwitchBotBLEModelName.Meter) {
-          this.serviceData = serviceData;
+    if (this.config.options?.BLE) {
+      await this.debugLog('is listening to Platform BLE.');
+      this.device.bleMac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase();
+      await this.debugLog(`bleMac: ${this.device.bleMac}`);
+      this.platform.bleEventHandler[this.device.bleMac] = async (context: meterServiceData) => {
+        try {
+          await this.debugLog(`received BLE: ${JSON.stringify(context)}`);
+          this.serviceData = context;
           await this.BLEparseStatus();
           await this.updateHomeKitCharacteristics();
-        } else {
-          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
-          await this.BLERefreshConnection(switchbot);
+        } catch (e: any) {
+          await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`);
         }
-      })();
+      };
+    } else {
+      await this.debugLog('is using Device BLE Scanning.');
+      const switchbot = await this.switchbotBLE();
+      if (switchbot === undefined) {
+        await this.BLERefreshConnection(switchbot);
+      } else {
+        // Start to monitor advertisement packets
+        (async () => {
+          // Start to monitor advertisement packets
+          const serviceData = await this.monitorAdvertisementPackets(switchbot) as meterServiceData;
+          // Update HomeKit
+          if (serviceData.model === SwitchBotBLEModel.Meter && serviceData.modelName === SwitchBotBLEModelName.Meter) {
+            this.serviceData = serviceData;
+            await this.BLEparseStatus();
+            await this.updateHomeKitCharacteristics();
+          } else {
+            await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
+            await this.BLERefreshConnection(switchbot);
+          }
+        })();
+      }
     }
   }
 

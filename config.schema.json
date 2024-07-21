@@ -90,6 +90,12 @@
                       ]
                     },
                     {
+                      "title": "Battery Circulator Fan",
+                      "enum": [
+                        "Battery Circulator Fan"
+                      ]
+                    },
+                    {
                       "title": "Ceiling Light",
                       "enum": [
                         "Ceiling Light"
@@ -1653,6 +1659,10 @@
             },
             "uniqueItems": true
           },
+          "BLE": {
+            "title": "Enable BLE Scanning",
+            "type": "boolean"
+          },
           "webhookURL": {
             "title": "Webhook URL",
             "type": "string",
@@ -1900,6 +1910,7 @@
       "expandable": true,
       "expanded": false,
       "items": [
+        "options.BLE",
         "options.webhookURL",
         "options.mqttURL",
         "options.mqttOptions",

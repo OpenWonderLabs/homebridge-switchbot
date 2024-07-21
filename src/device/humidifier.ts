@@ -3,7 +3,7 @@
  * humidifier.ts: @switchbot/homebridge-switchbot.
  */
 import { deviceBase } from './device.js';
-import { convertUnits } from '../utils.js';
+import { convertUnits, validHumidity } from '../utils.js';
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot';
 import { Subject, debounceTime, interval, skipWhile, take, tap } from 'rxjs';
 
@@ -68,7 +68,7 @@ export class Humidifier extends deviceBase {
     // Initialize the HumidifierDehumidifier Service
     accessory.context.HumidifierDehumidifier = accessory.context.HumidifierDehumidifier ?? {};
     this.HumidifierDehumidifier = {
-      Name: accessory.context.HumidifierDehumidifier.Name ?? accessory.displayName,
+      Name: accessory.displayName,
       Service: accessory.getService(this.hap.Service.HumidifierDehumidifier)
         ?? accessory.addService(this.hap.Service.HumidifierDehumidifier) as Service,
       Active: accessory.context.Active ?? this.hap.Characteristic.Active.ACTIVE,
@@ -129,7 +129,7 @@ export class Humidifier extends deviceBase {
     } else {
       accessory.context.TemperatureSensor = accessory.context.TemperatureSensor ?? {};
       this.TemperatureSensor = {
-        Name: accessory.context.TemperatureSensor.Name ?? `${accessory.displayName} Temperature Sensor`,
+        Name: `${accessory.displayName} Temperature Sensor`,
         Service: accessory.getService(this.hap.Service.TemperatureSensor) ?? this.accessory.addService(this.hap.Service.TemperatureSensor) as Service,
         CurrentTemperature: accessory.context.CurrentTemperature || 30,
       };
@@ -197,7 +197,7 @@ export class Humidifier extends deviceBase {
     await this.debugLog(`Active: ${this.HumidifierDehumidifier.Active}`);
 
     // Current Relative Humidity
-    this.HumidifierDehumidifier.CurrentRelativeHumidity = this.serviceData.percentage;
+    this.HumidifierDehumidifier.CurrentRelativeHumidity = validHumidity(this.serviceData.humidity);
     await this.debugLog(`CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`);
 
     // Target Humidifier Dehumidifier State
@@ -238,7 +238,7 @@ export class Humidifier extends deviceBase {
     await this.debugLog(`Active: ${this.HumidifierDehumidifier.Active}`);
 
     // Current Relative Humidity
-    this.HumidifierDehumidifier.CurrentRelativeHumidity = this.deviceStatus.temperature!;
+    this.HumidifierDehumidifier.CurrentRelativeHumidity = validHumidity(this.deviceStatus.humidity);
     await this.debugLog(`CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`);
 
     // Current Temperature
@@ -301,7 +301,7 @@ export class Humidifier extends deviceBase {
       + ` ${this.HumidifierDehumidifier.CurrentRelativeHumidity})`);
 
     // CurrentRelativeHumidity
-    this.HumidifierDehumidifier.CurrentRelativeHumidity = this.webhookContext.humidity;
+    this.HumidifierDehumidifier.CurrentRelativeHumidity = validHumidity(this.webhookContext.humidity);
     await this.debugLog(`CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`);
 
     // CurrentTemperature
@@ -318,7 +318,7 @@ export class Humidifier extends deviceBase {
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       await this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`);
-    } else if (this.BLE) {
+    } else if (this.BLE || this.config.options?.BLE) {
       await this.BLERefreshStatus();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
@@ -330,25 +330,41 @@ export class Humidifier extends deviceBase {
 
   async BLERefreshStatus(): Promise<void> {
     await this.debugLog('BLERefreshStatus');
-    const switchbot = await this.switchbotBLE();
-
-    if (switchbot === undefined) {
-      await this.BLERefreshConnection(switchbot);
-    } else {
-      // Start to monitor advertisement packets
-      (async () => {
-        // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchbot) as humidifierServiceData;
-        // Update HomeKit
-        if (serviceData.model === SwitchBotBLEModel.Humidifier && serviceData.modelName === SwitchBotBLEModelName.Humidifier) {
-          this.serviceData = serviceData;
+    if (this.config.options?.BLE) {
+      await this.debugLog('is listening to Platform BLE.');
+      this.device.bleMac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase();
+      await this.debugLog(`bleMac: ${this.device.bleMac}`);
+      this.platform.bleEventHandler[this.device.bleMac] = async (context: humidifierServiceData) => {
+        try {
+          await this.debugLog(`received BLE: ${JSON.stringify(context)}`);
+          this.serviceData = context;
           await this.BLEparseStatus();
           await this.updateHomeKitCharacteristics();
-        } else {
-          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
-          await this.BLERefreshConnection(switchbot);
+        } catch (e: any) {
+          await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`);
         }
-      })();
+      };
+    } else {
+      await this.debugLog('is using Device BLE Scanning.');
+      const switchbot = await this.switchbotBLE();
+      if (switchbot === undefined) {
+        await this.BLERefreshConnection(switchbot);
+      } else {
+      // Start to monitor advertisement packets
+        (async () => {
+        // Start to monitor advertisement packets
+          const serviceData = await this.monitorAdvertisementPackets(switchbot) as humidifierServiceData;
+          // Update HomeKit
+          if (serviceData.model === SwitchBotBLEModel.Humidifier && serviceData.modelName === SwitchBotBLEModelName.Humidifier) {
+            this.serviceData = serviceData;
+            await this.BLEparseStatus();
+            await this.updateHomeKitCharacteristics();
+          } else {
+            await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
+            await this.BLERefreshConnection(switchbot);
+          }
+        })();
+      }
     }
   }
 

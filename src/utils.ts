@@ -129,6 +129,21 @@ export function isBlindTiltDevice(device: device & devicesConfig): device is bli
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+/**
+ * Check if the humidity is within the min and max range
+ * @param humidity - The humidity value
+ * @param min - The minimum humidity value
+ * @param max - The maximum humidity value
+ * @returns The humidity value
+**/
+export function validHumidity(humidity: number, min?: number, max?: number): number {
+  if (humidity < (min || 0)) {
+    return min ?? 0;
+  } else if (humidity > (max || 100)) {
+    return max ?? 100;
+  }
+  return humidity;
+}
 
 /**
  * Converts the value to celsius if the temperature units are in Fahrenheit

@@ -78,6 +78,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   public readonly eve: any;
   public readonly fakegatoAPI: any;
   public readonly webhookEventHandler: { [x: string]: (context: any) => void } = {};
+  public readonly bleEventHandler: { [x: string]: (context: any) => void } = {};
 
   constructor(
     log: Logging,
@@ -103,8 +104,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     };
 
     // Plugin Configuration
-    this.getPlatformConfigSettings();
     this.getPlatformLogSettings();
+    this.getPlatformConfigSettings();
     this.getVersion();
 
     // Finish initializing the platform
@@ -148,6 +149,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     this.setupMqtt();
     this.setupwebhook();
+    this.setupBlE();
   }
 
   async setupMqtt(): Promise<void> {
@@ -309,6 +311,43 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           this.errorLog(`Failed to delete webhook. Error:${e.message}`);
         }
       });
+    }
+  }
+
+  async setupBlE() {
+    if (this.config.options?.BLE) {
+      await this.debugLog('setupBLE');
+      const SwitchBot = (await import('node-switchbot')).SwitchBot;
+      const switchbot = new SwitchBot();
+      if (switchbot === undefined) {
+        await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
+      } else {
+        // Start to monitor advertisement packets
+        (async () => {
+          // Start to monitor advertisement packets
+          await this.debugLog('Scanning for BLE SwitchBot devices...');
+          await switchbot.startScan();
+          // Set an event handler to monitor advertisement packets
+          switchbot.onadvertisement = async (ad: any) => {
+            try {
+              this.bleEventHandler[ad.address]?.(ad.serviceData);
+            } catch (e: any) {
+              await this.errorLog(`Failed to handle BLE event. Error:${e}`);
+            }
+          };
+        })();
+
+        this.api.on('shutdown', async () => {
+          try {
+            switchbot.stopScan();
+            this.infoLog('Stopped BLE scanning to close listening.');
+          } catch (e: any) {
+            this.errorLog(`Failed to stop Platform BLE scanning. Error:${e.message}`);
+          }
+        });
+      }
+    } else {
+      await this.debugLog('Platform BLE is not enabled');
     }
   }
 
@@ -841,7 +880,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = device.deviceType;
         existingAccessory.context.model = SwitchBotModel.Humidifier;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         existingAccessory.context.connectionType = await this.connectionType(device);
         existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
         await this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
@@ -855,7 +896,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -863,7 +906,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = device.deviceType;
       accessory.context.model = SwitchBotModel.Humidifier;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
       accessory.context.connectionType = await this.connectionType(device);
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -896,7 +941,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = device.deviceType;
         existingAccessory.context.model = SwitchBotModel.Bot;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         existingAccessory.context.connectionType = await this.connectionType(device);
         existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
         this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
@@ -910,7 +957,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -918,7 +967,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = device.deviceType;
       accessory.context.model = SwitchBotModel.Bot;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = await this.connectionType(device);
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -952,7 +1004,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.model = SwitchBotModel.Meter;
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = device.deviceType;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         existingAccessory.context.connectionType = await this.connectionType(device);
         existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
         this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
@@ -966,7 +1020,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -974,7 +1030,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.model = SwitchBotModel.Meter;
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = device.deviceType;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = await this.connectionType(device);
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -1008,7 +1067,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.model = SwitchBotModel.MeterPlusUS ?? SwitchBotModel.MeterPlusJP;
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = device.deviceType;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         existingAccessory.context.connectionType = await this.connectionType(device);
         existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
         this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
@@ -1022,7 +1083,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -1030,7 +1093,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.model = SwitchBotModel.MeterPlusUS ?? SwitchBotModel.MeterPlusJP;
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = device.deviceType;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = await this.connectionType(device);
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -1064,7 +1130,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.model = SwitchBotModel.Hub2;
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = device.deviceType;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         existingAccessory.context.connectionType = await this.connectionType(device);
         existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
         this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
@@ -1078,7 +1146,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -1086,7 +1156,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.model = SwitchBotModel.Hub2;
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = device.deviceType;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = await this.connectionType(device);
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -1119,7 +1192,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.model = SwitchBotModel.OutdoorMeter;
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = device.deviceType;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         existingAccessory.context.connectionType = await this.connectionType(device);
         existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
         await this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
@@ -1133,7 +1208,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -1141,7 +1218,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.model = SwitchBotModel.OutdoorMeter;
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = device.deviceType;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = await this.connectionType(device);
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -1174,7 +1254,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = device.deviceType;
         existingAccessory.context.model = SwitchBotModel.WaterDetector;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         existingAccessory.context.connectionType = await this.connectionType(device);
         existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
         this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
@@ -1188,7 +1270,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -1196,7 +1280,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = device.deviceType;
       accessory.context.model = SwitchBotModel.WaterDetector;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       accessory.context.connectionType = await this.connectionType(device);
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -1229,7 +1316,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = device.deviceType;
         existingAccessory.context.model = SwitchBotModel.MotionSensor;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         existingAccessory.context.connectionType = await this.connectionType(device);
         existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
         this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
@@ -1243,7 +1332,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -1251,7 +1342,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = device.deviceType;
       accessory.context.model = SwitchBotModel.MotionSensor;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = await this.connectionType(device);
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -1284,7 +1378,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = device.deviceType;
         existingAccessory.context.model = SwitchBotModel.ContactSensor;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         existingAccessory.context.connectionType = await this.connectionType(device);
         existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
         this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
@@ -1298,7 +1394,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -1306,7 +1404,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = device.deviceType;
       accessory.context.model = SwitchBotModel.ContactSensor;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = await this.connectionType(device);
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -1339,7 +1440,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = device.deviceType;
         existingAccessory.context.model = SwitchBotModel.BlindTilt;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         existingAccessory.context.connectionType = await this.connectionType(device);
         existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
         this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
@@ -1367,7 +1470,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
 
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -1375,7 +1480,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = device.deviceType;
       accessory.context.model = SwitchBotModel.BlindTilt;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = await this.connectionType(device);
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -1408,7 +1516,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = device.deviceType;
         existingAccessory.context.model = device.deviceType === 'Curtain3' ? SwitchBotModel.Curtain3 : SwitchBotModel.Curtain;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         existingAccessory.context.connectionType = await this.connectionType(device);
         existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
         await this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
@@ -1436,7 +1546,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
 
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -1444,7 +1556,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = device.deviceType;
       accessory.context.model = device.deviceType === 'Curtain3' ? SwitchBotModel.Curtain3 : SwitchBotModel.Curtain;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = await this.connectionType(device);
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -1478,7 +1593,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceType = device.deviceType;
         existingAccessory.context.model = device.deviceType === 'Plug Mini (US)' ? SwitchBotModel.PlugMiniUS : device.deviceType === 'Plug Mini (JP)'
           ? SwitchBotModel.PlugMiniJP : SwitchBotModel.Plug;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         existingAccessory.context.connectionType = await this.connectionType(device);
         existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
         await this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
@@ -1492,7 +1609,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -1501,7 +1620,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceType = device.deviceType;
       accessory.context.model = device.deviceType === 'Plug Mini (US)' ? SwitchBotModel.PlugMiniUS : device.deviceType === 'Plug Mini (JP)'
         ? SwitchBotModel.PlugMiniJP : SwitchBotModel.Plug;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = await this.connectionType(device);
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -1534,7 +1656,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = device.deviceType;
         existingAccessory.context.model = device.deviceType === 'Smart Lock Pro' ? SwitchBotModel.LockPro : SwitchBotModel.Lock;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         existingAccessory.context.connectionType = await this.connectionType(device);
         existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
         this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
@@ -1548,7 +1672,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -1556,7 +1682,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = device.deviceType;
       accessory.context.model = device.deviceType === 'Smart Lock Pro' ? SwitchBotModel.LockPro : SwitchBotModel.Lock;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = await this.connectionType(device);
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -1589,7 +1718,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = device.deviceType;
         existingAccessory.context.model = SwitchBotModel.ColorBulb;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         existingAccessory.context.connectionType = await this.connectionType(device);
         existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
         await this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
@@ -1603,7 +1734,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -1611,7 +1744,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = device.deviceType;
       accessory.context.model = SwitchBotModel.ColorBulb;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = await this.connectionType(device);
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -1644,7 +1780,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = device.deviceType;
         existingAccessory.context.model = device.deviceType === 'Ceiling Light Pro' ? SwitchBotModel.CeilingLightPro : SwitchBotModel.CeilingLight;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         existingAccessory.context.connectionType = await this.connectionType(device);
         existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
         await this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
@@ -1658,7 +1796,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -1666,7 +1806,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = device.deviceType;
       accessory.context.model = device.deviceType === 'Ceiling Light Pro' ? SwitchBotModel.CeilingLightPro : SwitchBotModel.CeilingLight;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = await this.connectionType(device);
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -1699,7 +1842,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = device.deviceType;
         existingAccessory.context.model = SwitchBotModel.StripLight;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         existingAccessory.context.connectionType = await this.connectionType(device);
         existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
         await this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
@@ -1713,7 +1858,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -1721,7 +1868,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = device.deviceType;
       accessory.context.model = SwitchBotModel.StripLight;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = await this.connectionType(device);
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -1754,7 +1904,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = device.deviceType;
         existingAccessory.context.model = SwitchBotModel.BatteryCirculatorFan;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         existingAccessory.context.connectionType = await this.connectionType(device);
         existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
         await this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
@@ -1768,7 +1920,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -1776,7 +1930,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = device.deviceType;
       accessory.context.model = SwitchBotModel.BatteryCirculatorFan;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = await this.connectionType(device);
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -1813,7 +1970,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
             : device.deviceType === 'Robot Vacuum Cleaner S10' ? SwitchBotModel.RobotVacuumCleanerS10
               : device.deviceType === 'WoSweeper' ? SwitchBotModel.WoSweeper : device.deviceType === 'WoSweeperMini' ? SwitchBotModel.WoSweeperMini
                 : SwitchBotModel.Unknown;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         existingAccessory.context.connectionType = await this.connectionType(device);
         existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
         await this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
@@ -1827,7 +1986,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (await this.registerDevice(device)) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -1839,7 +2000,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           : device.deviceType === 'Robot Vacuum Cleaner S10' ? SwitchBotModel.RobotVacuumCleanerS10
             : device.deviceType === 'WoSweeper' ? SwitchBotModel.WoSweeper : device.deviceType === 'WoSweeperMini' ? SwitchBotModel.WoSweeperMini
               : SwitchBotModel.Unknown;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = await this.connectionType(device);
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -1870,7 +2034,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       existingAccessory.context.deviceId = device.deviceId;
       existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
       existingAccessory.context.model = device.remoteType;
-      existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+      existingAccessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
       await this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
       existingAccessory.context.connectionType = device.connectionType;
       this.api.updatePlatformAccessories([existingAccessory]);
@@ -1880,7 +2046,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       await this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${existingAccessory.UUID})`);
     } else if (!device.hide_device && device.hubDeviceId) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -1888,7 +2056,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = `IR: ${device.remoteType}`;
       accessory.context.model = device.remoteType;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = device.connectionType;
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -1920,7 +2091,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
         existingAccessory.context.model = device.remoteType;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         await this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
         existingAccessory.context.connectionType = device.connectionType;
         this.api.updatePlatformAccessories([existingAccessory]);
@@ -1933,7 +2106,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -1941,7 +2116,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = `IR: ${device.remoteType}`;
       accessory.context.model = device.remoteType;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = device.connectionType;
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -1974,7 +2152,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
         existingAccessory.context.model = device.remoteType;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         await this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
         existingAccessory.context.connectionType = device.connectionType;
         this.api.updatePlatformAccessories([existingAccessory]);
@@ -1987,7 +2167,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -1995,7 +2177,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = `IR: ${device.remoteType}`;
       accessory.context.model = device.remoteType;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = device.connectionType;
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -2028,7 +2213,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
         existingAccessory.context.model = device.remoteType;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         await this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
         existingAccessory.context.connectionType = device.connectionType;
         this.api.updatePlatformAccessories([existingAccessory]);
@@ -2041,7 +2228,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -2049,7 +2238,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = `IR: ${device.remoteType}`;
       accessory.context.model = device.remoteType;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = device.connectionType;
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -2082,7 +2274,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
         existingAccessory.context.model = device.remoteType;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         await this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
         existingAccessory.context.connectionType = device.connectionType;
         this.api.updatePlatformAccessories([existingAccessory]);
@@ -2095,7 +2289,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -2103,7 +2299,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = `IR: ${device.remoteType}`;
       accessory.context.model = device.remoteType;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = device.connectionType;
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -2136,7 +2335,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
         existingAccessory.context.model = device.remoteType;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         await this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
         existingAccessory.context.connectionType = device.connectionType;
         this.api.updatePlatformAccessories([existingAccessory]);
@@ -2149,7 +2350,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -2157,7 +2360,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = `IR: ${device.remoteType}`;
       accessory.context.model = device.remoteType;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = device.connectionType;
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -2190,7 +2396,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
         existingAccessory.context.model = device.remoteType;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         await this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
         existingAccessory.context.connectionType = device.connectionType;
         this.api.updatePlatformAccessories([existingAccessory]);
@@ -2203,7 +2411,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -2211,7 +2421,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = `IR: ${device.remoteType}`;
       accessory.context.model = device.remoteType;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = device.connectionType;
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -2244,7 +2457,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
         existingAccessory.context.model = device.remoteType;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         await this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
         existingAccessory.context.connectionType = device.connectionType;
         this.api.updatePlatformAccessories([existingAccessory]);
@@ -2257,7 +2472,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -2265,7 +2482,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = `IR: ${device.remoteType}`;
       accessory.context.model = device.remoteType;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = device.connectionType;
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -2298,7 +2518,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.deviceId = device.deviceId;
         existingAccessory.context.deviceType = `IR: ${device.remoteType}`;
         existingAccessory.context.model = device.remoteType;
-        existingAccessory.displayName = device.configDeviceName ?? device.deviceName;
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
         await this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`);
         existingAccessory.context.connectionType = device.connectionType;
         this.api.updatePlatformAccessories([existingAccessory]);
@@ -2311,7 +2533,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else if (!device.hide_device && device.hubDeviceId) {
       // create a new accessory
-      const accessory = new this.api.platformAccessory(device.deviceName, uuid);
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid);
 
       // store a copy of the device object in the `accessory.context`
       // the `context` property can be used to store any data about the accessory you may need
@@ -2319,7 +2543,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.deviceId = device.deviceId;
       accessory.context.deviceType = `IR: ${device.remoteType}`;
       accessory.context.model = device.remoteType;
-      accessory.displayName = device.configDeviceName ?? device.deviceName;
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
+      accessory.context.connectionType = await this.connectionType(device);
       accessory.context.connectionType = device.connectionType;
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
@@ -2680,7 +2907,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   async getPlatformLogSettings() {
-    this.debugMode = process.argv.includes('-D') || process.argv.includes('--debug');
+    this.debugMode = process.argv.includes('-D') ?? process.argv.includes('--debug');
     if (this.config.options?.logging === 'debug' || this.config.options?.logging === 'standard' || this.config.options?.logging === 'none') {
       this.platformLogging = this.config.options.logging;
       await this.debugWarnLog(`Using Config Logging: ${this.platformLogging}`);
@@ -2691,6 +2918,39 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.platformLogging = 'standard';
       await this.debugWarnLog(`Using ${this.platformLogging} Logging`);
     }
+  }
+
+  /**
+   * Validate and clean a string value for a Name Characteristic.
+ * @param displayName
+ * @param name
+ * @param value
+ * @returns string value
+ */
+  async validateAndCleanDisplayName(displayName: string, name: string, value: string): Promise<string> {
+    const validPattern = /^[a-zA-Z0-9][a-zA-Z0-9 ']*[a-zA-Z0-9]$/;
+    const invalidCharsPattern = /[^a-zA-Z0-9 ']/g;
+    const invalidStartEndPattern = /^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g;
+
+    if (!validPattern.test(value)) {
+      this.warnLog(`WARNING: The accessory '${displayName}' has an invalid '${name}' characteristic ('${value}'). Please use only alphanumeric,`
+        + ' space, and apostrophe characters. Ensure it starts and ends with an alphabetic or numeric character, and avoid emojis. This may'
+        + ' prevent the accessory from being added in the Home App or cause unresponsiveness.');
+
+      // Remove invalid characters
+      if (invalidCharsPattern.test(value)) {
+        this.warnLog(`Removing invalid characters from '${name}' characteristic`);
+        value = value.replace(invalidCharsPattern, '');
+      }
+
+      // Ensure it starts and ends with an alphanumeric character
+      if (invalidStartEndPattern.test(value)) {
+        this.warnLog(`Removing invalid starting or ending characters from '${name}' characteristic`);
+        value = value.replace(invalidStartEndPattern, '');
+      }
+    }
+
+    return value;
   }
 
   /**
@@ -2711,7 +2971,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
   async debugSuccessLog(...log: any[]): Promise<void> {
     if (await this.enablingPlatformLogging()) {
-      if (this.platformLogging?.includes('debug')) {
+      if (await this.loggingIsDebug()) {
         this.log.success('[DEBUG]', String(...log));
       }
     }
@@ -2725,7 +2985,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
   async debugWarnLog(...log: any[]): Promise<void> {
     if (await this.enablingPlatformLogging()) {
-      if (this.platformLogging?.includes('debug')) {
+      if (await this.loggingIsDebug()) {
         this.log.warn('[DEBUG]', String(...log));
       }
     }
@@ -2739,7 +2999,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
   async debugErrorLog(...log: any[]): Promise<void> {
     if (await this.enablingPlatformLogging()) {
-      if (this.platformLogging?.includes('debug')) {
+      if (await this.loggingIsDebug()) {
         this.log.error('[DEBUG]', String(...log));
       }
     }
@@ -2747,15 +3007,19 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
   async debugLog(...log: any[]): Promise<void> {
     if (await this.enablingPlatformLogging()) {
-      if (this.platformLogging === 'debugMode') {
-        this.log.debug(String(...log));
-      } else if (this.platformLogging === 'debug') {
+      if (this.platformLogging === 'debug') {
         this.log.info('[DEBUG]', String(...log));
+      } else if (this.platformLogging === 'debugMode') {
+        this.log.debug(String(...log));
       }
     }
   }
 
+  async loggingIsDebug(): Promise<boolean> {
+    return this.platformLogging === 'debugMode' || this.platformLogging === 'debug';
+  }
+
   async enablingPlatformLogging(): Promise<boolean> {
-    return this.platformLogging?.includes('debug') || this.platformLogging === 'standard';
+    return this.platformLogging === 'debugMode' || this.platformLogging === 'debug' || this.platformLogging === 'standard';
   }
 }

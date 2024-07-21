@@ -46,8 +46,8 @@ export class TV extends irdeviceBase {
     // Initialize Television Service
     accessory.context.Television = accessory.context.Television ?? {};
     this.Television = {
-      Name: accessory.context.Television.Name ?? `${accessory.displayName} ${device.remoteType}`,
-      ConfiguredName: accessory.context.Television.ConfiguredName ?? `${accessory.displayName} ${device.remoteType}`,
+      Name: accessory.displayName,
+      ConfiguredName: accessory.displayName,
       Service: accessory.getService(this.hap.Service.Television) ?? accessory.addService(this.hap.Service.Television) as Service,
       Active: accessory.context.Active ?? this.hap.Characteristic.Active.INACTIVE,
       ActiveIdentifier: accessory.context.ActiveIdentifier ?? 1,
@@ -105,7 +105,7 @@ export class TV extends irdeviceBase {
     // Initialize TelevisionSpeaker Service
     accessory.context.TelevisionSpeaker = accessory.context.TelevisionSpeaker ?? {};
     this.TelevisionSpeaker = {
-      Name: accessory.context.TelevisionSpeaker.Name ?? `${accessory.displayName} ${device.remoteType} Speaker`,
+      Name: `${accessory.displayName} Speaker`,
       Service: accessory.getService(this.hap.Service.TelevisionSpeaker) ?? accessory.addService(this.hap.Service.TelevisionSpeaker) as Service,
       Active: accessory.context.Active ?? false,
       VolumeControlType: accessory.context.VolumeControlType ?? this.hap.Characteristic.VolumeControlType.ABSOLUTE,

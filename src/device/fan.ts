@@ -68,7 +68,7 @@ export class Fan extends deviceBase {
     // Initialize Fan Service
     accessory.context.Fan = accessory.context.Fan ?? {};
     this.Fan = {
-      Name: accessory.context.Fan.Name ?? accessory.displayName,
+      Name: accessory.displayName,
       Service: accessory.getService(this.hap.Service.Fanv2) ?? accessory.addService(this.hap.Service.Fanv2) as Service,
       Active: accessory.context.Active ?? this.hap.Characteristic.Active.INACTIVE,
       SwingMode: accessory.context.SwingMode ?? this.hap.Characteristic.SwingMode.SWING_DISABLED,
@@ -103,7 +103,7 @@ export class Fan extends deviceBase {
     // Initialize Battery Service
     accessory.context.Battery = accessory.context.Battery ?? {};
     this.Battery = {
-      Name: accessory.context.Battery.Name ?? accessory.displayName,
+      Name: `${accessory.displayName} Battery`,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel ?? 100,
       StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
@@ -136,7 +136,7 @@ export class Fan extends deviceBase {
     // Initialize LightBulb Service
     accessory.context.LightBulb = accessory.context.LightBulb ?? {};
     this.LightBulb = {
-      Name: accessory.context.LightBulb.Name ?? accessory.displayName,
+      Name:   `${accessory.displayName} Night Light`,
       Service: accessory.getService(this.hap.Service.Lightbulb) ?? accessory.addService(this.hap.Service.Lightbulb) as Service,
       On: accessory.context.On ?? false,
       Brightness: accessory.context.Brightness ?? 0,
@@ -166,9 +166,6 @@ export class Fan extends deviceBase {
 
     //regisiter webhook event handler
     this.debugLog('Registering Webhook Event Handler');
-    this.registerWebhook();
-
-    //regisiter webhook event handler
     this.registerWebhook();
 
     // Start an update interval
@@ -314,7 +311,7 @@ export class Fan extends deviceBase {
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       await this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`);
-    } else if (this.BLE) {
+    } else if (this.BLE || this.config.options?.BLE) {
       await this.BLERefreshStatus();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
@@ -326,25 +323,41 @@ export class Fan extends deviceBase {
 
   async BLERefreshStatus(): Promise<void> {
     await this.debugLog('BLERefreshStatus');
-    const switchbot = await this.switchbotBLE();
-
-    if (switchbot === undefined) {
-      await this.BLERefreshConnection(switchbot);
-    } else {
-      // Start to monitor advertisement packets
-      (async () => {
-        // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchbot) as batteryCirculatorFanServiceData;
-        // Update HomeKit
-        if (serviceData.model === SwitchBotBLEModel.Unknown && SwitchBotBLEModelName.Unknown) {
-          this.serviceData = serviceData;
+    if (this.config.options?.BLE) {
+      await this.debugLog('is listening to Platform BLE.');
+      this.device.bleMac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase();
+      await this.debugLog(`bleMac: ${this.device.bleMac}`);
+      this.platform.bleEventHandler[this.device.bleMac] = async (context: batteryCirculatorFanServiceData) => {
+        try {
+          await this.debugLog(`received BLE: ${JSON.stringify(context)}`);
+          this.serviceData = context;
           await this.BLEparseStatus();
           await this.updateHomeKitCharacteristics();
-        } else {
-          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
-          await this.BLERefreshConnection(switchbot);
+        } catch (e: any) {
+          await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`);
         }
-      })();
+      };
+    } else {
+      await this.debugLog('is using Device BLE Scanning.');
+      const switchbot = await this.switchbotBLE();
+      if (switchbot === undefined) {
+        await this.BLERefreshConnection(switchbot);
+      } else {
+      // Start to monitor advertisement packets
+        (async () => {
+        // Start to monitor advertisement packets
+          const serviceData = await this.monitorAdvertisementPackets(switchbot) as batteryCirculatorFanServiceData;
+          // Update HomeKit
+          if (serviceData.model === SwitchBotBLEModel.Unknown && SwitchBotBLEModelName.Unknown) {
+            this.serviceData = serviceData;
+            await this.BLEparseStatus();
+            await this.updateHomeKitCharacteristics();
+          } else {
+            await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
+            await this.BLERefreshConnection(switchbot);
+          }
+        })();
+      }
     }
   }
 

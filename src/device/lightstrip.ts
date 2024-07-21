@@ -10,8 +10,8 @@ import { Subject, debounceTime, interval, skipWhile, take, tap } from 'rxjs';
 import type { devicesConfig } from '../settings.js';
 import type { device } from '../types/devicelist.js';
 import type { SwitchBotPlatform } from '../platform.js';
-import type { stripLightServiceData } from '../types/bledevicestatus.js';
 import type { stripLightStatus } from '../types/devicestatus.js';
+import type { stripLightServiceData } from '../types/bledevicestatus.js';
 import type { stripLightWebhookContext } from '../types/devicewebhookstatus.js';
 import type { Service, PlatformAccessory, CharacteristicValue, ControllerConstructor, Controller, ControllerServiceMap } from 'homebridge';
 
@@ -42,8 +42,9 @@ export class StripLight extends deviceBase {
   serviceData!: stripLightServiceData;
 
   // Adaptive Lighting
+  adaptiveLighting!: boolean;
+  adaptiveLightingShift!: number;
   AdaptiveLightingController?: ControllerConstructor | Controller<ControllerServiceMap>;
-  adaptiveLightingShift?: number;
 
   // Updates
   stripLightUpdateInProgress!: boolean;
@@ -59,7 +60,8 @@ export class StripLight extends deviceBase {
     accessory.category = this.hap.Categories.LIGHTBULB;
 
     // Adaptive Lighting
-    this.adaptiveLighting(device);
+    this.getAdaptiveLightingSettings(accessory, device);
+
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doStripLightUpdate = new Subject();
     this.stripLightUpdateInProgress = false;
@@ -67,7 +69,7 @@ export class StripLight extends deviceBase {
     // Initialize the LightBulb Service
     accessory.context.LightBulb = accessory.context.LightBulb ?? {};
     this.LightBulb = {
-      Name: accessory.context.LightBulb.Name ?? accessory.displayName,
+      Name: accessory.displayName,
       Service: accessory.getService(this.hap.Service.Lightbulb) ?? accessory.addService(this.hap.Service.Lightbulb) as Service,
       On: accessory.context.On ?? false,
       Hue: accessory.context.Hue ?? 0,
@@ -77,23 +79,24 @@ export class StripLight extends deviceBase {
     };
     accessory.context.LightBulb = this.LightBulb as object;
 
-    // Adaptive Lighting
-    if (this.adaptiveLightingShift === -1 && this.accessory.context.adaptiveLighting) {
-      this.accessory.removeService(this.LightBulb.Service);
-      this.LightBulb.Service = this.accessory.addService(this.hap.Service.Lightbulb);
-      this.accessory.context.adaptiveLighting = false;
-      this.debugLog(`adaptiveLighting: ${this.accessory.context.adaptiveLighting}`);
-    }
-    if (this.adaptiveLightingShift !== -1) {
+    if (this.adaptiveLighting && this.adaptiveLightingShift === -1 && this.LightBulb) {
+      accessory.removeService(this.LightBulb.Service);
+      this.LightBulb.Service = accessory.addService(this.hap.Service.Lightbulb);
+      accessory.context.adaptiveLighting = false;
+      this.debugLog(`adaptiveLighting: ${this.adaptiveLighting}`);
+    } else if (this.adaptiveLighting && this.adaptiveLightingShift >= 0 && this.LightBulb) {
       this.AdaptiveLightingController = new platform.api.hap.AdaptiveLightingController(this.LightBulb.Service, {
+        controllerMode: this.hap.AdaptiveLightingControllerMode.AUTOMATIC,
         customTemperatureAdjustment: this.adaptiveLightingShift,
       });
-      this.accessory.configureController(this.AdaptiveLightingController);
-      this.accessory.context.adaptiveLighting = true;
-      this.debugLog(`adaptiveLighting: ${this.accessory.context.adaptiveLighting},`
-        + ` adaptiveLightingShift: ${this.adaptiveLightingShift}`);
+      accessory.configureController(this.AdaptiveLightingController);
+      accessory.context.adaptiveLighting = true;
+      this.debugLog(`adaptiveLighting: ${this.adaptiveLighting}, adaptiveLightingShift: ${this.adaptiveLightingShift}`,
+      );
+    } else {
+      accessory.context.adaptiveLighting = false;
+      this.debugLog(`adaptiveLighting: ${accessory.context.adaptiveLighting}`);
     }
-    this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`);
 
     // Initialize LightBulb Characteristics
     this.LightBulb.Service
@@ -301,7 +304,7 @@ export class StripLight extends deviceBase {
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       await this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`);
-    } else if (this.BLE) {
+    } else if (this.BLE || this.config.options?.BLE) {
       await this.BLERefreshStatus();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
@@ -313,25 +316,41 @@ export class StripLight extends deviceBase {
 
   async BLERefreshStatus(): Promise<void> {
     await this.debugLog('BLERefreshStatus');
-    const switchbot = await this.switchbotBLE();
-
-    if (switchbot === undefined) {
-      await this.BLERefreshConnection(switchbot);
-    } else {
-    // Start to monitor advertisement packets
-      (async () => {
-      // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchbot) as stripLightServiceData;
-        // Update HomeKit
-        if (serviceData.model === SwitchBotBLEModel.StripLight && serviceData.modelName === SwitchBotBLEModelName.StripLight) {
-          this.serviceData = serviceData;
+    if (this.config.options?.BLE) {
+      await this.debugLog('is listening to Platform BLE.');
+      this.device.bleMac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase();
+      await this.debugLog(`bleMac: ${this.device.bleMac}`);
+      this.platform.bleEventHandler[this.device.bleMac] = async (context: stripLightServiceData) => {
+        try {
+          await this.debugLog(`received BLE: ${JSON.stringify(context)}`);
+          this.serviceData = context;
           await this.BLEparseStatus();
           await this.updateHomeKitCharacteristics();
-        } else {
-          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
-          await this.BLERefreshConnection(switchbot);
+        } catch (e: any) {
+          await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`);
         }
-      })();
+      };
+    } else {
+      await this.debugLog('is using Device BLE Scanning.');
+      const switchbot = await this.switchbotBLE();
+      if (switchbot === undefined) {
+        await this.BLERefreshConnection(switchbot);
+      } else {
+        // Start to monitor advertisement packets
+        (async () => {
+          // Start to monitor advertisement packets
+          const serviceData = await this.monitorAdvertisementPackets(switchbot) as stripLightServiceData;
+          // Update HomeKit
+          if (serviceData.model === SwitchBotBLEModel.StripLight && serviceData.modelName === SwitchBotBLEModelName.StripLight) {
+            this.serviceData = serviceData;
+            await this.BLEparseStatus();
+            await this.updateHomeKitCharacteristics();
+          } else {
+            await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
+            await this.BLERefreshConnection(switchbot);
+          }
+        })();
+      }
     }
   }
 
@@ -757,7 +776,11 @@ export class StripLight extends deviceBase {
       this.LightBulb.Saturation, 'Saturation');
   }
 
-  async adaptiveLighting(device: device & devicesConfig): Promise<void> {
+  async getAdaptiveLightingSettings(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
+    // Adaptive Lighting
+    this.adaptiveLighting = accessory.context.adaptiveLighting ?? true;
+    await this.debugLog(`adaptiveLighting: ${this.adaptiveLighting}`);
+    // Adaptive Lighting Shift
     if (device.striplight?.adaptiveLightingShift) {
       this.adaptiveLightingShift = device.striplight.adaptiveLightingShift;
       this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`);

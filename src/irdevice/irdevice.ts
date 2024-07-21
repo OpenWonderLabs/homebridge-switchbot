@@ -43,11 +43,11 @@ export abstract class irdeviceBase {
       .getService(this.hap.Service.AccessoryInformation)!
       .setCharacteristic(this.hap.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.hap.Characteristic.AppMatchingIdentifier, 'id1087374760')
-      .setCharacteristic(this.hap.Characteristic.Name, device.configDeviceName ?? device.deviceName ?? accessory.displayName)
-      .setCharacteristic(this.hap.Characteristic.ConfiguredName, device.configDeviceName ?? device.deviceName ?? accessory.displayName)
+      .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
+      .setCharacteristic(this.hap.Characteristic.ConfiguredName, accessory.displayName)
       .setCharacteristic(this.hap.Characteristic.Model, accessory.context.model ?? 'Unknown')
-      .setCharacteristic(this.hap.Characteristic.ProductData, accessory.context.deviceId)
-      .setCharacteristic(this.hap.Characteristic.SerialNumber, accessory.context.deviceId);
+      .setCharacteristic(this.hap.Characteristic.ProductData, device.deviceId)
+      .setCharacteristic(this.hap.Characteristic.SerialNumber, device.deviceId);
   }
 
   async getDeviceLogSettings(device: irdevice & irDevicesConfig): Promise<void> {
@@ -199,9 +199,9 @@ export abstract class irdeviceBase {
     } else {
       Service.updateCharacteristic(Characteristic, CharacteristicValue);
       await this.debugLog(`updateCharacteristic ${CharacteristicName}: ${CharacteristicValue}`);
-      await this.debugWarnLog(`context before: ${this.accessory.context[CharacteristicName]}`);
+      await this.debugWarnLog(`${CharacteristicName} context before: ${this.accessory.context[CharacteristicName]}`);
       this.accessory.context[CharacteristicName] = CharacteristicValue;
-      await this.debugWarnLog(`context after: ${this.accessory.context[CharacteristicName]}`);
+      await this.debugWarnLog(`${CharacteristicName} context after: ${this.accessory.context[CharacteristicName]}`);
     }
   }
 
@@ -363,7 +363,7 @@ export abstract class irdeviceBase {
 
   async debugSuccessLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
-      if (this.deviceLogging?.includes('debug')) {
+      if (await this.loggingIsDebug()) {
         this.log.success(`[DEBUG] ${this.device.remoteType}: ${this.accessory.displayName}`, String(...log));
       }
     }
@@ -377,7 +377,7 @@ export abstract class irdeviceBase {
 
   async debugWarnLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
-      if (this.deviceLogging?.includes('debug')) {
+      if (await this.loggingIsDebug()) {
         this.log.warn(`[DEBUG] ${this.device.remoteType}: ${this.accessory.displayName}`, String(...log));
       }
     }
@@ -391,7 +391,7 @@ export abstract class irdeviceBase {
 
   async debugErrorLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
-      if (this.deviceLogging?.includes('debug')) {
+      if (await this.loggingIsDebug()) {
         this.log.error(`[DEBUG] ${this.device.remoteType}: ${this.accessory.displayName}`, String(...log));
       }
     }
@@ -401,13 +401,17 @@ export abstract class irdeviceBase {
     if (await this.enablingDeviceLogging()) {
       if (this.deviceLogging === 'debug') {
         this.log.info(`[DEBUG] ${this.device.remoteType}: ${this.accessory.displayName}`, String(...log));
-      } else {
+      } else if (this.deviceLogging === 'debugMode') {
         this.log.debug(`${this.device.remoteType}: ${this.accessory.displayName}`, String(...log));
       }
     }
   }
 
+  async loggingIsDebug(): Promise<boolean> {
+    return this.deviceLogging === 'debugMode' || this.deviceLogging === 'debug';
+  }
+
   async enablingDeviceLogging(): Promise<boolean> {
-    return this.deviceLogging.includes('debug') || this.deviceLogging === 'standard';
+    return this.deviceLogging === 'debugMode' || this.deviceLogging === 'debug' || this.deviceLogging === 'standard';
   }
 }

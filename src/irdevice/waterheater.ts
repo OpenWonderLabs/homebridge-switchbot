@@ -34,14 +34,14 @@ export class WaterHeater extends irdeviceBase {
     // Initialize Switch Service
     accessory.context.Valve = accessory.context.Valve ?? {};
     this.Valve = {
-      Name: accessory.context.Valve.Name ?? `${accessory.displayName} ${device.remoteType}`,
+      Name: accessory.displayName,
       Service: accessory.getService(this.hap.Service.Valve) ?? accessory.addService(this.hap.Service.Valve) as Service,
       Active: accessory.context.Active ?? this.hap.Characteristic.Active.INACTIVE,
     };
     accessory.context.Valve = this.Valve as object;
 
     this.Valve.Service
-      .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
+      .setCharacteristic(this.hap.Characteristic.Name, this.Valve.Name)
       .setCharacteristic(this.hap.Characteristic.ValveType, this.hap.Characteristic.ValveType.GENERIC_VALVE)
       .getCharacteristic(this.hap.Characteristic.Active)
       .onGet(() => {

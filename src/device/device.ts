@@ -79,10 +79,10 @@ export abstract class deviceBase {
       .getService(this.hap.Service.AccessoryInformation)!
       .setCharacteristic(this.hap.Characteristic.Manufacturer, 'SwitchBot')
       .setCharacteristic(this.hap.Characteristic.AppMatchingIdentifier, 'id1087374760')
-      .setCharacteristic(this.hap.Characteristic.Name, device.configDeviceName ?? device.deviceName ?? accessory.displayName)
-      .setCharacteristic(this.hap.Characteristic.ConfiguredName, device.configDeviceName ?? device.deviceName ?? accessory.displayName)
-      .setCharacteristic(this.hap.Characteristic.Model, device.model ?? accessory.context.model)
-      .setCharacteristic(this.hap.Characteristic.ProductData, device.deviceId ?? accessory.context.deviceId)
+      .setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
+      .setCharacteristic(this.hap.Characteristic.ConfiguredName, accessory.displayName)
+      .setCharacteristic(this.hap.Characteristic.Model, device.model)
+      .setCharacteristic(this.hap.Characteristic.ProductData, device.deviceId)
       .setCharacteristic(this.hap.Characteristic.SerialNumber, device.deviceId);
   }
 
@@ -355,11 +355,11 @@ export abstract class deviceBase {
       .deviceId!.match(/.{1,2}/g)!
       .join(':')
       .toLowerCase();
-    this.debugLog(`BLE Address: ${this.device.bleMac}`);
+    await this.debugLog(`BLE Address: ${this.device.bleMac}`);
   }
 
   async monitorAdvertisementPackets(switchbot: any) {
-    this.debugLog(`Scanning for ${this.device.bleModelName} devices...`);
+    await this.debugLog(`Scanning for ${this.device.bleModelName} devices...`);
     await switchbot.startScan({ model: this.device.bleModel, id: this.device.bleMac });
     // Set an event handler
     let serviceData = { model: this.device.bleModel, modelName: this.device.bleModelName } as ad['serviceData'];
@@ -374,7 +374,7 @@ export abstract class deviceBase {
         this.debugLog(`serviceData: ${JSON.stringify(ad.serviceData)}`);
       }
     };
-    // Wait 10 seconds
+    // Wait
     await switchbot.wait(this.scanDuration * 1000);
     // Stop to monitor
     await switchbot.stopScan();
@@ -437,9 +437,9 @@ export abstract class deviceBase {
       }
       Service.updateCharacteristic(Characteristic, CharacteristicValue);
       this.debugLog(`updateCharacteristic ${CharacteristicName}: ${CharacteristicValue}`);
-      this.debugWarnLog(`context before: ${this.accessory.context[CharacteristicName]}`);
+      this.debugWarnLog(`${CharacteristicName} context before: ${this.accessory.context[CharacteristicName]}`);
       this.accessory.context[CharacteristicName] = CharacteristicValue;
-      this.debugWarnLog(`context after: ${this.accessory.context[CharacteristicName]}`);
+      this.debugWarnLog(`${CharacteristicName} context after: ${this.accessory.context[CharacteristicName]}`);
     }
   }
 
@@ -782,7 +782,7 @@ export abstract class deviceBase {
 
   async debugSuccessLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
-      if (this.deviceLogging?.includes('debug')) {
+      if (await this.loggingIsDebug()) {
         this.log.success(`[DEBUG] ${this.device.deviceType}: ${this.accessory.displayName}`, String(...log));
       }
     }
@@ -796,7 +796,7 @@ export abstract class deviceBase {
 
   async debugWarnLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
-      if (this.deviceLogging?.includes('debug')) {
+      if (await this.loggingIsDebug()) {
         this.log.warn(`[DEBUG] ${this.device.deviceType}: ${this.accessory.displayName}`, String(...log));
       }
     }
@@ -810,7 +810,7 @@ export abstract class deviceBase {
 
   async debugErrorLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
-      if (this.deviceLogging?.includes('debug')) {
+      if (await this.loggingIsDebug()) {
         this.log.error(`[DEBUG] ${this.device.deviceType}: ${this.accessory.displayName}`, String(...log));
       }
     }
@@ -820,13 +820,17 @@ export abstract class deviceBase {
     if (await this.enablingDeviceLogging()) {
       if (this.deviceLogging === 'debug') {
         this.log.info(`[DEBUG] ${this.device.deviceType}: ${this.accessory.displayName}`, String(...log));
-      } else {
+      } else if (this.deviceLogging === 'debugMode') {
         this.log.debug(`${this.device.deviceType}: ${this.accessory.displayName}`, String(...log));
       }
     }
   }
 
+  async loggingIsDebug(): Promise<boolean> {
+    return this.deviceLogging === 'debugMode' || this.deviceLogging === 'debug';
+  }
+
   async enablingDeviceLogging(): Promise<boolean> {
-    return this.deviceLogging.includes('debug') || this.deviceLogging === 'standard';
+    return this.deviceLogging === 'debugMode' || this.deviceLogging === 'debug' || this.deviceLogging === 'standard';
   }
 }

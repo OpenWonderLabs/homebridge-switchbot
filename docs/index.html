@@ -1,0 +1,368 @@
+<!DOCTYPE html><html class="default" lang="en"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>@switchbot/homebridge-switchbot</title><meta name="description" content="Documentation for @switchbot/homebridge-switchbot"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><script defer src="assets/main.js"></script><script async src="assets/icons.js" id="tsd-icons-script"></script><script async src="assets/search.js" id="tsd-search-script"></script><script async src="assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar"><div class="tsd-toolbar-contents container"><div class="table-cell" id="tsd-search" data-base="."><div class="field"><label for="tsd-search-field" class="tsd-widget tsd-toolbar-icon search no-caption"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><use href="assets/icons.svg#icon-search"></use></svg></label><input type="text" id="tsd-search-field" aria-label="Search"/></div><div class="field"><div id="tsd-toolbar-links"></div></div><ul class="results"><li class="state loading">Preparing search index...</li><li class="state failure">The search index is not available</li></ul><a href="index.html" class="title">@switchbot/homebridge-switchbot</a></div><div class="table-cell" id="tsd-widgets"><a href="#" class="tsd-widget tsd-toolbar-icon menu no-caption" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><use href="assets/icons.svg#icon-menu"></use></svg></a></div></div></header><div class="container container-main"><div class="col-content"><div class="tsd-page-title"><h2>@switchbot/homebridge-switchbot</h2></div><div class="tsd-panel tsd-typography"><span align="center">
+<p><a href="https://github.com/homebridge/verified/blob/master/verified-plugins.json"><img alt="homebridge-verified" src="https://raw.githubusercontent.com/OpenWonderLabs/homebridge-switchbot/latest/branding/Homebridge_x_SwitchBot.svg?sanitize=true" width="350px"></a></p>
+<a id="md:switchbothomebridge-switchbot" class="tsd-anchor"></a><h1 class="tsd-anchor-link">@switchbot/homebridge-switchbot<a href="#md:switchbothomebridge-switchbot" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h1><p><a href="https://www.npmjs.com/package/@switchbot/homebridge-switchbot"><img src="https://badgen.net/npm/v/@switchbot/homebridge-switchbot" alt="npm version"></a>
+<a href="https://www.npmjs.com/package/@switchbot/homebridge-switchbot"><img src="https://badgen.net/npm/dt/@switchbot/homebridge-switchbot" alt="npm downloads"></a>
+<a href="https://discord.gg/5wYTbwP4ha"><img src="https://badgen.net/discord/online-members/5wYTbwP4ha?icon=discord&amp;label=discord" alt="discord-switchbot"></a></p>
+<p>The Homebridge <a href="https://www.switch-bot.com">SwitchBot</a> plugin allows you to access your SwitchBot Device(s) from HomeKit with
+  <a href="https://homebridge.io">Homebridge</a>. 
+</p>
+</span>
+<a id="md:installation" class="tsd-anchor"></a><h2 class="tsd-anchor-link">Installation<a href="#md:installation" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><ol>
+<li>Search for &quot;SwitchBot&quot; on the plugin screen of <a href="https://github.com/oznu/homebridge-config-ui-x">Homebridge Config UI X</a></li>
+<li>Find: <code>@switchbot/homebridge-switchbot</code>
+<ul>
+<li>See noble <a href="https://github.com/abandonware/noble#prerequisites">prerequisites</a> for your OS. (This is used for BLE connection.)</li>
+</ul>
+</li>
+<li>Click <strong>Install</strong></li>
+</ol>
+<a id="md:configuration" class="tsd-anchor"></a><h2 class="tsd-anchor-link">Configuration<a href="#md:configuration" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><ul>
+<li>
+<a id="md:if-using-openapi-connection" class="tsd-anchor"></a><h3 class="tsd-anchor-link">If using OpenAPI Connection<a href="#md:if-using-openapi-connection" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3><ol>
+<li>Download SwitchBot App on App Store or Google Play Store</li>
+<li>Register a SwitchBot account and log in into your account</li>
+<li>Generate an Token within the App
+<ul>
+<li>Click Bottom Profile Tab</li>
+<li>Click Preference</li>
+<li>Click App version 10 Times, this will enable Developer Options</li>
+<li>Click Developer Options</li>
+<li>Click Copy <code>token</code> to Clipboard</li>
+</ul>
+</li>
+<li>Input your <code>token</code> into the config parameter</li>
+<li>Generate an Secret within the App
+<ul>
+<li>Click Bottom Profile Tab</li>
+<li>Click Preference</li>
+<li>Click App version 10 Times, this will enable Developer Options</li>
+<li>Click Developer Options</li>
+<li>Click Copy <code>secret</code> to Clipboard</li>
+</ul>
+</li>
+<li>Input your <code>secret</code> into the config parameter</li>
+</ol>
+</li>
+<li>
+<a id="md:if-using-ble-connection" class="tsd-anchor"></a><h3 class="tsd-anchor-link">If using BLE Connection<a href="#md:if-using-ble-connection" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3><ol>
+<li>Download SwitchBot App on App Store or Google Play Store</li>
+<li>Register a SwitchBot account and log in into your account</li>
+<li>Click on Device wanting to connect too plugin
+<ul>
+<li>Click the Settings Gear</li>
+<li>Click Device Info</li>
+<li>Copy BLE Mac aka <code>deviceId</code></li>
+</ul>
+</li>
+<li>Input your <code>deviceId</code> into the Device Config</li>
+</ol>
+</li>
+</ul>
+<a id="md:troubleshooting" class="tsd-anchor"></a><h2 class="tsd-anchor-link">Troubleshooting<a href="#md:troubleshooting" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><ul>
+<li>
+<a id="md:if-using-linux--raspberry-pi-os" class="tsd-anchor"></a><h3 class="tsd-anchor-link">If using Linux / Raspberry Pi OS<a href="#md:if-using-linux--raspberry-pi-os" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3><ol>
+<li>
+<p><code>bluetoothctl</code> must be installed on the device, otherwise it cannot communicate via Bluetooth. Enable it with <code>sudo bluetoothctl power on</code>.</p>
+</li>
+<li>
+<p>If errors occur, while enabling it, restart the process:</p>
+<ul>
+<li><code>rfkill block bluetooth</code></li>
+<li><code>rfkill unblock bluetooth</code></li>
+</ul>
+</li>
+<li>
+<p>Also make sure, that the computer can discover the SwitchBot device:</p>
+<ul>
+<li><code>sudo bluetoothctl</code></li>
+<li><code>scan on</code></li>
+</ul>
+<p>This lists all discovered Bluetooth devices. The BLE address of the SwitchBot device should be included in this list, otherwise your computer does not discover it.</p>
+</li>
+</ol>
+</li>
+</ul>
+<a id="md:supported-switchbot-devices" class="tsd-anchor"></a><h2 class="tsd-anchor-link">Supported SwitchBot Devices<a href="#md:supported-switchbot-devices" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><ul>
+<li><a href="https://www.switch-bot.com/products/switchbot-smart-humidifier">SwitchBot Humidifier</a>
+<ul>
+<li>Supports OpenAPI &amp; Bluetooth Low Energy (BLE) Connections
+<ul>
+<li>Can Push Updates over OpenAPI</li>
+<li>Can Receive Updates over BLE and OpenAPI</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="https://www.switch-bot.com/products/switchbot-meter">SwitchBot Meter</a></li>
+<li><a href="https://www.switch-bot.com/products/switchbot-meter-plus">SwitchBot Meter Plus (US)</a></li>
+<li><a href="https://www.switchbot.jp/products/switchbot-meter-plus">SwitchBot Meter Plus (JP)</a></li>
+<li><a href="https://www.switch-bot.com/products/switchbot-indoor-outdoor-thermo-hygrometer">SwitchBot Indoor/Outdoor Thermo-Hygrometer</a>
+<ul>
+<li>Supports OpenAPI &amp; Bluetooth Low Energy (BLE) Connections</li>
+<li>If using OpenAPI:
+<ul>
+<li><a href="https://www.switch-bot.com/products/switchbot-hub-mini">SwitchBot Hub Mini</a> or <a href="https://us.switch-bot.com/products/switchbot-hub-2">SwitchBot Hub 2</a> Required</li>
+<li>Enable Cloud Services for Device on SwitchBot App</li>
+</ul>
+</li>
+<li>If using Bluetooth Low Energy (BLE) only:
+<ul>
+<li>Must supply <code>deviceId</code> &amp; <code>deviceName</code> to Device Config</li>
+<li>Check <code>Enable Bluetooth Low Energy (BLE) Connection</code> on Device Config</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="https://www.switch-bot.com/products/motion-sensor">SwitchBot Motion Sensor</a>
+<ul>
+<li>Supports OpenAPI &amp; Bluetooth Low Energy (BLE) Connections</li>
+<li>If using OpenAPI:
+<ul>
+<li><a href="https://www.switch-bot.com/products/switchbot-hub-mini">SwitchBot Hub Mini</a> or <a href="https://us.switch-bot.com/products/switchbot-hub-2">SwitchBot Hub 2</a> Required</li>
+<li>Enable Cloud Services for Device on SwitchBot App</li>
+</ul>
+</li>
+<li>If using Bluetooth Low Energy (BLE) only:
+<ul>
+<li>Must supply <code>deviceId</code> &amp; <code>deviceName</code> to Device Config</li>
+<li>Check <code>Enable Bluetooth Low Energy (BLE) Connection</code> on Device Config</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="https://www.switch-bot.com/products/contact-sensor">SwitchBot Contact Sensor</a>
+<ul>
+<li>Supports OpenAPI &amp; Bluetooth Low Energy (BLE) Connections</li>
+<li>If using OpenAPI:
+<ul>
+<li><a href="https://www.switch-bot.com/products/switchbot-hub-mini">SwitchBot Hub Mini</a> or <a href="https://us.switch-bot.com/products/switchbot-hub-2">SwitchBot Hub 2</a> Required</li>
+<li>Enable Cloud Services for Device on SwitchBot App</li>
+</ul>
+</li>
+<li>If using Bluetooth Low Energy (BLE) only:
+<ul>
+<li>Must supply <code>deviceId</code> &amp; <code>deviceName</code> to Device Config</li>
+<li>Check <code>Enable Bluetooth Low Energy (BLE) Connection</code> on Device Config</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="https://www.switch-bot.com/products/switchbot-curtain">SwitchBot Curtain</a></li>
+<li><a href="https://www.switch-bot.com/products/switchbot-curtain-3">SwitchBot Curtain 3</a>
+<ul>
+<li>Supports OpenAPI &amp; Bluetooth Low Energy (BLE) Connections</li>
+<li>If using OpenAPI:
+<ul>
+<li><a href="https://www.switch-bot.com/products/switchbot-hub-mini">SwitchBot Hub Mini</a> or <a href="https://us.switch-bot.com/products/switchbot-hub-2">SwitchBot Hub 2</a> Required</li>
+<li>Enable Cloud Services for Device on SwitchBot App</li>
+</ul>
+</li>
+<li>If using Bluetooth Low Energy (BLE) only:
+<ul>
+<li>Must supply <code>deviceId</code> &amp; <code>deviceName</code> to Device Config</li>
+<li>Check <code>Enable Bluetooth Low Energy (BLE) Connection</code> on Device Config</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="https://us.switch-bot.com/products/switchbot-blind-tilt">SwitchBot Blind Tilt</a>
+<ul>
+<li>Supports OpenAPI &amp; partial Bluetooth Low Energy (BLE) Connections</li>
+<li>If using OpenAPI:
+<ul>
+<li><a href="https://www.switch-bot.com/products/switchbot-hub-mini">SwitchBot Hub Mini</a> or <a href="https://us.switch-bot.com/products/switchbot-hub-2">SwitchBot Hub 2</a> Required</li>
+<li>Enable Cloud Services for Device on SwitchBot App</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="https://www.switch-bot.com/products/switchbot-color-bulb">SwitchBot Bulb</a></li>
+<li><a href="https://www.switchbot.jp/collections/all/products/switchbot-ceiling-light">SwitchBot Ceiling Light</a></li>
+<li><a href="https://www.switchbot.jp/collections/all/products/switchbot-ceiling-light">SwitchBot Ceiling Light Pro</a></li>
+<li><a href="https://www.switch-bot.com/products/switchbot-light-strip">SwitchBot Light Strip</a>
+<ul>
+<li>Supports OpenAPI &amp; partial Bluetooth Low Energy (BLE) Connections</li>
+<li>If using OpenAPI:
+<ul>
+<li><a href="https://www.switch-bot.com/products/switchbot-hub-mini">SwitchBot Hub Mini</a> or <a href="https://us.switch-bot.com/products/switchbot-hub-2">SwitchBot Hub 2</a> Required</li>
+<li>Enable Cloud Services for Device on SwitchBot App</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="https://us.switch-bot.com/products/switchbot-lock">SwitchBot Lock</a></li>
+<li><a href="https://www.switchbot.jp/products/switchbot-lock-pro">SwitchBot Lock Pro</a>
+<ul>
+<li>Supports OpenAPI &amp; Bluetooth Low Energy (BLE) Connections</li>
+<li>If using OpenAPI:
+<ul>
+<li><a href="https://www.switch-bot.com/products/switchbot-hub-mini">SwitchBot Hub Mini</a> or <a href="https://us.switch-bot.com/products/switchbot-hub-2">SwitchBot Hub 2</a> Required</li>
+<li>Enable Cloud Services for Device on SwitchBot App</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>US: <a href="https://www.switch-bot.com/products/switchbot-mini-robot-vacuum-k10">SwitchBot Mini Robot Vacuum K10+</a></li>
+<li>US: <a href="https://www.switch-bot.com/products/switchbot-floor-cleaning-robot-s10">SwitchBot Floor Cleaning Robot S10</a></li>
+<li>JP: <a href="https://www.switchbot.jp/products/switchbot-robot-vacuum-cleaner">SwitchBot Robot Vacuum Cleaner S1</a></li>
+<li>JP: <a href="https://www.switchbot.jp/products/switchbot-robot-vacuum-cleaner">SwitchBot Robot Vacuum Cleaner S1 Plus</a>
+<ul>
+<li>Supports OpenAPI Connection Only</li>
+</ul>
+</li>
+<li><a href="https://www.switch-bot.com/products/switchbot-plug">SwitchBot Plug</a></li>
+<li><a href="https://www.switch-bot.com/products/switchbot-plug-mini">SwitchBot Plug Mini (US)</a></li>
+<li><a href="https://www.switchbot.jp/products/switchbot-plug-mini">SwitchBot Plug Mini (JP)</a>
+<ul>
+<li>Supports OpenAPI &amp; Bluetooth Low Energy (BLE) Connections</li>
+<li>If using OpenAPI:
+<ul>
+<li><a href="https://www.switch-bot.com/products/switchbot-hub-mini">SwitchBot Hub Mini</a> or <a href="https://us.switch-bot.com/products/switchbot-hub-2">SwitchBot Hub 2</a> Required</li>
+<li>Enable Cloud Services for Device on SwitchBot App</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="https://www.switch-bot.com/products/switchbot-bot">SwitchBot Bot</a>
+<ul>
+<li>Supports OpenAPI &amp; Bluetooth Low Energy (BLE) Connections</li>
+<li>If using OpenAPI:
+<ul>
+<li><a href="https://www.switch-bot.com/products/switchbot-hub-mini">SwitchBot Hub Mini</a> or <a href="https://us.switch-bot.com/products/switchbot-hub-2">SwitchBot Hub 2</a> Required</li>
+<li>Enable Cloud Services for Device on SwitchBot App</li>
+<li>You must set your Bot's Device ID for either Press Mode or Switch Mode in Plugin Config (SwitchBot Device Settings &gt; Bot Settings)
+<ul>
+<li>Press Mode - Turns on then instantly turn it off</li>
+<li>Switch Mode - Turns on and keep it on until it is turned off
+<ul>
+<li>This can get out of sync, since API doesn't give me a status</li>
+<li>To Correct you must go into the SwitchBot App and correct the status of either <code>On</code> or <code>Off</code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>If using Bluetooth Low Energy (BLE) only:
+<ul>
+<li>Must supply <code>deviceId</code> &amp; <code>deviceName</code> to Device Config</li>
+<li>Check <code>Enable Bluetooth Low Energy (BLE) Connection</code> on Device Config</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="https://us.switch-bot.com/products/switchbot-hub-2">SwitchBot Hub 2</a>
+<ul>
+<li>Supports OpenAPI &amp; Bluetooth Low Energy (BLE) Connections
+<ul>
+<li>Enables Humidity, Temperature, and Light Sensor</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="https://us.switch-bot.com/products/switchbot-battery-circulator-fan">SwitchBot Battery Circulator Fan</a>
+<ul>
+<li>Supports OpenAPI Connection Only</li>
+</ul>
+</li>
+<li><a href="https://us.switch-bot.com/products/switchbot-water-leak-detector">SwitchBot Water Leak Detector</a>
+<ul>
+<li>Supports OpenAPI Connection Only</li>
+</ul>
+</li>
+</ul>
+<a id="md:supported-ir-devices" class="tsd-anchor"></a><h2 class="tsd-anchor-link">Supported IR Devices<a href="#md:supported-ir-devices" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><a id="md:all-ir-devices-require-switchbot-hub-2-or-hub-mini" class="tsd-anchor"></a><h3 class="tsd-anchor-link"><em>(All IR Devices require <a href="https://us.switch-bot.com/products/switchbot-hub-2">SwitchBot Hub 2</a> or <a href="https://www.switch-bot.com/products/switchbot-hub-mini">Hub Mini</a>)</em><a href="#md:all-ir-devices-require-switchbot-hub-2-or-hub-mini" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3><ul>
+<li>TV
+<ul>
+<li>Allows for On/Off and Volume Controls</li>
+<li>Optional Disable Sending Power Command</li>
+</ul>
+</li>
+<li>Projector (Displayed as TV)
+<ul>
+<li>Allows for On/Off and Volume Controls</li>
+</ul>
+</li>
+<li>Set Top Box (Displayed as Set Top Box)
+<ul>
+<li>Allows for On/Off and Volume Controls</li>
+</ul>
+</li>
+<li>DVD (Displayed as Set Top Box)
+<ul>
+<li>Allows for On/Off and Volume Controls</li>
+</ul>
+</li>
+<li>Streamer (Displayed as Streaming Stick)
+<ul>
+<li>Allows for On/Off and Volume Controls</li>
+</ul>
+</li>
+<li>Speaker (Displayed as Speaker)
+<ul>
+<li>Allows for On/Off and Volume Controls</li>
+</ul>
+</li>
+<li>Fans
+<ul>
+<li>Allows for On/Off Controls</li>
+<li>Optional Rotation Speed</li>
+<li>Optional Swing Mode</li>
+</ul>
+</li>
+<li>Lights
+<ul>
+<li>Allows for On/Off Controls</li>
+</ul>
+</li>
+<li>Air Purifiers
+<ul>
+<li>Allows for On/Off Controls</li>
+</ul>
+</li>
+<li>Air Conditioners
+<ul>
+<li>Allows for On/Off, Tempeture, and Mode Controls</li>
+<li>Optional Disable Auto Mode</li>
+</ul>
+</li>
+<li>Cameras
+<ul>
+<li>Allows for On/Off Controls</li>
+</ul>
+</li>
+<li>Vacuum Cleaners
+<ul>
+<li>Allows for On/Off Controls</li>
+</ul>
+</li>
+<li>Water Heaters
+<ul>
+<li>Allows for On/Off Controls</li>
+</ul>
+</li>
+<li>Others
+<ul>
+<li>Option to Display as differenet Device Type
+<ul>
+<li>Supports Fan Device Type</li>
+</ul>
+</li>
+<li>Allows for On/Off Controls</li>
+</ul>
+</li>
+</ul>
+<a id="md:switchbot-apis" class="tsd-anchor"></a><h2 class="tsd-anchor-link">SwitchBot APIs<a href="#md:switchbot-apis" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><ul>
+<li><a href="https://github.com/OpenWonderLabs/SwitchBotAPI">OpenWonderLabs/SwitchBotAPI</a></li>
+<li><a href="https://github.com/OpenWonderLabs/SwitchBotAPI-BLE">OpenWonderLabs/SwitchBotAPI-BLE</a>
+<ul>
+<li><a href="https://github.com/OpenWonderLabs/node-switchbot">OpenWonderLabs/node-switchbot</a></li>
+</ul>
+</li>
+</ul>
+<a id="md:community" class="tsd-anchor"></a><h2 class="tsd-anchor-link">Community<a href="#md:community" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><ul>
+<li><a href="https://www.switch-bot.com/">SwitchBot (Official website)</a></li>
+<li><a href="https://www.facebook.com/SwitchBotRobot/">Facebook @SwitchBotRobot</a></li>
+<li><a href="https://twitter.com/switchbot">Twitter @SwitchBot</a></li>
+</ul>
+</div></div><div class="col-sidebar"><div class="page-menu"><div class="tsd-navigation settings"><details class="tsd-accordion"><summary class="tsd-accordion-summary"><h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><use href="assets/icons.svg#icon-chevronDown"></use></svg>Settings</h3></summary><div class="tsd-accordion-details"><div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span><ul id="tsd-filter-options"><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li></ul></div><div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div><details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><use href="assets/icons.svg#icon-chevronDown"></use></svg>On This Page</h3></summary><div class="tsd-accordion-details"><a href="#md:switchbothomebridge-switchbot"><span>@switchbot/homebridge-<wbr/>switchbot</span></a><ul><li><a href="#md:installation"><span>Installation</span></a></li><li><a href="#md:configuration"><span>Configuration</span></a></li><li><ul><li><a href="#md:if-using-openapi-connection"><span>If using <wbr/>OpenAPI <wbr/>Connection</span></a></li><li><a href="#md:if-using-ble-connection"><span>If using BLE <wbr/>Connection</span></a></li></ul></li><li><a href="#md:troubleshooting"><span>Troubleshooting</span></a></li><li><ul><li><a href="#md:if-using-linux--raspberry-pi-os"><span>If using <wbr/>Linux / <wbr/>Raspberry <wbr/>Pi OS</span></a></li></ul></li><li><a href="#md:supported-switchbot-devices"><span>Supported <wbr/>Switch<wbr/>Bot <wbr/>Devices</span></a></li><li><a href="#md:supported-ir-devices"><span>Supported IR <wbr/>Devices</span></a></li><li><ul><li><a href="#md:all-ir-devices-require-switchbot-hub-2-or-hub-mini"><span>(<wbr/>All IR <wbr/>Devices require <wbr/>Switch<wbr/>Bot <wbr/>Hub 2 or <wbr/>Hub <wbr/>Mini)</span></a></li></ul></li><li><a href="#md:switchbot-apis"><span>Switch<wbr/>Bot APIs</span></a></li><li><a href="#md:community"><span>Community</span></a></li></ul></div></details></div><div class="site-menu"><nav class="tsd-navigation"><a href="modules.html" class="current"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="assets/icons.svg#icon-1"></use></svg><span>@switchbot/homebridge-switchbot</span></a><ul class="tsd-small-nested-navigation" id="tsd-nav-container" data-base="."><li>Loading...</li></ul></nav></div></div></div><footer></footer><div class="overlay"></div></body></html>
