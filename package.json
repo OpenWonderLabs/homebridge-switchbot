@@ -26,7 +26,7 @@
   },
   "engineStrict": true,
   "engines": {
-    "homebridge": "^1.8.4 || ^2.0.0-alpha.0",
+    "homebridge": "^1.8.4 || ^2.0.0-beta.0",
     "node": "^18 || ^20 || ^22"
   },
   "main": "dist/index.js",
