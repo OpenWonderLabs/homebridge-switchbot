@@ -164,9 +164,13 @@ export class CeilingLight extends deviceBase {
     this.debugLog('Retrieve initial values and update Homekit');
     this.refreshStatus();
 
-    //regisiter webhook event handler
+    //regisiter webhook event handler if enabled
     this.debugLog('Registering Webhook Event Handler');
     this.registerWebhook();
+
+    //regisiter platform BLE event handler if enabled
+    this.debugLog('Registering Platform BLE Event Handler');
+    this.registerPlatformBLE();
 
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
@@ -275,7 +279,7 @@ export class CeilingLight extends deviceBase {
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       await this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`);
-    } else if (this.BLE || this.config.options?.BLE) {
+    } else if (this.BLE) {
       await this.BLERefreshStatus();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
@@ -287,11 +291,34 @@ export class CeilingLight extends deviceBase {
 
   async BLERefreshStatus(): Promise<void> {
     await this.debugLog('BLERefreshStatus');
+    const switchbot = await this.switchbotBLE();
+    if (switchbot === undefined) {
+      await this.BLERefreshConnection(switchbot);
+    } else {
+      (async () => {
+        // Start to monitor advertisement packets
+        const serviceData = await this.monitorAdvertisementPackets(switchbot) as unknown as ceilingLightServiceData;
+        // Update HomeKit
+        if ((serviceData.model === SwitchBotBLEModel.CeilingLight || SwitchBotBLEModel.CeilingLightPro)
+          && serviceData.modelName === SwitchBotBLEModelName.CeilingLight || SwitchBotBLEModelName.CeilingLightPro) {
+          this.serviceData = serviceData;
+          await this.BLEparseStatus();
+          await this.updateHomeKitCharacteristics();
+        } else {
+          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
+          await this.BLERefreshConnection(switchbot);
+        }
+      })();
+    }
+  }
+
+  async registerPlatformBLE(): Promise<void> {
+    await this.debugLog('registerPlatformBLE');
     if (this.config.options?.BLE) {
       await this.debugLog('is listening to Platform BLE.');
       this.device.bleMac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase();
       await this.debugLog(`bleMac: ${this.device.bleMac}`);
-      this.platform.bleEventHandler[this.device.bleMac] = async (context: ceilingLightServiceData) => {
+      this.platform.bleEventHandler[this.device.bleMac] = async (context: ceilingLightServiceData | ceilingLightProServiceData) => {
         try {
           await this.debugLog(`received BLE: ${JSON.stringify(context)}`);
           this.serviceData = context;
@@ -302,26 +329,7 @@ export class CeilingLight extends deviceBase {
         }
       };
     } else {
-      await this.debugLog('is using Device BLE Scanning.');
-      const switchbot = await this.switchbotBLE();
-      if (switchbot === undefined) {
-        await this.BLERefreshConnection(switchbot);
-      } else {
-        (async () => {
-          // Start to monitor advertisement packets
-          const serviceData = await this.monitorAdvertisementPackets(switchbot) as unknown as ceilingLightServiceData;
-          // Update HomeKit
-          if ((serviceData.model === SwitchBotBLEModel.CeilingLight || SwitchBotBLEModel.CeilingLightPro)
-          && serviceData.modelName === SwitchBotBLEModelName.CeilingLight || SwitchBotBLEModelName.CeilingLightPro) {
-            this.serviceData = serviceData;
-            await this.BLEparseStatus();
-            await this.updateHomeKitCharacteristics();
-          } else {
-            await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
-            await this.BLERefreshConnection(switchbot);
-          }
-        })();
-      }
+      await this.debugLog('is not listening to Platform BLE');
     }
   }
 

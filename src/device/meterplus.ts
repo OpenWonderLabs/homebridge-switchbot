@@ -156,9 +156,13 @@ export class MeterPlus extends deviceBase {
     this.debugLog('Retrieve initial values and update Homekit');
     this.refreshStatus();
 
-    //regisiter webhook event handler
+    //regisiter webhook event handler if enabled
     this.debugLog('Registering Webhook Event Handler');
     this.registerWebhook();
+
+    //regisiter platform BLE event handler if enabled
+    this.debugLog('Registering Platform BLE Event Handler');
+    this.registerPlatformBLE();
 
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
@@ -266,7 +270,7 @@ export class MeterPlus extends deviceBase {
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       await this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`);
-    } else if (this.BLE || this.config.options?.BLE) {
+    } else if (this.BLE) {
       await this.BLERefreshStatus();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
@@ -278,6 +282,29 @@ export class MeterPlus extends deviceBase {
 
   async BLERefreshStatus(): Promise<void> {
     await this.debugLog('BLERefreshStatus');
+    const switchbot = await this.switchbotBLE();
+    if (switchbot === undefined) {
+      await this.BLERefreshConnection(switchbot);
+    } else {
+      // Start to monitor advertisement packets
+      (async () => {
+        // Start to monitor advertisement packets
+        const serviceData = await this.monitorAdvertisementPackets(switchbot) as meterPlusServiceData;
+        // Update HomeKit
+        if (serviceData.model === SwitchBotBLEModel.MeterPlus && serviceData.modelName === SwitchBotBLEModelName.MeterPlus) {
+          this.serviceData = serviceData;
+          await this.BLEparseStatus();
+          await this.updateHomeKitCharacteristics();
+        } else {
+          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
+          await this.BLERefreshConnection(switchbot);
+        }
+      })();
+    }
+  }
+
+  async registerPlatformBLE(): Promise<void> {
+    await this.debugLog('registerPlatformBLE');
     if (this.config.options?.BLE) {
       await this.debugLog('is listening to Platform BLE.');
       this.device.bleMac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase();
@@ -293,26 +320,7 @@ export class MeterPlus extends deviceBase {
         }
       };
     } else {
-      await this.debugLog('is using Device BLE Scanning.');
-      const switchbot = await this.switchbotBLE();
-      if (switchbot === undefined) {
-        await this.BLERefreshConnection(switchbot);
-      } else {
-        // Start to monitor advertisement packets
-        (async () => {
-          // Start to monitor advertisement packets
-          const serviceData = await this.monitorAdvertisementPackets(switchbot) as meterPlusServiceData;
-          // Update HomeKit
-          if (serviceData.model === SwitchBotBLEModel.MeterPlus && serviceData.modelName === SwitchBotBLEModelName.MeterPlus) {
-            this.serviceData = serviceData;
-            await this.BLEparseStatus();
-            await this.updateHomeKitCharacteristics();
-          } else {
-            await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
-            await this.BLERefreshConnection(switchbot);
-          }
-        })();
-      }
+      await this.debugLog('is not listening to Platform BLE');
     }
   }
 

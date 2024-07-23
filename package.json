@@ -81,7 +81,7 @@
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^1.0.3",
     "async-mqtt": "^2.6.3",
-    "fakegato-history": "^0.6.4",
+    "fakegato-history": "^0.6.5",
     "homebridge-lib": "^7.0.4",
     "rxjs": "^7.8.1",
     "undici": "^6.19.4"
@@ -104,6 +104,6 @@
     "ts-node": "^10.9.2",
     "typedoc": "^0.26.5",
     "typescript": "^5.5.4",
-    "typescript-eslint": "^8.0.0-alpha.44"
+    "typescript-eslint": "^8.0.0-alpha.51"
   }
 }

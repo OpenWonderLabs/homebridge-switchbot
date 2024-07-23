@@ -54,6 +54,7 @@ export class Curtain extends deviceBase {
   setNewTargetTimer!: NodeJS.Timeout;
 
   // Updates
+  curtainMoving!: boolean;
   curtainUpdateInProgress!: boolean;
   doCurtainUpdate!: Subject<void>;
 
@@ -68,6 +69,7 @@ export class Curtain extends deviceBase {
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doCurtainUpdate = new Subject();
+    this.curtainMoving = false;
     this.curtainUpdateInProgress = false;
     this.setNewTarget = false;
 
@@ -189,9 +191,13 @@ export class Curtain extends deviceBase {
     this.debugLog('Retrieve initial values and update Homekit');
     this.refreshStatus();
 
-    //regisiter webhook event handler
+    //regisiter webhook event handler if enabled
     this.debugLog('Registering Webhook Event Handler');
     this.registerWebhook();
+
+    //regisiter platform BLE event handler if enabled
+    this.debugLog('Registering Platform BLE Event Handler');
+    this.registerPlatformBLE();
 
     // History
     this.history();
@@ -205,7 +211,7 @@ export class Curtain extends deviceBase {
 
     // update slide progress
     interval(this.deviceUpdateRate * 1000)
-      //.pipe(skipWhile(() => this.curtainUpdateInProgress))
+      .pipe(skipWhile(() => !this.curtainMoving))
       .subscribe(async () => {
         if (this.WindowCovering.PositionState === this.hap.Characteristic.PositionState.STOPPED) {
           return;
@@ -340,6 +346,7 @@ export class Curtain extends deviceBase {
       await this.infoLog('Checking Status ...');
     }
     if (this.setNewTarget && this.deviceStatus.moving) {
+      this.curtainMoving = true;
       await this.setMinMax();
       if (Number(this.WindowCovering.TargetPosition) > this.WindowCovering.CurrentPosition) {
         await this.debugLog(`Closing, CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
@@ -358,6 +365,7 @@ export class Curtain extends deviceBase {
         await this.debugLog(`Stopped, PositionState: ${this.WindowCovering.PositionState}`);
       }
     } else {
+      this.curtainMoving = false;
       await this.debugLog(`Standby, CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
       this.WindowCovering.TargetPosition = this.WindowCovering.CurrentPosition;
       this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.STOPPED;
@@ -425,7 +433,7 @@ export class Curtain extends deviceBase {
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       await this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`);
-    } else if (this.BLE || this.config.options?.BLE) {
+    } else if (this.BLE) {
       await this.BLERefreshStatus();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
@@ -437,42 +445,25 @@ export class Curtain extends deviceBase {
 
   async BLERefreshStatus(): Promise<void> {
     await this.debugLog('BLERefreshStatus');
-    if (this.config.options?.BLE) {
-      await this.debugLog('is listening to Platform BLE.');
-      this.device.bleMac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase();
-      await this.debugLog(`bleMac: ${this.device.bleMac}`);
-      this.platform.bleEventHandler[this.device.bleMac] = async (context: curtainServiceData | curtain3ServiceData) => {
-        try {
-          await this.debugLog(`received BLE: ${JSON.stringify(context)}`);
-          this.serviceData = context;
+    const switchbot = await this.switchbotBLE();
+    if (switchbot === undefined) {
+      await this.BLERefreshConnection(switchbot);
+    } else {
+      // Start to monitor advertisement packets
+      (async () => {
+        // Start to monitor advertisement packets
+        const serviceData = await this.monitorAdvertisementPackets(switchbot) as curtainServiceData | curtain3ServiceData;
+        // Update HomeKit
+        if ((serviceData.model === SwitchBotBLEModel.Curtain || SwitchBotBLEModel.Curtain3)
+          && (serviceData.modelName === SwitchBotBLEModelName.Curtain || SwitchBotBLEModelName.Curtain3)) {
+          this.serviceData = serviceData;
           await this.BLEparseStatus();
           await this.updateHomeKitCharacteristics();
-        } catch (e: any) {
-          await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`);
+        } else {
+          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
+          await this.BLERefreshConnection(switchbot);
         }
-      };
-    } else {
-      await this.debugLog('is using Device BLE Scanning.');
-      const switchbot = await this.switchbotBLE();
-      if (switchbot === undefined) {
-        await this.BLERefreshConnection(switchbot);
-      } else {
-        // Start to monitor advertisement packets
-        (async () => {
-          // Start to monitor advertisement packets
-          const serviceData = await this.monitorAdvertisementPackets(switchbot) as curtainServiceData | curtain3ServiceData;
-          // Update HomeKit
-          if ((serviceData.model === SwitchBotBLEModel.Curtain || SwitchBotBLEModel.Curtain3)
-          && (serviceData.modelName === SwitchBotBLEModelName.Curtain || SwitchBotBLEModelName.Curtain3)) {
-            this.serviceData = serviceData;
-            await this.BLEparseStatus();
-            await this.updateHomeKitCharacteristics();
-          } else {
-            await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
-            await this.BLERefreshConnection(switchbot);
-          }
-        })();
-      }
+      })();
     }
   }
 
@@ -512,6 +503,27 @@ export class Curtain extends deviceBase {
       };
     } else {
       await this.debugLog('is not listening webhook.');
+    }
+  }
+
+  async registerPlatformBLE(): Promise<void> {
+    await this.debugLog('registerPlatformBLE');
+    if (this.config.options?.BLE) {
+      await this.debugLog('is listening to Platform BLE.');
+      this.device.bleMac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase();
+      await this.debugLog(`bleMac: ${this.device.bleMac}`);
+      this.platform.bleEventHandler[this.device.bleMac] = async (context: curtainServiceData | curtain3ServiceData) => {
+        try {
+          await this.debugLog(`received BLE: ${JSON.stringify(context)}`);
+          this.serviceData = context;
+          await this.BLEparseStatus();
+          await this.updateHomeKitCharacteristics();
+        } catch (e: any) {
+          await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`);
+        }
+      };
+    } else {
+      await this.debugLog('is not listening to Platform BLE');
     }
   }
 
@@ -761,6 +773,7 @@ export class Curtain extends deviceBase {
     await this.setMinMax();
     await this.debugLog(`CurrentPosition ${this.WindowCovering.CurrentPosition}`);
     if (this.setNewTarget) {
+      this.curtainMoving = true;
       this.infoLog('Checking Status ...');
       await this.setMinMax();
       if (this.WindowCovering.TargetPosition > this.WindowCovering.CurrentPosition) {
@@ -780,6 +793,7 @@ export class Curtain extends deviceBase {
         await this.debugLog(`Stopped, PositionState: ${this.WindowCovering.PositionState}`);
       }
     } else {
+      this.curtainMoving = false;
       await this.debugLog(`Standby, CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
       this.WindowCovering.TargetPosition = this.WindowCovering.CurrentPosition;
       this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.STOPPED;
