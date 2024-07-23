@@ -26,7 +26,7 @@
   },
   "engineStrict": true,
   "engines": {
-    "homebridge": "^1.8.4 || ^2.0.0-beta.0",
+    "homebridge": "^1.8.4 || ^2.0.0-beta.8",
     "node": "^18 || ^20 || ^22"
   },
   "main": "dist/index.js",
@@ -84,7 +84,7 @@
     "fakegato-history": "^0.6.4",
     "homebridge-lib": "^7.0.4",
     "rxjs": "^7.8.1",
-    "undici": "^6.19.2"
+    "undici": "^6.19.4"
   },
   "optionalDependencies": {
     "node-switchbot": "2.3.0"
@@ -96,14 +96,14 @@
     "@types/node": "^20.14.11",
     "eslint": "^9.7.0",
     "globals": "^15.8.0",
-    "homebridge": "^1.8.4",
+    "homebridge": "^2.0.0-beta.0",
     "homebridge-config-ui-x": "4.56.4",
     "nodemon": "^3.1.4",
     "npm-check-updates": "^16.14.20",
     "rimraf": "^6.0.1",
     "ts-node": "^10.9.2",
     "typedoc": "^0.26.5",
-    "typescript": "^5.5.3",
+    "typescript": "^5.5.4",
     "typescript-eslint": "^8.0.0-alpha.44"
   }
 }
