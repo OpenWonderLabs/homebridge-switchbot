@@ -815,57 +815,54 @@ export class Bot extends deviceBase {
    * Handle requests to set the "On" characteristic
    */
   async OnSet(value: CharacteristicValue): Promise<void> {
-    if (this.botDeviceType === 'switch') {
-      if (this.Switch) {
-        await this.debugLog(`Set On: ${value}`);
-        this.On = value === false ? false : true;
+    if (this.botDeviceType === 'garagedoor') {
+      this.debugLog(`Set TargetDoorState: ${value}`);
+      if (value === this.hap.Characteristic.TargetDoorState.CLOSED) {
+        this.On = false;
+      } else {
+        this.On = true;
       }
-    } else if (this.botDeviceType === 'garagedoor') {
-      if (this.GarageDoor) {
-        await this.debugLog(`Set TargetDoorState: ${value}`);
-        this.On = value === this.hap.Characteristic.TargetDoorState.CLOSED ? false : true;
-      }
-    } else if (this.botDeviceType === 'door') {
-      if (this.Door) {
-        await this.debugLog(`Set TargetPosition: ${value}`);
-        this.On = value === 0 ? false : true;
-      }
-    } else if (this.botDeviceType === 'window') {
-      if (this.Window) {
-        await this.debugLog(`Set TargetPosition: ${value}`);
-        this.On = value === 0 ? false : true;
-      }
-    } else if (this.botDeviceType === 'windowcovering') {
-      if (this.WindowCovering) {
-        await this.debugLog(`Set TargetPosition: ${value}`);
-        this.On = value === 0 ? false : true;
+    } else if (
+      this.botDeviceType === 'door' ||
+      this.botDeviceType === 'window' ||
+      this.botDeviceType === 'windowcovering'
+    ) {
+      this.debugLog(`Set TargetPosition: ${value}`);
+      if (value === 0) {
+        this.On = false;
+      } else {
+        this.On = true;
       }
     } else if (this.botDeviceType === 'lock') {
-      if (this.LockMechanism) {
-        await this.debugLog(`Set LockTargetState: ${value}`);
-        this.On = value === this.hap.Characteristic.LockTargetState.SECURED ? false : true;
+      this.debugLog(`Set LockTargetState: ${value}`);
+      if (value === this.hap.Characteristic.LockTargetState.SECURED) {
+        this.On = false;
+      } else {
+        this.On = true;
       }
     } else if (this.botDeviceType === 'faucet') {
-      if (this.Faucet) {
-        await this.debugLog(`Set Active: ${value}`);
-        this.On = value === this.hap.Characteristic.Active.INACTIVE ? false : true;
+      this.debugLog(`Set Active: ${value}`);
+      if (value === this.hap.Characteristic.Active.INACTIVE) {
+        this.On = false;
+      } else {
+        this.On = true;
       }
     } else if (this.botDeviceType === 'stateful') {
-      if (this.StatefulProgrammableSwitch) {
-        await this.debugLog(`Set ProgrammableSwitchOutputState: ${value}`);
-        this.On = value === 0 ? false : true;
+      this.debugLog(`Set ProgrammableSwitchOutputState: ${value}`);
+      if (value === 0) {
+        this.On = false;
+      } else {
+        this.On = true;
       }
     } else {
-      if (this.Outlet) {
-        await this.debugLog(`Set On: ${value}`);
-        this.On = value === false ? false : true;
+      this.debugLog(`Set On: ${value}`);
+      if (this.device.bot?.mode === 'multipress') {
+        if (value === true) {
+          this.multiPressCount++;
+          this.debugLog(`set to Multi-Press. Multi-Press count: ${this.multiPressCount}`);
+        }
       }
-    }
-    if (this.device.bot?.mode === 'multipress') {
-      if (this.On === true) {
-        this.multiPressCount++;
-        await this.debugLog(`multiPressCount: ${this.multiPressCount}`);
-      }
+      this.On = value as boolean;
     }
     this.doBotUpdate.next();
   }
