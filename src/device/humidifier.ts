@@ -4,6 +4,10 @@
  */
 import { deviceBase } from './device.js';
 import { convertUnits, validHumidity } from '../utils.js';
+/*
+* For Testing Locally:
+* import { SwitchBotBLEModel, SwitchBotBLEModelName } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
+*/
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot';
 import { Subject, debounceTime, interval, skipWhile, take, tap } from 'rxjs';
 
@@ -151,16 +155,28 @@ export class Humidifier extends deviceBase {
     }
 
     // Retrieve initial values and updateHomekit
-    this.debugLog('Retrieve initial values and update Homekit');
-    this.refreshStatus();
+    try {
+      this.debugLog('Retrieve initial values and update Homekit');
+      this.refreshStatus();
+    } catch (e: any) {
+      this.errorLog(`failed to retrieve initial values and update Homekit, Error: ${e}`);
+    }
 
     //regisiter webhook event handler if enabled
-    this.debugLog('Registering Webhook Event Handler');
-    this.registerWebhook();
+    try {
+      this.debugLog('Registering Webhook Event Handler');
+      this.registerWebhook();
+    } catch (e: any) {
+      this.errorLog(`failed to registerWebhook, Error: ${e}`);
+    }
 
     //regisiter platform BLE event handler if enabled
-    this.debugLog('Registering Platform BLE Event Handler');
-    this.registerPlatformBLE();
+    try {
+      this.debugLog('Registering Platform BLE Event Handler');
+      this.registerPlatformBLE();
+    } catch (e: any) {
+      this.errorLog(`failed to registerPlatformBLE, Error: ${e}`);
+    }
 
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)

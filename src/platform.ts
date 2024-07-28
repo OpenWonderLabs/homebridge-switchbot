@@ -51,6 +51,10 @@ import type { blindTilt, curtain, curtain3, device } from './types/devicelist.js
 import type { API, DynamicPlatformPlugin, Logging, PlatformAccessory } from 'homebridge';
 import type { SwitchBotPlatformConfig, devicesConfig, irDevicesConfig } from './settings.js';
 import type { IncomingMessage, Server, ServerResponse } from 'http';
+/*
+* For Testing Locally:
+* import { SwitchBotModel } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
+*/
 import { SwitchBotModel } from 'node-switchbot';
 
 /**
@@ -147,9 +151,21 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     });
 
-    this.setupMqtt();
-    this.setupwebhook();
-    this.setupBlE();
+    try {
+      this.setupMqtt();
+    } catch (e: any) {
+      this.errorLog(`Setup MQTT, Error Message: ${e.message}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug');
+    }
+    try {
+      this.setupwebhook();
+    } catch (e: any) {
+      this.errorLog(`Setup Webhook, Error Message: ${e.message}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug');
+    }
+    try {
+      this.setupBlE();
+    } catch (e: any) {
+      this.errorLog(`Setup Platform BLE, Error Message: ${e.message}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug');
+    }
   }
 
   async setupMqtt(): Promise<void> {
