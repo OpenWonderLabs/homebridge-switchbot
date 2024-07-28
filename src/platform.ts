@@ -2944,29 +2944,33 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
  * @returns string value
  */
   async validateAndCleanDisplayName(displayName: string, name: string, value: string): Promise<string> {
-    const validPattern = /^[a-zA-Z0-9][a-zA-Z0-9 ']*[a-zA-Z0-9]$/;
-    const invalidCharsPattern = /[^a-zA-Z0-9 ']/g;
-    const invalidStartEndPattern = /^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g;
+    if (this.config.options?.allowInvalidCharacter) {
+      return value;
+    } else {
+      const validPattern = /^[a-zA-Z0-9][a-zA-Z0-9 ']*[a-zA-Z0-9]$/;
+      const invalidCharsPattern = /[^a-zA-Z0-9 ']/g;
+      const invalidStartEndPattern = /^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g;
 
-    if (!validPattern.test(value)) {
-      this.warnLog(`WARNING: The accessory '${displayName}' has an invalid '${name}' characteristic ('${value}'). Please use only alphanumeric,`
+      if (!validPattern.test(value)) {
+        this.warnLog(`WARNING: The accessory '${displayName}' has an invalid '${name}' characteristic ('${value}'). Please use only alphanumeric,`
         + ' space, and apostrophe characters. Ensure it starts and ends with an alphabetic or numeric character, and avoid emojis. This may'
         + ' prevent the accessory from being added in the Home App or cause unresponsiveness.');
 
-      // Remove invalid characters
-      if (invalidCharsPattern.test(value)) {
-        this.warnLog(`Removing invalid characters from '${name}' characteristic`);
-        value = value.replace(invalidCharsPattern, '');
+        // Remove invalid characters
+        if (invalidCharsPattern.test(value)) {
+          this.warnLog(`Removing invalid characters from '${name}' characteristic`);
+          value = value.replace(invalidCharsPattern, '');
+        }
+
+        // Ensure it starts and ends with an alphanumeric character
+        if (invalidStartEndPattern.test(value)) {
+          this.warnLog(`Removing invalid starting or ending characters from '${name}' characteristic`);
+          value = value.replace(invalidStartEndPattern, '');
+        }
       }
 
-      // Ensure it starts and ends with an alphanumeric character
-      if (invalidStartEndPattern.test(value)) {
-        this.warnLog(`Removing invalid starting or ending characters from '${name}' characteristic`);
-        value = value.replace(invalidStartEndPattern, '');
-      }
+      return value;
     }
-
-    return value;
   }
 
   /**

@@ -1737,6 +1737,11 @@
                 ]
               }
             ]
+          },
+          "allowInvalidCharacter": {
+            "title": "Allow Invalid Characters",
+            "type": "boolean",
+            "description": "If true, invalid characters will be allowed in the device name."
           }
         },
         "required": [
@@ -1929,7 +1934,8 @@
           "key": "options.pushRate",
           "description": "<em class='primary-text'>Specifies the interval, in seconds, between pushes to the SwitchBot API.</em>"
         },
-        "options.logging"
+        "options.logging",
+        "options.allowInvalidCharacter"
       ]
     }
   ]

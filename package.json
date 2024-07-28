@@ -26,7 +26,7 @@
   },
   "engineStrict": true,
   "engines": {
-    "homebridge": "^1.8.4 || ^2.0.0-beta.8",
+    "homebridge": "^1.8.4 || ^2.0.0 || ^2.0.0-beta.8",
     "node": "^18 || ^20 || ^22"
   },
   "main": "dist/index.js",
@@ -36,10 +36,10 @@
     "lint": "eslint src/**/*.ts",
     "watch": "npm run build && npm run plugin-ui && npm link && nodemon",
     "plugin-ui": "rsync ./src/homebridge-ui/public/index.html ./dist/homebridge-ui/public/",
-    "build": "rimraf ./dist && tsc",
+    "build": "npm run clean && tsc && npm run plugin-ui",
     "prepublishOnly": "npm run lint && npm run build && npm run plugin-ui ",
     "postpublish": "npm run clean",
-    "clean": "rimraf ./dist",
+    "clean": "shx rm -rf ./dist",
     "test": "npm run lint",
     "docs": "typedoc",
     "lint-docs": "typedoc --emit none --treatWarningsAsErrors"
@@ -100,7 +100,7 @@
     "homebridge-config-ui-x": "4.56.4",
     "nodemon": "^3.1.4",
     "npm-check-updates": "^16.14.20",
-    "rimraf": "^6.0.1",
+    "shx": "^0.3.4",
     "ts-node": "^10.9.2",
     "typedoc": "^0.26.5",
     "typescript": "^5.5.4",
