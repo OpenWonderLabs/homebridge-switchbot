@@ -2958,14 +2958,20 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
         // Remove invalid characters
         if (invalidCharsPattern.test(value)) {
-          this.warnLog(`Removing invalid characters from '${name}' characteristic`);
+          const before = value;
+          this.warnLog(`Removing invalid characters from '${name}' characteristic, if you feel this is incorrect,`
+            + ' please enable \'allowInvalidCharacter\' in the config to allow all characters');
           value = value.replace(invalidCharsPattern, '');
+          this.warnLog(`${name} Before: '${before}' After: '${value}'`);
         }
 
         // Ensure it starts and ends with an alphanumeric character
         if (invalidStartEndPattern.test(value)) {
-          this.warnLog(`Removing invalid starting or ending characters from '${name}' characteristic`);
+          const before = value;
+          this.warnLog(`Removing invalid starting or ending characters from '${name}' characteristic, if you feel this is incorrect,`
+            + ' please enable \'allowInvalidCharacter\' in the config to allow all characters');
           value = value.replace(invalidStartEndPattern, '');
+          this.warnLog(`${name} Before: '${before}' After: '${value}'`);
         }
       }
 

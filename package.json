@@ -93,7 +93,7 @@
     "@eslint/js": "^9.8.0",
     "@stylistic/eslint-plugin": "^2.4.0",
     "@types/eslint__js": "^8.42.3",
-    "@types/node": "^20.14.12",
+    "@types/node": "^22.0.0",
     "eslint": "^9.8.0",
     "globals": "^15.8.0",
     "homebridge": "^2.0.0-beta.0",
