@@ -2947,14 +2947,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     if (this.config.options?.allowInvalidCharacter) {
       return value;
     } else {
-      const validPattern = /^[a-zA-Z0-9][a-zA-Z0-9 ']*[a-zA-Z0-9]$/;
-      const invalidCharsPattern = /[^a-zA-Z0-9 ']/g;
-      const invalidStartEndPattern = /^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g;
+      const validPattern = new RegExp(/^[\p{L}\p{N}][\p{L}\p{N} ']*[\p{L}\p{N}]$/u);
+      const invalidCharsPattern = /[^\p{L}\p{N} ']/gu;
+      const invalidStartEndPattern = /^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu;
 
-      if (!validPattern.test(value)) {
+      if (typeof value === 'string' && !validPattern.test(value)) {
         this.warnLog(`WARNING: The accessory '${displayName}' has an invalid '${name}' characteristic ('${value}'). Please use only alphanumeric,`
-        + ' space, and apostrophe characters. Ensure it starts and ends with an alphabetic or numeric character, and avoid emojis. This may'
-        + ' prevent the accessory from being added in the Home App or cause unresponsiveness.');
+          + ' space, and apostrophe characters. Ensure it starts and ends with an alphabetic or numeric character, and avoid emojis. This may'
+          + ' prevent the accessory from being added in the Home App or cause unresponsiveness.');
 
         // Remove invalid characters
         if (invalidCharsPattern.test(value)) {
