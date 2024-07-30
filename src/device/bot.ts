@@ -1044,7 +1044,7 @@ export class Bot extends deviceBase {
       Service: accessory.getService(this.hap.Service.Outlet) as Service,
     };
     accessory.context.Outlet = this.Outlet as object;
-    await this.warnLog('Removing any leftover Outlet Service');
+    await this.debugWarnLog('Removing any leftover Outlet Service');
     accessory.removeService(this.Outlet.Service);
   }
 
@@ -1056,7 +1056,7 @@ export class Bot extends deviceBase {
       Service: accessory.getService(this.hap.Service.GarageDoorOpener) as Service,
     };
     accessory.context.GarageDoor = this.GarageDoor as object;
-    await this.warnLog('Removing any leftover Garage Door Service');
+    await this.debugWarnLog('Removing any leftover Garage Door Service');
     accessory.removeService(this.GarageDoor.Service);
   }
 
@@ -1068,7 +1068,7 @@ export class Bot extends deviceBase {
       Service: accessory.getService(this.hap.Service.Door) as Service,
     };
     accessory.context.Door = this.Door as object;
-    await this.warnLog('Removing any leftover Door Service');
+    await this.debugWarnLog('Removing any leftover Door Service');
     accessory.removeService(this.Door.Service);
   }
 
@@ -1080,7 +1080,7 @@ export class Bot extends deviceBase {
       Service: accessory.getService(this.hap.Service.LockMechanism) as Service,
     };
     accessory.context.LockMechanism = this.LockMechanism as object;
-    this.warnLog('Removing any leftover Lock Service');
+    await this.debugWarnLog('Removing any leftover Lock Service');
     accessory.removeService(this.LockMechanism.Service);
   }
 
@@ -1092,7 +1092,7 @@ export class Bot extends deviceBase {
       Service: accessory.getService(this.hap.Service.Valve) as Service,
     };
     accessory.context.Faucet = this.Faucet as object;
-    await this.warnLog('Removing any leftover Faucet Service');
+    await this.debugWarnLog('Removing any leftover Faucet Service');
     accessory.removeService(this.Faucet.Service);
   }
 
@@ -1104,7 +1104,7 @@ export class Bot extends deviceBase {
       Service: accessory.getService(this.hap.Service.Fan) as Service,
     };
     accessory.context.Fan = this.Fan as object;
-    this.warnLog('Removing any leftover Fan Service');
+    await this.debugWarnLog('Removing any leftover Fan Service');
     accessory.removeService(this.Fan.Service);
   }
 
@@ -1116,7 +1116,7 @@ export class Bot extends deviceBase {
       Service: accessory.getService(this.hap.Service.Window) as Service,
     };
     accessory.context.Window = this.Window as object;
-    await this.warnLog('Removing any leftover Window Service');
+    await this.debugWarnLog('Removing any leftover Window Service');
     accessory.removeService(this.Window.Service);
   }
 
@@ -1128,7 +1128,7 @@ export class Bot extends deviceBase {
       Service: accessory.getService(this.hap.Service.WindowCovering) as Service,
     };
     accessory.context.WindowCovering = this.WindowCovering as object;
-    await this.warnLog('Removing any leftover Window Covering Service');
+    await this.debugWarnLog('Removing any leftover Window Covering Service');
     accessory.removeService(this.WindowCovering.Service);
   }
 
@@ -1140,7 +1140,7 @@ export class Bot extends deviceBase {
       Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch) as Service,
     };
     accessory.context.StatefulProgrammableSwitch = this.StatefulProgrammableSwitch as object;
-    await this.warnLog('Removing any leftover Stateful Programmable Switch Service');
+    await this.debugWarnLog('Removing any leftover Stateful Programmable Switch Service');
     accessory.removeService(this.StatefulProgrammableSwitch.Service);
   }
 
@@ -1152,7 +1152,7 @@ export class Bot extends deviceBase {
       Service: accessory.getService(this.hap.Service.Switch) as Service,
     };
     accessory.context.Switch = this.Switch as object;
-    await this.warnLog('Removing any leftover Switch Service');
+    await this.debugWarnLog('Removing any leftover Switch Service');
     accessory.removeService(this.Switch.Service);
   }
 

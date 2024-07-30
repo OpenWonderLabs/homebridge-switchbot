@@ -58,7 +58,7 @@ interface credentials {
 interface options {
   devices?: devicesConfig[];
   irdevices?: irDevicesConfig[];
-  allowInvalidCharacter?: boolean;
+  allowInvalidCharacters?: boolean;
   mqttURL?: string;
   mqttOptions?: IClientOptions;
   mqttPubOptions?: IClientOptions;

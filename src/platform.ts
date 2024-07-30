@@ -2938,13 +2938,13 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
   /**
    * Validate and clean a string value for a Name Characteristic.
- * @param displayName
- * @param name
- * @param value
- * @returns string value
- */
+   * @param displayName - The display name of the accessory.
+   * @param name - The name of the characteristic.
+   * @param value - The value to be validated and cleaned.
+   * @returns The cleaned string value.
+  */
   async validateAndCleanDisplayName(displayName: string, name: string, value: string): Promise<string> {
-    if (this.config.options?.allowInvalidCharacter) {
+    if (this.config.options?.allowInvalidCharacters) {
       return value;
     } else {
       const validPattern = new RegExp(/^[\p{L}\p{N}][\p{L}\p{N} ']*[\p{L}\p{N}]$/u);
