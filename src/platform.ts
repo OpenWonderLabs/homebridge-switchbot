@@ -370,7 +370,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
    * It should be used to setup event handlers for characteristics and update respective values.
    */
   async configureAccessory(accessory: PlatformAccessory) {
-    await this.debugLog(`Loading accessory from cache: ${accessory.displayName}`);
+    const { displayName } = accessory;
+    await this.debugLog(`Loading accessory from cache: ${displayName}`);
 
     // add the restored accessory to the accessories cache so we can track if it has already been registered
     this.accessories.push(accessory);
@@ -551,152 +552,47 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     };
   };
 
-  /**
-   * this method discovers devices
-   *
-      const t = `${Date.now()}`;
-      const nonce = 'requestID';
-      const data = this.config.credentials?.token + t + nonce;
-      const signTerm = crypto.createHmac('sha256', this.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
-      const sign = signTerm.toString('base64');
-   */
   async discoverDevices() {
-    if (this.config.credentials?.token) {
-      let retryCount = 0;
-      const maxRetries = this.maxRetries; // Maximum number of retries
-      const delayBetweenRetries = this.delayBetweenRetries; // Delay between retries in milliseconds
-      await this.debugWarnLog(`Retry Count: ${retryCount}`);
-      await this.debugWarnLog(`Max Retries: ${maxRetries}`);
-      await this.debugWarnLog(`Delay Between Retries: ${delayBetweenRetries}`);
-      while (retryCount < maxRetries) {
-        try {
-          const { body, statusCode } = await request(Devices, {
-            headers: this.generateHeaders(),
-          });
-          await this.debugWarnLog(`statusCode: ${statusCode}`);
-          const devicesAPI: any = await body.json();
-          await this.debugWarnLog(`devicesAPI: ${JSON.stringify(devicesAPI)}`);
-          await this.debugWarnLog(`devicesAPI Body: ${JSON.stringify(devicesAPI.body)}`);
-          await this.debugWarnLog(`devicesAPI StatusCode: ${devicesAPI.statusCode}`);
-          if ((statusCode === 200 || statusCode === 100) && (devicesAPI.statusCode === 200 || devicesAPI.statusCode === 100)) {
-            await this.debugErrorLog(`statusCode: ${statusCode} & devicesAPI StatusCode: ${devicesAPI.statusCode}`);
-            // SwitchBot Devices
-            const deviceLists = devicesAPI.body.deviceList;
-            await this.debugWarnLog(`DeviceLists: ${JSON.stringify(deviceLists)}`);
-            await this.debugWarnLog(`DeviceLists Length: ${deviceLists.length}`);
-            if (!this.config.options?.devices) {
-              await this.debugLog(`SwitchBot Device Config Not Set: ${JSON.stringify(this.config.options?.devices)}`);
-              if (deviceLists.length === 0) {
-                await this.debugLog(`SwitchBot API Has No Devices With Cloud Services Enabled: ${JSON.stringify(devicesAPI.body)}`);
-              } else {
-                const devices = deviceLists.map((v: any) => v);
-                for (const device of devices) {
-                  if (device.deviceType) {
-                    if (device.configDeviceName) {
-                      device.deviceName = device.configDeviceName;
-                    }
-                    await this.createDevice(device);
-                  }
-                }
-              }
-            } else if (this.config.credentials?.token && this.config.options.devices) {
-              await this.debugLog(`SwitchBot Device Config Set: ${JSON.stringify(this.config.options?.devices)}`);
-              if (deviceLists.length === 0) {
-                await this.debugLog(`SwitchBot API Has No Devices With Cloud Services Enabled: ${JSON.stringify(devicesAPI.body)}`);
-              } else {
-                const deviceConfigs = this.config.options?.devices;
+    if (!this.config.credentials?.token) {
+      return this.handleManualConfig();
+    }
 
-                const mergeBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
-                  a1.map((itm: { deviceId: string }) => ({
-                    ...a2.find(
-                      (item: { deviceId: string }) =>
-                        item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
-                    ),
-                    ...itm,
-                  }));
+    let retryCount = 0;
+    const maxRetries = this.maxRetries;
+    const delayBetweenRetries = this.delayBetweenRetries;
 
-                const devices = mergeBydeviceId(deviceLists, deviceConfigs);
-                await this.debugLog(`SwitchBot Devices: ${JSON.stringify(devices)}`);
-                for (const device of devices) {
-                  if (!device.deviceType && device.configDeviceType) {
-                    device.deviceType = device.configDeviceType;
-                    await this.warnLog(`API is displaying no deviceType: ${device.deviceType}, So using`
-                      + ` configDeviceType: ${device.configDeviceType}`);
-                  } else if (!device.deviceType && !device.configDeviceName) {
-                    await this.errorLog('No deviceType or configDeviceType for device. No device will be created.');
-                  }
-                  if (device.deviceType) {
-                    if (device.configDeviceName) {
-                      device.deviceName = device.configDeviceName;
-                    }
-                    await this.createDevice(device);
-                  }
-                }
-              }
-            } else {
-              await this.errorLog('SwitchBot Token Supplied, Issue with Auth.');
-            }
-            if (devicesAPI.body.deviceList.length !== 0) {
-              await this.infoLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
-            } else {
-              await this.debugLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
-            }
+    await this.debugWarnLog(`Retry Count: ${retryCount}`);
+    await this.debugWarnLog(`Max Retries: ${maxRetries}`);
+    await this.debugWarnLog(`Delay Between Retries: ${delayBetweenRetries}`);
 
-            // IR Devices
-            const irDeviceLists = devicesAPI.body.infraredRemoteList;
-            if (!this.config.options?.irdevices) {
-              await this.debugLog(`IR Device Config Not Set: ${JSON.stringify(this.config.options?.irdevices)}`);
-              const devices = irDeviceLists.map((v: any) => v);
-              for (const device of devices) {
-                if (device.remoteType) {
-                  await this.createIRDevice(device);
-                }
-              }
-            } else {
-              await this.debugLog(`IR Device Config Set: ${JSON.stringify(this.config.options?.irdevices)}`);
-              const irDeviceConfig = this.config.options?.irdevices;
+    while (retryCount < maxRetries) {
+      try {
+        const { body, statusCode } = await request(Devices, { headers: this.generateHeaders() });
+        await this.debugWarnLog(`statusCode: ${statusCode}`);
+        const devicesAPI: any = await body.json();
+        await this.debugWarnLog(`devicesAPI: ${JSON.stringify(devicesAPI)}`);
 
-              const mergeIRBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
-                a1.map((itm: { deviceId: string }) => ({
-                  ...a2.find(
-                    (item: { deviceId: string }) =>
-                      item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
-                  ),
-                  ...itm,
-                }));
-
-              const devices = mergeIRBydeviceId(irDeviceLists, irDeviceConfig);
-              await this.debugLog(`IR Devices: ${JSON.stringify(devices)}`);
-              for (const device of devices) {
-                await this.createIRDevice(device);
-              }
-            }
-            if (devicesAPI.body.infraredRemoteList.length !== 0) {
-              await this.infoLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
-            } else {
-              await this.debugLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
-            }
-            break;
-          } else {
-            await this.statusCode(statusCode);
-            await this.statusCode(devicesAPI.statusCode);
-            if (statusCode === 500) {
-              retryCount++;
-              this.infoLog(`statusCode: ${statusCode} Attempt ${retryCount} of ${maxRetries}`);
-              await sleep(delayBetweenRetries);
-            }
-          }
-        } catch (e: any) {
+        if (this.isSuccessfulResponse(statusCode, devicesAPI.statusCode)) {
+          await this.handleDevices(devicesAPI.body.deviceList);
+          await this.handleIRDevices(devicesAPI.body.infraredRemoteList);
+          break;
+        } else {
+          await this.handleErrorResponse(statusCode, devicesAPI.statusCode, retryCount, maxRetries, delayBetweenRetries);
           retryCount++;
-          await this.debugErrorLog(`Failed to Discover Devices, Error Message: ${JSON.stringify(e.message)},`
-          + ' Submit Bugs Here: https://tinyurl.com/SwitchBotBug');
-          await this.debugErrorLog(`Failed to Discover Devices, Error: ${e}`);
         }
+      } catch (e: any) {
+        retryCount++;
+        await this.debugErrorLog(`Failed to Discover Devices, Error Message: ${JSON.stringify(e.message)},`
+        + ' Submit Bugs Here: https://tinyurl.com/SwitchBotBug');
+        await this.debugErrorLog(`Failed to Discover Devices, Error: ${e}`);
       }
-    } else if (!this.config.credentials?.token && this.config.options?.devices) {
+    }
+  }
+
+  private async handleManualConfig() {
+    if (this.config.options?.devices) {
       await this.debugLog(`SwitchBot Device Manual Config Set: ${JSON.stringify(this.config.options?.devices)}`);
-      const deviceConfigs = this.config.options?.devices;
-      const devices = deviceConfigs.map((v: any) => v);
+      const devices = this.config.options.devices.map((v: any) => v);
       for (const device of devices) {
         device.deviceType = device.configDeviceType;
         device.deviceName = device.configDeviceName;
@@ -705,7 +601,82 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         }
       }
     } else {
-      await this.errorLog('Neither SwitchBot Token or Device Config are not set.');
+      await this.errorLog('Neither SwitchBot Token or Device Config are set.');
+    }
+  }
+
+  private isSuccessfulResponse(statusCode: number, apiStatusCode: number): boolean {
+    return (statusCode === 200 || statusCode === 100) && (apiStatusCode === 200 || apiStatusCode === 100);
+  }
+
+  private async handleDevices(deviceLists: any[]) {
+    if (!this.config.options?.devices) {
+      await this.debugLog(`SwitchBot Device Config Not Set: ${JSON.stringify(this.config.options?.devices)}`);
+      if (deviceLists.length === 0) {
+        await this.debugLog('SwitchBot API Has No Devices With Cloud Services Enabled');
+      } else {
+        for (const device of deviceLists) {
+          if (device.deviceType) {
+            if (device.configDeviceName) {
+              device.deviceName = device.configDeviceName;
+            }
+            await this.createDevice(device);
+          }
+        }
+      }
+    } else {
+      await this.debugLog(`SwitchBot Device Config Set: ${JSON.stringify(this.config.options?.devices)}`);
+      const devices = this.mergeByDeviceId(deviceLists, this.config.options.devices);
+      await this.debugLog(`SwitchBot Devices: ${JSON.stringify(devices)}`);
+      for (const device of devices) {
+        if (!device.deviceType && device.configDeviceType) {
+          device.deviceType = device.configDeviceType;
+          await this.warnLog(`API is displaying no deviceType: ${device.deviceType}, So using configDeviceType: ${device.configDeviceType}`);
+        } else if (!device.deviceType && !device.configDeviceName) {
+          await this.errorLog('No deviceType or configDeviceType for device. No device will be created.');
+        }
+        if (device.deviceType) {
+          if (device.configDeviceName) {
+            device.deviceName = device.configDeviceName;
+          }
+          await this.createDevice(device);
+        }
+      }
+    }
+  }
+
+  private async handleIRDevices(irDeviceLists: any[]) {
+    if (!this.config.options?.irdevices) {
+      await this.debugLog(`IR Device Config Not Set: ${JSON.stringify(this.config.options?.irdevices)}`);
+      for (const device of irDeviceLists) {
+        if (device.remoteType) {
+          await this.createIRDevice(device);
+        }
+      }
+    } else {
+      await this.debugLog(`IR Device Config Set: ${JSON.stringify(this.config.options?.irdevices)}`);
+      const devices = this.mergeByDeviceId(irDeviceLists, this.config.options.irdevices);
+      await this.debugLog(`IR Devices: ${JSON.stringify(devices)}`);
+      for (const device of devices) {
+        await this.createIRDevice(device);
+      }
+    }
+  }
+
+  private mergeByDeviceId(a1: { deviceId: string }[], a2: any[]) {
+    const normalizeDeviceId = (deviceId: string) => deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '');
+    return a1.map(itm => {
+      const matchingItem = a2.find(item => normalizeDeviceId(item.deviceId) === normalizeDeviceId(itm.deviceId));
+      return { ...matchingItem, ...itm };
+    });
+  }
+
+  private async handleErrorResponse(statusCode: number, apiStatusCode: number, retryCount: number, maxRetries: number, delayBetweenRetries: number) {
+    await this.statusCode(statusCode);
+    await this.statusCode(apiStatusCode);
+    if (statusCode === 500) {
+      this.infoLog(`statusCode: ${statusCode} Attempt ${retryCount + 1} of ${maxRetries}`);
+      await sleep(delayBetweenRetries);
     }
   }
 
