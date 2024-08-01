@@ -55,7 +55,6 @@ import type { IncomingMessage, Server, ServerResponse } from 'http';
 * For Testing Locally:
 * import { SwitchBotModel } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
 */
-import type { SwitchBot} from 'node-switchbot';
 import { SwitchBotModel } from 'node-switchbot';
 
 /**
@@ -2692,7 +2691,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   // BLE Connection
-  async connectBLE(accessory: PlatformAccessory, device: device & devicesConfig): Promise<SwitchBot | boolean> {
+  async connectBLE(accessory: PlatformAccessory, device: device & devicesConfig): Promise<any> {
     try {
       const { SwitchBot } = await import('node-switchbot');
       const switchbot = new SwitchBot();
