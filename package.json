@@ -91,19 +91,21 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.8.0",
-    "@stylistic/eslint-plugin": "^2.4.0",
+    "@stylistic/eslint-plugin": "^2.6.1",
     "@types/eslint__js": "^8.42.3",
-    "@types/node": "^22.0.0",
+    "@types/jest": "^29.5.12",
+    "@types/node": "^22.1.0",
     "eslint": "^9.8.0",
-    "globals": "^15.8.0",
+    "globals": "^15.9.0",
+    "jest": "^29.7.0",
     "homebridge": "^1.8.4",
     "homebridge-config-ui-x": "4.56.4",
     "nodemon": "^3.1.4",
-    "npm-check-updates": "^16.14.20",
+    "npm-check-updates": "^17.0.3",
     "shx": "^0.3.4",
     "ts-node": "^10.9.2",
     "typedoc": "^0.26.5",
     "typescript": "^5.5.4",
-    "typescript-eslint": "^8.0.0-alpha.60"
+    "typescript-eslint": "^8.0.1"
   }
 }
