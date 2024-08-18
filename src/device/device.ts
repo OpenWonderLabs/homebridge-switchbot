@@ -163,115 +163,45 @@ export abstract class deviceBase {
   }
 
   async getDeviceConfigSettings(device: device & devicesConfig): Promise<void> {
-    const deviceConfig = {};
-    if (device.logging !== 'standard') {
-      deviceConfig['logging'] = device.logging;
-    }
-    if (device.refreshRate !== 0) {
-      deviceConfig['refreshRate'] = device.refreshRate;
-    }
-    if (device.updateRate !== 0) {
-      deviceConfig['updateRate'] = device.updateRate;
-    }
-    if (device.scanDuration !== 0) {
-      deviceConfig['scanDuration'] = device.scanDuration;
-    }
-    if (device.offline === true) {
-      deviceConfig['offline'] = device.offline;
-    }
-    if (device.maxRetry !== 0) {
-      deviceConfig['maxRetry'] = device.maxRetry;
-    }
-    if (device.webhook === true) {
-      deviceConfig['webhook'] = device.webhook;
-    }
-    if (device.connectionType !== '') {
-      deviceConfig['connectionType'] = device.connectionType;
-    }
-    if (device.external === true) {
-      deviceConfig['external'] = device.external;
-    }
-    if (device.mqttURL !== '') {
-      deviceConfig['mqttURL'] = device.mqttURL;
-    }
-    if (device.mqttOptions) {
-      deviceConfig['mqttOptions'] = device.mqttOptions;
-    }
-    if (device.mqttPubOptions) {
-      deviceConfig['mqttPubOptions'] = device.mqttPubOptions;
-    }
-    if (device.maxRetries !== 0) {
-      deviceConfig['maxRetries'] = device.maxRetries;
-    }
-    if (device.delayBetweenRetries !== 0) {
-      deviceConfig['delayBetweenRetries'] = device.delayBetweenRetries;
-    }
-    let botConfig = {};
-    if (device.bot) {
-      botConfig = device.bot;
-    }
-    let lockConfig = {};
-    if (device.lock) {
-      lockConfig = device.lock;
-    }
-    let ceilinglightConfig = {};
-    if (device.ceilinglight) {
-      ceilinglightConfig = device.ceilinglight;
-    }
-    let colorbulbConfig = {};
-    if (device.colorbulb) {
-      colorbulbConfig = device.colorbulb;
-    }
-    let contactConfig = {};
-    if (device.contact) {
-      contactConfig = device.contact;
-    }
-    let motionConfig = {};
-    if (device.motion) {
-      motionConfig = device.motion;
-    }
-    let curtainConfig = {};
-    if (device.curtain) {
-      curtainConfig = device.curtain;
-    }
-    let hubConfig = {};
-    if (device.hub) {
-      hubConfig = device.hub;
-    }
-    let waterdetectorConfig = {};
-    if (device.waterdetector) {
-      waterdetectorConfig = device.waterdetector;
-    }
-    let humidifierConfig = {};
-    if (device.humidifier) {
-      humidifierConfig = device.humidifier;
-    }
-    let meterConfig = {};
-    if (device.meter) {
-      meterConfig = device.meter;
-    }
-    let iosensorConfig = {};
-    if (device.iosensor) {
-      iosensorConfig = device.iosensor;
-    }
-    let striplightConfig = {};
-    if (device.striplight) {
-      striplightConfig = device.striplight;
-    }
-    let plugConfig = {};
-    if (device.plug) {
-      plugConfig = device.plug;
-    }
-    let blindTiltConfig = {};
-    if (device.blindTilt) {
-      if (device.blindTilt?.mode === undefined) {
-        blindTiltConfig['mode'] = BlindTiltMappingMode.OnlyUp;
-      }
-      blindTiltConfig = device.blindTilt;
-    }
-    const config = Object.assign({}, deviceConfig, botConfig, curtainConfig, waterdetectorConfig, striplightConfig, plugConfig, iosensorConfig,
-      meterConfig, humidifierConfig, hubConfig, lockConfig, ceilinglightConfig, colorbulbConfig, contactConfig, motionConfig, blindTiltConfig);
-    if (Object.entries(config).length !== 0) {
+    const deviceConfig = Object.assign(
+      {},
+      device.logging !== 'standard' && { logging: device.logging },
+      device.refreshRate !== 0 && { refreshRate: device.refreshRate },
+      device.updateRate !== 0 && { updateRate: device.updateRate },
+      device.scanDuration !== 0 && { scanDuration: device.scanDuration },
+      device.offline === true && { offline: device.offline },
+      device.maxRetry !== 0 && { maxRetry: device.maxRetry },
+      device.webhook === true && { webhook: device.webhook },
+      device.connectionType !== '' && { connectionType: device.connectionType },
+      device.external === true && { external: device.external },
+      device.mqttURL !== '' && { mqttURL: device.mqttURL },
+      device.mqttOptions && { mqttOptions: device.mqttOptions },
+      device.mqttPubOptions && { mqttPubOptions: device.mqttPubOptions },
+      device.maxRetries !== 0 && { maxRetries: device.maxRetries },
+      device.delayBetweenRetries !== 0 && { delayBetweenRetries: device.delayBetweenRetries },
+    );
+    const config = Object.assign(
+      {},
+      deviceConfig,
+      device.bot,
+      device.lock,
+      device.ceilinglight,
+      device.colorbulb,
+      device.contact,
+      device.motion,
+      device.curtain,
+      device.hub,
+      device.waterdetector,
+      device.humidifier,
+      device.meter,
+      device.iosensor,
+      device.striplight,
+      device.plug,
+      device.blindTilt?.mode === undefined ? { mode: BlindTiltMappingMode.OnlyUp } : {},
+      device.blindTilt,
+    );
+
+    if (Object.keys(config).length !== 0) {
       this.debugSuccessLog(`Config: ${JSON.stringify(config)}`);
     }
   }
@@ -450,224 +380,225 @@ export abstract class deviceBase {
   }
 
   async getDeviceContext(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
-    // Set the accessory context
-    switch (device.deviceType) {
-      case 'Humidifier':
-        device.model = SwitchBotModel.Humidifier;
-        device.bleModel = SwitchBotBLEModel.Humidifier;
-        device.bleModelName = SwitchBotBLEModelName.Humidifier;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Humidifier;
-        break;
-      case 'Hub Mini':
-        device.model = SwitchBotModel.HubMini;
-        device.bleModel = SwitchBotBLEModel.Unknown;
-        device.bleModelName = SwitchBotBLEModelName.Unknown;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Unknown;
-        break;
-      case 'Hub Plus':
-        device.model = SwitchBotModel.HubPlus;
-        device.bleModel = SwitchBotBLEModel.Unknown;
-        device.bleModelName = SwitchBotBLEModelName.Unknown;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Unknown;
-        break;
-      case 'Hub 2':
-        device.model = SwitchBotModel.Hub2;
-        device.bleModel = SwitchBotBLEModel.Hub2;
-        device.bleModelName = SwitchBotBLEModelName.Hub2;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Hub2;
-        break;
-      case 'Bot':
-        device.model = SwitchBotModel.Bot;
-        device.bleModel = SwitchBotBLEModel.Bot;
-        device.bleModelName = SwitchBotBLEModelName.Bot;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Bot;
-        break;
-      case 'Meter':
-        device.model = SwitchBotModel.Meter;
-        device.bleModel = SwitchBotBLEModel.Meter;
-        device.bleModelName = SwitchBotBLEModelName.Meter;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Meter;
-        break;
-      case 'MeterPlus':
-        device.model = SwitchBotModel.MeterPlusUS;
-        device.bleModel = SwitchBotBLEModel.MeterPlus;
-        device.bleModelName = SwitchBotBLEModelName.MeterPlus;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.MeterPlus;
-        break;
-      case 'Meter Plus (JP)':
-        device.model = SwitchBotModel.MeterPlusJP;
-        device.bleModel = SwitchBotBLEModel.MeterPlus;
-        device.bleModelName = SwitchBotBLEModelName.MeterPlus;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.MeterPlus;
-        break;
-      case 'WoIOSensor':
-        device.model = SwitchBotModel.OutdoorMeter;
-        device.bleModel = SwitchBotBLEModel.OutdoorMeter;
-        device.bleModelName = SwitchBotBLEModelName.OutdoorMeter;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.OutdoorMeter;
-        break;
-      case 'Water Detector':
-        device.model = SwitchBotModel.WaterDetector;
-        device.bleModel = SwitchBotBLEModel.Unknown;
-        device.bleModelName = SwitchBotBLEModelName.Unknown;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Unknown;
-        break;
-      case 'Motion Sensor':
-        device.model = SwitchBotModel.MotionSensor;
-        device.bleModel = SwitchBotBLEModel.MotionSensor;
-        device.bleModelName = SwitchBotBLEModelName.MotionSensor;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.MotionSensor;
-        break;
-      case 'Contact Sensor':
-        device.model = SwitchBotModel.ContactSensor;
-        device.bleModel = SwitchBotBLEModel.ContactSensor;
-        device.bleModelName = SwitchBotBLEModelName.ContactSensor;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.ContactSensor;
-        break;
-      case 'Curtain':
-        device.model = SwitchBotModel.Curtain;
-        device.bleModel = SwitchBotBLEModel.Curtain;
-        device.bleModelName = SwitchBotBLEModelName.Curtain;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Curtain;
-        break;
-      case 'Curtain3':
-        device.model = SwitchBotModel.Curtain3;
-        device.bleModel = SwitchBotBLEModel.Curtain3;
-        device.bleModelName = SwitchBotBLEModelName.Curtain3;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Curtain3;
-        break;
-      case 'Blind Tilt':
-        device.model = SwitchBotModel.BlindTilt;
-        device.bleModel = SwitchBotBLEModel.BlindTilt;
-        device.bleModelName = SwitchBotBLEModelName.BlindTilt;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.BlindTilt;
-        break;
-      case 'Plug':
-        device.model = SwitchBotModel.Plug;
-        device.bleModel = SwitchBotBLEModel.PlugMiniUS;
-        device.bleModelName = SwitchBotBLEModelName.PlugMini;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.PlugMini;
-        break;
-      case 'Plug Mini (US)':
-        device.model = SwitchBotModel.PlugMiniUS;
-        device.bleModel = SwitchBotBLEModel.PlugMiniUS;
-        device.bleModelName = SwitchBotBLEModelName.PlugMini;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.PlugMini;
-        break;
-      case 'Plug Mini (JP)':
-        device.model = SwitchBotModel.PlugMiniJP;
-        device.bleModel = SwitchBotBLEModel.PlugMiniJP;
-        device.bleModelName = SwitchBotBLEModelName.PlugMini;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.PlugMini;
-        break;
-      case 'Smart Lock':
-        device.model = SwitchBotModel.Lock;
-        device.bleModel = SwitchBotBLEModel.Lock;
-        device.bleModelName = SwitchBotBLEModelName.Lock;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Lock;
-        break;
-      case 'Smart Lock Pro':
-        device.model = SwitchBotModel.LockPro;
-        device.bleModel = SwitchBotBLEModel.LockPro;
-        device.bleModelName = SwitchBotBLEModelName.LockPro;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.LockPro;
-        break;
-      case 'Color Bulb':
-        device.model = SwitchBotModel.ColorBulb;
-        device.bleModel = SwitchBotBLEModel.ColorBulb;
-        device.bleModelName = SwitchBotBLEModelName.ColorBulb;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.ColorBulb;
-        break;
-      case 'K10+':
-        device.model = SwitchBotModel.K10;
-        device.bleModel = SwitchBotBLEModel.Unknown;
-        device.bleModelName = SwitchBotBLEModelName.Unknown;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Unknown;
-        break;
-      case 'WoSweeper':
-        device.model = SwitchBotModel.WoSweeper;
-        device.bleModel = SwitchBotBLEModel.Unknown;
-        device.bleModelName = SwitchBotBLEModelName.Unknown;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Unknown;
-        break;
-      case 'WoSweeperMini':
-        device.model = SwitchBotModel.WoSweeperMini;
-        device.bleModel = SwitchBotBLEModel.Unknown;
-        device.bleModelName = SwitchBotBLEModelName.Unknown;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Unknown;
-        break;
-      case 'Robot Vacuum Cleaner S1':
-        device.model = SwitchBotModel.RobotVacuumCleanerS1;
-        device.bleModel = SwitchBotBLEModel.Unknown;
-        device.bleModelName = SwitchBotBLEModelName.Unknown;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Unknown;
-        break;
-      case 'Robot Vacuum Cleaner S1 Plus':
-        device.model = SwitchBotModel.RobotVacuumCleanerS1Plus;
-        device.bleModel = SwitchBotBLEModel.Unknown;
-        device.bleModelName = SwitchBotBLEModelName.Unknown;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Unknown;
-        break;
-      case 'Robot Vacuum Cleaner S10':
-        device.model = SwitchBotModel.RobotVacuumCleanerS10;
-        device.bleModel = SwitchBotBLEModel.Unknown;
-        device.bleModelName = SwitchBotBLEModelName.Unknown;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Unknown;
-        break;
-      case 'Ceiling Light':
-        device.model = SwitchBotModel.CeilingLight;
-        device.bleModel = SwitchBotBLEModel.CeilingLight;
-        device.bleModelName = SwitchBotBLEModelName.CeilingLight;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.CeilingLight;
-        break;
-      case 'Ceiling Light Pro':
-        device.model = SwitchBotModel.CeilingLightPro;
-        device.bleModel = SwitchBotBLEModel.CeilingLightPro;
-        device.bleModelName = SwitchBotBLEModelName.CeilingLightPro;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.CeilingLightPro;
-        break;
-      case 'Strip Light':
-        device.model = SwitchBotModel.StripLight;
-        device.bleModel = SwitchBotBLEModel.StripLight;
-        device.bleModelName = SwitchBotBLEModelName.StripLight;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.StripLight;
-        break;
-      case 'Indoor Cam':
-        device.model = SwitchBotModel.IndoorCam;
-        device.bleModel = SwitchBotBLEModel.Unknown;
-        device.bleModelName = SwitchBotBLEModelName.Unknown;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Unknown;
-        break;
-      case 'Remote':
-        device.model = SwitchBotModel.Remote;
-        device.bleModel = SwitchBotBLEModel.Unknown;
-        device.bleModelName = SwitchBotBLEModelName.Unknown;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Unknown;
-        break;
-      case 'remote with screen+':
-        device.model = SwitchBotModel.UniversalRemote;
-        device.bleModel = SwitchBotBLEModel.Unknown;
-        device.bleModelName = SwitchBotBLEModelName.Unknown;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Unknown;
-        break;
-      case 'Battery Circulator Fan':
-        device.model = SwitchBotModel.BatteryCirculatorFan;
-        device.bleModel = SwitchBotBLEModel.Unknown;
-        device.bleModelName = SwitchBotBLEModelName.Unknown;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Unknown;
-        break;
-      default:
-        device.model = SwitchBotModel.Unknown;
-        device.bleModel = SwitchBotBLEModel.Unknown;
-        device.bleModelName = SwitchBotBLEModelName.Unknown;
-        device.bleModelFriednlyName = SwitchBotBLEModelFriendlyName.Unknown;
-    }
+    const deviceMapping = {
+      'Humidifier': {
+        model: SwitchBotModel.Humidifier,
+        bleModel: SwitchBotBLEModel.Humidifier,
+        bleModelName: SwitchBotBLEModelName.Humidifier,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Humidifier,
+      },
+      'Hub Mini': {
+        model: SwitchBotModel.HubMini,
+        bleModel: SwitchBotBLEModel.Unknown,
+        bleModelName: SwitchBotBLEModelName.Unknown,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,
+      },
+      'Hub Plus': {
+        model: SwitchBotModel.HubPlus,
+        bleModel: SwitchBotBLEModel.Unknown,
+        bleModelName: SwitchBotBLEModelName.Unknown,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,
+      },
+      'Hub 2': {
+        model: SwitchBotModel.Hub2,
+        bleModel: SwitchBotBLEModel.Hub2,
+        bleModelName: SwitchBotBLEModelName.Hub2,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Hub2,
+      },
+      'Bot': {
+        model: SwitchBotModel.Bot,
+        bleModel: SwitchBotBLEModel.Bot,
+        bleModelName: SwitchBotBLEModelName.Bot,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Bot,
+      },
+      'Meter': {
+        model: SwitchBotModel.Meter,
+        bleModel: SwitchBotBLEModel.Meter,
+        bleModelName: SwitchBotBLEModelName.Meter,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Meter,
+      },
+      'MeterPlus': {
+        model: SwitchBotModel.MeterPlusUS,
+        bleModel: SwitchBotBLEModel.MeterPlus,
+        bleModelName: SwitchBotBLEModelName.MeterPlus,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.MeterPlus,
+      },
+      'Meter Plus (JP)': {
+        model: SwitchBotModel.MeterPlusJP,
+        bleModel: SwitchBotBLEModel.MeterPlus,
+        bleModelName: SwitchBotBLEModelName.MeterPlus,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.MeterPlus,
+      },
+      'WoIOSensor': {
+        model: SwitchBotModel.OutdoorMeter,
+        bleModel: SwitchBotBLEModel.OutdoorMeter,
+        bleModelName: SwitchBotBLEModelName.OutdoorMeter,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.OutdoorMeter,
+      },
+      'Water Detector': {
+        model: SwitchBotModel.WaterDetector,
+        bleModel: SwitchBotBLEModel.Unknown,
+        bleModelName: SwitchBotBLEModelName.Unknown,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,
+      },
+      'Motion Sensor': {
+        model: SwitchBotModel.MotionSensor,
+        bleModel: SwitchBotBLEModel.MotionSensor,
+        bleModelName: SwitchBotBLEModelName.MotionSensor,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.MotionSensor,
+      },
+      'Contact Sensor': {
+        model: SwitchBotModel.ContactSensor,
+        bleModel: SwitchBotBLEModel.ContactSensor,
+        bleModelName: SwitchBotBLEModelName.ContactSensor,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.ContactSensor,
+      },
+      'Curtain': {
+        model: SwitchBotModel.Curtain,
+        bleModel: SwitchBotBLEModel.Curtain,
+        bleModelName: SwitchBotBLEModelName.Curtain,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Curtain,
+      },
+      'Curtain3': {
+        model: SwitchBotModel.Curtain3,
+        bleModel: SwitchBotBLEModel.Curtain3,
+        bleModelName: SwitchBotBLEModelName.Curtain3,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Curtain3,
+      },
+      'Blind Tilt': {
+        model: SwitchBotModel.BlindTilt,
+        bleModel: SwitchBotBLEModel.BlindTilt,
+        bleModelName: SwitchBotBLEModelName.BlindTilt,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.BlindTilt,
+      },
+      'Plug': {
+        model: SwitchBotModel.Plug,
+        bleModel: SwitchBotBLEModel.PlugMiniUS,
+        bleModelName: SwitchBotBLEModelName.PlugMini,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.PlugMini,
+      },
+      'Plug Mini (US)': {
+        model: SwitchBotModel.PlugMiniUS,
+        bleModel: SwitchBotBLEModel.PlugMiniUS,
+        bleModelName: SwitchBotBLEModelName.PlugMini,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.PlugMini,
+      },
+      'Plug Mini (JP)': {
+        model: SwitchBotModel.PlugMiniJP,
+        bleModel: SwitchBotBLEModel.PlugMiniJP,
+        bleModelName: SwitchBotBLEModelName.PlugMini,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.PlugMini,
+      },
+      'Smart Lock': {
+        model: SwitchBotModel.Lock,
+        bleModel: SwitchBotBLEModel.Lock,
+        bleModelName: SwitchBotBLEModelName.Lock,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Lock,
+      },
+      'Smart Lock Pro': {
+        model: SwitchBotModel.LockPro,
+        bleModel: SwitchBotBLEModel.LockPro,
+        bleModelName: SwitchBotBLEModelName.LockPro,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.LockPro,
+      },
+      'Color Bulb': {
+        model: SwitchBotModel.ColorBulb,
+        bleModel: SwitchBotBLEModel.ColorBulb,
+        bleModelName: SwitchBotBLEModelName.ColorBulb,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.ColorBulb,
+      },
+      'K10+': {
+        model: SwitchBotModel.K10,
+        bleModel: SwitchBotBLEModel.Unknown,
+        bleModelName: SwitchBotBLEModelName.Unknown,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,
+      },
+      'WoSweeper': {
+        model: SwitchBotModel.WoSweeper,
+        bleModel: SwitchBotBLEModel.Unknown,
+        bleModelName: SwitchBotBLEModelName.Unknown,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,
+      },
+      'WoSweeperMini': {
+        model: SwitchBotModel.WoSweeperMini,
+        bleModel: SwitchBotBLEModel.Unknown,
+        bleModelName: SwitchBotBLEModelName.Unknown,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,
+      },
+      'Robot Vacuum Cleaner S1': {
+        model: SwitchBotModel.RobotVacuumCleanerS1,
+        bleModel: SwitchBotBLEModel.Unknown,
+        bleModelName: SwitchBotBLEModelName.Unknown,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,
+      },
+      'Robot Vacuum Cleaner S1 Plus': {
+        model: SwitchBotModel.RobotVacuumCleanerS1Plus,
+        bleModel: SwitchBotBLEModel.Unknown,
+        bleModelName: SwitchBotBLEModelName.Unknown,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,
+      },
+      'Robot Vacuum Cleaner S10': {
+        model: SwitchBotModel.RobotVacuumCleanerS10,
+        bleModel: SwitchBotBLEModel.Unknown,
+        bleModelName: SwitchBotBLEModelName.Unknown,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,
+      },
+      'Ceiling Light': {
+        model: SwitchBotModel.CeilingLight,
+        bleModel: SwitchBotBLEModel.CeilingLight,
+        bleModelName: SwitchBotBLEModelName.CeilingLight,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.CeilingLight,
+      },
+      'Ceiling Light Pro': {
+        model: SwitchBotModel.CeilingLightPro,
+        bleModel: SwitchBotBLEModel.CeilingLightPro,
+        bleModelName: SwitchBotBLEModelName.CeilingLightPro,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.CeilingLightPro,
+      },
+      'Strip Light': {
+        model: SwitchBotModel.StripLight,
+        bleModel: SwitchBotBLEModel.StripLight,
+        bleModelName: SwitchBotBLEModelName.StripLight,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.StripLight,
+      },
+      'Indoor Cam': {
+        model: SwitchBotModel.IndoorCam,
+        bleModel: SwitchBotBLEModel.Unknown,
+        bleModelName: SwitchBotBLEModelName.Unknown,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,
+      },
+      'Remote': {
+        model: SwitchBotModel.Remote,
+        bleModel: SwitchBotBLEModel.Unknown,
+        bleModelName: SwitchBotBLEModelName.Unknown,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,
+      },
+      'remote with screen+': {
+        model: SwitchBotModel.UniversalRemote,
+        bleModel: SwitchBotBLEModel.Unknown,
+        bleModelName: SwitchBotBLEModelName.Unknown,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,
+      },
+      'Battery Circulator Fan': {
+        model: SwitchBotModel.BatteryCirculatorFan,
+        bleModel: SwitchBotBLEModel.Unknown,
+        bleModelName: SwitchBotBLEModelName.Unknown,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,
+      },
+    };
+    const defaultDevice = {
+      model: SwitchBotModel.Unknown,
+      bleModel: SwitchBotBLEModel.Unknown,
+      bleModelName: SwitchBotBLEModelName.Unknown,
+      bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,
+    };
+    const deviceConfig = deviceMapping[device.deviceType] || defaultDevice;
+    device.model = deviceConfig.model;
+    device.bleModel = deviceConfig.bleModel;
+    device.bleModelName = deviceConfig.bleModelName;
+    device.bleModelFriednlyName = deviceConfig.bleModelFriednlyName;
     await this.debugLog(`Model: ${device.model}, BLE Model: ${device.bleModel}, BLE Model Name: ${device.bleModelName}, `
       + `BLE Model Friendly Name: ${device.bleModelFriednlyName}`);
-    accessory.context.model = device.model;
-    accessory.context.bleModel = device.bleModel;
-    accessory.context.bleModelName = device.bleModelName;
-    accessory.context.bleModelFriednlyName = device.bleModelFriednlyName;
 
     const deviceFirmwareVersion = device.firmware ?? device.version ?? accessory.context.version ?? this.platform.version ?? '0.0.0';
     const version = deviceFirmwareVersion.toString();
@@ -693,76 +624,33 @@ export abstract class deviceBase {
   }
 
   async statusCode(statusCode: number): Promise<void> {
-    if (statusCode === 171) {
-      const previousStatusCode = statusCode;
-      if (this.device.hubDeviceId === this.device.deviceId) {
-        statusCode = 161;
-      }
-      if (this.device.hubDeviceId === '000000000000') {
-        statusCode = 161;
-      }
-      this.debugErrorLog(`statusCode: ${previousStatusCode} is now statusCode: ${statusCode}, because the hubDeviceId: ${this.device.hubDeviceId}`
-          + ` is set to the same as the deviceId: ${this.device.deviceId}, meaning the device is it's own hub.`);
+    const statusMessages = {
+      151: 'Command not supported by this deviceType',
+      152: 'Device not found',
+      160: 'Command is not supported',
+      161: 'Device is offline',
+      171: `Hub Device is offline. Hub: ${this.device.hubDeviceId}`,
+      190: 'Device internal error due to device states not synchronized with server, or command format is invalid',
+      100: 'Command successfully sent',
+      200: 'Request successful',
+      400: 'Bad Request, an invalid payload request',
+      401: 'Unauthorized, Authorization for the API is required, but the request has not been authenticated',
+      403: 'Forbidden, The request has been authenticated but does not have appropriate permissions, or a requested resource is not found',
+      404: 'Not Found, Specifies the requested path does not exist',
+      406: 'Not Acceptable, a MIME type has been requested via the Accept header for a value not supported by the server',
+      415: 'Unsupported Media Type, a contentType header has been defined that is not supported by the server',
+      422: 'Unprocessable Entity: The server cannot process the request, often due to exceeded API limits.',
+      429: 'Too Many Requests, exceeded the number of requests allowed for a given time window',
+      500: 'Internal Server Error, An unexpected error occurred. These errors should be rare',
+    };
+    if (statusCode === 171 && (this.device.hubDeviceId === this.device.deviceId || this.device.hubDeviceId === '000000000000')) {
+      this.debugErrorLog(`statusCode 171 changed to 161: hubDeviceId ${this.device.hubDeviceId} matches deviceId`
+        + ` ${this.device.deviceId}, device is its own hub.`);
+      statusCode = 161;
     }
-    switch (statusCode) {
-      case 151:
-        this.errorLog(`Command not supported by this deviceType, statusCode: ${statusCode}`);
-        break;
-      case 152:
-        this.errorLog(`Device not found, statusCode: ${statusCode}`);
-        break;
-      case 160:
-        this.errorLog(`Command is not supported, statusCode: ${statusCode}`);
-        break;
-      case 161:
-        this.errorLog(`Device is offline, statusCode: ${statusCode}`);
-        break;
-      case 171:
-        this.errorLog(`Hub Device is offline, statusCode: ${statusCode}. Hub: ${this.device.hubDeviceId}`);
-        break;
-      case 190:
-        this.errorLog('Device internal error due to device states not synchronized with server, or command format is invalid,'
-          + ` statusCode: ${statusCode}`);
-        break;
-      case 100:
-        this.debugLog(`Command successfully sent, statusCode: ${statusCode}`);
-        break;
-      case 200:
-        this.debugLog(`Request successful, statusCode: ${statusCode}`);
-        break;
-      case 400:
-        this.errorLog(`Bad Request, an invalid payload request, statusCode: ${statusCode}`);
-        break;
-      case 401:
-        this.errorLog(`Unauthorized, Authorization for the API is required, but the request has not been authenticated, statusCode: ${statusCode}`);
-        break;
-      case 403:
-        this.errorLog('Forbidden,	The request has been authenticated but does not have appropriate permissions,'
-          + ` or a requested resource is not found, statusCode: ${statusCode}`);
-        break;
-      case 404:
-        this.errorLog(`Not Found,	Specifies the requested path does not exist, statusCode: ${statusCode}`);
-        break;
-      case 406:
-        this.errorLog('Not Acceptable, a MIME type has been requested via the Accept header for a value not supported by the server,'
-          + ` statusCode: ${statusCode}`);
-        break;
-      case 415:
-        this.errorLog(`Unsupported Media Type, a contentType header has been defined that is not supported by the server, statusCode: ${statusCode}`);
-        break;
-      case 422:
-        this.errorLog('Unprocessable Entity, a valid request has been made, but the server cannot process it. '
-          + `This is often used for APIs for which certain limits have been exceeded, statusCode: ${statusCode}`);
-        break;
-      case 429:
-        this.errorLog(`Too Many Requests,	exceeded the number of requests allowed for a given time window, statusCode: ${statusCode}`);
-        break;
-      case 500:
-        this.errorLog(`Internal Server Error,	An unexpected error occurred. These errors should be rare, statusCode: ${statusCode}`);
-        break;
-      default:
-        this.infoLog(`Unknown statusCode: ${statusCode}, Submit Bugs Here: https://tinyurl.com/SwitchBotBug`);
-    }
+    const logMessage = statusMessages[statusCode] || `Unknown statusCode: ${statusCode}, Submit Bugs Here: https://tinyurl.com/SwitchBotBug`;
+    const logMethod = [100, 200].includes(statusCode) ? 'debugLog' : statusMessages[statusCode] ? 'errorLog' : 'infoLog';
+    this[logMethod](`${logMessage}, statusCode: ${statusCode}`);
   }
 
   /**

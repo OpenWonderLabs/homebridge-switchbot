@@ -3,6 +3,10 @@
  * bot.ts: @switchbot/homebridge-switchbot.
  */
 import { deviceBase } from './device.js';
+/*
+* For Testing Locally:
+* import { SwitchBotBLEModel, SwitchBotBLEModelName } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
+*/
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot';
 import { Subject, debounceTime, interval, skipWhile, take, tap } from 'rxjs';
 
@@ -424,12 +428,28 @@ export class Bot extends deviceBase {
     }
 
     // Retrieve initial values and updateHomekit
-    this.debugLog('Retrieve initial values and update Homekit');
-    this.refreshStatus();
+    try {
+      this.debugLog('Retrieve initial values and update Homekit');
+      this.refreshStatus();
+    } catch (e: any) {
+      this.errorLog(`failed to retrieve initial values and update Homekit, Error: ${e}`);
+    }
 
-    //regisiter webhook event handler
-    this.debugLog('Registering Webhook Event Handler');
-    this.registerWebhook();
+    //regisiter webhook event handler if enabled
+    try {
+      this.debugLog('Registering Webhook Event Handler');
+      this.registerWebhook();
+    } catch (e: any) {
+      this.errorLog(`failed to registerWebhook, Error: ${e}`);
+    }
+
+    //regisiter platform BLE event handler if enabled
+    try {
+      this.debugLog('Registering Platform BLE Event Handler');
+      this.registerPlatformBLE();
+    } catch (e: any) {
+      this.errorLog(`failed to registerPlatformBLE, Error: ${e}`);
+    }
 
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
@@ -558,7 +578,7 @@ export class Bot extends deviceBase {
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       await this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`);
-    } else if (this.BLE || this.config.options?.BLE) {
+    } else if (this.BLE) {
       await this.BLERefreshStatus();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
@@ -570,6 +590,29 @@ export class Bot extends deviceBase {
 
   async BLERefreshStatus(): Promise<void> {
     await this.debugLog('BLERefreshStatus');
+    const switchbot = await this.switchbotBLE();
+    if (switchbot === undefined) {
+      await this.BLERefreshConnection(switchbot);
+    } else {
+      // Start to monitor advertisement packets
+      (async () => {
+        // Start to monitor advertisement packets
+        const serviceData = await this.monitorAdvertisementPackets(switchbot) as botServiceData;
+        // Update HomeKit
+        if (serviceData.model === SwitchBotBLEModel.Bot && serviceData.modelName === SwitchBotBLEModelName.Bot) {
+          this.serviceData = serviceData;
+          await this.BLEparseStatus();
+          await this.updateHomeKitCharacteristics();
+        } else {
+          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
+          await this.BLERefreshConnection(switchbot);
+        }
+      })();
+    }
+  }
+
+  async registerPlatformBLE(): Promise<void> {
+    await this.debugLog('registerPlatformBLE');
     if (this.config.options?.BLE) {
       await this.debugLog('is listening to Platform BLE.');
       this.device.bleMac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase();
@@ -585,26 +628,7 @@ export class Bot extends deviceBase {
         }
       };
     } else {
-      await this.debugLog('is using Device BLE Scanning.');
-      const switchbot = await this.switchbotBLE();
-      if (switchbot === undefined) {
-        await this.BLERefreshConnection(switchbot);
-      } else {
-        // Start to monitor advertisement packets
-        (async () => {
-          // Start to monitor advertisement packets
-          const serviceData = await this.monitorAdvertisementPackets(switchbot) as botServiceData;
-          // Update HomeKit
-          if (serviceData.model === SwitchBotBLEModel.Bot && serviceData.modelName === SwitchBotBLEModelName.Bot) {
-            this.serviceData = serviceData;
-            await this.BLEparseStatus();
-            await this.updateHomeKitCharacteristics();
-          } else {
-            await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
-            await this.BLERefreshConnection(switchbot);
-          }
-        })();
-      }
+      await this.debugLog('is not listening to Platform BLE');
     }
   }
 
@@ -791,57 +815,54 @@ export class Bot extends deviceBase {
    * Handle requests to set the "On" characteristic
    */
   async OnSet(value: CharacteristicValue): Promise<void> {
-    if (this.botDeviceType === 'switch') {
-      if (this.Switch) {
-        await this.debugLog(`Set On: ${value}`);
-        this.On = value === false ? false : true;
+    if (this.botDeviceType === 'garagedoor') {
+      this.debugLog(`Set TargetDoorState: ${value}`);
+      if (value === this.hap.Characteristic.TargetDoorState.CLOSED) {
+        this.On = false;
+      } else {
+        this.On = true;
       }
-    } else if (this.botDeviceType === 'garagedoor') {
-      if (this.GarageDoor) {
-        await this.debugLog(`Set TargetDoorState: ${value}`);
-        this.On = value === this.hap.Characteristic.TargetDoorState.CLOSED ? false : true;
-      }
-    } else if (this.botDeviceType === 'door') {
-      if (this.Door) {
-        await this.debugLog(`Set TargetPosition: ${value}`);
-        this.On = value === 0 ? false : true;
-      }
-    } else if (this.botDeviceType === 'window') {
-      if (this.Window) {
-        await this.debugLog(`Set TargetPosition: ${value}`);
-        this.On = value === 0 ? false : true;
-      }
-    } else if (this.botDeviceType === 'windowcovering') {
-      if (this.WindowCovering) {
-        await this.debugLog(`Set TargetPosition: ${value}`);
-        this.On = value === 0 ? false : true;
+    } else if (
+      this.botDeviceType === 'door' ||
+      this.botDeviceType === 'window' ||
+      this.botDeviceType === 'windowcovering'
+    ) {
+      this.debugLog(`Set TargetPosition: ${value}`);
+      if (value === 0) {
+        this.On = false;
+      } else {
+        this.On = true;
       }
     } else if (this.botDeviceType === 'lock') {
-      if (this.LockMechanism) {
-        await this.debugLog(`Set LockTargetState: ${value}`);
-        this.On = value === this.hap.Characteristic.LockTargetState.SECURED ? false : true;
+      this.debugLog(`Set LockTargetState: ${value}`);
+      if (value === this.hap.Characteristic.LockTargetState.SECURED) {
+        this.On = false;
+      } else {
+        this.On = true;
       }
     } else if (this.botDeviceType === 'faucet') {
-      if (this.Faucet) {
-        await this.debugLog(`Set Active: ${value}`);
-        this.On = value === this.hap.Characteristic.Active.INACTIVE ? false : true;
+      this.debugLog(`Set Active: ${value}`);
+      if (value === this.hap.Characteristic.Active.INACTIVE) {
+        this.On = false;
+      } else {
+        this.On = true;
       }
     } else if (this.botDeviceType === 'stateful') {
-      if (this.StatefulProgrammableSwitch) {
-        await this.debugLog(`Set ProgrammableSwitchOutputState: ${value}`);
-        this.On = value === 0 ? false : true;
+      this.debugLog(`Set ProgrammableSwitchOutputState: ${value}`);
+      if (value === 0) {
+        this.On = false;
+      } else {
+        this.On = true;
       }
     } else {
-      if (this.Outlet) {
-        await this.debugLog(`Set On: ${value}`);
-        this.On = value === false ? false : true;
+      this.debugLog(`Set On: ${value}`);
+      if (this.device.bot?.mode === 'multipress') {
+        if (value === true) {
+          this.multiPressCount++;
+          this.debugLog(`set to Multi-Press. Multi-Press count: ${this.multiPressCount}`);
+        }
       }
-    }
-    if (this.device.bot?.mode === 'multipress') {
-      if (this.On === true) {
-        this.multiPressCount++;
-        await this.debugLog(`multiPressCount: ${this.multiPressCount}`);
-      }
+      this.On = value as boolean;
     }
     this.doBotUpdate.next();
   }
@@ -1023,7 +1044,7 @@ export class Bot extends deviceBase {
       Service: accessory.getService(this.hap.Service.Outlet) as Service,
     };
     accessory.context.Outlet = this.Outlet as object;
-    await this.warnLog('Removing any leftover Outlet Service');
+    await this.debugWarnLog('Removing any leftover Outlet Service');
     accessory.removeService(this.Outlet.Service);
   }
 
@@ -1035,7 +1056,7 @@ export class Bot extends deviceBase {
       Service: accessory.getService(this.hap.Service.GarageDoorOpener) as Service,
     };
     accessory.context.GarageDoor = this.GarageDoor as object;
-    await this.warnLog('Removing any leftover Garage Door Service');
+    await this.debugWarnLog('Removing any leftover Garage Door Service');
     accessory.removeService(this.GarageDoor.Service);
   }
 
@@ -1047,7 +1068,7 @@ export class Bot extends deviceBase {
       Service: accessory.getService(this.hap.Service.Door) as Service,
     };
     accessory.context.Door = this.Door as object;
-    await this.warnLog('Removing any leftover Door Service');
+    await this.debugWarnLog('Removing any leftover Door Service');
     accessory.removeService(this.Door.Service);
   }
 
@@ -1059,7 +1080,7 @@ export class Bot extends deviceBase {
       Service: accessory.getService(this.hap.Service.LockMechanism) as Service,
     };
     accessory.context.LockMechanism = this.LockMechanism as object;
-    this.warnLog('Removing any leftover Lock Service');
+    await this.debugWarnLog('Removing any leftover Lock Service');
     accessory.removeService(this.LockMechanism.Service);
   }
 
@@ -1071,7 +1092,7 @@ export class Bot extends deviceBase {
       Service: accessory.getService(this.hap.Service.Valve) as Service,
     };
     accessory.context.Faucet = this.Faucet as object;
-    await this.warnLog('Removing any leftover Faucet Service');
+    await this.debugWarnLog('Removing any leftover Faucet Service');
     accessory.removeService(this.Faucet.Service);
   }
 
@@ -1083,7 +1104,7 @@ export class Bot extends deviceBase {
       Service: accessory.getService(this.hap.Service.Fan) as Service,
     };
     accessory.context.Fan = this.Fan as object;
-    this.warnLog('Removing any leftover Fan Service');
+    await this.debugWarnLog('Removing any leftover Fan Service');
     accessory.removeService(this.Fan.Service);
   }
 
@@ -1095,7 +1116,7 @@ export class Bot extends deviceBase {
       Service: accessory.getService(this.hap.Service.Window) as Service,
     };
     accessory.context.Window = this.Window as object;
-    await this.warnLog('Removing any leftover Window Service');
+    await this.debugWarnLog('Removing any leftover Window Service');
     accessory.removeService(this.Window.Service);
   }
 
@@ -1107,7 +1128,7 @@ export class Bot extends deviceBase {
       Service: accessory.getService(this.hap.Service.WindowCovering) as Service,
     };
     accessory.context.WindowCovering = this.WindowCovering as object;
-    await this.warnLog('Removing any leftover Window Covering Service');
+    await this.debugWarnLog('Removing any leftover Window Covering Service');
     accessory.removeService(this.WindowCovering.Service);
   }
 
@@ -1119,7 +1140,7 @@ export class Bot extends deviceBase {
       Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch) as Service,
     };
     accessory.context.StatefulProgrammableSwitch = this.StatefulProgrammableSwitch as object;
-    await this.warnLog('Removing any leftover Stateful Programmable Switch Service');
+    await this.debugWarnLog('Removing any leftover Stateful Programmable Switch Service');
     accessory.removeService(this.StatefulProgrammableSwitch.Service);
   }
 
@@ -1131,7 +1152,7 @@ export class Bot extends deviceBase {
       Service: accessory.getService(this.hap.Service.Switch) as Service,
     };
     accessory.context.Switch = this.Switch as object;
-    await this.warnLog('Removing any leftover Switch Service');
+    await this.debugWarnLog('Removing any leftover Switch Service');
     accessory.removeService(this.Switch.Service);
   }
 

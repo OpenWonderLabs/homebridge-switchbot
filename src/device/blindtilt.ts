@@ -4,6 +4,10 @@
  */
 import { deviceBase } from './device.js';
 import { BlindTiltMappingMode } from '../utils.js';
+/*
+* For Testing Locally:
+* import { SwitchBotBLEModel, SwitchBotBLEModelName } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
+*/
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot';
 import { Subject, debounceTime, interval, skipWhile, take, tap } from 'rxjs';
 
@@ -57,7 +61,8 @@ export class BlindTilt extends deviceBase {
   setNewTargetTimer!: NodeJS.Timeout;
 
   // Updates
-  blindTiltUpdateInProgress;
+  blindTiltMoving: boolean;
+  blindTiltUpdateInProgress: boolean;
   doBlindTiltUpdate: Subject<void>;
 
   constructor(
@@ -75,6 +80,7 @@ export class BlindTilt extends deviceBase {
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doBlindTiltUpdate = new Subject();
+    this.blindTiltMoving = false;
     this.blindTiltUpdateInProgress = false;
     this.setNewTarget = false;
 
@@ -190,12 +196,28 @@ export class BlindTilt extends deviceBase {
     }
 
     // Retrieve initial values and updateHomekit
-    this.debugLog('Retrieve initial values and update Homekit');
-    this.refreshStatus();
+    try {
+      this.debugLog('Retrieve initial values and update Homekit');
+      this.refreshStatus();
+    } catch (e: any) {
+      this.errorLog(`failed to retrieve initial values and update Homekit, Error: ${e}`);
+    }
 
-    //regisiter webhook event handler
-    this.debugLog('Registering Webhook Event Handler');
-    this.registerWebhook();
+    //regisiter webhook event handler if enabled
+    try {
+      this.debugLog('Registering Webhook Event Handler');
+      this.registerWebhook();
+    } catch (e: any) {
+      this.errorLog(`failed to registerWebhook, Error: ${e}`);
+    }
+
+    //regisiter platform BLE event handler if enabled
+    try {
+      this.debugLog('Registering Platform BLE Event Handler');
+      this.registerPlatformBLE();
+    } catch (e: any) {
+      this.errorLog(`failed to registerPlatformBLE, Error: ${e}`);
+    }
 
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
@@ -206,6 +228,7 @@ export class BlindTilt extends deviceBase {
 
     // update slide progress
     interval(this.deviceUpdateRate * 1000)
+      .pipe(skipWhile(() => !this.blindTiltMoving))
       .subscribe(async () => {
         if (this.WindowCovering.PositionState === this.hap.Characteristic.PositionState.STOPPED) {
           return;
@@ -251,6 +274,7 @@ export class BlindTilt extends deviceBase {
       await this.infoLog('Checking Status ...');
     }
     if (this.setNewTarget && this.serviceData.inMotion) {
+      this.blindTiltMoving = true;
       await this.setMinMax();
       if (Number(this.WindowCovering.TargetPosition) > this.WindowCovering.CurrentPosition) {
         await this.debugLog(`Closing, CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
@@ -269,6 +293,7 @@ export class BlindTilt extends deviceBase {
         await this.debugLog('Stopped, PositionState', this.WindowCovering.PositionState);
       }
     } else {
+      this.blindTiltMoving = false;
       await this.debugLog(`Standby, CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
       this.WindowCovering.TargetPosition = this.WindowCovering.CurrentPosition;
       this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.STOPPED;
@@ -381,7 +406,7 @@ export class BlindTilt extends deviceBase {
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
       await this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`);
-    } else if (this.BLE || this.config.options?.BLE) {
+    } else if (this.BLE) {
       await this.BLERefreshStatus();
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus();
@@ -392,6 +417,30 @@ export class BlindTilt extends deviceBase {
   }
 
   async BLERefreshStatus(): Promise<void> {
+    await this.debugLog('BLERefreshStatus');
+    const switchbot = await this.switchbotBLE();
+    if (switchbot === undefined) {
+      await this.BLERefreshConnection(switchbot);
+    } else {
+      // Start to monitor advertisement packets
+      (async () => {
+        // Start to monitor advertisement packets
+        const serviceData = await this.monitorAdvertisementPackets(switchbot) as blindTiltServiceData;
+        // Update HomeKit
+        if (serviceData.model === SwitchBotBLEModel.BlindTilt && serviceData.modelName === SwitchBotBLEModelName.BlindTilt) {
+          this.serviceData = serviceData;
+          await this.BLEparseStatus();
+          await this.updateHomeKitCharacteristics();
+        } else {
+          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
+          await this.BLERefreshConnection(switchbot);
+        }
+      })();
+    }
+  }
+
+  async registerPlatformBLE(): Promise<void> {
+    await this.debugLog('registerPlatformBLE');
     if (this.config.options?.BLE) {
       await this.debugLog('is listening to Platform BLE.');
       this.device.bleMac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase();
@@ -407,26 +456,7 @@ export class BlindTilt extends deviceBase {
         }
       };
     } else {
-      await this.debugLog('is using Device BLE Scanning.');
-      const switchbot = await this.switchbotBLE();
-      if (switchbot === undefined) {
-        await this.BLERefreshConnection(switchbot);
-      } else {
-      // Start to monitor advertisement packets
-        (async () => {
-        // Start to monitor advertisement packets
-          const serviceData = await this.monitorAdvertisementPackets(switchbot) as blindTiltServiceData;
-          // Update HomeKit
-          if (serviceData.model === SwitchBotBLEModel.BlindTilt && serviceData.modelName === SwitchBotBLEModelName.BlindTilt) {
-            this.serviceData = serviceData;
-            await this.BLEparseStatus();
-            await this.updateHomeKitCharacteristics();
-          } else {
-            await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
-            await this.BLERefreshConnection(switchbot);
-          }
-        })();
-      }
+      await this.debugLog('is not listening to Platform BLE');
     }
   }
 
@@ -792,6 +822,7 @@ export class BlindTilt extends deviceBase {
     }
 
     if (this.setNewTarget) {
+      this.blindTiltMoving = true;
       await this.infoLog('Checking Status ...');
       await this.setMinMax();
       if (this.WindowCovering.TargetPosition > this.WindowCovering.CurrentPosition
@@ -812,6 +843,7 @@ export class BlindTilt extends deviceBase {
         await this.debugLog(`Stopped, PositionState: ${this.WindowCovering.PositionState}`);
       }
     } else {
+      this.blindTiltMoving = false;
       await this.debugLog(`Standby because device not moving, CurrentPosition: ${this.WindowCovering.CurrentPosition}`);
       this.WindowCovering.TargetPosition = this.WindowCovering.CurrentPosition;
       if (homekitTiltAngle) {
