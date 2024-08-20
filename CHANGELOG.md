@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file. This projec
 ## [3.7.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.7.1) (2024-07-23)
 
 ### What's Changed
+- Added specific macOS Bluetooth permission instructions to Readme [#1026](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1026), Thanks [@rSffsE](https://github.com/rSffsE)
 - Fixed Platform BLE Scanning events not registering
+- Fix `On` state for robot vacuum cleaners [#1028](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1028), Thanks [@JannThomas](https://github.com/JannThomas)
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.7.0...v3.7.1
