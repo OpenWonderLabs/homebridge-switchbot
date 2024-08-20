@@ -65,6 +65,20 @@
 
      This lists all discovered Bluetooth devices. The BLE address of the SwitchBot device should be included in this list, otherwise your computer does not discover it.
 
+- ### If using MacOS
+  1. Manually grant Bluetooth access in System Settings UI for `Security & Privacy -> Privacy` to the node executable, eg `/usr/local/bin/node`
+  ![Security & Privacy -> Privacy](assets/security-privacy-bluetooth.png)
+ (This is what is intended in documentation for the noble bluetooth package [prerequisites](https://github.com/abandonware/noble#prerequisites) by "Add terminal app", however for HomeBridge it is `node` that needs the permission granted, not `terminal`. 
+  Without this step, then you will receive the following error when the swichbot plugin launches, which will cause Homebridge or the child bridge process to restart:
+  ```
+  Error: Failed to initialize the Noble object: unauthorized
+    at Noble.<anonymous> (file:///usr/local/lib/node_modules/@switchbot/homebridge-switchbot/node_modules/node-switchbot/src/switchbot.ts:244:19)
+    at Object.onceWrapper (node:events:629:26)
+    at Noble.emit (node:events:514:28)
+    at Noble.onStateChange (/usr/local/lib/node_modules/@switchbot/homebridge-switchbot/node_modules/@stoprocent/noble/lib/noble.js:92:8)
+    at NobleMac.emit (node:events:514:28)
+  ```
+
 ## Supported SwitchBot Devices
 
 - [SwitchBot Humidifier](https://www.switch-bot.com/products/switchbot-smart-humidifier)

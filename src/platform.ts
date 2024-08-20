@@ -51,6 +51,10 @@ import type { blindTilt, curtain, curtain3, device } from './types/devicelist.js
 import type { API, DynamicPlatformPlugin, Logging, PlatformAccessory } from 'homebridge';
 import type { SwitchBotPlatformConfig, devicesConfig, irDevicesConfig } from './settings.js';
 import type { IncomingMessage, Server, ServerResponse } from 'http';
+/*
+* For Testing Locally:
+* import { SwitchBotModel } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
+*/
 import { SwitchBotModel } from 'node-switchbot';
 
 /**
@@ -59,10 +63,12 @@ import { SwitchBotModel } from 'node-switchbot';
  * parse the user config and discover/register accessories with Homebridge.
  */
 export class SwitchBotPlatform implements DynamicPlatformPlugin {
-  public accessories: PlatformAccessory[];
+  // Platform properties
+  public accessories: PlatformAccessory[] = [];
   public readonly api: API;
   public readonly log: Logging;
 
+  // Configuration properties
   version!: string;
   Logging?: string;
   debugMode!: boolean;
@@ -72,11 +78,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   platformLogging!: SwitchBotPlatformConfig['logging'];
   config!: SwitchBotPlatformConfig;
 
+  // MQTT and Webhook properties
   mqttClient: MqttClient | null = null;
   webhookEventListener: Server | null = null;
 
+  // External APIs
   public readonly eve: any;
   public readonly fakegatoAPI: any;
+
+  // Event Handlers
   public readonly webhookEventHandler: { [x: string]: (context: any) => void } = {};
   public readonly bleEventHandler: { [x: string]: (context: any) => void } = {};
 
@@ -85,8 +95,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     config: SwitchBotPlatformConfig,
     api: API,
   ) {
-    // initialize
-    this.accessories = [];
     this.api = api;
     this.log = log;
 
@@ -130,26 +138,38 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     // in order to ensure they weren't added to homebridge already. This event can also be used
     // to start discovery of new accessories.
     this.api.on('didFinishLaunching', async () => {
-      this.debugLog('Executed didFinishLaunching callback');
+      await this.debugLog('Executed didFinishLaunching callback');
       // run the method to discover / register your devices as accessories
       try {
         if (this.config.credentials?.openToken && !this.config.credentials.token) {
           await this.updateToken();
         } else if (this.config.credentials?.token && !this.config.credentials?.secret) {
 
-          this.errorLog('"secret" config is not populated, you must populate then please restart Homebridge.');
+          await this.errorLog('"secret" config is not populated, you must populate then please restart Homebridge.');
         } else {
-          this.discoverDevices();
+          await this.discoverDevices();
         }
       } catch (e: any) {
-        this.errorLog(`Failed to Discover, Error Message: ${e.message}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug');
+        await this.errorLog(`Failed to Discover, Error Message: ${e.message}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug');
         await this.debugErrorLog(`Failed to Discover, Error: ${e}`);
       }
     });
 
-    this.setupMqtt();
-    this.setupwebhook();
-    this.setupBlE();
+    try {
+      this.setupMqtt();
+    } catch (e: any) {
+      this.errorLog(`Setup MQTT, Error Message: ${e.message}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug');
+    }
+    try {
+      this.setupwebhook();
+    } catch (e: any) {
+      this.errorLog(`Setup Webhook, Error Message: ${e.message}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug');
+    }
+    try {
+      this.setupBlE();
+    } catch (e: any) {
+      this.errorLog(`Setup Platform BLE, Error Message: ${e.message}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug');
+    }
   }
 
   async setupMqtt(): Promise<void> {
@@ -167,7 +187,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           this.mqttClient.subscribe('homebridge-switchbot/webhook/+');
           this.mqttClient.on('message', async (topic: string, message) => {
             try {
-              await await this.debugLog(`Received Webhook via MQTT: ${topic}=${message}`);
+              await this.debugLog(`Received Webhook via MQTT: ${topic}=${message}`);
               const context = JSON.parse(message.toString());
               this.webhookEventHandler[context.deviceMac]?.(context);
             } catch (e: any) {
@@ -199,16 +219,13 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
                   const body = JSON.parse(data);
                   await this.debugLog(`Received Webhook: ${JSON.stringify(body)}`);
                   if (this.config.options?.mqttURL) {
-                    const mac = body.context.deviceMac
-                      ?.toLowerCase()
-                      .match(/[\s\S]{1,2}/g)
-                      ?.join(':');
+                    const mac = body.context.deviceMac?.toLowerCase().match(/[\s\S]{1,2}/g)?.join(':');
                     const options = this.config.options?.mqttPubOptions || {};
                     this.mqttClient?.publish(`homebridge-switchbot/webhook/${mac}`, `${JSON.stringify(body.context)}`, options);
                   }
                   this.webhookEventHandler[body.context.deviceMac]?.(body.context);
                 } catch (e: any) {
-                  this.errorLog(`Failed to handle webhook event. Error:${e}`);
+                  await this.errorLog(`Failed to handle webhook event. Error:${e}`);
                 }
               });
               response.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -223,7 +240,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           }
         }).listen(port ? port : 80);
       } catch (e: any) {
-        this.errorLog(`Failed to create webhook listener. Error:${e.message}`);
+        await this.errorLog(`Failed to create webhook listener. Error:${e.message}`);
         return;
       }
 
@@ -238,15 +255,13 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           }),
         });
         const response: any = await body.json();
-        await this.debugLog(`setupWebhook: url:${url}`);
-        await this.debugLog(`setupWebhook: body:${JSON.stringify(response)}`);
-        await this.debugLog(`setupWebhook: statusCode:${statusCode}`);
+        await this.debugLog(`setupWebhook: url:${url}, body:${JSON.stringify(response)}, statusCode:${statusCode}`);
         if (statusCode !== 200 || response?.statusCode !== 100) {
-          this.errorLog(`Failed to configure webhook. Existing webhook well be overridden. HTTP:${statusCode} API:${response?.statusCode} `
+          await this.errorLog(`Failed to configure webhook. Existing webhook well be overridden. HTTP:${statusCode} API:${response?.statusCode} `
             + `message:${response?.message}`);
         }
       } catch (e: any) {
-        this.errorLog(`Failed to configure webhook. Error: ${e.message}`);
+        await this.errorLog(`Failed to configure webhook. Error: ${e.message}`);
       }
 
       try {
@@ -260,14 +275,12 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           }),
         });
         const response: any = await body.json();
-        await this.debugLog(`updateWebhook: url:${url}`);
-        await this.debugLog(`updateWebhook: body:${JSON.stringify(response)}`);
-        await this.debugLog(`updateWebhook: statusCode:${statusCode}`);
+        await this.debugLog(`updateWebhook: url:${url}, body:${JSON.stringify(response)}, statusCode:${statusCode}`);
         if (statusCode !== 200 || response?.statusCode !== 100) {
-          this.errorLog(`Failed to update webhook. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`);
+          await this.errorLog(`Failed to update webhook. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`);
         }
       } catch (e: any) {
-        this.errorLog(`Failed to update webhook. Error:${e.message}`);
+        await this.errorLog(`Failed to update webhook. Error:${e.message}`);
       }
 
       try {
@@ -282,12 +295,12 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         await this.debugLog(`queryWebhook: body:${JSON.stringify(response)}`);
         await this.debugLog(`queryWebhook: statusCode:${statusCode}`);
         if (statusCode !== 200 || response?.statusCode !== 100) {
-          this.errorLog(`Failed to query webhook. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`);
+          await this.errorLog(`Failed to query webhook. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`);
         } else {
-          this.infoLog(`Listening webhook on ${response?.body?.urls[0]}`);
+          await this.infoLog(`Listening webhook on ${response?.body?.urls[0]}`);
         }
       } catch (e: any) {
-        this.errorLog(`Failed to query webhook. Error:${e}`);
+        await this.errorLog(`Failed to query webhook. Error:${e}`);
       }
 
       this.api.on('shutdown', async () => {
@@ -303,12 +316,12 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           const response: any = await body.json();
           await this.debugLog(`deleteWebhook: url:${url}, body:${JSON.stringify(response)}, statusCode:${statusCode}`);
           if (statusCode !== 200 || response?.statusCode !== 100) {
-            this.errorLog(`Failed to delete webhook. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`);
+            await this.errorLog(`Failed to delete webhook. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`);
           } else {
-            this.infoLog('Unregistered webhook to close listening.');
+            await this.infoLog('Unregistered webhook to close listening.');
           }
         } catch (e: any) {
-          this.errorLog(`Failed to delete webhook. Error:${e.message}`);
+          await this.errorLog(`Failed to delete webhook. Error:${e.message}`);
         }
       });
     }
@@ -340,9 +353,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.api.on('shutdown', async () => {
           try {
             switchbot.stopScan();
-            this.infoLog('Stopped BLE scanning to close listening.');
+            await this.infoLog('Stopped BLE scanning to close listening.');
           } catch (e: any) {
-            this.errorLog(`Failed to stop Platform BLE scanning. Error:${e.message}`);
+            await this.errorLog(`Failed to stop Platform BLE scanning. Error:${e.message}`);
           }
         });
       }
@@ -356,7 +369,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
    * It should be used to setup event handlers for characteristics and update respective values.
    */
   async configureAccessory(accessory: PlatformAccessory) {
-    await this.debugLog(`Loading accessory from cache: ${accessory.displayName}`);
+    const { displayName } = accessory;
+    await this.debugLog(`Loading accessory from cache: ${displayName}`);
 
     // add the restored accessory to the accessories cache so we can track if it has already been registered
     this.accessories.push(accessory);
@@ -366,7 +380,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
    * Verify the config passed to the plugin is valid
    */
   async verifyConfig() {
-    this.debugLog('Verifying Config');
+    await this.debugLog('Verifying Config');
     this.config = this.config || {};
     this.config.options = this.config.options || {};
 
@@ -404,10 +418,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         for (const irDeviceConfig of this.config.options.irdevices) {
           if (!irDeviceConfig.hide_device) {
             if (!irDeviceConfig.deviceId) {
-              this.errorLog('The devices config section is missing the *Device ID* in the config. Please check your config.');
+              await this.errorLog('The devices config section is missing the *Device ID* in the config. Please check your config.');
             }
             if (!irDeviceConfig.deviceId && !irDeviceConfig.configRemoteType) {
-              this.errorLog('The devices config section is missing the *Device Type* in the config. Please check your config.');
+              await this.errorLog('The devices config section is missing the *Device Type* in the config. Please check your config.');
             }
           }
         }
@@ -421,18 +435,18 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     if (!this.config.options.refreshRate) {
       // default 120 seconds (2 minutes)
       this.config.options!.refreshRate! = 120;
-      this.debugWarnLog('Using Default Refresh Rate (2 minutes).');
+      await this.debugWarnLog('Using Default Refresh Rate (2 minutes).');
     }
 
     if (!this.config.options.pushRate) {
       // default 100 milliseconds
       this.config.options!.pushRate! = 0.1;
-      this.debugWarnLog('Using Default Push Rate.');
+      await this.debugWarnLog('Using Default Push Rate.');
     }
 
     if (!this.config.options.maxRetries) {
       this.config.options.maxRetries = 5;
-      this.debugWarnLog('Using Default Max Retries.');
+      await this.debugWarnLog('Using Default Max Retries.');
     } else {
       this.maxRetries = this.config.options.maxRetries;
     }
@@ -440,22 +454,22 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     if (!this.config.options.delayBetweenRetries) {
       // default 3 seconds
       this.config.options!.delayBetweenRetries! = 3000;
-      this.debugWarnLog('Using Default Delay Between Retries.');
+      await this.debugWarnLog('Using Default Delay Between Retries.');
     } else {
       this.delayBetweenRetries = this.config.options.delayBetweenRetries * 1000;
     }
 
     if (!this.config.credentials && !this.config.options) {
-      this.debugWarnLog('Missing Credentials');
+      await this.debugWarnLog('Missing Credentials');
     } else if (this.config.credentials && !this.config.credentials.notice) {
       if (!this.config.credentials?.token) {
-        this.debugErrorLog('Missing token');
-        this.debugWarnLog('Cloud Enabled SwitchBot Devices & IR Devices will not work');
+        await this.debugErrorLog('Missing token');
+        await this.debugWarnLog('Cloud Enabled SwitchBot Devices & IR Devices will not work');
       }
       if (this.config.credentials?.token) {
         if (!this.config.credentials?.secret) {
-          this.debugErrorLog('Missing secret');
-          this.debugWarnLog('Cloud Enabled SwitchBot Devices & IR Devices will not work');
+          await this.debugErrorLog('Missing secret');
+          await this.debugWarnLog('Cloud Enabled SwitchBot Devices & IR Devices will not work');
         }
       }
     }
@@ -494,11 +508,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
       // Move openToken to token
       if (!this.config.credentials.secret) {
-        this.warnLog('This plugin has been updated to use OpenAPI v1.1, config is set with openToken,'
+        await this.warnLog('This plugin has been updated to use OpenAPI v1.1, config is set with openToken,'
           + ' "openToken" cconfig has been moved to the "token" config');
         this.errorLog('"secret" config is not populated, you must populate then please restart Homebridge.');
       } else {
-        this.warnLog('This plugin has been updated to use OpenAPI v1.1, config is set with openToken, '
+        await this.warnLog('This plugin has been updated to use OpenAPI v1.1, config is set with openToken, '
           + '"openToken" config has been moved to the "token" config, please restart Homebridge.');
       }
 
@@ -512,9 +526,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
       // save the config, ensuring we maintain pretty json
       writeFileSync(this.api.user.configPath(), JSON.stringify(currentConfig, null, 4));
-      this.verifyConfig();
+      await this.verifyConfig();
     } catch (e: any) {
-      this.errorLog(`Update Token: ${e}`);
+      await this.errorLog(`Update Token: ${e}`);
     }
   }
 
@@ -537,331 +551,219 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     };
   };
 
-  /**
-   * this method discovers devices
-   *
-      const t = `${Date.now()}`;
-      const nonce = 'requestID';
-      const data = this.config.credentials?.token + t + nonce;
-      const signTerm = crypto.createHmac('sha256', this.config.credentials?.secret).update(Buffer.from(data, 'utf-8')).digest();
-      const sign = signTerm.toString('base64');
-   */
   async discoverDevices() {
-    if (this.config.credentials?.token) {
-      let retryCount = 0;
-      const maxRetries = this.maxRetries; // Maximum number of retries
-      const delayBetweenRetries = this.delayBetweenRetries; // Delay between retries in milliseconds
-      await this.debugWarnLog(`Retry Count: ${retryCount}`);
-      await this.debugWarnLog(`Max Retries: ${maxRetries}`);
-      await this.debugWarnLog(`Delay Between Retries: ${delayBetweenRetries}`);
-      while (retryCount < maxRetries) {
-        try {
-          const { body, statusCode } = await request(Devices, {
-            headers: this.generateHeaders(),
-          });
-          await this.debugWarnLog(`statusCode: ${statusCode}`);
-          const devicesAPI: any = await body.json();
-          await this.debugWarnLog(`devicesAPI: ${JSON.stringify(devicesAPI)}`);
-          await this.debugWarnLog(`devicesAPI Body: ${JSON.stringify(devicesAPI.body)}`);
-          await this.debugWarnLog(`devicesAPI StatusCode: ${devicesAPI.statusCode}`);
-          if ((statusCode === 200 || statusCode === 100) && (devicesAPI.statusCode === 200 || devicesAPI.statusCode === 100)) {
-            await this.debugErrorLog(`statusCode: ${statusCode} & devicesAPI StatusCode: ${devicesAPI.statusCode}`);
-            // SwitchBot Devices
-            const deviceLists = devicesAPI.body.deviceList;
-            await this.debugWarnLog(`DeviceLists: ${JSON.stringify(deviceLists)}`);
-            await this.debugWarnLog(`DeviceLists Length: ${deviceLists.length}`);
-            if (!this.config.options?.devices) {
-              await this.debugLog(`SwitchBot Device Config Not Set: ${JSON.stringify(this.config.options?.devices)}`);
-              if (deviceLists.length === 0) {
-                await this.debugLog(`SwitchBot API Has No Devices With Cloud Services Enabled: ${JSON.stringify(devicesAPI.body)}`);
-              } else {
-                const devices = deviceLists.map((v: any) => v);
-                for (const device of devices) {
-                  if (device.deviceType) {
-                    if (device.configDeviceName) {
-                      device.deviceName = device.configDeviceName;
-                    }
-                    this.createDevice(device);
-                  }
-                }
-              }
-            } else if (this.config.credentials?.token && this.config.options.devices) {
-              await this.debugLog(`SwitchBot Device Config Set: ${JSON.stringify(this.config.options?.devices)}`);
-              if (deviceLists.length === 0) {
-                await this.debugLog(`SwitchBot API Has No Devices With Cloud Services Enabled: ${JSON.stringify(devicesAPI.body)}`);
-              } else {
-                const deviceConfigs = this.config.options?.devices;
+    if (!this.config.credentials?.token) {
+      return this.handleManualConfig();
+    }
 
-                const mergeBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
-                  a1.map((itm: { deviceId: string }) => ({
-                    ...a2.find(
-                      (item: { deviceId: string }) =>
-                        item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
-                    ),
-                    ...itm,
-                  }));
+    let retryCount = 0;
+    const maxRetries = this.maxRetries;
+    const delayBetweenRetries = this.delayBetweenRetries;
 
-                const devices = mergeBydeviceId(deviceLists, deviceConfigs);
-                await this.debugLog(`SwitchBot Devices: ${JSON.stringify(devices)}`);
-                for (const device of devices) {
-                  if (!device.deviceType) {
-                    device.deviceType = device.configDeviceType;
-                    this.errorLog(`API has displaying no deviceType: ${device.deviceType}, So using configDeviceType: ${device.configDeviceType}`);
-                  }
-                  if (device.deviceType) {
-                    if (device.configDeviceName) {
-                      device.deviceName = device.configDeviceName;
-                    }
-                    this.createDevice(device);
-                  }
-                }
-              }
-            } else {
-              this.errorLog('SwitchBot Token Supplied, Issue with Auth.');
-            }
-            if (devicesAPI.body.deviceList.length !== 0) {
-              this.infoLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
-            } else {
-              await this.debugLog(`Total SwitchBot Devices Found: ${devicesAPI.body.deviceList.length}`);
-            }
+    await this.debugWarnLog(`Retry Count: ${retryCount}`);
+    await this.debugWarnLog(`Max Retries: ${maxRetries}`);
+    await this.debugWarnLog(`Delay Between Retries: ${delayBetweenRetries}`);
 
-            // IR Devices
-            const irDeviceLists = devicesAPI.body.infraredRemoteList;
-            if (!this.config.options?.irdevices) {
-              await this.debugLog(`IR Device Config Not Set: ${JSON.stringify(this.config.options?.irdevices)}`);
-              const devices = irDeviceLists.map((v: any) => v);
-              for (const device of devices) {
-                if (device.remoteType) {
-                  this.createIRDevice(device);
-                }
-              }
-            } else {
-              await this.debugLog(`IR Device Config Set: ${JSON.stringify(this.config.options?.irdevices)}`);
-              const irDeviceConfig = this.config.options?.irdevices;
+    while (retryCount < maxRetries) {
+      try {
+        const { body, statusCode } = await request(Devices, { headers: this.generateHeaders() });
+        await this.debugWarnLog(`statusCode: ${statusCode}`);
+        const devicesAPI: any = await body.json();
+        await this.debugWarnLog(`devicesAPI: ${JSON.stringify(devicesAPI)}`);
 
-              const mergeIRBydeviceId = (a1: { deviceId: string }[], a2: any[]) =>
-                a1.map((itm: { deviceId: string }) => ({
-                  ...a2.find(
-                    (item: { deviceId: string }) =>
-                      item.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') === itm.deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '') && item,
-                  ),
-                  ...itm,
-                }));
-
-              const devices = mergeIRBydeviceId(irDeviceLists, irDeviceConfig);
-              await this.debugLog(`IR Devices: ${JSON.stringify(devices)}`);
-              for (const device of devices) {
-                this.createIRDevice(device);
-              }
-            }
-            if (devicesAPI.body.infraredRemoteList.length !== 0) {
-              this.infoLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
-            } else {
-              await this.debugLog(`Total IR Devices Found: ${devicesAPI.body.infraredRemoteList.length}`);
-            }
-            break;
-          } else {
-            this.statusCode(statusCode);
-            this.statusCode(devicesAPI.statusCode);
-            if (statusCode === 500) {
-              retryCount++;
-              this.infoLog(`statusCode: ${statusCode} Attempt ${retryCount} of ${maxRetries}`);
-              await sleep(delayBetweenRetries);
-            }
-          }
-        } catch (e: any) {
+        if (this.isSuccessfulResponse(statusCode, devicesAPI.statusCode)) {
+          await this.handleDevices(devicesAPI.body.deviceList);
+          await this.handleIRDevices(devicesAPI.body.infraredRemoteList);
+          break;
+        } else {
+          await this.handleErrorResponse(statusCode, devicesAPI.statusCode, retryCount, maxRetries, delayBetweenRetries);
           retryCount++;
-          this.debugErrorLog(
-            `Failed to Discover Devices, Error Message: ${JSON.stringify(e.message)}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug');
-          await this.debugErrorLog(`Failed to Discover Devices, Error: ${e}`);
         }
+      } catch (e: any) {
+        retryCount++;
+        await this.debugErrorLog(`Failed to Discover Devices, Error Message: ${JSON.stringify(e.message)},`
+        + ' Submit Bugs Here: https://tinyurl.com/SwitchBotBug');
+        await this.debugErrorLog(`Failed to Discover Devices, Error: ${e}`);
       }
-    } else if (!this.config.credentials?.token && this.config.options?.devices) {
+    }
+  }
+
+  private async handleManualConfig() {
+    if (this.config.options?.devices) {
       await this.debugLog(`SwitchBot Device Manual Config Set: ${JSON.stringify(this.config.options?.devices)}`);
-      const deviceConfigs = this.config.options?.devices;
-      const devices = deviceConfigs.map((v: any) => v);
+      const devices = this.config.options.devices.map((v: any) => v);
       for (const device of devices) {
         device.deviceType = device.configDeviceType;
         device.deviceName = device.configDeviceName;
         if (device.deviceType) {
-          this.createDevice(device);
+          await this.createDevice(device);
         }
       }
     } else {
-      this.errorLog('Neither SwitchBot Token or Device Config are not set.');
+      await this.errorLog('Neither SwitchBot Token or Device Config are set.');
+    }
+  }
+
+  private isSuccessfulResponse(statusCode: number, apiStatusCode: number): boolean {
+    return (statusCode === 200 || statusCode === 100) && (apiStatusCode === 200 || apiStatusCode === 100);
+  }
+
+  private async handleDevices(deviceLists: any[]) {
+    if (!this.config.options?.devices) {
+      await this.debugLog(`SwitchBot Device Config Not Set: ${JSON.stringify(this.config.options?.devices)}`);
+      if (deviceLists.length === 0) {
+        await this.debugLog('SwitchBot API Has No Devices With Cloud Services Enabled');
+      } else {
+        for (const device of deviceLists) {
+          if (device.deviceType) {
+            if (device.configDeviceName) {
+              device.deviceName = device.configDeviceName;
+            }
+            await this.createDevice(device);
+          }
+        }
+      }
+    } else {
+      await this.debugLog(`SwitchBot Device Config Set: ${JSON.stringify(this.config.options?.devices)}`);
+      const devices = this.mergeByDeviceId(deviceLists, this.config.options.devices);
+      await this.debugLog(`SwitchBot Devices: ${JSON.stringify(devices)}`);
+      for (const device of devices) {
+        if (!device.deviceType && device.configDeviceType) {
+          device.deviceType = device.configDeviceType;
+          await this.warnLog(`API is displaying no deviceType: ${device.deviceType}, So using configDeviceType: ${device.configDeviceType}`);
+        } else if (!device.deviceType && !device.configDeviceName) {
+          await this.errorLog('No deviceType or configDeviceType for device. No device will be created.');
+        }
+        if (device.deviceType) {
+          if (device.configDeviceName) {
+            device.deviceName = device.configDeviceName;
+          }
+          await this.createDevice(device);
+        }
+      }
+    }
+  }
+
+  private async handleIRDevices(irDeviceLists: any[]) {
+    if (!this.config.options?.irdevices) {
+      await this.debugLog(`IR Device Config Not Set: ${JSON.stringify(this.config.options?.irdevices)}`);
+      for (const device of irDeviceLists) {
+        if (device.remoteType) {
+          await this.createIRDevice(device);
+        }
+      }
+    } else {
+      await this.debugLog(`IR Device Config Set: ${JSON.stringify(this.config.options?.irdevices)}`);
+      const devices = this.mergeByDeviceId(irDeviceLists, this.config.options.irdevices);
+      await this.debugLog(`IR Devices: ${JSON.stringify(devices)}`);
+      for (const device of devices) {
+        await this.createIRDevice(device);
+      }
+    }
+  }
+
+  private mergeByDeviceId(a1: { deviceId: string }[], a2: any[]) {
+    const normalizeDeviceId = (deviceId: string) => deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '');
+    return a1.map(itm => {
+      const matchingItem = a2.find(item => normalizeDeviceId(item.deviceId) === normalizeDeviceId(itm.deviceId));
+      return { ...matchingItem, ...itm };
+    });
+  }
+
+  private async handleErrorResponse(statusCode: number, apiStatusCode: number, retryCount: number, maxRetries: number, delayBetweenRetries: number) {
+    await this.statusCode(statusCode);
+    await this.statusCode(apiStatusCode);
+    if (statusCode === 500) {
+      this.infoLog(`statusCode: ${statusCode} Attempt ${retryCount + 1} of ${maxRetries}`);
+      await sleep(delayBetweenRetries);
     }
   }
 
   private async createDevice(device: device & devicesConfig) {
-    switch (device.deviceType!) {
-      case 'Humidifier':
-        await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
-        this.createHumidifier(device);
-        break;
-      case 'Hub Mini':
-        await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
-        break;
-      case 'Hub Plus':
-        await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
-        break;
-      case 'Hub 2':
-        await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
-        this.createHub2(device);
-        break;
-      case 'Bot':
-        await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
-        this.createBot(device);
-        break;
-      case 'Meter':
-        await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
-        this.createMeter(device);
-        break;
-      case 'MeterPlus':
-      case 'Meter Plus (JP)':
-        await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
-        this.createMeterPlus(device);
-        break;
-      case 'WoIOSensor':
-        await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
-        this.createIOSensor(device);
-        break;
-      case 'Water Detector':
-        await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
-        this.createWaterDetector(device);
-        break;
-      case 'Motion Sensor':
-        await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
-        this.createMotion(device);
-        break;
-      case 'Contact Sensor':
-        await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
-        this.createContact(device);
-        break;
-      case 'Curtain':
-      case 'Curtain3':
-        await this.debugLog(`Discovered ${device.deviceType} ${device.deviceName}: ${device.deviceId}`);
-        this.createCurtain(device);
-        break;
-      case 'Blind Tilt':
-        await this.debugLog(`Discovered ${device.deviceType} ${device.deviceName}: ${device.deviceId}`);
-        this.createBlindTilt(device);
-        break;
-      case 'Plug':
-      case 'Plug Mini (US)':
-      case 'Plug Mini (JP)':
-        await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
-        this.createPlug(device);
-        break;
-      case 'Smart Lock':
-      case 'Smart Lock Pro':
-        await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
-        this.createLock(device);
-        break;
-      case 'Color Bulb':
-        await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
-        this.createColorBulb(device);
-        break;
-      case 'K10+':
-      case 'WoSweeper':
-      case 'WoSweeperMini':
-      case 'Robot Vacuum Cleaner S1':
-      case 'Robot Vacuum Cleaner S1 Plus':
-      case 'Robot Vacuum Cleaner S10':
-        await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
-        this.createRobotVacuumCleaner(device);
-        break;
-      case 'Ceiling Light':
-      case 'Ceiling Light Pro':
-        await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
-        this.createCeilingLight(device);
-        break;
-      case 'Strip Light':
-        await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
-        this.createStripLight(device);
-        break;
-      case 'Battery Circulator Fan':
-        await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
-        this.createFan(device);
-        break;
-      case 'Remote':
-      case 'Indoor Cam':
-      case 'remote with screen+':
-        await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}, is currently not supported, device: ${JSON.stringify(device)}`);
-        break;
-      default:
-        this.warnLog(`Device: ${device.deviceName} with Device Type: ${device.deviceType}, is currently not supported.`,
-          + `Submit Feature Requests Here: https://tinyurl.com/SwitchBotFeatureRequest, device: ${JSON.stringify(device)}`);
+    const deviceTypeHandlers: { [key: string]: (device: device & devicesConfig) => Promise<void> } = {
+      'Humidifier': this.createHumidifier.bind(this),
+      'Hub 2': this.createHub2.bind(this),
+      'Bot': this.createBot.bind(this),
+      'Meter': this.createMeter.bind(this),
+      'MeterPlus': this.createMeterPlus.bind(this),
+      'Meter Plus (JP)': this.createMeterPlus.bind(this),
+      'WoIOSensor': this.createIOSensor.bind(this),
+      'Water Detector': this.createWaterDetector.bind(this),
+      'Motion Sensor': this.createMotion.bind(this),
+      'Contact Sensor': this.createContact.bind(this),
+      'Curtain': this.createCurtain.bind(this),
+      'Curtain3': this.createCurtain.bind(this),
+      'Blind Tilt': this.createBlindTilt.bind(this),
+      'Plug': this.createPlug.bind(this),
+      'Plug Mini (US)': this.createPlug.bind(this),
+      'Plug Mini (JP)': this.createPlug.bind(this),
+      'Smart Lock': this.createLock.bind(this),
+      'Smart Lock Pro': this.createLock.bind(this),
+      'Color Bulb': this.createColorBulb.bind(this),
+      'K10+': this.createRobotVacuumCleaner.bind(this),
+      'WoSweeper': this.createRobotVacuumCleaner.bind(this),
+      'WoSweeperMini': this.createRobotVacuumCleaner.bind(this),
+      'Robot Vacuum Cleaner S1': this.createRobotVacuumCleaner.bind(this),
+      'Robot Vacuum Cleaner S1 Plus': this.createRobotVacuumCleaner.bind(this),
+      'Robot Vacuum Cleaner S10': this.createRobotVacuumCleaner.bind(this),
+      'Ceiling Light': this.createCeilingLight.bind(this),
+      'Ceiling Light Pro': this.createCeilingLight.bind(this),
+      'Strip Light': this.createStripLight.bind(this),
+      'Battery Circulator Fan': this.createFan.bind(this),
+    };
+
+    if (deviceTypeHandlers[device.deviceType!]) {
+      await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`);
+      await deviceTypeHandlers[device.deviceType!](device);
+    } else if (['Hub Mini', 'Hub Plus', 'Remote', 'Indoor Cam', 'remote with screen'].includes(device.deviceType!)) {
+      await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}, is currently not supported, device: ${JSON.stringify(device)}`);
+    } else {
+      await this.warnLog(`Device: ${device.deviceName} with Device Type: ${device.deviceType}, is currently not supported.`
+        + ` Submit Feature Requests Here: https://tinyurl.com/SwitchBotFeatureRequest, device: ${JSON.stringify(device)}`);
     }
   }
 
   private async createIRDevice(device: irdevice & devicesConfig) {
-    if (device.connectionType === undefined) {
-      device.connectionType = 'OpenAPI';
-    }
-    switch (device.remoteType) {
-      case 'TV':
-      case 'DIY TV':
-      case 'Projector':
-      case 'DIY Projector':
-      case 'Set Top Box':
-      case 'DIY Set Top Box':
-      case 'IPTV':
-      case 'DIY IPTV':
-      case 'DVD':
-      case 'DIY DVD':
-      case 'Speaker':
-      case 'DIY Speaker':
-        await this.debugLog(`Discovered ${device.remoteType}: ${device.deviceId}`);
-        if (device.external === undefined) {
-          device.external = true;
-          this.createTV(device);
-        } else {
-          this.createTV(device);
-        }
-        break;
-      case 'Fan':
-      case 'DIY Fan':
-        await this.debugLog(`Discovered ${device.remoteType}: ${device.deviceId}`);
-        this.createIRFan(device);
-        break;
-      case 'Air Conditioner':
-      case 'DIY Air Conditioner':
-        await this.debugLog(`Discovered ${device.remoteType}: ${device.deviceId}`);
-        this.createAirConditioner(device);
-        break;
-      case 'Light':
-      case 'DIY Light':
-        await this.debugLog(`Discovered ${device.remoteType}: ${device.deviceId}`);
-        this.createLight(device);
-        break;
-      case 'Air Purifier':
-      case 'DIY Air Purifier':
-        await this.debugLog(`Discovered ${device.remoteType}: ${device.deviceId}`);
-        this.createAirPurifier(device);
-        break;
-      case 'Water Heater':
-      case 'DIY Water Heater':
-        await this.debugLog(`Discovered ${device.remoteType}: ${device.deviceId}`);
-        this.createWaterHeater(device);
-        break;
-      case 'Vacuum Cleaner':
-      case 'DIY Vacuum Cleaner':
-        await this.debugLog(`Discovered ${device.remoteType}: ${device.deviceId}`);
-        this.createVacuumCleaner(device);
-        break;
-      case 'Camera':
-      case 'DIY Camera':
-        await this.debugLog(`Discovered ${device.remoteType}: ${device.deviceId}`);
-        this.createCamera(device);
-        break;
-      case 'Others':
-        await this.debugLog(`Discovered ${device.remoteType}: ${device.deviceId}`);
-        this.createOthers(device);
-        break;
-      default:
-        await this.debugLog(`Unsupported Device: ${JSON.stringify(device)}`);
-        this.warnLog(`Device: ${device.deviceName} with Device Type: ${device.remoteType}, is currently not supported.`);
-        this.warnLog('Submit Feature Requests Here: ' + 'https://tinyurl.com/SwitchBotFeatureRequest');
+    device.connectionType = device.connectionType ?? 'OpenAPI';
+    const deviceTypeHandlers: { [key: string]: (device: irdevice & devicesConfig) => Promise<void> } = {
+      'TV': this.createTV.bind(this),
+      'DIY TV': this.createTV.bind(this),
+      'Projector': this.createTV.bind(this),
+      'DIY Projector': this.createTV.bind(this),
+      'Set Top Box': this.createTV.bind(this),
+      'DIY Set Top Box': this.createTV.bind(this),
+      'IPTV': this.createTV.bind(this),
+      'DIY IPTV': this.createTV.bind(this),
+      'DVD': this.createTV.bind(this),
+      'DIY DVD': this.createTV.bind(this),
+      'Speaker': this.createTV.bind(this),
+      'DIY Speaker': this.createTV.bind(this),
+      'Fan': this.createIRFan.bind(this),
+      'DIY Fan': this.createIRFan.bind(this),
+      'Air Conditioner': this.createAirConditioner.bind(this),
+      'DIY Air Conditioner': this.createAirConditioner.bind(this),
+      'Light': this.createLight.bind(this),
+      'DIY Light': this.createLight.bind(this),
+      'Air Purifier': this.createAirPurifier.bind(this),
+      'DIY Air Purifier': this.createAirPurifier.bind(this),
+      'Water Heater': this.createWaterHeater.bind(this),
+      'DIY Water Heater': this.createWaterHeater.bind(this),
+      'Vacuum Cleaner': this.createVacuumCleaner.bind(this),
+      'DIY Vacuum Cleaner': this.createVacuumCleaner.bind(this),
+      'Camera': this.createCamera.bind(this),
+      'DIY Camera': this.createCamera.bind(this),
+      'Others': this.createOthers.bind(this),
+    };
+
+    if (deviceTypeHandlers[device.remoteType!]) {
+      await this.debugLog(`Discovered ${device.remoteType}: ${device.deviceId}`);
+      if (device.remoteType.startsWith('DIY') && device.external === undefined) {
+        device.external = true;
+      }
+      await deviceTypeHandlers[device.remoteType!](device);
+    } else {
+      await this.warnLog(`Device: ${device.deviceName} with Device Type: ${device.remoteType}, is currently not supported.`
+        + ` Submit Feature Requests Here: https://tinyurl.com/SwitchBotFeatureRequest, device: ${JSON.stringify(device)}`);
     }
   }
 
@@ -2060,7 +1962,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
         : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
       accessory.context.connectionType = await this.connectionType(device);
-      accessory.context.connectionType = device.connectionType;
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
       await this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`);
@@ -2069,7 +1970,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       new TV(this, accessory, device);
       await this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
-      this.externalOrPlatformIR(device, accessory);
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       await this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} deviceId: ${device.deviceId}`);
@@ -2120,7 +2021,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
         : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
       accessory.context.connectionType = await this.connectionType(device);
-      accessory.context.connectionType = device.connectionType;
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
       await this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`);
@@ -2130,7 +2030,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       await this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
       // publish device externally or link the accessory to your platform
-      this.externalOrPlatformIR(device, accessory);
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       await this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} deviceId: ${device.deviceId}`);
@@ -2181,7 +2081,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
         : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
       accessory.context.connectionType = await this.connectionType(device);
-      accessory.context.connectionType = device.connectionType;
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
       await this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`);
@@ -2191,7 +2090,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       await this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
       // publish device externally or link the accessory to your platform
-      this.externalOrPlatformIR(device, accessory);
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       await this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} deviceId: ${device.deviceId}`);
@@ -2242,7 +2141,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
         : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
       accessory.context.connectionType = await this.connectionType(device);
-      accessory.context.connectionType = device.connectionType;
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
       await this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`);
@@ -2252,7 +2150,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       await this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
       // publish device externally or link the accessory to your platform
-      this.externalOrPlatformIR(device, accessory);
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       await this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} deviceId: ${device.deviceId}`);
@@ -2303,7 +2201,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
         : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
       accessory.context.connectionType = await this.connectionType(device);
-      accessory.context.connectionType = device.connectionType;
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
       await this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`);
@@ -2313,7 +2210,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       await this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
       // publish device externally or link the accessory to your platform
-      this.externalOrPlatformIR(device, accessory);
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       await this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} deviceId: ${device.deviceId}`);
@@ -2364,7 +2261,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
         : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
       accessory.context.connectionType = await this.connectionType(device);
-      accessory.context.connectionType = device.connectionType;
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
       await this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`);
@@ -2374,7 +2270,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       await this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
       // publish device externally or link the accessory to your platform
-      this.externalOrPlatformIR(device, accessory);
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       await this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} deviceId: ${device.deviceId}`);
@@ -2425,7 +2321,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
         : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
       accessory.context.connectionType = await this.connectionType(device);
-      accessory.context.connectionType = device.connectionType;
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
       await this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`);
@@ -2435,7 +2330,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       await this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
       // publish device externally or link the accessory to your platform
-      this.externalOrPlatformIR(device, accessory);
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       await this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} deviceId: ${device.deviceId}`);
@@ -2486,7 +2381,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
         : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
       accessory.context.connectionType = await this.connectionType(device);
-      accessory.context.connectionType = device.connectionType;
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
       await this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`);
@@ -2496,7 +2390,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       await this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
       // publish device externally or link the accessory to your platform
-      this.externalOrPlatformIR(device, accessory);
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       await this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} deviceId: ${device.deviceId}`);
@@ -2547,7 +2441,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
         : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName);
       accessory.context.connectionType = await this.connectionType(device);
-      accessory.context.connectionType = device.connectionType;
       accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0';
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external';
       await this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`);
@@ -2557,7 +2450,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       await this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`);
 
       // publish device externally or link the accessory to your platform
-      this.externalOrPlatformIR(device, accessory);
+      this.externalOrPlatform(device, accessory);
       this.accessories.push(accessory);
     } else {
       await this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} deviceId: ${device.deviceId}`);
@@ -2565,13 +2458,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   async registerCurtains(device: device & devicesConfig): Promise<boolean> {
-    /*function isCurtainDevice(device: device & devicesConfig): device is (curtain | curtain3) & devicesConfig {
-      return device.deviceType === 'Curtain' || device.deviceType === 'Curtain3';
-    }
-
-    function isBlindTiltDevice(device: device & devicesConfig): device is blindTilt & devicesConfig {
-      return device.deviceType === 'Blind Tilt';
-    }*/
     let registerWindowCovering: boolean;
     if (isCurtainDevice(device)) {
       await this.debugWarnLog(`deviceName: ${device.deviceName} deviceId: ${device.deviceId}, curtainDevicesIds: ${device.curtainDevicesIds},`
@@ -2717,111 +2603,72 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     return registerDevice;
   }
 
-  public async externalOrPlatformIR(device: device & irDevicesConfig, accessory: PlatformAccessory) {
-    /**
-     * Publish as external accessory
-     * Only one TV can exist per bridge, to bypass this limitation, you should
-     * publish your TV as an external accessory.
-     */
-    if (device.external) {
-      await this.debugWarnLog(`${accessory.displayName} External Accessory Mode`);
-      this.externalAccessory(accessory);
+  public async externalOrPlatform(device: device & (irDevicesConfig | devicesConfig), accessory: PlatformAccessory) {
+    const { displayName } = accessory;
+    const isExternal = device.external ?? false;
+
+    if (isExternal) {
+      await this.debugWarnLog(`${displayName} External Accessory Mode`);
+      this.api.publishExternalAccessories(PLUGIN_NAME, [accessory]);
     } else {
-      await this.debugLog(`${accessory.displayName} External Accessory Mode: ${device.external}`);
+      await this.debugLog(`${displayName} External Accessory Mode: ${isExternal}`);
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
     }
-  }
-
-  public async externalOrPlatform(device: device & devicesConfig, accessory: PlatformAccessory) {
-    if (device.external) {
-      await this.debugWarnLog(`${accessory.displayName} External Accessory Mode`);
-      await this.externalAccessory(accessory);
-    } else {
-      await this.debugLog(`${accessory.displayName} External Accessory Mode: ${device.external}`);
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-    }
-  }
-
-  public async externalAccessory(accessory: PlatformAccessory) {
-    this.api.publishExternalAccessories(PLUGIN_NAME, [accessory]);
   }
 
   public unregisterPlatformAccessories(existingAccessory: PlatformAccessory) {
+    const { displayName } = existingAccessory;
     // remove platform accessories when no longer present
     this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
-    this.warnLog(`Removing existing accessory from cache: ${existingAccessory.displayName}`);
+    this.warnLog(`Removing existing accessory from cache: ${displayName}`);
   }
 
+  /**
+   * Handles the status codes returned by the device and logs appropriate messages.
+   *
+   * @param statusCode - The status code returned by the device.
+   * @returns A promise that resolves when the logging is complete.
+   */
   async statusCode(statusCode: number): Promise<void> {
-    switch (statusCode) {
-      case 151:
-        await this.errorLog(`Command not supported by this device type, statusCode: ${statusCode}, Submit Feature Request Here: ` +
-          'https://tinyurl.com/SwitchBotFeatureRequest');
-        break;
-      case 152:
-        await this.errorLog(`Device not found, statusCode: ${statusCode}`);
-        break;
-      case 160:
-        await this.errorLog(`Command is not supported, statusCode: ${statusCode}, Submit Bugs Here: https://tinyurl.com/SwitchBotBug`);
-        break;
-      case 161:
-        await this.errorLog(`Device is offline, statusCode: ${statusCode}`);
-        break;
-      case 171:
-        await this.errorLog(`is offline, statusCode: ${statusCode}`);
-        break;
-      case 190:
-        await this.errorLog(`Requests reached the daily limit, statusCode: ${statusCode}`);
-        break;
-      case 100:
-        await this.debugLog(`Command successfully sent, statusCode: ${statusCode}`);
-        break;
-      case 200:
-        await this.debugLog(`Request successful, statusCode: ${statusCode}`);
-        break;
-      case 400:
-        await this.errorLog('Bad Request, The client has issued an invalid request. This is commonly used to specify validation errors in a request '
-          + `payload, statusCode: ${statusCode}`);
-        break;
-      case 401:
-        await this.errorLog('Unauthorized,	Authorization for the API is required, but the request has not been authenticated, '
-          + `statusCode: ${statusCode}`);
-        break;
-      case 403:
-        await this.errorLog('Forbidden,	The request has been authenticated but does not have appropriate permissions, or a requested resource is not '
-          + `found, statusCode: ${statusCode}`);
-        break;
-      case 404:
-        await this.errorLog(`Not Found,	Specifies the requested path does not exist, statusCode: ${statusCode}`);
-        break;
-      case 406:
-        await this.errorLog('Not Acceptable,	The client has requested a MIME type via the Accept header for a value not supported by the server, '
-          + `statusCode: ${statusCode}`);
-        break;
-      case 415:
-        await this.errorLog('Unsupported Media Type,	The client has defined a contentType header that is not supported by the server, '
-          + `statusCode: ${statusCode}`);
-        break;
-      case 422:
-        await this.errorLog('Unprocessable Entity,	The client has made a valid request, but the server cannot process it. This is often used for '
-          + `APIs for which certain limits have been exceeded, statusCode: ${statusCode}`);
-        break;
-      case 429:
-        await this.errorLog('Too Many Requests,	The client has exceeded the number of requests allowed for a given time window, '
-          + `statusCode: ${statusCode}`);
-        break;
-      case 500:
-        await this.errorLog('Internal Server Error,	An unexpected error on the SmartThings servers has occurred. These errors should be rare, '
-          + `statusCode: ${statusCode}`);
-        break;
-      default:
-        await this.errorLog(`Unknown statusCode, statusCode: ${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
+    const messages: { [key: number]: string } = {
+      151: `Command not supported by this device type, statusCode: ${statusCode}, Submit Feature Request Here: 
+            https://tinyurl.com/SwitchBotFeatureRequest`,
+      152: `Device not found, statusCode: ${statusCode}`,
+      160: `Command is not supported, statusCode: ${statusCode}, Submit Bugs Here: https://tinyurl.com/SwitchBotBug`,
+      161: `Device is offline, statusCode: ${statusCode}`,
+      171: `is offline, statusCode: ${statusCode}`,
+      190: `Requests reached the daily limit, statusCode: ${statusCode}`,
+      100: `Command successfully sent, statusCode: ${statusCode}`,
+      200: `Request successful, statusCode: ${statusCode}`,
+      400: `Bad Request, The client has issued an invalid request. This is commonly used to specify validation errors in a request payload, 
+            statusCode: ${statusCode}`,
+      401: `Unauthorized, Authorization for the API is required, but the request has not been authenticated, statusCode: ${statusCode}`,
+      403: `Forbidden, The request has been authenticated but does not have appropriate permissions, or a requested resource is not found, 
+            statusCode: ${statusCode}`,
+      404: `Not Found, Specifies the requested path does not exist, statusCode: ${statusCode}`,
+      406: `Not Acceptable, The client has requested a MIME type via the Accept header for a value not supported by the server, 
+            statusCode: ${statusCode}`,
+      415: `Unsupported Media Type, The client has defined a contentType header that is not supported by the server, statusCode: ${statusCode}`,
+      422: `Unprocessable Entity, The client has made a valid request, but the server cannot process it. This is often used for APIs for which 
+            certain limits have been exceeded, statusCode: ${statusCode}`,
+      429: `Too Many Requests, The client has exceeded the number of requests allowed for a given time window, statusCode: ${statusCode}`,
+      500: `Internal Server Error, An unexpected error on the SmartThings servers has occurred. These errors should be rare, 
+            statusCode: ${statusCode}`,
+    };
+
+    const message = messages[statusCode] ?? `Unknown statusCode, statusCode: ${statusCode}, Submit Bugs Here: https://tinyurl.com/SwitchBotBug`;
+
+    if ([100, 200].includes(statusCode)) {
+      await this.debugLog(message);
+    } else {
+      await this.errorLog(message);
     }
   }
 
   async retryRequest(deviceMaxRetries: number, deviceDelayBetweenRetries: number, url: string | URL | UrlObject,
     options?: { dispatcher?: Dispatcher } & Omit<Dispatcher.RequestOptions,
-      'origin' | 'path' | 'method'> & Partial<Pick<Dispatcher.RequestOptions, 'method'>>): Promise<{ body: any; statusCode: number }> {
+      'origin' | 'path' | 'method'> & Partial<Pick<Dispatcher.RequestOptions,
+        'method'>>): Promise<{ body: any; statusCode: number }> {
     let retryCount = 0;
     const maxRetries = deviceMaxRetries;
     const delayBetweenRetries = deviceDelayBetweenRetries;
@@ -2844,20 +2691,20 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   // BLE Connection
-  async connectBLE(accessory: PlatformAccessory, device: device & devicesConfig) {
-    let switchbot: any;
+  async connectBLE(accessory: PlatformAccessory, device: device & devicesConfig): Promise<any> {
     try {
-      const SwitchBot = (await import('node-switchbot')).SwitchBot;
-      queueScheduler.schedule(() => (switchbot = new SwitchBot()));
+      const { SwitchBot } = await import('node-switchbot');
+      const switchbot = new SwitchBot();
+      queueScheduler.schedule(async () => switchbot);
       await this.debugLog(`${device.deviceType}: ${accessory.displayName} 'node-switchbot' found: ${switchbot}`);
+      return switchbot;
     } catch (e: any) {
-      switchbot = false;
-      await this.errorLog(`${device.deviceType}: ${accessory.displayName} 'node-switchbot' found: ${switchbot}, Error: ${e}`);
+      await this.errorLog(`${device.deviceType}: ${accessory.displayName} 'node-switchbot' not found, Error: ${e}`);
+      return false;
     }
-    return switchbot;
   }
 
-  async getVersion() {
+  async getVersion(): Promise<string> {
     const json = JSON.parse(
       readFileSync(
         new URL('../package.json', import.meta.url),
@@ -2866,42 +2713,35 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     );
     await this.debugLog(`Plugin Version: ${json.version}`);
     this.version = json.version;
+    return json.version;
   }
 
   async getPlatformConfigSettings() {
+    const { options } = this.config;
     const platformConfig: SwitchBotPlatformConfig['options'] = {};
-    if (this.config.options) {
-      if (this.config.options.logging) {
-        platformConfig.logging = this.config.options.logging;
+
+    if (options) {
+      platformConfig.logging = options.logging;
+      platformConfig.refreshRate = options.refreshRate;
+      platformConfig.updateRate = options.updateRate;
+      platformConfig.pushRate = options.pushRate;
+
+      this.maxRetries = options.maxRetries || 3;
+      platformConfig.maxRetries = this.maxRetries;
+      if (!options.maxRetries) {
+        await this.debugWarnLog('Using Default Max Retries');
       }
-      if (this.config.options.refreshRate) {
-        platformConfig.refreshRate = this.config.options.refreshRate;
+
+      this.delayBetweenRetries = (options.delayBetweenRetries || 3) * 1000;
+      platformConfig.delayBetweenRetries = this.delayBetweenRetries / 1000;
+      if (!options.delayBetweenRetries) {
+        await this.debugWarnLog('Using Default Delay Between Retries');
       }
-      if (this.config.options.updateRate) {
-        platformConfig.updateRate = this.config.options.updateRate;
-      }
-      if (this.config.options.pushRate) {
-        platformConfig.pushRate = this.config.options.pushRate;
-      }
-      if (this.config.options.maxRetries) {
-        this.maxRetries = this.config.options.maxRetries;
-        platformConfig.maxRetries = this.config.options.maxRetries;
-      } else {
-        this.maxRetries = 3;
-        this.debugWarnLog('Using Default Max Retries');
-        platformConfig.maxRetries = this.maxRetries;
-      }
-      if (this.config.options.delayBetweenRetries) {
-        this.delayBetweenRetries = this.config.options.delayBetweenRetries * 1000;
-        platformConfig.delayBetweenRetries = this.config.options.delayBetweenRetries;
-      } else {
-        this.delayBetweenRetries = 3000;
-        this.debugWarnLog('Using Default Delay Between Retries');
-        platformConfig.delayBetweenRetries = this.delayBetweenRetries / 1000;
-      }
-      if (Object.entries(platformConfig).length !== 0) {
+
+      if (Object.keys(platformConfig).length) {
         await this.debugLog(`Platform Config: ${JSON.stringify(platformConfig)}`);
       }
+
       this.platformConfig = platformConfig;
     }
   }
@@ -2922,35 +2762,45 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
   /**
    * Validate and clean a string value for a Name Characteristic.
- * @param displayName
- * @param name
- * @param value
- * @returns string value
- */
+   * @param displayName - The display name of the accessory.
+   * @param name - The name of the characteristic.
+   * @param value - The value to be validated and cleaned.
+   * @returns The cleaned string value.
+  */
   async validateAndCleanDisplayName(displayName: string, name: string, value: string): Promise<string> {
-    const validPattern = /^[a-zA-Z0-9][a-zA-Z0-9 ']*[a-zA-Z0-9]$/;
-    const invalidCharsPattern = /[^a-zA-Z0-9 ']/g;
-    const invalidStartEndPattern = /^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g;
+    if (this.config.options?.allowInvalidCharacters) {
+      return value;
+    } else {
+      const validPattern = new RegExp(/^[\p{L}\p{N}][\p{L}\p{N} ']*[\p{L}\p{N}]$/u);
+      const invalidCharsPattern = /[^\p{L}\p{N} ']/gu;
+      const invalidStartEndPattern = /^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu;
 
-    if (!validPattern.test(value)) {
-      this.warnLog(`WARNING: The accessory '${displayName}' has an invalid '${name}' characteristic ('${value}'). Please use only alphanumeric,`
-        + ' space, and apostrophe characters. Ensure it starts and ends with an alphabetic or numeric character, and avoid emojis. This may'
-        + ' prevent the accessory from being added in the Home App or cause unresponsiveness.');
+      if (typeof value === 'string' && !validPattern.test(value)) {
+        await this.warnLog(`WARNING: The accessory '${displayName}' has an invalid '${name}' characteristic ('${value}').`
+          + ' Please use only alphanumeric, space, and apostrophe characters. Ensure it starts and ends with an alphabetic or numeric character,'
+          + ' and avoid emojis. This may prevent the accessory from being added in the Home App or cause unresponsiveness.');
 
-      // Remove invalid characters
-      if (invalidCharsPattern.test(value)) {
-        this.warnLog(`Removing invalid characters from '${name}' characteristic`);
-        value = value.replace(invalidCharsPattern, '');
+        // Remove invalid characters
+        if (invalidCharsPattern.test(value)) {
+          const before = value;
+          await this.warnLog(`Removing invalid characters from '${name}' characteristic, if you feel this is incorrect,`
+            + ' please enable \'allowInvalidCharacter\' in the config to allow all characters');
+          value = value.replace(invalidCharsPattern, '');
+          await this.warnLog(`${name} Before: '${before}' After: '${value}'`);
+        }
+
+        // Ensure it starts and ends with an alphanumeric character
+        if (invalidStartEndPattern.test(value)) {
+          const before = value;
+          await this.warnLog(`Removing invalid starting or ending characters from '${name}' characteristic, if you feel this is incorrect,`
+            + ' please enable \'allowInvalidCharacter\' in the config to allow all characters');
+          value = value.replace(invalidStartEndPattern, '');
+          await this.warnLog(`${name} Before: '${before}' After: '${value}'`);
+        }
       }
 
-      // Ensure it starts and ends with an alphanumeric character
-      if (invalidStartEndPattern.test(value)) {
-        this.warnLog(`Removing invalid starting or ending characters from '${name}' characteristic`);
-        value = value.replace(invalidStartEndPattern, '');
-      }
+      return value;
     }
-
-    return value;
   }
 
   /**

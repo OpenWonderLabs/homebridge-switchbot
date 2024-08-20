@@ -67,76 +67,33 @@ export abstract class irdeviceBase {
   }
 
   async getDeviceConfigSettings(device: irdevice & irDevicesConfig): Promise<void> {
-    const deviceConfig = {};
-    if (device.logging !== 'standard') {
-      deviceConfig['logging'] = device.logging;
-    }
-    if (device.connectionType !== '') {
-      deviceConfig['connectionType'] = device.connectionType;
-    }
-    if (device.external === true) {
-      deviceConfig['external'] = device.external;
-    }
-    if (device.customize === true) {
-      deviceConfig['customize'] = device.customize;
-    }
-    if (device.commandType !== '') {
-      deviceConfig['commandType'] = device.commandType;
-    }
-    if (device.customOn !== '') {
-      deviceConfig['customOn'] = device.customOn;
-    }
-    if (device.customOff !== '') {
-      deviceConfig['customOff'] = device.customOff;
-    }
-    if (device.disablePushOn === true) {
-      deviceConfig['disablePushOn'] = device.disablePushOn;
-    }
-    if (device.disablePushOff === true) {
-      deviceConfig['disablePushOff'] = device.disablePushOff;
-    }
-    if (device.disablePushDetail === true) {
-      deviceConfig['disablePushDetail'] = device.disablePushDetail;
-    }
-    let irairConfig = {};
-    if (device.irair) {
-      irairConfig = device.irair;
-    }
-    let irpurConfig = {};
-    if (device.irpur) {
-      irpurConfig = device.irpur;
-    }
-    let ircamConfig = {};
-    if (device.ircam) {
-      ircamConfig = device.ircam;
-    }
-    let irfanConfig = {};
-    if (device.irfan) {
-      irfanConfig = device.irfan;
-    }
-    let irlightConfig = {};
-    if (device.irlight) {
-      irlightConfig = device.irlight;
-    }
-    let otherConfig = {};
-    if (device.other) {
-      otherConfig = device.other;
-    }
-    let irtvConfig = {};
-    if (device.irtv) {
-      irtvConfig = device.irtv;
-    }
-    let irvcConfig = {};
-    if (device.irvc) {
-      irvcConfig = device.irvc;
-    }
-    let irwhConfig = {};
-    if (device.irwh) {
-      irwhConfig = device.irwh;
-    }
-    const config = Object.assign({}, deviceConfig, irairConfig, irpurConfig, ircamConfig, irfanConfig, irlightConfig, otherConfig,
-      irtvConfig, irvcConfig, irwhConfig);
-    if (Object.entries(config).length !== 0) {
+    const deviceConfig = Object.assign(
+      {},
+      device.logging !== 'standard' && { logging: device.logging },
+      device.connectionType !== '' && { connectionType: device.connectionType },
+      device.external === true && { external: device.external },
+      device.customize === true && { customize: device.customize },
+      device.commandType !== '' && { commandType: device.commandType },
+      device.customOn !== '' && { customOn: device.customOn },
+      device.customOff !== '' && { customOff: device.customOff },
+      device.disablePushOn === true && { disablePushOn: device.disablePushOn },
+      device.disablePushOff === true && { disablePushOff: device.disablePushOff },
+      device.disablePushDetail === true && { disablePushDetail: device.disablePushDetail },
+    );
+    const config = Object.assign(
+      {},
+      deviceConfig,
+      device.irair,
+      device.irpur,
+      device.ircam,
+      device.irfan,
+      device.irlight,
+      device.other,
+      device.irtv,
+      device.irvc,
+      device.irwh,
+    );
+    if (Object.keys(config).length !== 0) {
       this.debugSuccessLog(`Config: ${JSON.stringify(config)}`);
     }
   }
@@ -280,70 +237,33 @@ export abstract class irdeviceBase {
   }
 
   async statusCode(statusCode: number): Promise<void> {
-    switch (statusCode) {
-      case 151:
-        this.errorLog(`Command not supported by this deviceType, statusCode: ${statusCode}`);
-        break;
-      case 152:
-        this.errorLog(`Device not found, statusCode: ${statusCode}`);
-        break;
-      case 160:
-        this.errorLog(`Command is not supported, statusCode: ${statusCode}`);
-        break;
-      case 161:
-        this.errorLog(`Device is offline, statusCode: ${statusCode}`);
-        break;
-      case 171:
-        this.errorLog(`Hub Device is offline, statusCode: ${statusCode}. Hub: ${this.device.hubDeviceId}`);
-        break;
-      case 190:
-        this.errorLog('Device internal error due to device states not synchronized with server, Or command format is invalid,'
-          + ` statusCode: ${statusCode}`);
-        break;
-      case 100:
-        await this.debugLog(`Command successfully sent, statusCode: ${statusCode}`);
-        break;
-      case 200:
-        await this.debugLog(`Request successful, statusCode: ${statusCode}`);
-        break;
-      case 400:
-        this.errorLog('Bad Request, The client has issued an invalid request. This is commonly used to specify validation errors in a request'
-          + ` payload, statusCode: ${statusCode}`);
-        break;
-      case 401:
-        this.errorLog(`Unauthorized, Authorization for the API is required, but the request has not been authenticated, statusCode: ${statusCode}`);
-        break;
-      case 403:
-        this.errorLog('Forbidden,	The request has been authenticated but does not have appropriate permissions, or a requested resource is not'
-          + ` found, statusCode: ${statusCode}`);
-        break;
-      case 404:
-        this.errorLog(`Not Found,	Specifies the requested path does not exist, statusCode: ${statusCode}`);
-        break;
-      case 406:
-        this.errorLog('Not Acceptable, The client has requested a MIME type via the Accept header for a value not supported by the server,'
-          + ` statusCode: ${statusCode}`);
-        break;
-      case 415:
-        this.errorLog('Unsupported Media Type,	The client has defined a contentType header that is not supported by the server,'
-          + ` statusCode: ${statusCode}`);
-        break;
-      case 422:
-        this.errorLog('Unprocessable Entity,	The client has made a valid request, but the server cannot process it. This is often used for APIs'
-          + ` for which certain limits have been exceeded, statusCode: ${statusCode}`);
-        break;
-      case 429:
-        this.errorLog('Too Many Requests,	The client has exceeded the number of requests allowed for a given time window,'
-          + ` statusCode: ${statusCode}`);
-        break;
-      case 500:
-        this.errorLog('Internal Server Error,	An unexpected error on the SmartThings servers has occurred. These errors should be rare,'
-          + ` statusCode: ${statusCode}`);
-        break;
-      default:
-        this.infoLog('Unknown statusCode: '
-          + `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`);
+    const statusMessages = {
+      151: 'Command not supported by this deviceType',
+      152: 'Device not found',
+      160: 'Command is not supported',
+      161: 'Device is offline',
+      171: `Hub Device is offline. Hub: ${this.device.hubDeviceId}`,
+      190: 'Device internal error due to device states not synchronized with server, or command format is invalid',
+      100: 'Command successfully sent',
+      200: 'Request successful',
+      400: 'Bad Request, an invalid payload request',
+      401: 'Unauthorized, Authorization for the API is required, but the request has not been authenticated',
+      403: 'Forbidden, The request has been authenticated but does not have appropriate permissions, or a requested resource is not found',
+      404: 'Not Found, Specifies the requested path does not exist',
+      406: 'Not Acceptable, a MIME type has been requested via the Accept header for a value not supported by the server',
+      415: 'Unsupported Media Type, a contentType header has been defined that is not supported by the server',
+      422: 'Unprocessable Entity: The server cannot process the request, often due to exceeded API limits.',
+      429: 'Too Many Requests, exceeded the number of requests allowed for a given time window',
+      500: 'Internal Server Error, An unexpected error occurred. These errors should be rare',
+    };
+    if (statusCode === 171 && (this.device.hubDeviceId === this.device.deviceId || this.device.hubDeviceId === '000000000000')) {
+      this.debugErrorLog(`statusCode 171 changed to 161: hubDeviceId ${this.device.hubDeviceId} matches deviceId`
+        + ` ${this.device.deviceId}, device is its own hub.`);
+      statusCode = 161;
     }
+    const logMessage = statusMessages[statusCode] || `Unknown statusCode: ${statusCode}, Submit Bugs Here: https://tinyurl.com/SwitchBotBug`;
+    const logMethod = [100, 200].includes(statusCode) ? 'debugLog' : statusMessages[statusCode] ? 'errorLog' : 'infoLog';
+    this[logMethod](`${logMessage}, statusCode: ${statusCode}`);
   }
 
   /**
