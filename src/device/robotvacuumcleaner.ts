@@ -167,7 +167,7 @@ export class RobotVacuumCleaner extends deviceBase {
       + ` current: (${this.LightBulb.On}, ${this.Battery.BatteryLevel})`);
 
     // On
-    this.LightBulb.On = this.serviceData.state === 'on' ? true : false;
+    this.LightBulb.On = ['InDustCollecting', 'Clearing'].includes(this.deviceStatus.workingStatus) ? true : false;
     await this.debugLog(`On: ${this.LightBulb.On}`);
 
     // BatteryLevel
