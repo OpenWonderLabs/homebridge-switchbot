@@ -694,6 +694,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       'Curtain': this.createCurtain.bind(this),
       'Curtain3': this.createCurtain.bind(this),
       'Blind Tilt': this.createBlindTilt.bind(this),
+      'Roller Shade': this.createBlindTilt.bind(this),
       'Plug': this.createPlug.bind(this),
       'Plug Mini (US)': this.createPlug.bind(this),
       'Plug Mini (JP)': this.createPlug.bind(this),
