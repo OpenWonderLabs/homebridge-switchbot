@@ -2,8 +2,8 @@
  *
  * pushbody.ts: @switchbot/homebridge-switchbot platform class.
  */
-export type body = {
-  command: string;
-  parameter: string;
-  commandType: string;
-};
+export interface body {
+  command: string
+  parameter: string
+  commandType: string
+}

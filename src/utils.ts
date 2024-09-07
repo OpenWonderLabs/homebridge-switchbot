@@ -2,6 +2,9 @@
  *
  * util.ts: @switchbot/homebridge-switchbot platform class.
  */
+import type { devicesConfig } from './settings.js'
+import type { blindTilt, curtain, curtain3, device } from './types/devicelist.js'
+
 export enum SwitchBotModel {
   HubMini = 'W0202200',
   HubPlus = 'SwitchBot Hub S1',
@@ -115,19 +118,16 @@ export enum BlindTiltMappingMode {
   UseTiltForDirection = 'use_tilt_for_direction',
 }
 
-import type { devicesConfig } from './settings.js';
-import type { blindTilt, curtain, curtain3, device } from './types/devicelist.js';
-
 export function isCurtainDevice(device: device & devicesConfig): device is (curtain | curtain3) & devicesConfig {
-  return device.deviceType === 'Curtain' || device.deviceType === 'Curtain3';
+  return device.deviceType === 'Curtain' || device.deviceType === 'Curtain3'
 }
 
 export function isBlindTiltDevice(device: device & devicesConfig): device is blindTilt & devicesConfig {
-  return device.deviceType === 'Blind Tilt';
+  return device.deviceType === 'Blind Tilt'
 }
 
 export function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise(resolve => setTimeout(resolve, ms))
 }
 /**
  * Check if the humidity is within the min and max range
@@ -135,63 +135,62 @@ export function sleep(ms: number): Promise<void> {
  * @param min - The minimum humidity value
  * @param max - The maximum humidity value
  * @returns The humidity value
-**/
+ */
 export function validHumidity(humidity: number, min?: number, max?: number): number {
   if (humidity < (min || 0)) {
-    return min ?? 0;
+    return min ?? 0
   } else if (humidity > (max || 100)) {
-    return max ?? 100;
+    return max ?? 100
   }
-  return humidity;
+  return humidity
 }
 
 /**
  * Converts the value to celsius if the temperature units are in Fahrenheit
-**/
+ */
 export function convertUnits(value: number, unit: string, convert?: string): number {
   if (unit === 'CELSIUS' && convert === 'CELSIUS') {
-    return Math.round((value * 9) / 5 + 32);
+    return Math.round((value * 9) / 5 + 32)
   } else if (unit === 'FAHRENHEIT' && convert === 'FAHRENHEIT') {
     // celsius should be to the nearest 0.5 degree
-    return Math.round((5 / 9) * (value - 32) * 2) / 2;
+    return Math.round((5 / 9) * (value - 32) * 2) / 2
   }
-  return value;
+  return value
 }
-
 
 export function rgb2hs(r: any, g: any, b: any) {
   /**
    * Credit:
    * https://github.com/WickyNilliams/pure-color
-  **/
-  r = parseInt(r);
-  g = parseInt(g);
-  b = parseInt(b);
-  const min = Math.min(r, g, b);
-  const max = Math.max(r, g, b);
-  const delta = max - min;
-  let h;
-  let s;
+   */
+  r = Number.parseInt(r)
+  g = Number.parseInt(g)
+  b = Number.parseInt(b)
+  const min = Math.min(r, g, b)
+  const max = Math.max(r, g, b)
+  const delta = max - min
+  let h
+  let s
   if (max === 0) {
-    s = 0;
+    s = 0
   } else {
-    s = (delta / max) * 100;
+    s = (delta / max) * 100
   }
   if (max === min) {
-    h = 0;
+    h = 0
   } else if (r === max) {
-    h = (g - b) / delta;
+    h = (g - b) / delta
   } else if (g === max) {
-    h = 2 + (b - r) / delta;
+    h = 2 + (b - r) / delta
   } else if (b === max) {
-    h = 4 + (r - g) / delta;
+    h = 4 + (r - g) / delta
   }
-  h = Math.min(h * 60, 360);
+  h = Math.min(h * 60, 360)
 
   if (h < 0) {
-    h += 360;
+    h += 360
   }
-  return [Math.round(h), Math.round(s)];
+  return [Math.round(h), Math.round(s)]
 }
 
 export function hs2rgb(h: any, s: any) {
@@ -199,48 +198,48 @@ export function hs2rgb(h: any, s: any) {
     Credit:
     https://github.com/WickyNilliams/pure-color
   */
-  h = parseInt(h) / 60;
-  s = parseInt(s) / 100;
-  const f = h - Math.floor(h);
-  const p = 255 * (1 - s);
-  const q = 255 * (1 - s * f);
-  const t = 255 * (1 - s * (1 - f));
-  let rgb;
+  h = Number.parseInt(h) / 60
+  s = Number.parseInt(s) / 100
+  const f = h - Math.floor(h)
+  const p = 255 * (1 - s)
+  const q = 255 * (1 - s * f)
+  const t = 255 * (1 - s * (1 - f))
+  let rgb
   switch (Math.floor(h) % 6) {
     case 0:
-      rgb = [255, t, p];
-      break;
+      rgb = [255, t, p]
+      break
     case 1:
-      rgb = [q, 255, p];
-      break;
+      rgb = [q, 255, p]
+      break
     case 2:
-      rgb = [p, 255, t];
-      break;
+      rgb = [p, 255, t]
+      break
     case 3:
-      rgb = [p, q, 255];
-      break;
+      rgb = [p, q, 255]
+      break
     case 4:
-      rgb = [t, p, 255];
-      break;
+      rgb = [t, p, 255]
+      break
     case 5:
-      rgb = [255, p, q];
-      break;
+      rgb = [255, p, q]
+      break
   }
   if (rgb[0] === 255) {
-    rgb[1] *= 0.8;
-    rgb[2] *= 0.8;
+    rgb[1] *= 0.8
+    rgb[2] *= 0.8
     if (rgb[1] <= 25 && rgb[2] <= 25) {
-      rgb[1] = 0;
-      rgb[2] = 0;
+      rgb[1] = 0
+      rgb[2] = 0
     }
   }
-  return [Math.round(rgb[0]), Math.round(rgb[1]), Math.round(rgb[2])];
+  return [Math.round(rgb[0]), Math.round(rgb[1]), Math.round(rgb[2])]
 }
 
 export function k2rgb(k: number) {
   // Set kelvin to nearest 100, between 2000 and 7100
-  k = Math.round(k / 100) * 100;
-  k = Math.max(Math.min(k, 7100), 2000);
+  k = Math.round(k / 100) * 100
+  k = Math.max(Math.min(k, 7100), 2000)
 
   // k should now appear in our table of kelvin to rgb
   const values = {
@@ -295,10 +294,10 @@ export function k2rgb(k: number) {
     6900: [247, 245, 255],
     7000: [245, 243, 255],
     7100: [243, 242, 255],
-  };
+  }
 
   // Return the value
-  return values[k];
+  return values[k]
 }
 
 export function m2hs(m) {
@@ -708,8 +707,8 @@ export function m2hs(m) {
     498: [63.8, 28.3],
     499: [63.9, 28.3],
     500: [64.1, 28.3],
-  };
-  const input = Math.min(Math.max(Math.round(m), 140), 500);
-  const toReturn = table[input];
-  return [Math.round(toReturn[1]), Math.round(toReturn[0])];
+  }
+  const input = Math.min(Math.max(Math.round(m), 140), 500)
+  const toReturn = table[input]
+  return [Math.round(toReturn[1]), Math.round(toReturn[0])]
 }

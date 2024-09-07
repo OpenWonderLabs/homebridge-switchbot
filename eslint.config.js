@@ -1,96 +1,51 @@
-import pluginJs from '@eslint/js';
-import tseslint from 'typescript-eslint';
-import stylistic from '@stylistic/eslint-plugin'
+import antfu from '@antfu/eslint-config'
 
-
-export default tseslint.config({
-  plugins: {
-    '@stylistic': stylistic,
-    '@typescript-eslint': tseslint.plugin,
-  },
-  languageOptions: {
-    parser: tseslint.parser,
-    parserOptions: {
-      project: true,
+export default antfu(
+  {
+    ignores: ['dist', 'docs'],
+    jsx: false,
+    typescript: true,
+    formatters: {
+      markdown: true,
+    },
+    rules: {
+      'curly': ['error', 'multi-line'],
+      'import/extensions': ['error', 'ignorePackages'],
+      'import/order': 0,
+      'jsdoc/check-alignment': 'error',
+      'jsdoc/check-line-alignment': 'error',
+      'no-undef': 'error',
+      'perfectionist/sort-exports': 'error',
+      'perfectionist/sort-imports': [
+        'error',
+        {
+          groups: [
+            'builtin-type',
+            'external-type',
+            'internal-type',
+            ['parent-type', 'sibling-type', 'index-type'],
+            'builtin',
+            'external',
+            'internal',
+            ['parent', 'sibling', 'index'],
+            'object',
+            'unknown',
+          ],
+          order: 'asc',
+          type: 'natural',
+        },
+      ],
+      'perfectionist/sort-named-exports': 'error',
+      'perfectionist/sort-named-imports': 'error',
+      'sort-imports': 0,
+      'style/brace-style': ['error', '1tbs', { allowSingleLine: true }],
+      'style/quote-props': ['error', 'consistent-as-needed'],
+      'test/no-only-tests': 'error',
+      'unicorn/no-useless-spread': 'error',
+      'unused-imports/no-unused-vars': ['error', { caughtErrors: 'none' }],
+      'no-new': 0, // Disable the no-new rule
+      'new-cap': 0, // Disable the new-cap rule
+      'no-undef': 0, // Disable the no-undef rule
     },
   },
-  files: ['**/*.ts'],
-  ignores: ['.dist/*'],
-  extends: [
-    pluginJs.configs.recommended,
-    ...tseslint.configs.recommended,
-  ],
-  rules: {
-    '@typescript-eslint/array-type': 'error',
-    '@typescript-eslint/consistent-type-imports': 'error',
-    '@stylistic/type-annotation-spacing': 'error',
-    '@stylistic/quotes': [
-      'warn',
-      'single',
-    ],
-    '@stylistic/indent': [
-      'warn',
-      2,
-      {
-        'SwitchCase': 1,
-      },
-    ],
-    '@stylistic/linebreak-style': [
-      'warn',
-      'unix',
-    ],
-    '@stylistic/semi': [
-      'warn',
-      'always',
-    ],
-    '@stylistic/comma-dangle': [
-      'warn',
-      'always-multiline',
-    ],
-    '@stylistic/dot-notation': 'off',
-    'eqeqeq': 'warn',
-    'curly': [
-      'warn',
-      'all',
-    ],
-    '@stylistic/brace-style': [
-      'warn',
-    ],
-    'prefer-arrow-callback': [
-      'warn',
-    ],
-    '@stylistic/max-len': [
-      'warn',
-      150,
-    ],
-    'no-console': [
-      'warn',
-    ], // use the provided Homebridge log method instead
-    'no-non-null-assertion': [
-      'off',
-    ],
-    '@stylistic/comma-spacing': [
-      'error',
-    ],
-    '@stylistic/no-multi-spaces': [
-      'warn',
-      {
-        'ignoreEOLComments': true,
-      },
-    ],
-    '@stylistic/no-trailing-spaces': [
-      'warn',
-    ],
-    '@stylistic/lines-between-class-members': [
-      'warn',
-      'always',
-      {
-        'exceptAfterSingleLine': true,
-      },
-    ],
-    '@typescript-eslint/explicit-function-return-type': 'off',
-    '@typescript-eslint/no-non-null-assertion': 'off',
-    '@typescript-eslint/explicit-module-boundary-types': 'off',
-    '@typescript-eslint/no-explicit-any': 'off',
-  },
-});
+)

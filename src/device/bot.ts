@@ -2,21 +2,23 @@
  *
  * bot.ts: @switchbot/homebridge-switchbot.
  */
-import { deviceBase } from './device.js';
+import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
+
+import type { SwitchBotPlatform } from '../platform.js'
+import type { devicesConfig } from '../settings.js'
+import type { botServiceData } from '../types/bledevicestatus.js'
+import type { device } from '../types/devicelist.js'
+import type { botStatus } from '../types/devicestatus.js'
+import type { botWebhookContext } from '../types/devicewebhookstatus.js'
+
 /*
 * For Testing Locally:
 * import { SwitchBotBLEModel, SwitchBotBLEModelName } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
 */
-import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot';
-import { Subject, debounceTime, interval, skipWhile, take, tap } from 'rxjs';
+import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot'
+import { debounceTime, interval, skipWhile, Subject, take, tap } from 'rxjs'
 
-import type { devicesConfig } from '../settings.js';
-import type { device } from '../types/devicelist.js';
-import type { SwitchBotPlatform } from '../platform.js';
-import type { botServiceData } from '../types/bledevicestatus.js';
-import type { botStatus } from '../types/devicestatus.js';
-import type { botWebhookContext } from '../types/devicewebhookstatus.js';
-import type { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import { deviceBase } from './device.js'
 
 /**
  * Platform Accessory
@@ -26,444 +28,403 @@ import type { Service, PlatformAccessory, CharacteristicValue } from 'homebridge
 export class Bot extends deviceBase {
   // Services
   private Battery: {
-    Name: CharacteristicValue;
-    Service: Service;
-    BatteryLevel: CharacteristicValue;
-    StatusLowBattery: CharacteristicValue;
-  };
+    Name: CharacteristicValue
+    Service: Service
+    BatteryLevel: CharacteristicValue
+    StatusLowBattery: CharacteristicValue
+  }
 
   private Switch?: {
-    Name: CharacteristicValue;
-    Service: Service;
-  };
+    Name: CharacteristicValue
+    Service: Service
+  }
 
   private GarageDoor?: {
-    Name: CharacteristicValue;
-    Service: Service;
-  };
+    Name: CharacteristicValue
+    Service: Service
+  }
 
   private Door?: {
-    Name: CharacteristicValue;
-    Service: Service;
-  };
+    Name: CharacteristicValue
+    Service: Service
+  }
 
   private Window?: {
-    Name: CharacteristicValue;
-    Service: Service;
-  };
+    Name: CharacteristicValue
+    Service: Service
+  }
 
   private WindowCovering?: {
-    Name: CharacteristicValue;
-    Service: Service;
-  };
+    Name: CharacteristicValue
+    Service: Service
+  }
 
   private LockMechanism?: {
-    Name: CharacteristicValue;
-    Service: Service;
-  };
+    Name: CharacteristicValue
+    Service: Service
+  }
 
   private Faucet?: {
-    Name: CharacteristicValue;
-    Service: Service;
-  };
+    Name: CharacteristicValue
+    Service: Service
+  }
 
   private Fan?: {
-    Name: CharacteristicValue;
-    Service: Service;
-  };
+    Name: CharacteristicValue
+    Service: Service
+  }
 
   private StatefulProgrammableSwitch?: {
-    Name: CharacteristicValue;
-    Service: Service;
-  };
+    Name: CharacteristicValue
+    Service: Service
+  }
 
   private Outlet?: {
-    Name: CharacteristicValue;
-    Service: Service;
-  };
+    Name: CharacteristicValue
+    Service: Service
+  }
 
-  On!: boolean;
+  On!: boolean
 
   // OpenAPI
-  deviceStatus!: botStatus;
+  deviceStatus!: botStatus
 
-  //Webhook
-  webhookContext!: botWebhookContext;
+  // Webhook
+  webhookContext!: botWebhookContext
 
   // BLE
-  serviceData!: botServiceData;
+  serviceData!: botServiceData
 
   // Config
-  botMode!: string;
-  allowPush?: boolean;
-  doublePress!: number;
-  botDeviceType!: string;
-  pushRatePress!: number;
-  multiPressCount!: number;
+  botMode!: string
+  allowPush?: boolean
+  doublePress!: number
+  botDeviceType!: string
+  pushRatePress!: number
+  multiPressCount!: number
 
   // Updates
-  botUpdateInProgress!: boolean;
-  doBotUpdate!: Subject<void>;
+  botUpdateInProgress!: boolean
+  doBotUpdate!: Subject<void>
 
   constructor(
     readonly platform: SwitchBotPlatform,
     accessory: PlatformAccessory,
     device: device & devicesConfig,
   ) {
-    super(platform, accessory, device);
+    super(platform, accessory, device)
 
     // default placeholders
-    this.getBotConfigSettings(device);
+    this.getBotConfigSettings(device)
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
-    this.doBotUpdate = new Subject();
-    this.botUpdateInProgress = false;
+    this.doBotUpdate = new Subject()
+    this.botUpdateInProgress = false
 
     // Initialize Battery property
-    accessory.context.Battery = accessory.context.Battery ?? {};
+    accessory.context.Battery = accessory.context.Battery ?? {}
     this.Battery = {
       Name: `${accessory.displayName} Battery`,
       Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
       BatteryLevel: accessory.context.BatteryLevel ?? 100,
       StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
-    };
-    accessory.context.Battery = this.Battery as object;
+    }
+    accessory.context.Battery = this.Battery as object
     // Initialize Battery Characteristics
-    this.Battery.Service
-      .setCharacteristic(this.hap.Characteristic.Name, this.Battery.Name)
-      .setCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery)
-      .setCharacteristic(this.hap.Characteristic.ChargingState, this.hap.Characteristic.ChargingState.NOT_CHARGEABLE);
+    this.Battery.Service.setCharacteristic(this.hap.Characteristic.Name, this.Battery.Name).setCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery).setCharacteristic(this.hap.Characteristic.ChargingState, this.hap.Characteristic.ChargingState.NOT_CHARGEABLE)
 
     // deviceType
     if (this.botDeviceType === 'switch') {
       // Set category
-      accessory.category = this.hap.Categories.SWITCH;
+      accessory.category = this.hap.Categories.SWITCH
       // Initialize Switch Service
-      accessory.context.Switch = accessory.context.Switch ?? {};
+      accessory.context.Switch = accessory.context.Switch ?? {}
       this.Switch = {
         Name: accessory.displayName,
         Service: accessory.getService(this.hap.Service.Switch) ?? accessory.addService(this.hap.Service.Switch) as Service,
-      };
-      accessory.context.Switch = this.Switch as object;
-      this.debugLog('Displaying as Switch');
+      }
+      accessory.context.Switch = this.Switch as object
+      this.debugLog('Displaying as Switch')
       // Initialize Switch Characteristics
-      this.Switch.Service
-        .setCharacteristic(this.hap.Characteristic.Name, this.Switch.Name)
-        .getCharacteristic(this.hap.Characteristic.On)
-        .onSet(this.OnSet.bind(this));
+      this.Switch.Service.setCharacteristic(this.hap.Characteristic.Name, this.Switch.Name).getCharacteristic(this.hap.Characteristic.On).onSet(this.OnSet.bind(this))
       // Remove other services
-      this.removeFanService(accessory);
-      this.removeLockService(accessory);
-      this.removeDoorService(accessory);
-      this.removeFaucetService(accessory);
-      this.removeOutletService(accessory);
-      this.removeWindowService(accessory);
-      this.removeGarageDoorService(accessory);
-      this.removeWindowCoveringService(accessory);
-      this.removeStatefulProgrammableSwitchService(accessory);
+      this.removeFanService(accessory)
+      this.removeLockService(accessory)
+      this.removeDoorService(accessory)
+      this.removeFaucetService(accessory)
+      this.removeOutletService(accessory)
+      this.removeWindowService(accessory)
+      this.removeGarageDoorService(accessory)
+      this.removeWindowCoveringService(accessory)
+      this.removeStatefulProgrammableSwitchService(accessory)
     } else if (this.botDeviceType === 'garagedoor') {
       // Set category
-      accessory.category = this.hap.Categories.GARAGE_DOOR_OPENER;
+      accessory.category = this.hap.Categories.GARAGE_DOOR_OPENER
       // Initialize GarageDoor Service
-      accessory.context.GarageDoor = accessory.context.GarageDoor ?? {};
+      accessory.context.GarageDoor = accessory.context.GarageDoor ?? {}
       this.GarageDoor = {
         Name: accessory.displayName,
         Service: accessory.getService(this.hap.Service.GarageDoorOpener) ?? accessory.addService(this.hap.Service.GarageDoorOpener) as Service,
-      };
-      accessory.context.GarageDoor = this.GarageDoor as object;
-      this.debugLog('Displaying as Garage Door Opener');
+      }
+      accessory.context.GarageDoor = this.GarageDoor as object
+      this.debugLog('Displaying as Garage Door Opener')
       // Initialize GarageDoor Characteristics
-      this.GarageDoor.Service
-        .setCharacteristic(this.hap.Characteristic.Name, this.GarageDoor.Name)
-        .setCharacteristic(this.hap.Characteristic.ObstructionDetected, false)
-        .getCharacteristic(this.hap.Characteristic.TargetDoorState)
-        .setProps({
-          validValues: [0, 100],
-          minValue: 0,
-          maxValue: 100,
-          minStep: 100,
-        })
-        .onSet(this.OnSet.bind(this));
+      this.GarageDoor.Service.setCharacteristic(this.hap.Characteristic.Name, this.GarageDoor.Name).setCharacteristic(this.hap.Characteristic.ObstructionDetected, false).getCharacteristic(this.hap.Characteristic.TargetDoorState).setProps({
+        validValues: [0, 100],
+        minValue: 0,
+        maxValue: 100,
+        minStep: 100,
+      }).onSet(this.OnSet.bind(this))
       // Remove other services
-      this.removeFanService(accessory);
-      this.removeLockService(accessory);
-      this.removeDoorService(accessory);
-      this.removeFaucetService(accessory);
-      this.removeOutletService(accessory);
-      this.removeSwitchService(accessory);
-      this.removeWindowService(accessory);
-      this.removeWindowCoveringService(accessory);
-      this.removeStatefulProgrammableSwitchService(accessory);
+      this.removeFanService(accessory)
+      this.removeLockService(accessory)
+      this.removeDoorService(accessory)
+      this.removeFaucetService(accessory)
+      this.removeOutletService(accessory)
+      this.removeSwitchService(accessory)
+      this.removeWindowService(accessory)
+      this.removeWindowCoveringService(accessory)
+      this.removeStatefulProgrammableSwitchService(accessory)
     } else if (this.botDeviceType === 'door') {
       // Set category
-      accessory.category = this.hap.Categories.DOOR;
+      accessory.category = this.hap.Categories.DOOR
       // Initialize Door Service
-      accessory.context.Door = accessory.context.Door ?? {};
+      accessory.context.Door = accessory.context.Door ?? {}
       this.Door = {
         Name: accessory.displayName,
         Service: accessory.getService(this.hap.Service.Door) ?? accessory.addService(this.hap.Service.Door) as Service,
-      };
-      accessory.context.Door = this.Door as object;
-      this.debugLog('Displaying as Door');
+      }
+      accessory.context.Door = this.Door as object
+      this.debugLog('Displaying as Door')
       // Initialize Door Characteristics
-      this.Door.Service
-        .setCharacteristic(this.hap.Characteristic.Name, this.Door.Name)
-        .setCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED)
-        .getCharacteristic(this.hap.Characteristic.TargetPosition).setProps({
-          validValues: [0, 100],
-          minValue: 0,
-          maxValue: 100,
-          minStep: 100,
-        })
-        .onSet(this.OnSet.bind(this));
+      this.Door.Service.setCharacteristic(this.hap.Characteristic.Name, this.Door.Name).setCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED).getCharacteristic(this.hap.Characteristic.TargetPosition).setProps({
+        validValues: [0, 100],
+        minValue: 0,
+        maxValue: 100,
+        minStep: 100,
+      }).onSet(this.OnSet.bind(this))
       // Remove other services
-      this.removeFanService(accessory);
-      this.removeLockService(accessory);
-      this.removeOutletService(accessory);
-      this.removeFaucetService(accessory);
-      this.removeSwitchService(accessory);
-      this.removeWindowService(accessory);
-      this.removeGarageDoorService(accessory);
-      this.removeWindowCoveringService(accessory);
-      this.removeStatefulProgrammableSwitchService(accessory);
+      this.removeFanService(accessory)
+      this.removeLockService(accessory)
+      this.removeOutletService(accessory)
+      this.removeFaucetService(accessory)
+      this.removeSwitchService(accessory)
+      this.removeWindowService(accessory)
+      this.removeGarageDoorService(accessory)
+      this.removeWindowCoveringService(accessory)
+      this.removeStatefulProgrammableSwitchService(accessory)
     } else if (this.botDeviceType === 'window') {
       // Set category
-      accessory.category = this.hap.Categories.WINDOW;
+      accessory.category = this.hap.Categories.WINDOW
       // Initialize Window Service
-      accessory.context.Window = accessory.context.Window ?? {};
+      accessory.context.Window = accessory.context.Window ?? {}
       this.Window = {
         Name: accessory.displayName,
         Service: accessory.getService(this.hap.Service.Window) ?? accessory.addService(this.hap.Service.Window) as Service,
-      };
-      accessory.context.Window = this.Window as object;
-      this.debugLog('Displaying as Window');
+      }
+      accessory.context.Window = this.Window as object
+      this.debugLog('Displaying as Window')
       // Initialize Window Characteristics
-      this.Window.Service
-        .setCharacteristic(this.hap.Characteristic.Name, this.Window.Name)
-        .setCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED)
-        .getCharacteristic(this.hap.Characteristic.TargetPosition).setProps({
-          validValues: [0, 100],
-          minValue: 0,
-          maxValue: 100,
-          minStep: 100,
-        })
-        .onSet(this.OnSet.bind(this));
+      this.Window.Service.setCharacteristic(this.hap.Characteristic.Name, this.Window.Name).setCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED).getCharacteristic(this.hap.Characteristic.TargetPosition).setProps({
+        validValues: [0, 100],
+        minValue: 0,
+        maxValue: 100,
+        minStep: 100,
+      }).onSet(this.OnSet.bind(this))
       // Remove other services
-      this.removeFanService(accessory);
-      this.removeLockService(accessory);
-      this.removeDoorService(accessory);
-      this.removeOutletService(accessory);
-      this.removeFaucetService(accessory);
-      this.removeSwitchService(accessory);
-      this.removeGarageDoorService(accessory);
-      this.removeWindowCoveringService(accessory);
-      this.removeStatefulProgrammableSwitchService(accessory);
+      this.removeFanService(accessory)
+      this.removeLockService(accessory)
+      this.removeDoorService(accessory)
+      this.removeOutletService(accessory)
+      this.removeFaucetService(accessory)
+      this.removeSwitchService(accessory)
+      this.removeGarageDoorService(accessory)
+      this.removeWindowCoveringService(accessory)
+      this.removeStatefulProgrammableSwitchService(accessory)
     } else if (this.botDeviceType === 'windowcovering') {
       // Set category
-      accessory.category = this.hap.Categories.WINDOW_COVERING;
+      accessory.category = this.hap.Categories.WINDOW_COVERING
       // Initialize WindowCovering Service
-      accessory.context.WindowCovering = accessory.context.WindowCovering ?? {};
+      accessory.context.WindowCovering = accessory.context.WindowCovering ?? {}
       this.WindowCovering = {
         Name: accessory.displayName,
         Service: accessory.getService(this.hap.Service.WindowCovering) ?? accessory.addService(this.hap.Service.WindowCovering) as Service,
-      };
-      accessory.context.WindowCovering = this.WindowCovering as object;
-      this.debugLog('Displaying as Window Covering');
+      }
+      accessory.context.WindowCovering = this.WindowCovering as object
+      this.debugLog('Displaying as Window Covering')
       // Initialize WindowCovering Characteristics
-      this.WindowCovering.Service
-        .setCharacteristic(this.hap.Characteristic.Name, this.WindowCovering.Name)
-        .setCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED)
-        .getCharacteristic(this.hap.Characteristic.TargetPosition)
-        .setProps({
-          validValues: [0, 100],
-          minValue: 0,
-          maxValue: 100,
-          minStep: 100,
-        })
-        .onSet(this.OnSet.bind(this));
+      this.WindowCovering.Service.setCharacteristic(this.hap.Characteristic.Name, this.WindowCovering.Name).setCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED).getCharacteristic(this.hap.Characteristic.TargetPosition).setProps({
+        validValues: [0, 100],
+        minValue: 0,
+        maxValue: 100,
+        minStep: 100,
+      }).onSet(this.OnSet.bind(this))
       // Remove other services
-      this.removeFanService(accessory);
-      this.removeLockService(accessory);
-      this.removeDoorService(accessory);
-      this.removeOutletService(accessory);
-      this.removeFaucetService(accessory);
-      this.removeSwitchService(accessory);
-      this.removeWindowService(accessory);
-      this.removeGarageDoorService(accessory);
-      this.removeStatefulProgrammableSwitchService(accessory);
+      this.removeFanService(accessory)
+      this.removeLockService(accessory)
+      this.removeDoorService(accessory)
+      this.removeOutletService(accessory)
+      this.removeFaucetService(accessory)
+      this.removeSwitchService(accessory)
+      this.removeWindowService(accessory)
+      this.removeGarageDoorService(accessory)
+      this.removeStatefulProgrammableSwitchService(accessory)
     } else if (this.botDeviceType === 'lock') {
       // Set category
-      accessory.category = this.hap.Categories.DOOR_LOCK;
+      accessory.category = this.hap.Categories.DOOR_LOCK
       // Initialize Lock Service
-      accessory.context.LockMechanism = accessory.context.LockMechanism ?? {};
+      accessory.context.LockMechanism = accessory.context.LockMechanism ?? {}
       this.LockMechanism = {
         Name: accessory.displayName,
         Service: accessory.getService(this.hap.Service.LockMechanism) ?? accessory.addService(this.hap.Service.LockMechanism) as Service,
-      };
-      accessory.context.LockMechanism = this.LockMechanism as object;
-      this.debugLog('Displaying as Lock');
+      }
+      accessory.context.LockMechanism = this.LockMechanism as object
+      this.debugLog('Displaying as Lock')
       // Initialize Lock Characteristics
-      this.LockMechanism.Service
-        .setCharacteristic(this.hap.Characteristic.Name, this.LockMechanism.Name)
-        .setCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED)
-        .getCharacteristic(this.hap.Characteristic.LockTargetState)
-        .onSet(this.OnSet.bind(this));
+      this.LockMechanism.Service.setCharacteristic(this.hap.Characteristic.Name, this.LockMechanism.Name).setCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED).getCharacteristic(this.hap.Characteristic.LockTargetState).onSet(this.OnSet.bind(this))
       // Remove other services
-      this.removeFanService(accessory);
-      this.removeDoorService(accessory);
-      this.removeOutletService(accessory);
-      this.removeSwitchService(accessory);
-      this.removeFaucetService(accessory);
-      this.removeWindowService(accessory);
-      this.removeGarageDoorService(accessory);
-      this.removeWindowCoveringService(accessory);
-      this.removeStatefulProgrammableSwitchService(accessory);
+      this.removeFanService(accessory)
+      this.removeDoorService(accessory)
+      this.removeOutletService(accessory)
+      this.removeSwitchService(accessory)
+      this.removeFaucetService(accessory)
+      this.removeWindowService(accessory)
+      this.removeGarageDoorService(accessory)
+      this.removeWindowCoveringService(accessory)
+      this.removeStatefulProgrammableSwitchService(accessory)
     } else if (this.botDeviceType === 'faucet') {
       // Set category
-      accessory.category = this.hap.Categories.FAUCET;
+      accessory.category = this.hap.Categories.FAUCET
       // Initialize Faucet Service
-      accessory.context.Faucet = accessory.context.Faucet ?? {};
+      accessory.context.Faucet = accessory.context.Faucet ?? {}
       this.Faucet = {
         Name: accessory.displayName,
         Service: accessory.getService(this.hap.Service.Faucet) ?? accessory.addService(this.hap.Service.Faucet) as Service,
-      };
-      accessory.context.Faucet = this.Faucet as object;
-      this.debugLog('Displaying as Faucet');
+      }
+      accessory.context.Faucet = this.Faucet as object
+      this.debugLog('Displaying as Faucet')
       // Initialize Faucet Characteristics
-      this.Faucet.Service
-        .setCharacteristic(this.hap.Characteristic.Name, this.Faucet.Name)
-        .getCharacteristic(this.hap.Characteristic.Active)
-        .onSet(this.OnSet.bind(this));
+      this.Faucet.Service.setCharacteristic(this.hap.Characteristic.Name, this.Faucet.Name).getCharacteristic(this.hap.Characteristic.Active).onSet(this.OnSet.bind(this))
       // Remove other services
-      this.removeFanService(accessory);
-      this.removeLockService(accessory);
-      this.removeDoorService(accessory);
-      this.removeOutletService(accessory);
-      this.removeSwitchService(accessory);
-      this.removeWindowService(accessory);
-      this.removeGarageDoorService(accessory);
-      this.removeWindowCoveringService(accessory);
-      this.removeStatefulProgrammableSwitchService(accessory);
+      this.removeFanService(accessory)
+      this.removeLockService(accessory)
+      this.removeDoorService(accessory)
+      this.removeOutletService(accessory)
+      this.removeSwitchService(accessory)
+      this.removeWindowService(accessory)
+      this.removeGarageDoorService(accessory)
+      this.removeWindowCoveringService(accessory)
+      this.removeStatefulProgrammableSwitchService(accessory)
     } else if (this.botDeviceType === 'fan') {
       // Set category
-      accessory.category = this.hap.Categories.FAN;
+      accessory.category = this.hap.Categories.FAN
       // Initialize Fan Service
-      accessory.context.Fan = accessory.context.Fan ?? {};
+      accessory.context.Fan = accessory.context.Fan ?? {}
       this.Fan = {
         Name: accessory.displayName,
         Service: accessory.getService(this.hap.Service.Fanv2) ?? accessory.addService(this.hap.Service.Fanv2) as Service,
-      };
-      accessory.context.Fan = this.Fan as object;
-      this.debugLog('Displaying as Fan');
+      }
+      accessory.context.Fan = this.Fan as object
+      this.debugLog('Displaying as Fan')
       // Initialize Fan Characteristics
-      this.Fan.Service
-        .setCharacteristic(this.hap.Characteristic.Name, this.Fan.Name)
-        .getCharacteristic(this.hap.Characteristic.Active)
-        .onSet(this.OnSet.bind(this));
+      this.Fan.Service.setCharacteristic(this.hap.Characteristic.Name, this.Fan.Name).getCharacteristic(this.hap.Characteristic.Active).onSet(this.OnSet.bind(this))
       // Remove other services
-      this.removeLockService(accessory);
-      this.removeDoorService(accessory);
-      this.removeFaucetService(accessory);
-      this.removeOutletService(accessory);
-      this.removeSwitchService(accessory);
-      this.removeWindowService(accessory);
-      this.removeGarageDoorService(accessory);
-      this.removeWindowCoveringService(accessory);
-      this.removeStatefulProgrammableSwitchService(accessory);
+      this.removeLockService(accessory)
+      this.removeDoorService(accessory)
+      this.removeFaucetService(accessory)
+      this.removeOutletService(accessory)
+      this.removeSwitchService(accessory)
+      this.removeWindowService(accessory)
+      this.removeGarageDoorService(accessory)
+      this.removeWindowCoveringService(accessory)
+      this.removeStatefulProgrammableSwitchService(accessory)
     } else if (this.botDeviceType === 'stateful') {
       // Set category
-      accessory.category = this.hap.Categories.PROGRAMMABLE_SWITCH;
+      accessory.category = this.hap.Categories.PROGRAMMABLE_SWITCH
       // Initialize StatefulProgrammableSwitch Service
-      accessory.context.StatefulProgrammableSwitch = accessory.context.StatefulProgrammableSwitch ?? {};
+      accessory.context.StatefulProgrammableSwitch = accessory.context.StatefulProgrammableSwitch ?? {}
       this.StatefulProgrammableSwitch = {
         Name: accessory.displayName,
-        Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch)
-          ?? accessory.addService(this.hap.Service.StatefulProgrammableSwitch) as Service,
-      };
-      accessory.context.StatefulProgrammableSwitch = this.StatefulProgrammableSwitch as object;
-      this.debugLog('Displaying as Stateful Programmable Switch');
+        Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch) ?? accessory.addService(this.hap.Service.StatefulProgrammableSwitch) as Service,
+      }
+      accessory.context.StatefulProgrammableSwitch = this.StatefulProgrammableSwitch as object
+      this.debugLog('Displaying as Stateful Programmable Switch')
       // Initialize StatefulProgrammableSwitch Characteristics
-      this.StatefulProgrammableSwitch.Service
-        .setCharacteristic(this.hap.Characteristic.Name, this.StatefulProgrammableSwitch.Name)
-        .getCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState)
-        .onSet(this.OnSet.bind(this));
+      this.StatefulProgrammableSwitch.Service.setCharacteristic(this.hap.Characteristic.Name, this.StatefulProgrammableSwitch.Name).getCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState).onSet(this.OnSet.bind(this))
       // Remove other services
-      this.removeFanService(accessory);
-      this.removeLockService(accessory);
-      this.removeDoorService(accessory);
-      this.removeFaucetService(accessory);
-      this.removeOutletService(accessory);
-      this.removeSwitchService(accessory);
-      this.removeWindowService(accessory);
-      this.removeGarageDoorService(accessory);
-      this.removeWindowCoveringService(accessory);
+      this.removeFanService(accessory)
+      this.removeLockService(accessory)
+      this.removeDoorService(accessory)
+      this.removeFaucetService(accessory)
+      this.removeOutletService(accessory)
+      this.removeSwitchService(accessory)
+      this.removeWindowService(accessory)
+      this.removeGarageDoorService(accessory)
+      this.removeWindowCoveringService(accessory)
     } else if (this.botDeviceType === 'outlet') {
       // Set category
-      accessory.category = this.hap.Categories.OUTLET;
+      accessory.category = this.hap.Categories.OUTLET
       // Initialize Switch property
-      accessory.context.Outlet = accessory.context.Outlet ?? {};
+      accessory.context.Outlet = accessory.context.Outlet ?? {}
       this.Outlet = {
         Name: accessory.displayName,
         Service: accessory.getService(this.hap.Service.Outlet) ?? accessory.addService(this.hap.Service.Outlet) as Service,
-      };
-      accessory.context.Outlet = this.Outlet as object;
-      this.debugLog('Displaying as Outlet');
+      }
+      accessory.context.Outlet = this.Outlet as object
+      this.debugLog('Displaying as Outlet')
       // Initialize Outlet Characteristics
-      this.Outlet.Service
-        .setCharacteristic(this.hap.Characteristic.Name, this.Outlet.Name)
-        .getCharacteristic(this.hap.Characteristic.On)
-        .onSet(this.OnSet.bind(this));
+      this.Outlet.Service.setCharacteristic(this.hap.Characteristic.Name, this.Outlet.Name).getCharacteristic(this.hap.Characteristic.On).onSet(this.OnSet.bind(this))
       // Remove other services
-      this.removeFanService(accessory);
-      this.removeLockService(accessory);
-      this.removeDoorService(accessory);
-      this.removeFaucetService(accessory);
-      this.removeSwitchService(accessory);
-      this.removeWindowService(accessory);
-      this.removeGarageDoorService(accessory);
-      this.removeWindowCoveringService(accessory);
-      this.removeStatefulProgrammableSwitchService(accessory);
+      this.removeFanService(accessory)
+      this.removeLockService(accessory)
+      this.removeDoorService(accessory)
+      this.removeFaucetService(accessory)
+      this.removeSwitchService(accessory)
+      this.removeWindowService(accessory)
+      this.removeGarageDoorService(accessory)
+      this.removeWindowCoveringService(accessory)
+      this.removeStatefulProgrammableSwitchService(accessory)
     } else {
-      this.errorLog('Device Type not set');
+      this.errorLog('Device Type not set')
     }
 
     // Retrieve initial values and updateHomekit
     try {
-      this.debugLog('Retrieve initial values and update Homekit');
-      this.refreshStatus();
+      this.debugLog('Retrieve initial values and update Homekit')
+      this.refreshStatus()
     } catch (e: any) {
-      this.errorLog(`failed to retrieve initial values and update Homekit, Error: ${e}`);
+      this.errorLog(`failed to retrieve initial values and update Homekit, Error: ${e}`)
     }
 
-    //regisiter webhook event handler if enabled
+    // regisiter webhook event handler if enabled
     try {
-      this.debugLog('Registering Webhook Event Handler');
-      this.registerWebhook();
+      this.debugLog('Registering Webhook Event Handler')
+      this.registerWebhook()
     } catch (e: any) {
-      this.errorLog(`failed to registerWebhook, Error: ${e}`);
+      this.errorLog(`failed to registerWebhook, Error: ${e}`)
     }
 
-    //regisiter platform BLE event handler if enabled
+    // regisiter platform BLE event handler if enabled
     try {
-      this.debugLog('Registering Platform BLE Event Handler');
-      this.registerPlatformBLE();
+      this.debugLog('Registering Platform BLE Event Handler')
+      this.registerPlatformBLE()
     } catch (e: any) {
-      this.errorLog(`failed to registerPlatformBLE, Error: ${e}`);
+      this.errorLog(`failed to registerPlatformBLE, Error: ${e}`)
     }
 
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
       .pipe(skipWhile(() => this.botUpdateInProgress))
       .subscribe(async () => {
-        await this.refreshStatus();
-      });
+        await this.refreshStatus()
+      })
 
     // Watch for Bot change events
     // We put in a debounce of 1000ms so we don't make duplicate calls
     this.doBotUpdate
       .pipe(
         tap(() => {
-          this.botUpdateInProgress = true;
+          this.botUpdateInProgress = true
         }),
         debounceTime(this.devicePushRate * 1000),
       )
@@ -473,103 +434,102 @@ export class Bot extends deviceBase {
             interval(this.pushRatePress * 1000)
               .pipe(take(this.doublePress!))
               .subscribe(async () => {
-                await this.pushChanges();
-              });
+                await this.pushChanges()
+              })
           } else {
-            await this.pushChanges();
+            await this.pushChanges()
           }
         } catch (e: any) {
-          await this.apiError(e);
-          await this.errorLog(`failed pushChanges with ${device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`);
+          await this.apiError(e)
+          await this.errorLog(`failed pushChanges with ${device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
         }
-        this.botUpdateInProgress = false;
-      });
+        this.botUpdateInProgress = false
+      })
   }
 
   /**
    * Parse the device status from the SwitchBotBLE API
    */
   async BLEparseStatus(): Promise<void> {
-    await this.debugLog('BLEparseStatus');
-    await this.debugLog(`(power, battery, deviceMode) = BLE:(${this.serviceData.state}, ${this.serviceData.battery}, ${this.serviceData.mode}),`
-      + ` current:(${this.accessory.context.On}, ${this.Battery.BatteryLevel}, ${this.botMode})`);
+    await this.debugLog('BLEparseStatus')
+    await this.debugLog(`(power, battery, deviceMode) = BLE:(${this.serviceData.state}, ${this.serviceData.battery}, ${this.serviceData.mode}), current:(${this.accessory.context.On}, ${this.Battery.BatteryLevel}, ${this.botMode})`)
 
     // BLEmode (true if Switch Mode) | (false if Press Mode)
-    this.On = this.serviceData.mode ? this.serviceData.state : false;
-    const mode = this.serviceData.mode ? 'Switch' : 'Press';
-    await this.debugLog(`${mode} Mode, On: ${this.accessory.context.On}`);
-    this.accessory.context.On = this.On;
+    this.On = this.serviceData.mode ? this.serviceData.state : false
+    const mode = this.serviceData.mode ? 'Switch' : 'Press'
+    await this.debugLog(`${mode} Mode, On: ${this.accessory.context.On}`)
+    this.accessory.context.On = this.On
 
     // BatteryLevel
-    this.Battery.BatteryLevel = this.serviceData.battery;
-    await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
+    this.Battery.BatteryLevel = this.serviceData.battery
+    await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
 
     // StatusLowBattery
     this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
-      ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
-    await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+      ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
+      : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
+    await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
   }
-
 
   /**
    * Parse the device status from the SwitchBot OpenAPI
    */
   async openAPIparseStatus(): Promise<void> {
-    await this.debugLog('openAPIparseStatus');
-    await this.debugLog(`(power, battery, deviceMode) = API:(${this.deviceStatus.power}, ${this.deviceStatus.battery}, ${this.botMode}),`
-      + ` current:(${this.accessory.context.On}, ${this.Battery.BatteryLevel}, ${this.botMode})`);
+    await this.debugLog('openAPIparseStatus')
+    await this.debugLog(`(power, battery, deviceMode) = API:(${this.deviceStatus.power}, ${this.deviceStatus.battery}, ${this.botMode}), current:(${this.accessory.context.On}, ${this.Battery.BatteryLevel}, ${this.botMode})`)
 
     // On
-    this.On = this.botMode === 'press' ? false : this.deviceStatus.power === 'on' ? true : false;
-    this.accessory.context.On = this.On;
-    await this.debugLog(`On: ${this.accessory.context.On}`);
+    this.On = this.botMode === 'press' ? false : this.deviceStatus.power === 'on'
+    this.accessory.context.On = this.On
+    await this.debugLog(`On: ${this.accessory.context.On}`)
 
     // Battery Level
-    this.Battery.BatteryLevel = this.deviceStatus.battery;
-    await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
+    this.Battery.BatteryLevel = this.deviceStatus.battery
+    await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
 
     // StatusLowBattery
     this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
-      ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
-    await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+      ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
+      : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
+    await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
 
     // Firmware Version
     if (this.deviceStatus.version) {
-      const version = this.deviceStatus.version.toString();
-      this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
-      const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0';
+      const version = this.deviceStatus.version.toString()
+      this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`)
+      const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0'
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
         .setCharacteristic(this.hap.Characteristic.HardwareRevision, deviceVersion)
         .setCharacteristic(this.hap.Characteristic.FirmwareRevision, deviceVersion)
         .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
-        .updateValue(deviceVersion);
-      this.accessory.context.version = deviceVersion;
-      await this.debugLog(`version: ${this.accessory.context.version}`);
+        .updateValue(deviceVersion)
+      this.accessory.context.version = deviceVersion
+      await this.debugLog(`version: ${this.accessory.context.version}`)
     }
   }
 
   async parseStatusWebhook(): Promise<void> {
-    await this.debugLog('parseStatusWebhook');
-    await this.debugLog(`(power, battery, deviceMode) = Webhook:(${this.webhookContext.power}, ${this.webhookContext.battery},`
-      + ` ${this.webhookContext.deviceMode}), current:(${this.On}, ${this.Battery.BatteryLevel}, ${this.botMode})`);
+    await this.debugLog('parseStatusWebhook')
+    await this.debugLog(`(power, battery, deviceMode) = Webhook:(${this.webhookContext.power}, ${this.webhookContext.battery}, ${this.webhookContext.deviceMode}), current:(${this.On}, ${this.Battery.BatteryLevel}, ${this.botMode})`)
 
     // On
-    this.On = this.webhookContext.power === 'on' ? true : false;
-    await this.debugLog(`On: ${this.On}`);
+    this.On = this.webhookContext.power === 'on'
+    await this.debugLog(`On: ${this.On}`)
 
     // BatteryLevel
-    this.Battery.BatteryLevel = this.webhookContext.battery;
-    await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
+    this.Battery.BatteryLevel = this.webhookContext.battery
+    await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
 
     // StatusLowBattery
     this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
-      ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
-    await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+      ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
+      : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
+    await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
 
     // Mode
-    this.botMode = this.webhookContext.deviceMode;
-    await this.debugLog(`Mode: ${this.botMode}`);
+    this.botMode = this.webhookContext.deviceMode
+    await this.debugLog(`Mode: ${this.botMode}`)
   }
 
   /**
@@ -577,237 +537,237 @@ export class Bot extends deviceBase {
    */
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
-      await this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`);
+      await this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`)
     } else if (this.BLE) {
-      await this.BLERefreshStatus();
+      await this.BLERefreshStatus()
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
-      await this.openAPIRefreshStatus();
+      await this.openAPIRefreshStatus()
     } else {
-      await this.offlineOff();
-      await this.debugWarnLog(`Connection Type: ${this.device.connectionType}, refreshStatus will not happen.`);
+      await this.offlineOff()
+      await this.debugWarnLog(`Connection Type: ${this.device.connectionType}, refreshStatus will not happen.`)
     }
   }
 
   async BLERefreshStatus(): Promise<void> {
-    await this.debugLog('BLERefreshStatus');
-    const switchbot = await this.switchbotBLE();
+    await this.debugLog('BLERefreshStatus')
+    const switchbot = await this.switchbotBLE()
     if (switchbot === undefined) {
-      await this.BLERefreshConnection(switchbot);
+      await this.BLERefreshConnection(switchbot)
     } else {
       // Start to monitor advertisement packets
       (async () => {
         // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchbot) as botServiceData;
+        const serviceData = await this.monitorAdvertisementPackets(switchbot) as botServiceData
         // Update HomeKit
         if (serviceData.model === SwitchBotBLEModel.Bot && serviceData.modelName === SwitchBotBLEModelName.Bot) {
-          this.serviceData = serviceData;
-          await this.BLEparseStatus();
-          await this.updateHomeKitCharacteristics();
+          this.serviceData = serviceData
+          await this.BLEparseStatus()
+          await this.updateHomeKitCharacteristics()
         } else {
-          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`);
-          await this.BLERefreshConnection(switchbot);
+          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`)
+          await this.BLERefreshConnection(switchbot)
         }
-      })();
+      })()
     }
   }
 
   async registerPlatformBLE(): Promise<void> {
-    await this.debugLog('registerPlatformBLE');
+    await this.debugLog('registerPlatformBLE')
     if (this.config.options?.BLE) {
-      await this.debugLog('is listening to Platform BLE.');
-      this.device.bleMac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase();
-      await this.debugLog(`bleMac: ${this.device.bleMac}`);
+      await this.debugLog('is listening to Platform BLE.')
+      this.device.bleMac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase()
+      await this.debugLog(`bleMac: ${this.device.bleMac}`)
       this.platform.bleEventHandler[this.device.bleMac] = async (context: botServiceData) => {
         try {
-          await this.debugLog(`received BLE: ${JSON.stringify(context)}`);
-          this.serviceData = context;
-          await this.BLEparseStatus();
-          await this.updateHomeKitCharacteristics();
+          await this.debugLog(`received BLE: ${JSON.stringify(context)}`)
+          this.serviceData = context
+          await this.BLEparseStatus()
+          await this.updateHomeKitCharacteristics()
         } catch (e: any) {
-          await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`);
+          await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`)
         }
-      };
+      }
     } else {
-      await this.debugLog('is not listening to Platform BLE');
+      await this.debugLog('is not listening to Platform BLE')
     }
   }
 
   async openAPIRefreshStatus(): Promise<void> {
-    await this.debugLog('openAPIRefreshStatus');
+    await this.debugLog('openAPIRefreshStatus')
     try {
-      const { body, statusCode } = await this.deviceRefreshStatus();
-      const deviceStatus: any = await body.json();
-      await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);;
+      const { body, statusCode } = await this.deviceRefreshStatus()
+      const deviceStatus: any = await body.json()
+      await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
       if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
-        await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
-        this.deviceStatus = deviceStatus.body;
-        await this.openAPIparseStatus();
-        await this.updateHomeKitCharacteristics();
+        await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        this.deviceStatus = deviceStatus.body
+        await this.openAPIparseStatus()
+        await this.updateHomeKitCharacteristics()
       } else {
-        await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
-        await this.debugWarnLog(statusCode, deviceStatus);
+        await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        await this.debugWarnLog(statusCode, deviceStatus)
       }
     } catch (e: any) {
-      await this.apiError(e);
-      await this.errorLog(`failed openAPIRefreshStatus with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`);
+      await this.apiError(e)
+      await this.errorLog(`failed openAPIRefreshStatus with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
     }
   }
 
   async registerWebhook() {
     if (this.device.webhook) {
-      await this.debugLog('is listening webhook.');
+      await this.debugLog('is listening webhook.')
       this.platform.webhookEventHandler[this.device.deviceId] = async (context: botWebhookContext) => {
         try {
-          await this.debugLog(`received Webhook: ${JSON.stringify(context)}`);
-          this.webhookContext = context;
-          await this.parseStatusWebhook();
-          await this.updateHomeKitCharacteristics();
+          await this.debugLog(`received Webhook: ${JSON.stringify(context)}`)
+          this.webhookContext = context
+          await this.parseStatusWebhook()
+          await this.updateHomeKitCharacteristics()
         } catch (e: any) {
-          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`);
+          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`)
         }
-      };
+      }
     } else {
-      await this.debugLog('is not listening webhook.');
+      await this.debugLog('is not listening webhook.')
     }
   }
 
   /**
    * Pushes the requested changes to the SwitchBot API
-   * deviceType	commandType	  Command	    command parameter	  Description
-   * Bot   -    "command"     "turnOff"   "default"	  =        set to OFF state
-   * Bot   -    "command"     "turnOn"    "default"	  =        set to ON state
-   * Bot   -    "command"     "press"     "default"	  =        trigger press
+   * deviceType  commandType  Command    command parameter  Description
+   * Bot         "command"    "turnOff"  "default"      =   set to OFF state
+   * Bot         "command"    "turnOn"   "default"      =   set to ON state
+   * Bot         "command"    "press"    "default"      =   trigger press
    */
   async pushChanges(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
-      await this.errorLog(`pushChanges enableCloudService: ${this.device.enableCloudService}`);
+      await this.errorLog(`pushChanges enableCloudService: ${this.device.enableCloudService}`)
     } else if (this.BLE) {
-      await this.BLEpushChanges();
+      await this.BLEpushChanges()
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
-      await this.openAPIpushChanges();
+      await this.openAPIpushChanges()
     } else {
-      await this.offlineOff();
-      await this.debugWarnLog(`Connection Type: ${this.device.connectionType}, pushChanges will not happen.`);
+      await this.offlineOff()
+      await this.debugWarnLog(`Connection Type: ${this.device.connectionType}, pushChanges will not happen.`)
     }
     // Refresh the status from the API
     interval(15000)
       .pipe(skipWhile(() => this.botUpdateInProgress))
       .pipe(take(1))
       .subscribe(async () => {
-        await this.refreshStatus();
-      });
+        await this.refreshStatus()
+      })
   }
 
   async BLEpushChanges(): Promise<void> {
-    await this.debugLog('BLEpushChanges');
+    await this.debugLog('BLEpushChanges')
     if (this.On !== this.accessory.context.On || this.allowPush) {
-      await this.debugLog(`BLEpushChanges On: ${this.On} OnCached: ${this.accessory.context.On}`);
-      const switchbot = await this.platform.connectBLE(this.accessory, this.device);
-      await this.convertBLEAddress();
-      //if (switchbot !== false) {
-      await this.debugLog(`Bot Mode: ${this.botMode}`);
+      await this.debugLog(`BLEpushChanges On: ${this.On} OnCached: ${this.accessory.context.On}`)
+      const switchbot = await this.platform.connectBLE(this.accessory, this.device)
+      await this.convertBLEAddress()
+      // if (switchbot !== false) {
+      await this.debugLog(`Bot Mode: ${this.botMode}`)
       if (this.botMode === 'press') {
         switchbot
           .discover({ model: 'H', quick: true, id: this.device.bleMac })
           .then(async (device_list: { press: (arg0: { id: string | undefined }) => any }[]) => {
-            await this.infoLog(`On: ${this.On}`);
-            return await device_list[0].press({ id: this.device.bleMac });
+            await this.infoLog(`On: ${this.On}`)
+            return await device_list[0].press({ id: this.device.bleMac })
           })
           .then(async () => {
-            await this.successLog(`On: ${this.On} sent over SwitchBot BLE,  sent successfully`);
-            await this.updateHomeKitCharacteristics();
+            await this.successLog(`On: ${this.On} sent over SwitchBot BLE,  sent successfully`)
+            await this.updateHomeKitCharacteristics()
             setTimeout(async () => {
-              this.On = false;
-              await this.updateHomeKitCharacteristics();
-              this.debugLog(`On: ${this.On}, Switch Timeout`);
-            }, 500);
+              this.On = false
+              await this.updateHomeKitCharacteristics()
+              this.debugLog(`On: ${this.On}, Switch Timeout`)
+            }, 500)
           })
           .catch(async (e: any) => {
-            await this.apiError(e);
-            await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`);
-            await this.BLEPushConnection();
-          });
+            await this.apiError(e)
+            await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+            await this.BLEPushConnection()
+          })
       } else if (this.botMode === 'switch') {
         switchbot
           .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
           .then(async (device_list: any) => {
-            this.infoLog(`On: ${this.On}`);
+            this.infoLog(`On: ${this.On}`)
             return await this.retryBLE({
               max: await this.maxRetryBLE(),
               fn: async () => {
                 if (this.On) {
-                  return await device_list[0].turnOn({ id: this.device.bleMac });
+                  return await device_list[0].turnOn({ id: this.device.bleMac })
                 } else {
-                  return await device_list[0].turnOff({ id: this.device.bleMac });
+                  return await device_list[0].turnOff({ id: this.device.bleMac })
                 }
               },
-            });
+            })
           })
           .then(async () => {
-            await this.successLog(`On: ${this.On} sent over SwitchBot BLE,  sent successfully`);
-            await this.updateHomeKitCharacteristics();
+            await this.successLog(`On: ${this.On} sent over SwitchBot BLE,  sent successfully`)
+            await this.updateHomeKitCharacteristics()
           })
           .catch(async (e: any) => {
-            await this.apiError(e);
-            await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`);
-            await this.BLEPushConnection();
-          });
+            await this.apiError(e)
+            await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+            await this.BLEPushConnection()
+          })
       } else {
-        await this.errorLog(`Device Parameters not set for this Bot, please check the device configuration. Bot Mode: ${this.botMode}`);
+        await this.errorLog(`Device Parameters not set for this Bot, please check the device configuration. Bot Mode: ${this.botMode}`)
       }
     } else {
-      await this.debugLog(`No Changes (BLEpushChanges), On: ${this.On} OnCached: ${this.accessory.context.On}`);
+      await this.debugLog(`No Changes (BLEpushChanges), On: ${this.On} OnCached: ${this.accessory.context.On}`)
     }
   }
 
   async openAPIpushChanges(): Promise<void> {
-    await this.debugLog('openAPIpushChanges');
+    await this.debugLog('openAPIpushChanges')
     if (this.multiPressCount > 0) {
-      await this.debugLog(`${this.multiPressCount} request(s) queued.`);
+      await this.debugLog(`${this.multiPressCount} request(s) queued.`)
     }
     if (this.On !== this.accessory.context.On || this.allowPush || this.multiPressCount > 0) {
-      let command = '';
+      let command = ''
       if (this.botMode === 'switch') {
-        command = this.On ? 'turnOn' : 'turnOff';
-        await this.debugLog(`Switch Mode, Command: ${command}`);
+        command = this.On ? 'turnOn' : 'turnOff'
+        await this.debugLog(`Switch Mode, Command: ${command}`)
       } else if (this.botMode === 'press' || this.botMode === 'multipress') {
-        command = 'press';
-        await this.debugLog('Press Mode');
-        this.On = false;
+        command = 'press'
+        await this.debugLog('Press Mode')
+        this.On = false
       } else {
-        throw new Error('Device Parameters not set for this Bot.');
+        throw new Error('Device Parameters not set for this Bot.')
       }
       const bodyChange = JSON.stringify({
         command: `${command}`,
         parameter: 'default',
         commandType: 'command',
-      });
-      this.debugLog(`Sending request to SwitchBot API, body: ${bodyChange},`);
+      })
+      this.debugLog(`Sending request to SwitchBot API, body: ${bodyChange},`)
       try {
-        const { body, statusCode } = await this.pushChangeRequest(bodyChange);
-        const deviceStatus: any = await body.json();
-        await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
+        const { body, statusCode } = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = await body.json()
+        await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
-          await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`);
-          await this.updateHomeKitCharacteristics();
+          await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+          await this.updateHomeKitCharacteristics()
         } else {
-          await this.statusCode(statusCode);
-          await this.statusCode(deviceStatus.statusCode);
+          await this.statusCode(statusCode)
+          await this.statusCode(deviceStatus.statusCode)
         }
         if (this.device.bot?.mode === 'multipress') {
-          this.multiPressCount--;
+          this.multiPressCount--
           if (this.multiPressCount > 0) {
-            await this.debugLog(`multiPressCount: ${this.multiPressCount}`);
-            this.On = true;
-            await this.openAPIpushChanges();
+            await this.debugLog(`multiPressCount: ${this.multiPressCount}`)
+            this.On = true
+            await this.openAPIpushChanges()
           }
         }
       } catch (e: any) {
-        await this.apiError(e);
-        await this.errorLog(`failed openAPIpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`);
+        await this.apiError(e)
+        await this.errorLog(`failed openAPIpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
       }
     } else {
-      await this.debugLog(`No Changes (openAPIpushChanges), On: ${this.On} OnCached: ${this.accessory.context.On}`);
+      await this.debugLog(`No Changes (openAPIpushChanges), On: ${this.On} OnCached: ${this.accessory.context.On}`)
     }
   }
 
@@ -816,399 +776,403 @@ export class Bot extends deviceBase {
    */
   async OnSet(value: CharacteristicValue): Promise<void> {
     if (this.botDeviceType === 'garagedoor') {
-      this.debugLog(`Set TargetDoorState: ${value}`);
+      this.debugLog(`Set TargetDoorState: ${value}`)
       if (value === this.hap.Characteristic.TargetDoorState.CLOSED) {
-        this.On = false;
+        this.On = false
       } else {
-        this.On = true;
+        this.On = true
       }
     } else if (
-      this.botDeviceType === 'door' ||
-      this.botDeviceType === 'window' ||
-      this.botDeviceType === 'windowcovering'
+      this.botDeviceType === 'door'
+      || this.botDeviceType === 'window'
+      || this.botDeviceType === 'windowcovering'
     ) {
-      this.debugLog(`Set TargetPosition: ${value}`);
+      this.debugLog(`Set TargetPosition: ${value}`)
       if (value === 0) {
-        this.On = false;
+        this.On = false
       } else {
-        this.On = true;
+        this.On = true
       }
     } else if (this.botDeviceType === 'lock') {
-      this.debugLog(`Set LockTargetState: ${value}`);
+      this.debugLog(`Set LockTargetState: ${value}`)
       if (value === this.hap.Characteristic.LockTargetState.SECURED) {
-        this.On = false;
+        this.On = false
       } else {
-        this.On = true;
+        this.On = true
       }
     } else if (this.botDeviceType === 'faucet') {
-      this.debugLog(`Set Active: ${value}`);
+      this.debugLog(`Set Active: ${value}`)
       if (value === this.hap.Characteristic.Active.INACTIVE) {
-        this.On = false;
+        this.On = false
       } else {
-        this.On = true;
+        this.On = true
       }
     } else if (this.botDeviceType === 'stateful') {
-      this.debugLog(`Set ProgrammableSwitchOutputState: ${value}`);
+      this.debugLog(`Set ProgrammableSwitchOutputState: ${value}`)
       if (value === 0) {
-        this.On = false;
+        this.On = false
       } else {
-        this.On = true;
+        this.On = true
       }
     } else {
-      this.debugLog(`Set On: ${value}`);
+      this.debugLog(`Set On: ${value}`)
       if (this.device.bot?.mode === 'multipress') {
         if (value === true) {
-          this.multiPressCount++;
-          this.debugLog(`set to Multi-Press. Multi-Press count: ${this.multiPressCount}`);
+          this.multiPressCount++
+          this.debugLog(`set to Multi-Press. Multi-Press count: ${this.multiPressCount}`)
         }
       }
-      this.On = value as boolean;
+      this.On = value as boolean
     }
-    this.doBotUpdate.next();
+    this.doBotUpdate.next()
   }
 
   /**
    * Updates the status for each of the HomeKit Characteristics
    */
   async updateHomeKitCharacteristics(): Promise<void> {
-    await this.debugLog('updateHomeKitCharacteristics');
+    await this.debugLog('updateHomeKitCharacteristics')
     // BatteryLevel
     if (this.Battery.BatteryLevel === undefined) {
-      await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`);
+      await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
     } else {
-      this.accessory.context.BatteryLevel = this.Battery.BatteryLevel;
-      this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, this.Battery.BatteryLevel);
-      await this.debugLog(`updateCharacteristic BatteryLevel: ${this.Battery.BatteryLevel}`);
+      this.accessory.context.BatteryLevel = this.Battery.BatteryLevel
+      this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, this.Battery.BatteryLevel)
+      await this.debugLog(`updateCharacteristic BatteryLevel: ${this.Battery.BatteryLevel}`)
     }
     // StatusLowBattery
     if (this.Battery.StatusLowBattery === undefined) {
-      await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+      await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
     } else {
-      this.accessory.context.StatusLowBattery = this.Battery.StatusLowBattery;
-      this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery);
-      await this.debugLog(`updateCharacteristic StatusLowBattery: ${this.Battery.StatusLowBattery}`);
+      this.accessory.context.StatusLowBattery = this.Battery.StatusLowBattery
+      this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery)
+      await this.debugLog(`updateCharacteristic StatusLowBattery: ${this.Battery.StatusLowBattery}`)
     }
     // State
     if (this.botDeviceType === 'switch' && this.Switch) {
       if (this.On === undefined) {
-        await this.debugLog(`On: ${this.On}`);
+        await this.debugLog(`On: ${this.On}`)
       } else {
-        this.Switch.Service.updateCharacteristic(this.hap.Characteristic.On, this.On);
-        await this.debugLog(`updateCharacteristic On: ${this.On}`);
+        this.Switch.Service.updateCharacteristic(this.hap.Characteristic.On, this.On)
+        await this.debugLog(`updateCharacteristic On: ${this.On}`)
       }
     } else if (this.botDeviceType === 'garagedoor' && this.GarageDoor) {
       if (this.On === undefined) {
-        await this.debugLog(`On: ${this.On}`);
+        await this.debugLog(`On: ${this.On}`)
       } else {
         if (this.On) {
-          this.GarageDoor.Service.updateCharacteristic(this.hap.Characteristic.TargetDoorState, this.hap.Characteristic.TargetDoorState.OPEN);
-          this.GarageDoor.Service.updateCharacteristic(this.hap.Characteristic.CurrentDoorState, this.hap.Characteristic.CurrentDoorState.OPEN);
-          await this.debugLog(`updateCharacteristic TargetDoorState: Open, CurrentDoorState: Open (${this.On})`);
+          this.GarageDoor.Service.updateCharacteristic(this.hap.Characteristic.TargetDoorState, this.hap.Characteristic.TargetDoorState.OPEN)
+          this.GarageDoor.Service.updateCharacteristic(this.hap.Characteristic.CurrentDoorState, this.hap.Characteristic.CurrentDoorState.OPEN)
+          await this.debugLog(`updateCharacteristic TargetDoorState: Open, CurrentDoorState: Open (${this.On})`)
         } else {
-          this.GarageDoor.Service.updateCharacteristic(this.hap.Characteristic.TargetDoorState, this.hap.Characteristic.TargetDoorState.CLOSED);
-          this.GarageDoor.Service.updateCharacteristic(this.hap.Characteristic.CurrentDoorState, this.hap.Characteristic.CurrentDoorState.CLOSED);
-          await this.debugLog(`updateCharacteristicc TargetDoorState: Closed, CurrentDoorState: Closed (${this.On})`);
+          this.GarageDoor.Service.updateCharacteristic(this.hap.Characteristic.TargetDoorState, this.hap.Characteristic.TargetDoorState.CLOSED)
+          this.GarageDoor.Service.updateCharacteristic(this.hap.Characteristic.CurrentDoorState, this.hap.Characteristic.CurrentDoorState.CLOSED)
+          await this.debugLog(`updateCharacteristicc TargetDoorState: Closed, CurrentDoorState: Closed (${this.On})`)
         }
       }
-      await this.debugLog(`Garage Door On: ${this.On}`);
+      await this.debugLog(`Garage Door On: ${this.On}`)
     } else if (this.botDeviceType === 'door' && this.Door) {
       if (this.On === undefined) {
-        await this.debugLog(`On: ${this.On}`);
+        await this.debugLog(`On: ${this.On}`)
       } else {
         if (this.On) {
-          this.Door.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 100);
-          this.Door.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 100);
-          this.Door.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED);
-          await this.debugLog(`updateCharacteristicc TargetPosition: 100, CurrentPosition: 100 (${this.On})`);
+          this.Door.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 100)
+          this.Door.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 100)
+          this.Door.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED)
+          await this.debugLog(`updateCharacteristicc TargetPosition: 100, CurrentPosition: 100 (${this.On})`)
         } else {
-          this.Door.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 0);
-          this.Door.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 0);
-          this.Door.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED);
-          await this.debugLog(`updateCharacteristicc TargetPosition: 0, CurrentPosition: 0 (${this.On})`);
+          this.Door.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 0)
+          this.Door.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 0)
+          this.Door.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED)
+          await this.debugLog(`updateCharacteristicc TargetPosition: 0, CurrentPosition: 0 (${this.On})`)
         }
       }
-      await this.debugLog(`Door On: ${this.On}`);
+      await this.debugLog(`Door On: ${this.On}`)
     } else if (this.botDeviceType === 'window' && this.Window) {
       if (this.On === undefined) {
-        await this.debugLog(`On: ${this.On}`);
+        await this.debugLog(`On: ${this.On}`)
       } else {
         if (this.On) {
-          this.Window.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 100);
-          this.Window.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 100);
-          this.Window.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED);
-          await this.debugLog(`updateCharacteristicc TargetPosition: 100, CurrentPosition: 100 (${this.On})`);
+          this.Window.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 100)
+          this.Window.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 100)
+          this.Window.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED)
+          await this.debugLog(`updateCharacteristicc TargetPosition: 100, CurrentPosition: 100 (${this.On})`)
         } else {
-          this.Window.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 0);
-          this.Window.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 0);
-          this.Window.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED);
-          await this.debugLog(`updateCharacteristicc TargetPosition: 0, CurrentPosition: 0 (${this.On})`);
+          this.Window.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 0)
+          this.Window.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 0)
+          this.Window.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED)
+          await this.debugLog(`updateCharacteristicc TargetPosition: 0, CurrentPosition: 0 (${this.On})`)
         }
       }
-      await this.debugLog(`Window On: ${this.On}`);
+      await this.debugLog(`Window On: ${this.On}`)
     } else if (this.botDeviceType === 'windowcovering' && this.WindowCovering) {
       if (this.On === undefined) {
-        await this.debugLog(`On: ${this.On}`);
+        await this.debugLog(`On: ${this.On}`)
       } else {
         if (this.On) {
-          this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 100);
-          this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 100);
-          this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED);
-          await this.debugLog(`updateCharacteristicc TargetPosition: 100, CurrentPosition: 100 (${this.On})`);
+          this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 100)
+          this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 100)
+          this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED)
+          await this.debugLog(`updateCharacteristicc TargetPosition: 100, CurrentPosition: 100 (${this.On})`)
         } else {
-          this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 0);
-          this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 0);
-          this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED);
-          await this.debugLog(`updateCharacteristicc TargetPosition: 0, CurrentPosition: 0 (${this.On})`);
+          this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 0)
+          this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 0)
+          this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED)
+          await this.debugLog(`updateCharacteristicc TargetPosition: 0, CurrentPosition: 0 (${this.On})`)
         }
       }
-      await this.debugLog(`Window Covering On: ${this.On}`);
+      await this.debugLog(`Window Covering On: ${this.On}`)
     } else if (this.botDeviceType === 'lock' && this.LockMechanism) {
       if (this.On === undefined) {
-        await this.debugLog(`On: ${this.On}`);
+        await this.debugLog(`On: ${this.On}`)
       } else {
         if (this.On) {
-          this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockTargetState,
-            this.hap.Characteristic.LockTargetState.UNSECURED);
-          this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockCurrentState,
-            this.hap.Characteristic.LockCurrentState.UNSECURED);
-          await this.debugLog(`updateCharacteristicc LockTargetState: UNSECURED, LockCurrentState: UNSECURED (${this.On})`);
+          this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockTargetState, this.hap.Characteristic.LockTargetState.UNSECURED)
+          this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockCurrentState, this.hap.Characteristic.LockCurrentState.UNSECURED)
+          await this.debugLog(`updateCharacteristicc LockTargetState: UNSECURED, LockCurrentState: UNSECURED (${this.On})`)
         } else {
-          this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockTargetState,
-            this.hap.Characteristic.LockTargetState.SECURED);
-          this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockCurrentState,
-            this.hap.Characteristic.LockCurrentState.SECURED);
-          await this.debugLog(`updateCharacteristic LockTargetState: SECURED, LockCurrentState: SECURED  (${this.On})`);
+          this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockTargetState, this.hap.Characteristic.LockTargetState.SECURED)
+          this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockCurrentState, this.hap.Characteristic.LockCurrentState.SECURED)
+          await this.debugLog(`updateCharacteristic LockTargetState: SECURED, LockCurrentState: SECURED  (${this.On})`)
         }
       }
-      await this.debugLog(`Lock On: ${this.On}`);
+      await this.debugLog(`Lock On: ${this.On}`)
     } else if (this.botDeviceType === 'faucet' && this.Faucet) {
       if (this.On === undefined) {
-        await this.debugLog(`On: ${this.On}`);
+        await this.debugLog(`On: ${this.On}`)
       } else {
         if (this.On) {
-          this.Faucet.Service.updateCharacteristic(this.hap.Characteristic.Active, this.hap.Characteristic.Active.ACTIVE);
-          await this.debugLog(`updateCharacteristic Active: ${this.On}`);
+          this.Faucet.Service.updateCharacteristic(this.hap.Characteristic.Active, this.hap.Characteristic.Active.ACTIVE)
+          await this.debugLog(`updateCharacteristic Active: ${this.On}`)
         } else {
-          this.Faucet.Service.updateCharacteristic(this.hap.Characteristic.Active, this.hap.Characteristic.Active.INACTIVE);
-          await this.debugLog(`updateCharacteristic Active: ${this.On}`);
+          this.Faucet.Service.updateCharacteristic(this.hap.Characteristic.Active, this.hap.Characteristic.Active.INACTIVE)
+          await this.debugLog(`updateCharacteristic Active: ${this.On}`)
         }
       }
-      await this.debugLog(`Faucet On: ${this.On}`);
+      await this.debugLog(`Faucet On: ${this.On}`)
     } else if (this.botDeviceType === 'fan' && this.Fan) {
       if (this.On === undefined) {
-        await this.debugLog(`On: ${this.On}`);
+        await this.debugLog(`On: ${this.On}`)
       } else {
         if (this.On) {
-          this.Fan.Service.updateCharacteristic(this.hap.Characteristic.Active, this.hap.Characteristic.Active.ACTIVE);
-          await this.debugLog(`updateCharacteristic Active: ${this.On}`);
+          this.Fan.Service.updateCharacteristic(this.hap.Characteristic.Active, this.hap.Characteristic.Active.ACTIVE)
+          await this.debugLog(`updateCharacteristic Active: ${this.On}`)
         } else {
-          this.Fan.Service.updateCharacteristic(this.hap.Characteristic.Active, this.hap.Characteristic.Active.INACTIVE);
-          await this.debugLog(`updateCharacteristic Active: ${this.On}`);
+          this.Fan.Service.updateCharacteristic(this.hap.Characteristic.Active, this.hap.Characteristic.Active.INACTIVE)
+          await this.debugLog(`updateCharacteristic Active: ${this.On}`)
         }
       }
-      await this.debugLog(`Fan On: ${this.On}`);
+      await this.debugLog(`Fan On: ${this.On}`)
     } else if (this.botDeviceType === 'stateful' && this.StatefulProgrammableSwitch) {
       if (this.On === undefined) {
-        await this.debugLog(`On: ${this.On}`);
+        await this.debugLog(`On: ${this.On}`)
       } else {
         if (this.On) {
-          this.StatefulProgrammableSwitch.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent,
-            this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS);
-          this.StatefulProgrammableSwitch.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState, 1);
-          await this.debugLog(`updateCharacteristic ProgrammableSwitchEvent: ProgrammableSwitchOutputState: (${this.On})`);
+          this.StatefulProgrammableSwitch.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent, this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS)
+          this.StatefulProgrammableSwitch.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState, 1)
+          await this.debugLog(`updateCharacteristic ProgrammableSwitchEvent: ProgrammableSwitchOutputState: (${this.On})`)
         } else {
-          this.StatefulProgrammableSwitch.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent,
-            this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS);
-          this.StatefulProgrammableSwitch.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState, 0);
-          await this.debugLog(`updateCharacteristic ProgrammableSwitchEvent: ProgrammableSwitchOutputState: (${this.On})`);
+          this.StatefulProgrammableSwitch.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent, this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS)
+          this.StatefulProgrammableSwitch.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState, 0)
+          await this.debugLog(`updateCharacteristic ProgrammableSwitchEvent: ProgrammableSwitchOutputState: (${this.On})`)
         }
       }
-      await this.debugLog(`StatefulProgrammableSwitch On: ${this.On}`);
+      await this.debugLog(`StatefulProgrammableSwitch On: ${this.On}`)
     } else if (this.botDeviceType === 'outlet' && this.Outlet) {
       if (this.On === undefined) {
-        await this.debugLog(`On: ${this.On}`);
+        await this.debugLog(`On: ${this.On}`)
       } else {
-        this.Outlet.Service.updateCharacteristic(this.hap.Characteristic.On, this.On);
-        await this.debugLog(`updateCharacteristic On: ${this.On}`);
+        this.Outlet.Service.updateCharacteristic(this.hap.Characteristic.On, this.On)
+        await this.debugLog(`updateCharacteristic On: ${this.On}`)
       }
     } else {
-      await this.errorLog(`botDeviceType: ${this.botDeviceType}, On: ${this.On}`);
+      await this.errorLog(`botDeviceType: ${this.botDeviceType}, On: ${this.On}`)
     }
   }
 
   async removeOutletService(accessory: PlatformAccessory): Promise<void> {
     // If outletService still present, then remove first
-    accessory.context.Outlet = accessory.context.Outlet ?? {};
+    accessory.context.Outlet = accessory.context.Outlet ?? {}
     this.Outlet = {
       Name: accessory.context.Outlet.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.Outlet) as Service,
-    };
-    accessory.context.Outlet = this.Outlet as object;
-    await this.debugWarnLog('Removing any leftover Outlet Service');
-    accessory.removeService(this.Outlet.Service);
+    }
+    accessory.context.Outlet = this.Outlet as object
+    await this.debugWarnLog('Removing any leftover Outlet Service')
+    accessory.removeService(this.Outlet.Service)
   }
 
   async removeGarageDoorService(accessory: PlatformAccessory): Promise<void> {
     // If garageDoorService still present, then remove first
-    accessory.context.GarageDoor = accessory.context.GarageDoor ?? {};
+    accessory.context.GarageDoor = accessory.context.GarageDoor ?? {}
     this.GarageDoor = {
       Name: accessory.context.GarageDoor.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.GarageDoorOpener) as Service,
-    };
-    accessory.context.GarageDoor = this.GarageDoor as object;
-    await this.debugWarnLog('Removing any leftover Garage Door Service');
-    accessory.removeService(this.GarageDoor.Service);
+    }
+    accessory.context.GarageDoor = this.GarageDoor as object
+    await this.debugWarnLog('Removing any leftover Garage Door Service')
+    accessory.removeService(this.GarageDoor.Service)
   }
 
   async removeDoorService(accessory: PlatformAccessory): Promise<void> {
     // If doorService still present, then remove first
-    accessory.context.Door = accessory.context.Door ?? {};
+    accessory.context.Door = accessory.context.Door ?? {}
     this.Door = {
       Name: accessory.context.Door.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.Door) as Service,
-    };
-    accessory.context.Door = this.Door as object;
-    await this.debugWarnLog('Removing any leftover Door Service');
-    accessory.removeService(this.Door.Service);
+    }
+    accessory.context.Door = this.Door as object
+    await this.debugWarnLog('Removing any leftover Door Service')
+    accessory.removeService(this.Door.Service)
   }
 
   async removeLockService(accessory: PlatformAccessory): Promise<void> {
     // If lockService still present, then remove first
-    accessory.context.LockMechanism = accessory.context.LockMechanism ?? {};
+    accessory.context.LockMechanism = accessory.context.LockMechanism ?? {}
     this.LockMechanism = {
       Name: accessory.context.LockMechanism.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.LockMechanism) as Service,
-    };
-    accessory.context.LockMechanism = this.LockMechanism as object;
-    await this.debugWarnLog('Removing any leftover Lock Service');
-    accessory.removeService(this.LockMechanism.Service);
+    }
+    accessory.context.LockMechanism = this.LockMechanism as object
+    await this.debugWarnLog('Removing any leftover Lock Service')
+    accessory.removeService(this.LockMechanism.Service)
   }
 
   async removeFaucetService(accessory: PlatformAccessory): Promise<void> {
     // If faucetService still present, then remove first
-    accessory.context.Faucet = accessory.context.Faucet ?? {};
+    accessory.context.Faucet = accessory.context.Faucet ?? {}
     this.Faucet = {
       Name: accessory.context.Faucet.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.Valve) as Service,
-    };
-    accessory.context.Faucet = this.Faucet as object;
-    await this.debugWarnLog('Removing any leftover Faucet Service');
-    accessory.removeService(this.Faucet.Service);
+    }
+    accessory.context.Faucet = this.Faucet as object
+    await this.debugWarnLog('Removing any leftover Faucet Service')
+    accessory.removeService(this.Faucet.Service)
   }
 
   async removeFanService(accessory: PlatformAccessory): Promise<void> {
     // If fanService still present, then remove first
-    accessory.context.Fan = accessory.context.Fan ?? {};
+    accessory.context.Fan = accessory.context.Fan ?? {}
     this.Fan = {
       Name: accessory.context.Fan.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.Fan) as Service,
-    };
-    accessory.context.Fan = this.Fan as object;
-    await this.debugWarnLog('Removing any leftover Fan Service');
-    accessory.removeService(this.Fan.Service);
+    }
+    accessory.context.Fan = this.Fan as object
+    await this.debugWarnLog('Removing any leftover Fan Service')
+    accessory.removeService(this.Fan.Service)
   }
 
   async removeWindowService(accessory: PlatformAccessory): Promise<void> {
     // If windowService still present, then remove first
-    accessory.context.Window = accessory.context.Window ?? {};
+    accessory.context.Window = accessory.context.Window ?? {}
     this.Window = {
       Name: accessory.context.Window.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.Window) as Service,
-    };
-    accessory.context.Window = this.Window as object;
-    await this.debugWarnLog('Removing any leftover Window Service');
-    accessory.removeService(this.Window.Service);
+    }
+    accessory.context.Window = this.Window as object
+    await this.debugWarnLog('Removing any leftover Window Service')
+    accessory.removeService(this.Window.Service)
   }
 
   async removeWindowCoveringService(accessory: PlatformAccessory): Promise<void> {
     // If windowCoveringService still present, then remove first
-    accessory.context.WindowCovering = accessory.context.WindowCovering ?? {};
+    accessory.context.WindowCovering = accessory.context.WindowCovering ?? {}
     this.WindowCovering = {
       Name: accessory.context.WindowCovering.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.WindowCovering) as Service,
-    };
-    accessory.context.WindowCovering = this.WindowCovering as object;
-    await this.debugWarnLog('Removing any leftover Window Covering Service');
-    accessory.removeService(this.WindowCovering.Service);
+    }
+    accessory.context.WindowCovering = this.WindowCovering as object
+    await this.debugWarnLog('Removing any leftover Window Covering Service')
+    accessory.removeService(this.WindowCovering.Service)
   }
 
   async removeStatefulProgrammableSwitchService(accessory: PlatformAccessory): Promise<void> {
     // If statefulProgrammableSwitchService still present, then remove first
-    accessory.context.StatefulProgrammableSwitch = accessory.context.StatefulProgrammableSwitch ?? {};
+    accessory.context.StatefulProgrammableSwitch = accessory.context.StatefulProgrammableSwitch ?? {}
     this.StatefulProgrammableSwitch = {
       Name: accessory.context.StatefulProgrammableSwitch.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.StatefulProgrammableSwitch) as Service,
-    };
-    accessory.context.StatefulProgrammableSwitch = this.StatefulProgrammableSwitch as object;
-    await this.debugWarnLog('Removing any leftover Stateful Programmable Switch Service');
-    accessory.removeService(this.StatefulProgrammableSwitch.Service);
+    }
+    accessory.context.StatefulProgrammableSwitch = this.StatefulProgrammableSwitch as object
+    await this.debugWarnLog('Removing any leftover Stateful Programmable Switch Service')
+    accessory.removeService(this.StatefulProgrammableSwitch.Service)
   }
 
   async removeSwitchService(accessory: PlatformAccessory): Promise<void> {
     // If switchService still present, then remove first
-    accessory.context.Switch = accessory.context.Switch ?? {};
+    accessory.context.Switch = accessory.context.Switch ?? {}
     this.Switch = {
       Name: accessory.context.Switch.Name ?? accessory.displayName,
       Service: accessory.getService(this.hap.Service.Switch) as Service,
-    };
-    accessory.context.Switch = this.Switch as object;
-    await this.debugWarnLog('Removing any leftover Switch Service');
-    accessory.removeService(this.Switch.Service);
+    }
+    accessory.context.Switch = this.Switch as object
+    await this.debugWarnLog('Removing any leftover Switch Service')
+    accessory.removeService(this.Switch.Service)
   }
 
   async getBotConfigSettings(device: device & devicesConfig) {
-    //Bot Device Type
-    this.botDeviceType = this.accessory.context.botDeviceType === device.bot?.deviceType ? this.accessory.context.botDeviceType
-      : device.bot?.deviceType ?? 'outlet';
-    const botDeviceType = this.accessory.context.botDeviceType ? `Using Device Type: ${this.botDeviceType}, from Accessory Cache.`
-      : device.bot?.deviceType ? `Using Device Type: ${this.botDeviceType}`
-        : `No Device Type Set, deviceType: ${this.device.bot?.deviceType}, Using default deviceType: ${this.botDeviceType}`;
-    await this.debugWarnLog(botDeviceType);
-    this.accessory.context.botDeviceType = this.botDeviceType;
+    // Bot Device Type
+    this.botDeviceType = this.accessory.context.botDeviceType === device.bot?.deviceType
+      ? this.accessory.context.botDeviceType
+      : device.bot?.deviceType ?? 'outlet'
+    const botDeviceType = this.accessory.context.botDeviceType
+      ? `Using Device Type: ${this.botDeviceType}, from Accessory Cache.`
+      : device.bot?.deviceType
+        ? `Using Device Type: ${this.botDeviceType}`
+        : `No Device Type Set, deviceType: ${this.device.bot?.deviceType}, Using default deviceType: ${this.botDeviceType}`
+    await this.debugWarnLog(botDeviceType)
+    this.accessory.context.botDeviceType = this.botDeviceType
     // Bot Mode
-    this.botMode = this.accessory.context.botMode ?? device.bot?.mode ?? 'switch';
-    const botMode = this.accessory.context.botMode ? `Using Bot Mode: ${this.botMode}, from Accessory Cache.`
-      : device.bot?.mode ? `Using Bot Mode: ${this.botMode}` : `No Bot Mode Set, Using default Bot Mode: ${this.botMode}`;
-    await this.debugWarnLog(botMode);
-    this.accessory.context.botMode = this.botMode;
+    this.botMode = this.accessory.context.botMode ?? device.bot?.mode ?? 'switch'
+    const botMode = this.accessory.context.botMode
+      ? `Using Bot Mode: ${this.botMode}, from Accessory Cache.`
+      : device.bot?.mode ? `Using Bot Mode: ${this.botMode}` : `No Bot Mode Set, Using default Bot Mode: ${this.botMode}`
+    await this.debugWarnLog(botMode)
+    this.accessory.context.botMode = this.botMode
     // Bot Double Press
-    this.doublePress = this.accessory.context.doublePress ?? device.bot?.doublePress ?? 1;
-    const doublePress = this.accessory.context.doublePress ? `Using Double Press: ${this.doublePress}, from Accessory Cache.`
-      : device.bot?.doublePress ? `Using Double Press: ${this.doublePress}`
-        : `No Double Press Set, Using default Double Press: ${this.doublePress}`;
-    await this.debugWarnLog(doublePress);
-    this.accessory.context.doublePress = this.doublePress;
+    this.doublePress = this.accessory.context.doublePress ?? device.bot?.doublePress ?? 1
+    const doublePress = this.accessory.context.doublePress
+      ? `Using Double Press: ${this.doublePress}, from Accessory Cache.`
+      : device.bot?.doublePress
+        ? `Using Double Press: ${this.doublePress}`
+        : `No Double Press Set, Using default Double Press: ${this.doublePress}`
+    await this.debugWarnLog(doublePress)
+    this.accessory.context.doublePress = this.doublePress
     // Bot Press PushRate
-    this.pushRatePress = this.accessory.context.pushRatePress ?? device.bot?.pushRatePress ?? 15;
-    const pushRatePress = this.accessory.context.pushRatePress ? `Using Push Rate Press: ${this.pushRatePress}, from Accessory Cache.`
-      : device.bot?.pushRatePress ? `Using Bot Push Rate Press: ${this.pushRatePress}`
-        : `No Push Rate Press Set, Using default Push Rate Press: ${this.pushRatePress}`;
-    await this.debugWarnLog(pushRatePress);
-    this.accessory.context.pushRatePress = this.pushRatePress;
+    this.pushRatePress = this.accessory.context.pushRatePress ?? device.bot?.pushRatePress ?? 15
+    const pushRatePress = this.accessory.context.pushRatePress
+      ? `Using Push Rate Press: ${this.pushRatePress}, from Accessory Cache.`
+      : device.bot?.pushRatePress
+        ? `Using Bot Push Rate Press: ${this.pushRatePress}`
+        : `No Push Rate Press Set, Using default Push Rate Press: ${this.pushRatePress}`
+    await this.debugWarnLog(pushRatePress)
+    this.accessory.context.pushRatePress = this.pushRatePress
     // Bot Allow Push
-    this.allowPush = this.accessory.context.allowPush ?? device.bot?.allowPush ?? false;
-    const allowPush = this.accessory.context.allowPush ? `Using Allow Push: ${this.allowPush}, from Accessory Cache.`
-      : device.bot?.allowPush ? `Using Allow Push: ${this.allowPush}`
-        : `No Allow Push Set, Using default Allow Push: ${this.allowPush}`;
-    await this.debugWarnLog(allowPush);
-    this.accessory.context.allowPush = this.allowPush;
+    this.allowPush = this.accessory.context.allowPush ?? device.bot?.allowPush ?? false
+    const allowPush = this.accessory.context.allowPush
+      ? `Using Allow Push: ${this.allowPush}, from Accessory Cache.`
+      : device.bot?.allowPush
+        ? `Using Allow Push: ${this.allowPush}`
+        : `No Allow Push Set, Using default Allow Push: ${this.allowPush}`
+    await this.debugWarnLog(allowPush)
+    this.accessory.context.allowPush = this.allowPush
     // Bot Multi Press Count
-    this.multiPressCount = 0;
-    await this.debugWarnLog(`Multi Press Count: ${this.multiPressCount}`);
+    this.multiPressCount = 0
+    await this.debugWarnLog(`Multi Press Count: ${this.multiPressCount}`)
   }
 
   async BLEPushConnection() {
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
-      await this.warnLog('Using OpenAPI Connection to Push Changes');
-      await this.openAPIpushChanges();
+      await this.warnLog('Using OpenAPI Connection to Push Changes')
+      await this.openAPIpushChanges()
     }
   }
 
   async BLERefreshConnection(switchbot: any): Promise<void> {
-    await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`);
+    await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
-      await this.warnLog('Using OpenAPI Connection to Refresh Status');
-      await this.openAPIRefreshStatus();
+      await this.warnLog('Using OpenAPI Connection to Refresh Status')
+      await this.openAPIRefreshStatus()
     }
   }
 
@@ -1216,111 +1180,110 @@ export class Bot extends deviceBase {
     if (this.device.offline) {
       if (this.botDeviceType === 'garagedoor') {
         if (this.GarageDoor) {
-          this.GarageDoor.Service.updateCharacteristic(this.hap.Characteristic.TargetDoorState, this.hap.Characteristic.TargetDoorState.CLOSED);
-          this.GarageDoor.Service.updateCharacteristic(this.hap.Characteristic.CurrentDoorState, this.hap.Characteristic.CurrentDoorState.CLOSED);
-          this.GarageDoor.Service.updateCharacteristic(this.hap.Characteristic.ObstructionDetected, false);
+          this.GarageDoor.Service.updateCharacteristic(this.hap.Characteristic.TargetDoorState, this.hap.Characteristic.TargetDoorState.CLOSED)
+          this.GarageDoor.Service.updateCharacteristic(this.hap.Characteristic.CurrentDoorState, this.hap.Characteristic.CurrentDoorState.CLOSED)
+          this.GarageDoor.Service.updateCharacteristic(this.hap.Characteristic.ObstructionDetected, false)
         }
       } else if (this.botDeviceType === 'door') {
         if (this.Door) {
-          this.Door.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 0);
-          this.Door.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 0);
-          this.Door.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED);
+          this.Door.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 0)
+          this.Door.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 0)
+          this.Door.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED)
         }
       } else if (this.botDeviceType === 'window') {
         if (this.Window) {
-          this.Window.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 0);
-          this.Window.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 0);
-          this.Window.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED);
+          this.Window.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 0)
+          this.Window.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 0)
+          this.Window.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED)
         }
       } else if (this.botDeviceType === 'windowcovering') {
         if (this.WindowCovering) {
-          this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 0);
-          this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 0);
-          this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED);
+          this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, 0)
+          this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, 0)
+          this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.PositionState, this.hap.Characteristic.PositionState.STOPPED)
         }
       } else if (this.botDeviceType === 'lock') {
         if (this.LockMechanism) {
-          this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockTargetState, this.hap.Characteristic.LockTargetState.SECURED);
-          this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockCurrentState, this.hap.Characteristic.LockCurrentState.SECURED);
+          this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockTargetState, this.hap.Characteristic.LockTargetState.SECURED)
+          this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockCurrentState, this.hap.Characteristic.LockCurrentState.SECURED)
         }
       } else if (this.botDeviceType === 'faucet') {
         if (this.Faucet) {
-          this.Faucet.Service.updateCharacteristic(this.hap.Characteristic.Active, this.hap.Characteristic.Active.INACTIVE);
+          this.Faucet.Service.updateCharacteristic(this.hap.Characteristic.Active, this.hap.Characteristic.Active.INACTIVE)
         }
       } else if (this.botDeviceType === 'fan') {
         if (this.Fan) {
-          this.Fan.Service.updateCharacteristic(this.hap.Characteristic.On, false);
+          this.Fan.Service.updateCharacteristic(this.hap.Characteristic.On, false)
         }
       } else if (this.botDeviceType === 'stateful') {
         if (this.StatefulProgrammableSwitch) {
-          this.StatefulProgrammableSwitch.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent,
-            this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS);
-          this.StatefulProgrammableSwitch.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState, 0);
+          this.StatefulProgrammableSwitch.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent, this.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS)
+          this.StatefulProgrammableSwitch.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState, 0)
         }
       } else if (this.botDeviceType === 'switch') {
         if (this.Switch) {
-          this.Switch.Service.updateCharacteristic(this.hap.Characteristic.On, false);
+          this.Switch.Service.updateCharacteristic(this.hap.Characteristic.On, false)
         }
       } else {
         if (this.Outlet) {
-          this.Outlet.Service.updateCharacteristic(this.hap.Characteristic.On, false);
+          this.Outlet.Service.updateCharacteristic(this.hap.Characteristic.On, false)
         }
       }
     }
   }
 
   async apiError(e: any): Promise<void> {
-    this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e);
-    this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, e);
+    this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e)
+    this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, e)
     if (this.botDeviceType === 'garagedoor') {
       if (this.GarageDoor) {
-        this.GarageDoor.Service.updateCharacteristic(this.hap.Characteristic.TargetDoorState, e);
-        this.GarageDoor.Service.updateCharacteristic(this.hap.Characteristic.CurrentDoorState, e);
-        this.GarageDoor.Service.updateCharacteristic(this.hap.Characteristic.ObstructionDetected, e);
+        this.GarageDoor.Service.updateCharacteristic(this.hap.Characteristic.TargetDoorState, e)
+        this.GarageDoor.Service.updateCharacteristic(this.hap.Characteristic.CurrentDoorState, e)
+        this.GarageDoor.Service.updateCharacteristic(this.hap.Characteristic.ObstructionDetected, e)
       }
     } else if (this.botDeviceType === 'door') {
       if (this.Door) {
-        this.Door.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, e);
-        this.Door.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, e);
-        this.Door.Service.updateCharacteristic(this.hap.Characteristic.PositionState, e);
+        this.Door.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, e)
+        this.Door.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, e)
+        this.Door.Service.updateCharacteristic(this.hap.Characteristic.PositionState, e)
       }
     } else if (this.botDeviceType === 'window') {
       if (this.Window) {
-        this.Window.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, e);
-        this.Window.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, e);
-        this.Window.Service.updateCharacteristic(this.hap.Characteristic.PositionState, e);
+        this.Window.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, e)
+        this.Window.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, e)
+        this.Window.Service.updateCharacteristic(this.hap.Characteristic.PositionState, e)
       }
     } else if (this.botDeviceType === 'windowcovering') {
       if (this.WindowCovering) {
-        this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, e);
-        this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, e);
-        this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.PositionState, e);
+        this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, e)
+        this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, e)
+        this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.PositionState, e)
       }
     } else if (this.botDeviceType === 'lock') {
       if (this.LockMechanism) {
-        this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockTargetState, e);
-        this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockCurrentState, e);
+        this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockTargetState, e)
+        this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockCurrentState, e)
       }
     } else if (this.botDeviceType === 'faucet') {
       if (this.Faucet) {
-        this.Faucet.Service.updateCharacteristic(this.hap.Characteristic.Active, e);
+        this.Faucet.Service.updateCharacteristic(this.hap.Characteristic.Active, e)
       }
     } else if (this.botDeviceType === 'fan') {
       if (this.Fan) {
-        this.Fan.Service.updateCharacteristic(this.hap.Characteristic.On, e);
+        this.Fan.Service.updateCharacteristic(this.hap.Characteristic.On, e)
       }
     } else if (this.botDeviceType === 'stateful') {
       if (this.StatefulProgrammableSwitch) {
-        this.StatefulProgrammableSwitch.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent, e);
-        this.StatefulProgrammableSwitch.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState, e);
+        this.StatefulProgrammableSwitch.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent, e)
+        this.StatefulProgrammableSwitch.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState, e)
       }
     } else if (this.botDeviceType === 'switch') {
       if (this.Switch) {
-        this.Switch.Service.updateCharacteristic(this.hap.Characteristic.On, e);
+        this.Switch.Service.updateCharacteristic(this.hap.Characteristic.On, e)
       }
     } else {
       if (this.Outlet) {
-        this.Outlet.Service.updateCharacteristic(this.hap.Characteristic.On, e);
+        this.Outlet.Service.updateCharacteristic(this.hap.Characteristic.On, e)
       }
     }
   }

@@ -3,76 +3,79 @@
  * device.ts: @switchbot/homebridge-switchbot.
  */
 
-import { hostname } from 'os';
-import { request } from 'undici';
-import { Devices } from '../settings.js';
-import { BlindTiltMappingMode, sleep } from '../utils.js';
-import { SwitchBotModel, SwitchBotBLEModel, SwitchBotBLEModelName, SwitchBotBLEModelFriendlyName } from 'node-switchbot';
+import type { API, CharacteristicValue, HAP, Logging, PlatformAccessory, Service } from 'homebridge'
+import type { MqttClient } from 'mqtt'
 
-import type { MqttClient } from 'mqtt';
-import type { device } from '../types/devicelist.js';
-import type { ad } from '../types/bledevicestatus.js';
-import type { SwitchBotPlatform } from '../platform.js';
-import type { SwitchBotPlatformConfig, devicesConfig } from '../settings.js';
-import type { API, CharacteristicValue, HAP, Logging, PlatformAccessory, Service } from 'homebridge';
+import type { SwitchBotPlatform } from '../platform.js'
+import type { devicesConfig, SwitchBotPlatformConfig } from '../settings.js'
+import type { ad } from '../types/bledevicestatus.js'
+import type { device } from '../types/devicelist.js'
+
+import { hostname } from 'node:os'
+
+import { SwitchBotBLEModel, SwitchBotBLEModelFriendlyName, SwitchBotBLEModelName, SwitchBotModel } from 'node-switchbot'
+import { request } from 'undici'
+
+import { Devices } from '../settings.js'
+import { BlindTiltMappingMode, sleep } from '../utils.js'
 
 export abstract class deviceBase {
-  public readonly api: API;
-  public readonly log: Logging;
-  public readonly config!: SwitchBotPlatformConfig;
-  protected readonly hap: HAP;
+  public readonly api: API
+  public readonly log: Logging
+  public readonly config!: SwitchBotPlatformConfig
+  protected readonly hap: HAP
 
   // Config
-  protected deviceLogging!: string;
-  protected deviceRefreshRate!: number;
-  protected deviceUpdateRate!: number;
-  protected devicePushRate!: number;
-  protected deviceMaxRetries!: number;
-  protected deviceDelayBetweenRetries!: number;
+  protected deviceLogging!: string
+  protected deviceRefreshRate!: number
+  protected deviceUpdateRate!: number
+  protected devicePushRate!: number
+  protected deviceMaxRetries!: number
+  protected deviceDelayBetweenRetries!: number
 
   // Connection
-  protected readonly BLE: boolean;
-  protected readonly OpenAPI: boolean;
+  protected readonly BLE: boolean
+  protected readonly OpenAPI: boolean
 
   // Accsrroy Information
-  protected deviceModel!: SwitchBotModel;
-  protected deviceBLEModel!: SwitchBotBLEModel;
+  protected deviceModel!: SwitchBotModel
+  protected deviceBLEModel!: SwitchBotBLEModel
 
   // MQTT
-  protected deviceMqttURL!: string;
-  protected deviceMqttOptions!: any;
-  protected deviceMqttPubOptions!: any;
+  protected deviceMqttURL!: string
+  protected deviceMqttOptions!: any
+  protected deviceMqttPubOptions!: any
 
   // BLE
-  protected scanDuration!: number;
+  protected scanDuration!: number
 
   // EVE history service handler
-  protected historyService?: any = null;
+  protected historyService?: any = null
 
-  //MQTT stuff
-  protected mqttClient: MqttClient | null = null;
+  // MQTT stuff
+  protected mqttClient: MqttClient | null = null
 
   constructor(
     protected readonly platform: SwitchBotPlatform,
     protected accessory: PlatformAccessory,
     protected device: device & devicesConfig,
   ) {
-    this.api = this.platform.api;
-    this.log = this.platform.log;
-    this.config = this.platform.config;
-    this.hap = this.api.hap;
+    this.api = this.platform.api
+    this.log = this.platform.log
+    this.config = this.platform.config
+    this.hap = this.api.hap
 
     // Connection
-    this.BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI';
-    this.OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI';
+    this.BLE = this.device.connectionType === 'BLE' || this.device.connectionType === 'BLE/OpenAPI'
+    this.OpenAPI = this.device.connectionType === 'OpenAPI' || this.device.connectionType === 'BLE/OpenAPI'
 
-    this.getDeviceLogSettings(accessory, device);
-    this.getDeviceRateSettings(accessory, device);
-    this.getDeviceRetry(device);
-    this.getDeviceConfigSettings(device);
-    this.getDeviceContext(accessory, device);
-    this.getDeviceScanDuration(accessory, device);
-    this.getMqttSettings(device);
+    this.getDeviceLogSettings(accessory, device)
+    this.getDeviceRateSettings(accessory, device)
+    this.getDeviceRetry(device)
+    this.getDeviceConfigSettings(device)
+    this.getDeviceContext(accessory, device)
+    this.getDeviceScanDuration(accessory, device)
+    this.getMqttSettings(device)
 
     // Set accessory information
     accessory
@@ -83,81 +86,80 @@ export abstract class deviceBase {
       .setCharacteristic(this.hap.Characteristic.ConfiguredName, accessory.displayName)
       .setCharacteristic(this.hap.Characteristic.Model, device.model)
       .setCharacteristic(this.hap.Characteristic.ProductData, device.deviceId)
-      .setCharacteristic(this.hap.Characteristic.SerialNumber, device.deviceId);
+      .setCharacteristic(this.hap.Characteristic.SerialNumber, device.deviceId)
   }
 
   async getDeviceLogSettings(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
-    this.deviceLogging = this.platform.debugMode ? 'debugMode' : device.logging ?? this.config.logging ?? 'standard';
-    const logging = this.platform.debugMode ? 'Debug Mode' : device.logging ? 'Device Config' : this.config.logging ? 'Platform Config' : 'Default';
-    accessory.context.deviceLogging = this.deviceLogging;
-    await this.debugLog(`Using ${logging} Logging: ${this.deviceLogging}`);
+    this.deviceLogging = this.platform.debugMode ? 'debugMode' : device.logging ?? this.config.logging ?? 'standard'
+    const logging = this.platform.debugMode ? 'Debug Mode' : device.logging ? 'Device Config' : this.config.logging ? 'Platform Config' : 'Default'
+    accessory.context.deviceLogging = this.deviceLogging
+    await this.debugLog(`Using ${logging} Logging: ${this.deviceLogging}`)
   }
 
   async getDeviceRateSettings(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
     // refreshRate
-    this.deviceRefreshRate = device.refreshRate ?? this.config.options?.refreshRate ?? 5;
-    accessory.context.deviceRefreshRate = this.deviceRefreshRate;
-    const refreshRate = device.refreshRate ? 'Device Config' : this.config.options?.refreshRate ? 'Platform Config' : 'Default';
+    this.deviceRefreshRate = device.refreshRate ?? this.config.options?.refreshRate ?? 5
+    accessory.context.deviceRefreshRate = this.deviceRefreshRate
+    const refreshRate = device.refreshRate ? 'Device Config' : this.config.options?.refreshRate ? 'Platform Config' : 'Default'
     // updateRate
-    this.deviceUpdateRate = device.updateRate ?? this.config.options?.updateRate ?? 5;
-    accessory.context.deviceUpdateRate = this.deviceUpdateRate;
-    const updateRate = device.updateRate ? 'Device Config' : this.config.options?.updateRate ? 'Platform Config' : 'Default';
+    this.deviceUpdateRate = device.updateRate ?? this.config.options?.updateRate ?? 5
+    accessory.context.deviceUpdateRate = this.deviceUpdateRate
+    const updateRate = device.updateRate ? 'Device Config' : this.config.options?.updateRate ? 'Platform Config' : 'Default'
     // pushRate
-    this.devicePushRate = device.pushRate ?? this.config.options?.pushRate ?? 1;
-    accessory.context.devicePushRate = this.devicePushRate;
-    const pushRate = device.pushRate ? 'Device Config' : this.config.options?.pushRate ? 'Platform Config' : 'Default';
-    await this.debugLog(`Using ${refreshRate} refreshRate: ${this.deviceRefreshRate}, ${updateRate} updateRate: ${this.deviceUpdateRate},`
-      + ` ${pushRate} pushRate: ${this.devicePushRate}`);
+    this.devicePushRate = device.pushRate ?? this.config.options?.pushRate ?? 1
+    accessory.context.devicePushRate = this.devicePushRate
+    const pushRate = device.pushRate ? 'Device Config' : this.config.options?.pushRate ? 'Platform Config' : 'Default'
+    await this.debugLog(`Using ${refreshRate} refreshRate: ${this.deviceRefreshRate}, ${updateRate} updateRate: ${this.deviceUpdateRate}, ${pushRate} pushRate: ${this.devicePushRate}`)
   }
 
   async getDeviceRetry(device: device & devicesConfig): Promise<void> {
-    this.deviceMaxRetries = device.maxRetries ?? 5;
-    const maxRetries = device.maxRetries ? 'Device' : 'Default';
-    this.deviceDelayBetweenRetries = device.delayBetweenRetries ? (device.delayBetweenRetries * 1000) : 3000;
-    const delayBetweenRetries = device.delayBetweenRetries ? 'Device' : 'Default';
-    await this.debugLog(`Using ${maxRetries} Max Retries: ${this.deviceMaxRetries},`
-      + ` ${delayBetweenRetries} Delay Between Retries: ${this.deviceDelayBetweenRetries}`);
+    this.deviceMaxRetries = device.maxRetries ?? 5
+    const maxRetries = device.maxRetries ? 'Device' : 'Default'
+    this.deviceDelayBetweenRetries = device.delayBetweenRetries ? (device.delayBetweenRetries * 1000) : 3000
+    const delayBetweenRetries = device.delayBetweenRetries ? 'Device' : 'Default'
+    await this.debugLog(`Using ${maxRetries} Max Retries: ${this.deviceMaxRetries}, ${delayBetweenRetries} Delay Between Retries: ${this.deviceDelayBetweenRetries}`)
   }
 
-  async retryBLE({ max, fn }: { max: number; fn: { (): any; (): Promise<any> } }): Promise<null> {
+  async retryBLE({ max, fn }: { max: number, fn: { (): any, (): Promise<any> } }): Promise<null> {
     return fn().catch(async (e: any) => {
       if (max === 0) {
-        throw e;
+        throw e
       }
-      await this.warnLog(e);
-      await this.infoLog('Retrying');
-      await sleep(1000);
-      return this.retryBLE({ max: max - 1, fn });
-    });
+      await this.warnLog(e)
+      await this.infoLog('Retrying')
+      await sleep(1000)
+      return this.retryBLE({ max: max - 1, fn })
+    })
   }
 
   async maxRetryBLE(): Promise<number> {
-    return this.device.maxRetry ? this.device.maxRetry : 5;
+    return this.device.maxRetry ? this.device.maxRetry : 5
   }
 
   async getDeviceScanDuration(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
-    this.scanDuration = device.scanDuration ? (this.deviceUpdateRate > device.scanDuration) ? this.deviceUpdateRate : device.scanDuration
-      ? (this.deviceUpdateRate > 1) ? this.deviceUpdateRate : 1 : this.deviceUpdateRate : 1;
+    this.scanDuration = device.scanDuration
+      ? (this.deviceUpdateRate > device.scanDuration) ? this.deviceUpdateRate : device.scanDuration ? (this.deviceUpdateRate > 1) ? this.deviceUpdateRate : 1 : this.deviceUpdateRate
+      : 1
     if (device.scanDuration) {
       if (this.deviceUpdateRate > device.scanDuration) {
-        this.scanDuration = this.deviceUpdateRate;
+        this.scanDuration = this.deviceUpdateRate
         if (this.BLE) {
-          this.warnLog('scanDuration is less than updateRate, overriding scanDuration with updateRate');
+          this.warnLog('scanDuration is less than updateRate, overriding scanDuration with updateRate')
         }
       } else {
-        this.scanDuration = accessory.context.scanDuration = device.scanDuration;
+        this.scanDuration = accessory.context.scanDuration = device.scanDuration
       }
       if (this.BLE) {
-        this.debugLog(`Using Device Config scanDuration: ${this.scanDuration}`);
+        this.debugLog(`Using Device Config scanDuration: ${this.scanDuration}`)
       }
     } else {
       if (this.deviceUpdateRate > 1) {
-        this.scanDuration = this.deviceUpdateRate;
+        this.scanDuration = this.deviceUpdateRate
       } else {
-        this.scanDuration = accessory.context.scanDuration = 1;
+        this.scanDuration = accessory.context.scanDuration = 1
       }
       if (this.BLE) {
-        this.debugLog(`Using Default scanDuration: ${this.scanDuration}`);
+        this.debugLog(`Using Default scanDuration: ${this.scanDuration}`)
       }
     }
   }
@@ -179,7 +181,7 @@ export abstract class deviceBase {
       device.mqttPubOptions && { mqttPubOptions: device.mqttPubOptions },
       device.maxRetries !== 0 && { maxRetries: device.maxRetries },
       device.delayBetweenRetries !== 0 && { delayBetweenRetries: device.delayBetweenRetries },
-    );
+    )
     const config = Object.assign(
       {},
       deviceConfig,
@@ -199,30 +201,31 @@ export abstract class deviceBase {
       device.plug,
       device.blindTilt?.mode === undefined ? { mode: BlindTiltMappingMode.OnlyUp } : {},
       device.blindTilt,
-    );
+    )
 
     if (Object.keys(config).length !== 0) {
-      this.debugSuccessLog(`Config: ${JSON.stringify(config)}`);
+      this.debugSuccessLog(`Config: ${JSON.stringify(config)}`)
     }
   }
 
   /**
    * Get the current ambient light level based on the light level, set_minLux, set_maxLux, and spaceBetweenLevels.
-   * @param lightLevel: number
-   * @param set_minLux: number
-   * @param set_maxLux: number
-   * @param spaceBetweenLevels: number
+   * @param lightLevel number
+   * @param set_minLux number
+   * @param set_maxLux number
+   * @param spaceBetweenLevels number
    * @returns CurrentAmbientLightLevel
    */
   async getLightLevel(lightLevel: number, set_minLux: number, set_maxLux: number, spaceBetweenLevels: number): Promise<number> {
-    const numberOfLevels = spaceBetweenLevels + 1;
-    this.debugLog(`LightLevel: ${lightLevel}, set_minLux: ${set_minLux}, set_maxLux: ${set_maxLux}, spaceBetweenLevels: ${spaceBetweenLevels},`
-      + ` numberOfLevels: ${numberOfLevels}`);
-    const CurrentAmbientLightLevel = lightLevel === 1 ? set_minLux : lightLevel = numberOfLevels
-      ? set_maxLux : ((set_maxLux - set_minLux) / spaceBetweenLevels) * (Number(lightLevel) - 1);
-    await this.debugLog(`CurrentAmbientLightLevel: ${CurrentAmbientLightLevel}, LightLevel: ${lightLevel}, set_minLux: ${set_minLux},`
-      + ` set_maxLux: ${set_maxLux}`);
-    return CurrentAmbientLightLevel;
+    const numberOfLevels = spaceBetweenLevels + 1
+    this.debugLog(`LightLevel: ${lightLevel}, set_minLux: ${set_minLux}, set_maxLux: ${set_maxLux}, spaceBetweenLevels: ${spaceBetweenLevels}, numberOfLevels: ${numberOfLevels}`)
+    const CurrentAmbientLightLevel = lightLevel === 1
+      ? set_minLux
+      : lightLevel = numberOfLevels
+        ? set_maxLux
+        : ((set_maxLux - set_minLux) / spaceBetweenLevels) * (Number(lightLevel) - 1)
+    await this.debugLog(`CurrentAmbientLightLevel: ${CurrentAmbientLightLevel}, LightLevel: ${lightLevel}, set_minLux: ${set_minLux}, set_maxLux: ${set_maxLux}`)
+    return CurrentAmbientLightLevel
   }
 
   /*
@@ -230,12 +233,12 @@ export abstract class deviceBase {
    * 'homebridge-switchbot/${this.device.deviceType}/xx:xx:xx:xx:xx:xx'
    */
   async mqttPublish(message: string, topic?: string) {
-    const mac = this.device.deviceId?.toLowerCase().match(/[\s\S]{1,2}/g)?.join(':');
-    const options = this.deviceMqttPubOptions ?? {};
-    const mqttTopic = topic ? `/${topic}` : '';
-    const mqttMessageTopic = topic ? `${topic}/` : '';
-    this.mqttClient?.publish(`homebridge-switchbot/${this.device.deviceType}/${mac}${mqttTopic}`, `${message}`, options);
-    this.debugLog(`MQTT message: ${mqttMessageTopic}${message} options:${JSON.stringify(options)}`);
+    const mac = this.device.deviceId?.toLowerCase().match(/[\s\S]{1,2}/g)?.join(':')
+    const options = this.deviceMqttPubOptions ?? {}
+    const mqttTopic = topic ? `/${topic}` : ''
+    const mqttMessageTopic = topic ? `${topic}/` : ''
+    this.mqttClient?.publish(`homebridge-switchbot/${this.device.deviceType}/${mac}${mqttTopic}`, `${message}`, options)
+    this.debugLog(`MQTT message: ${mqttMessageTopic}${message} options:${JSON.stringify(options)}`)
   }
 
   /*
@@ -243,16 +246,15 @@ export abstract class deviceBase {
    */
   async getMqttSettings(device: device & devicesConfig): Promise<void> {
     // mqttURL
-    this.deviceMqttURL = device.mqttURL ?? this.config.options?.mqttURL ?? '';
-    const mqttURL = device.mqttURL ? 'Device Config' : this.config.options?.mqttURL ? 'Platform Config' : 'Default';
+    this.deviceMqttURL = device.mqttURL ?? this.config.options?.mqttURL ?? ''
+    const mqttURL = device.mqttURL ? 'Device Config' : this.config.options?.mqttURL ? 'Platform Config' : 'Default'
     // mqttOptions
-    this.deviceMqttOptions = device.mqttOptions ?? this.config.options?.mqttOptions ?? {};
-    const mqttOptions = device.mqttOptions ? 'Device Config' : this.config.options?.mqttOptions ? 'Platform Config' : 'Default';
+    this.deviceMqttOptions = device.mqttOptions ?? this.config.options?.mqttOptions ?? {}
+    const mqttOptions = device.mqttOptions ? 'Device Config' : this.config.options?.mqttOptions ? 'Platform Config' : 'Default'
     // mqttPubOptions
-    this.deviceMqttPubOptions = device.mqttPubOptions ?? this.config.options?.mqttPubOptions ?? {};
-    const mqttPubOptions = device.mqttPubOptions ? 'Device Config' : this.config.options?.mqttPubOptions ? 'Platform Config' : 'Default';
-    await this.debugLog(`Using ${mqttURL} MQTT URL: ${this.deviceMqttURL}, ${mqttOptions} mqttOptions: ${JSON.stringify(this.deviceMqttOptions)},`
-      + ` ${mqttPubOptions} mqttPubOptions: ${JSON.stringify(this.deviceMqttPubOptions)}`);
+    this.deviceMqttPubOptions = device.mqttPubOptions ?? this.config.options?.mqttPubOptions ?? {}
+    const mqttPubOptions = device.mqttPubOptions ? 'Device Config' : this.config.options?.mqttPubOptions ? 'Platform Config' : 'Default'
+    await this.debugLog(`Using ${mqttURL} MQTT URL: ${this.deviceMqttURL}, ${mqttOptions} mqttOptions: ${JSON.stringify(this.deviceMqttOptions)}, ${mqttPubOptions} mqttPubOptions: ${JSON.stringify(this.deviceMqttPubOptions)}`)
   }
 
   /*
@@ -262,53 +264,53 @@ export abstract class deviceBase {
     const mac = this.device
       .deviceId!.match(/.{1,2}/g)!
       .join(':')
-      .toLowerCase();
+      .toLowerCase()
     this.historyService = device.history
       ? new this.platform.fakegatoAPI('room', accessory, {
         log: this.platform.log,
         storage: 'fs',
         filename: `${hostname().split('.')[0]}_${mac}_persist.json`,
       })
-      : null;
+      : null
   }
 
   async switchbotBLE(): Promise<any> {
-    const switchbot = await this.platform.connectBLE(this.accessory, this.device);
+    const switchbot = await this.platform.connectBLE(this.accessory, this.device)
     // Convert to BLE Address
-    await this.convertBLEAddress();
-    await this.getCustomBLEAddress(switchbot);
-    return switchbot;
+    await this.convertBLEAddress()
+    await this.getCustomBLEAddress(switchbot)
+    return switchbot
   }
 
   async convertBLEAddress() {
     this.device.bleMac = this.device
       .deviceId!.match(/.{1,2}/g)!
       .join(':')
-      .toLowerCase();
-    await this.debugLog(`BLE Address: ${this.device.bleMac}`);
+      .toLowerCase()
+    await this.debugLog(`BLE Address: ${this.device.bleMac}`)
   }
 
   async monitorAdvertisementPackets(switchbot: any) {
-    await this.debugLog(`Scanning for ${this.device.bleModelName} devices...`);
-    await switchbot.startScan({ model: this.device.bleModel, id: this.device.bleMac });
+    await this.debugLog(`Scanning for ${this.device.bleModelName} devices...`)
+    await switchbot.startScan({ model: this.device.bleModel, id: this.device.bleMac })
     // Set an event handler
-    let serviceData = { model: this.device.bleModel, modelName: this.device.bleModelName } as ad['serviceData'];
+    let serviceData = { model: this.device.bleModel, modelName: this.device.bleModelName } as ad['serviceData']
     switchbot.onadvertisement = async (ad: ad) => {
       if (this.device.bleMac === ad.address && ad.serviceData.model === this.device.bleModel) {
-        this.debugLog(`${JSON.stringify(ad, null, '  ')}`);
-        this.debugLog(`address: ${ad.address}, model: ${ad.serviceData.model}`);
-        this.debugLog(`serviceData: ${JSON.stringify(ad.serviceData)}`);
-        serviceData = ad.serviceData;
+        this.debugLog(`${JSON.stringify(ad, null, '  ')}`)
+        this.debugLog(`address: ${ad.address}, model: ${ad.serviceData.model}`)
+        this.debugLog(`serviceData: ${JSON.stringify(ad.serviceData)}`)
+        serviceData = ad.serviceData
       } else {
-        serviceData = { model: '', modelName: '' } as ad['serviceData'];
-        this.debugLog(`serviceData: ${JSON.stringify(ad.serviceData)}`);
+        serviceData = { model: '', modelName: '' } as ad['serviceData']
+        this.debugLog(`serviceData: ${JSON.stringify(ad.serviceData)}`)
       }
-    };
+    }
     // Wait
-    await switchbot.wait(this.scanDuration * 1000);
+    await switchbot.wait(this.scanDuration * 1000)
     // Stop to monitor
-    await switchbot.stopScan();
-    return serviceData;
+    await switchbot.stopScan()
+    return serviceData
   }
 
   async getCustomBLEAddress(switchbot: any): Promise<void> {
@@ -316,66 +318,64 @@ export abstract class deviceBase {
       this.debugLog(`customBLEaddress: ${this.device.customBLEaddress}`);
       (async () => {
         // Start to monitor advertisement packets
-        await switchbot.startScan({ model: this.device.bleModel });
+        await switchbot.startScan({ model: this.device.bleModel })
         // Set an event handler
         switchbot.onadvertisement = async (ad: ad) => {
-          this.warnLog(`ad: ${JSON.stringify(ad, null, '  ')}`);
-        };
-        await sleep(10000);
+          this.warnLog(`ad: ${JSON.stringify(ad, null, '  ')}`)
+        }
+        await sleep(10000)
         // Stop to monitor
-        switchbot.stopScan();
-      })();
+        switchbot.stopScan()
+      })()
     }
   }
 
-  async pushChangeRequest(bodyChange: string): Promise<{ body: any; statusCode: any; }> {
+  async pushChangeRequest(bodyChange: string): Promise<{ body: any, statusCode: any }> {
     return await request(`${Devices}/${this.device.deviceId}/commands`, {
       body: bodyChange,
       method: 'POST',
       headers: this.platform.generateHeaders(),
-    });
+    })
   }
 
-  async deviceRefreshStatus(): Promise<{ body: any; statusCode: any; }> {
-    return await this.platform.retryRequest(this.deviceMaxRetries, this.deviceDelayBetweenRetries,
-      `${Devices}/${this.device.deviceId}/status`, { headers: this.platform.generateHeaders() });
+  async deviceRefreshStatus(): Promise<{ body: any, statusCode: any }> {
+    return await this.platform.retryRequest(this.deviceMaxRetries, this.deviceDelayBetweenRetries, `${Devices}/${this.device.deviceId}/status`, { headers: this.platform.generateHeaders() })
   }
 
   async successfulStatusCodes(statusCode: any, deviceStatus: any) {
-    return (statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100);
+    return (statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)
   }
 
   /**
-  * Update the characteristic value and log the change.
-  *
-  * @param Service: Service
-  * @param Characteristic: Characteristic
-  * @param CharacteristicValue: CharacteristicValue | undefined
-  * @param CharacteristicName: string
-  * @param history: object
-  * @return: void
-  *
-  */
-  async updateCharacteristic(Service: Service, Characteristic: any,
-    CharacteristicValue: CharacteristicValue | undefined, CharacteristicName: string, history?: object): Promise<void> {
+   * Update the characteristic value and log the change.
+   *
+   * @param Service Service
+   * @param Characteristic Characteristic
+   * @param CharacteristicValue CharacteristicValue | undefined
+   * @param CharacteristicName string
+   * @param history object
+   * @return: void
+   *
+   */
+  async updateCharacteristic(Service: Service, Characteristic: any, CharacteristicValue: CharacteristicValue | undefined, CharacteristicName: string, history?: object): Promise<void> {
     if (CharacteristicValue === undefined) {
-      this.debugLog(`${CharacteristicName}: ${CharacteristicValue}`);
+      this.debugLog(`${CharacteristicName}: ${CharacteristicValue}`)
     } else {
-      await this.mqtt(CharacteristicName, CharacteristicValue);
+      await this.mqtt(CharacteristicName, CharacteristicValue)
       if (this.device.history) {
-        this.historyService?.addEntry(history);
+        this.historyService?.addEntry(history)
       }
-      Service.updateCharacteristic(Characteristic, CharacteristicValue);
-      this.debugLog(`updateCharacteristic ${CharacteristicName}: ${CharacteristicValue}`);
-      this.debugWarnLog(`${CharacteristicName} context before: ${this.accessory.context[CharacteristicName]}`);
-      this.accessory.context[CharacteristicName] = CharacteristicValue;
-      this.debugWarnLog(`${CharacteristicName} context after: ${this.accessory.context[CharacteristicName]}`);
+      Service.updateCharacteristic(Characteristic, CharacteristicValue)
+      this.debugLog(`updateCharacteristic ${CharacteristicName}: ${CharacteristicValue}`)
+      this.debugWarnLog(`${CharacteristicName} context before: ${this.accessory.context[CharacteristicName]}`)
+      this.accessory.context[CharacteristicName] = CharacteristicValue
+      this.debugWarnLog(`${CharacteristicName} context after: ${this.accessory.context[CharacteristicName]}`)
     }
   }
 
   async mqtt(CharacteristicName: string, CharacteristicValue: CharacteristicValue) {
     if (this.device.mqttURL) {
-      this.mqttPublish(CharacteristicName, CharacteristicValue.toString());
+      this.mqttPublish(CharacteristicName, CharacteristicValue.toString())
     }
   }
 
@@ -585,32 +585,31 @@ export abstract class deviceBase {
         bleModelName: SwitchBotBLEModelName.Unknown,
         bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,
       },
-    };
+    }
     const defaultDevice = {
       model: SwitchBotModel.Unknown,
       bleModel: SwitchBotBLEModel.Unknown,
       bleModelName: SwitchBotBLEModelName.Unknown,
       bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,
-    };
-    const deviceConfig = deviceMapping[device.deviceType] || defaultDevice;
-    device.model = deviceConfig.model;
-    device.bleModel = deviceConfig.bleModel;
-    device.bleModelName = deviceConfig.bleModelName;
-    device.bleModelFriednlyName = deviceConfig.bleModelFriednlyName;
-    await this.debugLog(`Model: ${device.model}, BLE Model: ${device.bleModel}, BLE Model Name: ${device.bleModelName}, `
-      + `BLE Model Friendly Name: ${device.bleModelFriednlyName}`);
+    }
+    const deviceConfig = deviceMapping[device.deviceType] || defaultDevice
+    device.model = deviceConfig.model
+    device.bleModel = deviceConfig.bleModel
+    device.bleModelName = deviceConfig.bleModelName
+    device.bleModelFriednlyName = deviceConfig.bleModelFriednlyName
+    await this.debugLog(`Model: ${device.model}, BLE Model: ${device.bleModel}, BLE Model Name: ${device.bleModelName}, BLE Model Friendly Name: ${device.bleModelFriednlyName}`)
 
-    const deviceFirmwareVersion = device.firmware ?? device.version ?? accessory.context.version ?? this.platform.version ?? '0.0.0';
-    const version = deviceFirmwareVersion.toString();
-    this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`);
-    let deviceVersion: string;
+    const deviceFirmwareVersion = device.firmware ?? device.version ?? accessory.context.version ?? this.platform.version ?? '0.0.0'
+    const version = deviceFirmwareVersion.toString()
+    this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`)
+    let deviceVersion: string
     if (version?.includes('.') === false) {
-      const replace = version?.replace(/^V|-.*$/g, '');
-      const match = replace?.match(/.{1,1}/g);
-      const validVersion = match?.join('.');
-      deviceVersion = validVersion ?? '0.0.0';
+      const replace = version?.replace(/^V|-.*$/g, '')
+      const match = replace?.match(/./g)
+      const validVersion = match?.join('.')
+      deviceVersion = validVersion ?? '0.0.0'
     } else {
-      deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0';
+      deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0'
     }
     accessory
       .getService(this.hap.Service.AccessoryInformation)!
@@ -618,9 +617,9 @@ export abstract class deviceBase {
       .setCharacteristic(this.hap.Characteristic.SoftwareRevision, deviceVersion)
       .setCharacteristic(this.hap.Characteristic.FirmwareRevision, deviceVersion)
       .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
-      .updateValue(deviceVersion);
-    accessory.context.version = deviceVersion;
-    this.debugSuccessLog(`version: ${accessory.context.version}`);
+      .updateValue(deviceVersion)
+    accessory.context.version = deviceVersion
+    this.debugSuccessLog(`version: ${accessory.context.version}`)
   }
 
   async statusCode(statusCode: number): Promise<void> {
@@ -642,15 +641,14 @@ export abstract class deviceBase {
       422: 'Unprocessable Entity: The server cannot process the request, often due to exceeded API limits.',
       429: 'Too Many Requests, exceeded the number of requests allowed for a given time window',
       500: 'Internal Server Error, An unexpected error occurred. These errors should be rare',
-    };
-    if (statusCode === 171 && (this.device.hubDeviceId === this.device.deviceId || this.device.hubDeviceId === '000000000000')) {
-      this.debugErrorLog(`statusCode 171 changed to 161: hubDeviceId ${this.device.hubDeviceId} matches deviceId`
-        + ` ${this.device.deviceId}, device is its own hub.`);
-      statusCode = 161;
     }
-    const logMessage = statusMessages[statusCode] || `Unknown statusCode: ${statusCode}, Submit Bugs Here: https://tinyurl.com/SwitchBotBug`;
-    const logMethod = [100, 200].includes(statusCode) ? 'debugLog' : statusMessages[statusCode] ? 'errorLog' : 'infoLog';
-    this[logMethod](`${logMessage}, statusCode: ${statusCode}`);
+    if (statusCode === 171 && (this.device.hubDeviceId === this.device.deviceId || this.device.hubDeviceId === '000000000000')) {
+      this.debugErrorLog(`statusCode 171 changed to 161: hubDeviceId ${this.device.hubDeviceId} matches deviceId ${this.device.deviceId}, device is its own hub.`)
+      statusCode = 161
+    }
+    const logMessage = statusMessages[statusCode] || `Unknown statusCode: ${statusCode}, Submit Bugs Here: https://tinyurl.com/SwitchBotBug`
+    const logMethod = [100, 200].includes(statusCode) ? 'debugLog' : statusMessages[statusCode] ? 'errorLog' : 'infoLog'
+    this[logMethod](`${logMessage}, statusCode: ${statusCode}`)
   }
 
   /**
@@ -658,48 +656,48 @@ export abstract class deviceBase {
    */
   async infoLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
-      this.log.info(`${this.device.deviceType}: ${this.accessory.displayName}`, String(...log));
+      this.log.info(`${this.device.deviceType}: ${this.accessory.displayName}`, String(...log))
     }
   }
 
   async successLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
-      this.log.success(`${this.device.deviceType}: ${this.accessory.displayName}`, String(...log));
+      this.log.success(`${this.device.deviceType}: ${this.accessory.displayName}`, String(...log))
     }
   }
 
   async debugSuccessLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
       if (await this.loggingIsDebug()) {
-        this.log.success(`[DEBUG] ${this.device.deviceType}: ${this.accessory.displayName}`, String(...log));
+        this.log.success(`[DEBUG] ${this.device.deviceType}: ${this.accessory.displayName}`, String(...log))
       }
     }
   }
 
   async warnLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
-      this.log.warn(`${this.device.deviceType}: ${this.accessory.displayName}`, String(...log));
+      this.log.warn(`${this.device.deviceType}: ${this.accessory.displayName}`, String(...log))
     }
   }
 
   async debugWarnLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
       if (await this.loggingIsDebug()) {
-        this.log.warn(`[DEBUG] ${this.device.deviceType}: ${this.accessory.displayName}`, String(...log));
+        this.log.warn(`[DEBUG] ${this.device.deviceType}: ${this.accessory.displayName}`, String(...log))
       }
     }
   }
 
   async errorLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
-      this.log.error(`${this.device.deviceType}: ${this.accessory.displayName}`, String(...log));
+      this.log.error(`${this.device.deviceType}: ${this.accessory.displayName}`, String(...log))
     }
   }
 
   async debugErrorLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
       if (await this.loggingIsDebug()) {
-        this.log.error(`[DEBUG] ${this.device.deviceType}: ${this.accessory.displayName}`, String(...log));
+        this.log.error(`[DEBUG] ${this.device.deviceType}: ${this.accessory.displayName}`, String(...log))
       }
     }
   }
@@ -707,18 +705,18 @@ export abstract class deviceBase {
   async debugLog(...log: any[]): Promise<void> {
     if (await this.enablingDeviceLogging()) {
       if (this.deviceLogging === 'debug') {
-        this.log.info(`[DEBUG] ${this.device.deviceType}: ${this.accessory.displayName}`, String(...log));
+        this.log.info(`[DEBUG] ${this.device.deviceType}: ${this.accessory.displayName}`, String(...log))
       } else if (this.deviceLogging === 'debugMode') {
-        this.log.debug(`${this.device.deviceType}: ${this.accessory.displayName}`, String(...log));
+        this.log.debug(`${this.device.deviceType}: ${this.accessory.displayName}`, String(...log))
       }
     }
   }
 
   async loggingIsDebug(): Promise<boolean> {
-    return this.deviceLogging === 'debugMode' || this.deviceLogging === 'debug';
+    return this.deviceLogging === 'debugMode' || this.deviceLogging === 'debug'
   }
 
   async enablingDeviceLogging(): Promise<boolean> {
-    return this.deviceLogging === 'debugMode' || this.deviceLogging === 'debug' || this.deviceLogging === 'standard';
+    return this.deviceLogging === 'debugMode' || this.deviceLogging === 'debug' || this.deviceLogging === 'standard'
   }
 }
