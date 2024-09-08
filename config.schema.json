@@ -222,6 +222,12 @@
                       ]
                     },
                     {
+                      "title": "Roller Shade",
+                      "enum": [
+                        "Roller Shade"
+                      ]
+                    },
+                    {
                       "title": "Smart Fan",
                       "enum": [
                         "Smart Fan"
