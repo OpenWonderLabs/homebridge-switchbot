@@ -692,8 +692,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       'Contact Sensor': this.createContact.bind(this),
       'Curtain': this.createCurtain.bind(this),
       'Curtain3': this.createCurtain.bind(this),
+      'Roller Shade': this.createCurtain.bind(this),
       'Blind Tilt': this.createBlindTilt.bind(this),
-      'Roller Shade': this.createBlindTilt.bind(this),
       'Plug': this.createPlug.bind(this),
       'Plug Mini (US)': this.createPlug.bind(this),
       'Plug Mini (JP)': this.createPlug.bind(this),
@@ -2534,80 +2534,40 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   async registerDevice(device: device & devicesConfig) {
     device.connectionType = await this.connectionType(device)
     let registerDevice: boolean
-    if (!device.hide_device && device.connectionType === 'BLE/OpenAPI') {
-      switch (device.deviceType) {
-        case 'Curtain':
-        case 'Curtain3':
-        case 'Blind Tilt':
-          registerDevice = await this.registerCurtains(device)
-          await this.debugWarnLog(`Device: ${device.deviceName} ${device.deviceType} registerDevice: ${registerDevice}`)
-          break
-        default:
-          registerDevice = true
-          await this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`)
-      }
-      if (registerDevice === true) {
-        await this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`)
-      } else {
-        await this.debugErrorLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will not display in HomeKit`)
-      }
-    } else if (!device.hide_device && device.deviceId && device.configDeviceType && device.configDeviceName && device.connectionType === 'BLE') {
-      switch (device.deviceType) {
-        case 'Curtain':
-        case 'Curtain3':
-        case 'Blind Tilt':
-          registerDevice = await this.registerCurtains(device)
-          await this.debugWarnLog(`Device: ${device.deviceName} ${device.deviceType} registerDevice: ${registerDevice}`)
-          break
-        default:
-          registerDevice = true
-          await this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`)
-      }
-      if (registerDevice === true) {
-        await this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`)
-      } else {
-        await this.debugErrorLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will not display in HomeKit`)
-      }
-    } else if (!device.hide_device && device.connectionType === 'OpenAPI') {
-      switch (device.deviceType) {
-        case 'Curtain':
-        case 'Curtain3':
-        case 'Blind Tilt':
-          registerDevice = await this.registerCurtains(device)
-          await this.debugWarnLog(`Device: ${device.deviceName} ${device.deviceType} registerDevice: ${registerDevice}`)
-          break
-        default:
-          registerDevice = true
-          await this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`)
-      }
-      if (registerDevice === true) {
-        await this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`)
-      } else {
-        await this.debugErrorLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will not display in HomeKit`)
-      }
-    } else if (!device.hide_device && device.connectionType === 'Disabled') {
-      switch (device.deviceType) {
-        case 'Curtain':
-        case 'Curtain3':
-        case 'Blind Tilt':
-          registerDevice = await this.registerCurtains(device)
-          await this.debugWarnLog(`Device: ${device.deviceName} ${device.deviceType} registerDevice: ${registerDevice}`)
-          break
-        default:
-          registerDevice = true
-          await this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`)
-      }
-      await this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will continue to display in HomeKit`)
-    } else if (!device.connectionType && !device.hide_device) {
-      registerDevice = false
-      await this.debugErrorLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will not display in HomeKit`)
-    } else if (device.hide_device) {
-      registerDevice = false
-      await this.debugErrorLog(`Device: ${device.deviceName} hide_device: ${device.hide_device}, will not display in HomeKit`)
+
+    const shouldRegister = !device.hide_device && (device.connectionType === 'BLE/OpenAPI' || (device.deviceId && device.configDeviceType && device.configDeviceName && device.connectionType === 'BLE') || device.connectionType === 'OpenAPI' || device.connectionType === 'Disabled')
+
+    if (shouldRegister) {
+      registerDevice = await this.handleDeviceRegistration(device)
     } else {
       registerDevice = false
-      await this.debugErrorLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, hide_device: ${device.hide_device},  will not display in HomeKit`)
+      await this.debugErrorLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, hide_device: ${device.hide_device}, will not display in HomeKit`)
     }
+
+    return registerDevice
+  }
+
+  async handleDeviceRegistration(device: device & devicesConfig): Promise<boolean> {
+    let registerDevice: boolean
+
+    switch (device.deviceType) {
+      case 'Curtain':
+      case 'Curtain3':
+      case 'Blind Tilt':
+        registerDevice = await this.registerCurtains(device)
+        await this.debugWarnLog(`Device: ${device.deviceName} ${device.deviceType} registerDevice: ${registerDevice}`)
+        break
+      default:
+        registerDevice = true
+        await this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`)
+    }
+
+    if (registerDevice) {
+      await this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`)
+    } else {
+      await this.debugErrorLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will not display in HomeKit`)
+    }
+
     return registerDevice
   }
 
