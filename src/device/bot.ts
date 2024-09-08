@@ -775,55 +775,78 @@ export class Bot extends deviceBase {
    * Handle requests to set the "On" characteristic
    */
   async OnSet(value: CharacteristicValue): Promise<void> {
-    if (this.botDeviceType === 'garagedoor') {
-      this.debugLog(`Set TargetDoorState: ${value}`)
-      if (value === this.hap.Characteristic.TargetDoorState.CLOSED) {
-        this.On = false
-      } else {
-        this.On = true
-      }
-    } else if (
-      this.botDeviceType === 'door'
-      || this.botDeviceType === 'window'
-      || this.botDeviceType === 'windowcovering'
-    ) {
-      this.debugLog(`Set TargetPosition: ${value}`)
-      if (value === 0) {
-        this.On = false
-      } else {
-        this.On = true
-      }
-    } else if (this.botDeviceType === 'lock') {
-      this.debugLog(`Set LockTargetState: ${value}`)
-      if (value === this.hap.Characteristic.LockTargetState.SECURED) {
-        this.On = false
-      } else {
-        this.On = true
-      }
-    } else if (this.botDeviceType === 'faucet') {
-      this.debugLog(`Set Active: ${value}`)
-      if (value === this.hap.Characteristic.Active.INACTIVE) {
-        this.On = false
-      } else {
-        this.On = true
-      }
-    } else if (this.botDeviceType === 'stateful') {
-      this.debugLog(`Set ProgrammableSwitchOutputState: ${value}`)
-      if (value === 0) {
-        this.On = false
-      } else {
-        this.On = true
-      }
+    if (this.On === undefined) {
+      this.On = false
+      this.accessory.context.On = this.On
     } else {
-      this.debugLog(`Set On: ${value}`)
-      if (this.device.bot?.mode === 'multipress') {
-        if (value === true) {
-          this.multiPressCount++
-          this.debugLog(`set to Multi-Press. Multi-Press count: ${this.multiPressCount}`)
-        }
-      }
-      this.On = value as boolean
+      this.On = this.accessory.context.On
     }
+
+    const deviceTypeActions: { [key: string]: () => Promise<void> } = {
+      switch: async () => {
+        if (this.Switch) {
+          await this.debugLog(`Set On: ${value}`)
+          this.On = value !== false
+        }
+      },
+      garagedoor: async () => {
+        if (this.GarageDoor) {
+          await this.debugLog(`Set TargetDoorState: ${value}`)
+          this.On = value !== this.hap.Characteristic.TargetDoorState.CLOSED
+        }
+      },
+      door: async () => {
+        if (this.Door) {
+          await this.debugLog(`Set TargetPosition: ${value}`)
+          this.On = value !== 0
+        }
+      },
+      window: async () => {
+        if (this.Window) {
+          await this.debugLog(`Set TargetPosition: ${value}`)
+          this.On = value !== 0
+        }
+      },
+      windowcovering: async () => {
+        if (this.WindowCovering) {
+          await this.debugLog(`Set TargetPosition: ${value}`)
+          this.On = value !== 0
+        }
+      },
+      lock: async () => {
+        if (this.LockMechanism) {
+          await this.debugLog(`Set LockTargetState: ${value}`)
+          this.On = value !== this.hap.Characteristic.LockTargetState.SECURED
+        }
+      },
+      faucet: async () => {
+        if (this.Faucet) {
+          await this.debugLog(`Set Active: ${value}`)
+          this.On = value !== this.hap.Characteristic.Active.INACTIVE
+        }
+      },
+      stateful: async () => {
+        if (this.StatefulProgrammableSwitch) {
+          await this.debugLog(`Set ProgrammableSwitchOutputState: ${value}`)
+          this.On = value !== 0
+        }
+      },
+      default: async () => {
+        if (this.Outlet) {
+          await this.debugLog(`Set On: ${value}`)
+          this.On = value !== false
+        }
+        if (this.device.bot?.mode === 'multipress' && this.On) {
+          this.multiPressCount++
+          await this.debugLog(`multiPressCount: ${this.multiPressCount}`)
+        }
+      },
+    }
+
+    const action = deviceTypeActions[this.botDeviceType] || deviceTypeActions.default
+    await action()
+
+    this.accessory.context.On = this.On
     this.doBotUpdate.next()
   }
 
