@@ -692,6 +692,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       'Contact Sensor': this.createContact.bind(this),
       'Curtain': this.createCurtain.bind(this),
       'Curtain3': this.createCurtain.bind(this),
+      'WoRollerShade': this.createCurtain.bind(this),
       'Roller Shade': this.createCurtain.bind(this),
       'Blind Tilt': this.createBlindTilt.bind(this),
       'Plug': this.createPlug.bind(this),

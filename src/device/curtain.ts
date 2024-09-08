@@ -330,7 +330,7 @@ export class Curtain extends deviceBase {
 
   async openAPIparseStatus(): Promise<void> {
     await this.debugLog('openAPIparseStatus')
-    await this.debugLog(`(slidePosition, battery) = OpenAPI:(${this.deviceStatus.slidePosition}, ${this.deviceStatus.battery}), current:(${this.WindowCovering.CurrentPosition}, ${this.Battery.BatteryLevel})`)
+    await this.debugLog(`(slidePosition, battery, version) = OpenAPI:(${this.deviceStatus.slidePosition}, ${this.deviceStatus.battery}, ${this.deviceStatus.version}), current:(${this.WindowCovering.CurrentPosition}, ${this.Battery.BatteryLevel}, ${this.accessory.context.version})`)
     // CurrentPosition
     this.WindowCovering.CurrentPosition = 100 - this.deviceStatus.slidePosition
     await this.setMinMax()
