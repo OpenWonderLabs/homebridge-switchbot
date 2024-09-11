@@ -47,6 +47,18 @@ export class BlindTilt extends deviceBase {
     CurrentAmbientLightLevel?: CharacteristicValue
   }
 
+  private OpenModeSwitch?: {
+    Name: CharacteristicValue
+    Service: Service
+    On: CharacteristicValue
+  }
+
+  private CloseModeSwitch?: {
+    Name: CharacteristicValue
+    Service: Service
+    On: CharacteristicValue
+  }
+
   // OpenAPI
   deviceStatus!: blindTiltStatus
   mappingMode: BlindTiltMappingMode = BlindTiltMappingMode.OnlyUp
@@ -175,6 +187,56 @@ export class BlindTilt extends deviceBase {
       this.LightSensor.Service.setCharacteristic(this.hap.Characteristic.Name, this.LightSensor.Name).setCharacteristic(this.hap.Characteristic.StatusActive, true).getCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel).onGet(() => {
         return this.LightSensor?.CurrentAmbientLightLevel ?? 0.0001
       })
+    }
+
+    // Initialize Open Mode Switch Service
+    if (!device.blindTilt?.silentModeSwitch) {
+      if (this.OpenModeSwitch?.Service) {
+        this.debugLog('Removing Open Mode Switch Service')
+        this.OpenModeSwitch.Service = this.accessory.getService(this.hap.Service.Switch) as Service
+        accessory.removeService(this.OpenModeSwitch.Service)
+        accessory.context.OpenModeSwitch = {}
+      }
+    } else {
+      accessory.context.OpenModeSwitch = accessory.context.OpenModeSwitch ?? {}
+      this.OpenModeSwitch = {
+        Name: `${accessory.displayName} Silent Open Mode`,
+        Service: accessory.getService(this.hap.Service.Switch) ?? accessory.addService(this.hap.Service.Switch) as Service,
+        On: accessory.context.OpenModeSwitch.On ?? false,
+      }
+      accessory.context.OpenModeSwitch = this.OpenModeSwitch as object
+
+      // Initialize Open Mode Switch Service
+      this.OpenModeSwitch.Service.setCharacteristic(this.hap.Characteristic.Name, this.OpenModeSwitch.Name).getCharacteristic(this.hap.Characteristic.On).onGet(() => {
+        return this.OpenModeSwitch?.On ?? false
+      })
+
+      this.OpenModeSwitch.Service.getCharacteristic(this.hap.Characteristic.On).onSet(this.OpenModeSwitchSet.bind(this))
+    }
+
+    // Initialize Close Mode Switch Service
+    if (!device.blindTilt?.silentModeSwitch) {
+      if (this.CloseModeSwitch?.Service) {
+        this.debugLog('Removing Close Mode Switch Service')
+        this.CloseModeSwitch.Service = this.accessory.getService(this.hap.Service.Switch) as Service
+        accessory.removeService(this.CloseModeSwitch.Service)
+        accessory.context.CloseModeSwitch = {}
+      }
+    } else {
+      accessory.context.CloseModeSwitch = accessory.context.CloseModeSwitch ?? {}
+      this.CloseModeSwitch = {
+        Name: `${accessory.displayName} Silent Close Mode`,
+        Service: accessory.getService(this.hap.Service.Switch) ?? accessory.addService(this.hap.Service.Switch) as Service,
+        On: accessory.context.CloseModeSwitch.On ?? false,
+      }
+      accessory.context.CloseModeSwitch = this.CloseModeSwitch as object
+
+      // Initialize Close Mode Switch Service
+      this.CloseModeSwitch.Service.setCharacteristic(this.hap.Characteristic.Name, this.CloseModeSwitch.Name).getCharacteristic(this.hap.Characteristic.On).onGet(() => {
+        return this.CloseModeSwitch?.On ?? false
+      })
+
+      this.CloseModeSwitch.Service.getCharacteristic(this.hap.Characteristic.On).onSet(this.CloseModeSwitchSet.bind(this))
     }
 
     // Retrieve initial values and updateHomekit
@@ -652,6 +714,30 @@ export class BlindTilt extends deviceBase {
     this.doBlindTiltUpdate.next()
   }
 
+  /**
+   * Handle requests to set the value of the "Target Position" characteristic
+   */
+  async OpenModeSwitchSet(value: CharacteristicValue): Promise<void> {
+    if (this.OpenModeSwitch && this.device.blindTilt?.silentModeSwitch) {
+      this.debugLog(`Silent Open Mode: ${value}`)
+      this.OpenModeSwitch.On = value
+      this.accessory.context.OpenModeSwitch.On = value
+      this.doBlindTiltUpdate.next()
+    }
+  }
+
+  /**
+   * Handle requests to set the value of the "Target Position" characteristic
+   */
+  async CloseModeSwitchSet(value: CharacteristicValue): Promise<void> {
+    if (this.CloseModeSwitch && this.device.blindTilt?.silentModeSwitch) {
+      this.debugLog(`Silent Close Mode: ${value}`)
+      this.CloseModeSwitch.On = value
+      this.accessory.context.CloseModeSwitch.On = value
+      this.doBlindTiltUpdate.next()
+    }
+  }
+
   async updateHomeKitCharacteristics(): Promise<void> {
     await this.setMinMax()
     // CurrentHorizontalTiltAngle
@@ -696,10 +782,10 @@ export class BlindTilt extends deviceBase {
     let setPositionMode: number
     let Mode: string
     if (Number(this.WindowCovering.TargetPosition) > 50) {
-      if (this.device.blindTilt?.setOpenMode === '1') {
+      if (this.device.blindTilt?.setOpenMode === '1' || this.OpenModeSwitch?.On) {
         setPositionMode = 1
         Mode = 'Silent Mode'
-      } else if (this.device.blindTilt?.setOpenMode === '0') {
+      } else if (this.device.blindTilt?.setOpenMode === '0' || !this.OpenModeSwitch?.On) {
         setPositionMode = 0
         Mode = 'Performance Mode'
       } else {
@@ -707,10 +793,10 @@ export class BlindTilt extends deviceBase {
         Mode = 'Default Mode'
       }
     } else {
-      if (this.device.blindTilt?.setCloseMode === '1') {
+      if (this.device.blindTilt?.setCloseMode === '1' || this.CloseModeSwitch?.On) {
         setPositionMode = 1
         Mode = 'Silent Mode'
-      } else if (this.device.blindTilt?.setOpenMode === '0') {
+      } else if (this.device.blindTilt?.setOpenMode === '0' || !this.CloseModeSwitch?.On) {
         setPositionMode = 0
         Mode = 'Performance Mode'
       } else {

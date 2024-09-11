@@ -705,6 +705,13 @@
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3') && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
+                    "silentModeSwitch": {
+                      "title": "Enable Curtain Silent Mode Switches",
+                      "type": "boolean",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3') && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
                     "hide_lightsensor": {
                       "title": "Hide Light Sensor",
                       "type": "boolean",
@@ -813,6 +820,55 @@
                       "minimum": 1,
                       "placeholder": 5,
                       "description": "Indicates the number of seconds before refreshing Blind Tilt status while updating slide progress.",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "setOpenMode": {
+                      "title": "Blind Tilt's Opening Mode",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "enum": [
+                            "0"
+                          ],
+                          "title": "Performance Mode"
+                        },
+                        {
+                          "enum": [
+                            "1"
+                          ],
+                          "title": "Silent Mode"
+                        }
+                      ],
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "setCloseMode": {
+                      "title": "Blind Tilt's Closing Mode",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "enum": [
+                            "0"
+                          ],
+                          "title": "Performance Mode"
+                        },
+                        {
+                          "enum": [
+                            "1"
+                          ],
+                          "title": "Silent Mode"
+                        }
+                      ],
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "silentModeSwitch": {
+                      "title": "Enable Blind Tilt Silent Mode Switches",
+                      "type": "boolean",
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' && model.options.devices[arrayIndices].deviceId);"
                       }
@@ -1813,6 +1869,7 @@
             "options.devices[].curtain.set_max",
             "options.devices[].curtain.setOpenMode",
             "options.devices[].curtain.setCloseMode",
+            "options.devices[].curtain.silentModeSwitch",
             "options.devices[].curtain.updateRate",
             "options.devices[].curtain.disable_group",
             "options.devices[].curtain.hide_lightsensor",
@@ -1824,6 +1881,9 @@
             "options.devices[].blindTilt.set_max",
             "options.devices[].blindTilt.hide_lightsensor",
             "options.devices[].blindTilt.updateRate",
+            "options.devices[].blindTilt.setOpenMode",
+            "options.devices[].blindTilt.setCloseMode",
+            "options.devices[].blindTilt.silentModeSwitch",
             "options.devices[].contact.hide_lightsensor",
             "options.devices[].contact.set_minlux",
             "options.devices[].contact.set_maxlux",

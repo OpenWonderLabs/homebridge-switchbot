@@ -154,6 +154,7 @@ interface curtain {
   set_minStep?: number
   setCloseMode?: string
   setOpenMode?: string
+  silentModeSwitch?: boolean
 };
 
 interface blindTilt {
@@ -166,6 +167,7 @@ interface blindTilt {
   set_minStep?: number
   setCloseMode?: string
   setOpenMode?: string
+  silentModeSwitch?: boolean
 };
 
 interface contact {
