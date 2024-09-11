@@ -775,13 +775,8 @@ export class Bot extends deviceBase {
    * Handle requests to set the "On" characteristic
    */
   async OnSet(value: CharacteristicValue): Promise<void> {
-    if (this.On === undefined) {
-      this.On = false
-      this.accessory.context.On = this.On
-    } else {
-      this.On = this.accessory.context.On
-    }
-
+    this.On = this.accessory.context.On ?? false
+    this.accessory.context.On = this.On
     const deviceTypeActions: { [key: string]: () => Promise<void> } = {
       switch: async () => {
         if (this.Switch) {
@@ -842,10 +837,8 @@ export class Bot extends deviceBase {
         }
       },
     }
-
     const action = deviceTypeActions[this.botDeviceType] || deviceTypeActions.default
     await action()
-
     this.accessory.context.On = this.On
     this.doBotUpdate.next()
   }
@@ -1135,48 +1128,47 @@ export class Bot extends deviceBase {
 
   async getBotConfigSettings(device: device & devicesConfig) {
     // Bot Device Type
-    this.botDeviceType = this.accessory.context.botDeviceType === device.bot?.deviceType
-      ? this.accessory.context.botDeviceType
-      : device.bot?.deviceType ?? 'outlet'
-    const botDeviceType = this.accessory.context.botDeviceType
-      ? `Using Device Type: ${this.botDeviceType}, from Accessory Cache.`
-      : device.bot?.deviceType
-        ? `Using Device Type: ${this.botDeviceType}`
-        : `No Device Type Set, deviceType: ${this.device.bot?.deviceType}, Using default deviceType: ${this.botDeviceType}`
+    this.botDeviceType = device.bot?.deviceType ?? 'outlet'
+    const botDeviceType = device.bot?.deviceType
+      ? `Using Device Type: ${this.botDeviceType}`
+      : `No Device Type Set, deviceType: ${this.device.bot?.deviceType}, Using default deviceType: ${this.botDeviceType}`
     await this.debugWarnLog(botDeviceType)
     this.accessory.context.botDeviceType = this.botDeviceType
     // Bot Mode
-    this.botMode = this.accessory.context.botMode ?? device.bot?.mode ?? 'switch'
-    const botMode = this.accessory.context.botMode
-      ? `Using Bot Mode: ${this.botMode}, from Accessory Cache.`
-      : device.bot?.mode ? `Using Bot Mode: ${this.botMode}` : `No Bot Mode Set, Using default Bot Mode: ${this.botMode}`
-    await this.debugWarnLog(botMode)
+    this.botMode = device.bot?.mode ?? 'switch'
+    if (!device.bot?.mode) {
+      this.botMode = 'switch'
+      this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} does not have bot mode set in the Plugin's SwitchBot Device Settings, defaulting to "${this.botMode}" mode. You may experience issues.`)
+    } else if (['switch', 'press', 'multipress'].includes(device.bot.mode)) {
+      this.botMode = device.bot.mode
+      this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Using Bot Mode: ${this.botMode}`)
+    } else {
+      throw new Error(`${this.device.deviceType}: ${this.accessory.displayName} Invalid Bot Mode: ${device.bot.mode}`)
+    }
+    const botModeLog = device.bot?.mode
+      ? `Using Bot Mode: ${this.botMode}`
+      : `No Bot Mode Set, Using default Bot Mode: ${this.botMode}`
+    await this.debugWarnLog(botModeLog)
     this.accessory.context.botMode = this.botMode
     // Bot Double Press
-    this.doublePress = this.accessory.context.doublePress ?? device.bot?.doublePress ?? 1
-    const doublePress = this.accessory.context.doublePress
-      ? `Using Double Press: ${this.doublePress}, from Accessory Cache.`
-      : device.bot?.doublePress
-        ? `Using Double Press: ${this.doublePress}`
-        : `No Double Press Set, Using default Double Press: ${this.doublePress}`
+    this.doublePress = device.bot?.doublePress ?? 1
+    const doublePress = device.bot?.doublePress
+      ? `Using Double Press: ${this.doublePress}`
+      : `No Double Press Set, Using default Double Press: ${this.doublePress}`
     await this.debugWarnLog(doublePress)
     this.accessory.context.doublePress = this.doublePress
     // Bot Press PushRate
-    this.pushRatePress = this.accessory.context.pushRatePress ?? device.bot?.pushRatePress ?? 15
-    const pushRatePress = this.accessory.context.pushRatePress
-      ? `Using Push Rate Press: ${this.pushRatePress}, from Accessory Cache.`
-      : device.bot?.pushRatePress
-        ? `Using Bot Push Rate Press: ${this.pushRatePress}`
-        : `No Push Rate Press Set, Using default Push Rate Press: ${this.pushRatePress}`
+    this.pushRatePress = device.bot?.pushRatePress ?? 15
+    const pushRatePress = device.bot?.pushRatePress
+      ? `Using Bot Push Rate Press: ${this.pushRatePress}`
+      : `No Push Rate Press Set, Using default Push Rate Press: ${this.pushRatePress}`
     await this.debugWarnLog(pushRatePress)
     this.accessory.context.pushRatePress = this.pushRatePress
     // Bot Allow Push
-    this.allowPush = this.accessory.context.allowPush ?? device.bot?.allowPush ?? false
-    const allowPush = this.accessory.context.allowPush
-      ? `Using Allow Push: ${this.allowPush}, from Accessory Cache.`
-      : device.bot?.allowPush
-        ? `Using Allow Push: ${this.allowPush}`
-        : `No Allow Push Set, Using default Allow Push: ${this.allowPush}`
+    this.allowPush = device.bot?.allowPush ?? false
+    const allowPush = device.bot?.allowPush
+      ? `Using Allow Push: ${this.allowPush}`
+      : `No Allow Push Set, Using default Allow Push: ${this.allowPush}`
     await this.debugWarnLog(allowPush)
     this.accessory.context.allowPush = this.allowPush
     // Bot Multi Press Count

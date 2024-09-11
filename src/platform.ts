@@ -31,7 +31,7 @@ import { queueScheduler } from 'rxjs'
 import { request } from 'undici'
 
 import { BlindTilt } from './device/blindtilt.js'
-import { Bot } from './device/bot-old.js'
+import { Bot } from './device/bot.js'
 import { CeilingLight } from './device/ceilinglight.js'
 import { ColorBulb } from './device/colorbulb.js'
 import { Contact } from './device/contact.js'
