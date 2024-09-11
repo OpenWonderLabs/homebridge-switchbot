@@ -1,49 +1,17 @@
 {
-  "displayName": "SwitchBot",
   "name": "@switchbot/homebridge-switchbot",
-  "version": "3.7.0",
+  "displayName": "SwitchBot",
+  "type": "module",
+  "version": "3.8.0",
   "description": "The SwitchBot plugin allows you to access your SwitchBot device(s) from HomeKit.",
-  "author": {
-    "name": "SwitchBot",
-    "url": "https://github.com/SwitchBot",
-    "email": "support@wondertechlabs.com"
-  },
+  "author": "SwitchBot <support@wondertechlabs.com> (https://github.com/SwitchBot)",
   "contributors": [
     {
       "name": "Donavan Becker",
       "url": "https://github.com/donavanbecker"
     }
   ],
-  "type": "module",
   "license": "ISC",
-  "icon": "https://raw.githubusercontent.com/OpenWonderLabs/homebridge-switchbot/latest/branding/icon.png",
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/OpenWonderLabs/homebridge-switchbot.git"
-  },
-  "bugs": {
-    "url": "https://github.com/OpenWonderLabs/homebridge-switchbot/issues"
-  },
-  "engineStrict": true,
-  "engines": {
-    "homebridge": "^1.8.4 || ^2.0.0-alpha.0",
-    "node": "^18 || ^20 || ^22"
-  },
-  "main": "dist/index.js",
-  "scripts": {
-    "check": "npm install && npm outdated",
-    "update": "ncu -u && npm update && npm install",
-    "lint": "eslint src/**/*.ts",
-    "watch": "npm run build && npm run plugin-ui && npm link && nodemon",
-    "plugin-ui": "rsync ./src/homebridge-ui/public/index.html ./dist/homebridge-ui/public/",
-    "build": "rimraf ./dist && tsc",
-    "prepublishOnly": "npm run lint && npm run build && npm run plugin-ui ",
-    "postpublish": "npm run clean",
-    "clean": "rimraf ./dist",
-    "test": "npm run lint",
-    "docs": "typedoc",
-    "lint-docs": "typedoc --emit none --treatWarningsAsErrors"
-  },
   "funding": [
     {
       "type": "Paypal",
@@ -54,8 +22,13 @@
       "url": "https://github.com/sponsors/donavanbecker"
     }
   ],
-  "publishConfig": {
-    "access": "public"
+  "homepage": "https://github.com/OpenWonderLabs/homebridge-switchbot#readme",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/OpenWonderLabs/homebridge-switchbot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/OpenWonderLabs/homebridge-switchbot/issues"
   },
   "keywords": [
     "homebridge-plugin",
@@ -78,32 +51,66 @@
     "ble",
     "ir"
   ],
+  "main": "dist/index.js",
+  "icon": "https://raw.githubusercontent.com/OpenWonderLabs/homebridge-switchbot/latest/branding/icon.png",
+  "engineStrict": true,
+  "engines": {
+    "homebridge": "^1.8.4 || ^2.0.0 || ^2.0.0-beta.11 || ^2.0.0-alpha.10",
+    "node": "^18 || ^20 || ^22"
+  },
+  "scripts": {
+    "check": "npm install && npm outdated",
+    "update": "ncu -u && npm update && npm install",
+    "lint": "eslint src/**/*.ts",
+    "fix": "eslint src/**/*.ts --fix",
+    "watch": "npm run build && npm run plugin-ui && npm link && nodemon",
+    "plugin-ui": "rsync ./src/homebridge-ui/public/index.html ./dist/homebridge-ui/public/",
+    "build": "npm run clean && tsc && npm run plugin-ui",
+    "prepublishOnly": "npm run lint && npm run build && npm run plugin-ui ",
+    "postpublish": "npm run clean",
+    "clean": "shx rm -rf ./dist",
+    "test": "npm run lint",
+    "docs": "typedoc",
+    "lint-docs": "typedoc --emit none --treatWarningsAsErrors"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^1.0.3",
     "async-mqtt": "^2.6.3",
-    "fakegato-history": "^0.6.4",
-    "homebridge-lib": "^7.0.4",
+    "fakegato-history": "^0.6.5",
+    "homebridge-lib": "^7.0.8",
+    "node-switchbot": "2.3.0",
     "rxjs": "^7.8.1",
-    "undici": "^6.19.2"
-  },
-  "optionalDependencies": {
-    "node-switchbot": "2.3.0"
+    "undici": "^6.19.8"
   },
   "devDependencies": {
-    "@eslint/js": "^9.7.0",
-    "@stylistic/eslint-plugin": "^2.3.0",
-    "@types/eslint__js": "^8.42.3",
-    "@types/node": "^20.14.11",
-    "eslint": "^9.7.0",
-    "globals": "^15.8.0",
+    "@antfu/eslint-config": "^3.5.1",
+    "@types/aes-js": "^3.1.4",
+    "@types/debug": "^4.1.12",
+    "@types/fs-extra": "^11.0.4",
+    "@types/jest": "^29.5.12",
+    "@types/mdast": "^4.0.4",
+    "@types/node": "^22.5.4",
+    "@types/semver": "^7.5.8",
+    "@types/source-map-support": "^0.5.10",
+    "@vitest/coverage-v8": "^2.0.5",
+    "eslint": "^9.10.0",
+    "eslint-plugin-format": "^0.1.2",
     "homebridge": "^1.8.4",
-    "homebridge-config-ui-x": "4.56.4",
+    "homebridge-config-ui-x": "4.58.0",
+    "jest": "^29.7.0",
     "nodemon": "^3.1.4",
-    "npm-check-updates": "^16.14.20",
-    "rimraf": "^6.0.1",
+    "npm-check-updates": "^17.1.1",
+    "shx": "^0.3.4",
     "ts-node": "^10.9.2",
-    "typedoc": "^0.26.5",
-    "typescript": "^5.5.3",
-    "typescript-eslint": "^8.0.0-alpha.44"
+    "typedoc": "^0.26.7",
+    "typescript": "^5.6.2",
+    "typescript-axios-wb": "^1.0.3",
+    "vitest": "^2.0.5"
+  },
+  "directories": {
+    "doc": "docs"
   }
 }

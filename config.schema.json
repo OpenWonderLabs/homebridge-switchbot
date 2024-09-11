@@ -222,6 +222,12 @@
                       ]
                     },
                     {
+                      "title": "Roller Shade",
+                      "enum": [
+                        "Roller Shade"
+                      ]
+                    },
+                    {
                       "title": "Smart Fan",
                       "enum": [
                         "Smart Fan"
@@ -587,6 +593,14 @@
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Water Detector' && model.options.devices[arrayIndices].deviceId);"
                       }
+                    },
+                    "dry": {
+                      "title": "Water Detector's Dry Alert",
+                      "type": "boolean",
+                      "description": "If true, the Water Detector will send an alert when it is dry.",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Water Detector' && model.options.devices[arrayIndices].deviceId);"
+                      }
                     }
                   }
                 },
@@ -699,6 +713,13 @@
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3') && model.options.devices[arrayIndices].deviceId);"
                       }
                     },
+                    "silentModeSwitch": {
+                      "title": "Enable Curtain Silent Mode Switches",
+                      "type": "boolean",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3') && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
                     "hide_lightsensor": {
                       "title": "Hide Light Sensor",
                       "type": "boolean",
@@ -807,6 +828,55 @@
                       "minimum": 1,
                       "placeholder": 5,
                       "description": "Indicates the number of seconds before refreshing Blind Tilt status while updating slide progress.",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "setOpenMode": {
+                      "title": "Blind Tilt's Opening Mode",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "enum": [
+                            "0"
+                          ],
+                          "title": "Performance Mode"
+                        },
+                        {
+                          "enum": [
+                            "1"
+                          ],
+                          "title": "Silent Mode"
+                        }
+                      ],
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "setCloseMode": {
+                      "title": "Blind Tilt's Closing Mode",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "enum": [
+                            "0"
+                          ],
+                          "title": "Performance Mode"
+                        },
+                        {
+                          "enum": [
+                            "1"
+                          ],
+                          "title": "Silent Mode"
+                        }
+                      ],
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' && model.options.devices[arrayIndices].deviceId);"
+                      }
+                    },
+                    "silentModeSwitch": {
+                      "title": "Enable Blind Tilt Silent Mode Switches",
+                      "type": "boolean",
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' && model.options.devices[arrayIndices].deviceId);"
                       }
@@ -1737,6 +1807,11 @@
                 ]
               }
             ]
+          },
+          "allowInvalidCharacters": {
+            "title": "Allow Invalid Characters",
+            "type": "boolean",
+            "description": "If true, invalid characters will be allowed in the device name."
           }
         },
         "required": [
@@ -1795,6 +1870,7 @@
             "options.devices[].hub.hide_humidity",
             "options.devices[].hub.hide_lightsensor",
             "options.devices[].waterdetector.hide_leak",
+            "options.devices[].waterdetector.dry",
             "options.devices[].humidifier.set_minStep",
             "options.devices[].humidifier.hide_temperature",
             "options.devices[].curtain.set_minStep",
@@ -1802,6 +1878,7 @@
             "options.devices[].curtain.set_max",
             "options.devices[].curtain.setOpenMode",
             "options.devices[].curtain.setCloseMode",
+            "options.devices[].curtain.silentModeSwitch",
             "options.devices[].curtain.updateRate",
             "options.devices[].curtain.disable_group",
             "options.devices[].curtain.hide_lightsensor",
@@ -1813,6 +1890,9 @@
             "options.devices[].blindTilt.set_max",
             "options.devices[].blindTilt.hide_lightsensor",
             "options.devices[].blindTilt.updateRate",
+            "options.devices[].blindTilt.setOpenMode",
+            "options.devices[].blindTilt.setCloseMode",
+            "options.devices[].blindTilt.silentModeSwitch",
             "options.devices[].contact.hide_lightsensor",
             "options.devices[].contact.set_minlux",
             "options.devices[].contact.set_maxlux",
@@ -1929,7 +2009,8 @@
           "key": "options.pushRate",
           "description": "<em class='primary-text'>Specifies the interval, in seconds, between pushes to the SwitchBot API.</em>"
         },
-        "options.logging"
+        "options.logging",
+        "options.allowInvalidCharacters"
       ]
     }
   ]
