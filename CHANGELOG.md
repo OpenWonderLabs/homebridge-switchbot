@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file. This projec
 - Added partial support for `Roller Shade` deviceType. Currently only supports status.
 - Added `silentModeSwitch` config option for both `Curtain` & `Blind Titl` deviceTypes, allowing two switches to be display for Closing and Moding Mode. If turned on then Silent Mode is enabled.
 - Added option to allow invalid Characters in displayName with config `allowInvalidCharacters`
+- Added `dry` config option to enable Dry Status support for Water Detector
 - Fixed Platform BLE Scanning events not registering
 - Fix `On` state for robot vacuum cleaners [#1028](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1028), Thanks [@JannThomas](https://github.com/JannThomas)
 - Housekeeping and updated dependencies.

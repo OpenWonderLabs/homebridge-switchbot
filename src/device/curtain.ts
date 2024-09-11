@@ -403,10 +403,8 @@ export class Curtain extends deviceBase {
     this.WindowCovering.CurrentPosition = 100 - this.deviceStatus.slidePosition
     await this.setMinMax()
     await this.debugLog(`CurrentPosition: ${this.WindowCovering.CurrentPosition}`)
-    if (this.setNewTarget) {
+    if (this.setNewTarget || this.deviceStatus.moving) {
       await this.infoLog('Checking Status ...')
-    }
-    if (this.setNewTarget && this.deviceStatus.moving) {
       this.curtainMoving = true
       await this.setMinMax()
       if (Number(this.WindowCovering.TargetPosition) > this.WindowCovering.CurrentPosition) {
@@ -426,6 +424,7 @@ export class Curtain extends deviceBase {
         await this.debugLog(`Stopped, PositionState: ${this.WindowCovering.PositionState}`)
       }
     } else {
+      await this.infoLog('Standby ...')
       this.curtainMoving = false
       await this.debugLog(`Standby, CurrentPosition: ${this.WindowCovering.CurrentPosition}`)
       this.WindowCovering.TargetPosition = this.WindowCovering.CurrentPosition
@@ -853,8 +852,8 @@ export class Curtain extends deviceBase {
     await this.setMinMax()
     await this.debugLog(`CurrentPosition ${this.WindowCovering.CurrentPosition}`)
     if (this.setNewTarget) {
-      this.curtainMoving = true
       this.infoLog('Checking Status ...')
+      this.curtainMoving = true
       await this.setMinMax()
       if (this.WindowCovering.TargetPosition > this.WindowCovering.CurrentPosition) {
         await this.debugLog(`Closing, CurrentPosition: ${this.WindowCovering.CurrentPosition}`)
@@ -873,6 +872,7 @@ export class Curtain extends deviceBase {
         await this.debugLog(`Stopped, PositionState: ${this.WindowCovering.PositionState}`)
       }
     } else {
+      await this.infoLog('Standby ...')
       this.curtainMoving = false
       await this.debugLog(`Standby, CurrentPosition: ${this.WindowCovering.CurrentPosition}`)
       this.WindowCovering.TargetPosition = this.WindowCovering.CurrentPosition
