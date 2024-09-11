@@ -202,7 +202,7 @@ export class Curtain extends deviceBase {
       accessory.context.OpenModeSwitch = this.OpenModeSwitch as object
 
       // Initialize Open Mode Switch Service
-      this.OpenModeSwitch.Service.setCharacteristic(this.hap.Characteristic.Name, this.OpenModeSwitch.Name).getCharacteristic(this.hap.Characteristic.On).onGet(() => {
+      this.OpenModeSwitch.Service.setCharacteristic(this.hap.Characteristic.Name, this.OpenModeSwitch.Name).setCharacteristic(this.hap.Characteristic.ConfiguredName, this.OpenModeSwitch.Name).getCharacteristic(this.hap.Characteristic.On).onGet(() => {
         return this.OpenModeSwitch?.On ?? false
       })
 
@@ -230,7 +230,7 @@ export class Curtain extends deviceBase {
       accessory.context.CloseModeSwitch = this.CloseModeSwitch as object
 
       // Initialize Close Mode Switch Service
-      this.CloseModeSwitch.Service.setCharacteristic(this.hap.Characteristic.Name, this.CloseModeSwitch.Name).getCharacteristic(this.hap.Characteristic.On).onGet(() => {
+      this.CloseModeSwitch.Service.setCharacteristic(this.hap.Characteristic.Name, this.CloseModeSwitch.Name).setCharacteristic(this.hap.Characteristic.ConfiguredName, this.CloseModeSwitch.Name).getCharacteristic(this.hap.Characteristic.On).onGet(() => {
         return this.CloseModeSwitch?.On ?? false
       })
 
