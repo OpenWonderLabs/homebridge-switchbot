@@ -192,13 +192,14 @@ export class Curtain extends deviceBase {
     } else {
       accessory.context.OpenModeSwitch = accessory.context.OpenModeSwitch ?? {}
       if (this.OpenModeSwitch?.Service) {
-        const OpenModeSwitch = this.accessory.getService(this.OpenModeSwitch.Name)
+        this.debugLog('Restoring Open Mode Switch Service')
         this.OpenModeSwitch = {
           Name: `${accessory.displayName} Silent Open Mode`,
-          Service: OpenModeSwitch as Service,
+          Service: this.accessory.getService(this.OpenModeSwitch.Name) as Service,
           On: accessory.context.OpenModeSwitch.On ?? false,
         }
       } else {
+        this.debugLog('Adding Open Mode Switch Service')
         this.OpenModeSwitch = {
           Name: `${accessory.displayName} Silent Open Mode`,
           Service: accessory.addService(this.hap.Service.Switch, this.OpenModeSwitch?.Name, this.OpenModeSwitch?.Name) as Service,
@@ -226,13 +227,14 @@ export class Curtain extends deviceBase {
     } else {
       accessory.context.CloseModeSwitch = accessory.context.CloseModeSwitch ?? {}
       if (this.CloseModeSwitch?.Service) {
-        const CloseModeSwitch = this.accessory.getService(this.CloseModeSwitch.Name)
+        this.debugLog('Restoring Close Mode Switch Service')
         this.CloseModeSwitch = {
           Name: `${accessory.displayName} Silent Close Mode`,
-          Service: CloseModeSwitch as Service,
+          Service: this.accessory.getService(this.CloseModeSwitch.Name) as Service,
           On: accessory.context.CloseModeSwitch.On ?? false,
         }
       } else {
+        this.debugLog('Adding Close Mode Switch Service')
         this.CloseModeSwitch = {
           Name: `${accessory.displayName} Silent Close Mode`,
           Service: accessory.addService(this.hap.Service.Switch, this.CloseModeSwitch?.Name, this.CloseModeSwitch?.Name) as Service,
