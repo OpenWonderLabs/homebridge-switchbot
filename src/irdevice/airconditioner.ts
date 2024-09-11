@@ -466,13 +466,11 @@ export class AirConditioner extends irdeviceBase {
 
     this.HeaterCooler.CurrentTemperature = (this.HeaterCooler.CurrentTemperature === undefined && this.accessory.context.CurrentTemperature === undefined)
       ? 24
-      : this.HeaterCooler.CurrentTemperature
-      ?? this.accessory.context.CurrentTemperature
+      : this.HeaterCooler.CurrentTemperature ?? this.accessory.context.CurrentTemperature
 
     this.HeaterCooler.ThresholdTemperature = this.HeaterCooler.ThresholdTemperature === undefined
       ? 24
-      : this.HeaterCooler.ThresholdTemperature
-      ?? this.accessory.context.ThresholdTemperature
+      : this.HeaterCooler.ThresholdTemperature ?? this.accessory.context.ThresholdTemperature
 
     this.HeaterCooler.RotationSpeed = (this.HeaterCooler.RotationSpeed === undefined && this.accessory.context.RotationSpeed === undefined)
       ? 4
@@ -483,8 +481,7 @@ export class AirConditioner extends irdeviceBase {
     if (this.meter && this.HumiditySensor?.Service) {
       this.HumiditySensor.CurrentRelativeHumidity = (this.HumiditySensor.CurrentRelativeHumidity === undefined && this.accessory.context.CurrentRelativeHumidity === undefined)
         ? 0
-        : this.HumiditySensor.CurrentRelativeHumidity
-        ?? this.accessory.context.CurrentRelativeHumidity
+        : this.HumiditySensor.CurrentRelativeHumidity ?? this.accessory.context.CurrentRelativeHumidity
     }
     await this.debugLog(`Get ThresholdTemperature: ${this.HeaterCooler.ThresholdTemperature}`)
     return this.HeaterCooler.ThresholdTemperature

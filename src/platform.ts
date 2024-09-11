@@ -26,7 +26,7 @@ import { EveHomeKitTypes } from 'homebridge-lib/EveHomeKitTypes'
 * For Testing Locally:
 * import { SwitchBotModel } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
 */
-import { SwitchBotModel } from 'node-switchbot'
+import { SwitchBot, SwitchBotModel } from 'node-switchbot'
 import { queueScheduler } from 'rxjs'
 import { request } from 'undici'
 
@@ -333,7 +333,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   async setupBlE() {
     if (this.config.options?.BLE) {
       await this.debugLog('setupBLE')
-      const SwitchBot = (await import('node-switchbot')).SwitchBot
       const switchbot = new SwitchBot()
       if (switchbot === undefined) {
         await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
@@ -2659,7 +2658,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   // BLE Connection
   async connectBLE(accessory: PlatformAccessory, device: device & devicesConfig): Promise<any> {
     try {
-      const { SwitchBot } = await import('node-switchbot')
       const switchbot = new SwitchBot()
       queueScheduler.schedule(async () => switchbot)
       await this.debugLog(`${device.deviceType}: ${accessory.displayName} 'node-switchbot' found: ${switchbot}`)

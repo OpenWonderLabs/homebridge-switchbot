@@ -127,8 +127,7 @@ export class Bot {
       this.removeStatefulProgrammableSwitchService(accessory)
 
       // Add switchService
-      this.switchService = (accessory.getService(this.hap.Service.Switch)
-      || accessory.addService(this.hap.Service.Switch))
+      this.switchService = (accessory.getService(this.hap.Service.Switch) || accessory.addService(this.hap.Service.Switch))
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Switch`)
 
       this.switchService.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
@@ -148,8 +147,7 @@ export class Bot {
       this.removeStatefulProgrammableSwitchService(accessory)
 
       // Add garageDoorService
-      this.garageDoorService = (accessory.getService(this.hap.Service.GarageDoorOpener)
-      || accessory.addService(this.hap.Service.GarageDoorOpener))
+      this.garageDoorService = (accessory.getService(this.hap.Service.GarageDoorOpener) || accessory.addService(this.hap.Service.GarageDoorOpener))
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Garage Door Opener`)
 
       this.garageDoorService.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
@@ -170,8 +168,7 @@ export class Bot {
       this.removeStatefulProgrammableSwitchService(accessory)
 
       // Add doorService
-      this.doorService = accessory.getService(this.hap.Service.Door)
-      || accessory.addService(this.hap.Service.Door)
+      this.doorService = accessory.getService(this.hap.Service.Door) || accessory.addService(this.hap.Service.Door)
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Door`)
 
       this.doorService.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
@@ -200,8 +197,7 @@ export class Bot {
       this.removeStatefulProgrammableSwitchService(accessory)
 
       // Add windowService
-      this.windowService = accessory.getService(this.hap.Service.Window)
-      || accessory.addService(this.hap.Service.Window)
+      this.windowService = accessory.getService(this.hap.Service.Window) || accessory.addService(this.hap.Service.Window)
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Window`)
 
       this.windowService.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
@@ -230,8 +226,7 @@ export class Bot {
       this.removeStatefulProgrammableSwitchService(accessory)
 
       // Add windowCoveringService
-      this.windowCoveringService = accessory.getService(this.hap.Service.WindowCovering)
-      || accessory.addService(this.hap.Service.WindowCovering)
+      this.windowCoveringService = accessory.getService(this.hap.Service.WindowCovering) || accessory.addService(this.hap.Service.WindowCovering)
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Window Covering`)
 
       this.windowCoveringService.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
@@ -260,8 +255,7 @@ export class Bot {
       this.removeStatefulProgrammableSwitchService(accessory)
 
       // Add lockService
-      this.lockService = accessory.getService(this.hap.Service.LockMechanism)
-      || accessory.addService(this.hap.Service.LockMechanism)
+      this.lockService = accessory.getService(this.hap.Service.LockMechanism) || accessory.addService(this.hap.Service.LockMechanism)
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Lock`)
 
       this.lockService.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
@@ -281,8 +275,7 @@ export class Bot {
       this.removeStatefulProgrammableSwitchService(accessory)
 
       // Add faucetService
-      this.faucetService = accessory.getService(this.hap.Service.Faucet)
-      || accessory.addService(this.hap.Service.Faucet)
+      this.faucetService = accessory.getService(this.hap.Service.Faucet) || accessory.addService(this.hap.Service.Faucet)
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Faucet`)
 
       this.faucetService.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
@@ -302,8 +295,7 @@ export class Bot {
       this.removeStatefulProgrammableSwitchService(accessory)
 
       // Add fanService
-      this.fanService = accessory.getService(this.hap.Service.Fan)
-      || accessory.addService(this.hap.Service.Fan)
+      this.fanService = accessory.getService(this.hap.Service.Fan) || accessory.addService(this.hap.Service.Fan)
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Fan`)
 
       this.fanService.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
@@ -323,8 +315,7 @@ export class Bot {
       this.removeWindowCoveringService(accessory)
 
       // Add statefulProgrammableSwitchService
-      this.statefulProgrammableSwitchService = (accessory.getService(this.hap.Service.StatefulProgrammableSwitch)
-      || accessory.addService(this.hap.Service.StatefulProgrammableSwitch))
+      this.statefulProgrammableSwitchService = (accessory.getService(this.hap.Service.StatefulProgrammableSwitch) || accessory.addService(this.hap.Service.StatefulProgrammableSwitch))
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Stateful Programmable Switch`)
 
       this.statefulProgrammableSwitchService.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
@@ -346,8 +337,7 @@ export class Bot {
       this.removeStatefulProgrammableSwitchService(accessory)
 
       // Add outletService
-      this.outletService = (accessory.getService(this.hap.Service.Outlet)
-      || accessory.addService(this.hap.Service.Outlet))
+      this.outletService = (accessory.getService(this.hap.Service.Outlet) || accessory.addService(this.hap.Service.Outlet))
       this.debugWarnLog(`${this.device.deviceType}: ${accessory.displayName} Displaying as Outlet`)
 
       this.outletService.setCharacteristic(this.hap.Characteristic.Name, accessory.displayName)
@@ -358,8 +348,7 @@ export class Bot {
     }
 
     // batteryService
-    this.batteryService = (this.accessory.getService(this.hap.Service.Battery)
-    || accessory.addService(this.hap.Service.Battery))
+    this.batteryService = (this.accessory.getService(this.hap.Service.Battery) || accessory.addService(this.hap.Service.Battery))
 
     this.batteryService.setCharacteristic(this.hap.Characteristic.Name, `${accessory.displayName} Battery`)
     if (!this.batteryService.testCharacteristic(this.hap.Characteristic.ConfiguredName)) {
@@ -385,17 +374,13 @@ export class Bot {
           this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} received Webhook: ${JSON.stringify(context)}`)
           const { power, battery, deviceMode } = context
           const { On, BatteryLevel, botMode } = this
-          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-          + '(power, battery, deviceMode) = '
-          + `Webhook:(${power}, ${battery}, ${deviceMode}), `
-          + `current:(${On}, ${BatteryLevel}, ${botMode})`)
+          this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} (power, battery, deviceMode) = Webhook:(${power}, ${battery}, ${deviceMode}), current:(${On}, ${BatteryLevel}, ${botMode})`)
           this.On = power
           this.BatteryLevel = battery
           this.botMode = deviceMode
           this.updateHomeKitCharacteristics()
         } catch (e: any) {
-          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-          + `failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`)
+          this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`)
         }
       }
     }
@@ -473,8 +458,7 @@ export class Bot {
     if (Number.isNaN(this.BatteryLevel)) {
       this.BatteryLevel = 100
     }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel},`
-    + ` StatusLowBattery: ${this.StatusLowBattery}`)
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`)
   }
 
   async openAPIparseStatus(): Promise<void> {
@@ -500,8 +484,7 @@ export class Bot {
     if (Number.isNaN(this.BatteryLevel)) {
       this.BatteryLevel = 100
     }
-    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel},`
-    + ` StatusLowBattery: ${this.StatusLowBattery}`)
+    this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} BatteryLevel: ${this.BatteryLevel}, StatusLowBattery: ${this.StatusLowBattery}`)
 
     // FirmwareRevision
     this.FirmwareRevision = this.OpenAPI_FirmwareRevision!
@@ -627,8 +610,7 @@ export class Bot {
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus: ${JSON.stringify(deviceStatus)}`)
       this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`)
       if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-        this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-        + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`)
+        this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`)
         this.OpenAPI_On = deviceStatus.body.power
         this.OpenAPI_BatteryLevel = deviceStatus.body.battery
         this.OpenAPI_FirmwareRevision = deviceStatus.body.version
@@ -796,8 +778,7 @@ export class Bot {
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus body: ${JSON.stringify(deviceStatus.body)}`)
         this.debugWarnLog(`${this.device.deviceType}: ${this.accessory.displayName} deviceStatus statusCode: ${deviceStatus.statusCode}`)
         if ((statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)) {
-          this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} `
-          + `statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`)
+          this.debugErrorLog(`${this.device.deviceType}: ${this.accessory.displayName} statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`)
         } else {
           this.statusCode(statusCode)
           this.statusCode(deviceStatus.statusCode)
@@ -1226,8 +1207,7 @@ export class Bot {
   }
 
   async BLERefreshConnection(switchbot: any): Promise<void> {
-    this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot:`
-    + ` ${JSON.stringify(switchbot)}`)
+    this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(switchbot)}`)
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog(`${this.device.deviceType}: ${this.accessory.displayName} Using OpenAPI Connection to Refresh Status`)
       await this.openAPIRefreshStatus()
@@ -1312,17 +1292,11 @@ export class Bot {
         this.offlineOff()
         break
       case 171:
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. `
-          + `Hub: ${this.device.hubDeviceId}`,
-        )
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Hub Device is offline, statusCode: ${statusCode}. Hub: ${this.device.hubDeviceId}`)
         this.offlineOff()
         break
       case 190:
-        this.errorLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} Device internal error due to device states not synchronized with server,`
-          + ` Or command format is invalid, statusCode: ${statusCode}`,
-        )
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Device internal error due to device states not synchronized with server, Or command format is invalid, statusCode: ${statusCode}`)
         break
       case 100:
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Command successfully sent, statusCode: ${statusCode}`)
@@ -1331,46 +1305,34 @@ export class Bot {
         this.debugLog(`${this.device.deviceType}: ${this.accessory.displayName} Request successful, statusCode: ${statusCode}`)
         break
       case 400:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Bad Request, The client has issued an invalid request. `
-        + `This is commonly used to specify validation errors in a request payload, statusCode: ${statusCode}`)
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Bad Request, The client has issued an invalid request. This is commonly used to specify validation errors in a request payload, statusCode: ${statusCode}`)
         break
       case 401:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unauthorized, Authorization for the API is required, `
-        + `but the request has not been authenticated, statusCode: ${statusCode}`)
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unauthorized, Authorization for the API is required, but the request has not been authenticated, statusCode: ${statusCode}`)
         break
       case 403:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Forbidden, The request has been authenticated but does not `
-        + `have appropriate permissions, or a requested resource is not found, statusCode: ${statusCode}`)
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Forbidden, The request has been authenticated but does not have appropriate permissions, or a requested resource is not found, statusCode: ${statusCode}`)
         break
       case 404:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Not Found, Specifies the requested path does not exist, `
-        + `statusCode: ${statusCode}`)
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Not Found, Specifies the requested path does not exist, statusCode: ${statusCode}`)
         break
       case 406:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Not Acceptable, The client has requested a MIME type via `
-        + `the Accept header for a value not supported by the server, statusCode: ${statusCode}`)
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Not Acceptable, The client has requested a MIME type via the Accept header for a value not supported by the server, statusCode: ${statusCode}`)
         break
       case 415:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unsupported Media Type, The client has defined a contentType `
-        + `header that is not supported by the server, statusCode: ${statusCode}`)
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unsupported Media Type, The client has defined a contentType header that is not supported by the server, statusCode: ${statusCode}`)
         break
       case 422:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unprocessable Entity, The client has made a valid request, `
-        + `but the server cannot process it. This is often used for APIs for which certain limits have been exceeded, statusCode: ${statusCode}`)
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Unprocessable Entity, The client has made a valid request, but the server cannot process it. This is often used for APIs for which certain limits have been exceeded, statusCode: ${statusCode}`)
         break
       case 429:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Too Many Requests, The client has exceeded the number of `
-        + `requests allowed for a given time window, statusCode: ${statusCode}`)
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Too Many Requests, The client has exceeded the number of requests allowed for a given time window, statusCode: ${statusCode}`)
         break
       case 500:
-        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Internal Server Error, An unexpected error on the SmartThings `
-        + `servers has occurred. These errors should be rare, statusCode: ${statusCode}`)
+        this.errorLog(`${this.device.deviceType}: ${this.accessory.displayName} Internal Server Error, An unexpected error on the SmartThings servers has occurred. These errors should be rare, statusCode: ${statusCode}`)
         break
       default:
-        this.infoLog(
-          `${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: `
-          + `${statusCode}, Submit Bugs Here: ' + 'https://tinyurl.com/SwitchBotBug`,
-        )
+        this.infoLog(`${this.device.deviceType}: ${this.accessory.displayName} Unknown statusCode: ${statusCode}, Submit Bugs Here: https://tinyurl.com/SwitchBotBug`)
     }
   }
 

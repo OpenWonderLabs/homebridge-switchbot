@@ -113,27 +113,23 @@ export type plugMiniJPWebhookContext = deviceWebhookContext & {
 }
 
 export type robotVacuumCleanerS1WebhookContext = deviceWebhookContext & {
-  workingStatus: 'Standby' | 'Clearing' | 'Paused' | 'GotoChargeBase' | 'Charging' | 'ChargeDone' | 'Dormant' | 'InTrouble'
-  | 'InRemoteControl' | 'InDustCollecting'
+  workingStatus: 'Standby' | 'Clearing' | 'Paused' | 'GotoChargeBase' | 'Charging' | 'ChargeDone' | 'Dormant' | 'InTrouble' | 'InRemoteControl' | 'InDustCollecting'
   onlineStatus: 'online' | 'offline'
   battery: number // 0~100
 }
 
 export type robotVacuumCleanerS1PlusWebhookContext = deviceWebhookContext & {
-  workingStatus: 'Standby' | 'Clearing' | 'Paused' | 'GotoChargeBase' | 'Charging' | 'ChargeDone' | 'Dormant' | 'InTrouble'
-  | 'InRemoteControl' | 'InDustCollecting'
+  workingStatus: 'Standby' | 'Clearing' | 'Paused' | 'GotoChargeBase' | 'Charging' | 'ChargeDone' | 'Dormant' | 'InTrouble' | 'InRemoteControl' | 'InDustCollecting'
   onlineStatus: 'online' | 'offline'
   battery: number // 0~100
 }
 
 export type floorCleaningRobotS10WebhookContext = deviceWebhookContext & {
-  workingStatus: 'Standby' | 'Clearing' | 'Paused' | 'GotoChargeBase' | 'Charging' | 'ChargeDone' | 'Dormant' | 'InTrouble'
-  | 'InRemoteControl' | 'InDustCollecting'
+  workingStatus: 'Standby' | 'Clearing' | 'Paused' | 'GotoChargeBase' | 'Charging' | 'ChargeDone' | 'Dormant' | 'InTrouble' | 'InRemoteControl' | 'InDustCollecting'
   onlineStatus: 'online' | 'offline'
   battery: number // 0~100
   waterBaseBattery: number // 0~100
-  taskType: 'standBy' | 'explore' | 'cleanAll' | 'cleanArea' | 'cleanRoom' | 'fillWater' | 'deepWashing' | 'backToCharge' | 'markingWaterBase'
-  | 'drying' | 'collectDust' | 'remoteControl' | 'cleanWithExplorer' | 'fillWaterForHumi' | 'markingHumi'
+  taskType: 'standBy' | 'explore' | 'cleanAll' | 'cleanArea' | 'cleanRoom' | 'fillWater' | 'deepWashing' | 'backToCharge' | 'markingWaterBase' | 'drying' | 'collectDust' | 'remoteControl' | 'cleanWithExplorer' | 'fillWaterForHumi' | 'markingHumi'
 }
 
 export type ceilingLightWebhookContext = deviceWebhookContext & {

@@ -14,11 +14,7 @@ export interface ad {
   id: string
   address: string
   rssi: number
-  serviceData: botServiceData | colorBulbServiceData | contactSensorServiceData |
-  curtainServiceData | curtain3ServiceData | stripLightServiceData | lockServiceData |
-  lockProServiceData | meterServiceData | meterPlusServiceData | motionSensorServiceData | outdoorMeterServiceData |
-  plugMiniUSServiceData | plugMiniJPServiceData | blindTiltServiceData | ceilingLightServiceData | ceilingLightProServiceData |
-  hub2ServiceData | batteryCirculatorFanServiceData | waterLeakDetectorServiceData | humidifierServiceData | robotVacuumCleanerServiceData
+  serviceData: botServiceData | colorBulbServiceData | contactSensorServiceData | curtainServiceData | curtain3ServiceData | stripLightServiceData | lockServiceData | lockProServiceData | meterServiceData | meterPlusServiceData | motionSensorServiceData | outdoorMeterServiceData | plugMiniUSServiceData | plugMiniJPServiceData | blindTiltServiceData | ceilingLightServiceData | ceilingLightProServiceData | hub2ServiceData | batteryCirculatorFanServiceData | waterLeakDetectorServiceData | humidifierServiceData | robotVacuumCleanerServiceData
 }
 
 interface serviceData {
