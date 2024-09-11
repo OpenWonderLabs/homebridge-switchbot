@@ -845,6 +845,7 @@ export class Curtain extends deviceBase {
         Mode = 'Default Mode'
       }
     }
+    this.infoLog(`Position Mode: ${setPositionMode}, Mode: ${Mode}`)
     return { setPositionMode, Mode }
   }
 
