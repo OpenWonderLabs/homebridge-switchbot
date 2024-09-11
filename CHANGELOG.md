@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [3.8.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.8.0) (2024-XX-XX)
+## [3.8.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.8.0) (2024-09-11)
 
 ### What's Changed
 - Added specific macOS Bluetooth permission instructions to Readme [#1026](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1026), Thanks [@rSffsE](https://github.com/rSffsE)
