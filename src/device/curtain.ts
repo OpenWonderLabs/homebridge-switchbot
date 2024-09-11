@@ -18,7 +18,7 @@ import { hostname } from 'node:os'
 * import { SwitchBotBLEModel, SwitchBotBLEModelName } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
 */
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot'
-import { debounceTime, interval, skipWhile, Subject, take, tap } from 'rxjs'
+import { debounceTime, generate, interval, skipWhile, Subject, take, tap } from 'rxjs'
 
 import { deviceBase } from './device.js'
 
@@ -191,20 +191,13 @@ export class Curtain extends deviceBase {
       }
     } else {
       accessory.context.OpenModeSwitch = accessory.context.OpenModeSwitch ?? {}
-      if (this.OpenModeSwitch?.Service) {
-        this.debugLog('Restoring Open Mode Switch Service')
-        this.OpenModeSwitch = {
-          Name: `${accessory.displayName} Silent Open Mode`,
-          Service: this.accessory.getService(this.OpenModeSwitch.Name) as Service,
-          On: accessory.context.OpenModeSwitch.On ?? false,
-        }
-      } else {
-        this.debugLog('Adding Open Mode Switch Service')
-        this.OpenModeSwitch = {
-          Name: `${accessory.displayName} Silent Open Mode`,
-          Service: accessory.addService(this.hap.Service.Switch, this.OpenModeSwitch?.Name, this.OpenModeSwitch?.Name) as Service,
-          On: accessory.context.OpenModeSwitch.On ?? false,
-        }
+      this.debugLog('Adding Open Mode Switch Service')
+      const name = `${accessory.displayName} Silent Open Mode`
+      const uuid = this.api.hap.uuid.generate(name)
+      this.OpenModeSwitch = {
+        Name: name,
+        Service: accessory.getService(name) ?? accessory.addService(this.hap.Service.Switch, name, uuid) as Service,
+        On: accessory.context.OpenModeSwitch.On ?? false,
       }
       accessory.context.OpenModeSwitch = this.OpenModeSwitch as object
 
@@ -226,20 +219,13 @@ export class Curtain extends deviceBase {
       }
     } else {
       accessory.context.CloseModeSwitch = accessory.context.CloseModeSwitch ?? {}
-      if (this.CloseModeSwitch?.Service) {
-        this.debugLog('Restoring Close Mode Switch Service')
-        this.CloseModeSwitch = {
-          Name: `${accessory.displayName} Silent Close Mode`,
-          Service: this.accessory.getService(this.CloseModeSwitch.Name) as Service,
-          On: accessory.context.CloseModeSwitch.On ?? false,
-        }
-      } else {
-        this.debugLog('Adding Close Mode Switch Service')
-        this.CloseModeSwitch = {
-          Name: `${accessory.displayName} Silent Close Mode`,
-          Service: accessory.addService(this.hap.Service.Switch, this.CloseModeSwitch?.Name, this.CloseModeSwitch?.Name) as Service,
-          On: accessory.context.CloseModeSwitch.On ?? false,
-        }
+      this.debugLog('Adding Close Mode Switch Service')
+      const name = `${accessory.displayName} Silent Close Mode`
+      const uuid = this.api.hap.uuid.generate(name)
+      this.CloseModeSwitch = {
+        Name: name,
+        Service: this.accessory.getService(name) ?? accessory.addService(this.hap.Service.Switch, name, uuid) as Service,
+        On: accessory.context.CloseModeSwitch.On ?? false,
       }
       accessory.context.CloseModeSwitch = this.CloseModeSwitch as object
 
