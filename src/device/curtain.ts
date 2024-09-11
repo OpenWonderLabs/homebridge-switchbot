@@ -18,7 +18,7 @@ import { hostname } from 'node:os'
 * import { SwitchBotBLEModel, SwitchBotBLEModelName } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
 */
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot'
-import { debounceTime, generate, interval, skipWhile, Subject, take, tap } from 'rxjs'
+import { debounceTime, interval, skipWhile, Subject, take, tap } from 'rxjs'
 
 import { deviceBase } from './device.js'
 
@@ -318,7 +318,7 @@ export class Curtain extends deviceBase {
   /*
    * Setup EVE history features for curtain devices.
    */
-  async setupHistoryService(): Promise < void> {
+  async setupHistoryService(): Promise<void> {
     if (this.device.history !== true) {
       return
     }
