@@ -185,6 +185,7 @@ interface motion {
 
 interface waterdetector {
   hide_leak?: boolean
+  dry?: boolean
 };
 
 interface colorbulb {

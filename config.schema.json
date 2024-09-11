@@ -593,6 +593,14 @@
                       "condition": {
                         "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Water Detector' && model.options.devices[arrayIndices].deviceId);"
                       }
+                    },
+                    "dry": {
+                      "title": "Water Detector's Dry Alert",
+                      "type": "boolean",
+                      "description": "If true, the Water Detector will send an alert when it is dry.",
+                      "condition": {
+                        "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Water Detector' && model.options.devices[arrayIndices].deviceId);"
+                      }
                     }
                   }
                 },
@@ -1862,6 +1870,7 @@
             "options.devices[].hub.hide_humidity",
             "options.devices[].hub.hide_lightsensor",
             "options.devices[].waterdetector.hide_leak",
+            "options.devices[].waterdetector.dry",
             "options.devices[].humidifier.set_minStep",
             "options.devices[].humidifier.hide_temperature",
             "options.devices[].curtain.set_minStep",
