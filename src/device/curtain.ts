@@ -761,7 +761,9 @@ export class Curtain extends deviceBase {
       this.debugLog(`Silent Open Mode: ${value}`)
       this.OpenModeSwitch.On = value
       this.accessory.context.OpenModeSwitch.On = value
-      this.doCurtainUpdate.next()
+      if (value === true) {
+        this.infoLog('Silent Open Mode is enabled')
+      }
     }
   }
 
@@ -773,7 +775,9 @@ export class Curtain extends deviceBase {
       this.debugLog(`Silent Close Mode: ${value}`)
       this.CloseModeSwitch.On = value
       this.accessory.context.CloseModeSwitch.On = value
-      this.doCurtainUpdate.next()
+      if (value === true) {
+        this.infoLog('Silent Close Mode is enabled')
+      }
     }
   }
 

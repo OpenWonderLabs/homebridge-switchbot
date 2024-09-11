@@ -2,15 +2,18 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [3.7.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.7.1) (2024-07-23)
+## [3.8.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.8.0) (2024-XX-XX)
 
 ### What's Changed
 - Added specific macOS Bluetooth permission instructions to Readme [#1026](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1026), Thanks [@rSffsE](https://github.com/rSffsE)
+- Added partial support for `Roller Shade` deviceType. Currently only supports status.
+- Added `silentModeSwitch` config option for both `Curtain` & `Blind Titl` deviceTypes, allowing two switches to be display for Closing and Moding Mode. If turned on then Silent Mode is enabled.
+- Added option to allow invalid Characters in displayName with config `allowInvalidCharacters`
 - Fixed Platform BLE Scanning events not registering
 - Fix `On` state for robot vacuum cleaners [#1028](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1028), Thanks [@JannThomas](https://github.com/JannThomas)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.7.0...v3.7.1
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.7.0...v3.8.0
 
 ## [3.7.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.7.0) (2024-07-21)
 
