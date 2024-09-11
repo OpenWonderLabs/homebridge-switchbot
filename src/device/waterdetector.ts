@@ -151,13 +151,13 @@ export class WaterDetector extends deviceBase {
     await this.debugLog(`(state, status, battery) = BLE: (${this.serviceData.state}, ${this.serviceData.status}, ${this.serviceData.battery}), current:(${this.LeakSensor?.LeakDetected}, ${this.Battery.BatteryLevel})`)
 
     // LeakSensor
-    if (this.device.waterdetector?.hide_leak && this.LeakSensor?.Service) {
+    if (!this.device.waterdetector?.hide_leak && this.LeakSensor?.Service) {
       // StatusActive
       this.LeakSensor.StatusActive = this.serviceData.state
       await this.debugLog(`StatusActive: ${this.LeakSensor.StatusActive}`)
 
       // LeakDetected
-      if (this.device.waterdetector.dry) {
+      if (this.device.waterdetector?.dry) {
         this.LeakSensor.LeakDetected = this.serviceData.status === 0 ? 1 : 0
         this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}`)
       } else {
@@ -186,8 +186,13 @@ export class WaterDetector extends deviceBase {
       await this.debugLog(`StatusActive: ${this.LeakSensor.StatusActive}`)
 
       // LeakDetected
-      this.LeakSensor.LeakDetected = this.deviceStatus.status
-      this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}`)
+      if (this.device.waterdetector?.dry) {
+        this.LeakSensor.LeakDetected = this.deviceStatus.status === 0 ? 1 : 0
+        this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}`)
+      } else {
+        this.LeakSensor.LeakDetected = this.deviceStatus.status
+        this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}`)
+      }
     }
 
     // BatteryLevel
@@ -227,8 +232,13 @@ export class WaterDetector extends deviceBase {
       await this.debugLog(`StatusActive: ${this.LeakSensor.StatusActive}`)
 
       // LeakDetected
-      this.LeakSensor.LeakDetected = this.webhookContext.detectionState
-      await this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}`)
+      if (this.device.waterdetector?.dry) {
+        this.LeakSensor.LeakDetected = this.webhookContext.detectionState === 0 ? 1 : 0
+        this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}`)
+      } else {
+        this.LeakSensor.LeakDetected = this.webhookContext.detectionState
+        await this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}`)
+      }
     }
 
     // BatteryLevel
