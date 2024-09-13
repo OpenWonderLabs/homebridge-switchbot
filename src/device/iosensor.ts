@@ -180,7 +180,7 @@ export class IOSensor extends deviceBase {
 
   async BLEparseStatus(): Promise<void> {
     await this.debugLog('BLEparseStatus')
-    await this.debugLog(`(battery, temperature, humidity) = BLE:(${this.serviceData.battery}, ${this.serviceData.temperature.c}, ${this.serviceData.humidity}), current:(${this.Battery.BatteryLevel}, ${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity})`)
+    await this.debugLog(`(battery, temperature, humidity) = BLE:(${this.serviceData.battery}, ${this.serviceData.celcius}, ${this.serviceData.humidity}), current:(${this.Battery.BatteryLevel}, ${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity})`)
 
     // BatteryLevel
     this.Battery.BatteryLevel = this.serviceData.battery
@@ -200,7 +200,7 @@ export class IOSensor extends deviceBase {
 
     // Current Temperature
     if (!this.device.meter?.hide_temperature && this.TemperatureSensor?.Service) {
-      const CELSIUS = this.serviceData.temperature.c < 0 ? 0 : this.serviceData.temperature.c > 100 ? 100 : this.serviceData.temperature.c
+      const CELSIUS = this.serviceData.celcius < 0 ? 0 : this.serviceData.celcius > 100 ? 100 : this.serviceData.celcius
       this.TemperatureSensor.CurrentTemperature = CELSIUS
       await this.debugLog(`Temperature: ${this.TemperatureSensor.CurrentTemperature}°c`)
     }

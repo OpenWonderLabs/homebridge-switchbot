@@ -9,7 +9,7 @@
 [![discord-switchbot](https://badgen.net/discord/online-members/5wYTbwP4ha?icon=discord&label=discord)](https://discord.gg/5wYTbwP4ha)
 
 <p>The Homebridge <a href="https://www.switch-bot.com">SwitchBot</a> plugin allows you to access your SwitchBot Device(s) from HomeKit with
-  <a href="https://homebridge.io">Homebridge</a>. 
+  <a href="https://homebridge.io">Homebridge</a>.
 </p>
 
 </span>
@@ -56,10 +56,12 @@
   1. `bluetoothctl` must be installed on the device, otherwise it cannot communicate via Bluetooth. Enable it with `sudo bluetoothctl power on`.
 
   2. If errors occur, while enabling it, restart the process:
+
      - `rfkill block bluetooth`
      - `rfkill unblock bluetooth`
 
-  3. Also make sure, that the computer can discover the SwitchBot device: 
+  3. Also make sure, that the computer can discover the SwitchBot device:
+
      - `sudo bluetoothctl`
      - `scan on`
 
@@ -67,9 +69,9 @@
 
 - ### If using MacOS
   1. Manually grant Bluetooth access in System Settings UI for `Security & Privacy -> Privacy` to the node executable, eg `/usr/local/bin/node`
-  ![Security & Privacy -> Privacy](assets/security-privacy-bluetooth.png)
- (This is what is intended in documentation for the noble bluetooth package [prerequisites](https://github.com/abandonware/noble#prerequisites) by "Add terminal app", however for HomeBridge it is `node` that needs the permission granted, not `terminal`. 
-  Without this step, then you will receive the following error when the swichbot plugin launches, which will cause Homebridge or the child bridge process to restart:
+     ![Security & Privacy -> Privacy](assets/security-privacy-bluetooth.png)
+     (This is what is intended in documentation for the noble bluetooth package [prerequisites](https://github.com/abandonware/noble#prerequisites) by "Add terminal app", however for HomeBridge it is `node` that needs the permission granted, not `terminal`.
+     Without this step, then you will receive the following error when the swichbot plugin launches, which will cause Homebridge or the child bridge process to restart:
   ```
   Error: Failed to initialize the Noble object: unauthorized
     at Noble.<anonymous> (file:///usr/local/lib/node_modules/@switchbot/homebridge-switchbot/node_modules/node-switchbot/src/switchbot.ts:244:19)

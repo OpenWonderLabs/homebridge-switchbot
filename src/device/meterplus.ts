@@ -178,7 +178,7 @@ export class MeterPlus extends deviceBase {
 
   async BLEparseStatus(): Promise<void> {
     await this.debugLog('BLEparseStatus')
-    await this.debugLog(`(temperature, humidity) = BLE:(${this.serviceData.temperature.c}, ${this.serviceData.humidity}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity})`)
+    await this.debugLog(`(temperature, humidity) = BLE:(${this.serviceData.celcius}, ${this.serviceData.humidity}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity})`)
 
     // CurrentRelativeHumidity
     if (!this.device.iosensor?.hide_humidity && this.HumiditySensor?.Service) {
@@ -187,7 +187,7 @@ export class MeterPlus extends deviceBase {
     }
     // Current Temperature
     if (!this.device.meter?.hide_temperature && this.TemperatureSensor?.Service) {
-      const CELSIUS = this.serviceData.temperature.c < 0 ? 0 : this.serviceData.temperature.c > 100 ? 100 : this.serviceData.temperature.c
+      const CELSIUS = this.serviceData.celcius < 0 ? 0 : this.serviceData.celcius > 100 ? 100 : this.serviceData.celcius
       this.TemperatureSensor.CurrentTemperature = CELSIUS
       await this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}°c`)
     }
