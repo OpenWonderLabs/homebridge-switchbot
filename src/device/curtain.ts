@@ -69,6 +69,7 @@ export class Curtain extends deviceBase {
   serviceData!: curtainServiceData | curtain3ServiceData
 
   // Target
+  hasLoggedStandby!: boolean
   setNewTarget!: boolean
   setNewTargetTimer!: NodeJS.Timeout
 
@@ -401,37 +402,7 @@ export class Curtain extends deviceBase {
     await this.debugLog(`(slidePosition, battery, version) = OpenAPI:(${this.deviceStatus.slidePosition}, ${this.deviceStatus.battery}, ${this.deviceStatus.version}), current:(${this.WindowCovering.CurrentPosition}, ${this.Battery.BatteryLevel}, ${this.accessory.context.version})`)
     // CurrentPosition
     this.WindowCovering.CurrentPosition = 100 - this.deviceStatus.slidePosition
-    await this.setMinMax()
-    await this.debugLog(`CurrentPosition: ${this.WindowCovering.CurrentPosition}`)
-    if (this.setNewTarget || this.deviceStatus.moving) {
-      await this.infoLog('Checking Status ...')
-      this.curtainMoving = true
-      await this.setMinMax()
-      if (Number(this.WindowCovering.TargetPosition) > this.WindowCovering.CurrentPosition) {
-        await this.debugLog(`Closing, CurrentPosition: ${this.WindowCovering.CurrentPosition}`)
-        this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.INCREASING
-        this.WindowCovering.Service.getCharacteristic(this.hap.Characteristic.PositionState).updateValue(this.WindowCovering.PositionState)
-        await this.debugLog(`Increasing, PositionState: ${this.WindowCovering.PositionState}`)
-      } else if (Number(this.WindowCovering.TargetPosition) < this.WindowCovering.CurrentPosition) {
-        await this.debugLog(`Opening, CurrentPosition: ${this.WindowCovering.CurrentPosition}`)
-        this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.DECREASING
-        this.WindowCovering.Service.getCharacteristic(this.hap.Characteristic.PositionState).updateValue(this.WindowCovering.PositionState)
-        await this.debugLog(`Decreasing, PositionState: ${this.WindowCovering.PositionState}`)
-      } else {
-        await this.debugLog(`Standby, CurrentPosition: ${this.WindowCovering.CurrentPosition}`)
-        this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.STOPPED
-        this.WindowCovering.Service.getCharacteristic(this.hap.Characteristic.PositionState).updateValue(this.WindowCovering.PositionState)
-        await this.debugLog(`Stopped, PositionState: ${this.WindowCovering.PositionState}`)
-      }
-    } else {
-      await this.infoLog('Standby ...')
-      this.curtainMoving = false
-      await this.debugLog(`Standby, CurrentPosition: ${this.WindowCovering.CurrentPosition}`)
-      this.WindowCovering.TargetPosition = this.WindowCovering.CurrentPosition
-      this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.STOPPED
-      await this.debugLog(`Stopped, PositionState: ${this.WindowCovering.PositionState}`)
-    }
-    await this.debugLog(`CurrentPosition: ${this.WindowCovering.CurrentPosition}, TargetPosition: ${this.WindowCovering.TargetPosition}, PositionState: ${this.WindowCovering.PositionState},`)
+    await this.getCurrentPostion()
 
     // Brightness
     if (!this.device.curtain?.hide_lightsensor && this.LightSensor?.Service) {
@@ -848,10 +819,12 @@ export class Curtain extends deviceBase {
     return { setPositionMode, Mode }
   }
 
-  async getCurrentPostion() {
+  async getCurrentPostion(): Promise<void> {
     await this.setMinMax()
     await this.debugLog(`CurrentPosition ${this.WindowCovering.CurrentPosition}`)
-    if (this.setNewTarget) {
+    this.hasLoggedStandby = this.hasLoggedStandby ?? false
+    if (this.setNewTarget || this.deviceStatus.moving) {
+      this.hasLoggedStandby = false
       this.infoLog('Checking Status ...')
       this.curtainMoving = true
       await this.setMinMax()
@@ -872,7 +845,10 @@ export class Curtain extends deviceBase {
         await this.debugLog(`Stopped, PositionState: ${this.WindowCovering.PositionState}`)
       }
     } else {
-      await this.infoLog('Standby ...')
+      if (!this.hasLoggedStandby) {
+        await this.infoLog('Standby ...')
+        this.hasLoggedStandby = true
+      }
       this.curtainMoving = false
       await this.debugLog(`Standby, CurrentPosition: ${this.WindowCovering.CurrentPosition}`)
       this.WindowCovering.TargetPosition = this.WindowCovering.CurrentPosition
