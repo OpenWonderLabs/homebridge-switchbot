@@ -283,7 +283,7 @@ export class Motion extends deviceBase {
     if (this.config.options?.BLE) {
       await this.debugLog('is listening to Platform BLE.')
       try {
-        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId!)
+        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
         await this.debugLog(`bleMac: ${this.device.bleMac}`)
         this.platform.bleEventHandler[this.device.bleMac] = async (context: motionSensorServiceData) => {

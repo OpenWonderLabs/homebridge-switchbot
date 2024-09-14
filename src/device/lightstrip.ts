@@ -338,7 +338,7 @@ export class StripLight extends deviceBase {
     if (this.config.options?.BLE) {
       await this.debugLog('is listening to Platform BLE.')
       try {
-        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId!)
+        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
         await this.debugLog(`bleMac: ${this.device.bleMac}`)
         this.platform.bleEventHandler[this.device.bleMac] = async (context: stripLightServiceData) => {
@@ -461,7 +461,7 @@ export class StripLight extends deviceBase {
       await this.debugLog(`BLEpushChanges On: ${this.LightBulb.On}, OnCached: ${this.accessory.context.On}`)
       const switchbot = await this.platform.connectBLE(this.accessory, this.device)
       try {
-        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId!)
+        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
         await this.debugLog(`bleMac: ${this.device.bleMac}`)
         if (switchbot !== false) {
@@ -506,7 +506,7 @@ export class StripLight extends deviceBase {
     if (this.LightBulb.Brightness !== this.accessory.context.Brightness) {
       const switchbot = await this.platform.connectBLE(this.accessory, this.device)
       try {
-        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId!)
+        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
         await this.debugLog(`bleMac: ${this.device.bleMac}`)
         if (switchbot !== false) {
@@ -545,7 +545,7 @@ export class StripLight extends deviceBase {
       await this.debugLog(`rgb: ${JSON.stringify([red, green, blue])}`)
       const switchbot = await this.platform.connectBLE(this.accessory, this.device)
       try {
-        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId!)
+        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
         await this.debugLog(`bleMac: ${this.device.bleMac}`)
         if (switchbot !== false) {

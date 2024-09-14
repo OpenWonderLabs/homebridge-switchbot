@@ -297,7 +297,7 @@ export class RobotVacuumCleaner extends deviceBase {
     if (this.config.options?.BLE) {
       await this.debugLog('is listening to Platform BLE.')
       try {
-        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId!)
+        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
         await this.debugLog(`bleMac: ${this.device.bleMac}`)
         this.platform.bleEventHandler[this.device.bleMac] = async (context: robotVacuumCleanerServiceData) => {
@@ -390,7 +390,7 @@ export class RobotVacuumCleaner extends deviceBase {
     if (this.LightBulb.On !== this.accessory.context.On) {
       const switchbot = await this.platform.connectBLE(this.accessory, this.device)
       try {
-        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId!)
+        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
         await this.debugLog(`bleMac: ${this.device.bleMac}`)
         if (switchbot !== false) {

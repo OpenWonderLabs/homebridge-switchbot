@@ -163,9 +163,11 @@ export function convertUnits(value: number, unit: string, convert?: string): num
  * Ensures the device ID does not already contain colons.
  *
  * @param deviceId - The device ID to format.
+ * @param cassSensative - If the MAC address should be case sensitive. Default is false, which will return the MAC address in lowercase.
  * @returns The formatted MAC address.
+ * @throws Will throw an error if the device ID is not a valid MAC address or a 12-character hexadecimal string.
  */
-export function formatDeviceIdAsMac(deviceId: string): string {
+export function formatDeviceIdAsMac(deviceId: string, cassSensative?: boolean): string {
   if (typeof deviceId !== 'string') {
     throw new TypeError('Invalid device ID format. Device ID must be a string.')
   }
@@ -175,13 +177,15 @@ export function formatDeviceIdAsMac(deviceId: string): string {
   const macAddressRegex = /^(?:[0-9a-f]{2}:){5}[0-9a-f]{2}$/i
   const hexRegex = /^[0-9a-f]{12}$/i
 
+  // Check if the deviceId is already in a valid MAC address format
   if (macAddressRegex.test(deviceId)) {
-    return deviceId.toLowerCase()
+    return cassSensative ? deviceId : deviceId.toLowerCase()
   }
 
   // Check if the deviceId is a valid 12-character hexadecimal string
   if (hexRegex.test(deviceId)) {
-    return deviceId.match(/.{1,2}/g)!.join(':').toLowerCase()
+    const formattedDeviceId = deviceId.match(/.{1,2}/g)!.join(':')
+    return cassSensative ? formattedDeviceId : formattedDeviceId.toLowerCase()
   }
 
   throw new Error('Invalid device ID format. Must be a valid MAC address or a 12-character hexadecimal string.')

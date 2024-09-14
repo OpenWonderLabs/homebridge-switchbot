@@ -483,7 +483,7 @@ export class BlindTilt extends deviceBase {
     if (this.config.options?.BLE) {
       await this.debugLog('is listening to Platform BLE.')
       try {
-        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId!)
+        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
         await this.debugLog(`bleMac: ${this.device.bleMac}`)
         this.platform.bleEventHandler[this.device.bleMac] = async (context: blindTiltServiceData) => {
@@ -569,7 +569,7 @@ export class BlindTilt extends deviceBase {
       await this.debugLog(`BLEpushChanges On: ${this.WindowCovering.TargetPosition} OnCached: ${this.WindowCovering.CurrentPosition}`)
       const switchbot = await this.platform.connectBLE(this.accessory, this.device)
       try {
-        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId!)
+        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
         await this.debugLog(`bleMac: ${this.device.bleMac}`)
         const { setPositionMode, Mode }: { setPositionMode: number, Mode: string } = await this.setPerformance()

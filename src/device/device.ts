@@ -262,7 +262,7 @@ export abstract class deviceBase {
    */
   async setupHistoryService(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
     try {
-      const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId!)
+      const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
       this.device.bleMac = formattedDeviceId
       await this.debugLog(`bleMac: ${this.device.bleMac}`)
       this.historyService = device.history
@@ -281,7 +281,7 @@ export abstract class deviceBase {
     const switchbot = await this.platform.connectBLE(this.accessory, this.device)
     // Convert to BLE Address
     try {
-      const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId!)
+      const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
       this.device.bleMac = formattedDeviceId
       await this.debugLog(`bleMac: ${this.device.bleMac}`)
       await this.getCustomBLEAddress(switchbot)
