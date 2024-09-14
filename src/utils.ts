@@ -158,6 +158,35 @@ export function convertUnits(value: number, unit: string, convert?: string): num
   return value
 }
 
+/**
+ * Formats a device ID as a MAC address.
+ * Ensures the device ID does not already contain colons.
+ *
+ * @param deviceId - The device ID to format.
+ * @returns The formatted MAC address.
+ */
+export function formatDeviceIdAsMac(deviceId: string): string {
+  if (typeof deviceId !== 'string') {
+    throw new TypeError('Invalid device ID format. Device ID must be a string.')
+  }
+
+  deviceId = deviceId.trim()
+
+  const macAddressRegex = /^(?:[0-9a-f]{2}:){5}[0-9a-f]{2}$/i
+  const hexRegex = /^[0-9a-f]{12}$/i
+
+  if (macAddressRegex.test(deviceId)) {
+    return deviceId.toLowerCase()
+  }
+
+  // Check if the deviceId is a valid 12-character hexadecimal string
+  if (hexRegex.test(deviceId)) {
+    return deviceId.match(/.{1,2}/g)!.join(':').toLowerCase()
+  }
+
+  throw new Error('Invalid device ID format. Must be a valid MAC address or a 12-character hexadecimal string.')
+}
+
 export function rgb2hs(r: any, g: any, b: any) {
   /**
    * Credit:

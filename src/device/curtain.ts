@@ -20,6 +20,7 @@ import { hostname } from 'node:os'
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot'
 import { debounceTime, interval, skipWhile, Subject, take, tap } from 'rxjs'
 
+import { formatDeviceIdAsMac } from '../utils.js'
 import { deviceBase } from './device.js'
 
 export class Curtain extends deviceBase {
@@ -324,42 +325,45 @@ export class Curtain extends deviceBase {
       return
     }
 
-    const mac = this.device
-      .deviceId!.match(/.{1,2}/g)!
-      .join(':')
-      .toLowerCase()
-    this.historyService = new this.platform.fakegatoAPI('custom', this.accessory, {
-      log: this.platform.log,
-      storage: 'fs',
-      filename: `${hostname().split('.')[0]}_${mac}_persist.json`,
-    })
-    const motion: Service
+    try {
+      const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId!)
+      this.device.bleMac = formattedDeviceId
+      await this.debugLog(`bleMac: ${this.device.bleMac}`)
+      this.historyService = new this.platform.fakegatoAPI('custom', this.accessory, {
+        log: this.platform.log,
+        storage: 'fs',
+        filename: `${hostname().split('.')[0]}_${this.device.bleMac}_persist.json`,
+      })
+      const motion: Service
       = this.accessory.getService(this.hap.Service.MotionSensor)
       || this.accessory.addService(this.hap.Service.MotionSensor, 'Motion')
-    motion.addOptionalCharacteristic(this.platform.eve.Characteristics.LastActivation)
-    motion.getCharacteristic(this.platform.eve.Characteristics.LastActivation).onGet(() => {
-      const lastActivation = this.accessory.context.lastActivation
-        ? Math.max(0, this.accessory.context.lastActivation - this.historyService.getInitialTime())
-        : 0
-      return lastActivation
-    })
-    await this.setMinMax()
-    motion.getCharacteristic(this.hap.Characteristic.MotionDetected).on('change', (event: CharacteristicChange) => {
-      if (event.newValue !== event.oldValue) {
-        const sensor = this.accessory.getService(this.hap.Service.MotionSensor)
-        const entry = {
-          time: Math.round(new Date().valueOf() / 1000),
-          motion: event.newValue,
+      motion.addOptionalCharacteristic(this.platform.eve.Characteristics.LastActivation)
+      motion.getCharacteristic(this.platform.eve.Characteristics.LastActivation).onGet(() => {
+        const lastActivation = this.accessory.context.lastActivation
+          ? Math.max(0, this.accessory.context.lastActivation - this.historyService.getInitialTime())
+          : 0
+        return lastActivation
+      })
+      await this.setMinMax()
+      motion.getCharacteristic(this.hap.Characteristic.MotionDetected).on('change', (event: CharacteristicChange) => {
+        if (event.newValue !== event.oldValue) {
+          const sensor = this.accessory.getService(this.hap.Service.MotionSensor)
+          const entry = {
+            time: Math.round(new Date().valueOf() / 1000),
+            motion: event.newValue,
+          }
+          this.accessory.context.lastActivation = entry.time
+          sensor?.updateCharacteristic(
+            this.platform.eve.Characteristics.LastActivation,
+            Math.max(0, this.accessory.context.lastActivation - this.historyService.getInitialTime()),
+          )
+          this.historyService.addEntry(entry)
         }
-        this.accessory.context.lastActivation = entry.time
-        sensor?.updateCharacteristic(
-          this.platform.eve.Characteristics.LastActivation,
-          Math.max(0, this.accessory.context.lastActivation - this.historyService.getInitialTime()),
-        )
-        this.historyService.addEntry(entry)
-      }
-    })
-    this.updateHistory()
+      })
+      this.updateHistory()
+    } catch (error) {
+      await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
+    }
   }
 
   async updateHistory(): Promise<void> {
@@ -541,17 +545,22 @@ export class Curtain extends deviceBase {
     await this.debugLog('registerPlatformBLE')
     if (this.config.options?.BLE) {
       await this.debugLog('is listening to Platform BLE.')
-      this.device.bleMac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase()
-      await this.debugLog(`bleMac: ${this.device.bleMac}`)
-      this.platform.bleEventHandler[this.device.bleMac] = async (context: curtainServiceData | curtain3ServiceData) => {
-        try {
-          await this.debugLog(`received BLE: ${JSON.stringify(context)}`)
-          this.serviceData = context
-          await this.BLEparseStatus()
-          await this.updateHomeKitCharacteristics()
-        } catch (e: any) {
-          await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`)
+      try {
+        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId!)
+        this.device.bleMac = formattedDeviceId
+        await this.debugLog(`bleMac: ${this.device.bleMac}`)
+        this.platform.bleEventHandler[this.device.bleMac] = async (context: curtainServiceData | curtain3ServiceData) => {
+          try {
+            await this.debugLog(`received BLE: ${JSON.stringify(context)}`)
+            this.serviceData = context
+            await this.BLEparseStatus()
+            await this.updateHomeKitCharacteristics()
+          } catch (e: any) {
+            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`)
+          }
         }
+      } catch (error) {
+        await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
       await this.debugLog('is not listening to Platform BLE')
@@ -585,33 +594,39 @@ export class Curtain extends deviceBase {
     await this.debugLog('BLEpushChanges')
     if (this.WindowCovering.TargetPosition !== this.WindowCovering.CurrentPosition) {
       const switchbot = await this.platform.connectBLE(this.accessory, this.device)
-      await this.convertBLEAddress()
-      const { setPositionMode, Mode }: { setPositionMode: number, Mode: string } = await this.setPerformance()
-      const adjustedMode = setPositionMode === 1 ? 0x01 : 0xFF
-      await this.debugLog(`Mode: ${Mode}, setPositionMode: ${setPositionMode}`)
-      if (switchbot !== false) {
-        switchbot
-          .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
-          .then(async (device_list: any) => {
-            return await this.retryBLE({
-              max: await this.maxRetryBLE(),
-              fn: async () => {
-                return await device_list[0].runToPos(100 - Number(this.WindowCovering.TargetPosition), adjustedMode)
-              },
+      try {
+        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId!)
+        this.device.bleMac = formattedDeviceId
+        await this.debugLog(`bleMac: ${this.device.bleMac}`)
+        const { setPositionMode, Mode }: { setPositionMode: number, Mode: string } = await this.setPerformance()
+        const adjustedMode = setPositionMode === 1 ? 0x01 : 0xFF
+        await this.debugLog(`Mode: ${Mode}, setPositionMode: ${setPositionMode}`)
+        if (switchbot !== false) {
+          switchbot
+            .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
+            .then(async (device_list: any) => {
+              return await this.retryBLE({
+                max: await this.maxRetryBLE(),
+                fn: async () => {
+                  return await device_list[0].runToPos(100 - Number(this.WindowCovering.TargetPosition), adjustedMode)
+                },
+              })
             })
-          })
-          .then(async () => {
-            await this.successLog(`TargetPostion: ${this.WindowCovering.TargetPosition} sent over SwitchBot BLE,  sent successfully`)
-            await this.updateHomeKitCharacteristics()
-          })
-          .catch(async (e: any) => {
-            await this.apiError(e)
-            await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
-            await this.BLEPushConnection()
-          })
-      } else {
-        await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
-        await this.BLEPushConnection()
+            .then(async () => {
+              await this.successLog(`TargetPostion: ${this.WindowCovering.TargetPosition} sent over SwitchBot BLE,  sent successfully`)
+              await this.updateHomeKitCharacteristics()
+            })
+            .catch(async (e: any) => {
+              await this.apiError(e)
+              await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+              await this.BLEPushConnection()
+            })
+        } else {
+          await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
+          await this.BLEPushConnection()
+        }
+      } catch (error) {
+        await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
       await this.debugLog(`No changes (BLEpushChanges), TargetPosition: ${this.WindowCovering.TargetPosition}, CurrentPosition: ${this.WindowCovering.CurrentPosition}`)

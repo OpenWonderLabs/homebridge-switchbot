@@ -18,7 +18,7 @@ import type { stripLightWebhookContext } from '../types/devicewebhookstatus.js'
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot'
 import { debounceTime, interval, skipWhile, Subject, take, tap } from 'rxjs'
 
-import { hs2rgb, m2hs, rgb2hs } from '../utils.js'
+import { formatDeviceIdAsMac, hs2rgb, m2hs, rgb2hs } from '../utils.js'
 import { deviceBase } from './device.js'
 
 /**
@@ -337,17 +337,22 @@ export class StripLight extends deviceBase {
     await this.debugLog('registerPlatformBLE')
     if (this.config.options?.BLE) {
       await this.debugLog('is listening to Platform BLE.')
-      this.device.bleMac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase()
-      await this.debugLog(`bleMac: ${this.device.bleMac}`)
-      this.platform.bleEventHandler[this.device.bleMac] = async (context: stripLightServiceData) => {
-        try {
-          await this.debugLog(`received BLE: ${JSON.stringify(context)}`)
-          this.serviceData = context
-          await this.BLEparseStatus()
-          await this.updateHomeKitCharacteristics()
-        } catch (e: any) {
-          await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`)
+      try {
+        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId!)
+        this.device.bleMac = formattedDeviceId
+        await this.debugLog(`bleMac: ${this.device.bleMac}`)
+        this.platform.bleEventHandler[this.device.bleMac] = async (context: stripLightServiceData) => {
+          try {
+            await this.debugLog(`received BLE: ${JSON.stringify(context)}`)
+            this.serviceData = context
+            await this.BLEparseStatus()
+            await this.updateHomeKitCharacteristics()
+          } catch (e: any) {
+            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`)
+          }
         }
+      } catch (error) {
+        await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
       await this.debugLog('is not listening to Platform BLE')
@@ -455,35 +460,41 @@ export class StripLight extends deviceBase {
     if (this.LightBulb.On !== this.accessory.context.On) {
       await this.debugLog(`BLEpushChanges On: ${this.LightBulb.On}, OnCached: ${this.accessory.context.On}`)
       const switchbot = await this.platform.connectBLE(this.accessory, this.device)
-      await this.convertBLEAddress()
-      if (switchbot !== false) {
-        switchbot
-          .discover({ model: this.device.bleModel, id: this.device.bleMac })
-          .then(async (device_list: any) => {
-            await this.infoLog(`On: ${this.LightBulb.On}`)
-            return await this.retryBLE({
-              max: await this.maxRetryBLE(),
-              fn: async () => {
-                if (this.LightBulb.On) {
-                  return await device_list[0].turnOn({ id: this.device.bleMac })
-                } else {
-                  return await device_list[0].turnOff({ id: this.device.bleMac })
-                }
-              },
+      try {
+        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId!)
+        this.device.bleMac = formattedDeviceId
+        await this.debugLog(`bleMac: ${this.device.bleMac}`)
+        if (switchbot !== false) {
+          switchbot
+            .discover({ model: this.device.bleModel, id: this.device.bleMac })
+            .then(async (device_list: any) => {
+              await this.infoLog(`On: ${this.LightBulb.On}`)
+              return await this.retryBLE({
+                max: await this.maxRetryBLE(),
+                fn: async () => {
+                  if (this.LightBulb.On) {
+                    return await device_list[0].turnOn({ id: this.device.bleMac })
+                  } else {
+                    return await device_list[0].turnOff({ id: this.device.bleMac })
+                  }
+                },
+              })
             })
-          })
-          .then(async () => {
-            await this.successLog(`On: ${this.LightBulb.On} sent over SwitchBot BLE,  sent successfully`)
-            await this.updateHomeKitCharacteristics()
-          })
-          .catch(async (e: any) => {
-            await this.apiError(e)
-            await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
-            await this.BLEPushConnection()
-          })
-      } else {
-        await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
-        await this.BLEPushConnection()
+            .then(async () => {
+              await this.successLog(`On: ${this.LightBulb.On} sent over SwitchBot BLE,  sent successfully`)
+              await this.updateHomeKitCharacteristics()
+            })
+            .catch(async (e: any) => {
+              await this.apiError(e)
+              await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+              await this.BLEPushConnection()
+            })
+        } else {
+          await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
+          await this.BLEPushConnection()
+        }
+      } catch (error) {
+        await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
       await this.debugLog(`No changes (BLEpushChanges), On: ${this.LightBulb.On}, OnCached: ${this.accessory.context.On}`)
@@ -494,26 +505,32 @@ export class StripLight extends deviceBase {
     await this.debugLog('BLEpushBrightnessChanges')
     if (this.LightBulb.Brightness !== this.accessory.context.Brightness) {
       const switchbot = await this.platform.connectBLE(this.accessory, this.device)
-      await this.convertBLEAddress()
-      if (switchbot !== false) {
-        switchbot
-          .discover({ model: this.device.bleModel, id: this.device.bleMac })
-          .then(async (device_list: any) => {
-            await this.infoLog(`Brightness: ${this.LightBulb.Brightness}`)
-            return await device_list[0].setBrightness(this.LightBulb.Brightness)
-          })
-          .then(async () => {
-            await this.successLog(`Brightness: ${this.LightBulb.Brightness} sent over SwitchBot BLE,  sent successfully`)
-            await this.updateHomeKitCharacteristics()
-          })
-          .catch(async (e: any) => {
-            await this.apiError(e)
-            await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
-            await this.BLEPushConnection()
-          })
-      } else {
-        await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
-        await this.BLEPushConnection()
+      try {
+        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId!)
+        this.device.bleMac = formattedDeviceId
+        await this.debugLog(`bleMac: ${this.device.bleMac}`)
+        if (switchbot !== false) {
+          switchbot
+            .discover({ model: this.device.bleModel, id: this.device.bleMac })
+            .then(async (device_list: any) => {
+              await this.infoLog(`Brightness: ${this.LightBulb.Brightness}`)
+              return await device_list[0].setBrightness(this.LightBulb.Brightness)
+            })
+            .then(async () => {
+              await this.successLog(`Brightness: ${this.LightBulb.Brightness} sent over SwitchBot BLE,  sent successfully`)
+              await this.updateHomeKitCharacteristics()
+            })
+            .catch(async (e: any) => {
+              await this.apiError(e)
+              await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+              await this.BLEPushConnection()
+            })
+        } else {
+          await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
+          await this.BLEPushConnection()
+        }
+      } catch (error) {
+        await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
       await this.debugLog(`No changes (BLEpushBrightnessChanges), Brightness: ${this.LightBulb.Brightness}, BrightnessCached: ${this.accessory.context.Brightness}`)
@@ -527,26 +544,32 @@ export class StripLight extends deviceBase {
       const [red, green, blue] = hs2rgb(this.LightBulb.Hue, this.LightBulb.Saturation)
       await this.debugLog(`rgb: ${JSON.stringify([red, green, blue])}`)
       const switchbot = await this.platform.connectBLE(this.accessory, this.device)
-      await this.convertBLEAddress()
-      if (switchbot !== false) {
-        switchbot
-          .discover({ model: this.device.bleModel, id: this.device.bleMac })
-          .then(async (device_list: any) => {
-            await this.infoLog(`RGB: ${(this.LightBulb.Brightness, red, green, blue)}`)
-            return await device_list[0].setRGB(this.LightBulb.Brightness, red, green, blue)
-          })
-          .then(async () => {
-            await this.successLog(`RGB: ${(this.LightBulb.Brightness, red, green, blue)} sent over SwitchBot BLE,  sent successfully`)
-            await this.updateHomeKitCharacteristics()
-          })
-          .catch(async (e: any) => {
-            await this.apiError(e)
-            await this.errorLog(`failed BLEpushRGBChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
-            await this.BLEPushConnection()
-          })
-      } else {
-        await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
-        await this.BLEPushConnection()
+      try {
+        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId!)
+        this.device.bleMac = formattedDeviceId
+        await this.debugLog(`bleMac: ${this.device.bleMac}`)
+        if (switchbot !== false) {
+          switchbot
+            .discover({ model: this.device.bleModel, id: this.device.bleMac })
+            .then(async (device_list: any) => {
+              await this.infoLog(`RGB: ${(this.LightBulb.Brightness, red, green, blue)}`)
+              return await device_list[0].setRGB(this.LightBulb.Brightness, red, green, blue)
+            })
+            .then(async () => {
+              await this.successLog(`RGB: ${(this.LightBulb.Brightness, red, green, blue)} sent over SwitchBot BLE,  sent successfully`)
+              await this.updateHomeKitCharacteristics()
+            })
+            .catch(async (e: any) => {
+              await this.apiError(e)
+              await this.errorLog(`failed BLEpushRGBChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+              await this.BLEPushConnection()
+            })
+        } else {
+          await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
+          await this.BLEPushConnection()
+        }
+      } catch (error) {
+        await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
       await this.debugLog(`No changes (BLEpushRGBChanges), Hue: ${this.LightBulb.Hue}, HueCached: ${this.accessory.context.Hue}, Saturation: ${this.LightBulb.Saturation}, SaturationCached: ${this.accessory.context.Saturation}`)

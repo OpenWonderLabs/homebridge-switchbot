@@ -19,7 +19,7 @@ import { Units } from 'homebridge'
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot'
 import { interval, skipWhile, Subject } from 'rxjs'
 
-import { convertUnits, validHumidity } from '../utils.js'
+import { convertUnits, formatDeviceIdAsMac, validHumidity } from '../utils.js'
 import { deviceBase } from './device.js'
 
 /**
@@ -307,17 +307,22 @@ export class MeterPlus extends deviceBase {
     await this.debugLog('registerPlatformBLE')
     if (this.config.options?.BLE) {
       await this.debugLog('is listening to Platform BLE.')
-      this.device.bleMac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase()
-      await this.debugLog(`bleMac: ${this.device.bleMac}`)
-      this.platform.bleEventHandler[this.device.bleMac] = async (context: meterPlusServiceData) => {
-        try {
-          await this.debugLog(`received BLE: ${JSON.stringify(context)}`)
-          this.serviceData = context
-          await this.BLEparseStatus()
-          await this.updateHomeKitCharacteristics()
-        } catch (e: any) {
-          await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`)
+      try {
+        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId!)
+        this.device.bleMac = formattedDeviceId
+        await this.debugLog(`bleMac: ${this.device.bleMac}`)
+        this.platform.bleEventHandler[this.device.bleMac] = async (context: meterPlusServiceData) => {
+          try {
+            await this.debugLog(`received BLE: ${JSON.stringify(context)}`)
+            this.serviceData = context
+            await this.BLEparseStatus()
+            await this.updateHomeKitCharacteristics()
+          } catch (e: any) {
+            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`)
+          }
         }
+      } catch (error) {
+        await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
       await this.debugLog('is not listening to Platform BLE')
