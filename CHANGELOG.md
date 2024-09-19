@@ -2,10 +2,11 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [3.8.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.8.2) (2024-09-14)
+## [3.8.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.8.2) (2024-09-19)
 
 ### What's Changed
 - Improved macAddress format and finding of invalid formating.
+- Fixed temperature reading issue for Hub 2, Indoor/Outdoor Sensor, Meter, & Meter Plus [#1024](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/1024), Thanks [@azmke](https://github.com/azmke)
 - Housekeeping and updated dependencies.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.8.1...v3.8.2
