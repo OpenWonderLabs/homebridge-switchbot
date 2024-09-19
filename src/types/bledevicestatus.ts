@@ -162,7 +162,7 @@ export type outdoorMeterServiceData = serviceData & {
   model: SwitchBotBLEModel.OutdoorMeter
   modelName: SwitchBotBLEModelName.OutdoorMeter
   modelFriendlyName: SwitchBotBLEModelFriendlyName.OutdoorMeter
-  celcius: number
+  celsius: number
   fahrenheit: number
   fahrenheit_mode: boolean
   humidity: number
