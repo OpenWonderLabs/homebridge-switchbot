@@ -18,7 +18,7 @@ import type { blindTiltWebhookContext } from '../types/devicewebhookstatus.js'
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot'
 import { debounceTime, interval, skipWhile, Subject, take, tap } from 'rxjs'
 
-import { BlindTiltMappingMode } from '../utils.js'
+import { BlindTiltMappingMode, formatDeviceIdAsMac } from '../utils.js'
 import { deviceBase } from './device.js'
 
 export class BlindTilt extends deviceBase {
@@ -482,17 +482,22 @@ export class BlindTilt extends deviceBase {
     await this.debugLog('registerPlatformBLE')
     if (this.config.options?.BLE) {
       await this.debugLog('is listening to Platform BLE.')
-      this.device.bleMac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase()
-      await this.debugLog(`bleMac: ${this.device.bleMac}`)
-      this.platform.bleEventHandler[this.device.bleMac] = async (context: blindTiltServiceData) => {
-        try {
-          await this.debugLog(`received BLE: ${JSON.stringify(context)}`)
-          this.serviceData = context
-          await this.BLEparseStatus()
-          await this.updateHomeKitCharacteristics()
-        } catch (e: any) {
-          await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`)
+      try {
+        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
+        this.device.bleMac = formattedDeviceId
+        await this.debugLog(`bleMac: ${this.device.bleMac}`)
+        this.platform.bleEventHandler[this.device.bleMac] = async (context: blindTiltServiceData) => {
+          try {
+            await this.debugLog(`received BLE: ${JSON.stringify(context)}`)
+            this.serviceData = context
+            await this.BLEparseStatus()
+            await this.updateHomeKitCharacteristics()
+          } catch (e: any) {
+            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`)
+          }
         }
+      } catch (error) {
+        await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
       await this.debugLog('is not listening to Platform BLE')
@@ -563,32 +568,38 @@ export class BlindTilt extends deviceBase {
     if (this.WindowCovering.TargetPosition !== this.WindowCovering.CurrentPosition) {
       await this.debugLog(`BLEpushChanges On: ${this.WindowCovering.TargetPosition} OnCached: ${this.WindowCovering.CurrentPosition}`)
       const switchbot = await this.platform.connectBLE(this.accessory, this.device)
-      await this.convertBLEAddress()
-      const { setPositionMode, Mode }: { setPositionMode: number, Mode: string } = await this.setPerformance()
-      await this.debugLog(`Mode: ${Mode}, setPositionMode: ${setPositionMode}`)
-      if (switchbot !== false) {
-        switchbot
-          .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
-          .then(async (device_list: any) => {
-            return await this.retryBLE({
-              max: await this.maxRetryBLE(),
-              fn: async () => {
-                return await device_list[0].runToPos(100 - Number(this.WindowCovering.TargetPosition), setPositionMode)
-              },
+      try {
+        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
+        this.device.bleMac = formattedDeviceId
+        await this.debugLog(`bleMac: ${this.device.bleMac}`)
+        const { setPositionMode, Mode }: { setPositionMode: number, Mode: string } = await this.setPerformance()
+        await this.debugLog(`Mode: ${Mode}, setPositionMode: ${setPositionMode}`)
+        if (switchbot !== false) {
+          switchbot
+            .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
+            .then(async (device_list: any) => {
+              return await this.retryBLE({
+                max: await this.maxRetryBLE(),
+                fn: async () => {
+                  return await device_list[0].runToPos(100 - Number(this.WindowCovering.TargetPosition), setPositionMode)
+                },
+              })
             })
-          })
-          .then(async () => {
-            await this.successLog(`TargetPostion: ${this.WindowCovering.TargetPosition} sent over SwitchBot BLE,  sent successfully`)
-            await this.updateHomeKitCharacteristics()
-          })
-          .catch(async (e: any) => {
-            await this.apiError(e)
-            await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
-            await this.BLEPushConnection()
-          })
-      } else {
-        await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
-        await this.BLEPushConnection()
+            .then(async () => {
+              await this.successLog(`TargetPostion: ${this.WindowCovering.TargetPosition} sent over SwitchBot BLE,  sent successfully`)
+              await this.updateHomeKitCharacteristics()
+            })
+            .catch(async (e: any) => {
+              await this.apiError(e)
+              await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+              await this.BLEPushConnection()
+            })
+        } else {
+          await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
+          await this.BLEPushConnection()
+        }
+      } catch (error) {
+        await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
       await this.debugLog(`No changes (BLEpushChanges), TargetPosition: ${this.WindowCovering.TargetPosition}, CurrentPosition: ${this.WindowCovering.CurrentPosition}`)

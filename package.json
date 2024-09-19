@@ -2,7 +2,7 @@
   "name": "@switchbot/homebridge-switchbot",
   "displayName": "SwitchBot",
   "type": "module",
-  "version": "3.8.1",
+  "version": "3.8.2",
   "description": "The SwitchBot plugin allows you to access your SwitchBot device(s) from HomeKit.",
   "author": "SwitchBot <support@wondertechlabs.com> (https://github.com/SwitchBot)",
   "contributors": [
@@ -86,29 +86,29 @@
     "undici": "^6.19.8"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^3.6.0",
+    "@antfu/eslint-config": "^3.6.2",
     "@types/aes-js": "^3.1.4",
     "@types/debug": "^4.1.12",
     "@types/fs-extra": "^11.0.4",
     "@types/jest": "^29.5.13",
     "@types/mdast": "^4.0.4",
-    "@types/node": "^22.5.4",
+    "@types/node": "^22.5.5",
     "@types/semver": "^7.5.8",
     "@types/source-map-support": "^0.5.10",
-    "@vitest/coverage-v8": "^2.1.0",
+    "@vitest/coverage-v8": "^2.1.1",
     "eslint": "^9.10.0",
     "eslint-plugin-format": "^0.1.2",
     "homebridge": "^1.8.4",
     "homebridge-config-ui-x": "4.58.0",
     "jest": "^29.7.0",
-    "nodemon": "^3.1.4",
-    "npm-check-updates": "^17.1.1",
+    "nodemon": "^3.1.6",
+    "npm-check-updates": "^17.1.2",
     "shx": "^0.3.4",
     "ts-node": "^10.9.2",
     "typedoc": "^0.26.7",
     "typescript": "^5.6.2",
     "typescript-axios-wb": "^1.0.3",
-    "vitest": "^2.1.0"
+    "vitest": "^2.1.1"
   },
   "directories": {
     "doc": "docs"

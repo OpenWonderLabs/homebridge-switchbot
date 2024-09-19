@@ -18,6 +18,7 @@ import type { botWebhookContext } from '../types/devicewebhookstatus.js'
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot'
 import { debounceTime, interval, skipWhile, Subject, take, tap } from 'rxjs'
 
+import { formatDeviceIdAsMac } from '../utils.js'
 import { deviceBase } from './device.js'
 
 /**
@@ -575,17 +576,22 @@ export class Bot extends deviceBase {
     await this.debugLog('registerPlatformBLE')
     if (this.config.options?.BLE) {
       await this.debugLog('is listening to Platform BLE.')
-      this.device.bleMac = this.device.deviceId!.match(/.{1,2}/g)!.join(':').toLowerCase()
-      await this.debugLog(`bleMac: ${this.device.bleMac}`)
-      this.platform.bleEventHandler[this.device.bleMac] = async (context: botServiceData) => {
-        try {
-          await this.debugLog(`received BLE: ${JSON.stringify(context)}`)
-          this.serviceData = context
-          await this.BLEparseStatus()
-          await this.updateHomeKitCharacteristics()
-        } catch (e: any) {
-          await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`)
+      try {
+        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
+        this.device.bleMac = formattedDeviceId
+        await this.debugLog(`bleMac: ${this.device.bleMac}`)
+        this.platform.bleEventHandler[this.device.bleMac] = async (context: botServiceData) => {
+          try {
+            await this.debugLog(`received BLE: ${JSON.stringify(context)}`)
+            this.serviceData = context
+            await this.BLEparseStatus()
+            await this.updateHomeKitCharacteristics()
+          } catch (e: any) {
+            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`)
+          }
         }
+      } catch (error) {
+        await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
       await this.debugLog('is not listening to Platform BLE')
@@ -663,57 +669,63 @@ export class Bot extends deviceBase {
     if (this.On !== this.accessory.context.On || this.allowPush) {
       await this.debugLog(`BLEpushChanges On: ${this.On} OnCached: ${this.accessory.context.On}`)
       const switchbot = await this.platform.connectBLE(this.accessory, this.device)
-      await this.convertBLEAddress()
-      // if (switchbot !== false) {
-      await this.debugLog(`Bot Mode: ${this.botMode}`)
-      if (this.botMode === 'press') {
-        switchbot
-          .discover({ model: 'H', quick: true, id: this.device.bleMac })
-          .then(async (device_list: { press: (arg0: { id: string | undefined }) => any }[]) => {
-            await this.infoLog(`On: ${this.On}`)
-            return await device_list[0].press({ id: this.device.bleMac })
-          })
-          .then(async () => {
-            await this.successLog(`On: ${this.On} sent over SwitchBot BLE,  sent successfully`)
-            await this.updateHomeKitCharacteristics()
-            setTimeout(async () => {
-              this.On = false
-              await this.updateHomeKitCharacteristics()
-              this.debugLog(`On: ${this.On}, Switch Timeout`)
-            }, 500)
-          })
-          .catch(async (e: any) => {
-            await this.apiError(e)
-            await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
-            await this.BLEPushConnection()
-          })
-      } else if (this.botMode === 'switch') {
-        switchbot
-          .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
-          .then(async (device_list: any) => {
-            this.infoLog(`On: ${this.On}`)
-            return await this.retryBLE({
-              max: await this.maxRetryBLE(),
-              fn: async () => {
-                if (this.On) {
-                  return await device_list[0].turnOn({ id: this.device.bleMac })
-                } else {
-                  return await device_list[0].turnOff({ id: this.device.bleMac })
-                }
-              },
+      try {
+        const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
+        this.device.bleMac = formattedDeviceId
+        await this.debugLog(`bleMac: ${this.device.bleMac}`)
+        // if (switchbot !== false) {
+        await this.debugLog(`Bot Mode: ${this.botMode}`)
+        if (this.botMode === 'press') {
+          switchbot
+            .discover({ model: 'H', quick: true, id: this.device.bleMac })
+            .then(async (device_list: { press: (arg0: { id: string | undefined }) => any }[]) => {
+              await this.infoLog(`On: ${this.On}`)
+              return await device_list[0].press({ id: this.device.bleMac })
             })
-          })
-          .then(async () => {
-            await this.successLog(`On: ${this.On} sent over SwitchBot BLE,  sent successfully`)
-            await this.updateHomeKitCharacteristics()
-          })
-          .catch(async (e: any) => {
-            await this.apiError(e)
-            await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
-            await this.BLEPushConnection()
-          })
-      } else {
-        await this.errorLog(`Device Parameters not set for this Bot, please check the device configuration. Bot Mode: ${this.botMode}`)
+            .then(async () => {
+              await this.successLog(`On: ${this.On} sent over SwitchBot BLE,  sent successfully`)
+              await this.updateHomeKitCharacteristics()
+              setTimeout(async () => {
+                this.On = false
+                await this.updateHomeKitCharacteristics()
+                this.debugLog(`On: ${this.On}, Switch Timeout`)
+              }, 500)
+            })
+            .catch(async (e: any) => {
+              await this.apiError(e)
+              await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+              await this.BLEPushConnection()
+            })
+        } else if (this.botMode === 'switch') {
+          switchbot
+            .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
+            .then(async (device_list: any) => {
+              this.infoLog(`On: ${this.On}`)
+              return await this.retryBLE({
+                max: await this.maxRetryBLE(),
+                fn: async () => {
+                  if (this.On) {
+                    return await device_list[0].turnOn({ id: this.device.bleMac })
+                  } else {
+                    return await device_list[0].turnOff({ id: this.device.bleMac })
+                  }
+                },
+              })
+            })
+            .then(async () => {
+              await this.successLog(`On: ${this.On} sent over SwitchBot BLE,  sent successfully`)
+              await this.updateHomeKitCharacteristics()
+            })
+            .catch(async (e: any) => {
+              await this.apiError(e)
+              await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+              await this.BLEPushConnection()
+            })
+        } else {
+          await this.errorLog(`Device Parameters not set for this Bot, please check the device configuration. Bot Mode: ${this.botMode}`)
+        }
+      } catch (error) {
+        await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
       await this.debugLog(`No Changes (BLEpushChanges), On: ${this.On} OnCached: ${this.accessory.context.On}`)

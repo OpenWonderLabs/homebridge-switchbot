@@ -58,7 +58,7 @@ import { TV } from './irdevice/tv.js'
 import { VacuumCleaner } from './irdevice/vacuumcleaner.js'
 import { WaterHeater } from './irdevice/waterheater.js'
 import { deleteWebhook, Devices, PLATFORM_NAME, PLUGIN_NAME, queryWebhook, setupWebhook, updateWebhook } from './settings.js'
-import { isBlindTiltDevice, isCurtainDevice, sleep } from './utils.js'
+import { formatDeviceIdAsMac, isBlindTiltDevice, isCurtainDevice, sleep } from './utils.js'
 
 /**
  * HomebridgePlatform
@@ -593,8 +593,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       for (const device of devices) {
         device.deviceType = device.configDeviceType
         device.deviceName = device.configDeviceName
-        if (device.deviceType) {
-          await this.createDevice(device)
+        try {
+          device.deviceId = formatDeviceIdAsMac(device.deviceId, true)
+          await this.debugLog(`deviceId: ${device.deviceId}`)
+          if (device.deviceType) {
+            await this.createDevice(device)
+          }
+        } catch (error) {
+          await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
         }
       }
     } else {

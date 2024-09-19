@@ -17,7 +17,7 @@ import { SwitchBotBLEModel, SwitchBotBLEModelFriendlyName, SwitchBotBLEModelName
 import { request } from 'undici'
 
 import { Devices } from '../settings.js'
-import { BlindTiltMappingMode, sleep } from '../utils.js'
+import { BlindTiltMappingMode, formatDeviceIdAsMac, sleep } from '../utils.js'
 
 export abstract class deviceBase {
   public readonly api: API
@@ -261,33 +261,34 @@ export abstract class deviceBase {
    * Setup EVE history graph feature if enabled.
    */
   async setupHistoryService(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
-    const mac = this.device
-      .deviceId!.match(/.{1,2}/g)!
-      .join(':')
-      .toLowerCase()
-    this.historyService = device.history
-      ? new this.platform.fakegatoAPI('room', accessory, {
-        log: this.platform.log,
-        storage: 'fs',
-        filename: `${hostname().split('.')[0]}_${mac}_persist.json`,
-      })
-      : null
+    try {
+      const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
+      this.device.bleMac = formattedDeviceId
+      await this.debugLog(`bleMac: ${this.device.bleMac}`)
+      this.historyService = device.history
+        ? new this.platform.fakegatoAPI('room', accessory, {
+          log: this.platform.log,
+          storage: 'fs',
+          filename: `${hostname().split('.')[0]}_${this.device.bleMac}_persist.json`,
+        })
+        : null
+    } catch (error) {
+      await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
+    }
   }
 
   async switchbotBLE(): Promise<any> {
     const switchbot = await this.platform.connectBLE(this.accessory, this.device)
     // Convert to BLE Address
-    await this.convertBLEAddress()
-    await this.getCustomBLEAddress(switchbot)
-    return switchbot
-  }
-
-  async convertBLEAddress() {
-    this.device.bleMac = this.device
-      .deviceId!.match(/.{1,2}/g)!
-      .join(':')
-      .toLowerCase()
-    await this.debugLog(`BLE Address: ${this.device.bleMac}`)
+    try {
+      const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
+      this.device.bleMac = formattedDeviceId
+      await this.debugLog(`bleMac: ${this.device.bleMac}`)
+      await this.getCustomBLEAddress(switchbot)
+      return switchbot
+    } catch (error) {
+      await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
+    }
   }
 
   async monitorAdvertisementPackets(switchbot: any) {
