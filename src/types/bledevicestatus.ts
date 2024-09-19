@@ -140,7 +140,7 @@ export type meterServiceData = serviceData & {
   model: SwitchBotBLEModel.Meter
   modelName: SwitchBotBLEModelName.Meter
   modelFriendlyName: SwitchBotBLEModelFriendlyName.Meter
-  celcius: number
+  celsius: number
   fahrenheit: number
   fahrenheit_mode: boolean
   humidity: number
@@ -151,7 +151,7 @@ export type meterPlusServiceData = serviceData & {
   model: SwitchBotBLEModel.MeterPlus
   modelName: SwitchBotBLEModelName.MeterPlus
   modelFriendlyName: SwitchBotBLEModelFriendlyName.MeterPlus
-  celcius: number
+  celsius: number
   fahrenheit: number
   fahrenheit_mode: boolean
   humidity: number
@@ -162,7 +162,7 @@ export type outdoorMeterServiceData = serviceData & {
   model: SwitchBotBLEModel.OutdoorMeter
   modelName: SwitchBotBLEModelName.OutdoorMeter
   modelFriendlyName: SwitchBotBLEModelFriendlyName.OutdoorMeter
-  celcius: number
+  celsius: number
   fahrenheit: number
   fahrenheit_mode: boolean
   humidity: number
@@ -260,7 +260,7 @@ export type hub2ServiceData = serviceData & {
   model: SwitchBotBLEModel.Hub2
   modelName: SwitchBotBLEModelName.Hub2
   modelFriendlyName: SwitchBotBLEModelFriendlyName.Hub2
-  celcius: number
+  celsius: number
   fahrenheit: number
   fahrenheit_mode: boolean
   humidity: number

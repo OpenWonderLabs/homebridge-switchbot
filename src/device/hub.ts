@@ -178,11 +178,11 @@ export class Hub extends deviceBase {
 
   async BLEparseStatus(): Promise<void> {
     await this.debugLog('BLEparseStatus')
-    await this.debugLog(`(temperature, humidity, lightLevel) = BLE:(${this.serviceData.celcius}, ${this.serviceData.humidity}, ${this.serviceData.lightLevel}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity}, ${this.LightSensor?.CurrentAmbientLightLevel})`)
+    await this.debugLog(`(temperature, humidity, lightLevel) = BLE:(${this.serviceData.celsius}, ${this.serviceData.humidity}, ${this.serviceData.lightLevel}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity}, ${this.LightSensor?.CurrentAmbientLightLevel})`)
 
     // CurrentTemperature
     if (!this.device.hub?.hide_temperature && this.TemperatureSensor?.Service) {
-      this.TemperatureSensor.CurrentTemperature = this.serviceData.celcius
+      this.TemperatureSensor.CurrentTemperature = this.serviceData.celsius
       await this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}°c`)
     }
 
