@@ -41,7 +41,7 @@ jobs:
         [How To Test Beta Releases](https://github.com/OpenWonderLabs/homebridge-switchbot/wiki/Beta-Version)
 
   github-releases-to-discord:
-    needs: pre-release
+    needs: [publish, pre-release]
     if: ${{ github.repository == 'OpenWonderLabs/homebridge-switchbot' }}
     uses: OpenWonderLabs/.github/.github/workflows/discord-webhooks.yml@latest
     with:
