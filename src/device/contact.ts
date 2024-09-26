@@ -191,9 +191,7 @@ export class Contact extends deviceBase {
   async BLEparseStatus(): Promise<void> {
     await this.debugLog('BLEparseStatus')
     // ContactSensorState
-    this.ContactSensor.ContactSensorState = this.serviceData.doorState === 'open'
-      ? this.hap.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED
-      : this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED
+    this.ContactSensor.ContactSensorState = this.getContactSensorState(this.serviceData.doorState)
     await this.debugLog(`ContactSensorState: ${this.ContactSensor.ContactSensorState}`)
 
     // MotionDetected
@@ -222,9 +220,7 @@ export class Contact extends deviceBase {
   async openAPIparseStatus(): Promise<void> {
     await this.debugLog('openAPIparseStatus')
     // Contact State
-    this.ContactSensor.ContactSensorState = this.deviceStatus.openState === 'open'
-      ? this.hap.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED
-      : this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED
+    this.ContactSensor.ContactSensorState = this.getContactSensorState(this.deviceStatus.openState)
     await this.debugLog(`ContactSensorState: ${this.ContactSensor.ContactSensorState}`)
 
     // MotionDetected
@@ -268,7 +264,7 @@ export class Contact extends deviceBase {
     await this.debugLog('parseStatusWebhook')
     await this.debugLog(`(detectionState, brightness, openState) = Webhook:(${this.webhookContext.detectionState}, ${this.webhookContext.brightness}, ${this.webhookContext.openState}), current:(${this.MotionSensor?.MotionDetected}, ${this.LightSensor?.CurrentAmbientLightLevel}, ${this.ContactSensor.ContactSensorState})`)
     // ContactSensorState
-    this.ContactSensor.ContactSensorState = this.webhookContext.openState === 'open' ? 1 : 0
+    this.ContactSensor.ContactSensorState = this.getContactSensorState(this.webhookContext.openState)
     await this.debugLog(`ContactSensorState: ${this.ContactSensor.ContactSensorState}`)
     if (!this.device.contact?.hide_motionsensor && this.MotionSensor?.Service) {
       // MotionDetected
@@ -441,5 +437,11 @@ export class Contact extends deviceBase {
     }
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e)
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, e)
+  }
+
+  private getContactSensorState(openState: string): CharacteristicValue {
+    return openState === 'open' || openState === 'timeOutNotClose'
+      ? this.hap.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED
+      : this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED
   }
 }
