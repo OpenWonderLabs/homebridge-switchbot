@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [3.8.3](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.8.3) (2024-09-26)
+
+### What's Changed
+- Fix incorrect handling of openState in Contact Sensor [#1061](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/1024), Thanks [@nzws](https://github.com/nzws)
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.8.2...v3.8.3
+
 ## [3.8.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.8.2) (2024-09-19)
 
 ### What's Changed
