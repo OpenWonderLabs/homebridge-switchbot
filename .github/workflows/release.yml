@@ -28,7 +28,8 @@ jobs:
 
     uses: OpenWonderLabs/.github/.github/workflows/discord-webhooks.yml@latest
     with:
-      footer_title: "SwitchBot"
+      message_title: "SwitchBot"
+      message_url: "https://github.com/OpenWonderLabs/homebridge-switchbot/releases/latest"
     secrets:
       DISCORD_WEBHOOK_URL_LATEST: ${{ secrets.DISCORD_WEBHOOK_URL_LATEST }}
 
