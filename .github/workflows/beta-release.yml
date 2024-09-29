@@ -49,4 +49,4 @@ jobs:
       message_title: "SwitchBot"
       message_url: "https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v${{ needs.publish.outputs.NPM_VERSION }}"
     secrets:
-      DISCORD_WEBHOOK_URL_BETA: ${{ secrets.DISCORD_WEBHOOK_URL_BETA }}
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL_BETA }}
