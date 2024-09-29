@@ -293,7 +293,11 @@ export abstract class deviceBase {
 
   async monitorAdvertisementPackets(switchbot: any) {
     await this.debugLog(`Scanning for ${this.device.bleModelName} devices...`)
-    await switchbot.startScan({ model: this.device.bleModel, id: this.device.bleMac })
+    try {
+      await switchbot.startScan({ model: this.device.bleModel, id: this.device.bleMac })
+    } catch (e: any) {
+      await this.errorLog(`Failed to start BLE scanning. Error:${e}`)
+    }
     // Set an event handler
     let serviceData = { model: this.device.bleModel, modelName: this.device.bleModelName } as ad['serviceData']
     switchbot.onadvertisement = async (ad: ad) => {
@@ -310,7 +314,11 @@ export abstract class deviceBase {
     // Wait
     await switchbot.wait(this.scanDuration * 1000)
     // Stop to monitor
-    await switchbot.stopScan()
+    try {
+      await switchbot.stopScan()
+    } catch (e: any) {
+      await this.errorLog(`Failed to stop BLE scanning. Error:${e}`)
+    }
     return serviceData
   }
 
@@ -319,14 +327,22 @@ export abstract class deviceBase {
       this.debugLog(`customBLEaddress: ${this.device.customBLEaddress}`);
       (async () => {
         // Start to monitor advertisement packets
-        await switchbot.startScan({ model: this.device.bleModel })
+        try {
+          await switchbot.startScan({ model: this.device.bleModel })
+        } catch (e: any) {
+          await this.errorLog(`Failed to start BLE scanning. Error:${e}`)
+        }
         // Set an event handler
         switchbot.onadvertisement = async (ad: ad) => {
           this.warnLog(`ad: ${JSON.stringify(ad, null, '  ')}`)
         }
         await sleep(10000)
         // Stop to monitor
-        switchbot.stopScan()
+        try {
+          switchbot.stopScan()
+        } catch (e: any) {
+          await this.errorLog(`Failed to stop BLE scanning. Error:${e}`)
+        }
       })()
     }
   }

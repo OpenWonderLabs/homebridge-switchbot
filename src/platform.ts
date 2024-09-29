@@ -341,7 +341,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         (async () => {
           // Start to monitor advertisement packets
           await this.debugLog('Scanning for BLE SwitchBot devices...')
-          await switchbot.startScan()
+          try {
+            await switchbot.startScan()
+          } catch (e: any) {
+            await this.errorLog(`Failed to start BLE scanning. Error:${e}`)
+          }
           // Set an event handler to monitor advertisement packets
           switchbot.onadvertisement = async (ad: any) => {
             try {
