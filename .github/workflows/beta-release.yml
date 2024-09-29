@@ -45,6 +45,7 @@ jobs:
     if: ${{ github.repository == 'OpenWonderLabs/homebridge-switchbot' }}
     uses: OpenWonderLabs/.github/.github/workflows/discord-webhooks.yml@latest
     with:
+      release-version: ${{ needs.publish.outputs.NPM_VERSION }}
       message_title: "SwitchBot"
       message_url: "https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v${{ needs.publish.outputs.NPM_VERSION }}"
     secrets:
