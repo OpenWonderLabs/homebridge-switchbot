@@ -473,15 +473,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     while (retryCount < maxRetries) {
       try {
-        const { responseBody } = await this.switchBotAPI.getDevices()
-        await this.debugWarnLog(`devicesAPI: ${JSON.stringify(responseBody)}`)
-
-        if (this.isSuccessfulResponse(responseBody.statusCode)) {
-          await this.handleDevices(responseBody.body.deviceList)
-          await this.handleIRDevices(responseBody.body.infraredRemoteList)
+        const { response } = await this.switchBotAPI.getDevices()
+        await this.warnLog(`response: ${JSON.stringify(response)}`)
+        if (this.isSuccessfulResponse(response.statusCode)) {
+          await this.handleDevices(response.body.deviceList)
+          await this.handleIRDevices(response.body.infraredRemoteList)
           break
         } else {
-          await this.handleErrorResponse(responseBody.statusCode, retryCount, maxRetries, delayBetweenRetries)
+          await this.handleErrorResponse(response.statusCode, retryCount, maxRetries, delayBetweenRetries)
           retryCount++
         }
       } catch (e: any) {
@@ -2550,7 +2549,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     const delayBetweenRetries = deviceDelayBetweenRetries
     while (retryCount < maxRetries) {
       try {
-        const { body } = await this.switchBotAPI.getDeviceStatus(deviceId)
+        const { response } = await this.switchBotAPI.getDeviceStatus(deviceId)
+        await this.warnLog(`response: ${JSON.stringify(response)}`)
+        const body = response
         return body
       } catch (error: any) {
         await this.errorLog(`Error making request: ${error.message}`)
