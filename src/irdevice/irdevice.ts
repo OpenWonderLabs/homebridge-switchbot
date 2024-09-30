@@ -125,12 +125,12 @@ export abstract class irdeviceBase {
     this.debugSuccessLog(`version: ${accessory.context.version}`)
   }
 
-  async pushChangeRequest(bodyChange: bodyChange): Promise<{ body: any, statusCode: any }> {
+  async pushChangeRequest(bodyChange: bodyChange): Promise<{ body: any }> {
     return this.platform.switchBotAPI.controlDevice(this.device.deviceId, bodyChange.command, bodyChange.parameter, bodyChange.commandType)
   }
 
-  async successfulStatusCodes(statusCode: any, deviceStatus: any) {
-    return (statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)
+  async successfulStatusCodes(deviceStatus: any) {
+    return (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)
   }
 
   /**
@@ -155,14 +155,13 @@ export abstract class irdeviceBase {
     }
   }
 
-  async pushStatusCodes(statusCode: any, deviceStatus: any) {
-    await this.debugWarnLog(`statusCode: ${statusCode}`)
+  async pushStatusCodes(deviceStatus: any) {
     await this.debugWarnLog(`deviceStatus: ${JSON.stringify(deviceStatus)}`)
     await this.debugWarnLog(`deviceStatus statusCode: ${deviceStatus.statusCode}`)
   }
 
-  async successfulPushChange(statusCode: any, deviceStatus: any, bodyChange: any) {
-    this.debugSuccessLog(`statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`)
+  async successfulPushChange(deviceStatus: any, bodyChange: any) {
+    this.debugSuccessLog(`deviceStatus StatusCode: ${deviceStatus.statusCode}`)
     this.successLog(`request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`)
   }
 

@@ -344,16 +344,16 @@ export abstract class deviceBase {
     }
   }
 
-  async pushChangeRequest(bodyChange: bodyChange): Promise<{ body: any, statusCode: any }> {
+  async pushChangeRequest(bodyChange: bodyChange): Promise<{ body: any }> {
     return this.platform.switchBotAPI.controlDevice(this.device.deviceId, bodyChange.command, bodyChange.parameter, bodyChange.commandType)
   }
 
-  async deviceRefreshStatus(): Promise<{ body: any, statusCode: any }> {
+  async deviceRefreshStatus(): Promise<{ body: any }> {
     return await this.platform.retryRequest(this.device.deviceId, this.deviceMaxRetries, this.deviceDelayBetweenRetries)
   }
 
-  async successfulStatusCodes(statusCode: any, deviceStatus: any) {
-    return (statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)
+  async successfulStatusCodes(deviceStatus: any) {
+    return (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)
   }
 
   /**

@@ -133,16 +133,16 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     this.switchBotAPI.on('log', (log) => {
       switch (log.level) {
         case LogLevel.ERROR:
-          this.errorLog(`[${log.level.toUpperCase()}] ${log.message}`)
+          this.errorLog(log.message)
           break
         case LogLevel.WARN:
-          this.warnLog(`[${log.level.toUpperCase()}] ${log.message}`)
+          this.warnLog(log.message)
           break
         case LogLevel.DEBUG:
-          this.debugLog(`[${log.level.toUpperCase()}] ${log.message}`)
+          this.debugLog(log.message)
           break
         default:
-          this.infoLog(`[${log.level.toUpperCase()}] ${log.message}`)
+          this.infoLog(log.message)
       }
     })
     // import fakegato-history module and EVE characteristics
@@ -2545,18 +2545,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  async retryRequest(deviceId: string, deviceMaxRetries: number, deviceDelayBetweenRetries: number): Promise<{ body: any, statusCode: number }> {
+  async retryRequest(deviceId: string, deviceMaxRetries: number, deviceDelayBetweenRetries: number): Promise<{ body: any }> {
     let retryCount = 0
     const maxRetries = deviceMaxRetries
     const delayBetweenRetries = deviceDelayBetweenRetries
     while (retryCount < maxRetries) {
       try {
-        const { body, statusCode } = await this.switchBotAPI.getDeviceStatus(deviceId)
-        if (statusCode === 200 || statusCode === 100) {
-          return { body, statusCode }
-        } else {
-          await this.debugLog(`Received status code: ${statusCode}`)
-        }
+        const { body } = await this.switchBotAPI.getDeviceStatus(deviceId)
+        return body
       } catch (error: any) {
         await this.errorLog(`Error making request: ${error.message}`)
       }
@@ -2564,7 +2560,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       await this.debugLog(`Retry attempt ${retryCount} of ${maxRetries}`)
       await sleep(delayBetweenRetries)
     }
-    return { body: null, statusCode: -1 }
+    return { body: null }
   }
 
   // BLE Connection
