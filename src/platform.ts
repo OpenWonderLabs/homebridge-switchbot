@@ -129,8 +129,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     // SwitchBot OpenAPI
     this.switchBotAPI = new SwitchBotOpenAPI(this.config.credentials?.token, this.config.credentials?.secret)
-    // Set the log level
-    this.switchBotAPI.setLogLevel(LogLevel.DEBUG)
+    // Listen for log events
+    this.switchBotAPI.on('log', (log) => {
+      this.debugLog(`[${log.level.toUpperCase()}] ${log.message}`)
+    })
     // import fakegato-history module and EVE characteristics
     this.fakegatoAPI = fakegato(api)
     this.eve = new EveHomeKitTypes(api)
