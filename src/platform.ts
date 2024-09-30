@@ -2,19 +2,14 @@
  *
  * platform.ts: @switchbot/homebridge-switchbot platform class.
  */
-import type { IncomingMessage, Server, ServerResponse } from 'node:http'
-import type { UrlObject } from 'node:url'
+import type { Server } from 'node:http'
 
 import type { API, DynamicPlatformPlugin, Logging, PlatformAccessory } from 'homebridge'
 import type { MqttClient } from 'mqtt'
-import type { Dispatcher } from 'undici'
 
 import type { devicesConfig, irDevicesConfig, options, SwitchBotPlatformConfig } from './settings.js'
 
-import { Buffer } from 'node:buffer'
-import crypto, { randomUUID } from 'node:crypto'
 import { readFileSync, writeFileSync } from 'node:fs'
-import { createServer } from 'node:http'
 import process from 'node:process'
 
 import asyncmqtt from 'async-mqtt'
@@ -56,7 +51,7 @@ import { Others } from './irdevice/other.js'
 import { TV } from './irdevice/tv.js'
 import { VacuumCleaner } from './irdevice/vacuumcleaner.js'
 import { WaterHeater } from './irdevice/waterheater.js'
-import { deleteWebhook, Devices, PLATFORM_NAME, PLUGIN_NAME, queryWebhook, setupWebhook, updateWebhook } from './settings.js'
+import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js'
 import { formatDeviceIdAsMac, isBlindTiltDevice, isCurtainDevice, sleep } from './utils.js'
 
 /**
@@ -91,7 +86,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   // Event Handlers
   public readonly webhookEventHandler: { [x: string]: (context: any) => void } = {}
   public readonly bleEventHandler: { [x: string]: (context: any) => void } = {}
-  switchBotAPI: SwitchBotOpenAPI
+  switchBotAPI!: SwitchBotOpenAPI
 
   constructor(
     log: Logging,
@@ -100,9 +95,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   ) {
     this.api = api
     this.log = log
-    this.switchBotAPI = new SwitchBotOpenAPI(this.config.credentials?.token, this.config.credentials?.secret)
-    // Set the log level
-    this.switchBotAPI.setLogLevel(LogLevel.DEBUG)
 
     // only load if configured
     if (!config) {
@@ -135,6 +127,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       return
     }
 
+    // SwitchBot OpenAPI
+    this.switchBotAPI = new SwitchBotOpenAPI(this.config.credentials?.token, this.config.credentials?.secret)
+    // Set the log level
+    this.switchBotAPI.setLogLevel(LogLevel.DEBUG)
     // import fakegato-history module and EVE characteristics
     this.fakegatoAPI = fakegato(api)
     this.eve = new EveHomeKitTypes(api)
