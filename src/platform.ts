@@ -225,7 +225,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.switchBotAPI.setupWebhook(url)
         // Listen for webhook events
         this.switchBotAPI.on('webhookEvent', (body) => {
-          this.debugLog('Received webhook event:', body)
           this.webhookEventHandler[body.context.deviceMac]?.(body.context)
         })
       } catch (e: any) {
