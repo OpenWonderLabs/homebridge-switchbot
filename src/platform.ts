@@ -225,22 +225,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.switchBotAPI.setupWebhook(url)
         // Listen for webhook events
         this.switchBotAPI.on('webhookEvent', (body) => {
+          if (this.config.options?.mqttURL) {
+            const mac = body.context.deviceMac?.toLowerCase().match(/[\s\S]{1,2}/g)?.join(':')
+            const options = this.config.options?.mqttPubOptions || {}
+            this.mqttClient?.publish(`homebridge-switchbot/webhook/${mac}`, `${JSON.stringify(body.context)}`, options)
+          }
           this.webhookEventHandler[body.context.deviceMac]?.(body.context)
         })
       } catch (e: any) {
         await this.errorLog(`Failed to setup webhook. Error:${e.message}`)
-      }
-
-      try {
-        this.switchBotAPI.updateWebhook(url)
-      } catch (e: any) {
-        await this.errorLog(`Failed to update webhook. Error:${e.message}`)
-      }
-
-      try {
-        this.switchBotAPI.queryWebhook()
-      } catch (e: any) {
-        await this.errorLog(`Failed to query webhook. Error:${e.message}`)
       }
 
       this.api.on('shutdown', async () => {
@@ -473,14 +466,22 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     while (retryCount < maxRetries) {
       try {
-        const { response } = await this.switchBotAPI.getDevices()
-        await this.warnLog(`response: ${JSON.stringify(response)}`)
-        if (this.isSuccessfulResponse(response.statusCode)) {
-          await this.handleDevices(response.body.deviceList)
-          await this.handleIRDevices(response.body.infraredRemoteList)
+        const { response, statusCode } = await this.switchBotAPI.getDevices()
+        await this.debugLog(`response: ${JSON.stringify(response)}`)
+        if (this.isSuccessfulResponse(statusCode)) {
+          if (Array.isArray(response.deviceList)) {
+            await this.handleDevices(response.deviceList)
+          } else {
+            await this.errorLog('deviceList is not an array')
+          }
+          if (Array.isArray(response.infraredRemoteList)) {
+            await this.handleIRDevices(response.infraredRemoteList)
+          } else {
+            await this.errorLog('infraredRemoteList is not an array')
+          }
           break
         } else {
-          await this.handleErrorResponse(response.statusCode, retryCount, maxRetries, delayBetweenRetries)
+          await this.handleErrorResponse(statusCode, retryCount, maxRetries, delayBetweenRetries)
           retryCount++
         }
       } catch (e: any) {
@@ -2543,16 +2544,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  async retryRequest(deviceId: string, deviceMaxRetries: number, deviceDelayBetweenRetries: number): Promise<{ body: any }> {
+  async retryRequest(deviceId: string, deviceMaxRetries: number, deviceDelayBetweenRetries: number): Promise<{ response: any, statusCode: number }> {
     let retryCount = 0
     const maxRetries = deviceMaxRetries
     const delayBetweenRetries = deviceDelayBetweenRetries
     while (retryCount < maxRetries) {
       try {
-        const { response } = await this.switchBotAPI.getDeviceStatus(deviceId)
+        const { response, statusCode } = await this.switchBotAPI.getDeviceStatus(deviceId)
         await this.warnLog(`response: ${JSON.stringify(response)}`)
-        const body = response
-        return body
+        return { response, statusCode }
       } catch (error: any) {
         await this.errorLog(`Error making request: ${error.message}`)
       }
@@ -2560,7 +2560,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       await this.debugLog(`Retry attempt ${retryCount} of ${maxRetries}`)
       await sleep(delayBetweenRetries)
     }
-    return { body: null }
+    return { response: null, statusCode: 500 }
   }
 
   // BLE Connection

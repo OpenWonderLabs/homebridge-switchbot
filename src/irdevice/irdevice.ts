@@ -125,8 +125,9 @@ export abstract class irdeviceBase {
     this.debugSuccessLog(`version: ${accessory.context.version}`)
   }
 
-  async pushChangeRequest(bodyChange: bodyChange): Promise<{ body: any }> {
-    return this.platform.switchBotAPI.controlDevice(this.device.deviceId, bodyChange.command, bodyChange.parameter, bodyChange.commandType)
+  async pushChangeRequest(bodyChange: bodyChange): Promise<{ body: any, statusCode: number }> {
+    const { response, statusCode } = await this.platform.switchBotAPI.controlDevice(this.device.deviceId, bodyChange.command, bodyChange.parameter, bodyChange.commandType)
+    return { body: response, statusCode }
   }
 
   async successfulStatusCodes(deviceStatus: any) {
