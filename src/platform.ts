@@ -474,16 +474,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     while (retryCount < maxRetries) {
       try {
-        const { devicesAPI, statusCode } = await this.switchBotAPI.getDevices()
-        await this.debugWarnLog(`statusCode: ${statusCode}`)
-        await this.debugWarnLog(`devicesAPI: ${JSON.stringify(devicesAPI)}`)
+        const { responseBody } = await this.switchBotAPI.getDevices()
+        await this.debugWarnLog(`devicesAPI: ${JSON.stringify(responseBody)}`)
 
-        if (this.isSuccessfulResponse(statusCode, devicesAPI.statusCode)) {
-          await this.handleDevices(devicesAPI.body.deviceList)
-          await this.handleIRDevices(devicesAPI.body.infraredRemoteList)
+        if (this.isSuccessfulResponse(responseBody.statusCode)) {
+          await this.handleDevices(responseBody.body.deviceList)
+          await this.handleIRDevices(responseBody.body.infraredRemoteList)
           break
         } else {
-          await this.handleErrorResponse(statusCode, devicesAPI.statusCode, retryCount, maxRetries, delayBetweenRetries)
+          await this.handleErrorResponse(responseBody.statusCode, retryCount, maxRetries, delayBetweenRetries)
           retryCount++
         }
       } catch (e: any) {
@@ -516,8 +515,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  private isSuccessfulResponse(statusCode: number, apiStatusCode: number): boolean {
-    return (statusCode === 200 || statusCode === 100) && (apiStatusCode === 200 || apiStatusCode === 100)
+  private isSuccessfulResponse(apiStatusCode: number): boolean {
+    return (apiStatusCode === 200 || apiStatusCode === 100)
   }
 
   private async handleDevices(deviceLists: any[]) {
@@ -582,11 +581,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     })
   }
 
-  private async handleErrorResponse(statusCode: number, apiStatusCode: number, retryCount: number, maxRetries: number, delayBetweenRetries: number) {
-    await this.statusCode(statusCode)
+  private async handleErrorResponse(apiStatusCode: number, retryCount: number, maxRetries: number, delayBetweenRetries: number) {
     await this.statusCode(apiStatusCode)
-    if (statusCode === 500) {
-      this.infoLog(`statusCode: ${statusCode} Attempt ${retryCount + 1} of ${maxRetries}`)
+    if (apiStatusCode === 500) {
+      this.infoLog(`statusCode: ${apiStatusCode} Attempt ${retryCount + 1} of ${maxRetries}`)
       await sleep(delayBetweenRetries)
     }
   }
