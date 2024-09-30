@@ -2543,7 +2543,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     while (retryCount < maxRetries) {
       try {
         const { response, statusCode } = await this.switchBotAPI.getDeviceStatus(deviceId)
-        await this.warnLog(`response: ${JSON.stringify(response)}`)
+        await this.debugLog(`response: ${JSON.stringify(response)}`)
         return { response, statusCode }
       } catch (error: any) {
         await this.errorLog(`Error making request: ${error.message}`)
