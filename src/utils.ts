@@ -2,8 +2,9 @@
  *
  * util.ts: @switchbot/homebridge-switchbot platform class.
  */
+import type { blindTilt, curtain, curtain3, device } from 'node-switchbot'
+
 import type { devicesConfig } from './settings.js'
-import type { blindTilt, curtain, curtain3, device } from './types/devicelist.js'
 
 export enum SwitchBotModel {
   HubMini = 'W0202200',

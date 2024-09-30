@@ -3,13 +3,10 @@
  * blindtilt.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
+import type { blindTiltServiceData, blindTiltStatus, blindTiltWebhookContext, bodyChange, device } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
-import type { blindTiltServiceData } from '../types/bledevicestatus.js'
-import type { device } from '../types/devicelist.js'
-import type { blindTiltStatus } from '../types/devicestatus.js'
-import type { blindTiltWebhookContext } from '../types/devicewebhookstatus.js'
 
 /*
 * For Testing Locally:
@@ -617,25 +614,25 @@ export class BlindTilt extends deviceBase {
       const { Mode, setPositionMode }: { setPositionMode: number, Mode: string } = await this.setPerformance()
       await this.debugLog(`Pushing ${this.WindowCovering.TargetPosition} (device = ${direction};${position})`)
       await this.debugLog(`Mode: ${Mode}, setPositionMode: ${setPositionMode}`)
-      let bodyChange: string
+      let bodyChange: bodyChange
       if (position === 100) {
-        bodyChange = JSON.stringify({
+        bodyChange = {
           command: 'fullyOpen',
           parameter: 'default',
           commandType: 'command',
-        })
+        }
       } else if (position === 0) {
-        bodyChange = JSON.stringify({
+        bodyChange = {
           command: direction === 'up' ? 'closeUp' : 'closeDown',
           parameter: 'default',
           commandType: 'command',
-        })
+        }
       } else {
-        bodyChange = JSON.stringify({
+        bodyChange = {
           command: 'setPosition',
           parameter: `${direction};${position}`,
           commandType: 'command',
-        })
+        }
       }
       await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {

@@ -3,10 +3,10 @@
  * airpurifier.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
+import type { bodyChange, irdevice } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { irDevicesConfig } from '../settings.js'
-import type { irdevice } from '../types/irdevicelist.js'
 
 import { irdeviceBase } from './irdevice.js'
 
@@ -149,11 +149,11 @@ export class AirPurifier extends irdeviceBase {
     if (this.AirPurifier.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOn()
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command,
         parameter: 'default',
         commandType,
-      })
+      }
       await this.pushChanges(bodyChange)
     }
   }
@@ -163,11 +163,11 @@ export class AirPurifier extends irdeviceBase {
     if (this.AirPurifier.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOff()
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command,
         parameter: 'default',
         commandType,
-      })
+      }
       await this.pushChanges(bodyChange)
     }
   }
@@ -191,11 +191,11 @@ export class AirPurifier extends irdeviceBase {
     this.CurrentAPFanSpeed = this.CurrentFanSpeed ?? 1
     this.APActive = this.AirPurifier.Active === 1 ? 'on' : 'off'
     const parameter = `${this.CurrentAPTemp},${this.CurrentAPMode},${this.CurrentAPFanSpeed},${this.APActive}`
-    const bodyChange = JSON.stringify({
+    const bodyChange: bodyChange = {
       command: 'setAll',
       parameter: `${parameter}`,
       commandType: 'command',
-    })
+    }
     if (this.AirPurifier.Active === 1) {
       if ((Number(this.TemperatureSensor!.CurrentTemperature) || 24) < (this.LastTemperature || 30)) {
         this.AirPurifier.CurrentHeaterCoolerState = this.hap.Characteristic.CurrentHeaterCoolerState.COOLING

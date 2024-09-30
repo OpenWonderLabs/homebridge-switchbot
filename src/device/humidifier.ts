@@ -3,13 +3,10 @@
  * humidifier.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
+import type { bodyChange, device, humidifierServiceData, humidifierStatus, humidifierWebhookContext } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
-import type { humidifierServiceData } from '../types/bledevicestatus.js'
-import type { device } from '../types/devicelist.js'
-import type { humidifierStatus } from '../types/devicestatus.js'
-import type { humidifierWebhookContext } from '../types/devicewebhookstatus.js'
 
 /*
 * For Testing Locally:
@@ -470,11 +467,11 @@ export class Humidifier extends deviceBase {
       && (this.HumidifierDehumidifier.Active === this.hap.Characteristic.Active.ACTIVE)
       && (this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold !== this.HumidifierDehumidifier.CurrentRelativeHumidity)) {
       await this.debugLog(`Auto Off, RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold}!`)
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'setMode',
         parameter: `${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold}`,
         commandType: 'command',
-      })
+      }
       await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange)
@@ -507,11 +504,11 @@ export class Humidifier extends deviceBase {
       === this.hap.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER_OR_DEHUMIDIFIER)
       && (this.HumidifierDehumidifier.Active === this.hap.Characteristic.Active.ACTIVE)) {
       await this.debugLog('Pushing Auto')
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'setMode',
         parameter: 'auto',
         commandType: 'command',
-      })
+      }
       await this.debugLog(`pushAutoChanges, SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange)
@@ -540,11 +537,11 @@ export class Humidifier extends deviceBase {
     await this.debugLog('pushActiveChanges')
     if (this.HumidifierDehumidifier.Active === this.hap.Characteristic.Active.INACTIVE) {
       await this.debugLog('Pushing Off')
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'turnOff',
         parameter: 'default',
         commandType: 'command',
-      })
+      }
       await this.debugLog(`pushActiveChanges, SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange)

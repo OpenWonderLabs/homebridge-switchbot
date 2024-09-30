@@ -3,13 +3,10 @@
  * curtain.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicChange, CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
+import type { bodyChange, curtain3ServiceData, curtain3WebhookContext, curtainServiceData, curtainStatus, curtainWebhookContext, device } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
-import type { curtain3ServiceData, curtainServiceData } from '../types/bledevicestatus.js'
-import type { device } from '../types/devicelist.js'
-import type { curtainStatus } from '../types/devicestatus.js'
-import type { curtain3WebhookContext, curtainWebhookContext } from '../types/devicewebhookstatus.js'
 
 import { hostname } from 'node:os'
 
@@ -641,19 +638,19 @@ export class Curtain extends deviceBase {
       const { setPositionMode, Mode }: { setPositionMode: number, Mode: string } = await this.setPerformance()
       await this.debugLog(`Mode: ${Mode}, setPositionMode: ${setPositionMode}`)
       const adjustedMode = setPositionMode || 'ff'
-      let bodyChange: string
+      let bodyChange: bodyChange
       if (this.WindowCovering.HoldPosition) {
-        bodyChange = JSON.stringify({
+        bodyChange = {
           command: 'pause',
           parameter: 'default',
           commandType: 'command',
-        })
+        }
       } else {
-        bodyChange = JSON.stringify({
+        bodyChange = {
           command: 'setPosition',
           parameter: `0,${adjustedMode},${adjustedTargetPosition}`,
           commandType: 'command',
-        })
+        }
       }
       await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {

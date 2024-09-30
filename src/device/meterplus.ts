@@ -3,13 +3,10 @@
  * meterplus.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
+import type { device, meterPlusServiceData, meterPlusStatus, meterPlusWebhookContext } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
-import type { meterPlusServiceData } from '../types/bledevicestatus.js'
-import type { device } from '../types/devicelist.js'
-import type { meterPlusStatus } from '../types/devicestatus.js'
-import type { meterPlusWebhookContext } from '../types/devicewebhookstatus.js'
 
 import { Units } from 'homebridge'
 /*

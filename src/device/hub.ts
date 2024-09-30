@@ -3,13 +3,10 @@
  * hub.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
+import type { device, hub2ServiceData, hub2Status, hub2WebhookContext } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
-import type { hub2ServiceData } from '../types/bledevicestatus.js'
-import type { device } from '../types/devicelist.js'
-import type { hub2Status } from '../types/devicestatus.js'
-import type { hub2WebhookContext } from '../types/devicewebhookstatus.js'
 
 import { Units } from 'homebridge'
 /*

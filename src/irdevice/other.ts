@@ -3,10 +3,10 @@
  * other.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
+import type { bodyChange, irdevice } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { irDevicesConfig } from '../settings.js'
-import type { irdevice } from '../types/irdevicelist.js'
 
 import { irdeviceBase } from './irdevice.js'
 
@@ -412,11 +412,11 @@ export class Others extends irdeviceBase {
       if (On === true && !this.disablePushOn) {
         const commandType: string = await this.commandType()
         const command: string = await this.commandOn()
-        const bodyChange = JSON.stringify({
+        const bodyChange: bodyChange = {
           command,
           parameter: 'default',
           commandType,
-        })
+        }
         await this.pushChanges(bodyChange)
       }
     } else {
@@ -430,11 +430,11 @@ export class Others extends irdeviceBase {
       if (On === false && !this.disablePushOff) {
         const commandType: string = await this.commandType()
         const command: string = await this.commandOff()
-        const bodyChange = JSON.stringify({
+        const bodyChange: bodyChange = {
           command,
           parameter: 'default',
           commandType,
-        })
+        }
         await this.pushChanges(bodyChange)
       }
     } else {

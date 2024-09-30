@@ -3,14 +3,10 @@
  * device.ts: @switchbot/homebridge-switchbot.
  */
 import type { API, CharacteristicValue, HAP, Logging, PlatformAccessory, Service } from 'homebridge'
+import type { bodyChange, irdevice } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { irDevicesConfig, SwitchBotPlatformConfig } from '../settings.js'
-import type { irdevice } from '../types/irdevicelist.js'
-
-import { request } from 'undici'
-
-import { Devices } from '../settings.js'
 
 export abstract class irdeviceBase {
   public readonly api: API
@@ -129,12 +125,8 @@ export abstract class irdeviceBase {
     this.debugSuccessLog(`version: ${accessory.context.version}`)
   }
 
-  async pushChangeRequest(bodyChange: string): Promise<{ body: any, statusCode: any }> {
-    return await request(`${Devices}/${this.device.deviceId}/commands`, {
-      body: bodyChange,
-      method: 'POST',
-      headers: this.platform.generateHeaders(),
-    })
+  async pushChangeRequest(bodyChange: bodyChange): Promise<{ body: any, statusCode: any }> {
+    return this.platform.switchBotAPI.controlDevice(this.device.deviceId, bodyChange.command, bodyChange.parameter, bodyChange.commandType)
   }
 
   async successfulStatusCodes(statusCode: any, deviceStatus: any) {

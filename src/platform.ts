@@ -10,8 +10,6 @@ import type { MqttClient } from 'mqtt'
 import type { Dispatcher } from 'undici'
 
 import type { devicesConfig, irDevicesConfig, options, SwitchBotPlatformConfig } from './settings.js'
-import type { blindTilt, curtain, curtain3, device } from './types/devicelist.js'
-import type { irdevice } from './types/irdevicelist.js'
 
 import { Buffer } from 'node:buffer'
 import crypto, { randomUUID } from 'node:crypto'
@@ -26,9 +24,10 @@ import { EveHomeKitTypes } from 'homebridge-lib/EveHomeKitTypes'
 * For Testing Locally:
 * import { SwitchBotModel } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
 */
-import { SwitchBot, SwitchBotModel } from 'node-switchbot'
+import type { blindTilt, curtain, curtain3, device, irdevice } from 'node-switchbot'
+
+import { LogLevel, SwitchBot, SwitchBotModel, SwitchBotOpenAPI } from 'node-switchbot'
 import { queueScheduler } from 'rxjs'
-import { request } from 'undici'
 
 import { BlindTilt } from './device/blindtilt.js'
 import { Bot } from './device/bot.js'
@@ -92,6 +91,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   // Event Handlers
   public readonly webhookEventHandler: { [x: string]: (context: any) => void } = {}
   public readonly bleEventHandler: { [x: string]: (context: any) => void } = {}
+  switchBotAPI: SwitchBotOpenAPI
 
   constructor(
     log: Logging,
@@ -100,6 +100,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   ) {
     this.api = api
     this.log = log
+    this.switchBotAPI = new SwitchBotOpenAPI(this.config.credentials?.token, this.config.credentials?.secret)
+    // Set the log level
+    this.switchBotAPI.setLogLevel(LogLevel.DEBUG)
 
     // only load if configured
     if (!config) {
@@ -208,121 +211,32 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     // webhook configuration
     if (this.config.options?.webhookURL) {
       const url = this.config.options?.webhookURL
-
       try {
-        const xurl = new URL(url)
-        const port = Number(xurl.port)
-        const path = xurl.pathname
-        this.webhookEventListener = createServer((request: IncomingMessage, response: ServerResponse) => {
-          try {
-            if (request.url === path && request.method === 'POST') {
-              request.on('data', async (data) => {
-                try {
-                  const body = JSON.parse(data)
-                  await this.debugLog(`Received Webhook: ${JSON.stringify(body)}`)
-                  if (this.config.options?.mqttURL) {
-                    const mac = body.context.deviceMac?.toLowerCase().match(/[\s\S]{1,2}/g)?.join(':')
-                    const options = this.config.options?.mqttPubOptions || {}
-                    this.mqttClient?.publish(`homebridge-switchbot/webhook/${mac}`, `${JSON.stringify(body.context)}`, options)
-                  }
-                  this.webhookEventHandler[body.context.deviceMac]?.(body.context)
-                } catch (e: any) {
-                  await this.errorLog(`Failed to handle webhook event. Error:${e}`)
-                }
-              })
-              response.writeHead(200, { 'Content-Type': 'text/plain' })
-              response.end('OK')
-            }
-            // else {
-            //   response.writeHead(403, {'Content-Type': 'text/plain'});
-            //   response.end(`NG`);
-            // }
-          } catch (e: any) {
-            this.errorLog(`Failed to handle webhook event. Error:${e}`)
-          }
-        }).listen(port || 80)
+        this.switchBotAPI.setupWebhook(url)
+        // Listen for webhook events
+        this.switchBotAPI.on('webhookEvent', (body) => {
+          this.debugLog('Received webhook event:', body)
+          this.webhookEventHandler[body.context.deviceMac]?.(body.context)
+        })
       } catch (e: any) {
-        await this.errorLog(`Failed to create webhook listener. Error:${e.message}`)
-        return
+        await this.errorLog(`Failed to setup webhook. Error:${e.message}`)
       }
 
       try {
-        const { body, statusCode } = await request(setupWebhook, {
-          method: 'POST',
-          headers: this.generateHeaders(),
-          body: JSON.stringify({
-            action: 'setupWebhook',
-            url,
-            deviceList: 'ALL',
-          }),
-        })
-        const response: any = await body.json()
-        await this.debugLog(`setupWebhook: url:${url}, body:${JSON.stringify(response)}, statusCode:${statusCode}`)
-        if (statusCode !== 200 || response?.statusCode !== 100) {
-          await this.errorLog(`Failed to configure webhook. Existing webhook well be overridden. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`)
-        }
-      } catch (e: any) {
-        await this.errorLog(`Failed to configure webhook. Error: ${e.message}`)
-      }
-
-      try {
-        const { body, statusCode } = await request(updateWebhook, {
-          method: 'POST',
-          headers: this.generateHeaders(),
-          body: JSON.stringify({
-            action: 'updateWebhook',
-            config: {
-              url,
-              enable: true,
-            },
-          }),
-        })
-        const response: any = await body.json()
-        await this.debugLog(`updateWebhook: url:${url}, body:${JSON.stringify(response)}, statusCode:${statusCode}`)
-        if (statusCode !== 200 || response?.statusCode !== 100) {
-          await this.errorLog(`Failed to update webhook. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`)
-        }
+        this.switchBotAPI.updateWebhook(url)
       } catch (e: any) {
         await this.errorLog(`Failed to update webhook. Error:${e.message}`)
       }
 
       try {
-        const { body, statusCode } = await request(queryWebhook, {
-          method: 'POST',
-          headers: this.generateHeaders(),
-          body: JSON.stringify({
-            action: 'queryUrl',
-          }),
-        })
-        const response: any = await body.json()
-        await this.debugLog(`queryWebhook: body:${JSON.stringify(response)}`)
-        await this.debugLog(`queryWebhook: statusCode:${statusCode}`)
-        if (statusCode !== 200 || response?.statusCode !== 100) {
-          await this.errorLog(`Failed to query webhook. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`)
-        } else {
-          await this.infoLog(`Listening webhook on ${response?.body?.urls[0]}`)
-        }
+        this.switchBotAPI.queryWebhook()
       } catch (e: any) {
-        await this.errorLog(`Failed to query webhook. Error:${e}`)
+        await this.errorLog(`Failed to query webhook. Error:${e.message}`)
       }
 
       this.api.on('shutdown', async () => {
         try {
-          const { body, statusCode } = await request(deleteWebhook, {
-            method: 'POST',
-            headers: this.generateHeaders(),
-            body: JSON.stringify({
-              action: 'deleteWebhook',
-              url,
-            }),
-          })
-          const response: any = await body.json()
-          await this.debugLog(`deleteWebhook: url:${url}, body:${JSON.stringify(response)}, statusCode:${statusCode}`)
-          if (statusCode !== 200 || response?.statusCode !== 100) {
-            await this.errorLog(`Failed to delete webhook. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`)
-          } else {
-            await this.infoLog('Unregistered webhook to close listening.')
-          }
+          this.switchBotAPI.deleteWebhook(url)
         } catch (e: any) {
           await this.errorLog(`Failed to delete webhook. Error:${e.message}`)
         }
@@ -535,25 +449,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  generateHeaders = () => {
-    const t = `${Date.now()}`
-    const nonce = randomUUID()
-    const data = this.config.credentials?.token + t + nonce
-    const signTerm = crypto
-      .createHmac('sha256', this.config.credentials?.secret)
-      .update(Buffer.from(data, 'utf-8'))
-      .digest()
-    const sign = signTerm.toString('base64')
-
-    return {
-      'Authorization': this.config.credentials?.token,
-      'sign': sign,
-      'nonce': nonce,
-      't': t,
-      'Content-Type': 'application/json',
-    }
-  }
-
   async discoverDevices() {
     if (!this.config.credentials?.token) {
       return this.handleManualConfig()
@@ -569,7 +464,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     while (retryCount < maxRetries) {
       try {
-        const { body, statusCode } = await request(Devices, { headers: this.generateHeaders() })
+        const { body, statusCode } = await this.switchBotAPI.getDevices()
         await this.debugWarnLog(`statusCode: ${statusCode}`)
         const devicesAPI: any = await body.json()
         await this.debugWarnLog(`devicesAPI: ${JSON.stringify(devicesAPI)}`)
@@ -2643,13 +2538,13 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  async retryRequest(deviceMaxRetries: number, deviceDelayBetweenRetries: number, url: string | URL | UrlObject, options?: { dispatcher?: Dispatcher } & Omit<Dispatcher.RequestOptions, 'origin' | 'path' | 'method'> & Partial<Pick<Dispatcher.RequestOptions, 'method'>>): Promise<{ body: any, statusCode: number }> {
+  async retryRequest(deviceId: string, deviceMaxRetries: number, deviceDelayBetweenRetries: number): Promise<{ body: any, statusCode: number }> {
     let retryCount = 0
     const maxRetries = deviceMaxRetries
     const delayBetweenRetries = deviceDelayBetweenRetries
     while (retryCount < maxRetries) {
       try {
-        const { body, statusCode } = await request(url, options)
+        const { body, statusCode } = await this.switchBotAPI.getDeviceStatus(deviceId)
         if (statusCode === 200 || statusCode === 100) {
           return { body, statusCode }
         } else {

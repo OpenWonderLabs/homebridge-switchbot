@@ -3,13 +3,10 @@
  * bot.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
+import type { bodyChange, botServiceData, botStatus, botWebhookContext, device } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
-import type { botServiceData } from '../types/bledevicestatus.js'
-import type { device } from '../types/devicelist.js'
-import type { botStatus } from '../types/devicestatus.js'
-import type { botWebhookContext } from '../types/devicewebhookstatus.js'
 
 /*
 * For Testing Locally:
@@ -749,12 +746,12 @@ export class Bot extends deviceBase {
       } else {
         throw new Error('Device Parameters not set for this Bot.')
       }
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: `${command}`,
         parameter: 'default',
         commandType: 'command',
-      })
-      this.debugLog(`Sending request to SwitchBot API, body: ${bodyChange},`)
+      }
+      this.debugLog(`Sending request to SwitchBot API, body: ${JSON.stringify(bodyChange)},`)
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange)
         const deviceStatus: any = await body.json()

@@ -3,13 +3,10 @@
  * motion.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
+import type { device, motionSensorServiceData, motionSensorStatus, motionSensorWebhookContext } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
-import type { motionSensorServiceData } from '../types/bledevicestatus.js'
-import type { device } from '../types/devicelist.js'
-import type { motionSensorStatus } from '../types/devicestatus.js'
-import type { motionSensorWebhookContext } from '../types/devicewebhookstatus.js'
 
 /*
 * For Testing Locally:

@@ -3,17 +3,10 @@
  * robotvacuumcleaner.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
+import type { bodyChange, device, floorCleaningRobotS10Status, floorCleaningRobotS10WebhookContext, robotVacuumCleanerS1PlusStatus, robotVacuumCleanerS1PlusWebhookContext, robotVacuumCleanerS1Status, robotVacuumCleanerS1WebhookContext, robotVacuumCleanerServiceData } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
-import type { robotVacuumCleanerServiceData } from '../types/bledevicestatus.js'
-import type { device } from '../types/devicelist.js'
-import type { floorCleaningRobotS10Status, robotVacuumCleanerS1PlusStatus, robotVacuumCleanerS1Status } from '../types/devicestatus.js'
-import type {
-  floorCleaningRobotS10WebhookContext,
-  robotVacuumCleanerS1PlusWebhookContext,
-  robotVacuumCleanerS1WebhookContext,
-} from '../types/devicewebhookstatus.js'
 
 /*
 * For Testing Locally:
@@ -434,11 +427,11 @@ export class RobotVacuumCleaner extends deviceBase {
     await this.debugLog('openAPIpushChanges')
     if (this.LightBulb.On !== this.accessory.context.On) {
       const command = this.LightBulb.On ? 'start' : 'dock'
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: `${command}`,
         parameter: 'default',
         commandType: 'command',
-      })
+      }
       await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange)
@@ -471,11 +464,11 @@ export class RobotVacuumCleaner extends deviceBase {
           : this.LightBulb.Brightness === 75
             ? '2'
             : this.LightBulb.Brightness === 100 ? '3' : 'default'
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: `${command}`,
         parameter: `${parameter}`,
         commandType: 'command',
-      })
+      }
       await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange)

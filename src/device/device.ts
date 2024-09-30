@@ -5,18 +5,15 @@
 
 import type { API, CharacteristicValue, HAP, Logging, PlatformAccessory, Service } from 'homebridge'
 import type { MqttClient } from 'mqtt'
+import type { ad, bodyChange, device } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig, SwitchBotPlatformConfig } from '../settings.js'
-import type { ad } from '../types/bledevicestatus.js'
-import type { device } from '../types/devicelist.js'
 
 import { hostname } from 'node:os'
 
 import { SwitchBotBLEModel, SwitchBotBLEModelFriendlyName, SwitchBotBLEModelName, SwitchBotModel } from 'node-switchbot'
-import { request } from 'undici'
 
-import { Devices } from '../settings.js'
 import { BlindTiltMappingMode, formatDeviceIdAsMac, sleep } from '../utils.js'
 
 export abstract class deviceBase {
@@ -347,16 +344,12 @@ export abstract class deviceBase {
     }
   }
 
-  async pushChangeRequest(bodyChange: string): Promise<{ body: any, statusCode: any }> {
-    return await request(`${Devices}/${this.device.deviceId}/commands`, {
-      body: bodyChange,
-      method: 'POST',
-      headers: this.platform.generateHeaders(),
-    })
+  async pushChangeRequest(bodyChange: bodyChange): Promise<{ body: any, statusCode: any }> {
+    return this.platform.switchBotAPI.controlDevice(this.device.deviceId, bodyChange.command, bodyChange.parameter, bodyChange.commandType)
   }
 
   async deviceRefreshStatus(): Promise<{ body: any, statusCode: any }> {
-    return await this.platform.retryRequest(this.deviceMaxRetries, this.deviceDelayBetweenRetries, `${Devices}/${this.device.deviceId}/status`, { headers: this.platform.generateHeaders() })
+    return await this.platform.retryRequest(this.device.deviceId, this.deviceMaxRetries, this.deviceDelayBetweenRetries)
   }
 
   async successfulStatusCodes(statusCode: any, deviceStatus: any) {

@@ -3,13 +3,10 @@
  * lock.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
+import type { bodyChange, device, lockProServiceData, lockProStatus, lockProWebhookContext, lockServiceData, lockStatus, lockWebhookContext } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
-import type { lockProServiceData, lockServiceData } from '../types/bledevicestatus.js'
-import type { device } from '../types/devicelist.js'
-import type { lockProStatus, lockStatus } from '../types/devicestatus.js'
-import type { lockProWebhookContext, lockWebhookContext } from '../types/devicewebhookstatus.js'
 
 /*
 * For Testing Locally:
@@ -222,7 +219,7 @@ export class Lock extends deviceBase {
 
     // Contact Sensor
     if (!this.device.lock?.hide_contactsensor && this.ContactSensor?.Service) {
-      this.ContactSensor.ContactSensorState = this.serviceData.door_open === 'opened'
+      this.ContactSensor.ContactSensorState = this.serviceData.door_open
         ? this.hap.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED
         : this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED
       await this.debugLog(`ContactSensorState: ${this.ContactSensor.ContactSensorState}`)
@@ -486,11 +483,11 @@ export class Lock extends deviceBase {
     if ((this.LockMechanism.LockTargetState !== this.accessory.context.LockTargetState) || LatchUnlock) {
       // Determine the command based on the LockTargetState or the forceUnlock parameter
       const command = LatchUnlock ? 'unlock' : this.LockMechanism.LockTargetState ? 'lock' : 'unlock'
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: `${command}`,
         parameter: 'default',
         commandType: 'command',
-      })
+      }
       await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange)

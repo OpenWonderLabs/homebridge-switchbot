@@ -3,13 +3,10 @@
  * lightstrip.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, Controller, ControllerConstructor, ControllerServiceMap, PlatformAccessory, Service } from 'homebridge'
+import type { bodyChange, device, stripLightServiceData, stripLightStatus, stripLightWebhookContext } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
-import type { stripLightServiceData } from '../types/bledevicestatus.js'
-import type { device } from '../types/devicelist.js'
-import type { stripLightStatus } from '../types/devicestatus.js'
-import type { stripLightWebhookContext } from '../types/devicewebhookstatus.js'
 
 /*
 * For Testing Locally:
@@ -580,11 +577,11 @@ export class StripLight extends deviceBase {
     await this.debugLog('openAPIpushChanges')
     if (this.LightBulb.On !== this.accessory.context.On) {
       const command = this.LightBulb.On ? 'turnOn' : 'turnOff'
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: `${command}`,
         parameter: 'default',
         commandType: 'command',
-      })
+      }
       await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange)
@@ -612,11 +609,11 @@ export class StripLight extends deviceBase {
       await this.debugLog(`Hue: ${JSON.stringify(this.LightBulb.Hue)}, Saturation: ${JSON.stringify(this.LightBulb.Saturation)}`)
       const [red, green, blue] = hs2rgb(this.LightBulb.Hue, this.LightBulb.Saturation)
       await this.debugLog(`rgb: ${JSON.stringify([red, green, blue])}`)
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'setColor',
         parameter: `${red}:${green}:${blue}`,
         commandType: 'command',
-      })
+      }
       await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange)
@@ -641,11 +638,11 @@ export class StripLight extends deviceBase {
   async pushBrightnessChanges(): Promise<void> {
     await this.debugLog('pushBrightnessChanges')
     if (this.LightBulb.Brightness !== this.accessory.context.Brightness) {
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'setBrightness',
         parameter: `${this.LightBulb.Brightness}`,
         commandType: 'command',
-      })
+      }
       await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange)

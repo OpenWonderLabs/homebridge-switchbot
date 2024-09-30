@@ -3,13 +3,10 @@
  * plug.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
+import type { batteryCirculatorFanServiceData, batteryCirculatorFanStatus, batteryCirculatorFanWebhookContext, bodyChange, device } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
-import type { batteryCirculatorFanServiceData } from '../types/bledevicestatus.js'
-import type { device } from '../types/devicelist.js'
-import type { batteryCirculatorFanStatus } from '../types/devicestatus.js'
-import type { batteryCirculatorFanWebhookContext } from '../types/devicewebhookstatus.js'
 
 /*
 * For Testing Locally:
@@ -498,11 +495,11 @@ export class Fan extends deviceBase {
     await this.debugLog('openAPIpushChanges')
     if (this.Fan.Active !== this.accessory.context.Active) {
       const command = this.Fan.Active ? 'turnOn' : 'turnOff'
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: `${command}`,
         parameter: 'default',
         commandType: 'command',
-      })
+      }
       await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange)
@@ -527,11 +524,11 @@ export class Fan extends deviceBase {
   async pushRotationSpeedChanges(): Promise<void> {
     await this.debugLog('pushRotationSpeedChanges')
     if (this.Fan.SwingMode !== this.accessory.context.SwingMode) {
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'setWindSpeed',
         parameter: `${this.Fan.RotationSpeed}`,
         commandType: 'command',
-      })
+      }
       await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange)
@@ -557,11 +554,11 @@ export class Fan extends deviceBase {
     await this.debugLog('pushSwingModeChanges')
     if (this.Fan.SwingMode !== this.accessory.context.SwingMode) {
       const parameter = this.Fan.SwingMode === this.hap.Characteristic.SwingMode.SWING_ENABLED ? 'on' : 'off'
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'setOscillation',
         parameter: `${parameter}`,
         commandType: 'command',
-      })
+      }
       await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange)

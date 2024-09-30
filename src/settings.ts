@@ -4,10 +4,7 @@
  */
 import type { IClientOptions } from 'async-mqtt'
 import type { PlatformConfig } from 'homebridge'
-import type { SwitchBotBLEModel, SwitchBotBLEModelFriendlyName, SwitchBotBLEModelName } from 'node-switchbot'
-
-import type { device } from './types/devicelist'
-import type { irdevice } from './types/irdevicelist'
+import type { device, irdevice, SwitchBotBLEModel, SwitchBotBLEModelFriendlyName, SwitchBotBLEModelName } from 'node-switchbot'
 /**
  * This is the name of the platform that users will use to register the plugin in the Homebridge config.json
  */

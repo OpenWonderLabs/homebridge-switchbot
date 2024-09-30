@@ -3,13 +3,10 @@
  * contact.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
+import type { contactSensorServiceData, contactSensorStatus, contactSensorWebhookContext, device } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
-import type { contactSensorServiceData } from '../types/bledevicestatus.js'
-import type { device } from '../types/devicelist.js'
-import type { contactSensorStatus } from '../types/devicestatus.js'
-import type { contactSensorWebhookContext } from '../types/devicewebhookstatus.js'
 
 /*
 * For Testing Locally:

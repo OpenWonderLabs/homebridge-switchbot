@@ -3,13 +3,10 @@
  * blindtilt.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, Controller, ControllerConstructor, ControllerServiceMap, PlatformAccessory, Service } from 'homebridge'
+import type { bodyChange, colorBulbServiceData, colorBulbStatus, colorBulbWebhookContext, device } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
-import type { colorBulbServiceData } from '../types/bledevicestatus.js'
-import type { device } from '../types/devicelist.js'
-import type { colorBulbStatus } from '../types/devicestatus.js'
-import type { colorBulbWebhookContext } from '../types/devicewebhookstatus.js'
 
 /*
 * For Testing Locally:
@@ -614,11 +611,11 @@ export class ColorBulb extends deviceBase {
     await this.debugLog('openAPIpushChanges')
     if (this.LightBulb.On !== this.accessory.context.On) {
       const command = this.LightBulb.On ? 'turnOn' : 'turnOff'
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: `${command}`,
         parameter: 'default',
         commandType: 'command',
-      })
+      }
       await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange)
@@ -646,11 +643,11 @@ export class ColorBulb extends deviceBase {
       await this.debugLog(`Hue: ${JSON.stringify(this.LightBulb.Hue)}, Saturation: ${JSON.stringify(this.LightBulb.Saturation)}`)
       const [red, green, blue] = hs2rgb(this.LightBulb.Hue, this.LightBulb.Saturation)
       await this.debugLog(`rgb: ${JSON.stringify([red, green, blue])}`)
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'setColor',
         parameter: `${red}:${green}:${blue}`,
         commandType: 'command',
-      })
+      }
       await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange)
@@ -677,11 +674,11 @@ export class ColorBulb extends deviceBase {
     if (this.LightBulb.ColorTemperature !== this.accessory.context.ColorTemperature) {
       const kelvin = Math.round(1000000 / Number(this.LightBulb.ColorTemperature))
       this.accessory.context.kelvin = kelvin
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'setColorTemperature',
         parameter: `${kelvin}`,
         commandType: 'command',
-      })
+      }
       await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange)
@@ -706,11 +703,11 @@ export class ColorBulb extends deviceBase {
   async pushBrightnessChanges(): Promise<void> {
     await this.debugLog('pushBrightnessChanges')
     if (this.LightBulb.Brightness !== this.accessory.context.Brightness) {
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'setBrightness',
         parameter: `${this.LightBulb.Brightness}`,
         commandType: 'command',
-      })
+      }
       await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange)

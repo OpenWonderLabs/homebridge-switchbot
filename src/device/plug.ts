@@ -3,13 +3,10 @@
  * plug.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
+import type { bodyChange, device, plugMiniJPServiceData, plugMiniJPWebhookContext, plugMiniStatus, plugMiniUSServiceData, plugMiniUSWebhookContext, plugStatus, plugWebhookContext } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
-import type { plugMiniJPServiceData, plugMiniUSServiceData } from '../types/bledevicestatus.js'
-import type { device } from '../types/devicelist.js'
-import type { plugMiniStatus, plugStatus } from '../types/devicestatus.js'
-import type { plugMiniJPWebhookContext, plugMiniUSWebhookContext, plugWebhookContext } from '../types/devicewebhookstatus.js'
 
 /*
 * For Testing Locally:
@@ -347,11 +344,11 @@ export class Plug extends deviceBase {
     await this.debugLog('openAPIpushChanges')
     if (this.Outlet.On !== this.accessory.context.On) {
       const command = this.Outlet.On ? 'turnOn' : 'turnOff'
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: `${command}`,
         parameter: 'default',
         commandType: 'command',
-      })
+      }
       await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
         const { body, statusCode } = await this.pushChangeRequest(bodyChange)
