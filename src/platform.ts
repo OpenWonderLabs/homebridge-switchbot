@@ -19,7 +19,7 @@ import { EveHomeKitTypes } from 'homebridge-lib/EveHomeKitTypes'
 * For Testing Locally:
 * import { SwitchBotModel } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
 */
-import type { blindTilt, curtain, curtain3, device, irdevice } from 'node-switchbot'
+import type { blindTilt, curtain, curtain3, device, devices, irdevice } from 'node-switchbot'
 
 import { LogLevel, SwitchBot, SwitchBotModel, SwitchBotOpenAPI } from 'node-switchbot'
 import { queueScheduler } from 'rxjs'
@@ -469,16 +469,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         const { response, statusCode } = await this.switchBotAPI.getDevices()
         await this.debugLog(`response: ${JSON.stringify(response)}`)
         if (this.isSuccessfulResponse(statusCode)) {
-          if (Array.isArray(response.deviceList)) {
-            await this.handleDevices(response.deviceList)
-          } else {
-            await this.errorLog('deviceList is not an array')
-          }
-          if (Array.isArray(response.infraredRemoteList)) {
-            await this.handleIRDevices(response.infraredRemoteList)
-          } else {
-            await this.errorLog('infraredRemoteList is not an array')
-          }
+          await this.handleDevices(Array.isArray(response.body.deviceList) ? response.body.deviceList : [])
+          await this.handleIRDevices(Array.isArray(response.body.infraredRemoteList) ? response.body.infraredRemoteList : [])
           break
         } else {
           await this.handleErrorResponse(statusCode, retryCount, maxRetries, delayBetweenRetries)
