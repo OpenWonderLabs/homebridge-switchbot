@@ -81,7 +81,7 @@
     "async-mqtt": "^2.6.3",
     "fakegato-history": "^0.6.5",
     "homebridge-lib": "^7.0.8",
-    "node-switchbot": "2.5.0-beta.21",
+    "node-switchbot": "2.5.0-beta.22",
     "rxjs": "^7.8.1"
   },
   "devDependencies": {
