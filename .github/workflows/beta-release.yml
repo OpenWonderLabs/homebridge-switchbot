@@ -41,12 +41,14 @@ jobs:
         [How To Test Beta Releases](https://github.com/OpenWonderLabs/homebridge-switchbot/wiki/Beta-Version)
 
   github-releases-to-discord:
-    needs: [publish, pre-release]
+    name: Discord Webhooks
+    needs: [build_and_test,publish]
     if: ${{ github.repository == 'OpenWonderLabs/homebridge-switchbot' }}
     uses: OpenWonderLabs/.github/.github/workflows/discord-webhooks.yml@latest
     with:
-      release-version: ${{ needs.publish.outputs.NPM_VERSION }}
-      message_title: "SwitchBot"
-      message_url: "https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v${{ needs.publish.outputs.NPM_VERSION }}"
+      title: "SwitchBot Beta Release"
+      description: |
+        Version `v${{ needs.publish.outputs.NPM_VERSION }}`
+      url: "https://github.com/homebridge/camera-utils/releases/tag/v${{ needs.publish.outputs.NPM_VERSION }}"
     secrets:
-      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL_BETA }}
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL_BETA || secrets.DISCORD_WEBHOOK_URL_LATEST }}
