@@ -19,9 +19,9 @@ import { EveHomeKitTypes } from 'homebridge-lib/EveHomeKitTypes'
 * For Testing Locally:
 * import { SwitchBotModel } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
 */
-import type { blindTilt, curtain, curtain3, device, devices, irdevice } from 'node-switchbot'
+import type { blindTilt, curtain, curtain3, device, irdevice } from 'node-switchbot'
 
-import { LogLevel, SwitchBot, SwitchBotModel, SwitchBotOpenAPI } from 'node-switchbot'
+import { LogLevel, SwitchBotBLE, SwitchBotModel, SwitchBotOpenAPI } from 'node-switchbot'
 import { queueScheduler } from 'rxjs'
 
 import { BlindTilt } from './device/blindtilt.js'
@@ -249,7 +249,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   async setupBlE() {
     if (this.config.options?.BLE) {
       await this.debugLog('setupBLE')
-      const switchbot = new SwitchBot()
+      const switchbot = new SwitchBotBLE()
       if (switchbot === undefined) {
         await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
       } else {
@@ -2558,7 +2558,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   // BLE Connection
   async connectBLE(accessory: PlatformAccessory, device: device & devicesConfig): Promise<any> {
     try {
-      const switchbot = new SwitchBot()
+      const switchbot = new SwitchBotBLE()
       queueScheduler.schedule(async () => switchbot)
       await this.debugLog(`${device.deviceType}: ${accessory.displayName} 'node-switchbot' found: ${switchbot}`)
       return switchbot
