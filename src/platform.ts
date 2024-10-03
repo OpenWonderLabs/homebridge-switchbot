@@ -79,6 +79,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   mqttClient: MqttClient | null = null
   webhookEventListener: Server | null = null
 
+  // SwitchBot APIs
+  switchBotAPI!: SwitchBotOpenAPI
+  switchBotBLE!: SwitchBotBLE
+
   // External APIs
   public readonly eve: any
   public readonly fakegatoAPI: any
@@ -86,7 +90,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   // Event Handlers
   public readonly webhookEventHandler: { [x: string]: (context: any) => void } = {}
   public readonly bleEventHandler: { [x: string]: (context: any) => void } = {}
-  switchBotAPI!: SwitchBotOpenAPI
 
   constructor(
     log: Logging,
@@ -247,23 +250,39 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   async setupBlE() {
+    this.switchBotBLE = new SwitchBotBLE()
+    // Listen for log events
+    this.switchBotBLE.on('log', (log) => {
+      switch (log.level) {
+        case LogLevel.ERROR:
+          this.errorLog(log.message)
+          break
+        case LogLevel.WARN:
+          this.warnLog(log.message)
+          break
+        case LogLevel.DEBUG:
+          this.debugLog(log.message)
+          break
+        default:
+          this.infoLog(log.message)
+      }
+    })
     if (this.config.options?.BLE) {
       await this.debugLog('setupBLE')
-      const switchbot = new SwitchBotBLE()
-      if (switchbot === undefined) {
-        await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
+      if (this.switchBotBLE === undefined) {
+        await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${this.switchBotBLE}`)
       } else {
         // Start to monitor advertisement packets
         (async () => {
           // Start to monitor advertisement packets
           await this.debugLog('Scanning for BLE SwitchBot devices...')
           try {
-            await switchbot.startScan()
+            await this.switchBotBLE.startScan()
           } catch (e: any) {
             await this.errorLog(`Failed to start BLE scanning. Error:${e}`)
           }
           // Set an event handler to monitor advertisement packets
-          switchbot.onadvertisement = async (ad: any) => {
+          this.switchBotBLE.onadvertisement = async (ad: any) => {
             try {
               this.bleEventHandler[ad.address]?.(ad.serviceData)
             } catch (e: any) {
@@ -274,7 +293,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
         this.api.on('shutdown', async () => {
           try {
-            switchbot.stopScan()
+            this.switchBotBLE.stopScan()
             await this.infoLog('Stopped BLE scanning to close listening.')
           } catch (e: any) {
             await this.errorLog(`Failed to stop Platform BLE scanning. Error:${e.message}`)
@@ -2558,10 +2577,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   // BLE Connection
   async connectBLE(accessory: PlatformAccessory, device: device & devicesConfig): Promise<any> {
     try {
-      const switchbot = new SwitchBotBLE()
-      queueScheduler.schedule(async () => switchbot)
-      await this.debugLog(`${device.deviceType}: ${accessory.displayName} 'node-switchbot' found: ${switchbot}`)
-      return switchbot
+      queueScheduler.schedule(async () => this.switchBotBLE)
+      await this.debugLog(`${device.deviceType}: ${accessory.displayName} 'node-switchbot' found: ${this.switchBotBLE}`)
+      return this.switchBotBLE
     } catch (e: any) {
       await this.errorLog(`${device.deviceType}: ${accessory.displayName} 'node-switchbot' not found, Error: ${e}`)
       return false
