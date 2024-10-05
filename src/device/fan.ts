@@ -201,7 +201,8 @@ export class Fan extends deviceBase {
     await this.debugLog(`Active: ${this.Fan.Active}`)
 
     // RotationSpeed
-    this.Fan.RotationSpeed = this.serviceData.fanSpeed
+    this.Fan.RotationSpeed = this.serviceData.fanSpeed // ?? 0
+    await this.debugLog(`BLEparseStatus RotationSpeed: ${this.Fan.RotationSpeed}`)
   }
 
   async openAPIparseStatus() {
@@ -219,8 +220,8 @@ export class Fan extends deviceBase {
     await this.debugLog(`SwingMode: ${this.Fan.SwingMode}`)
 
     // RotationSpeed
-    this.Fan.RotationSpeed = this.deviceStatus.fanSpeed
-    await this.debugLog(`RotationSpeed: ${this.Fan.RotationSpeed}`)
+    this.Fan.RotationSpeed = this.deviceStatus.fanSpeed // ?? 0
+    await this.debugLog(`openAPIparseStatus RotationSpeed: ${this.Fan.RotationSpeed}`)
 
     // ChargingState
     this.Battery.ChargingState = this.deviceStatus.chargingStatus === 'charging'
@@ -268,8 +269,8 @@ export class Fan extends deviceBase {
     await this.debugLog(`SwingMode: ${this.Fan.SwingMode}`)
 
     // RotationSpeed
-    this.Fan.RotationSpeed = this.webhookContext.fanSpeed
-    await this.debugLog(`RotationSpeed: ${this.Fan.RotationSpeed}`)
+    this.Fan.RotationSpeed = this.webhookContext.fanSpeed // ?? 0
+    await this.debugLog(`parseStatusWebhook RotationSpeed: ${this.Fan.RotationSpeed}`)
 
     // BatteryLevel
     this.Battery.BatteryLevel = this.webhookContext.battery
