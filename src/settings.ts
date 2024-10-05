@@ -4,6 +4,10 @@
  */
 import type { IClientOptions } from 'async-mqtt'
 import type { PlatformConfig } from 'homebridge'
+/*
+* For Testing Locally:
+* import type { device, irdevice, SwitchBotBLEModel, SwitchBotBLEModelFriendlyName, SwitchBotBLEModelName } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
+*/
 import type { device, irdevice, SwitchBotBLEModel, SwitchBotBLEModelFriendlyName, SwitchBotBLEModelName } from 'node-switchbot'
 /**
  * This is the name of the platform that users will use to register the plugin in the Homebridge config.json

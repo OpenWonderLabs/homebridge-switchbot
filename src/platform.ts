@@ -17,7 +17,8 @@ import fakegato from 'fakegato-history'
 import { EveHomeKitTypes } from 'homebridge-lib/EveHomeKitTypes'
 /*
 * For Testing Locally:
-* import { SwitchBotModel } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
+* import type { blindTilt, curtain, curtain3, device, irdevice } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
+* import  { LogLevel, SwitchBotBLE, SwitchBotModel, SwitchBotOpenAPI } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
 */
 import type { blindTilt, curtain, curtain3, device, irdevice } from 'node-switchbot'
 
