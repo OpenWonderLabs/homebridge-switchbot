@@ -27,7 +27,7 @@ jobs:
     if: ${{ github.repository == 'OpenWonderLabs/homebridge-switchbot' }}
     uses: OpenWonderLabs/.github/.github/workflows/discord-webhooks.yml@latest
     with:
-      title: "SwitchBot Beta Release"
+      title: "SwitchBot Release"
       description: |
         Version `v${{ needs.publish.outputs.NPM_VERSION }}`
       url: "https://github.com/homebridge/camera-utils/releases/tag/v${{ needs.publish.outputs.NPM_VERSION }}"

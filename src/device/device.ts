@@ -275,14 +275,14 @@ export abstract class deviceBase {
   }
 
   async switchbotBLE(): Promise<any> {
-    const switchbot = await this.platform.connectBLE(this.accessory, this.device)
+    const switchBotBLE = await this.platform.connectBLE(this.accessory, this.device)
     // Convert to BLE Address
     try {
       const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
       this.device.bleMac = formattedDeviceId
       await this.debugLog(`bleMac: ${this.device.bleMac}`)
-      await this.getCustomBLEAddress(switchbot)
-      return switchbot
+      await this.getCustomBLEAddress(switchBotBLE)
+      return switchBotBLE
     } catch (error) {
       await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
     }
@@ -293,7 +293,7 @@ export abstract class deviceBase {
     try {
       await switchbot.startScan({ model: this.device.bleModel, id: this.device.bleMac })
     } catch (e: any) {
-      await this.errorLog(`Failed to start BLE scanning. Error:${e}`)
+      await this.errorLog(`Failed to start BLE scanning. Error:${e.message ?? e}`)
     }
     // Set an event handler
     let serviceData = { model: this.device.bleModel, modelName: this.device.bleModelName } as ad['serviceData']
@@ -314,7 +314,7 @@ export abstract class deviceBase {
     try {
       await switchbot.stopScan()
     } catch (e: any) {
-      await this.errorLog(`Failed to stop BLE scanning. Error:${e}`)
+      await this.errorLog(`Failed to stop BLE scanning. Error:${e.message ?? e}`)
     }
     return serviceData
   }
@@ -327,7 +327,7 @@ export abstract class deviceBase {
         try {
           await switchbot.startScan({ model: this.device.bleModel })
         } catch (e: any) {
-          await this.errorLog(`Failed to start BLE scanning. Error:${e}`)
+          await this.errorLog(`Failed to start BLE scanning. Error:${e.message ?? e}`)
         }
         // Set an event handler
         switchbot.onadvertisement = async (ad: ad) => {
@@ -338,7 +338,7 @@ export abstract class deviceBase {
         try {
           switchbot.stopScan()
         } catch (e: any) {
-          await this.errorLog(`Failed to stop BLE scanning. Error:${e}`)
+          await this.errorLog(`Failed to stop BLE scanning. Error:${e.message ?? e}`)
         }
       })()
     }

@@ -126,42 +126,44 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.verifyConfig()
       this.debugLog('Config OK')
     } catch (e: any) {
-      this.errorLog(`Verify Config, Error Message: ${e.message}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
-      this.debugErrorLog(`Verify Config, Error: ${e}`)
+      this.errorLog(`Verify Config, Error Message: ${e.message ?? e}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
+      this.debugErrorLog(`Verify Config, Error: ${e.message ?? e}`)
       return
     }
 
     // SwitchBot OpenAPI
     this.switchBotAPI = new SwitchBotOpenAPI(this.config.credentials?.token, this.config.credentials?.secret)
     // Listen for log events
-    this.switchBotAPI.on('log', (log) => {
-      switch (log.level) {
-        case LogLevel.SUCCESS:
-          this.successLog(log.message)
-          break
-        case LogLevel.DEBUGSUCCESS:
-          this.debugSuccessLog(log.message)
-          break
-        case LogLevel.WARN:
-          this.warnLog(log.message)
-          break
-        case LogLevel.DEBUGWARN:
-          this.debugWarnLog(log.message)
-          break
-        case LogLevel.ERROR:
-          this.errorLog(log.message)
-          break
-        case LogLevel.DEBUGERROR:
-          this.debugErrorLog(log.message)
-          break
-        case LogLevel.DEBUG:
-          this.debugLog(log.message)
-          break
-        case LogLevel.INFO:
-        default:
-          this.infoLog(log.message)
-      }
-    })
+    if (!this.config.options?.disableLogsforOpenAPI) {
+      this.switchBotAPI.on('log', (log) => {
+        switch (log.level) {
+          case LogLevel.SUCCESS:
+            this.successLog(log.message)
+            break
+          case LogLevel.DEBUGSUCCESS:
+            this.debugSuccessLog(log.message)
+            break
+          case LogLevel.WARN:
+            this.warnLog(log.message)
+            break
+          case LogLevel.DEBUGWARN:
+            this.debugWarnLog(log.message)
+            break
+          case LogLevel.ERROR:
+            this.errorLog(log.message)
+            break
+          case LogLevel.DEBUGERROR:
+            this.debugErrorLog(log.message)
+            break
+          case LogLevel.DEBUG:
+            this.debugLog(log.message)
+            break
+          case LogLevel.INFO:
+          default:
+            this.infoLog(log.message)
+        }
+      })
+    }
     // import fakegato-history module and EVE characteristics
     this.fakegatoAPI = fakegato(api)
     this.eve = new EveHomeKitTypes(api)
@@ -182,25 +184,25 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           await this.discoverDevices()
         }
       } catch (e: any) {
-        await this.errorLog(`Failed to Discover, Error Message: ${e.message}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
-        await this.debugErrorLog(`Failed to Discover, Error: ${e}`)
+        await this.errorLog(`Failed to Discover, Error Message: ${e.message ?? e}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
+        await this.debugErrorLog(`Failed to Discover, Error: ${e.message ?? e}`)
       }
     })
 
     try {
       this.setupMqtt()
     } catch (e: any) {
-      this.errorLog(`Setup MQTT, Error Message: ${e.message}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
+      this.errorLog(`Setup MQTT, Error Message: ${e.message ?? e}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
     }
     try {
       this.setupwebhook()
     } catch (e: any) {
-      this.errorLog(`Setup Webhook, Error Message: ${e.message}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
+      this.errorLog(`Setup Webhook, Error Message: ${e.message ?? e}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
     }
     try {
       this.setupBlE()
     } catch (e: any) {
-      this.errorLog(`Setup Platform BLE, Error Message: ${e.message}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
+      this.errorLog(`Setup Platform BLE, Error Message: ${e.message ?? e}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
     }
   }
 
@@ -211,7 +213,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.mqttClient = await connectAsync(this.config.options?.mqttURL, this.config.options.mqttOptions || {})
         await this.debugLog('MQTT connection has been established successfully.')
         this.mqttClient.on('error', async (e: Error) => {
-          await this.errorLog(`Failed to publish MQTT messages. ${e}`)
+          await this.errorLog(`Failed to publish MQTT messages. ${e.message ?? e}`)
         })
         if (!this.config.options?.webhookURL) {
           // receive webhook events via MQTT
@@ -223,13 +225,13 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
               const context = JSON.parse(message.toString())
               this.webhookEventHandler[context.deviceMac]?.(context)
             } catch (e: any) {
-              await this.errorLog(`Failed to handle webhook event. Error:${e}`)
+              await this.errorLog(`Failed to handle webhook event. Error:${e.message ?? e}`)
             }
           })
         }
-      } catch (e) {
+      } catch (e: any) {
         this.mqttClient = null
-        await this.errorLog(`Failed to establish MQTT connection. ${e}`)
+        await this.errorLog(`Failed to establish MQTT connection. ${e.message ?? e}`)
       }
     }
   }
@@ -250,14 +252,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           this.webhookEventHandler[body.context.deviceMac]?.(body.context)
         })
       } catch (e: any) {
-        await this.errorLog(`Failed to setup webhook. Error:${e.message}`)
+        await this.errorLog(`Failed to setup webhook. Error:${e.message ?? e}`)
       }
 
       this.api.on('shutdown', async () => {
         try {
           this.switchBotAPI.deleteWebhook(url)
         } catch (e: any) {
-          await this.errorLog(`Failed to delete webhook. Error:${e.message}`)
+          await this.errorLog(`Failed to delete webhook. Error:${e.message ?? e}`)
         }
       })
     }
@@ -266,38 +268,40 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   async setupBlE() {
     this.switchBotBLE = new SwitchBotBLE()
     // Listen for log events
-    this.switchBotBLE.on('log', (log) => {
-      switch (log.level) {
-        case LogLevel.SUCCESS:
-          this.successLog(log.message)
-          break
-        case LogLevel.DEBUGSUCCESS:
-          this.debugSuccessLog(log.message)
-          break
-        case LogLevel.WARN:
-          this.warnLog(log.message)
-          break
-        case LogLevel.DEBUGWARN:
-          this.debugWarnLog(log.message)
-          break
-        case LogLevel.ERROR:
-          this.errorLog(log.message)
-          break
-        case LogLevel.DEBUGERROR:
-          this.debugErrorLog(log.message)
-          break
-        case LogLevel.DEBUG:
-          this.debugLog(log.message)
-          break
-        case LogLevel.INFO:
-        default:
-          this.infoLog(log.message)
-      }
-    })
+    if (!this.config.options?.disableLogsforBLE) {
+      this.switchBotBLE.on('log', (log) => {
+        switch (log.level) {
+          case LogLevel.SUCCESS:
+            this.successLog(log.message)
+            break
+          case LogLevel.DEBUGSUCCESS:
+            this.debugSuccessLog(log.message)
+            break
+          case LogLevel.WARN:
+            this.warnLog(log.message)
+            break
+          case LogLevel.DEBUGWARN:
+            this.debugWarnLog(log.message)
+            break
+          case LogLevel.ERROR:
+            this.errorLog(log.message)
+            break
+          case LogLevel.DEBUGERROR:
+            this.debugErrorLog(log.message)
+            break
+          case LogLevel.DEBUG:
+            this.debugLog(log.message)
+            break
+          case LogLevel.INFO:
+          default:
+            this.infoLog(log.message)
+        }
+      })
+    }
     if (this.config.options?.BLE) {
       await this.debugLog('setupBLE')
       if (this.switchBotBLE === undefined) {
-        await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${this.switchBotBLE}`)
+        await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(this.switchBotBLE)}`)
       } else {
         // Start to monitor advertisement packets
         (async () => {
@@ -306,24 +310,24 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           try {
             await this.switchBotBLE.startScan()
           } catch (e: any) {
-            await this.errorLog(`Failed to start BLE scanning. Error:${e}`)
+            await this.errorLog(`Failed to start BLE scanning. Error:${e.message ?? e}`)
           }
           // Set an event handler to monitor advertisement packets
           this.switchBotBLE.onadvertisement = async (ad: any) => {
             try {
               this.bleEventHandler[ad.address]?.(ad.serviceData)
             } catch (e: any) {
-              await this.errorLog(`Failed to handle BLE event. Error:${e}`)
+              await this.errorLog(`Failed to handle BLE event. Error:${e.message ?? e}`)
             }
           }
         })()
 
         this.api.on('shutdown', async () => {
           try {
-            this.switchBotBLE.stopScan()
+            // this.switchBotBLE.stopScan()
             await this.infoLog('Stopped BLE scanning to close listening.')
           } catch (e: any) {
-            await this.errorLog(`Failed to stop Platform BLE scanning. Error:${e.message}`)
+            await this.errorLog(`Failed to stop Platform BLE scanning. Error:${e.message ?? e}`)
           }
         })
       }
@@ -493,7 +497,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       writeFileSync(this.api.user.configPath(), JSON.stringify(currentConfig, null, 4))
       await this.verifyConfig()
     } catch (e: any) {
-      await this.errorLog(`Update Token: ${e}`)
+      await this.errorLog(`Update Token: ${e.message ?? e}`)
     }
   }
 
@@ -525,7 +529,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       } catch (e: any) {
         retryCount++
         await this.debugErrorLog(`Failed to Discover Devices, Error Message: ${JSON.stringify(e.message)}, Submit Bugs Here: https://tinyurl.com/SwitchBotBug`)
-        await this.debugErrorLog(`Failed to Discover Devices, Error: ${e}`)
+        await this.debugErrorLog(`Failed to Discover Devices, Error: ${e.message ?? e}`)
       }
     }
   }
@@ -2608,7 +2612,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       await this.debugLog(`${device.deviceType}: ${accessory.displayName} 'node-switchbot' found: ${this.switchBotBLE}`)
       return this.switchBotBLE
     } catch (e: any) {
-      await this.errorLog(`${device.deviceType}: ${accessory.displayName} 'node-switchbot' not found, Error: ${e}`)
+      await this.errorLog(`${device.deviceType}: ${accessory.displayName} 'node-switchbot' not found, Error: ${e.message ?? e}`)
       return false
     }
   }

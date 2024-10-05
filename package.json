@@ -67,7 +67,7 @@
     "plugin-ui": "rsync ./src/homebridge-ui/public/index.html ./dist/homebridge-ui/public/",
     "build": "npm run clean && tsc && npm run plugin-ui",
     "prepublishOnly": "npm run lint && npm run build && npm run plugin-ui ",
-    "postpublish": "npm run clean",
+    "postpublish": "npm run clean && npm ci",
     "clean": "shx rm -rf ./dist",
     "test": "npm run lint",
     "docs": "typedoc",
@@ -81,7 +81,7 @@
     "async-mqtt": "^2.6.3",
     "fakegato-history": "^0.6.5",
     "homebridge-lib": "^7.0.9",
-    "node-switchbot": "2.5.0-beta.39",
+    "node-switchbot": "^3.0.0",
     "rxjs": "^7.8.1"
   },
   "devDependencies": {

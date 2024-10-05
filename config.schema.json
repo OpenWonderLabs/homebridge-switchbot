@@ -1733,6 +1733,18 @@
             "title": "Enable BLE Scanning",
             "type": "boolean"
           },
+          "discoverBLE": {
+            "title": "Discover BLE Devices",
+            "type": "boolean"
+          },
+          "disableLogsforBLE": {
+            "title": "Disable Logging from BLE",
+            "type": "boolean"
+          },
+          "disableLogsforOpenAPI": {
+            "title": "Disable Logging from OpenAPI",
+            "type": "boolean"
+          },
           "webhookURL": {
             "title": "Webhook URL",
             "type": "string",
@@ -1991,6 +2003,18 @@
       "expanded": false,
       "items": [
         "options.BLE",
+        {
+          "key": "options.discoverBLE",
+          "description": "This will scan for BLE devices and <em class='primary-text'>display</em> an Array in the logs so you can add them to the config."
+        },
+        {
+          "key": "options.disableLogsforBLE",
+          "description": "This will disable the logs coming from <em class='primary-text>node-switchbot</em> BLE ."
+        },
+        {
+          "key": "options.disableLogsforOpenAPI",
+          "description": "This will disable the logs coming from <em class='primary-text>node-switchbot</em> OpenAPI."
+        },
         "options.webhookURL",
         "options.mqttURL",
         "options.mqttOptions",

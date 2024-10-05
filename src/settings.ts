@@ -64,6 +64,9 @@ export interface options {
   mqttOptions?: IClientOptions
   mqttPubOptions?: IClientOptions
   BLE?: boolean
+  discoverBLE?: boolean
+  disableLogsforBLE?: boolean
+  disableLogsforOpenAPI?: boolean
   webhookURL?: string
   maxRetries?: number
   delayBetweenRetries?: number

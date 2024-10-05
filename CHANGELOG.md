@@ -2,9 +2,10 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [3.8.3](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.8.3) (2024-09-26)
+## [3.9.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.9.0) (2024-10-XX)
 
 ### What's Changed
+- OpenAPI is now support by `node-switchbot`, so made changes to refect that.
 - Fix incorrect handling of openState in Contact Sensor [#1061](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/1024), Thanks [@nzws](https://github.com/nzws)
 - Housekeeping and updated dependencies.
 
