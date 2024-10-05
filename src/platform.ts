@@ -268,15 +268,28 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     // Listen for log events
     this.switchBotBLE.on('log', (log) => {
       switch (log.level) {
-        case LogLevel.ERROR:
-          this.errorLog(log.message)
+        case LogLevel.SUCCESS:
+          this.successLog(log.message)
+          break
+        case LogLevel.DEBUGSUCCESS:
+          this.debugSuccessLog(log.message)
           break
         case LogLevel.WARN:
           this.warnLog(log.message)
           break
+        case LogLevel.DEBUGWARN:
+          this.debugWarnLog(log.message)
+          break
+        case LogLevel.ERROR:
+          this.errorLog(log.message)
+          break
+        case LogLevel.DEBUGERROR:
+          this.debugErrorLog(log.message)
+          break
         case LogLevel.DEBUG:
           this.debugLog(log.message)
           break
+        case LogLevel.INFO:
         default:
           this.infoLog(log.message)
       }
