@@ -304,7 +304,7 @@ export abstract class deviceBase {
         this.debugLog(`serviceData: ${JSON.stringify(ad.serviceData)}`)
         serviceData = ad.serviceData
       } else {
-        serviceData = { model: '', modelName: '' } as ad['serviceData']
+        serviceData = { model: '', modelName: '', modelFriendlyName: '' } as unknown as ad['serviceData']
         this.debugLog(`serviceData: ${JSON.stringify(ad.serviceData)}`)
       }
     }

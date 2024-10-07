@@ -3,7 +3,7 @@
  * ceilinglight.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, Controller, ControllerConstructor, ControllerServiceMap, PlatformAccessory, Service } from 'homebridge'
-import type { bodyChange, ceilingLightProServiceData, ceilingLightProStatus, ceilingLightProWebhookContext, ceilingLightServiceData, ceilingLightStatus, ceilingLightWebhookContext, device } from 'node-switchbot'
+import type { bodyChange, ceilingLightProServiceData, ceilingLightProStatus, ceilingLightProWebhookContext, ceilingLightServiceData, ceilingLightStatus, ceilingLightWebhookContext, device, SwitchbotDevice, WoCeilingLight } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
@@ -425,15 +425,16 @@ export class CeilingLight extends deviceBase {
         if (switchBotBLE !== false) {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
-            .then(async (device_list: any) => {
+            .then(async (device_list: SwitchbotDevice[]) => {
+              const deviceList = device_list[0] as unknown as WoCeilingLight
               this.infoLog(`On: ${this.LightBulb.On}`)
               return await this.retryBLE({
                 max: await this.maxRetryBLE(),
                 fn: async () => {
                   if (this.LightBulb.On) {
-                    return await device_list[0].turnOn({ id: this.device.bleMac })
+                    return await deviceList[0].turnOn()
                   } else {
-                    return await device_list[0].turnOff({ id: this.device.bleMac })
+                    return await deviceList[0].turnOff()
                   }
                 },
               })

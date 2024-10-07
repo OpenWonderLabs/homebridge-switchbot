@@ -3,7 +3,7 @@
  * blindtilt.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, Controller, ControllerConstructor, ControllerServiceMap, PlatformAccessory, Service } from 'homebridge'
-import type { bodyChange, colorBulbServiceData, colorBulbStatus, colorBulbWebhookContext, device } from 'node-switchbot'
+import type { bodyChange, colorBulbServiceData, colorBulbStatus, colorBulbWebhookContext, device, SwitchbotDevice, WoBulb } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
@@ -460,15 +460,15 @@ export class ColorBulb extends deviceBase {
         if (switchBotBLE !== false) {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
-            .then(async (device_list: any) => {
+            .then(async (device_list: WoBulb[]) => {
               await this.infoLog(`On: ${this.LightBulb.On}`)
               return await this.retryBLE({
                 max: await this.maxRetryBLE(),
                 fn: async () => {
                   if (this.LightBulb.On) {
-                    return await device_list[0].turnOn({ id: this.device.bleMac })
+                    return await device_list[0].turnOn()
                   } else {
-                    return await device_list[0].turnOff({ id: this.device.bleMac })
+                    return await device_list[0].turnOff()
                   }
                 },
               })
@@ -505,9 +505,10 @@ export class ColorBulb extends deviceBase {
         if (switchBotBLE !== false) {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
-            .then(async (device_list: any) => {
+            .then(async (device_list: SwitchbotDevice[]) => {
+              const deviceList = device_list as unknown as WoBulb[]
               await this.infoLog(`Target Brightness: ${this.LightBulb.Brightness}`)
-              return await device_list[0].setBrightness(this.LightBulb.Brightness)
+              return await deviceList[0].setBrightness(Number(this.LightBulb.Brightness))
             })
             .then(async () => {
               await this.successLog(`Brightness: ${this.LightBulb.Brightness} sent over SwitchBot BLE,  sent successfully`)
@@ -543,9 +544,10 @@ export class ColorBulb extends deviceBase {
         if (switchBotBLE !== false) {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
-            .then(async (device_list: any) => {
+            .then(async (device_list: SwitchbotDevice[]) => {
+              const deviceList = device_list as unknown as WoBulb[]
               await this.infoLog(`ColorTemperature: ${this.LightBulb.ColorTemperature}`)
-              return await device_list[0].setColorTemperature(kelvin)
+              return await deviceList[0].setColorTemperature(kelvin)
             })
             .then(async () => {
               await this.successLog(`ColorTemperature: ${this.LightBulb.ColorTemperature} sent over SwitchBot BLE,  sent successfully`)
@@ -582,9 +584,10 @@ export class ColorBulb extends deviceBase {
         if (switchBotBLE !== false) {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
-            .then(async (device_list: any) => {
+            .then(async (device_list: SwitchbotDevice[]) => {
+              const deviceList = device_list as unknown as WoBulb[]
               await this.infoLog(`RGB: ${(this.LightBulb.Brightness, red, green, blue)}`)
-              return await device_list[0].setRGB(this.LightBulb.Brightness, red, green, blue)
+              return await deviceList[0].setRGB(Number(this.LightBulb.Brightness), red, green, blue)
             })
             .then(async () => {
               await this.successLog(`RGB: ${(this.LightBulb.Brightness, red, green, blue)} sent over SwitchBot BLE,  sent successfully`)

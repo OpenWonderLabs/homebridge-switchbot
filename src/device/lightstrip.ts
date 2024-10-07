@@ -3,7 +3,7 @@
  * lightstrip.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, Controller, ControllerConstructor, ControllerServiceMap, PlatformAccessory, Service } from 'homebridge'
-import type { bodyChange, device, stripLightServiceData, stripLightStatus, stripLightWebhookContext } from 'node-switchbot'
+import type { bodyChange, device, stripLightServiceData, stripLightStatus, stripLightWebhookContext, SwitchbotDevice, WoStrip } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
@@ -464,15 +464,16 @@ export class StripLight extends deviceBase {
         if (switchBotBLE !== false) {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
-            .then(async (device_list: any) => {
+            .then(async (device_list: SwitchbotDevice[]) => {
+              const deviceList = device_list as unknown as WoStrip[]
               await this.infoLog(`On: ${this.LightBulb.On}`)
               return await this.retryBLE({
                 max: await this.maxRetryBLE(),
                 fn: async () => {
                   if (this.LightBulb.On) {
-                    return await device_list[0].turnOn({ id: this.device.bleMac })
+                    return await deviceList[0].turnOn()
                   } else {
-                    return await device_list[0].turnOff({ id: this.device.bleMac })
+                    return await deviceList[0].turnOff()
                   }
                 },
               })
@@ -509,7 +510,7 @@ export class StripLight extends deviceBase {
         if (switchBotBLE !== false) {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
-            .then(async (device_list: any) => {
+            .then(async (device_list: SwitchbotDevice[]) => {
               await this.infoLog(`Brightness: ${this.LightBulb.Brightness}`)
               return await device_list[0].setBrightness(this.LightBulb.Brightness)
             })
@@ -548,7 +549,7 @@ export class StripLight extends deviceBase {
         if (switchBotBLE !== false) {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
-            .then(async (device_list: any) => {
+            .then(async (device_list: SwitchbotDevice[]) => {
               await this.infoLog(`RGB: ${(this.LightBulb.Brightness, red, green, blue)}`)
               return await device_list[0].setRGB(this.LightBulb.Brightness, red, green, blue)
             })

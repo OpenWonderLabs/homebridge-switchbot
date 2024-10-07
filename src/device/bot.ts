@@ -3,20 +3,21 @@
  * bot.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
-import type { bodyChange, botServiceData, botStatus, botWebhookContext, device } from 'node-switchbot'
+import type { bodyChange, botServiceData, botStatus, botWebhookContext, device, SwitchbotDevice, WoHand } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
+
+import { debounceTime, interval, skipWhile, Subject, take, tap } from 'rxjs'
+
+import { formatDeviceIdAsMac } from '../utils.js'
+import { deviceBase } from './device.js'
 
 /*
 * For Testing Locally:
 * import { SwitchBotBLEModel, SwitchBotBLEModelName } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
 */
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot'
-import { debounceTime, interval, skipWhile, Subject, take, tap } from 'rxjs'
-
-import { formatDeviceIdAsMac } from '../utils.js'
-import { deviceBase } from './device.js'
 
 /**
  * Platform Accessory
@@ -665,7 +666,7 @@ export class Bot extends deviceBase {
     await this.debugLog('BLEpushChanges')
     if (this.On !== this.accessory.context.On || this.allowPush) {
       await this.debugLog(`BLEpushChanges On: ${this.On} OnCached: ${this.accessory.context.On}`)
-      const switchBotBLE = await this.platform.connectBLE(this.accessory, this.device)
+      const switchBotBLE = this.platform.switchBotBLE
       try {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
@@ -675,9 +676,10 @@ export class Bot extends deviceBase {
         if (this.botMode === 'press') {
           switchBotBLE
             .discover({ model: 'H', quick: true, id: this.device.bleMac })
-            .then(async (device_list: { press: (arg0: { id: string | undefined }) => any }[]) => {
+            .then(async (device_list: SwitchbotDevice[]) => {
+              const deviceList = device_list as unknown as WoHand[]
               await this.infoLog(`On: ${this.On}`)
-              return await device_list[0].press({ id: this.device.bleMac })
+              return await deviceList[0].press()
             })
             .then(async () => {
               await this.successLog(`On: ${this.On} sent over SwitchBot BLE,  sent successfully`)
@@ -696,15 +698,21 @@ export class Bot extends deviceBase {
         } else if (this.botMode === 'switch') {
           switchBotBLE
             .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
-            .then(async (device_list: any) => {
+            .then(async (device_list: SwitchbotDevice[]) => {
+              const deviceList = device_list as unknown as WoHand[]
               this.infoLog(`On: ${this.On}`)
+              this.warnLog(`device_list: ${JSON.stringify(device_list)}`)
               return await this.retryBLE({
                 max: await this.maxRetryBLE(),
                 fn: async () => {
-                  if (this.On) {
-                    return await device_list[0].turnOn({ id: this.device.bleMac })
+                  if (deviceList.length > 0) {
+                    if (this.On) {
+                      return await deviceList[0].turnOn()
+                    } else {
+                      return await deviceList[0].turnOff()
+                    }
                   } else {
-                    return await device_list[0].turnOff({ id: this.device.bleMac })
+                    throw new Error('No device found')
                   }
                 },
               })

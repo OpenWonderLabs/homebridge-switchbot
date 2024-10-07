@@ -3,7 +3,7 @@
  * plug.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
-import type { batteryCirculatorFanServiceData, batteryCirculatorFanStatus, batteryCirculatorFanWebhookContext, bodyChange, device } from 'node-switchbot'
+import type { batteryCirculatorFanServiceData, batteryCirculatorFanStatus, batteryCirculatorFanWebhookContext, bodyChange, device, SwitchbotDevice } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
@@ -459,14 +459,15 @@ export class Fan extends deviceBase {
         if (switchBotBLE !== false) {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
-            .then(async (device_list: any) => {
+            .then(async (device_list: SwitchbotDevice[]) => {
+              const deviceList = device_list as unknown as SwitchbotDevice[]
               return await this.retryBLE({
                 max: await this.maxRetryBLE(),
                 fn: async () => {
                   if (this.Fan.Active) {
-                    return await device_list[0].turnOn({ id: this.device.bleMac })
+                    return await deviceList[0].turnOn()
                   } else {
-                    return await device_list[0].turnOff({ id: this.device.bleMac })
+                    return await deviceList[0].turnOff()
                   }
                 },
               })

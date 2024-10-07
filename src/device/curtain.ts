@@ -3,22 +3,23 @@
  * curtain.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicChange, CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
-import type { bodyChange, curtain3ServiceData, curtain3WebhookContext, curtainServiceData, curtainStatus, curtainWebhookContext, device } from 'node-switchbot'
+import type { bodyChange, curtain3ServiceData, curtain3WebhookContext, curtainServiceData, curtainStatus, curtainWebhookContext, device, SwitchbotDevice, WoCurtain } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
 
 import { hostname } from 'node:os'
 
+import { debounceTime, interval, skipWhile, Subject, take, tap } from 'rxjs'
+
+import { formatDeviceIdAsMac } from '../utils.js'
+import { deviceBase } from './device.js'
+
 /*
 * For Testing Locally:
 * import { SwitchBotBLEModel, SwitchBotBLEModelName } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
 */
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot'
-import { debounceTime, interval, skipWhile, Subject, take, tap } from 'rxjs'
-
-import { formatDeviceIdAsMac } from '../utils.js'
-import { deviceBase } from './device.js'
 
 export class Curtain extends deviceBase {
   // Services
@@ -601,11 +602,12 @@ export class Curtain extends deviceBase {
         if (switchBotBLE !== false) {
           switchBotBLE
             .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
-            .then(async (device_list: any) => {
+            .then(async (device_list: SwitchbotDevice[]) => {
+              const deviceList = device_list as unknown as WoCurtain[]
               return await this.retryBLE({
                 max: await this.maxRetryBLE(),
                 fn: async () => {
-                  return await device_list[0].runToPos(100 - Number(this.WindowCovering.TargetPosition), adjustedMode)
+                  return await deviceList[0].runToPos(100 - Number(this.WindowCovering.TargetPosition), adjustedMode)
                 },
               })
             })
@@ -834,7 +836,7 @@ export class Curtain extends deviceBase {
     await this.setMinMax()
     await this.debugLog(`CurrentPosition ${this.WindowCovering.CurrentPosition}`)
     this.hasLoggedStandby = this.hasLoggedStandby ?? false
-    if (this.setNewTarget || this.deviceStatus.moving) {
+    if (this.deviceStatus ? (this.setNewTarget || this.deviceStatus.moving) : this.setNewTarget) {
       this.hasLoggedStandby = false
       this.infoLog('Checking Status ...')
       this.curtainMoving = true

@@ -3,7 +3,7 @@
  * blindtilt.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
-import type { blindTiltServiceData, blindTiltStatus, blindTiltWebhookContext, bodyChange, device } from 'node-switchbot'
+import type { blindTiltServiceData, blindTiltStatus, blindTiltWebhookContext, bodyChange, device, SwitchbotDevice, WoBlindTilt } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
@@ -351,14 +351,16 @@ export class BlindTilt extends deviceBase {
     }
 
     // BatteryLevel
-    this.Battery.BatteryLevel = this.serviceData.battery
-    await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
+    if (this.serviceData?.battery) {
+      this.Battery.BatteryLevel = this.serviceData.battery
+      await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
 
-    // StatusLowBattery
-    this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
-      ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
-      : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
-    await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
+      // StatusLowBattery
+      this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
+        ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
+        : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
+      await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
+    }
   };
 
   /**
@@ -574,11 +576,12 @@ export class BlindTilt extends deviceBase {
         if (switchBotBLE !== false) {
           switchBotBLE
             .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
-            .then(async (device_list: any) => {
+            .then(async (device_list: SwitchbotDevice[]) => {
+              const deviceList = device_list as unknown as WoBlindTilt[]
               return await this.retryBLE({
                 max: await this.maxRetryBLE(),
                 fn: async () => {
-                  return await device_list[0].runToPos(100 - Number(this.WindowCovering.TargetPosition), setPositionMode)
+                  return await deviceList[0].runToPos(100 - Number(this.WindowCovering.TargetPosition), setPositionMode)
                 },
               })
             })

@@ -3,7 +3,7 @@
  * lock.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
-import type { bodyChange, device, lockProServiceData, lockProStatus, lockProWebhookContext, lockServiceData, lockStatus, lockWebhookContext } from 'node-switchbot'
+import type { bodyChange, device, lockProServiceData, lockProStatus, lockProWebhookContext, lockServiceData, lockStatus, lockWebhookContext, SwitchbotDevice } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
@@ -445,7 +445,7 @@ export class Lock extends deviceBase {
         if (switchBotBLE !== false) {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
-            .then(async (device_list: any) => {
+            .then(async (device_list: SwitchbotDevice[]) => {
               return await this.retryBLE({
                 max: await this.maxRetryBLE(),
                 fn: async () => {

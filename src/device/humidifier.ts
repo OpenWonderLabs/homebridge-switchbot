@@ -3,7 +3,7 @@
  * humidifier.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
-import type { bodyChange, device, humidifierServiceData, humidifierStatus, humidifierWebhookContext } from 'node-switchbot'
+import type { bodyChange, device, humidifierServiceData, humidifierStatus, humidifierWebhookContext, SwitchbotDevice, WoHumi } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
@@ -437,8 +437,9 @@ export class Humidifier extends deviceBase {
         if (switchBotBLE !== false) {
           switchBotBLE
             .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
-            .then(async (device_list: any) => {
-              return await device_list[0].percentage(this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold)
+            .then(async (device_list: SwitchbotDevice[]) => {
+              const deviceList = device_list as unknown as WoHumi[]
+              return await deviceList[0].percentage(this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold)
             })
             .then(async () => {
               await this.successLog(`RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold} sent over BLE,  sent successfully`)
