@@ -218,7 +218,7 @@ export abstract class deviceBase {
     this.debugLog(`LightLevel: ${lightLevel}, set_minLux: ${set_minLux}, set_maxLux: ${set_maxLux}, spaceBetweenLevels: ${spaceBetweenLevels}, numberOfLevels: ${numberOfLevels}`)
     const CurrentAmbientLightLevel = lightLevel === 1
       ? set_minLux
-      : lightLevel = numberOfLevels
+      : lightLevel === numberOfLevels
         ? set_maxLux
         : ((set_maxLux - set_minLux) / spaceBetweenLevels) * (Number(lightLevel) - 1)
     await this.debugLog(`CurrentAmbientLightLevel: ${CurrentAmbientLightLevel}, LightLevel: ${lightLevel}, set_minLux: ${set_minLux}, set_maxLux: ${set_maxLux}`)
