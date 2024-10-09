@@ -20,7 +20,7 @@ import { EveHomeKitTypes } from 'homebridge-lib/EveHomeKitTypes'
 * import type { blindTilt, curtain, curtain3, device, irdevice } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
 * import { LogLevel, SwitchBotBLE, SwitchBotModel, SwitchBotOpenAPI } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
 */
-import type { blindTilt, curtain, curtain3, device, irdevice } from 'node-switchbot'
+import type { blindTilt, curtain, curtain3, device, deviceStatus, deviceStatusRequest, irdevice } from 'node-switchbot'
 
 import { LogLevel, SwitchBotBLE, SwitchBotModel, SwitchBotOpenAPI } from 'node-switchbot'
 import { queueScheduler } from 'rxjs'
@@ -2534,7 +2534,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  async retryRequest(deviceId: string, deviceMaxRetries: number, deviceDelayBetweenRetries: number): Promise<{ response: any, statusCode: number }> {
+  async retryRequest(deviceId: string, deviceMaxRetries: number, deviceDelayBetweenRetries: number): Promise<{ response: deviceStatus, statusCode: deviceStatusRequest['statusCode'] }> {
     let retryCount = 0
     const maxRetries = deviceMaxRetries
     const delayBetweenRetries = deviceDelayBetweenRetries
@@ -2550,7 +2550,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       await this.debugLog(`Retry attempt ${retryCount} of ${maxRetries}`)
       await sleep(delayBetweenRetries)
     }
-    return { response: null, statusCode: 500 }
+    return { response: {
+      deviceId: '',
+      deviceType: '',
+      hubDeviceId: '',
+      version: 0,
+      deviceName: '',
+      enableCloudService: false,
+    }, statusCode: 500 }
   }
 
   // BLE Connection

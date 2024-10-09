@@ -5,7 +5,7 @@
 
 import type { API, CharacteristicValue, HAP, Logging, PlatformAccessory, Service } from 'homebridge'
 import type { MqttClient } from 'mqtt'
-import type { ad, bodyChange, device } from 'node-switchbot'
+import type { ad, bodyChange, device, deviceStatus, deviceStatusRequest, pushResponse } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { blindTiltConfig, botConfig, ceilingLightConfig, colorBulbConfig, contactConfig, curtainConfig, devicesConfig, hubConfig, humidifierConfig, indoorOutdoorSensorConfig, lockConfig, meterConfig, motionConfig, stripLightConfig, SwitchBotPlatformConfig, waterDetectorConfig } from '../settings.js'
@@ -379,17 +379,17 @@ export abstract class deviceBase {
     }
   }
 
-  async pushChangeRequest(bodyChange: bodyChange): Promise<{ body: any, statusCode: number }> {
+  async pushChangeRequest(bodyChange: bodyChange): Promise<{ body: pushResponse['body'], statusCode: pushResponse['statusCode'] }> {
     const { response, statusCode } = await this.platform.switchBotAPI.controlDevice(this.device.deviceId, bodyChange.command, bodyChange.parameter, bodyChange.commandType)
     return { body: response, statusCode }
   }
 
-  async deviceRefreshStatus(): Promise<{ body: any, statusCode: number }> {
+  async deviceRefreshStatus(): Promise<{ body: deviceStatus, statusCode: deviceStatusRequest['statusCode'] }> {
     const { response, statusCode } = await this.platform.retryRequest(this.device.deviceId, this.deviceMaxRetries, this.deviceDelayBetweenRetries)
     return { body: response, statusCode }
   }
 
-  async successfulStatusCodes(deviceStatus: any) {
+  async successfulStatusCodes(deviceStatus: deviceStatusRequest) {
     return (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)
   }
 
