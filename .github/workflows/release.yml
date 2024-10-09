@@ -32,7 +32,7 @@ jobs:
         Version `v${{ needs.publish.outputs.NPM_VERSION }}`
       url: "https://github.com/homebridge/camera-utils/releases/tag/v${{ needs.publish.outputs.NPM_VERSION }}"
     secrets:
-      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL_BETA || secrets.DISCORD_WEBHOOK_URL_LATEST }}
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL_LATEST }}
 
 
 

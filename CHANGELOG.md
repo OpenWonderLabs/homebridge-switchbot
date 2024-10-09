@@ -12,11 +12,18 @@ All notable changes to this project will be documented in this file. This projec
   - **If you have config set for any of the following IR device Types: `Fan`, `DIY Fan`, `Light`, `DIY Light`, `Air Conditioner`, `DIY Air Conditioner`, or `Others`; you will need to re-setup your config for that deviceId**
 
 #### Other Changes
-- Fix incorrect handling of openState in Contact Sensor [#1061](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/1024), Thanks [@nzws](https://github.com/nzws)
-- Fixe light level stuck at max [#1066](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/1066), Thanks [@4gra](https://github.com/4gra)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.8.2...v4.0.0
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.8.3...v4.0.0
+
+## [3.8.3](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.8.3) (2024-10-09)
+
+### What's Changed
+- Fix incorrect handling of openState in Contact Sensor [#1061](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1061), Thanks [@nzws](https://github.com/nzws)
+- Fix light level stuck at max [#1066](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1066), Thanks [@4gra](https://github.com/4gra)
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.8.2...v3.8.3
 
 ## [3.8.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.8.2) (2024-09-19)
 
