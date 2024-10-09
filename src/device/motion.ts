@@ -6,7 +6,7 @@ import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge
 import type { device, motionSensorServiceData, motionSensorStatus, motionSensorWebhookContext } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig } from '../settings.js'
+import type { devicesConfig, motionConfig } from '../settings.js'
 
 /*
 * For Testing Locally:
@@ -104,7 +104,7 @@ export class Motion extends deviceBase {
     })
 
     // Initialize Light Sensor Service
-    if (device.motion?.hide_lightsensor) {
+    if ((device as motionConfig).hide_lightsensor) {
       if (this.LightSensor) {
         this.debugLog('Removing Light Sensor Service')
         this.LightSensor.Service = this.accessory.getService(this.hap.Service.LightSensor) as Service
@@ -166,9 +166,9 @@ export class Motion extends deviceBase {
     await this.debugLog(`MotionDetected: ${this.MotionSensor.MotionDetected}`)
 
     // CurrentAmbientLightLevel
-    if (!this.device.motion?.hide_lightsensor && this.LightSensor?.Service) {
-      const set_minLux = this.device.blindTilt?.set_minLux ?? 1
-      const set_maxLux = this.device.blindTilt?.set_maxLux ?? 6001
+    if (!(this.device as motionConfig).hide_lightsensor && this.LightSensor?.Service) {
+      const set_minLux = (this.device as motionConfig).set_minLux ?? 1
+      const set_maxLux = (this.device as motionConfig).set_maxLux ?? 6001
       const lightLevel = this.serviceData.lightLevel === 'bright' ? set_maxLux : set_minLux
       this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
       await this.debugLog(`LightLevel: ${this.serviceData.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
@@ -194,9 +194,9 @@ export class Motion extends deviceBase {
     await this.debugLog(`MotionDetected: ${this.MotionSensor.MotionDetected}`)
 
     // CurrentAmbientLightLevel
-    if (!this.device.motion?.hide_lightsensor && this.LightSensor?.Service) {
-      const set_minLux = this.device.blindTilt?.set_minLux ?? 1
-      const set_maxLux = this.device.blindTilt?.set_maxLux ?? 6001
+    if (!(this.device as motionConfig).hide_lightsensor && this.LightSensor?.Service) {
+      const set_minLux = (this.device as motionConfig).set_minLux ?? 1
+      const set_maxLux = (this.device as motionConfig).set_maxLux ?? 6001
       const lightLevel = this.deviceStatus.brightness === 'bright' ? set_maxLux : set_minLux
       this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
       await this.debugLog(`LightLevel: ${this.deviceStatus.brightness}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
@@ -351,7 +351,7 @@ export class Motion extends deviceBase {
     // StatusLowBattery
     await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery, 'StatusLowBattery')
     // CurrentAmbientLightLevel
-    if (!this.device.motion?.hide_lightsensor && this.LightSensor?.Service) {
+    if (!(this.device as motionConfig).hide_lightsensor && this.LightSensor?.Service) {
       await this.updateCharacteristic(this.LightSensor.Service, this.hap.Characteristic.CurrentAmbientLightLevel, this.LightSensor.CurrentAmbientLightLevel, 'CurrentAmbientLightLevel')
     }
   }
@@ -374,7 +374,7 @@ export class Motion extends deviceBase {
     this.MotionSensor.Service.updateCharacteristic(this.hap.Characteristic.MotionDetected, e)
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e)
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, e)
-    if (!this.device.motion?.hide_lightsensor && this.LightSensor?.Service) {
+    if (!(this.device as motionConfig).hide_lightsensor && this.LightSensor?.Service) {
       this.LightSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, e)
     }
   }

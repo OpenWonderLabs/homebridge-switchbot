@@ -6,7 +6,7 @@ import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge
 import type { blindTiltServiceData, blindTiltStatus, blindTiltWebhookContext, bodyChange, device, SwitchbotDevice, WoBlindTilt } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig } from '../settings.js'
+import type { blindTiltConfig, devicesConfig } from '../settings.js'
 
 /*
 * For Testing Locally:
@@ -85,7 +85,8 @@ export class BlindTilt extends deviceBase {
     accessory.category = this.hap.Categories.WINDOW_COVERING
 
     // default placeholders
-    this.mappingMode = (device.blindTilt?.mode as BlindTiltMappingMode) ?? BlindTiltMappingMode.OnlyUp
+
+    this.mappingMode = ((device as blindTiltConfig).mode as BlindTiltMappingMode) ?? BlindTiltMappingMode.OnlyUp
     this.debugLog(`Mapping mode: ${this.mappingMode}`)
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
@@ -109,7 +110,7 @@ export class BlindTilt extends deviceBase {
 
     // Initialize WindowCovering Characteristics
     this.WindowCovering.Service.setCharacteristic(this.hap.Characteristic.Name, this.WindowCovering.Name).getCharacteristic(this.hap.Characteristic.TargetPosition).setProps({
-      minStep: device.blindTilt?.set_minStep ?? 1,
+      minStep: (device as blindTiltConfig).set_minStep ?? 1,
       minValue: 0,
       maxValue: 100,
       validValueRanges: [0, 100],
@@ -119,7 +120,7 @@ export class BlindTilt extends deviceBase {
 
     // Initialize WindowCovering CurrentPosition Characteristic
     this.WindowCovering.Service.getCharacteristic(this.hap.Characteristic.CurrentPosition).setProps({
-      minStep: device.blindTilt?.set_minStep ?? 1,
+      minStep: (device as blindTiltConfig).set_minStep ?? 1,
       minValue: 0,
       maxValue: 100,
       validValueRanges: [0, 100],
@@ -162,7 +163,7 @@ export class BlindTilt extends deviceBase {
     this.Battery.Service.setCharacteristic(this.hap.Characteristic.Name, this.Battery.Name).setCharacteristic(this.hap.Characteristic.ChargingState, this.hap.Characteristic.ChargingState.NOT_CHARGEABLE)
 
     // Initialize LightSensor Service
-    if (device.blindTilt?.hide_lightsensor) {
+    if ((device as blindTiltConfig).hide_lightsensor) {
       if (this.LightSensor?.Service) {
         this.debugLog('Removing Light Sensor Service')
         this.LightSensor.Service = accessory.getService(this.hap.Service.LightSensor) as Service
@@ -187,7 +188,7 @@ export class BlindTilt extends deviceBase {
     }
 
     // Initialize Open Mode Switch Service
-    if (!device.blindTilt?.silentModeSwitch) {
+    if (!(device as blindTiltConfig).silentModeSwitch) {
       if (this.OpenModeSwitch?.Service) {
         this.debugLog('Removing Open Mode Switch Service')
         this.OpenModeSwitch.Service = this.accessory.getService(this.hap.Service.Switch) as Service
@@ -212,7 +213,7 @@ export class BlindTilt extends deviceBase {
     }
 
     // Initialize Close Mode Switch Service
-    if (!device.blindTilt?.silentModeSwitch) {
+    if (!(device as blindTiltConfig).silentModeSwitch) {
       if (this.CloseModeSwitch?.Service) {
         this.debugLog('Removing Close Mode Switch Service')
         this.CloseModeSwitch.Service = this.accessory.getService(this.hap.Service.Switch) as Service
@@ -341,9 +342,9 @@ export class BlindTilt extends deviceBase {
     await this.debugLog(`CurrentPosition: ${this.WindowCovering.CurrentPosition}, TargetPosition: ${this.WindowCovering.TargetPosition}, PositionState: ${this.WindowCovering.PositionState}`)
 
     // CurrentAmbientLightLevel
-    if (!this.device.blindTilt?.hide_lightsensor && this.LightSensor?.Service) {
-      const set_minLux = this.device.blindTilt?.set_minLux ?? 1
-      const set_maxLux = this.device.blindTilt?.set_maxLux ?? 6001
+    if (!(this.device as blindTiltConfig).hide_lightsensor && this.LightSensor?.Service) {
+      const set_minLux = (this.device as blindTiltConfig).set_minLux ?? 1
+      const set_maxLux = (this.device as blindTiltConfig).set_maxLux ?? 6001
       const spaceBetweenLevels = 9
 
       await this.getLightLevel(this.serviceData.lightLevel, set_minLux, set_maxLux, spaceBetweenLevels)
@@ -373,9 +374,9 @@ export class BlindTilt extends deviceBase {
     // CurrentPosition
     await this.getCurrentPosttionDirection(this.deviceStatus.direction, this.deviceStatus.slidePosition)
 
-    if (!this.device.blindTilt?.hide_lightsensor && this.LightSensor?.Service) {
-      const set_minLux = this.device.blindTilt?.set_minLux ?? 1
-      const set_maxLux = this.device.blindTilt?.set_maxLux ?? 6001
+    if (!(this.device as blindTiltConfig).hide_lightsensor && this.LightSensor?.Service) {
+      const set_minLux = (this.device as blindTiltConfig).set_minLux ?? 1
+      const set_maxLux = (this.device as blindTiltConfig).set_maxLux ?? 6001
       const lightLevel = this.deviceStatus.lightLevel === 'bright' ? set_maxLux : set_minLux
       this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
       await this.debugLog(`LightLevel: ${this.deviceStatus.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
@@ -728,7 +729,7 @@ export class BlindTilt extends deviceBase {
    * Handle requests to set the value of the "Target Position" characteristic
    */
   async OpenModeSwitchSet(value: CharacteristicValue): Promise<void> {
-    if (this.OpenModeSwitch && this.device.blindTilt?.silentModeSwitch) {
+    if (this.OpenModeSwitch && (this.device as blindTiltConfig).silentModeSwitch) {
       this.debugLog(`Silent Open Mode: ${value}`)
       this.OpenModeSwitch.On = value
       this.accessory.context.OpenModeSwitch.On = value
@@ -740,7 +741,7 @@ export class BlindTilt extends deviceBase {
    * Handle requests to set the value of the "Target Position" characteristic
    */
   async CloseModeSwitchSet(value: CharacteristicValue): Promise<void> {
-    if (this.CloseModeSwitch && this.device.blindTilt?.silentModeSwitch) {
+    if (this.CloseModeSwitch && (this.device as blindTiltConfig).silentModeSwitch) {
       this.debugLog(`Silent Close Mode: ${value}`)
       this.CloseModeSwitch.On = value
       this.accessory.context.CloseModeSwitch.On = value
@@ -761,7 +762,7 @@ export class BlindTilt extends deviceBase {
     // TargetPosition
     await this.updateCharacteristic(this.WindowCovering.Service, this.hap.Characteristic.TargetPosition, this.WindowCovering.TargetPosition, 'TargetPosition')
     // CurrentAmbientLightLevel
-    if (!this.device.blindTilt?.hide_lightsensor && this.LightSensor?.Service) {
+    if (!(this.device as blindTiltConfig).hide_lightsensor && this.LightSensor?.Service) {
       const history = { time: Math.round(new Date().valueOf() / 1000), lux: this.LightSensor.CurrentAmbientLightLevel }
       await this.updateCharacteristic(this.LightSensor?.Service, this.hap.Characteristic.CurrentAmbientLightLevel, this.LightSensor?.CurrentAmbientLightLevel, 'CurrentAmbientLightLevel', history)
     }
@@ -792,10 +793,10 @@ export class BlindTilt extends deviceBase {
     let setPositionMode: number
     let Mode: string
     if (Number(this.WindowCovering.TargetPosition) > 50) {
-      if (this.device.blindTilt?.setOpenMode === '1' || this.OpenModeSwitch?.On) {
+      if ((this.device as blindTiltConfig).setOpenMode === '1' || this.OpenModeSwitch?.On) {
         setPositionMode = 1
         Mode = 'Silent Mode'
-      } else if (this.device.blindTilt?.setOpenMode === '0' || !this.OpenModeSwitch?.On) {
+      } else if ((this.device as blindTiltConfig).setOpenMode === '0' || !this.OpenModeSwitch?.On) {
         setPositionMode = 0
         Mode = 'Performance Mode'
       } else {
@@ -803,10 +804,10 @@ export class BlindTilt extends deviceBase {
         Mode = 'Default Mode'
       }
     } else {
-      if (this.device.blindTilt?.setCloseMode === '1' || this.CloseModeSwitch?.On) {
+      if ((this.device as blindTiltConfig).setCloseMode === '1' || this.CloseModeSwitch?.On) {
         setPositionMode = 1
         Mode = 'Silent Mode'
-      } else if (this.device.blindTilt?.setOpenMode === '0' || !this.CloseModeSwitch?.On) {
+      } else if ((this.device as blindTiltConfig).setOpenMode === '0' || !this.CloseModeSwitch?.On) {
         setPositionMode = 0
         Mode = 'Performance Mode'
       } else {
@@ -818,13 +819,13 @@ export class BlindTilt extends deviceBase {
   }
 
   async setMinMax(): Promise<void> {
-    if (this.device.blindTilt?.set_min) {
-      if (Number(this.WindowCovering.CurrentPosition) <= this.device.blindTilt?.set_min) {
+    if ((this.device as blindTiltConfig).set_min) {
+      if (Number(this.WindowCovering.CurrentPosition) <= (this.device as blindTiltConfig).set_min!) {
         this.WindowCovering.CurrentPosition = 0
       }
     }
-    if (this.device.blindTilt?.set_max) {
-      if (Number(this.WindowCovering.CurrentPosition) >= this.device.blindTilt?.set_max) {
+    if ((this.device as blindTiltConfig).set_max) {
+      if (Number(this.WindowCovering.CurrentPosition) >= (this.device as blindTiltConfig).set_max!) {
         this.WindowCovering.CurrentPosition = 100
       }
     }
@@ -858,7 +859,7 @@ export class BlindTilt extends deviceBase {
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e)
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, e)
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.ChargingState, e)
-    if (!this.device.blindTilt?.hide_lightsensor && this.LightSensor?.Service) {
+    if (!(this.device as blindTiltConfig).hide_lightsensor && this.LightSensor?.Service) {
       this.LightSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, e)
       this.LightSensor.Service.updateCharacteristic(this.hap.Characteristic.StatusActive, e)
     }

@@ -6,7 +6,7 @@ import type { CharacteristicValue, Controller, ControllerConstructor, Controller
 import type { bodyChange, ceilingLightProServiceData, ceilingLightProStatus, ceilingLightProWebhookContext, ceilingLightServiceData, ceilingLightStatus, ceilingLightWebhookContext, device, SwitchbotDevice, WoCeilingLight } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig } from '../settings.js'
+import type { ceilingLightConfig, devicesConfig } from '../settings.js'
 
 /*
 * For Testing Locally:
@@ -108,7 +108,7 @@ export class CeilingLight extends deviceBase {
 
     // Initialize LightBulb Brightness
     this.LightBulb.Service.getCharacteristic(this.hap.Characteristic.Brightness).setProps({
-      minStep: device.ceilinglight?.set_minStep ?? 1,
+      minStep: (device as ceilingLightConfig).set_minStep ?? 1,
       minValue: 0,
       maxValue: 100,
       validValueRanges: [0, 100],
@@ -703,13 +703,8 @@ export class CeilingLight extends deviceBase {
     this.adaptiveLighting = accessory.context.adaptiveLighting ?? true
     await this.debugLog(`adaptiveLighting: ${this.adaptiveLighting}`)
     // Adaptive Lighting Shift
-    if (device.ceilinglight?.adaptiveLightingShift) {
-      this.adaptiveLightingShift = device.ceilinglight.adaptiveLightingShift
-      this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`)
-    } else {
-      this.adaptiveLightingShift = 0
-      this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`)
-    }
+    this.adaptiveLightingShift = (device as ceilingLightConfig).adaptiveLightingShift ?? 0
+    this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`)
   }
 
   async BLEPushConnection() {

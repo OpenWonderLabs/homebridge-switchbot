@@ -6,7 +6,7 @@ import type { CharacteristicValue, Controller, ControllerConstructor, Controller
 import type { bodyChange, device, stripLightServiceData, stripLightStatus, stripLightWebhookContext, SwitchbotDevice, WoStrip } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig } from '../settings.js'
+import type { devicesConfig, stripLightConfig } from '../settings.js'
 
 /*
 * For Testing Locally:
@@ -108,7 +108,7 @@ export class StripLight extends deviceBase {
 
     // Initialize LightBulb Brightness Characteristic
     this.LightBulb.Service.getCharacteristic(this.hap.Characteristic.Brightness).setProps({
-      minStep: device.striplight?.set_minStep ?? 1,
+      minStep: (device as stripLightConfig).set_minStep ?? 1,
       minValue: 0,
       maxValue: 100,
       validValueRanges: [0, 100],
@@ -786,13 +786,8 @@ export class StripLight extends deviceBase {
     this.adaptiveLighting = accessory.context.adaptiveLighting ?? true
     await this.debugLog(`adaptiveLighting: ${this.adaptiveLighting}`)
     // Adaptive Lighting Shift
-    if (device.striplight?.adaptiveLightingShift) {
-      this.adaptiveLightingShift = device.striplight.adaptiveLightingShift
-      this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`)
-    } else {
-      this.adaptiveLightingShift = 0
-      this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`)
-    }
+    this.adaptiveLightingShift = (device as stripLightConfig).adaptiveLightingShift ?? 0
+    this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`)
   }
 
   async BLEPushConnection() {

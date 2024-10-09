@@ -6,7 +6,7 @@ import type { CharacteristicChange, CharacteristicValue, PlatformAccessory, Serv
 import type { bodyChange, curtain3ServiceData, curtain3WebhookContext, curtainServiceData, curtainStatus, curtainWebhookContext, device, SwitchbotDevice, WoCurtain } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig } from '../settings.js'
+import type { curtainConfig, devicesConfig } from '../settings.js'
 
 import { hostname } from 'node:os'
 
@@ -111,7 +111,7 @@ export class Curtain extends deviceBase {
 
     // Initialize WindowCovering CurrentPosition
     this.WindowCovering.Service.getCharacteristic(this.hap.Characteristic.CurrentPosition).setProps({
-      minStep: device.curtain?.set_minStep ?? 1,
+      minStep: (device as curtainConfig).set_minStep ?? 1,
       minValue: 0,
       maxValue: 100,
       validValueRanges: [0, 100],
@@ -121,7 +121,7 @@ export class Curtain extends deviceBase {
 
     // Initialize WindowCovering TargetPosition
     this.WindowCovering.Service.getCharacteristic(this.hap.Characteristic.TargetPosition).setProps({
-      minStep: device.curtain?.set_minStep ?? 1,
+      minStep: (device as curtainConfig).set_minStep ?? 1,
       minValue: 0,
       maxValue: 100,
       validValueRanges: [0, 100],
@@ -159,7 +159,7 @@ export class Curtain extends deviceBase {
     })
 
     // Initialize LightSensor Service
-    if (device.curtain?.hide_lightsensor || (device.deviceType !== 'curtain' && device.deviceType !== 'curtain3')) {
+    if ((device as curtainConfig).hide_lightsensor || (device.deviceType !== 'curtain' && device.deviceType !== 'curtain3')) {
       if (this.LightSensor?.Service) {
         this.debugLog('Removing Light Sensor Service')
         this.LightSensor.Service = this.accessory.getService(this.hap.Service.LightSensor) as Service
@@ -182,7 +182,7 @@ export class Curtain extends deviceBase {
     }
 
     // Initialize Open Mode Switch Service
-    if (!device.curtain?.silentModeSwitch) {
+    if (!(device as curtainConfig).silentModeSwitch) {
       if (this.OpenModeSwitch?.Service) {
         this.debugLog('Removing Open Mode Switch Service')
         this.OpenModeSwitch.Service = this.accessory.getService(this.hap.Service.Switch) as Service
@@ -210,7 +210,7 @@ export class Curtain extends deviceBase {
     }
 
     // Initialize Close Mode Switch Service
-    if (!device.curtain?.silentModeSwitch) {
+    if (!(device as curtainConfig).silentModeSwitch) {
       if (this.CloseModeSwitch?.Service) {
         this.debugLog('Removing Close Mode Switch Service')
         this.CloseModeSwitch.Service = this.accessory.getService(this.hap.Service.Switch) as Service
@@ -382,9 +382,9 @@ export class Curtain extends deviceBase {
     this.WindowCovering.CurrentPosition = 100 - this.serviceData.position
     await this.getCurrentPostion()
     // CurrentAmbientLightLevel
-    if (!this.device.curtain?.hide_lightsensor && this.LightSensor?.Service) {
-      const set_minLux = this.device.curtain?.set_minLux ?? 1
-      const set_maxLux = this.device.curtain?.set_maxLux ?? 6001
+    if (!(this.device as curtainConfig).hide_lightsensor && this.LightSensor?.Service) {
+      const set_minLux = (this.device as curtainConfig).set_minLux ?? 1
+      const set_maxLux = (this.device as curtainConfig).set_maxLux ?? 6001
       const lightLevel = this.serviceData.lightLevel
       this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 19)
       this.debugLog(`LightLevel: ${this.serviceData.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
@@ -407,9 +407,9 @@ export class Curtain extends deviceBase {
     await this.getCurrentPostion()
 
     // Brightness
-    if (!this.device.curtain?.hide_lightsensor && this.LightSensor?.Service) {
-      const set_minLux = this.device.curtain?.set_minLux ?? 1
-      const set_maxLux = this.device.curtain?.set_maxLux ?? 6001
+    if (!(this.device as curtainConfig).hide_lightsensor && this.LightSensor?.Service) {
+      const set_minLux = (this.device as curtainConfig).set_minLux ?? 1
+      const set_maxLux = (this.device as curtainConfig).set_maxLux ?? 6001
       const lightLevel = this.deviceStatus.lightLevel === 'bright' ? set_maxLux : set_minLux
       this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
       await this.debugLog(`CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
@@ -740,7 +740,7 @@ export class Curtain extends deviceBase {
    * Handle requests to set the value of the "Target Position" characteristic
    */
   async OpenModeSwitchSet(value: CharacteristicValue): Promise<void> {
-    if (this.OpenModeSwitch && this.device.curtain?.silentModeSwitch) {
+    if (this.OpenModeSwitch && (this.device as curtainConfig).silentModeSwitch) {
       this.debugLog(`Silent Open Mode: ${value}`)
       this.OpenModeSwitch.On = value
       this.accessory.context.OpenModeSwitch.On = value
@@ -754,7 +754,7 @@ export class Curtain extends deviceBase {
    * Handle requests to set the value of the "Target Position" characteristic
    */
   async CloseModeSwitchSet(value: CharacteristicValue): Promise<void> {
-    if (this.CloseModeSwitch && this.device.curtain?.silentModeSwitch) {
+    if (this.CloseModeSwitch && (this.device as curtainConfig).silentModeSwitch) {
       this.debugLog(`Silent Close Mode: ${value}`)
       this.CloseModeSwitch.On = value
       this.accessory.context.CloseModeSwitch.On = value
@@ -775,7 +775,7 @@ export class Curtain extends deviceBase {
     // HoldPosition
     await this.updateCharacteristic(this.WindowCovering.Service, this.hap.Characteristic.HoldPosition, this.WindowCovering.HoldPosition, 'HoldPosition')
     // CurrentAmbientLightLevel
-    if (!this.device.curtain?.hide_lightsensor && this.LightSensor?.Service) {
+    if (!(this.device as curtainConfig).hide_lightsensor && this.LightSensor?.Service) {
       const history = { time: Math.round(new Date().valueOf() / 1000), lux: this.LightSensor.CurrentAmbientLightLevel }
       await this.updateCharacteristic(this.LightSensor?.Service, this.hap.Characteristic.CurrentAmbientLightLevel, this.LightSensor?.CurrentAmbientLightLevel, 'CurrentAmbientLightLevel', history)
     }
@@ -806,10 +806,10 @@ export class Curtain extends deviceBase {
     let setPositionMode: number
     let Mode: string
     if (Number(this.WindowCovering.TargetPosition) > 50) {
-      if (this.device.curtain?.setOpenMode === '1' || this.OpenModeSwitch?.On) {
+      if ((this.device as curtainConfig).setOpenMode === '1' || this.OpenModeSwitch?.On) {
         setPositionMode = 1
         Mode = 'Silent Mode'
-      } else if (this.device.curtain?.setOpenMode === '0' || !this.OpenModeSwitch?.On) {
+      } else if ((this.device as curtainConfig).setOpenMode === '0' || !this.OpenModeSwitch?.On) {
         setPositionMode = 0
         Mode = 'Performance Mode'
       } else {
@@ -817,10 +817,10 @@ export class Curtain extends deviceBase {
         Mode = 'Default Mode'
       }
     } else {
-      if (this.device.curtain?.setCloseMode === '1' || this.CloseModeSwitch?.On) {
+      if ((this.device as curtainConfig).setCloseMode === '1' || this.CloseModeSwitch?.On) {
         setPositionMode = 1
         Mode = 'Silent Mode'
-      } else if (this.device.curtain?.setCloseMode === '0' || !this.CloseModeSwitch?.On) {
+      } else if ((this.device as curtainConfig).setCloseMode === '0' || !this.CloseModeSwitch?.On) {
         setPositionMode = 0
         Mode = 'Performance Mode'
       } else {
@@ -872,13 +872,13 @@ export class Curtain extends deviceBase {
   }
 
   async setMinMax(): Promise<void> {
-    if (this.device.curtain?.set_min) {
-      if (Number(this.WindowCovering.CurrentPosition) <= this.device.curtain?.set_min) {
+    if ((this.device as curtainConfig).set_min) {
+      if (Number(this.WindowCovering.CurrentPosition) <= (this.device as curtainConfig).set_min!) {
         this.WindowCovering.CurrentPosition = 0
       }
     }
-    if (this.device.curtain?.set_max) {
-      if (Number(this.WindowCovering.CurrentPosition) >= this.device.curtain?.set_max) {
+    if ((this.device as curtainConfig).set_max) {
+      if (Number(this.WindowCovering.CurrentPosition) >= (this.device as curtainConfig).set_max!) {
         this.WindowCovering.CurrentPosition = 100
       }
     }
@@ -904,7 +904,7 @@ export class Curtain extends deviceBase {
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e)
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, e)
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.ChargingState, e)
-    if (!this.device.curtain?.hide_lightsensor && this.LightSensor?.Service) {
+    if (!(this.device as curtainConfig).hide_lightsensor && this.LightSensor?.Service) {
       this.LightSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, e)
       this.LightSensor.Service.updateCharacteristic(this.hap.Characteristic.StatusActive, e)
     }

@@ -8,13 +8,13 @@ import type { MqttClient } from 'mqtt'
 import type { ad, bodyChange, device } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig, SwitchBotPlatformConfig } from '../settings.js'
+import type { blindTiltConfig, botConfig, ceilingLightConfig, colorBulbConfig, contactConfig, curtainConfig, devicesConfig, hubConfig, humidifierConfig, indoorOutdoorSensorConfig, lockConfig, meterConfig, motionConfig, stripLightConfig, SwitchBotPlatformConfig, waterDetectorConfig } from '../settings.js'
 
 import { hostname } from 'node:os'
 
 import { SwitchBotBLEModel, SwitchBotBLEModelFriendlyName, SwitchBotBLEModelName, SwitchBotModel } from 'node-switchbot'
 
-import { BlindTiltMappingMode, formatDeviceIdAsMac, sleep } from '../utils.js'
+import { formatDeviceIdAsMac, sleep } from '../utils.js'
 
 export abstract class deviceBase {
   public readonly api: API
@@ -179,25 +179,60 @@ export abstract class deviceBase {
       device.maxRetries !== 0 && { maxRetries: device.maxRetries },
       device.delayBetweenRetries !== 0 && { delayBetweenRetries: device.delayBetweenRetries },
     )
+    let deviceSpecificConfig = {}
+    switch (device.configDeviceType) {
+      case 'Bot':
+        deviceSpecificConfig = device as botConfig
+        break
+      case 'Meter':
+      case 'MeterPlus':
+        deviceSpecificConfig = device as meterConfig
+        break
+      case 'IOSensor':
+        deviceSpecificConfig = device as indoorOutdoorSensorConfig
+        break
+      case 'Humidifier':
+        deviceSpecificConfig = device as humidifierConfig
+        break
+      case 'Curtain':
+      case 'Curtain3':
+        deviceSpecificConfig = device as curtainConfig
+        break
+      case 'Blind Tilt':
+        deviceSpecificConfig = device as blindTiltConfig
+        break
+      case 'Contact Sensor':
+        deviceSpecificConfig = device as contactConfig
+        break
+      case 'Motion Sensor':
+        deviceSpecificConfig = device as motionConfig
+        break
+      case 'Water Detector':
+        deviceSpecificConfig = device as waterDetectorConfig
+        break
+      case 'Color Bulb':
+        deviceSpecificConfig = device as colorBulbConfig
+        break
+      case 'Strip Light':
+        deviceSpecificConfig = device as stripLightConfig
+        break
+      case 'Ceiling Light':
+      case 'Ceiling Light Pro':
+        deviceSpecificConfig = device as ceilingLightConfig
+        break
+      case 'Lock':
+      case 'Lock Pro':
+        deviceSpecificConfig = device as lockConfig
+        break
+      case 'Hub2':
+        deviceSpecificConfig = device as hubConfig
+        break
+      default:
+    }
     const config = Object.assign(
       {},
       deviceConfig,
-      device.bot,
-      device.lock,
-      device.ceilinglight,
-      device.colorbulb,
-      device.contact,
-      device.motion,
-      device.curtain,
-      device.hub,
-      device.waterdetector,
-      device.humidifier,
-      device.meter,
-      device.iosensor,
-      device.striplight,
-      device.plug,
-      device.blindTilt?.mode === undefined ? { mode: BlindTiltMappingMode.OnlyUp } : {},
-      device.blindTilt,
+      deviceSpecificConfig,
     )
 
     if (Object.keys(config).length !== 0) {

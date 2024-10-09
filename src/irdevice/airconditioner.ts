@@ -6,7 +6,7 @@ import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge
 import type { bodyChange, irdevice } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { irDevicesConfig } from '../settings.js'
+import type { irAirConfig, irDevicesConfig } from '../settings.js'
 
 import { irdeviceBase } from './irdevice.js'
 
@@ -124,8 +124,8 @@ export class AirConditioner extends irdeviceBase {
 
     // Initialize HumiditySensor property
 
-    if (this.device.irair?.meterType && this.device.irair?.meterId) {
-      const meterUuid = this.platform.api.hap.uuid.generate(`${this.device.irair.meterId}-${this.device.irair.meterType}`)
+    if ((this.device as irAirConfig).meterType && (this.device as irAirConfig).meterId) {
+      const meterUuid = this.platform.api.hap.uuid.generate(`${(device as irAirConfig).meterId}-${(device as irAirConfig).meterType}`)
       this.meter = this.platform.accessories.find(accessory => accessory.UUID === meterUuid)
       accessory.context.HumiditySensor = accessory.context.HumiditySensor ?? {}
       this.HumiditySensor = {
@@ -136,8 +136,8 @@ export class AirConditioner extends irdeviceBase {
       accessory.context.HumiditySensor = this.HumiditySensor as object
     }
 
-    if (this.device.irair?.meterType && this.device.irair?.meterId) {
-      const meterUuid = this.platform.api.hap.uuid.generate(`${this.device.irair.meterId}-${this.device.irair.meterType}`)
+    if ((this.device as irAirConfig).meterType && (this.device as irAirConfig).meterId) {
+      const meterUuid = this.platform.api.hap.uuid.generate(`${(device as irAirConfig).meterId}-${(device as irAirConfig).meterType}`)
       this.meter = this.platform.accessories.find(accessory => accessory.UUID === meterUuid)
     }
 
@@ -253,38 +253,38 @@ export class AirConditioner extends irdeviceBase {
         this.HeaterCooler.RotationSpeed = this.HeaterCooler.RotationSpeed || this.accessory.context.RotationSpeed
       }
 
-      if (this.device.irair?.hide_automode) {
-        this.hide_automode = this.device.irair?.hide_automode
+      if ((this.device as irAirConfig).hide_automode) {
+        this.hide_automode = (this.device as irAirConfig).hide_automode
         this.accessory.context.hide_automode = this.hide_automode
       } else {
-        this.hide_automode = this.device.irair?.hide_automode
+        this.hide_automode = (this.device as irAirConfig).hide_automode
         this.accessory.context.hide_automode = this.hide_automode
       }
 
-      if (this.device.irair?.set_max_heat) {
-        this.set_max_heat = this.device.irair?.set_max_heat
+      if ((this.device as irAirConfig).set_max_heat) {
+        this.set_max_heat = (this.device as irAirConfig).set_max_heat
         this.accessory.context.set_max_heat = this.set_max_heat
       } else {
         this.set_max_heat = 35
         this.accessory.context.set_max_heat = this.set_max_heat
       }
-      if (this.device.irair?.set_min_heat) {
-        this.set_min_heat = this.device.irair?.set_min_heat
+      if ((this.device as irAirConfig).set_min_heat) {
+        this.set_min_heat = (this.device as irAirConfig).set_min_heat
         this.accessory.context.set_min_heat = this.set_min_heat
       } else {
         this.set_min_heat = 0
         this.accessory.context.set_min_heat = this.set_min_heat
       }
 
-      if (this.device.irair?.set_max_cool) {
-        this.set_max_cool = this.device.irair?.set_max_cool
+      if ((this.device as irAirConfig).set_max_cool) {
+        this.set_max_cool = (this.device as irAirConfig).set_max_cool
         this.accessory.context.set_max_cool = this.set_max_cool
       } else {
         this.set_max_cool = 35
         this.accessory.context.set_max_cool = this.set_max_cool
       }
-      if (this.device.irair?.set_min_cool) {
-        this.set_min_cool = this.device.irair?.set_min_cool
+      if ((this.device as irAirConfig).set_min_cool) {
+        this.set_min_cool = (this.device as irAirConfig).set_min_cool
         this.accessory.context.set_min_cool = this.set_min_cool
       } else {
         this.set_min_cool = 0
@@ -525,10 +525,10 @@ export class AirConditioner extends irdeviceBase {
   }
 
   async getAirConditionerConfigSettings(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): Promise<void> {
-    accessory.context.hide_automode = this.hide_automode = device.irair?.hide_automode
-    accessory.context.set_max_heat = this.set_max_heat = device.irair?.set_max_heat ?? 35
-    accessory.context.set_min_heat = this.set_min_heat = device.irair?.set_min_heat ?? 0
-    accessory.context.set_max_cool = this.set_max_cool = device.irair?.set_max_cool ?? 35
-    accessory.context.set_min_cool = this.set_min_cool = device.irair?.set_min_cool ?? 0
+    accessory.context.hide_automode = this.hide_automode = (device as irAirConfig).hide_automode
+    accessory.context.set_max_heat = this.set_max_heat = (device as irAirConfig).set_max_heat ?? 35
+    accessory.context.set_min_heat = this.set_min_heat = (device as irAirConfig).set_min_heat ?? 0
+    accessory.context.set_max_cool = this.set_max_cool = (device as irAirConfig).set_max_cool ?? 35
+    accessory.context.set_min_cool = this.set_min_cool = (device as irAirConfig).set_min_cool ?? 0
   }
 }

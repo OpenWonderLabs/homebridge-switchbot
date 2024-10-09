@@ -6,7 +6,7 @@ import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge
 import type { bodyChange, irdevice } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { irDevicesConfig } from '../settings.js'
+import type { irDevicesConfig, irLightConfig } from '../settings.js'
 
 import { irdeviceBase } from './irdevice.js'
 
@@ -46,7 +46,7 @@ export class Light extends irdeviceBase {
     // Set category
     accessory.category = this.hap.Categories.LIGHTBULB
 
-    if (!device.irlight?.stateless) {
+    if (!(device as irLightConfig).stateless) {
       // Initialize LightBulb Service
       accessory.context.LightBulb = accessory.context.LightBulb ?? {}
       this.LightBulb = {
@@ -219,7 +219,7 @@ export class Light extends irdeviceBase {
 
   async updateHomeKitCharacteristics(): Promise<void> {
     await this.debugLog('updateHomeKitCharacteristics')
-    if (!this.device.irlight?.stateless && this.LightBulb?.Service) {
+    if (!(this.device as irLightConfig).stateless && this.LightBulb?.Service) {
       // On
       await this.updateCharacteristic(this.LightBulb.Service, this.hap.Characteristic.On, this.LightBulb.On, 'On')
     } else {
@@ -235,7 +235,7 @@ export class Light extends irdeviceBase {
   }
 
   async apiError(e: any): Promise<void> {
-    if (!this.device.irlight?.stateless) {
+    if (!(this.device as irLightConfig).stateless) {
       this.LightBulb?.Service.updateCharacteristic(this.hap.Characteristic.On, e)
     } else {
       this.ProgrammableSwitchOn?.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent, e)

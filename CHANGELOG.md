@@ -2,14 +2,21 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [3.9.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.9.0) (2024-10-XX)
+## [4.0.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v4.0.0) (2024-10-XX)
 
 ### What's Changed
-- OpenAPI is now support by `node-switchbot`, so made changes to refect that.
+#### ⚠️ Breaking Changes
+- OpenAPI is now support by Version [3.0.0](https://github.com/OpenWonderLabs/node-switchbot/releases/latest) of [`node-switchbot`](https://github.com/OpenWonderLabs/node-switchbot), so made changes to refect that.
+- Moved all device specific configs to all the same levels to elimate the use of multiple of the same config.
+  - **If you have config set for any of the following SwitchBot device Types: `Curtain`, `Blind Tilt`, `Color Bulb`, `Strip Light`, `Hub`, `Meter`, `Meter Plus`, `Humidifier`, `Contact Sensor`, `Motion Sensor`, `Water Detector`, `Ceiling Light`, or `Lock`; you will need to re-setup your config for that deviceId**
+  - **If you have config set for any of the following IR device Types: `Fan`, `DIY Fan`, `Light`, `DIY Light`, `Air Conditioner`, `DIY Air Conditioner`, or `Others`; you will need to re-setup your config for that deviceId**
+
+#### Other Changes
 - Fix incorrect handling of openState in Contact Sensor [#1061](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/1024), Thanks [@nzws](https://github.com/nzws)
+- Fixe light level stuck at max [#1066](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/1066), Thanks [@4gra](https://github.com/4gra)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.8.2...v3.8.3
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.8.2...v4.0.0
 
 ## [3.8.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v3.8.2) (2024-09-19)
 

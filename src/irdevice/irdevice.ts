@@ -6,7 +6,7 @@ import type { API, CharacteristicValue, HAP, Logging, PlatformAccessory, Service
 import type { bodyChange, irdevice } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { irDevicesConfig, SwitchBotPlatformConfig } from '../settings.js'
+import type { irAirConfig, irDevicesConfig, irFanConfig, irLightConfig, irOtherConfig, SwitchBotPlatformConfig } from '../settings.js'
 
 export abstract class irdeviceBase {
   public readonly api: API
@@ -78,18 +78,30 @@ export abstract class irdeviceBase {
       device.disablePushOff === true && { disablePushOff: device.disablePushOff },
       device.disablePushDetail === true && { disablePushDetail: device.disablePushDetail },
     )
+    let deviceSpecificConfig = {}
+    switch (device.configRemoteType) {
+      case 'Fan':
+      case 'DIY Fan':
+        deviceSpecificConfig = device as irFanConfig
+        break
+      case 'Light':
+      case 'DIY Light':
+        deviceSpecificConfig = device as irLightConfig
+        break
+      case 'Air Conditioner':
+      case 'DIY Air Conditioner':
+        deviceSpecificConfig = device as irAirConfig
+        break
+      case 'Others':
+        deviceSpecificConfig = device as irOtherConfig
+        break
+      default:
+        break
+    }
     const config = Object.assign(
       {},
       deviceConfig,
-      device.irair,
-      device.irpur,
-      device.ircam,
-      device.irfan,
-      device.irlight,
-      device.other,
-      device.irtv,
-      device.irvc,
-      device.irwh,
+      deviceSpecificConfig,
     )
     if (Object.keys(config).length !== 0) {
       this.debugSuccessLog(`Config: ${JSON.stringify(config)}`)

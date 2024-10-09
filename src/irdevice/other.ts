@@ -6,7 +6,7 @@ import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge
 import type { bodyChange, irdevice } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { irDevicesConfig } from '../settings.js'
+import type { irDevicesConfig, irOtherConfig } from '../settings.js'
 
 import { irdeviceBase } from './irdevice.js'
 
@@ -784,10 +784,8 @@ export class Others extends irdeviceBase {
   }
 
   async getOtherConfigSettings(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): Promise<void> {
-    this.otherDeviceType = accessory.context.otherDeviceType
-      ? accessory.context.otherDeviceType
-      : device.other?.deviceType ? device.other.deviceType : 'outlet'
-    const deviceType = accessory.context.otherDeviceType ? 'Accessory Cache' : device.other?.deviceType ? 'Device Config' : 'Default'
-    await this.debugLog(`Use ${deviceType} Type: ${this.otherDeviceType}`)
+    this.otherDeviceType = (device as irOtherConfig).type ?? 'outlet'
+    const deviceType = (device as irOtherConfig).type ? 'Device Config' : 'Default'
+    await this.debugLog(`Use ${deviceType} Device Type: ${this.otherDeviceType}`)
   }
 }

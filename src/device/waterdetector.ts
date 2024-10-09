@@ -6,7 +6,7 @@ import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge
 import type { device, waterLeakDetectorServiceData, waterLeakDetectorStatus, waterLeakDetectorWebhookContext } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig } from '../settings.js'
+import type { devicesConfig, waterDetectorConfig } from '../settings.js'
 
 /*
 * For Testing Locally:
@@ -87,7 +87,7 @@ export class WaterDetector extends deviceBase {
     })
 
     // Initialize Leak Sensor Service
-    if (device.waterdetector?.hide_leak) {
+    if ((device as waterDetectorConfig).hide_leak) {
       if (this.LeakSensor) {
         this.debugLog('Removing Leak Sensor Service')
         this.LeakSensor.Service = this.accessory.getService(this.hap.Service.LeakSensor) as Service
@@ -149,13 +149,13 @@ export class WaterDetector extends deviceBase {
     await this.debugLog(`(state, status, battery) = BLE: (${this.serviceData.state}, ${this.serviceData.status}, ${this.serviceData.battery}), current:(${this.LeakSensor?.LeakDetected}, ${this.Battery.BatteryLevel})`)
 
     // LeakSensor
-    if (!this.device.waterdetector?.hide_leak && this.LeakSensor?.Service) {
+    if (!(this.device as waterDetectorConfig).hide_leak && this.LeakSensor?.Service) {
       // StatusActive
       this.LeakSensor.StatusActive = this.serviceData.state
       await this.debugLog(`StatusActive: ${this.LeakSensor.StatusActive}`)
 
       // LeakDetected
-      if (this.device.waterdetector?.dry) {
+      if ((this.device as waterDetectorConfig).dry) {
         this.LeakSensor.LeakDetected = this.serviceData.status === 0 ? 1 : 0
         this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}`)
       } else {
@@ -178,13 +178,13 @@ export class WaterDetector extends deviceBase {
     await this.debugLog(`(status, battery) = OpenAPI: (${this.deviceStatus.status}, ${this.deviceStatus.battery}), current:(${this.LeakSensor?.LeakDetected}, ${this.Battery.BatteryLevel})`)
 
     // LeakSensor
-    if (!this.device.waterdetector?.hide_leak && this.LeakSensor?.Service) {
+    if (!(this.device as waterDetectorConfig).hide_leak && this.LeakSensor?.Service) {
       // StatusActive
       this.LeakSensor.StatusActive = this.deviceStatus.battery !== 0
       await this.debugLog(`StatusActive: ${this.LeakSensor.StatusActive}`)
 
       // LeakDetected
-      if (this.device.waterdetector?.dry) {
+      if ((this.device as waterDetectorConfig).dry) {
         this.LeakSensor.LeakDetected = this.deviceStatus.status === 0 ? 1 : 0
         this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}`)
       } else {
@@ -224,13 +224,13 @@ export class WaterDetector extends deviceBase {
     await this.debugLog(`(detectionState, battery) = Webhook: (${this.webhookContext.detectionState}, ${this.webhookContext.battery}), current:(${this.LeakSensor?.LeakDetected}, ${this.Battery.BatteryLevel})`)
 
     // LeakSensor
-    if (!this.device.waterdetector?.hide_leak && this.LeakSensor?.Service) {
+    if (!(this.device as waterDetectorConfig).hide_leak && this.LeakSensor?.Service) {
       // StatusActive
       this.LeakSensor.StatusActive = !!this.webhookContext.detectionState
       await this.debugLog(`StatusActive: ${this.LeakSensor.StatusActive}`)
 
       // LeakDetected
-      if (this.device.waterdetector?.dry) {
+      if ((this.device as waterDetectorConfig).dry) {
         this.LeakSensor.LeakDetected = this.webhookContext.detectionState === 0 ? 1 : 0
         this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}`)
       } else {
@@ -358,7 +358,7 @@ export class WaterDetector extends deviceBase {
    * Updates the status for each of the HomeKit Characteristics
    */
   async updateHomeKitCharacteristics(): Promise<void> {
-    if (!this.device.waterdetector?.hide_leak && this.LeakSensor?.Service) {
+    if (!(this.device as waterDetectorConfig).hide_leak && this.LeakSensor?.Service) {
       // StatusActive
       await this.updateCharacteristic(this.LeakSensor.Service, this.hap.Characteristic.StatusActive, this.LeakSensor.StatusActive, 'StatusActive')
       // LeakDetected
@@ -380,7 +380,7 @@ export class WaterDetector extends deviceBase {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      if (!this.device.waterdetector?.hide_leak && this.LeakSensor?.Service) {
+      if (!(this.device as waterDetectorConfig).hide_leak && this.LeakSensor?.Service) {
         this.LeakSensor.Service.updateCharacteristic(this.hap.Characteristic.StatusActive, false)
         this.LeakSensor.Service.updateCharacteristic(this.hap.Characteristic.LeakDetected, this.hap.Characteristic.LeakDetected.LEAK_NOT_DETECTED)
       }
@@ -388,7 +388,7 @@ export class WaterDetector extends deviceBase {
   }
 
   async apiError(e: any): Promise<void> {
-    if (!this.device.waterdetector?.hide_leak && this.LeakSensor?.Service) {
+    if (!(this.device as waterDetectorConfig).hide_leak && this.LeakSensor?.Service) {
       this.LeakSensor.Service.updateCharacteristic(this.hap.Characteristic.StatusActive, e)
       this.LeakSensor.Service.updateCharacteristic(this.hap.Characteristic.LeakDetected, e)
     }

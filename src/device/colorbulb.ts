@@ -6,7 +6,7 @@ import type { CharacteristicValue, Controller, ControllerConstructor, Controller
 import type { bodyChange, colorBulbServiceData, colorBulbStatus, colorBulbWebhookContext, device, SwitchbotDevice, WoBulb } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig } from '../settings.js'
+import type { colorBulbConfig, devicesConfig } from '../settings.js'
 
 /*
 * For Testing Locally:
@@ -107,7 +107,7 @@ export class ColorBulb extends deviceBase {
     }).onSet(this.OnSet.bind(this))
 
     this.LightBulb.Service.getCharacteristic(this.hap.Characteristic.Brightness).setProps({
-      minStep: device.colorbulb?.set_minStep ?? 1,
+      minStep: (device as colorBulbConfig)?.set_minStep ?? 1,
       minValue: 0,
       maxValue: 100,
       validValueRanges: [0, 100],
@@ -853,13 +853,8 @@ export class ColorBulb extends deviceBase {
     this.adaptiveLighting = accessory.context.adaptiveLighting ?? true
     await this.debugLog(`adaptiveLighting: ${this.adaptiveLighting}`)
     // Adaptive Lighting Shift
-    if (device.colorbulb?.adaptiveLightingShift) {
-      this.adaptiveLightingShift = device.colorbulb.adaptiveLightingShift
-      this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`)
-    } else {
-      this.adaptiveLightingShift = 0
-      this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`)
-    }
+    this.adaptiveLightingShift = (device as colorBulbConfig).adaptiveLightingShift ?? 0
+    this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`)
   }
 
   async BLEPushConnection() {

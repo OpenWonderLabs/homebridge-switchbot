@@ -6,7 +6,7 @@ import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge
 import type { bodyChange, irdevice } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { irDevicesConfig } from '../settings.js'
+import type { irDevicesConfig, irFanConfig } from '../settings.js'
 
 import { irdeviceBase } from './irdevice.js'
 
@@ -51,16 +51,16 @@ export class IRFan extends irdeviceBase {
       return this.Fan.Active
     }).onSet(this.ActiveSet.bind(this))
 
-    if (device.irfan?.rotation_speed) {
+    if ((device as irFanConfig).rotation_speed) {
       // handle Rotation Speed events using the RotationSpeed characteristic
       this.Fan.Service.getCharacteristic(this.hap.Characteristic.RotationSpeed).setProps({
-        minStep: device.irfan?.set_minStep ?? 1,
-        minValue: device.irfan?.set_min ?? 1,
-        maxValue: device.irfan?.set_max ?? 100,
+        minStep: (device as irFanConfig).set_minStep ?? 1,
+        minValue: (device as irFanConfig).set_min ?? 1,
+        maxValue: (device as irFanConfig).set_max ?? 100,
       }).onGet(() => {
         return this.Fan.RotationSpeed
       }).onSet(this.RotationSpeedSet.bind(this))
-    } else if (this.Fan.Service.testCharacteristic(this.hap.Characteristic.RotationSpeed) && !device.irfan?.swing_mode) {
+    } else if (this.Fan.Service.testCharacteristic(this.hap.Characteristic.RotationSpeed) && !(device as irFanConfig).swing_mode) {
       const characteristic = this.Fan.Service.getCharacteristic(this.hap.Characteristic.RotationSpeed)
       this.Fan.Service.removeCharacteristic(characteristic)
       this.debugLog('Rotation Speed Characteristic was removed.')
@@ -68,12 +68,12 @@ export class IRFan extends irdeviceBase {
       this.debugLog(`RotationSpeed Characteristic was not removed/added, Clear Cache on ${this.accessory.displayName} to remove Chracteristic`)
     }
 
-    if (device.irfan?.swing_mode) {
+    if ((device as irFanConfig).swing_mode) {
       // handle Osolcation events using the SwingMode characteristic
       this.Fan.Service.getCharacteristic(this.hap.Characteristic.SwingMode).onGet(() => {
         return this.Fan.SwingMode
       }).onSet(this.SwingModeSet.bind(this))
-    } else if (this.Fan.Service.testCharacteristic(this.hap.Characteristic.SwingMode) && !device.irfan?.swing_mode) {
+    } else if (this.Fan.Service.testCharacteristic(this.hap.Characteristic.SwingMode) && !(device as irFanConfig).swing_mode) {
       const characteristic = this.Fan.Service.getCharacteristic(this.hap.Characteristic.SwingMode)
       this.Fan.Service.removeCharacteristic(characteristic)
       this.debugLog('Swing Mode Characteristic was removed.')

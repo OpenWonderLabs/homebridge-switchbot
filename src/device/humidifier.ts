@@ -6,7 +6,7 @@ import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge
 import type { bodyChange, device, humidifierServiceData, humidifierStatus, humidifierWebhookContext, SwitchbotDevice, WoHumi } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig } from '../settings.js'
+import type { devicesConfig, humidifierConfig } from '../settings.js'
 
 /*
 * For Testing Locally:
@@ -100,13 +100,13 @@ export class Humidifier extends deviceBase {
       validValueRanges: [0, 100],
       minValue: 0,
       maxValue: 100,
-      minStep: device.humidifier?.set_minStep ?? 1,
+      minStep: (device as humidifierConfig).set_minStep ?? 1,
     }).onGet(() => {
       return this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold
     }).onSet(this.RelativeHumidityHumidifierThresholdSet.bind(this))
 
     // Initialize the Temperature Sensor Service
-    if (device.humidifier?.hide_temperature) {
+    if ((device as humidifierConfig).hide_temperature) {
       if (this.TemperatureSensor) {
         this.debugLog('Removing Temperature Sensor Service')
         this.TemperatureSensor!.Service = this.accessory.getService(this.hap.Service.TemperatureSensor) as Service
@@ -233,7 +233,7 @@ export class Humidifier extends deviceBase {
     await this.debugLog(`CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`)
 
     // Current Temperature
-    if (!this.device.humidifier?.hide_temperature && this.TemperatureSensor?.Service) {
+    if (!(this.device as humidifierConfig).hide_temperature && this.TemperatureSensor?.Service) {
       this.TemperatureSensor.CurrentTemperature = this.deviceStatus.temperature
       await this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}`)
     }
@@ -286,15 +286,15 @@ export class Humidifier extends deviceBase {
 
   async parseStatusWebhook(): Promise<void> {
     await this.debugLog('parseStatusWebhook')
-    await this.debugLog(`(temperature, humidity) = Webhook:(${convertUnits(this.webhookContext.temperature, this.webhookContext.scale, this.device.iosensor?.convertUnitTo)}, ${this.webhookContext.humidity}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumidifierDehumidifier.CurrentRelativeHumidity})`)
+    await this.debugLog(`(temperature, humidity) = Webhook:(${convertUnits(this.webhookContext.temperature, this.webhookContext.scale, (this.device as humidifierConfig).convertUnitTo)}, ${this.webhookContext.humidity}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumidifierDehumidifier.CurrentRelativeHumidity})`)
 
     // CurrentRelativeHumidity
     this.HumidifierDehumidifier.CurrentRelativeHumidity = validHumidity(this.webhookContext.humidity)
     await this.debugLog(`CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`)
 
     // CurrentTemperature
-    if (!this.device.humidifier?.hide_temperature && this.TemperatureSensor?.Service) {
-      this.TemperatureSensor.CurrentTemperature = convertUnits(this.webhookContext.temperature, this.webhookContext.scale, this.device.iosensor?.convertUnitTo)
+    if (!(this.device as humidifierConfig).hide_temperature && this.TemperatureSensor?.Service) {
+      this.TemperatureSensor.CurrentTemperature = convertUnits(this.webhookContext.temperature, this.webhookContext.scale, (this.device as humidifierConfig).convertUnitTo)
       await this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}`)
     }
   }
@@ -625,7 +625,7 @@ export class Humidifier extends deviceBase {
     // RelativeHumidityHumidifierThreshold
     await this.updateCharacteristic(this.HumidifierDehumidifier.Service, this.hap.Characteristic.RelativeHumidityHumidifierThreshold, this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold, 'RelativeHumidityHumidifierThreshold')
     // CurrentTemperature
-    if (!this.device.humidifier?.hide_temperature && this.TemperatureSensor?.Service) {
+    if (!(this.device as humidifierConfig).hide_temperature && this.TemperatureSensor?.Service) {
       await this.updateCharacteristic(this.TemperatureSensor.Service, this.hap.Characteristic.CurrentTemperature, this.TemperatureSensor.CurrentTemperature, 'CurrentTemperature')
     }
   }
@@ -660,7 +660,7 @@ export class Humidifier extends deviceBase {
     this.HumidifierDehumidifier.Service.updateCharacteristic(this.hap.Characteristic.TargetHumidifierDehumidifierState, e)
     this.HumidifierDehumidifier.Service.updateCharacteristic(this.hap.Characteristic.Active, e)
     this.HumidifierDehumidifier.Service.updateCharacteristic(this.hap.Characteristic.RelativeHumidityHumidifierThreshold, e)
-    if (!this.device.humidifier?.hide_temperature && this.TemperatureSensor?.Service) {
+    if (!(this.device as humidifierConfig).hide_temperature && this.TemperatureSensor?.Service) {
       this.TemperatureSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, e)
     }
   }

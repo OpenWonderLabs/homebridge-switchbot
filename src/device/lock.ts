@@ -6,7 +6,7 @@ import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge
 import type { bodyChange, device, lockProServiceData, lockProStatus, lockProWebhookContext, lockServiceData, lockStatus, lockWebhookContext, SwitchbotDevice } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig } from '../settings.js'
+import type { devicesConfig, lockConfig } from '../settings.js'
 
 /*
 * For Testing Locally:
@@ -107,7 +107,7 @@ export class Lock extends deviceBase {
     })
 
     // Contact Sensor Service
-    if (device.lock?.hide_contactsensor) {
+    if ((device as lockConfig).hide_contactsensor) {
       if (this.ContactSensor) {
         this.debugLog('Removing Contact Sensor Service')
         this.ContactSensor.Service = this.accessory.getService(this.hap.Service.ContactSensor) as Service
@@ -129,7 +129,7 @@ export class Lock extends deviceBase {
     }
 
     // Initialize Latch Button Service
-    if (device.lock?.activate_latchbutton === false) {
+    if ((device as lockConfig).activate_latchbutton === false) {
       if (this.Switch) {
         this.debugLog('Removing Latch Button Service')
         this.Switch.Service = accessory.getService(this.hap.Service.Switch) as Service
@@ -218,7 +218,7 @@ export class Lock extends deviceBase {
     await this.debugLog(`LockTargetState: ${this.LockMechanism.LockTargetState}`)
 
     // Contact Sensor
-    if (!this.device.lock?.hide_contactsensor && this.ContactSensor?.Service) {
+    if (!(this.device as lockConfig).hide_contactsensor && this.ContactSensor?.Service) {
       this.ContactSensor.ContactSensorState = this.serviceData.door_open
         ? this.hap.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED
         : this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED
@@ -253,7 +253,7 @@ export class Lock extends deviceBase {
     await this.debugLog(`LockTargetState: ${this.LockMechanism.LockTargetState}`)
 
     // ContactSensorState
-    if (!this.device.lock?.hide_contactsensor && this.ContactSensor?.Service) {
+    if (!(this.device as lockConfig).hide_contactsensor && this.ContactSensor?.Service) {
       this.ContactSensor.ContactSensorState = this.deviceStatus.doorState === 'opened'
         ? this.hap.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED
         : this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED
@@ -566,7 +566,7 @@ export class Lock extends deviceBase {
     // LockCurrentState
     await this.updateCharacteristic(this.LockMechanism.Service, this.hap.Characteristic.LockCurrentState, this.LockMechanism.LockCurrentState, 'LockCurrentState')
     // ContactSensorState
-    if (!this.device.lock?.hide_contactsensor && this.ContactSensor?.Service) {
+    if (!(this.device as lockConfig).hide_contactsensor && this.ContactSensor?.Service) {
       await this.updateCharacteristic(this.ContactSensor.Service, this.hap.Characteristic.ContactSensorState, this.ContactSensor.ContactSensorState, 'ContactSensorState')
     }
     // BatteryLevel
@@ -594,7 +594,7 @@ export class Lock extends deviceBase {
     if (this.device.offline) {
       this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockTargetState, this.hap.Characteristic.LockTargetState.SECURED)
       this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockCurrentState, this.hap.Characteristic.LockCurrentState.SECURED)
-      if (!this.device.lock?.hide_contactsensor && this.ContactSensor?.Service) {
+      if (!(this.device as lockConfig).hide_contactsensor && this.ContactSensor?.Service) {
         this.ContactSensor.Service.updateCharacteristic(this.hap.Characteristic.ContactSensorState, this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED)
       }
     }
@@ -603,7 +603,7 @@ export class Lock extends deviceBase {
   async apiError(e: any): Promise<void> {
     this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockTargetState, e)
     this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockCurrentState, e)
-    if (!this.device.lock?.hide_contactsensor && this.ContactSensor?.Service) {
+    if (!(this.device as lockConfig).hide_contactsensor && this.ContactSensor?.Service) {
       this.ContactSensor.Service.updateCharacteristic(this.hap.Characteristic.ContactSensorState, e)
     }
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e)
