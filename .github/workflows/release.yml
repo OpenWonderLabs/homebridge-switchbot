@@ -22,15 +22,17 @@ jobs:
       npm_auth_token: ${{ secrets.npm_token }}
 
   github-releases-to-discord:
-    needs: publish
-
+    name: Discord Webhooks
+    needs: [build_and_test,publish]
     if: ${{ github.repository == 'OpenWonderLabs/homebridge-switchbot' }}
-
     uses: OpenWonderLabs/.github/.github/workflows/discord-webhooks.yml@latest
     with:
-      footer_title: "SwitchBot"
+      title: "SwitchBot Release"
+      description: |
+        Version `v${{ needs.publish.outputs.NPM_VERSION }}`
+      url: "https://github.com/homebridge/camera-utils/releases/tag/v${{ needs.publish.outputs.NPM_VERSION }}"
     secrets:
-      DISCORD_WEBHOOK_URL_LATEST: ${{ secrets.DISCORD_WEBHOOK_URL_LATEST }}
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL_LATEST }}
 
 
 
