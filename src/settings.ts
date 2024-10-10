@@ -23,7 +23,6 @@ export const PLUGIN_NAME = '@switchbot/homebridge-switchbot'
 export interface SwitchBotPlatformConfig extends PlatformConfig {
   credentials?: credentials
   options?: options
-  deviceConfig?: { [deviceType: string]: devicesConfig }
 }
 interface credentials {
   token?: string
@@ -33,6 +32,7 @@ interface credentials {
 
 export interface options {
   devices?: devicesConfig[]
+  deviceConfig?: { [deviceType: string]: devicesConfig }
   irdevices?: irDevicesConfig[]
   allowInvalidCharacters?: boolean
   mqttURL?: string
@@ -132,7 +132,7 @@ export interface curtainConfig extends BaseDeviceConfig {
 export interface blindTiltConfig extends BaseDeviceConfig {
   configDeviceType: 'Blind Tilt'
   disable_group?: boolean
-  mode?: string
+  mapping?: string
   hide_lightsensor?: boolean
   set_minLux?: number
   set_maxLux?: number

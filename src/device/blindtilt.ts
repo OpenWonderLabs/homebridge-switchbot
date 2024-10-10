@@ -86,7 +86,7 @@ export class BlindTilt extends deviceBase {
 
     // default placeholders
 
-    this.mappingMode = ((device as blindTiltConfig).mode as BlindTiltMappingMode) ?? BlindTiltMappingMode.OnlyUp
+    this.mappingMode = ((device as blindTiltConfig).mapping as BlindTiltMappingMode) ?? BlindTiltMappingMode.OnlyUp
     this.debugLog(`Mapping mode: ${this.mappingMode}`)
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API

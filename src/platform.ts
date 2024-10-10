@@ -113,7 +113,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       credentials: config.credentials as object,
       options: config.options as object,
       devices: config.devices as { deviceId: string }[],
-      deviceConfig: config.deviceConfig as { [deviceType: string]: devicesConfig },
     }
 
     // Plugin Configuration
@@ -615,9 +614,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       'Battery Circulator Fan': this.createFan.bind(this),
     }
 
+    const deviceConfig = this.config.options?.deviceConfig?.[device.deviceType] || {}
+
     if (deviceTypeHandlers[device.deviceType!]) {
       await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`)
-      await deviceTypeHandlers[device.deviceType!](device)
+      await deviceTypeHandlers[device.deviceType!]({ ...device, ...deviceConfig })
     } else if (['Hub Mini', 'Hub Plus', 'Remote', 'Indoor Cam', 'remote with screen'].includes(device.deviceType!)) {
       await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}, is currently not supported, device: ${JSON.stringify(device)}`)
     } else {
