@@ -23,6 +23,7 @@ export const PLUGIN_NAME = '@switchbot/homebridge-switchbot'
 export interface SwitchBotPlatformConfig extends PlatformConfig {
   credentials?: credentials
   options?: options
+  deviceConfig?: { [deviceType: string]: devicesConfig }
 }
 interface credentials {
   token?: string

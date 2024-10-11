@@ -113,6 +113,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       credentials: config.credentials as object,
       options: config.options as object,
       devices: config.devices as { deviceId: string }[],
+      deviceConfig: config.deviceConfig as { [deviceType: string]: devicesConfig },
     }
 
     // Plugin Configuration
@@ -526,21 +527,38 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     } else {
       await this.debugLog(`SwitchBot Device Config Set: ${JSON.stringify(this.config.options?.devices)}`)
-      const devices = this.mergeByDeviceId(deviceLists, this.config.options.devices)
-      await this.debugLog(`SwitchBot Devices: ${JSON.stringify(devices)}`)
-      for (const device of devices) {
+
+      // Step 1: Check and assign configDeviceType to deviceType if deviceType is not present
+      const devicesWithTypeConfigPromises = deviceLists.map(async (device) => {
         if (!device.deviceType && device.configDeviceType) {
           device.deviceType = device.configDeviceType
           await this.warnLog(`API is displaying no deviceType: ${device.deviceType}, So using configDeviceType: ${device.configDeviceType}`)
         } else if (!device.deviceType && !device.configDeviceName) {
           await this.errorLog('No deviceType or configDeviceType for device. No device will be created.')
+          return null // Skip this device
         }
-        if (device.deviceType) {
-          if (device.configDeviceName) {
-            device.deviceName = device.configDeviceName
-          }
-          await this.createDevice(device)
+
+        // Retrieve deviceTypeConfig for each device and merge it
+        const deviceTypeConfig = this.config.options?.deviceConfig?.[device.deviceType] || {}
+        return Object.assign({}, device, deviceTypeConfig)
+      })
+
+      // Wait for all promises to resolve
+      const devicesWithTypeConfig = (await Promise.all(devicesWithTypeConfigPromises)).filter(device => device !== null) // Filter out skipped devices
+
+      const devices = this.mergeByDeviceId(this.config.options.devices, devicesWithTypeConfig)
+
+      await this.debugLog(`SwitchBot Devices: ${JSON.stringify(devices)}`)
+
+      for (const device of devices) {
+        const deviceIdConfig = this.config.options?.devices?.[device.deviceId] || {}
+        const deviceWithConfig = Object.assign({}, device, deviceIdConfig)
+
+        if (device.configDeviceName) {
+          device.deviceName = device.configDeviceName
         }
+        // Pass the merged device object to createDevice
+        await this.createDevice(deviceWithConfig)
       }
     }
   }
@@ -614,11 +632,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       'Battery Circulator Fan': this.createFan.bind(this),
     }
 
-    const deviceConfig = this.config.options?.deviceConfig?.[device.deviceType] || {}
-
     if (deviceTypeHandlers[device.deviceType!]) {
       await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`)
-      await deviceTypeHandlers[device.deviceType!]({ ...device, ...deviceConfig })
+      await deviceTypeHandlers[device.deviceType!](device)
     } else if (['Hub Mini', 'Hub Plus', 'Remote', 'Indoor Cam', 'remote with screen'].includes(device.deviceType!)) {
       await this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}, is currently not supported, device: ${JSON.stringify(device)}`)
     } else {

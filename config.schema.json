@@ -1570,7 +1570,225 @@
                   }
                 }
               },
-              "IOSensor": {
+              "WoIOSensor": {
+                "type": "object",
+                "properties": {
+                  "hide_temperature": {
+                    "title": "Hide Temperature Sensor",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Humidifier' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)') && model.options.devices[arrayIndices].deviceId);"
+                    }
+                  },
+                  "convertUnitTo": {
+                    "title": "Convert Temperature Unit To",
+                    "type": "string",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)') && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_temperature);"
+                    },
+                    "oneOf": [
+                      {
+                        "title": "Celsius",
+                        "enum": [
+                          "CELSIUS"
+                        ]
+                      },
+                      {
+                        "title": "Fahrenheit",
+                        "enum": [
+                          "FAHRENHEIT"
+                        ]
+                      }
+                    ]
+                  },
+                  "hide_humidity": {
+                    "title": "Hide Humidity Sensor",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)') && model.options.devices[arrayIndices].deviceId);"
+                    }
+                  },
+                  "hide_device": {
+                    "title": "Hide Device",
+                    "type": "boolean",
+                    "description": "If true, device will be removed or hidden from HomeKit.",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId);"
+                    }
+                  },
+                  "external": {
+                    "title": "External Accessory",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
+                    }
+                  },
+                  "refreshRate": {
+                    "title": "Device Refresh Rate",
+                    "type": "number",
+                    "placeholder": 360,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
+                    }
+                  },
+                  "updateRate": {
+                    "title": "Update Rate",
+                    "type": "number",
+                    "minimum": 1,
+                    "placeholder": 5,
+                    "description": "Indicates the number of seconds before refreshing status while updating progress.",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3' || model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt') && model.options.devices[arrayIndices].deviceId);"
+                    }
+                  },
+                  "pushRate": {
+                    "title": "Device Push Rate",
+                    "type": "number",
+                    "placeholder": 360,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
+                    }
+                  },
+                  "firmware": {
+                    "title": "Firmware Override",
+                    "type": "string",
+                    "placeholder": "1.2.8",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].configDeviceType);"
+                    }
+                  },
+                  "logging": {
+                    "title": "Device Logging Override Setting",
+                    "type": "string",
+                    "required": true,
+                    "default": "",
+                    "oneOf": [
+                      {
+                        "title": "Debug Logging",
+                        "enum": [
+                          "debug"
+                        ]
+                      },
+                      {
+                        "title": "Default Logging",
+                        "enum": [
+                          ""
+                        ]
+                      },
+                      {
+                        "title": "No Logging",
+                        "enum": [
+                          "none"
+                        ]
+                      },
+                      {
+                        "title": "Standard Logging",
+                        "enum": [
+                          "standard"
+                        ]
+                      }
+                    ],
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
+                    }
+                  },
+                  "connectionType": {
+                    "title": "Connection Type",
+                    "type": "string",
+                    "oneOf": [
+                      {
+                        "title": "BLE",
+                        "enum": [
+                          "BLE"
+                        ]
+                      },
+                      {
+                        "title": "BLE/OpenAPI",
+                        "enum": [
+                          "BLE/OpenAPI"
+                        ]
+                      },
+                      {
+                        "title": "Disable",
+                        "enum": [
+                          "Disabled"
+                        ]
+                      },
+                      {
+                        "title": "OpenAPI",
+                        "enum": [
+                          "OpenAPI"
+                        ]
+                      }
+                    ],
+                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
+                    }
+                  },
+                  "scanDuration": {
+                    "title": "Scan Duration (Default is 1 Second) for BLE",
+                    "type": "number",
+                    "placeholder": 1,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].connectionType === 'BLE' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "offline": {
+                    "title": "Offline as Off",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
+                    }
+                  },
+                  "maxRetry": {
+                    "title": "Max Retries for BLE",
+                    "type": "number",
+                    "placeholder": "5",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].connectionType === 'BLE' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI') && (model.options.devices[arrayIndices].configDeviceType === 'Bot' || model.options.devices[arrayIndices].configDeviceType === 'Robot Vacuum Cleaner S1' || model.options.devices[arrayIndices].configDeviceType === 'Robot Vacuum Cleaner S1 Plus' || model.options.devices[arrayIndices].configDeviceType === 'Strip Light' || model.options.devices[arrayIndices].configDeviceType === 'Plug' || model.options.devices[arrayIndices].configDeviceType === 'Plug Mini (JP)' || model.options.devices[arrayIndices].configDeviceType === 'Plug Mini (US)' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3' || model.options.devices[arrayIndices].configDeviceType === 'Color Bulb' || model.options.devices[arrayIndices].configDeviceType === 'Ceiling Light' || model.options.devices[arrayIndices].configDeviceType === 'Ceiling Light Pro' || model.options.devices[arrayIndices].configDeviceType === 'Motion Sensor'));"
+                    }
+                  },
+                  "maxRetries": {
+                    "title": "Device Max Retries for OpenAPI",
+                    "type": "number",
+                    "placeholder": 5,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].connectionType === 'OpenAPI' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "delayBetweenRetries": {
+                    "title": "Device Delay Between Retries for OpenAPI (In Seconds)",
+                    "type": "number",
+                    "placeholder": 3,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].connectionType === 'OpenAPI' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "disableCaching": {
+                    "title": "Disable Caching",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3'));"
+                    }
+                  },
+                  "history": {
+                    "title": "EVE History",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Water Detector' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
+                    }
+                  },
+                  "webhook": {
+                    "title": "Enable Webhook",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.devices && model.options.webhookURL && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].connectionType === 'OpenAPI' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  }
+                }
+              },
+              "Hub 2": {
                 "type": "object",
                 "properties": {
                   "hide_temperature": {
@@ -5398,7 +5616,7 @@
       "items": [
         {
           "type": "help",
-          "helpvalue": "<em class='primary-text'>With SwitchBot Device Setting, you can set device specific settings based on <b style='color: var(--secondary-color);'>deviceId</b>.</em>"
+          "helpvalue": "<em class='primary-text'>With SwitchBot Device Setting, you can set device specific settings based on <b style='color: var(--secondary-color);'>deviceId</b>. This will override Device Type Settings</em>"
         },
         {
           "key": "options.devices",
@@ -5478,7 +5696,7 @@
       "items": [
         {
           "type": "help",
-          "helpvalue": "<em class='primary-text'>Setting a Device Type Setting will override all indiviudally set setting on SwithBot Device Settings.</em>"
+          "helpvalue": "<em class='primary-text'>Setting a Device Type Setting will <b style='color: var(--secondary-color);'>not</b> override indiviudally set setting on SwithBot Device Settings.</em>"
         },
         {
           "type": "fieldset",
@@ -5569,25 +5787,25 @@
           "expandable": true,
           "expanded": false,
           "items": [
-            "options.deviceConfig.IOSensor.hide_temperature",
-            "options.deviceConfig.IOSensor.convertUnitTo",
-            "options.deviceConfig.IOSensor.hide_humidity",
-            "options.deviceConfig.IOSensor.external",
-            "options.deviceConfig.IOSensor.refreshRate",
-            "options.deviceConfig.IOSensor.updateRate",
-            "options.deviceConfig.IOSensor.pushRate",
-            "options.deviceConfig.IOSensor.firmware",
-            "options.deviceConfig.IOSensor.logging",
-            "options.deviceConfig.IOSensor.connectionType",
-            "options.deviceConfig.IOSensor.scanDuration",
-            "options.deviceConfig.IOSensor.hide_device",
-            "options.deviceConfig.IOSensor.offline",
-            "options.deviceConfig.IOSensor.maxRetry",
-            "options.deviceConfig.IOSensor.maxRetries",
-            "options.deviceConfig.IOSensor.delayBetweenRetries",
-            "options.deviceConfig.IOSensor.disableCaching",
-            "options.deviceConfig.IOSensor.history",
-            "options.deviceConfig.IOSensor.webhook"
+            "options.deviceConfig.WoIOSensor.hide_temperature",
+            "options.deviceConfig.WoIOSensor.convertUnitTo",
+            "options.deviceConfig.WoIOSensor.hide_humidity",
+            "options.deviceConfig.WoIOSensor.external",
+            "options.deviceConfig.WoIOSensor.refreshRate",
+            "options.deviceConfig.WoIOSensor.updateRate",
+            "options.deviceConfig.WoIOSensor.pushRate",
+            "options.deviceConfig.WoIOSensor.firmware",
+            "options.deviceConfig.WoIOSensor.logging",
+            "options.deviceConfig.WoIOSensor.connectionType",
+            "options.deviceConfig.WoIOSensor.scanDuration",
+            "options.deviceConfig.WoIOSensor.hide_device",
+            "options.deviceConfig.WoIOSensor.offline",
+            "options.deviceConfig.WoIOSensor.maxRetry",
+            "options.deviceConfig.WoIOSensor.maxRetries",
+            "options.deviceConfig.WoIOSensor.delayBetweenRetries",
+            "options.deviceConfig.WoIOSensor.disableCaching",
+            "options.deviceConfig.WoIOSensor.history",
+            "options.deviceConfig.WoIOSensor.webhook"
           ]
         },
         {
