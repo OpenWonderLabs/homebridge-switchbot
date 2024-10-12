@@ -3,8 +3,6 @@ name: Node-CI Beta
 on:
   push:
     branches: [beta-*.*.*, beta]
-  release:
-    types: [prereleased]
   workflow_dispatch:
 
 jobs:
@@ -14,15 +12,14 @@ jobs:
       enable_coverage: true
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
+
   lint:
     needs: build_and_test
     uses: OpenWonderLabs/.github/.github/workflows/eslint.yml@latest
 
   publish:
     needs: lint
-
     if: ${{ github.repository == 'OpenWonderLabs/homebridge-switchbot' }}
-
     uses: OpenWonderLabs/.github/.github/workflows/npm-publish.yml@latest
     with:
       tag: 'beta'
@@ -31,6 +28,17 @@ jobs:
       pre_id: 'beta'
     secrets:
       npm_auth_token: ${{ secrets.npm_token }}
+
+  pre-release:
+    needs: publish
+    if: ${{ github.repository == 'OpenWonderLabs/homebridge-switchbot' }}
+    uses: OpenWonderLabs/.github/.github/workflows/pre-release.yml@latest
+    with:
+      npm_version: ${{ needs.publish.outputs.NPM_VERSION }}
+      body: |
+        **Beta Release**
+        **Version**: v${{ needs.publish.outputs.NPM_VERSION }}
+        [How To Test Beta Releases](https://github.com/OpenWonderLabs/homebridge-switchbot/wiki/Beta-Version)
 
   github-releases-to-discord:
     name: Discord Webhooks

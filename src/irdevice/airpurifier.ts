@@ -3,10 +3,10 @@
  * airpurifier.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
+import type { bodyChange, irdevice } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { irDevicesConfig } from '../settings.js'
-import type { irdevice } from '../types/irdevicelist.js'
 
 import { irdeviceBase } from './irdevice.js'
 
@@ -149,11 +149,11 @@ export class AirPurifier extends irdeviceBase {
     if (this.AirPurifier.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOn()
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command,
         parameter: 'default',
         commandType,
-      })
+      }
       await this.pushChanges(bodyChange)
     }
   }
@@ -163,11 +163,11 @@ export class AirPurifier extends irdeviceBase {
     if (this.AirPurifier.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOff()
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command,
         parameter: 'default',
         commandType,
-      })
+      }
       await this.pushChanges(bodyChange)
     }
   }
@@ -191,11 +191,11 @@ export class AirPurifier extends irdeviceBase {
     this.CurrentAPFanSpeed = this.CurrentFanSpeed ?? 1
     this.APActive = this.AirPurifier.Active === 1 ? 'on' : 'off'
     const parameter = `${this.CurrentAPTemp},${this.CurrentAPMode},${this.CurrentAPFanSpeed},${this.APActive}`
-    const bodyChange = JSON.stringify({
+    const bodyChange: bodyChange = {
       command: 'setAll',
       parameter: `${parameter}`,
       commandType: 'command',
-    })
+    }
     if (this.AirPurifier.Active === 1) {
       if ((Number(this.TemperatureSensor!.CurrentTemperature) || 24) < (this.LastTemperature || 30)) {
         this.AirPurifier.CurrentHeaterCoolerState = this.hap.Characteristic.CurrentHeaterCoolerState.COOLING
@@ -213,14 +213,13 @@ export class AirPurifier extends irdeviceBase {
     if (this.device.connectionType === 'OpenAPI') {
       this.infoLog(`Sending request to SwitchBot API, body: ${bodyChange},`)
       try {
-        const { body, statusCode } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body.json()
-        await this.pushStatusCodes(statusCode, deviceStatus)
-        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
-          await this.successfulPushChange(statusCode, deviceStatus, bodyChange)
+        const { body } = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = await body
+        await this.pushStatusCodes(deviceStatus)
+        if (await this.successfulStatusCodes(deviceStatus)) {
+          await this.successfulPushChange(deviceStatus, bodyChange)
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.statusCode(statusCode)
           await this.statusCode(deviceStatus.statusCode)
         }
       } catch (e: any) {

@@ -3,13 +3,10 @@
  * plug.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
+import type { batteryCirculatorFanServiceData, batteryCirculatorFanStatus, batteryCirculatorFanWebhookContext, bodyChange, device, SwitchbotDevice } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
-import type { batteryCirculatorFanServiceData } from '../types/bledevicestatus.js'
-import type { device } from '../types/devicelist.js'
-import type { batteryCirculatorFanStatus } from '../types/devicestatus.js'
-import type { batteryCirculatorFanWebhookContext } from '../types/devicewebhookstatus.js'
 
 /*
 * For Testing Locally:
@@ -149,7 +146,7 @@ export class Fan extends deviceBase {
       this.debugLog('Retrieve initial values and update Homekit')
       this.refreshStatus()
     } catch (e: any) {
-      this.errorLog(`failed to retrieve initial values and update Homekit, Error: ${e}`)
+      this.errorLog(`failed to retrieve initial values and update Homekit, Error: ${e.message ?? e}`)
     }
 
     // regisiter webhook event handler if enabled
@@ -157,7 +154,7 @@ export class Fan extends deviceBase {
       this.debugLog('Registering Webhook Event Handler')
       this.registerWebhook()
     } catch (e: any) {
-      this.errorLog(`failed to registerWebhook, Error: ${e}`)
+      this.errorLog(`failed to registerWebhook, Error: ${e.message ?? e}`)
     }
 
     // regisiter platform BLE event handler if enabled
@@ -165,7 +162,7 @@ export class Fan extends deviceBase {
       this.debugLog('Registering Platform BLE Event Handler')
       this.registerPlatformBLE()
     } catch (e: any) {
-      this.errorLog(`failed to registerPlatformBLE, Error: ${e}`)
+      this.errorLog(`failed to registerPlatformBLE, Error: ${e.message ?? e}`)
     }
 
     // Start an update interval
@@ -204,7 +201,8 @@ export class Fan extends deviceBase {
     await this.debugLog(`Active: ${this.Fan.Active}`)
 
     // RotationSpeed
-    this.Fan.RotationSpeed = this.serviceData.fanSpeed
+    this.Fan.RotationSpeed = this.serviceData.fanSpeed // ?? 0
+    await this.debugLog(`RotationSpeed: ${this.Fan.RotationSpeed}`)
   }
 
   async openAPIparseStatus() {
@@ -222,7 +220,7 @@ export class Fan extends deviceBase {
     await this.debugLog(`SwingMode: ${this.Fan.SwingMode}`)
 
     // RotationSpeed
-    this.Fan.RotationSpeed = this.deviceStatus.fanSpeed
+    this.Fan.RotationSpeed = this.deviceStatus.fanSpeed ?? 0
     await this.debugLog(`RotationSpeed: ${this.Fan.RotationSpeed}`)
 
     // ChargingState
@@ -271,7 +269,7 @@ export class Fan extends deviceBase {
     await this.debugLog(`SwingMode: ${this.Fan.SwingMode}`)
 
     // RotationSpeed
-    this.Fan.RotationSpeed = this.webhookContext.fanSpeed
+    this.Fan.RotationSpeed = this.webhookContext.fanSpeed // ?? 0
     await this.debugLog(`RotationSpeed: ${this.Fan.RotationSpeed}`)
 
     // BatteryLevel
@@ -322,22 +320,22 @@ export class Fan extends deviceBase {
 
   async BLERefreshStatus(): Promise<void> {
     await this.debugLog('BLERefreshStatus')
-    const switchbot = await this.switchbotBLE()
-    if (switchbot === undefined) {
-      await this.BLERefreshConnection(switchbot)
+    const switchBotBLE = await this.switchbotBLE()
+    if (switchBotBLE === undefined) {
+      await this.BLERefreshConnection(switchBotBLE)
     } else {
       // Start to monitor advertisement packets
       (async () => {
         // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchbot) as batteryCirculatorFanServiceData
+        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as batteryCirculatorFanServiceData
         // Update HomeKit
         if (serviceData.model === SwitchBotBLEModel.Unknown && SwitchBotBLEModelName.Unknown) {
           this.serviceData = serviceData
           await this.BLEparseStatus()
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`)
-          await this.BLERefreshConnection(switchbot)
+          await this.errorLog(`failed to get serviceData, serviceData: ${JSON.stringify(serviceData)}`)
+          await this.BLERefreshConnection(switchBotBLE)
         }
       })()
     }
@@ -358,7 +356,7 @@ export class Fan extends deviceBase {
             await this.BLEparseStatus()
             await this.updateHomeKitCharacteristics()
           } catch (e: any) {
-            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`)
+            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
           }
         }
       } catch (error) {
@@ -372,17 +370,17 @@ export class Fan extends deviceBase {
   async openAPIRefreshStatus(): Promise<void> {
     await this.debugLog('openAPIRefreshStatus')
     try {
-      const { body, statusCode } = await this.deviceRefreshStatus()
-      const deviceStatus: any = await body.json()
-      await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-      if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
-        await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+      const { body } = await this.deviceRefreshStatus()
+      const deviceStatus: any = await body
+      await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+      if (await this.successfulStatusCodes(deviceStatus)) {
+        await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         this.deviceStatus = deviceStatus.body
         await this.openAPIparseStatus()
         await this.updateHomeKitCharacteristics()
       } else {
-        await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        await this.debugWarnLog(statusCode, deviceStatus)
+        await this.debugWarnLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        await this.debugWarnLog(deviceStatus)
       }
     } catch (e: any) {
       await this.apiError(e)
@@ -400,7 +398,7 @@ export class Fan extends deviceBase {
           await this.parseStatusWebhook()
           await this.updateHomeKitCharacteristics()
         } catch (e: any) {
-          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`)
+          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
         }
       }
     } else {
@@ -453,22 +451,23 @@ export class Fan extends deviceBase {
     await this.debugLog('BLEpushChanges')
     if (this.Fan.Active !== this.accessory.context.Active) {
       await this.debugLog(`BLEpushChanges On: ${this.Fan.Active} OnCached: ${this.accessory.context.Active}`)
-      const switchbot = await this.platform.connectBLE(this.accessory, this.device)
+      const switchBotBLE = await this.platform.connectBLE(this.accessory, this.device)
       try {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
         await this.debugLog(`bleMac: ${this.device.bleMac}`)
-        if (switchbot !== false) {
-          switchbot
+        if (switchBotBLE !== false) {
+          switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
-            .then(async (device_list: any) => {
+            .then(async (device_list: SwitchbotDevice[]) => {
+              const deviceList = device_list as unknown as SwitchbotDevice[]
               return await this.retryBLE({
                 max: await this.maxRetryBLE(),
                 fn: async () => {
                   if (this.Fan.Active) {
-                    return await device_list[0].turnOn({ id: this.device.bleMac })
+                    return await deviceList[0].turnOn()
                   } else {
-                    return await device_list[0].turnOff({ id: this.device.bleMac })
+                    return await deviceList[0].turnOff()
                   }
                 },
               })
@@ -483,7 +482,7 @@ export class Fan extends deviceBase {
               await this.BLEPushConnection()
             })
         } else {
-          await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
+          await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(switchBotBLE)}`)
           await this.BLEPushConnection()
         }
       } catch (error) {
@@ -498,21 +497,20 @@ export class Fan extends deviceBase {
     await this.debugLog('openAPIpushChanges')
     if (this.Fan.Active !== this.accessory.context.Active) {
       const command = this.Fan.Active ? 'turnOn' : 'turnOff'
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: `${command}`,
         parameter: 'default',
         commandType: 'command',
-      })
+      }
       await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const { body, statusCode } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body.json()
-        await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
-          await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        const { body } = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = await body
+        await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        if (await this.successfulStatusCodes(deviceStatus)) {
+          await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.statusCode(statusCode)
           await this.statusCode(deviceStatus.statusCode)
         }
       } catch (e: any) {
@@ -527,21 +525,20 @@ export class Fan extends deviceBase {
   async pushRotationSpeedChanges(): Promise<void> {
     await this.debugLog('pushRotationSpeedChanges')
     if (this.Fan.SwingMode !== this.accessory.context.SwingMode) {
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'setWindSpeed',
         parameter: `${this.Fan.RotationSpeed}`,
         commandType: 'command',
-      })
+      }
       await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const { body, statusCode } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body.json()
-        await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
-          await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        const { body } = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = await body
+        await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        if (await this.successfulStatusCodes(deviceStatus)) {
+          await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.statusCode(statusCode)
           await this.statusCode(deviceStatus.statusCode)
         }
       } catch (e: any) {
@@ -557,21 +554,20 @@ export class Fan extends deviceBase {
     await this.debugLog('pushSwingModeChanges')
     if (this.Fan.SwingMode !== this.accessory.context.SwingMode) {
       const parameter = this.Fan.SwingMode === this.hap.Characteristic.SwingMode.SWING_ENABLED ? 'on' : 'off'
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'setOscillation',
         parameter: `${parameter}`,
         commandType: 'command',
-      })
+      }
       await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const { body, statusCode } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body.json()
-        await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
-          await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        const { body } = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = await body
+        await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        if (await this.successfulStatusCodes(deviceStatus)) {
+          await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.statusCode(statusCode)
           await this.statusCode(deviceStatus.statusCode)
         }
       } catch (e: any) {

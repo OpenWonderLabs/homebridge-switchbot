@@ -3,13 +3,10 @@
  * ceilinglight.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, Controller, ControllerConstructor, ControllerServiceMap, PlatformAccessory, Service } from 'homebridge'
+import type { bodyChange, ceilingLightProServiceData, ceilingLightProStatus, ceilingLightProWebhookContext, ceilingLightServiceData, ceilingLightStatus, ceilingLightWebhookContext, device, SwitchbotDevice, WoCeilingLight } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig } from '../settings.js'
-import type { ceilingLightProServiceData, ceilingLightServiceData } from '../types/bledevicestatus.js'
-import type { device } from '../types/devicelist.js'
-import type { ceilingLightProStatus, ceilingLightStatus } from '../types/devicestatus.js'
-import type { ceilingLightProWebhookContext, ceilingLightWebhookContext } from '../types/devicewebhookstatus.js'
+import type { ceilingLightConfig, devicesConfig } from '../settings.js'
 
 /*
 * For Testing Locally:
@@ -111,7 +108,7 @@ export class CeilingLight extends deviceBase {
 
     // Initialize LightBulb Brightness
     this.LightBulb.Service.getCharacteristic(this.hap.Characteristic.Brightness).setProps({
-      minStep: device.ceilinglight?.set_minStep ?? 1,
+      minStep: (device as ceilingLightConfig).set_minStep ?? 1,
       minValue: 0,
       maxValue: 100,
       validValueRanges: [0, 100],
@@ -151,7 +148,7 @@ export class CeilingLight extends deviceBase {
       this.debugLog('Retrieve initial values and update Homekit')
       this.refreshStatus()
     } catch (e: any) {
-      this.errorLog(`failed to retrieve initial values and update Homekit, Error: ${e}`)
+      this.errorLog(`failed to retrieve initial values and update Homekit, Error: ${e.message ?? e}`)
     }
 
     // regisiter webhook event handler if enabled
@@ -159,7 +156,7 @@ export class CeilingLight extends deviceBase {
       this.debugLog('Registering Webhook Event Handler')
       this.registerWebhook()
     } catch (e: any) {
-      this.errorLog(`failed to registerWebhook, Error: ${e}`)
+      this.errorLog(`failed to registerWebhook, Error: ${e.message ?? e}`)
     }
 
     // regisiter platform BLE event handler if enabled
@@ -167,7 +164,7 @@ export class CeilingLight extends deviceBase {
       this.debugLog('Registering Platform BLE Event Handler')
       this.registerPlatformBLE()
     } catch (e: any) {
-      this.errorLog(`failed to registerPlatformBLE, Error: ${e}`)
+      this.errorLog(`failed to registerPlatformBLE, Error: ${e.message ?? e}`)
     }
 
     // Start an update interval
@@ -286,21 +283,21 @@ export class CeilingLight extends deviceBase {
 
   async BLERefreshStatus(): Promise<void> {
     await this.debugLog('BLERefreshStatus')
-    const switchbot = await this.switchbotBLE()
-    if (switchbot === undefined) {
-      await this.BLERefreshConnection(switchbot)
+    const switchBotBLE = await this.switchbotBLE()
+    if (switchBotBLE === undefined) {
+      await this.BLERefreshConnection(switchBotBLE)
     } else {
       (async () => {
         // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchbot) as unknown as ceilingLightServiceData
+        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as unknown as ceilingLightServiceData
         // Update HomeKit
         if ((serviceData.model === SwitchBotBLEModel.CeilingLight || SwitchBotBLEModel.CeilingLightPro) && (serviceData.modelName === SwitchBotBLEModelName.CeilingLight || SwitchBotBLEModelName.CeilingLightPro)) {
           this.serviceData = serviceData
           await this.BLEparseStatus()
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`)
-          await this.BLERefreshConnection(switchbot)
+          await this.errorLog(`failed to get serviceData, serviceData: ${JSON.stringify(serviceData)}`)
+          await this.BLERefreshConnection(switchBotBLE)
         }
       })()
     }
@@ -321,7 +318,7 @@ export class CeilingLight extends deviceBase {
             await this.BLEparseStatus()
             await this.updateHomeKitCharacteristics()
           } catch (e: any) {
-            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`)
+            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
           }
         }
       } catch (error) {
@@ -335,17 +332,17 @@ export class CeilingLight extends deviceBase {
   async openAPIRefreshStatus(): Promise<void> {
     await this.debugLog('openAPIRefreshStatus')
     try {
-      const { body, statusCode } = await this.deviceRefreshStatus()
-      const deviceStatus: any = await body.json()
-      await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-      if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
-        await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+      const { body } = await this.deviceRefreshStatus()
+      const deviceStatus: any = await body
+      await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+      if (await this.successfulStatusCodes(deviceStatus)) {
+        await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         this.deviceStatus = deviceStatus.body
         await this.openAPIparseStatus()
         await this.updateHomeKitCharacteristics()
       } else {
-        await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        await this.debugWarnLog(statusCode, deviceStatus)
+        await this.debugWarnLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        await this.debugWarnLog(deviceStatus)
       }
     } catch (e: any) {
       await this.apiError(e)
@@ -363,7 +360,7 @@ export class CeilingLight extends deviceBase {
           await this.parseStatusWebhook()
           await this.updateHomeKitCharacteristics()
         } catch (e: any) {
-          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`)
+          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
         }
       }
     } else {
@@ -420,23 +417,24 @@ export class CeilingLight extends deviceBase {
     await this.debugLog('BLEpushChanges')
     if (this.LightBulb.On !== this.accessory.context.On) {
       await this.debugLog(`BLEpushChanges On: ${this.LightBulb.On} OnCached: ${this.accessory.context.On}`)
-      const switchbot = await this.platform.connectBLE(this.accessory, this.device)
+      const switchBotBLE = await this.platform.connectBLE(this.accessory, this.device)
       try {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
         await this.debugLog(`bleMac: ${this.device.bleMac}`)
-        if (switchbot !== false) {
-          switchbot
+        if (switchBotBLE !== false) {
+          switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
-            .then(async (device_list: any) => {
+            .then(async (device_list: SwitchbotDevice[]) => {
+              const deviceList = device_list[0] as unknown as WoCeilingLight
               this.infoLog(`On: ${this.LightBulb.On}`)
               return await this.retryBLE({
                 max: await this.maxRetryBLE(),
                 fn: async () => {
                   if (this.LightBulb.On) {
-                    return await device_list[0].turnOn({ id: this.device.bleMac })
+                    return await deviceList[0].turnOn()
                   } else {
-                    return await device_list[0].turnOff({ id: this.device.bleMac })
+                    return await deviceList[0].turnOff()
                   }
                 },
               })
@@ -451,7 +449,7 @@ export class CeilingLight extends deviceBase {
               await this.BLEPushConnection()
             })
         } else {
-          await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
+          await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(switchBotBLE)}`)
           await this.BLEPushConnection()
         }
       } catch (error) {
@@ -466,21 +464,20 @@ export class CeilingLight extends deviceBase {
     await this.debugLog('openAPIpushChanges')
     if (this.LightBulb.On !== this.accessory.context.On) {
       const command = this.LightBulb.On ? 'turnOn' : 'turnOff'
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: `${command}`,
         parameter: 'default',
         commandType: 'command',
-      })
+      }
       await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const { body, statusCode } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body.json()
-        await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
-          await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        const { body } = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = await body
+        await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        if (await this.successfulStatusCodes(deviceStatus)) {
+          await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.statusCode(statusCode)
           await this.statusCode(deviceStatus.statusCode)
         }
       } catch (e: any) {
@@ -499,21 +496,20 @@ export class CeilingLight extends deviceBase {
       await this.debugLog(`Saturation: ${JSON.stringify(this.LightBulb.Saturation)}`)
       const [red, green, blue] = hs2rgb(Number(this.LightBulb.Hue), Number(this.LightBulb.Saturation))
       await this.debugLog(`rgb: ${JSON.stringify([red, green, blue])}`)
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'setColor',
         parameter: `${red}:${green}:${blue}`,
         commandType: 'command',
-      })
+      }
       await this.debugLog(`(pushHueSaturationChanges) SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const { body, statusCode } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body.json()
-        await this.debugLog(`(pushHueSaturationChanges) statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
-          await this.debugSuccessLog(`(pushHueSaturationChanges) statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        const { body } = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = await body
+        await this.debugLog(`(pushHueSaturationChanges) statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        if (await this.successfulStatusCodes(deviceStatus)) {
+          await this.debugSuccessLog(`(pushHueSaturationChanges) statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.statusCode(statusCode)
           await this.statusCode(deviceStatus.statusCode)
         }
       } catch (e: any) {
@@ -530,21 +526,20 @@ export class CeilingLight extends deviceBase {
     if (this.LightBulb.ColorTemperature !== this.accessory.context.ColorTemperature) {
       const kelvin = Math.round(1000000 * Number(this.LightBulb.ColorTemperature))
       this.accessory.context.kelvin = kelvin
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'setColorTemperature',
         parameter: `${kelvin}`,
         commandType: 'command',
-      })
+      }
       await this.debugLog(`(pushColorTemperatureChanges) SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const { body, statusCode } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body.json()
-        await this.debugLog(`(pushColorTemperatureChanges) statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
-          await this.debugSuccessLog(`(pushColorTemperatureChanges) statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        const { body } = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = await body
+        await this.debugLog(`(pushColorTemperatureChanges) statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        if (await this.successfulStatusCodes(deviceStatus)) {
+          await this.debugSuccessLog(`(pushColorTemperatureChanges) statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.statusCode(statusCode)
           await this.statusCode(deviceStatus.statusCode)
         }
       } catch (e: any) {
@@ -559,21 +554,20 @@ export class CeilingLight extends deviceBase {
   async pushBrightnessChanges(): Promise<void> {
     await this.debugLog('pushBrightnessChanges')
     if (this.LightBulb.Brightness !== this.accessory.context.Brightness) {
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'setBrightness',
         parameter: `${this.LightBulb.Brightness}`,
         commandType: 'command',
-      })
+      }
       await this.debugLog(`(pushBrightnessChanges) SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const { body, statusCode } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body.json()
-        await this.debugLog(`(pushBrightnessChanges) statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
-          await this.debugSuccessLog(`(pushBrightnessChanges) statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        const { body } = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = await body
+        await this.debugLog(`(pushBrightnessChanges) statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        if (await this.successfulStatusCodes(deviceStatus)) {
+          await this.debugSuccessLog(`(pushBrightnessChanges) statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.statusCode(statusCode)
           await this.statusCode(deviceStatus.statusCode)
         }
       } catch (e: any) {
@@ -709,13 +703,8 @@ export class CeilingLight extends deviceBase {
     this.adaptiveLighting = accessory.context.adaptiveLighting ?? true
     await this.debugLog(`adaptiveLighting: ${this.adaptiveLighting}`)
     // Adaptive Lighting Shift
-    if (device.ceilinglight?.adaptiveLightingShift) {
-      this.adaptiveLightingShift = device.ceilinglight.adaptiveLightingShift
-      this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`)
-    } else {
-      this.adaptiveLightingShift = 0
-      this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`)
-    }
+    this.adaptiveLightingShift = (device as ceilingLightConfig).adaptiveLightingShift ?? 0
+    this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`)
   }
 
   async BLEPushConnection() {

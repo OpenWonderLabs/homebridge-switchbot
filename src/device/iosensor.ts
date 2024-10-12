@@ -3,13 +3,10 @@
  * iosensor.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
+import type { device, outdoorMeterServiceData, outdoorMeterStatus, outdoorMeterWebhookContext } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig } from '../settings.js'
-import type { outdoorMeterServiceData } from '../types/bledevicestatus.js'
-import type { device } from '../types/devicelist.js'
-import type { outdoorMeterStatus } from '../types/devicestatus.js'
-import type { outdoorMeterWebhookContext } from '../types/devicewebhookstatus.js'
+import type { devicesConfig, indoorOutdoorSensorConfig } from '../settings.js'
 
 import { Units } from 'homebridge'
 /*
@@ -95,7 +92,7 @@ export class IOSensor extends deviceBase {
     accessory.context.BatteryName = this.Battery.Name
 
     // InitializeTemperature Sensor Service
-    if (device.iosensor?.hide_temperature) {
+    if ((device as indoorOutdoorSensorConfig).hide_temperature) {
       if (this.TemperatureSensor) {
         this.debugLog('Removing Temperature Sensor Service')
         this.TemperatureSensor.Service = this.accessory.getService(this.hap.Service.TemperatureSensor) as Service
@@ -123,7 +120,7 @@ export class IOSensor extends deviceBase {
     }
 
     // Initialize Humidity Sensor Service
-    if (device.iosensor?.hide_humidity) {
+    if ((device as indoorOutdoorSensorConfig).hide_humidity) {
       if (this.HumiditySensor) {
         this.debugLog('Removing Humidity Sensor Service')
         this.HumiditySensor.Service = this.accessory.getService(this.hap.Service.HumiditySensor) as Service
@@ -151,7 +148,7 @@ export class IOSensor extends deviceBase {
       this.debugLog('Retrieve initial values and update Homekit')
       this.refreshStatus()
     } catch (e: any) {
-      this.errorLog(`failed to retrieve initial values and update Homekit, Error: ${e}`)
+      this.errorLog(`failed to retrieve initial values and update Homekit, Error: ${e.message ?? e}`)
     }
 
     // regisiter webhook event handler if enabled
@@ -159,7 +156,7 @@ export class IOSensor extends deviceBase {
       this.debugLog('Registering Webhook Event Handler')
       this.registerWebhook()
     } catch (e: any) {
-      this.errorLog(`failed to registerWebhook, Error: ${e}`)
+      this.errorLog(`failed to registerWebhook, Error: ${e.message ?? e}`)
     }
 
     // regisiter platform BLE event handler if enabled
@@ -167,7 +164,7 @@ export class IOSensor extends deviceBase {
       this.debugLog('Registering Platform BLE Event Handler')
       this.registerPlatformBLE()
     } catch (e: any) {
-      this.errorLog(`failed to registerPlatformBLE, Error: ${e}`)
+      this.errorLog(`failed to registerPlatformBLE, Error: ${e.message ?? e}`)
     }
 
     // Start an update interval
@@ -193,13 +190,13 @@ export class IOSensor extends deviceBase {
     await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
 
     // CurrentRelativeHumidity
-    if (!this.device.iosensor?.hide_humidity && this.HumiditySensor?.Service) {
+    if (!(this.device as indoorOutdoorSensorConfig).hide_humidity && this.HumiditySensor?.Service) {
       this.HumiditySensor.CurrentRelativeHumidity = validHumidity(this.serviceData.humidity, 0, 100)
       await this.debugLog(`CurrentRelativeHumidity: ${this.HumiditySensor.CurrentRelativeHumidity}%`)
     }
 
     // Current Temperature
-    if (!this.device.meter?.hide_temperature && this.TemperatureSensor?.Service) {
+    if (!(this.device as indoorOutdoorSensorConfig).hide_temperature && this.TemperatureSensor?.Service) {
       const CELSIUS = this.serviceData.celsius < 0 ? 0 : this.serviceData.celsius > 100 ? 100 : this.serviceData.celsius
       this.TemperatureSensor.CurrentTemperature = CELSIUS
       await this.debugLog(`Temperature: ${this.TemperatureSensor.CurrentTemperature}°c`)
@@ -221,13 +218,13 @@ export class IOSensor extends deviceBase {
     await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
 
     // CurrentRelativeHumidity
-    if (!this.device.iosensor?.hide_humidity && this.HumiditySensor?.Service) {
+    if (!(this.device as indoorOutdoorSensorConfig).hide_humidity && this.HumiditySensor?.Service) {
       this.HumiditySensor.CurrentRelativeHumidity = this.deviceStatus.humidity
       await this.debugLog(`CurrentRelativeHumidity: ${this.HumiditySensor.CurrentRelativeHumidity}%`)
     }
 
     // Current Temperature
-    if (!this.device.meter?.hide_temperature && this.TemperatureSensor?.Service) {
+    if (!(this.device as indoorOutdoorSensorConfig).hide_temperature && this.TemperatureSensor?.Service) {
       this.TemperatureSensor.CurrentTemperature = this.deviceStatus.temperature
       await this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}°c`)
     }
@@ -250,19 +247,19 @@ export class IOSensor extends deviceBase {
 
   async parseStatusWebhook(): Promise<void> {
     await this.debugLog('parseStatusWebhook')
-    await this.debugLog(`(scale, temperature, humidity) = Webhook:(${this.webhookContext.scale}, ${convertUnits(this.webhookContext.temperature, this.webhookContext.scale, this.device.iosensor?.convertUnitTo)}, ${this.webhookContext.humidity}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity})`)
+    await this.debugLog(`(scale, temperature, humidity) = Webhook:(${this.webhookContext.scale}, ${convertUnits(this.webhookContext.temperature, this.webhookContext.scale, (this.device as indoorOutdoorSensorConfig).convertUnitTo)}, ${this.webhookContext.humidity}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity})`)
 
-    if (this.webhookContext.scale !== 'CELSIUS' && this.device.iosensor?.convertUnitTo === undefined) {
+    if (this.webhookContext.scale !== 'CELSIUS' && (this.device as indoorOutdoorSensorConfig).convertUnitTo === undefined) {
       await this.warnLog(`received a non-CELSIUS Webhook scale: ${this.webhookContext.scale}, Use the *convertUnitsTo* config under Hub settings, if displaying incorrectly in HomeKit.`)
     }
     // CurrentRelativeHumidity
-    if (this.device.iosensor?.hide_humidity && this.HumiditySensor?.Service) {
+    if ((this.device as indoorOutdoorSensorConfig).hide_humidity && this.HumiditySensor?.Service) {
       this.HumiditySensor.CurrentRelativeHumidity = this.webhookContext.humidity
       await this.debugLog(`CurrentRelativeHumidity: ${this.HumiditySensor.CurrentRelativeHumidity}%`)
     }
     // CurrentTemperature
-    if (this.device.iosensor?.hide_temperature && this.TemperatureSensor?.Service) {
-      this.TemperatureSensor.CurrentTemperature = convertUnits(this.webhookContext.temperature, this.webhookContext.scale, this.device.iosensor?.convertUnitTo)
+    if ((this.device as indoorOutdoorSensorConfig).hide_temperature && this.TemperatureSensor?.Service) {
+      this.TemperatureSensor.CurrentTemperature = convertUnits(this.webhookContext.temperature, this.webhookContext.scale, (this.device as indoorOutdoorSensorConfig).convertUnitTo)
       await this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}°c`)
     }
   }
@@ -285,22 +282,22 @@ export class IOSensor extends deviceBase {
 
   async BLERefreshStatus(): Promise<void> {
     await this.debugLog('BLERefreshStatus')
-    const switchbot = await this.switchbotBLE()
-    if (switchbot === undefined) {
-      await this.BLERefreshConnection(switchbot)
+    const switchBotBLE = await this.switchbotBLE()
+    if (switchBotBLE === undefined) {
+      await this.BLERefreshConnection(switchBotBLE)
     } else {
       // Start to monitor advertisement packets
       (async () => {
         // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchbot) as outdoorMeterServiceData
+        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as outdoorMeterServiceData
         // Update HomeKit
         if (serviceData.model === SwitchBotBLEModel.OutdoorMeter && serviceData.modelName === SwitchBotBLEModelName.OutdoorMeter) {
           this.serviceData = serviceData
           await this.BLEparseStatus()
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`)
-          await this.BLERefreshConnection(switchbot)
+          await this.errorLog(`failed to get serviceData, serviceData: ${JSON.stringify(serviceData)}`)
+          await this.BLERefreshConnection(switchBotBLE)
         }
       })()
     }
@@ -321,7 +318,7 @@ export class IOSensor extends deviceBase {
             await this.BLEparseStatus()
             await this.updateHomeKitCharacteristics()
           } catch (e: any) {
-            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`)
+            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
           }
         }
       } catch (error) {
@@ -335,17 +332,17 @@ export class IOSensor extends deviceBase {
   async openAPIRefreshStatus(): Promise<void> {
     await this.debugLog('openAPIRefreshStatus')
     try {
-      const { body, statusCode } = await this.deviceRefreshStatus()
-      const deviceStatus: any = await body.json()
-      await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-      if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
-        await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+      const { body } = await this.deviceRefreshStatus()
+      const deviceStatus: any = await body
+      await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+      if (await this.successfulStatusCodes(deviceStatus)) {
+        await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         this.deviceStatus = deviceStatus.body
         await this.openAPIparseStatus()
         await this.updateHomeKitCharacteristics()
       } else {
-        await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        await this.debugWarnLog(statusCode, deviceStatus)
+        await this.debugWarnLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        await this.debugWarnLog(deviceStatus)
       }
     } catch (e: any) {
       await this.apiError(e)
@@ -363,7 +360,7 @@ export class IOSensor extends deviceBase {
           await this.parseStatusWebhook()
           await this.updateHomeKitCharacteristics()
         } catch (e: any) {
-          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`)
+          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
         }
       }
     } else {
@@ -376,11 +373,11 @@ export class IOSensor extends deviceBase {
    */
   async updateHomeKitCharacteristics(): Promise<void> {
     // CurrentRelativeHumidity
-    if (!this.device.iosensor?.hide_humidity && this.HumiditySensor?.Service) {
+    if (!(this.device as indoorOutdoorSensorConfig).hide_humidity && this.HumiditySensor?.Service) {
       await this.updateCharacteristic(this.HumiditySensor.Service, this.hap.Characteristic.CurrentRelativeHumidity, this.HumiditySensor.CurrentRelativeHumidity, 'CurrentRelativeHumidity')
     }
     // CurrentTemperature
-    if (!this.device.iosensor?.hide_temperature && this.TemperatureSensor?.Service) {
+    if (!(this.device as indoorOutdoorSensorConfig).hide_temperature && this.TemperatureSensor?.Service) {
       await this.updateCharacteristic(this.TemperatureSensor.Service, this.hap.Characteristic.CurrentTemperature, this.TemperatureSensor.CurrentTemperature, 'CurrentTemperature')
     }
     // BatteryLevel
@@ -399,20 +396,20 @@ export class IOSensor extends deviceBase {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      if (!this.device.iosensor?.hide_humidity && this.HumiditySensor?.Service) {
+      if (!(this.device as indoorOutdoorSensorConfig).hide_humidity && this.HumiditySensor?.Service) {
         this.HumiditySensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity, 50)
       }
-      if (!this.device.iosensor?.hide_temperature && this.TemperatureSensor?.Service) {
+      if (!(this.device as indoorOutdoorSensorConfig).hide_temperature && this.TemperatureSensor?.Service) {
         this.TemperatureSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, 30)
       }
     }
   }
 
   async apiError(e: any): Promise<void> {
-    if (!this.device.iosensor?.hide_humidity && this.HumiditySensor?.Service) {
+    if (!(this.device as indoorOutdoorSensorConfig).hide_humidity && this.HumiditySensor?.Service) {
       this.HumiditySensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity, e)
     }
-    if (!this.device.iosensor?.hide_temperature && this.TemperatureSensor?.Service) {
+    if (!(this.device as indoorOutdoorSensorConfig).hide_temperature && this.TemperatureSensor?.Service) {
       this.TemperatureSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, e)
     }
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e)

@@ -3,10 +3,10 @@
  * tv.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
+import type { bodyChange, irdevice } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { irDevicesConfig } from '../settings.js'
-import type { irdevice } from '../types/irdevicelist.js'
 
 import { irdeviceBase } from './irdevice.js'
 
@@ -210,11 +210,11 @@ export class TV extends irdeviceBase {
     if (this.Television.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOn()
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command,
         parameter: 'default',
         commandType,
-      })
+      }
       await this.pushTVChanges(bodyChange)
     }
   }
@@ -224,11 +224,11 @@ export class TV extends irdeviceBase {
     if (this.Television.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOff) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOff()
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command,
         parameter: 'default',
         commandType,
-      })
+      }
       await this.pushTVChanges(bodyChange)
     }
   }
@@ -236,11 +236,11 @@ export class TV extends irdeviceBase {
   async pushOkChanges(): Promise<void> {
     await this.debugLog(`pushOkChanges disablePushDetail: ${this.disablePushDetail}`)
     if (!this.disablePushDetail) {
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'Ok',
         parameter: 'default',
         commandType: 'command',
-      })
+      }
       await this.pushTVChanges(bodyChange)
     }
   }
@@ -248,11 +248,11 @@ export class TV extends irdeviceBase {
   async pushBackChanges(): Promise<void> {
     await this.debugLog(`pushBackChanges disablePushDetail: ${this.disablePushDetail}`)
     if (!this.disablePushDetail) {
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'Back',
         parameter: 'default',
         commandType: 'command',
-      })
+      }
       await this.pushTVChanges(bodyChange)
     }
   }
@@ -260,11 +260,11 @@ export class TV extends irdeviceBase {
   async pushMenuChanges(): Promise<void> {
     await this.debugLog(`pushMenuChanges disablePushDetail: ${this.disablePushDetail}`)
     if (!this.disablePushDetail) {
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'Menu',
         parameter: 'default',
         commandType: 'command',
-      })
+      }
       await this.pushTVChanges(bodyChange)
     }
   }
@@ -272,11 +272,11 @@ export class TV extends irdeviceBase {
   async pushUpChanges(): Promise<void> {
     await this.debugLog(`pushUpChanges disablePushDetail: ${this.disablePushDetail}`)
     if (!this.disablePushDetail) {
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'Up',
         parameter: 'default',
         commandType: 'command',
-      })
+      }
       await this.pushTVChanges(bodyChange)
     }
   }
@@ -284,11 +284,11 @@ export class TV extends irdeviceBase {
   async pushDownChanges(): Promise<void> {
     await this.debugLog(`pushDownChanges disablePushDetail: ${this.disablePushDetail}`)
     if (!this.disablePushDetail) {
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'Down',
         parameter: 'default',
         commandType: 'command',
-      })
+      }
       await this.pushTVChanges(bodyChange)
     }
   }
@@ -296,11 +296,11 @@ export class TV extends irdeviceBase {
   async pushRightChanges(): Promise<void> {
     await this.debugLog(`pushRightChanges disablePushDetail: ${this.disablePushDetail}`)
     if (!this.disablePushDetail) {
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'Right',
         parameter: 'default',
         commandType: 'command',
-      })
+      }
       await this.pushTVChanges(bodyChange)
     }
   }
@@ -308,11 +308,11 @@ export class TV extends irdeviceBase {
   async pushLeftChanges(): Promise<void> {
     await this.debugLog(`pushLeftChanges disablePushDetail: ${this.disablePushDetail}`)
     if (!this.disablePushDetail) {
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'Left',
         parameter: 'default',
         commandType: 'command',
-      })
+      }
       await this.pushTVChanges(bodyChange)
     }
   }
@@ -320,11 +320,11 @@ export class TV extends irdeviceBase {
   async pushVolumeUpChanges(): Promise<void> {
     await this.debugLog(`pushVolumeUpChanges disablePushDetail: ${this.disablePushDetail}`)
     if (!this.disablePushDetail) {
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'volumeAdd',
         parameter: 'default',
         commandType: 'command',
-      })
+      }
       await this.pushTVChanges(bodyChange)
     }
   }
@@ -332,11 +332,11 @@ export class TV extends irdeviceBase {
   async pushVolumeDownChanges(): Promise<void> {
     await this.debugLog(`pushVolumeDownChanges disablePushDetail: ${this.disablePushDetail}`)
     if (!this.disablePushDetail) {
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'volumeSub',
         parameter: 'default',
         commandType: 'command',
-      })
+      }
       await this.pushTVChanges(bodyChange)
     }
   }
@@ -346,14 +346,13 @@ export class TV extends irdeviceBase {
     if (this.device.connectionType === 'OpenAPI') {
       await this.infoLog(`Sending request to SwitchBot API, body: ${bodyChange},`)
       try {
-        const { body, statusCode } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body.json()
-        await this.pushStatusCodes(statusCode, deviceStatus)
-        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
-          await this.successfulPushChange(statusCode, deviceStatus, bodyChange)
+        const { body } = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = await body
+        await this.pushStatusCodes(deviceStatus)
+        if (await this.successfulStatusCodes(deviceStatus)) {
+          await this.successfulPushChange(deviceStatus, bodyChange)
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.statusCode(statusCode)
           await this.statusCode(deviceStatus.statusCode)
         }
       } catch (e: any) {

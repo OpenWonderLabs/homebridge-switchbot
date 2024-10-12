@@ -3,13 +3,10 @@
  * contact.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
+import type { contactSensorServiceData, contactSensorStatus, contactSensorWebhookContext, device } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig } from '../settings.js'
-import type { contactSensorServiceData } from '../types/bledevicestatus.js'
-import type { device } from '../types/devicelist.js'
-import type { contactSensorStatus } from '../types/devicestatus.js'
-import type { contactSensorWebhookContext } from '../types/devicewebhookstatus.js'
+import type { contactConfig, devicesConfig } from '../settings.js'
 
 /*
 * For Testing Locally:
@@ -113,7 +110,7 @@ export class Contact extends deviceBase {
     })
 
     // Initialize Motion Sensor Service
-    if (this.device.contact?.hide_motionsensor) {
+    if ((this.device as contactConfig).hide_motionsensor) {
       if (this.MotionSensor) {
         this.debugLog('Removing Motion Sensor Service')
         this.MotionSensor.Service = accessory.getService(this.hap.Service.MotionSensor) as Service
@@ -135,7 +132,7 @@ export class Contact extends deviceBase {
     }
 
     // Initialize Light Sensor Service
-    if (device.contact?.hide_lightsensor) {
+    if ((device as contactConfig).hide_lightsensor) {
       if (this.LightSensor) {
         this.debugLog('Removing Light Sensor Service')
         this.LightSensor.Service = accessory.getService(this.hap.Service.LightSensor) as Service
@@ -161,7 +158,7 @@ export class Contact extends deviceBase {
       this.debugLog('Retrieve initial values and update Homekit')
       this.refreshStatus()
     } catch (e: any) {
-      this.errorLog(`failed to retrieve initial values and update Homekit, Error: ${e}`)
+      this.errorLog(`failed to retrieve initial values and update Homekit, Error: ${e.message ?? e}`)
     }
 
     // regisiter webhook event handler if enabled
@@ -169,7 +166,7 @@ export class Contact extends deviceBase {
       this.debugLog('Registering Webhook Event Handler')
       this.registerWebhook()
     } catch (e: any) {
-      this.errorLog(`failed to registerWebhook, Error: ${e}`)
+      this.errorLog(`failed to registerWebhook, Error: ${e.message ?? e}`)
     }
 
     // regisiter platform BLE event handler if enabled
@@ -177,7 +174,7 @@ export class Contact extends deviceBase {
       this.debugLog('Registering Platform BLE Event Handler')
       this.registerPlatformBLE()
     } catch (e: any) {
-      this.errorLog(`failed to registerPlatformBLE, Error: ${e}`)
+      this.errorLog(`failed to registerPlatformBLE, Error: ${e.message ?? e}`)
     }
 
     // Start an update interval
@@ -195,14 +192,14 @@ export class Contact extends deviceBase {
     await this.debugLog(`ContactSensorState: ${this.ContactSensor.ContactSensorState}`)
 
     // MotionDetected
-    if (!this.device.contact?.hide_motionsensor && this.MotionSensor?.Service) {
+    if (!(this.device as contactConfig).hide_motionsensor && this.MotionSensor?.Service) {
       this.MotionSensor.MotionDetected = this.serviceData.movement
       await this.debugLog(`MotionDetected: ${this.MotionSensor.MotionDetected}`)
     }
     // CurrentAmbientLightLevel
-    if (!this.device.contact?.hide_lightsensor && this.LightSensor?.Service) {
-      const set_minLux = this.device.blindTilt?.set_minLux ?? 1
-      const set_maxLux = this.device.blindTilt?.set_maxLux ?? 6001
+    if (!(this.device as contactConfig).hide_lightsensor && this.LightSensor?.Service) {
+      const set_minLux = (this.device as contactConfig).set_minLux ?? 1
+      const set_maxLux = (this.device as contactConfig).set_maxLux ?? 6001
       const lightLevel = this.serviceData.lightLevel === 'bright' ? set_maxLux : set_minLux
       this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
       await this.debugLog(`LightLevel: ${this.serviceData.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
@@ -224,14 +221,14 @@ export class Contact extends deviceBase {
     await this.debugLog(`ContactSensorState: ${this.ContactSensor.ContactSensorState}`)
 
     // MotionDetected
-    if (!this.device.contact?.hide_motionsensor && this.MotionSensor?.Service) {
+    if (!(this.device as contactConfig).hide_motionsensor && this.MotionSensor?.Service) {
       this.MotionSensor.MotionDetected = this.deviceStatus.moveDetected
       await this.debugLog(`MotionDetected: ${this.MotionSensor.MotionDetected}`)
     }
     // Light Level
-    if (!this.device.contact?.hide_lightsensor && this.LightSensor?.Service) {
-      const set_minLux = this.device.blindTilt?.set_minLux ?? 1
-      const set_maxLux = this.device.blindTilt?.set_maxLux ?? 6001
+    if (!(this.device as contactConfig).hide_lightsensor && this.LightSensor?.Service) {
+      const set_minLux = (this.device as contactConfig).set_minLux ?? 1
+      const set_maxLux = (this.device as contactConfig).set_maxLux ?? 6001
       const lightLevel = this.deviceStatus.brightness === 'bright' ? set_maxLux : set_minLux
       this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
       await this.debugLog(`LightLevel: ${this.deviceStatus.brightness}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
@@ -266,14 +263,14 @@ export class Contact extends deviceBase {
     // ContactSensorState
     this.ContactSensor.ContactSensorState = this.getContactSensorState(this.webhookContext.openState)
     await this.debugLog(`ContactSensorState: ${this.ContactSensor.ContactSensorState}`)
-    if (!this.device.contact?.hide_motionsensor && this.MotionSensor?.Service) {
+    if (!(this.device as contactConfig).hide_motionsensor && this.MotionSensor?.Service) {
       // MotionDetected
       this.MotionSensor.MotionDetected = this.webhookContext.detectionState === 'DETECTED'
       await this.debugLog(`MotionDetected: ${this.MotionSensor.MotionDetected}`)
     }
-    if (!this.device.contact?.hide_lightsensor && this.LightSensor?.Service) {
-      const set_minLux = this.device.blindTilt?.set_minLux ?? 1
-      const set_maxLux = this.device.blindTilt?.set_maxLux ?? 6001
+    if (!(this.device as contactConfig).hide_lightsensor && this.LightSensor?.Service) {
+      const set_minLux = (this.device as contactConfig).set_minLux ?? 1
+      const set_maxLux = (this.device as contactConfig).set_maxLux ?? 6001
       const lightLevel = this.webhookContext.brightness === 'bright' ? set_maxLux : set_minLux
       this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
       await this.debugLog(`LightLevel: ${this.webhookContext.brightness}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
@@ -298,22 +295,22 @@ export class Contact extends deviceBase {
 
   async BLERefreshStatus(): Promise<void> {
     await this.debugLog('BLERefreshStatus')
-    const switchbot = await this.switchbotBLE()
-    if (switchbot === undefined) {
-      await this.BLERefreshConnection(switchbot)
+    const switchBotBLE = await this.switchbotBLE()
+    if (switchBotBLE === undefined) {
+      await this.BLERefreshConnection(switchBotBLE)
     } else {
       // Start to monitor advertisement packets
       (async () => {
         // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchbot) as contactSensorServiceData
+        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as contactSensorServiceData
         // Update HomeKit
         if (serviceData.model === SwitchBotBLEModel.ContactSensor && serviceData.modelName === SwitchBotBLEModelName.ContactSensor) {
           this.serviceData = serviceData
           await this.BLEparseStatus()
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`)
-          await this.BLERefreshConnection(switchbot)
+          await this.errorLog(`failed to get serviceData, serviceData: ${JSON.stringify(serviceData)}`)
+          await this.BLERefreshConnection(switchBotBLE)
         }
       })()
     }
@@ -334,7 +331,7 @@ export class Contact extends deviceBase {
             await this.BLEparseStatus()
             await this.updateHomeKitCharacteristics()
           } catch (e: any) {
-            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`)
+            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
           }
         }
       } catch (error) {
@@ -348,17 +345,17 @@ export class Contact extends deviceBase {
   async openAPIRefreshStatus(): Promise<void> {
     await this.debugLog('openAPIRefreshStatus')
     try {
-      const { body, statusCode } = await this.deviceRefreshStatus()
-      const deviceStatus: any = await body.json()
-      await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-      if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
-        await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+      const { body } = await this.deviceRefreshStatus()
+      const deviceStatus: any = await body
+      await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+      if (await this.successfulStatusCodes(deviceStatus)) {
+        await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         this.deviceStatus = deviceStatus.body
         await this.openAPIparseStatus()
         await this.updateHomeKitCharacteristics()
       } else {
-        await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        await this.debugWarnLog(statusCode, deviceStatus)
+        await this.debugWarnLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        await this.debugWarnLog(deviceStatus)
       }
     } catch (e: any) {
       await this.apiError(e)
@@ -376,7 +373,7 @@ export class Contact extends deviceBase {
           await this.parseStatusWebhook()
           await this.updateHomeKitCharacteristics()
         } catch (e: any) {
-          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`)
+          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
         }
       }
     } else {
@@ -391,11 +388,11 @@ export class Contact extends deviceBase {
     // ContactSensorState
     await this.updateCharacteristic(this.ContactSensor.Service, this.hap.Characteristic.ContactSensorState, this.ContactSensor.ContactSensorState, 'ContactSensorState')
     // MotionDetected
-    if (!this.device.contact?.hide_motionsensor && this.MotionSensor?.Service) {
+    if (!(this.device as contactConfig).hide_motionsensor && this.MotionSensor?.Service) {
       await this.updateCharacteristic(this.MotionSensor.Service, this.hap.Characteristic.MotionDetected, this.MotionSensor.MotionDetected, 'MotionDetected')
     }
     // CurrentAmbientLightLevel
-    if (!this.device.contact?.hide_lightsensor && this.LightSensor?.Service) {
+    if (!(this.device as contactConfig).hide_lightsensor && this.LightSensor?.Service) {
       await this.updateCharacteristic(this.LightSensor.Service, this.hap.Characteristic.CurrentAmbientLightLevel, this.LightSensor.CurrentAmbientLightLevel, 'CurrentAmbientLightLevel')
     }
     // BatteryLevel
@@ -415,10 +412,10 @@ export class Contact extends deviceBase {
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
       this.ContactSensor.Service.updateCharacteristic(this.hap.Characteristic.ContactSensorState, this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED)
-      if (!this.device.contact?.hide_motionsensor && this.MotionSensor?.Service) {
+      if (!(this.device as contactConfig).hide_motionsensor && this.MotionSensor?.Service) {
         this.MotionSensor.Service.updateCharacteristic(this.hap.Characteristic.MotionDetected, false)
       }
-      if (!this.device.contact?.hide_lightsensor && this.LightSensor?.Service) {
+      if (!(this.device as contactConfig).hide_lightsensor && this.LightSensor?.Service) {
         this.LightSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, 100)
       }
     }
@@ -427,11 +424,11 @@ export class Contact extends deviceBase {
   async apiError(e: any): Promise<void> {
     this.ContactSensor.Service.updateCharacteristic(this.hap.Characteristic.ContactSensorState, e)
     this.ContactSensor.Service.updateCharacteristic(this.hap.Characteristic.StatusActive, e)
-    if (!this.device.contact?.hide_motionsensor && this.MotionSensor?.Service) {
+    if (!(this.device as contactConfig).hide_motionsensor && this.MotionSensor?.Service) {
       this.MotionSensor.Service.updateCharacteristic(this.hap.Characteristic.MotionDetected, e)
       this.MotionSensor.Service.updateCharacteristic(this.hap.Characteristic.StatusActive, e)
     }
-    if (!this.device.contact?.hide_lightsensor && this.LightSensor?.Service) {
+    if (!(this.device as contactConfig).hide_lightsensor && this.LightSensor?.Service) {
       this.LightSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, e)
       this.LightSensor.Service.updateCharacteristic(this.hap.Characteristic.StatusActive, e)
     }

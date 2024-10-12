@@ -3,14 +3,10 @@
  * device.ts: @switchbot/homebridge-switchbot.
  */
 import type { API, CharacteristicValue, HAP, Logging, PlatformAccessory, Service } from 'homebridge'
+import type { bodyChange, irdevice } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { irDevicesConfig, SwitchBotPlatformConfig } from '../settings.js'
-import type { irdevice } from '../types/irdevicelist.js'
-
-import { request } from 'undici'
-
-import { Devices } from '../settings.js'
+import type { irAirConfig, irDevicesConfig, irFanConfig, irLightConfig, irOtherConfig, SwitchBotPlatformConfig } from '../settings.js'
 
 export abstract class irdeviceBase {
   public readonly api: API
@@ -82,18 +78,30 @@ export abstract class irdeviceBase {
       device.disablePushOff === true && { disablePushOff: device.disablePushOff },
       device.disablePushDetail === true && { disablePushDetail: device.disablePushDetail },
     )
+    let deviceSpecificConfig = {}
+    switch (device.configRemoteType) {
+      case 'Fan':
+      case 'DIY Fan':
+        deviceSpecificConfig = device as irFanConfig
+        break
+      case 'Light':
+      case 'DIY Light':
+        deviceSpecificConfig = device as irLightConfig
+        break
+      case 'Air Conditioner':
+      case 'DIY Air Conditioner':
+        deviceSpecificConfig = device as irAirConfig
+        break
+      case 'Others':
+        deviceSpecificConfig = device as irOtherConfig
+        break
+      default:
+        break
+    }
     const config = Object.assign(
       {},
       deviceConfig,
-      device.irair,
-      device.irpur,
-      device.ircam,
-      device.irfan,
-      device.irlight,
-      device.other,
-      device.irtv,
-      device.irvc,
-      device.irwh,
+      deviceSpecificConfig,
     )
     if (Object.keys(config).length !== 0) {
       this.debugSuccessLog(`Config: ${JSON.stringify(config)}`)
@@ -129,16 +137,13 @@ export abstract class irdeviceBase {
     this.debugSuccessLog(`version: ${accessory.context.version}`)
   }
 
-  async pushChangeRequest(bodyChange: string): Promise<{ body: any, statusCode: any }> {
-    return await request(`${Devices}/${this.device.deviceId}/commands`, {
-      body: bodyChange,
-      method: 'POST',
-      headers: this.platform.generateHeaders(),
-    })
+  async pushChangeRequest(bodyChange: bodyChange): Promise<{ body: any, statusCode: number }> {
+    const { response, statusCode } = await this.platform.switchBotAPI.controlDevice(this.device.deviceId, bodyChange.command, bodyChange.parameter, bodyChange.commandType)
+    return { body: response, statusCode }
   }
 
-  async successfulStatusCodes(statusCode: any, deviceStatus: any) {
-    return (statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)
+  async successfulStatusCodes(deviceStatus: any) {
+    return (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)
   }
 
   /**
@@ -163,14 +168,13 @@ export abstract class irdeviceBase {
     }
   }
 
-  async pushStatusCodes(statusCode: any, deviceStatus: any) {
-    await this.debugWarnLog(`statusCode: ${statusCode}`)
+  async pushStatusCodes(deviceStatus: any) {
     await this.debugWarnLog(`deviceStatus: ${JSON.stringify(deviceStatus)}`)
     await this.debugWarnLog(`deviceStatus statusCode: ${deviceStatus.statusCode}`)
   }
 
-  async successfulPushChange(statusCode: any, deviceStatus: any, bodyChange: any) {
-    this.debugSuccessLog(`statusCode: ${statusCode} & deviceStatus StatusCode: ${deviceStatus.statusCode}`)
+  async successfulPushChange(deviceStatus: any, bodyChange: any) {
+    this.debugSuccessLog(`deviceStatus StatusCode: ${deviceStatus.statusCode}`)
     this.successLog(`request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`)
   }
 

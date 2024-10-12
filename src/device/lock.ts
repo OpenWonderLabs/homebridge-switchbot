@@ -3,13 +3,10 @@
  * lock.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
+import type { bodyChange, device, lockProServiceData, lockProStatus, lockProWebhookContext, lockServiceData, lockStatus, lockWebhookContext, SwitchbotDevice } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig } from '../settings.js'
-import type { lockProServiceData, lockServiceData } from '../types/bledevicestatus.js'
-import type { device } from '../types/devicelist.js'
-import type { lockProStatus, lockStatus } from '../types/devicestatus.js'
-import type { lockProWebhookContext, lockWebhookContext } from '../types/devicewebhookstatus.js'
+import type { devicesConfig, lockConfig } from '../settings.js'
 
 /*
 * For Testing Locally:
@@ -110,7 +107,7 @@ export class Lock extends deviceBase {
     })
 
     // Contact Sensor Service
-    if (device.lock?.hide_contactsensor) {
+    if ((device as lockConfig).hide_contactsensor) {
       if (this.ContactSensor) {
         this.debugLog('Removing Contact Sensor Service')
         this.ContactSensor.Service = this.accessory.getService(this.hap.Service.ContactSensor) as Service
@@ -132,7 +129,7 @@ export class Lock extends deviceBase {
     }
 
     // Initialize Latch Button Service
-    if (device.lock?.activate_latchbutton === false) {
+    if ((device as lockConfig).activate_latchbutton === false) {
       if (this.Switch) {
         this.debugLog('Removing Latch Button Service')
         this.Switch.Service = accessory.getService(this.hap.Service.Switch) as Service
@@ -158,7 +155,7 @@ export class Lock extends deviceBase {
       this.debugLog('Retrieve initial values and update Homekit')
       this.refreshStatus()
     } catch (e: any) {
-      this.errorLog(`failed to retrieve initial values and update Homekit, Error: ${e}`)
+      this.errorLog(`failed to retrieve initial values and update Homekit, Error: ${e.message ?? e}`)
     }
 
     // regisiter webhook event handler if enabled
@@ -166,7 +163,7 @@ export class Lock extends deviceBase {
       this.debugLog('Registering Webhook Event Handler')
       this.registerWebhook()
     } catch (e: any) {
-      this.errorLog(`failed to registerWebhook, Error: ${e}`)
+      this.errorLog(`failed to registerWebhook, Error: ${e.message ?? e}`)
     }
 
     // regisiter platform BLE event handler if enabled
@@ -174,7 +171,7 @@ export class Lock extends deviceBase {
       this.debugLog('Registering Platform BLE Event Handler')
       this.registerPlatformBLE()
     } catch (e: any) {
-      this.errorLog(`failed to registerPlatformBLE, Error: ${e}`)
+      this.errorLog(`failed to registerPlatformBLE, Error: ${e.message ?? e}`)
     }
 
     // Start an update interval
@@ -221,8 +218,8 @@ export class Lock extends deviceBase {
     await this.debugLog(`LockTargetState: ${this.LockMechanism.LockTargetState}`)
 
     // Contact Sensor
-    if (!this.device.lock?.hide_contactsensor && this.ContactSensor?.Service) {
-      this.ContactSensor.ContactSensorState = this.serviceData.door_open === 'opened'
+    if (!(this.device as lockConfig).hide_contactsensor && this.ContactSensor?.Service) {
+      this.ContactSensor.ContactSensorState = this.serviceData.door_open
         ? this.hap.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED
         : this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED
       await this.debugLog(`ContactSensorState: ${this.ContactSensor.ContactSensorState}`)
@@ -256,7 +253,7 @@ export class Lock extends deviceBase {
     await this.debugLog(`LockTargetState: ${this.LockMechanism.LockTargetState}`)
 
     // ContactSensorState
-    if (!this.device.lock?.hide_contactsensor && this.ContactSensor?.Service) {
+    if (!(this.device as lockConfig).hide_contactsensor && this.ContactSensor?.Service) {
       this.ContactSensor.ContactSensorState = this.deviceStatus.doorState === 'opened'
         ? this.hap.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED
         : this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED
@@ -324,14 +321,14 @@ export class Lock extends deviceBase {
 
   async BLERefreshStatus(): Promise<void> {
     await this.debugLog('BLERefreshStatus')
-    const switchbot = await this.switchbotBLE()
-    if (switchbot === undefined) {
-      await this.BLERefreshConnection(switchbot)
+    const switchBotBLE = await this.switchbotBLE()
+    if (switchBotBLE === undefined) {
+      await this.BLERefreshConnection(switchBotBLE)
     } else {
       // Start to monitor advertisement packets
       (async () => {
         // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchbot) as lockServiceData | lockProServiceData
+        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as lockServiceData | lockProServiceData
         // Update HomeKit
         if ((serviceData.model === SwitchBotBLEModel.Lock || SwitchBotBLEModel.LockPro)
           && (serviceData.modelName === SwitchBotBLEModelName.Lock || SwitchBotBLEModelName.LockPro)) {
@@ -339,8 +336,8 @@ export class Lock extends deviceBase {
           await this.BLEparseStatus()
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`)
-          await this.BLERefreshConnection(switchbot)
+          await this.errorLog(`failed to get serviceData, serviceData: ${JSON.stringify(serviceData)}`)
+          await this.BLERefreshConnection(switchBotBLE)
         }
       })()
     }
@@ -361,7 +358,7 @@ export class Lock extends deviceBase {
             await this.BLEparseStatus()
             await this.updateHomeKitCharacteristics()
           } catch (e: any) {
-            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`)
+            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
           }
         }
       } catch (error) {
@@ -375,17 +372,17 @@ export class Lock extends deviceBase {
   async openAPIRefreshStatus(): Promise<void> {
     await this.debugLog('openAPIRefreshStatus')
     try {
-      const { body, statusCode } = await this.deviceRefreshStatus()
-      const deviceStatus: any = await body.json()
-      await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-      if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
-        await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+      const { body } = await this.deviceRefreshStatus()
+      const deviceStatus: any = await body
+      await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+      if (await this.successfulStatusCodes(deviceStatus)) {
+        await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         this.deviceStatus = deviceStatus.body
         await this.openAPIparseStatus()
         await this.updateHomeKitCharacteristics()
       } else {
-        await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        await this.debugWarnLog(statusCode, deviceStatus)
+        await this.debugWarnLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        await this.debugWarnLog(deviceStatus)
       }
     } catch (e: any) {
       await this.apiError(e)
@@ -403,7 +400,7 @@ export class Lock extends deviceBase {
           await this.parseStatusWebhook()
           await this.updateHomeKitCharacteristics()
         } catch (e: any) {
-          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`)
+          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
         }
       }
     } else {
@@ -440,15 +437,15 @@ export class Lock extends deviceBase {
   async BLEpushChanges(): Promise<void> {
     await this.debugLog('BLEpushChanges')
     if (this.LockMechanism.LockTargetState !== this.accessory.context.LockTargetState) {
-      const switchbot = await this.platform.connectBLE(this.accessory, this.device)
+      const switchBotBLE = await this.platform.connectBLE(this.accessory, this.device)
       try {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
         await this.debugLog(`bleMac: ${this.device.bleMac}`)
-        if (switchbot !== false) {
-          switchbot
+        if (switchBotBLE !== false) {
+          switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
-            .then(async (device_list: any) => {
+            .then(async (device_list: SwitchbotDevice[]) => {
               return await this.retryBLE({
                 max: await this.maxRetryBLE(),
                 fn: async () => {
@@ -470,7 +467,7 @@ export class Lock extends deviceBase {
               await this.BLEPushConnection()
             })
         } else {
-          await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
+          await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(switchBotBLE)}`)
           await this.BLEPushConnection()
         }
       } catch (error) {
@@ -486,21 +483,20 @@ export class Lock extends deviceBase {
     if ((this.LockMechanism.LockTargetState !== this.accessory.context.LockTargetState) || LatchUnlock) {
       // Determine the command based on the LockTargetState or the forceUnlock parameter
       const command = LatchUnlock ? 'unlock' : this.LockMechanism.LockTargetState ? 'lock' : 'unlock'
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: `${command}`,
         parameter: 'default',
         commandType: 'command',
-      })
+      }
       await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const { body, statusCode } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body.json()
-        await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
-          await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        const { body } = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = await body
+        await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        if (await this.successfulStatusCodes(deviceStatus)) {
+          await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.statusCode(statusCode)
           await this.statusCode(deviceStatus.statusCode)
         }
       } catch (e: any) {
@@ -549,7 +545,7 @@ export class Lock extends deviceBase {
         }
       }).catch(async (e: any) => {
         // Log the error if the operation failed
-        await this.debugLog(`Error opening latch: ${e}`)
+        await this.debugLog(`Error opening latch: ${e.message ?? e}`)
         // Ensure we turn the switch back off even in case of an error
         if (this.Switch?.Service) {
           this.Switch.Service.getCharacteristic(this.hap.Characteristic.On).updateValue(false)
@@ -570,7 +566,7 @@ export class Lock extends deviceBase {
     // LockCurrentState
     await this.updateCharacteristic(this.LockMechanism.Service, this.hap.Characteristic.LockCurrentState, this.LockMechanism.LockCurrentState, 'LockCurrentState')
     // ContactSensorState
-    if (!this.device.lock?.hide_contactsensor && this.ContactSensor?.Service) {
+    if (!(this.device as lockConfig).hide_contactsensor && this.ContactSensor?.Service) {
       await this.updateCharacteristic(this.ContactSensor.Service, this.hap.Characteristic.ContactSensorState, this.ContactSensor.ContactSensorState, 'ContactSensorState')
     }
     // BatteryLevel
@@ -598,7 +594,7 @@ export class Lock extends deviceBase {
     if (this.device.offline) {
       this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockTargetState, this.hap.Characteristic.LockTargetState.SECURED)
       this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockCurrentState, this.hap.Characteristic.LockCurrentState.SECURED)
-      if (!this.device.lock?.hide_contactsensor && this.ContactSensor?.Service) {
+      if (!(this.device as lockConfig).hide_contactsensor && this.ContactSensor?.Service) {
         this.ContactSensor.Service.updateCharacteristic(this.hap.Characteristic.ContactSensorState, this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED)
       }
     }
@@ -607,7 +603,7 @@ export class Lock extends deviceBase {
   async apiError(e: any): Promise<void> {
     this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockTargetState, e)
     this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockCurrentState, e)
-    if (!this.device.lock?.hide_contactsensor && this.ContactSensor?.Service) {
+    if (!(this.device as lockConfig).hide_contactsensor && this.ContactSensor?.Service) {
       this.ContactSensor.Service.updateCharacteristic(this.hap.Characteristic.ContactSensorState, e)
     }
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e)

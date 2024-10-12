@@ -4,10 +4,11 @@
  */
 import type { IClientOptions } from 'async-mqtt'
 import type { PlatformConfig } from 'homebridge'
-import type { SwitchBotBLEModel, SwitchBotBLEModelFriendlyName, SwitchBotBLEModelName } from 'node-switchbot'
-
-import type { device } from './types/devicelist'
-import type { irdevice } from './types/irdevicelist'
+/*
+* For Testing Locally:
+* import type { device, irdevice, SwitchBotBLEModel, SwitchBotBLEModelFriendlyName, SwitchBotBLEModelName } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
+*/
+import type { device, irdevice, SwitchBotBLEModel, SwitchBotBLEModelFriendlyName, SwitchBotBLEModelName } from 'node-switchbot'
 /**
  * This is the name of the platform that users will use to register the plugin in the Homebridge config.json
  */
@@ -18,51 +19,31 @@ export const PLATFORM_NAME = 'SwitchBot'
  */
 export const PLUGIN_NAME = '@switchbot/homebridge-switchbot'
 
-/**
- * This is the main url used to access SwitchBot API
- */
-export const Devices = 'https://api.switch-bot.com/v1.1/devices'
-
-/**
- * This is the updateWebhook url used to access SwitchBot API
- */
-export const setupWebhook = 'https://api.switch-bot.com/v1.1/webhook/setupWebhook'
-
-/**
- * This is the updateWebhook url used to access SwitchBot API
- */
-export const queryWebhook = 'https://api.switch-bot.com/v1.1/webhook/queryWebhook'
-
-/**
- * This is the updateWebhook url used to access SwitchBot API
- */
-export const updateWebhook = 'https://api.switch-bot.com/v1.1/webhook/updateWebhook'
-
-/**
- * This is the deleteWebhook url used to access SwitchBot API
- */
-export const deleteWebhook = 'https://api.switch-bot.com/v1.1/webhook/deleteWebhook'
-
 // Config
 export interface SwitchBotPlatformConfig extends PlatformConfig {
   credentials?: credentials
   options?: options
+  deviceConfig?: { [deviceType: string]: devicesConfig }
 }
 interface credentials {
-  token?: any
-  secret?: any
-  notice?: any
-  openToken?: any
+  token?: string
+  secret?: string
+  notice?: string
 }
 
 export interface options {
   devices?: devicesConfig[]
+  deviceConfig?: { [deviceType: string]: devicesConfig }
   irdevices?: irDevicesConfig[]
+  irdeviceConfig?: { [remoteType: string]: irDevicesConfig }
   allowInvalidCharacters?: boolean
   mqttURL?: string
   mqttOptions?: IClientOptions
   mqttPubOptions?: IClientOptions
   BLE?: boolean
+  discoverBLE?: boolean
+  disableLogsforBLE?: boolean
+  disableLogsforOpenAPI?: boolean
   webhookURL?: string
   maxRetries?: number
   delayBetweenRetries?: number
@@ -72,7 +53,9 @@ export interface options {
   logging?: string
 };
 
-export interface devicesConfig extends device {
+export type devicesConfig = botConfig | meterConfig | indoorOutdoorSensorConfig | humidifierConfig | curtainConfig | blindTiltConfig | contactConfig | motionConfig | waterDetectorConfig | plugConfig | colorBulbConfig | stripLightConfig | ceilingLightConfig | lockConfig | hubConfig
+
+export interface BaseDeviceConfig extends device {
   bleMac?: string
   model: string
   bleModel: SwitchBotBLEModel
@@ -101,50 +84,41 @@ export interface devicesConfig extends device {
   mqttPubOptions?: IClientOptions
   history?: boolean
   webhook?: boolean
-  bot?: bot
-  meter?: meter
-  iosensor?: iosensor
-  humidifier?: humidifier
-  curtain?: curtain
-  blindTilt?: blindTilt
-  contact?: contact
-  motion?: motion
-  waterdetector?: waterdetector
-  colorbulb?: colorbulb
-  striplight?: striplight
-  ceilinglight?: ceilinglight
-  plug?: plug
-  lock?: lock
-  hub?: hub
 }
 
-interface meter {
-  hide_temperature?: boolean
-  convertUnitTo?: string
-  hide_humidity?: boolean
-};
-
-interface iosensor {
-  hide_temperature?: boolean
-  convertUnitTo?: string
-  hide_humidity?: boolean
-};
-
-interface bot {
+export interface botConfig extends BaseDeviceConfig {
+  configDeviceType: 'Bot'
   mode?: string
-  deviceType?: string
+  type: string
   doublePress?: number
   pushRatePress?: number
   allowPush?: boolean
   multiPress?: boolean
 };
 
-interface humidifier {
+export interface meterConfig extends BaseDeviceConfig {
+  configDeviceType: 'Meter' | 'MeterPlus'
   hide_temperature?: boolean
+  convertUnitTo?: string
+  hide_humidity?: boolean
+};
+
+export interface indoorOutdoorSensorConfig extends BaseDeviceConfig {
+  configDeviceType: 'WoIOSensor'
+  hide_temperature?: boolean
+  convertUnitTo?: string
+  hide_humidity?: boolean
+};
+
+export interface humidifierConfig extends BaseDeviceConfig {
+  configDeviceType: 'Humidifier'
+  hide_temperature?: boolean
+  convertUnitTo?: string
   set_minStep?: number
 };
 
-interface curtain {
+export interface curtainConfig extends BaseDeviceConfig {
+  configDeviceType: 'Curtain' | 'Curtain3' | 'WoRollerShade' | 'Roller Shade'
   disable_group?: boolean
   hide_lightsensor?: boolean
   set_minLux?: number
@@ -157,8 +131,10 @@ interface curtain {
   silentModeSwitch?: boolean
 };
 
-interface blindTilt {
-  mode?: string
+export interface blindTiltConfig extends BaseDeviceConfig {
+  configDeviceType: 'Blind Tilt'
+  disable_group?: boolean
+  mapping?: string
   hide_lightsensor?: boolean
   set_minLux?: number
   set_maxLux?: number
@@ -170,54 +146,68 @@ interface blindTilt {
   silentModeSwitch?: boolean
 };
 
-interface contact {
+export interface contactConfig extends BaseDeviceConfig {
+  configDeviceType: 'Contact Sensor'
   hide_lightsensor?: boolean
   set_minLux?: number
   set_maxLux?: number
   hide_motionsensor?: boolean
 };
 
-interface motion {
+export interface motionConfig extends BaseDeviceConfig {
+  configDeviceType: 'Motion Sensor'
   hide_lightsensor?: boolean
   set_minLux?: number
   set_maxLux?: number
 };
 
-interface waterdetector {
+export interface waterDetectorConfig extends BaseDeviceConfig {
+  configDeviceType: 'Water Detector'
   hide_leak?: boolean
   dry?: boolean
 };
 
-interface colorbulb {
+export interface plugConfig extends BaseDeviceConfig {
+  configDeviceType: 'Plug' | 'Plug Mini (US)' | 'Plug Mini (JP)'
+};
+
+export interface colorBulbConfig extends BaseDeviceConfig {
+  configDeviceType: 'Color Bulb'
   set_minStep?: number
   adaptiveLightingShift?: number
 };
 
-interface striplight {
+export interface stripLightConfig extends BaseDeviceConfig {
+  configDeviceType: 'Strip Light'
   set_minStep?: number
   adaptiveLightingShift?: number
 };
 
-interface ceilinglight {
+export interface ceilingLightConfig extends BaseDeviceConfig {
+  configDeviceType: 'Ceiling Light' | 'Ceiling Light Pro'
   set_minStep?: number
   adaptiveLightingShift?: number
 };
 
-type plug = object
-
-interface lock {
+export interface lockConfig extends BaseDeviceConfig {
+  configDeviceType: 'Smart Lock' | 'Smart Lock Pro'
   hide_contactsensor?: boolean
   activate_latchbutton?: boolean
 };
 
-interface hub {
+export interface hubConfig extends BaseDeviceConfig {
+  configDeviceType: 'Hub 2'
   hide_temperature?: boolean
   convertUnitTo?: string
   hide_humidity?: boolean
   hide_lightsensor?: boolean
+  set_minLux?: number
+  set_maxLux?: number
 };
 
-export interface irDevicesConfig extends irdevice {
+export type irDevicesConfig = irFanConfig | irLightConfig | irAirConfig | irOtherConfig
+
+export interface irBaseDeviceConfig extends irdevice {
   configDeviceName?: string
   configRemoteType?: string
   connectionType?: string
@@ -233,18 +223,10 @@ export interface irDevicesConfig extends irdevice {
   disablePushOn?: boolean
   disablePushOff?: boolean
   disablePushDetail?: boolean
-  irfan?: irfan
-  irair?: irair
-  irpur?: Record<any, any>
-  ircam?: Record<any, any>
-  irlight?: irlight
-  irvc?: Record<any, any>
-  irwh?: Record<any, any>
-  irtv?: Record<any, any>
-  other?: other
 }
 
-interface irfan {
+export interface irFanConfig extends irBaseDeviceConfig {
+  configRemoteType?: 'Fan' | 'DIY Fan'
   swing_mode?: boolean
   rotation_speed?: boolean
   set_minStep?: number
@@ -252,11 +234,13 @@ interface irfan {
   set_min?: number
 };
 
-interface irlight {
+export interface irLightConfig extends irBaseDeviceConfig {
+  configRemoteType?: 'Light' | 'DIY Light'
   stateless?: boolean
 };
 
-interface irair {
+export interface irAirConfig extends irBaseDeviceConfig {
+  configRemoteType?: 'Air Conditioner' | 'DIY Air Conditioner'
   hide_automode?: boolean
   set_max_heat?: number
   set_min_heat?: number
@@ -267,6 +251,7 @@ interface irair {
   meterUuid?: string
 };
 
-interface other {
-  deviceType?: string
+export interface irOtherConfig extends irBaseDeviceConfig {
+  configRemoteType?: 'Others'
+  type?: string
 };

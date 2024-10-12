@@ -2,21 +2,14 @@
  *
  * platform.ts: @switchbot/homebridge-switchbot platform class.
  */
-import type { IncomingMessage, Server, ServerResponse } from 'node:http'
-import type { UrlObject } from 'node:url'
+import type { Server } from 'node:http'
 
 import type { API, DynamicPlatformPlugin, Logging, PlatformAccessory } from 'homebridge'
 import type { MqttClient } from 'mqtt'
-import type { Dispatcher } from 'undici'
 
-import type { devicesConfig, irDevicesConfig, options, SwitchBotPlatformConfig } from './settings.js'
-import type { blindTilt, curtain, curtain3, device } from './types/devicelist.js'
-import type { irdevice } from './types/irdevicelist.js'
+import type { blindTiltConfig, curtainConfig, devicesConfig, irDevicesConfig, options, SwitchBotPlatformConfig } from './settings.js'
 
-import { Buffer } from 'node:buffer'
-import crypto, { randomUUID } from 'node:crypto'
-import { readFileSync, writeFileSync } from 'node:fs'
-import { createServer } from 'node:http'
+import { readFileSync } from 'node:fs'
 import process from 'node:process'
 
 import asyncmqtt from 'async-mqtt'
@@ -24,11 +17,13 @@ import fakegato from 'fakegato-history'
 import { EveHomeKitTypes } from 'homebridge-lib/EveHomeKitTypes'
 /*
 * For Testing Locally:
-* import { SwitchBotModel } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
+* import type { blindTilt, curtain, curtain3, device, irdevice } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
+* import { LogLevel, SwitchBotBLE, SwitchBotModel, SwitchBotOpenAPI } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
 */
-import { SwitchBot, SwitchBotModel } from 'node-switchbot'
+import type { blindTilt, curtain, curtain3, device, deviceStatus, deviceStatusRequest, irdevice } from 'node-switchbot'
+
+import { LogLevel, SwitchBotBLE, SwitchBotModel, SwitchBotOpenAPI } from 'node-switchbot'
 import { queueScheduler } from 'rxjs'
-import { request } from 'undici'
 
 import { BlindTilt } from './device/blindtilt.js'
 import { Bot } from './device/bot.js'
@@ -57,7 +52,7 @@ import { Others } from './irdevice/other.js'
 import { TV } from './irdevice/tv.js'
 import { VacuumCleaner } from './irdevice/vacuumcleaner.js'
 import { WaterHeater } from './irdevice/waterheater.js'
-import { deleteWebhook, Devices, PLATFORM_NAME, PLUGIN_NAME, queryWebhook, setupWebhook, updateWebhook } from './settings.js'
+import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js'
 import { formatDeviceIdAsMac, isBlindTiltDevice, isCurtainDevice, sleep } from './utils.js'
 
 /**
@@ -85,6 +80,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   mqttClient: MqttClient | null = null
   webhookEventListener: Server | null = null
 
+  // SwitchBot APIs
+  switchBotAPI!: SwitchBotOpenAPI
+  switchBotBLE!: SwitchBotBLE
+
   // External APIs
   public readonly eve: any
   public readonly fakegatoAPI: any
@@ -103,6 +102,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     // only load if configured
     if (!config) {
+      this.log.error('No configuration found for the plugin, please check your config.')
       return
     }
 
@@ -112,6 +112,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       name: config.name,
       credentials: config.credentials as object,
       options: config.options as object,
+      devices: config.devices as { deviceId: string }[],
+      deviceConfig: config.deviceConfig as { [deviceType: string]: devicesConfig },
     }
 
     // Plugin Configuration
@@ -127,11 +129,51 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.verifyConfig()
       this.debugLog('Config OK')
     } catch (e: any) {
-      this.errorLog(`Verify Config, Error Message: ${e.message}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
-      this.debugErrorLog(`Verify Config, Error: ${e}`)
+      this.errorLog(`Verify Config, Error Message: ${e.message ?? e}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
+      this.debugErrorLog(`Verify Config, Error: ${e.message ?? e}`)
       return
     }
 
+    // SwitchBot OpenAPI
+    if (this.config.credentials?.token && this.config.credentials?.secret) {
+      this.switchBotAPI = new SwitchBotOpenAPI(this.config.credentials.token, this.config.credentials.secret)
+    } else {
+      this.debugErrorLog('Missing SwitchBot API credentials (token or secret).')
+    }
+    // Listen for log events
+    if (!this.config.options?.disableLogsforOpenAPI && this.switchBotAPI) {
+      this.switchBotAPI.on('log', (log) => {
+        switch (log.level) {
+          case LogLevel.SUCCESS:
+            this.successLog(log.message)
+            break
+          case LogLevel.DEBUGSUCCESS:
+            this.debugSuccessLog(log.message)
+            break
+          case LogLevel.WARN:
+            this.warnLog(log.message)
+            break
+          case LogLevel.DEBUGWARN:
+            this.debugWarnLog(log.message)
+            break
+          case LogLevel.ERROR:
+            this.errorLog(log.message)
+            break
+          case LogLevel.DEBUGERROR:
+            this.debugErrorLog(log.message)
+            break
+          case LogLevel.DEBUG:
+            this.debugLog(log.message)
+            break
+          case LogLevel.INFO:
+          default:
+            this.infoLog(log.message)
+        }
+      })
+    } else {
+      this.debugErrorLog(`SwitchBot OpenAPI logs are disabled, enable it by setting disableLogsforOpenAPI to false.`)
+      this.debugLog(`SwitchBot OpenAPI: ${JSON.stringify(this.switchBotAPI)}, disableLogsforOpenAPI: ${this.config.options?.disableLogsforOpenAPI}`)
+    }
     // import fakegato-history module and EVE characteristics
     this.fakegatoAPI = fakegato(api)
     this.eve = new EveHomeKitTypes(api)
@@ -144,33 +186,27 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       await this.debugLog('Executed didFinishLaunching callback')
       // run the method to discover / register your devices as accessories
       try {
-        if (this.config.credentials?.openToken && !this.config.credentials.token) {
-          await this.updateToken()
-        } else if (this.config.credentials?.token && !this.config.credentials?.secret) {
-          await this.errorLog('"secret" config is not populated, you must populate then please restart Homebridge.')
-        } else {
-          await this.discoverDevices()
-        }
+        await this.discoverDevices()
       } catch (e: any) {
-        await this.errorLog(`Failed to Discover, Error Message: ${e.message}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
-        await this.debugErrorLog(`Failed to Discover, Error: ${e}`)
+        await this.errorLog(`Failed to Discover, Error Message: ${e.message ?? e}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
+        await this.debugErrorLog(`Failed to Discover, Error: ${e.message ?? e}`)
       }
     })
 
     try {
       this.setupMqtt()
     } catch (e: any) {
-      this.errorLog(`Setup MQTT, Error Message: ${e.message}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
+      this.errorLog(`Setup MQTT, Error Message: ${e.message ?? e}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
     }
     try {
       this.setupwebhook()
     } catch (e: any) {
-      this.errorLog(`Setup Webhook, Error Message: ${e.message}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
+      this.errorLog(`Setup Webhook, Error Message: ${e.message ?? e}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
     }
     try {
       this.setupBlE()
     } catch (e: any) {
-      this.errorLog(`Setup Platform BLE, Error Message: ${e.message}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
+      this.errorLog(`Setup Platform BLE, Error Message: ${e.message ?? e}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
     }
   }
 
@@ -181,7 +217,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.mqttClient = await connectAsync(this.config.options?.mqttURL, this.config.options.mqttOptions || {})
         await this.debugLog('MQTT connection has been established successfully.')
         this.mqttClient.on('error', async (e: Error) => {
-          await this.errorLog(`Failed to publish MQTT messages. ${e}`)
+          await this.errorLog(`Failed to publish MQTT messages. ${e.message ?? e}`)
         })
         if (!this.config.options?.webhookURL) {
           // receive webhook events via MQTT
@@ -193,13 +229,13 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
               const context = JSON.parse(message.toString())
               this.webhookEventHandler[context.deviceMac]?.(context)
             } catch (e: any) {
-              await this.errorLog(`Failed to handle webhook event. Error:${e}`)
+              await this.errorLog(`Failed to handle webhook event. Error:${e.message ?? e}`)
             }
           })
         }
-      } catch (e) {
+      } catch (e: any) {
         this.mqttClient = null
-        await this.errorLog(`Failed to establish MQTT connection. ${e}`)
+        await this.errorLog(`Failed to establish MQTT connection. ${e.message ?? e}`)
       }
     }
   }
@@ -208,156 +244,94 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     // webhook configuration
     if (this.config.options?.webhookURL) {
       const url = this.config.options?.webhookURL
-
       try {
-        const xurl = new URL(url)
-        const port = Number(xurl.port)
-        const path = xurl.pathname
-        this.webhookEventListener = createServer((request: IncomingMessage, response: ServerResponse) => {
-          try {
-            if (request.url === path && request.method === 'POST') {
-              request.on('data', async (data) => {
-                try {
-                  const body = JSON.parse(data)
-                  await this.debugLog(`Received Webhook: ${JSON.stringify(body)}`)
-                  if (this.config.options?.mqttURL) {
-                    const mac = body.context.deviceMac?.toLowerCase().match(/[\s\S]{1,2}/g)?.join(':')
-                    const options = this.config.options?.mqttPubOptions || {}
-                    this.mqttClient?.publish(`homebridge-switchbot/webhook/${mac}`, `${JSON.stringify(body.context)}`, options)
-                  }
-                  this.webhookEventHandler[body.context.deviceMac]?.(body.context)
-                } catch (e: any) {
-                  await this.errorLog(`Failed to handle webhook event. Error:${e}`)
-                }
-              })
-              response.writeHead(200, { 'Content-Type': 'text/plain' })
-              response.end('OK')
-            }
-            // else {
-            //   response.writeHead(403, {'Content-Type': 'text/plain'});
-            //   response.end(`NG`);
-            // }
-          } catch (e: any) {
-            this.errorLog(`Failed to handle webhook event. Error:${e}`)
+        this.switchBotAPI.setupWebhook(url)
+        // Listen for webhook events
+        this.switchBotAPI.on('webhookEvent', (body) => {
+          if (this.config.options?.mqttURL) {
+            const mac = body.context.deviceMac?.toLowerCase().match(/[\s\S]{1,2}/g)?.join(':')
+            const options = this.config.options?.mqttPubOptions || {}
+            this.mqttClient?.publish(`homebridge-switchbot/webhook/${mac}`, `${JSON.stringify(body.context)}`, options)
           }
-        }).listen(port || 80)
-      } catch (e: any) {
-        await this.errorLog(`Failed to create webhook listener. Error:${e.message}`)
-        return
-      }
-
-      try {
-        const { body, statusCode } = await request(setupWebhook, {
-          method: 'POST',
-          headers: this.generateHeaders(),
-          body: JSON.stringify({
-            action: 'setupWebhook',
-            url,
-            deviceList: 'ALL',
-          }),
+          this.webhookEventHandler[body.context.deviceMac]?.(body.context)
         })
-        const response: any = await body.json()
-        await this.debugLog(`setupWebhook: url:${url}, body:${JSON.stringify(response)}, statusCode:${statusCode}`)
-        if (statusCode !== 200 || response?.statusCode !== 100) {
-          await this.errorLog(`Failed to configure webhook. Existing webhook well be overridden. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`)
-        }
       } catch (e: any) {
-        await this.errorLog(`Failed to configure webhook. Error: ${e.message}`)
-      }
-
-      try {
-        const { body, statusCode } = await request(updateWebhook, {
-          method: 'POST',
-          headers: this.generateHeaders(),
-          body: JSON.stringify({
-            action: 'updateWebhook',
-            config: {
-              url,
-              enable: true,
-            },
-          }),
-        })
-        const response: any = await body.json()
-        await this.debugLog(`updateWebhook: url:${url}, body:${JSON.stringify(response)}, statusCode:${statusCode}`)
-        if (statusCode !== 200 || response?.statusCode !== 100) {
-          await this.errorLog(`Failed to update webhook. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`)
-        }
-      } catch (e: any) {
-        await this.errorLog(`Failed to update webhook. Error:${e.message}`)
-      }
-
-      try {
-        const { body, statusCode } = await request(queryWebhook, {
-          method: 'POST',
-          headers: this.generateHeaders(),
-          body: JSON.stringify({
-            action: 'queryUrl',
-          }),
-        })
-        const response: any = await body.json()
-        await this.debugLog(`queryWebhook: body:${JSON.stringify(response)}`)
-        await this.debugLog(`queryWebhook: statusCode:${statusCode}`)
-        if (statusCode !== 200 || response?.statusCode !== 100) {
-          await this.errorLog(`Failed to query webhook. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`)
-        } else {
-          await this.infoLog(`Listening webhook on ${response?.body?.urls[0]}`)
-        }
-      } catch (e: any) {
-        await this.errorLog(`Failed to query webhook. Error:${e}`)
+        await this.errorLog(`Failed to setup webhook. Error:${e.message ?? e}`)
       }
 
       this.api.on('shutdown', async () => {
         try {
-          const { body, statusCode } = await request(deleteWebhook, {
-            method: 'POST',
-            headers: this.generateHeaders(),
-            body: JSON.stringify({
-              action: 'deleteWebhook',
-              url,
-            }),
-          })
-          const response: any = await body.json()
-          await this.debugLog(`deleteWebhook: url:${url}, body:${JSON.stringify(response)}, statusCode:${statusCode}`)
-          if (statusCode !== 200 || response?.statusCode !== 100) {
-            await this.errorLog(`Failed to delete webhook. HTTP:${statusCode} API:${response?.statusCode} message:${response?.message}`)
-          } else {
-            await this.infoLog('Unregistered webhook to close listening.')
-          }
+          this.switchBotAPI.deleteWebhook(url)
         } catch (e: any) {
-          await this.errorLog(`Failed to delete webhook. Error:${e.message}`)
+          await this.errorLog(`Failed to delete webhook. Error:${e.message ?? e}`)
         }
       })
     }
   }
 
   async setupBlE() {
+    this.switchBotBLE = new SwitchBotBLE()
+    // Listen for log events
+    if (!this.config.options?.disableLogsforBLE) {
+      this.switchBotBLE.on('log', (log) => {
+        switch (log.level) {
+          case LogLevel.SUCCESS:
+            this.successLog(log.message)
+            break
+          case LogLevel.DEBUGSUCCESS:
+            this.debugSuccessLog(log.message)
+            break
+          case LogLevel.WARN:
+            this.warnLog(log.message)
+            break
+          case LogLevel.DEBUGWARN:
+            this.debugWarnLog(log.message)
+            break
+          case LogLevel.ERROR:
+            this.errorLog(log.message)
+            break
+          case LogLevel.DEBUGERROR:
+            this.debugErrorLog(log.message)
+            break
+          case LogLevel.DEBUG:
+            this.debugLog(log.message)
+            break
+          case LogLevel.INFO:
+          default:
+            this.infoLog(log.message)
+        }
+      })
+    }
     if (this.config.options?.BLE) {
       await this.debugLog('setupBLE')
-      const switchbot = new SwitchBot()
-      if (switchbot === undefined) {
-        await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
+      if (this.switchBotBLE === undefined) {
+        await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(this.switchBotBLE)}`)
       } else {
         // Start to monitor advertisement packets
         (async () => {
           // Start to monitor advertisement packets
           await this.debugLog('Scanning for BLE SwitchBot devices...')
-          await switchbot.startScan()
+          try {
+            await this.switchBotBLE.startScan()
+          } catch (e: any) {
+            await this.errorLog(`Failed to start BLE scanning. Error:${e.message ?? e}`)
+          }
           // Set an event handler to monitor advertisement packets
-          switchbot.onadvertisement = async (ad: any) => {
+          this.switchBotBLE.onadvertisement = async (ad: any) => {
             try {
               this.bleEventHandler[ad.address]?.(ad.serviceData)
             } catch (e: any) {
-              await this.errorLog(`Failed to handle BLE event. Error:${e}`)
+              await this.errorLog(`Failed to handle BLE event. Error:${e.message ?? e}`)
             }
           }
         })()
 
         this.api.on('shutdown', async () => {
           try {
-            switchbot.stopScan()
+            // this.switchBotBLE.stopScan()
             await this.infoLog('Stopped BLE scanning to close listening.')
           } catch (e: any) {
-            await this.errorLog(`Failed to stop Platform BLE scanning. Error:${e.message}`)
+            await this.errorLog(`Failed to stop Platform BLE scanning. Error:${e.message ?? e}`)
           }
         })
       }
@@ -408,7 +382,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
             if (!deviceConfig.deviceId) {
               throw new Error('The devices config section is missing the *Device ID* in the config. Please check your config.')
             }
-            if (!deviceConfig.configDeviceType && deviceConfig.connectionType) {
+            if (!deviceConfig.configDeviceType && (deviceConfig as devicesConfig).connectionType) {
               throw new Error('The devices config section is missing the *Device Type* in the config. Please check your config.')
             }
           }
@@ -477,79 +451,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  /**
-   * The openToken was old config.
-   * This method saves the openToken as the token in the config.json file
-   */
-  async updateToken() {
-    try {
-      // check the new token was provided
-      if (!this.config.credentials?.openToken) {
-        throw new Error('New token not provided')
-      }
-
-      // load in the current config
-      const currentConfig = JSON.parse(readFileSync(this.api.user.configPath(), 'utf8'))
-
-      // check the platforms section is an array before we do array things on it
-      if (!Array.isArray(currentConfig.platforms)) {
-        throw new TypeError('Cannot find platforms array in config')
-      }
-
-      // find this plugins current config
-      const pluginConfig = currentConfig.platforms.find((x: { platform: string }) => x.platform === PLATFORM_NAME)
-
-      if (!pluginConfig) {
-        throw new Error(`Cannot find config for ${PLATFORM_NAME} in platforms array`)
-      }
-
-      // check the .credentials is an object before doing object things with it
-      if (typeof pluginConfig.credentials !== 'object') {
-        throw new TypeError('pluginConfig.credentials is not an object')
-      }
-      // Move openToken to token
-      if (!this.config.credentials.secret) {
-        await this.warnLog('This plugin has been updated to use OpenAPI v1.1, config is set with openToken, "openToken" cconfig has been moved to the "token" config')
-        this.errorLog('"secret" config is not populated, you must populate then please restart Homebridge.')
-      } else {
-        await this.warnLog('This plugin has been updated to use OpenAPI v1.1, config is set with openToken, "openToken" config has been moved to the "token" config, please restart Homebridge.')
-      }
-
-      // set the refresh token
-      pluginConfig.credentials.token = this.config.credentials?.openToken
-      if (pluginConfig.credentials.token) {
-        pluginConfig.credentials.openToken = undefined
-      }
-
-      await this.debugWarnLog(`token: ${pluginConfig.credentials.token}`)
-
-      // save the config, ensuring we maintain pretty json
-      writeFileSync(this.api.user.configPath(), JSON.stringify(currentConfig, null, 4))
-      await this.verifyConfig()
-    } catch (e: any) {
-      await this.errorLog(`Update Token: ${e}`)
-    }
-  }
-
-  generateHeaders = () => {
-    const t = `${Date.now()}`
-    const nonce = randomUUID()
-    const data = this.config.credentials?.token + t + nonce
-    const signTerm = crypto
-      .createHmac('sha256', this.config.credentials?.secret)
-      .update(Buffer.from(data, 'utf-8'))
-      .digest()
-    const sign = signTerm.toString('base64')
-
-    return {
-      'Authorization': this.config.credentials?.token,
-      'sign': sign,
-      'nonce': nonce,
-      't': t,
-      'Content-Type': 'application/json',
-    }
-  }
-
   async discoverDevices() {
     if (!this.config.credentials?.token) {
       return this.handleManualConfig()
@@ -565,23 +466,20 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     while (retryCount < maxRetries) {
       try {
-        const { body, statusCode } = await request(Devices, { headers: this.generateHeaders() })
-        await this.debugWarnLog(`statusCode: ${statusCode}`)
-        const devicesAPI: any = await body.json()
-        await this.debugWarnLog(`devicesAPI: ${JSON.stringify(devicesAPI)}`)
-
-        if (this.isSuccessfulResponse(statusCode, devicesAPI.statusCode)) {
-          await this.handleDevices(devicesAPI.body.deviceList)
-          await this.handleIRDevices(devicesAPI.body.infraredRemoteList)
+        const { response, statusCode } = await this.switchBotAPI.getDevices()
+        await this.debugLog(`response: ${JSON.stringify(response)}`)
+        if (this.isSuccessfulResponse(statusCode)) {
+          await this.handleDevices(Array.isArray(response.body.deviceList) ? response.body.deviceList : [])
+          await this.handleIRDevices(Array.isArray(response.body.infraredRemoteList) ? response.body.infraredRemoteList : [])
           break
         } else {
-          await this.handleErrorResponse(statusCode, devicesAPI.statusCode, retryCount, maxRetries, delayBetweenRetries)
+          await this.handleErrorResponse(statusCode, retryCount, maxRetries, delayBetweenRetries)
           retryCount++
         }
       } catch (e: any) {
         retryCount++
         await this.debugErrorLog(`Failed to Discover Devices, Error Message: ${JSON.stringify(e.message)}, Submit Bugs Here: https://tinyurl.com/SwitchBotBug`)
-        await this.debugErrorLog(`Failed to Discover Devices, Error: ${e}`)
+        await this.debugErrorLog(`Failed to Discover Devices, Error: ${e.message ?? e}`)
       }
     }
   }
@@ -608,12 +506,12 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  private isSuccessfulResponse(statusCode: number, apiStatusCode: number): boolean {
-    return (statusCode === 200 || statusCode === 100) && (apiStatusCode === 200 || apiStatusCode === 100)
+  private isSuccessfulResponse(apiStatusCode: number): boolean {
+    return (apiStatusCode === 200 || apiStatusCode === 100)
   }
 
   private async handleDevices(deviceLists: any[]) {
-    if (!this.config.options?.devices) {
+    if (!this.config.options?.devices && !this.config.options?.deviceConfig) {
       await this.debugLog(`SwitchBot Device Config Not Set: ${JSON.stringify(this.config.options?.devices)}`)
       if (deviceLists.length === 0) {
         await this.debugLog('SwitchBot API Has No Devices With Cloud Services Enabled')
@@ -627,41 +525,83 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           }
         }
       }
-    } else {
+    } else if (this.config.options?.devices || this.config.options?.deviceConfig) {
       await this.debugLog(`SwitchBot Device Config Set: ${JSON.stringify(this.config.options?.devices)}`)
-      const devices = this.mergeByDeviceId(deviceLists, this.config.options.devices)
-      await this.debugLog(`SwitchBot Devices: ${JSON.stringify(devices)}`)
-      for (const device of devices) {
+
+      // Step 1: Check and assign configDeviceType to deviceType if deviceType is not present
+      const devicesWithTypeConfigPromises = deviceLists.map(async (device) => {
         if (!device.deviceType && device.configDeviceType) {
           device.deviceType = device.configDeviceType
           await this.warnLog(`API is displaying no deviceType: ${device.deviceType}, So using configDeviceType: ${device.configDeviceType}`)
         } else if (!device.deviceType && !device.configDeviceName) {
           await this.errorLog('No deviceType or configDeviceType for device. No device will be created.')
+          return null // Skip this device
         }
-        if (device.deviceType) {
-          if (device.configDeviceName) {
-            device.deviceName = device.configDeviceName
-          }
-          await this.createDevice(device)
+
+        // Retrieve deviceTypeConfig for each device and merge it
+        const deviceTypeConfig = this.config.options?.deviceConfig?.[device.deviceType] || {}
+        return Object.assign({}, device, deviceTypeConfig)
+      })
+
+      // Wait for all promises to resolve
+      const devicesWithTypeConfig = (await Promise.all(devicesWithTypeConfigPromises)).filter(device => device !== null) // Filter out skipped devices
+
+      const devices = this.mergeByDeviceId(this.config.options.devices ?? [], devicesWithTypeConfig ?? [])
+
+      await this.debugLog(`SwitchBot Devices: ${JSON.stringify(devices)}`)
+
+      for (const device of devices) {
+        const deviceIdConfig = this.config.options?.devices?.[device.deviceId] || {}
+        const deviceWithConfig = Object.assign({}, device, deviceIdConfig)
+
+        if (device.configDeviceName) {
+          device.deviceName = device.configDeviceName
         }
+        // Pass the merged device object to createDevice
+        await this.createDevice(deviceWithConfig)
       }
     }
   }
 
   private async handleIRDevices(irDeviceLists: any[]) {
-    if (!this.config.options?.irdevices) {
+    if (!this.config.options?.irdevices && !this.config.options?.irdeviceConfig) {
       await this.debugLog(`IR Device Config Not Set: ${JSON.stringify(this.config.options?.irdevices)}`)
       for (const device of irDeviceLists) {
         if (device.remoteType) {
           await this.createIRDevice(device)
         }
       }
-    } else {
+    } else if (this.config.options?.irdevices || this.config.options?.irdeviceConfig) {
       await this.debugLog(`IR Device Config Set: ${JSON.stringify(this.config.options?.irdevices)}`)
-      const devices = this.mergeByDeviceId(irDeviceLists, this.config.options.irdevices)
+
+      // Step 1: Check and assign configRemoteType to remoteType if remoteType is not present
+      const devicesWithTypeConfigPromises = irDeviceLists.map(async (device) => {
+        if (!device.remoteType && device.configRemoteType) {
+          device.remoteType = device.configRemoteType
+          await this.warnLog(`API is displaying no remoteType: ${device.remoteType}, So using configRemoteType: ${device.configRemoteType}`)
+        } else if (!device.remoteType && !device.configDeviceName) {
+          await this.errorLog('No remoteType or configRemoteType for device. No device will be created.')
+          return null // Skip this device
+        }
+
+        // Retrieve remoteTypeConfig for each device and merge it
+        const remoteTypeConfig = this.config.options?.irdeviceConfig?.[device.remoteType] || {}
+        return Object.assign({}, device, remoteTypeConfig)
+      })
+      // Wait for all promises to resolve
+      const devicesWithRemoteTypeConfig = (await Promise.all(devicesWithTypeConfigPromises)).filter(device => device !== null) // Filter out skipped devices
+
+      const devices = this.mergeByDeviceId(this.config.options.irdevices ?? [], devicesWithRemoteTypeConfig ?? [])
+
       await this.debugLog(`IR Devices: ${JSON.stringify(devices)}`)
       for (const device of devices) {
-        await this.createIRDevice(device)
+        const irdeviceIdConfig = this.config.options?.irdevices?.[device.deviceId] || {}
+        const irdeviceWithConfig = Object.assign({}, device, irdeviceIdConfig)
+
+        if (device.configDeviceName) {
+          device.deviceName = device.configDeviceName
+        }
+        await this.createIRDevice(irdeviceWithConfig)
       }
     }
   }
@@ -674,11 +614,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     })
   }
 
-  private async handleErrorResponse(statusCode: number, apiStatusCode: number, retryCount: number, maxRetries: number, delayBetweenRetries: number) {
-    await this.statusCode(statusCode)
+  private async handleErrorResponse(apiStatusCode: number, retryCount: number, maxRetries: number, delayBetweenRetries: number) {
     await this.statusCode(apiStatusCode)
-    if (statusCode === 500) {
-      this.infoLog(`statusCode: ${statusCode} Attempt ${retryCount + 1} of ${maxRetries}`)
+    if (apiStatusCode === 500) {
+      this.infoLog(`statusCode: ${apiStatusCode} Attempt ${retryCount + 1} of ${maxRetries}`)
       await sleep(delayBetweenRetries)
     }
   }
@@ -707,6 +646,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       'Smart Lock Pro': this.createLock.bind(this),
       'Color Bulb': this.createColorBulb.bind(this),
       'K10+': this.createRobotVacuumCleaner.bind(this),
+      'K10+ Pro': this.createRobotVacuumCleaner.bind(this),
       'WoSweeper': this.createRobotVacuumCleaner.bind(this),
       'WoSweeperMini': this.createRobotVacuumCleaner.bind(this),
       'Robot Vacuum Cleaner S1': this.createRobotVacuumCleaner.bind(this),
@@ -728,9 +668,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  private async createIRDevice(device: irdevice & devicesConfig) {
+  private async createIRDevice(device: irdevice & irDevicesConfig) {
     device.connectionType = device.connectionType ?? 'OpenAPI'
-    const deviceTypeHandlers: { [key: string]: (device: irdevice & devicesConfig) => Promise<void> } = {
+    const deviceTypeHandlers: { [key: string]: (device: irdevice & irDevicesConfig) => Promise<void> } = {
       'TV': this.createTV.bind(this),
       'DIY TV': this.createTV.bind(this),
       'Projector': this.createTV.bind(this),
@@ -1355,14 +1295,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.api.updatePlatformAccessories([existingAccessory])
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
-        new BlindTilt(this, existingAccessory, device)
+        new BlindTilt(this, existingAccessory, device as blindTiltConfig)
         await this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
       } else {
         this.unregisterPlatformAccessories(existingAccessory)
       }
     } else if (await this.registerDevice(device)) {
       if (isBlindTiltDevice(device)) {
-        if (device.group && !device.curtain?.disable_group) {
+        if (device.group && !(device as blindTiltConfig | curtainConfig).disable_group) {
           this.debugLog(
             'Your Curtains are grouped, '
             + `, Secondary curtain automatically hidden. Main Curtain: ${device.deviceName}, deviceId: ${device.deviceId}`,
@@ -1397,7 +1337,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       await this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
-      new BlindTilt(this, accessory, device)
+      new BlindTilt(this, accessory, device as blindTiltConfig)
       await this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
 
       // publish device externally or link the accessory to your platform
@@ -1432,14 +1372,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.api.updatePlatformAccessories([existingAccessory])
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
-        new Curtain(this, existingAccessory, device)
+        new Curtain(this, existingAccessory, device as curtainConfig)
         await this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
       } else {
         this.unregisterPlatformAccessories(existingAccessory)
       }
     } else if (await this.registerDevice(device)) {
       if (isCurtainDevice(device)) {
-        if (device.group && !device.curtain?.disable_group) {
+        if (device.group && !(device as blindTiltConfig | curtainConfig).disable_group) {
           this.debugLog(
             'Your Curtains are grouped, '
             + `, Secondary curtain automatically hidden. Main Curtain: ${device.deviceName}, deviceId: ${device.deviceId}`,
@@ -1474,7 +1414,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       await this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
-      new Curtain(this, accessory, device)
+      new Curtain(this, accessory, device as curtainConfig)
       await this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
 
       // publish device externally or link the accessory to your platform
@@ -1947,7 +1887,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  private async createTV(device: irdevice & devicesConfig) {
+  private async createTV(device: irdevice & irDevicesConfig) {
     const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.remoteType}`)
 
     // see if an accessory with the same uuid has already been registered and restored from
@@ -1986,7 +1926,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
         : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
       accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
+      accessory.context.version = device.firmware ?? this.version ?? '0.0.0'
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
       await this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
       // create the accessory handler for the newly create accessory
@@ -2001,7 +1941,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  private async createIRFan(device: irdevice & devicesConfig) {
+  private async createIRFan(device: irdevice & irDevicesConfig) {
     const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.remoteType}`)
 
     // see if an accessory with the same uuid has already been registered and restored from
@@ -2045,7 +1985,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
         : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
       accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
+      accessory.context.version = device.firmware ?? this.version ?? '0.0.0'
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
       await this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
       // create the accessory handler for the newly create accessory
@@ -2061,7 +2001,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  private async createLight(device: irdevice & devicesConfig) {
+  private async createLight(device: irdevice & irDevicesConfig) {
     const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.remoteType}`)
 
     // see if an accessory with the same uuid has already been registered and restored from
@@ -2105,7 +2045,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
         : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
       accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
+      accessory.context.version = device.firmware ?? this.version ?? '0.0.0'
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
       await this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
       // create the accessory handler for the newly create accessory
@@ -2121,7 +2061,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  private async createAirConditioner(device: irdevice & devicesConfig & irDevicesConfig) {
+  private async createAirConditioner(device: irdevice & irDevicesConfig) {
     const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.remoteType}`)
 
     // see if an accessory with the same uuid has already been registered and restored from
@@ -2165,7 +2105,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
         : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
       accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
+      accessory.context.version = device.firmware ?? this.version ?? '0.0.0'
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
       await this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
       // create the accessory handler for the newly create accessory
@@ -2181,7 +2121,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  private async createAirPurifier(device: irdevice & devicesConfig) {
+  private async createAirPurifier(device: irdevice & irDevicesConfig) {
     const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.remoteType}`)
 
     // see if an accessory with the same uuid has already been registered and restored from
@@ -2225,7 +2165,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
         : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
       accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
+      accessory.context.version = device.firmware ?? this.version ?? '0.0.0'
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
       await this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
       // create the accessory handler for the newly create accessory
@@ -2241,7 +2181,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  private async createWaterHeater(device: irdevice & devicesConfig) {
+  private async createWaterHeater(device: irdevice & irDevicesConfig) {
     const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.remoteType}`)
 
     // see if an accessory with the same uuid has already been registered and restored from
@@ -2285,7 +2225,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
         : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
       accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
+      accessory.context.version = device.firmware ?? this.version ?? '0.0.0'
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
       await this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
       // create the accessory handler for the newly create accessory
@@ -2301,7 +2241,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  private async createVacuumCleaner(device: irdevice & devicesConfig) {
+  private async createVacuumCleaner(device: irdevice & irDevicesConfig) {
     const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.remoteType}`)
 
     // see if an accessory with the same uuid has already been registered and restored from
@@ -2345,7 +2285,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
         : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
       accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
+      accessory.context.version = device.firmware ?? this.version ?? '0.0.0'
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
       await this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
       // create the accessory handler for the newly create accessory
@@ -2361,7 +2301,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  private async createCamera(device: irdevice & devicesConfig) {
+  private async createCamera(device: irdevice & irDevicesConfig) {
     const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.remoteType}`)
 
     // see if an accessory with the same uuid has already been registered and restored from
@@ -2405,7 +2345,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
         : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
       accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
+      accessory.context.version = device.firmware ?? this.version ?? '0.0.0'
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
       await this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
       // create the accessory handler for the newly create accessory
@@ -2421,7 +2361,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  private async createOthers(device: irdevice & devicesConfig) {
+  private async createOthers(device: irdevice & irDevicesConfig) {
     const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.remoteType}`)
 
     // see if an accessory with the same uuid has already been registered and restored from
@@ -2465,7 +2405,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
         : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
       accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
+      accessory.context.version = device.firmware ?? this.version ?? '0.0.0'
       const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
       await this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
       // create the accessory handler for the newly create accessory
@@ -2484,10 +2424,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   async registerCurtains(device: device & devicesConfig): Promise<boolean> {
     let registerWindowCovering: boolean
     if (isCurtainDevice(device)) {
-      await this.debugWarnLog(`deviceName: ${device.deviceName} deviceId: ${device.deviceId}, curtainDevicesIds: ${device.curtainDevicesIds},x master: ${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group}, connectionType: ${device.connectionType}`)
+      await this.debugWarnLog(`deviceName: ${device.deviceName} deviceId: ${device.deviceId}, curtainDevicesIds: ${device.curtainDevicesIds},x master: ${device.master}, group: ${device.group}, disable_group: ${(device as blindTiltConfig | curtainConfig).disable_group}, connectionType: ${device.connectionType}`)
       registerWindowCovering = await this.registerWindowCovering(device)
     } else if (isBlindTiltDevice(device)) {
-      await this.debugWarnLog(`deviceName: ${device.deviceName} deviceId: ${device.deviceId}, blindTiltDevicesIds: ${device.blindTiltDevicesIds}, master: ${device.master}, group: ${device.group}, disable_group: ${device.curtain?.disable_group}, connectionType: ${device.connectionType}`)
+      await this.debugWarnLog(`deviceName: ${device.deviceName} deviceId: ${device.deviceId}, blindTiltDevicesIds: ${device.blindTiltDevicesIds}, master: ${device.master}, group: ${device.group}, disable_group: ${(device as blindTiltConfig | curtainConfig).disable_group}, connectionType: ${device.connectionType}`)
       registerWindowCovering = await this.registerWindowCovering(device)
     } else {
       registerWindowCovering = false
@@ -2495,7 +2435,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     return registerWindowCovering
   }
 
-  async registerWindowCovering(device: ((curtain | curtain3) & devicesConfig) | (blindTilt & devicesConfig)) {
+  async registerWindowCovering(device: (curtain | curtain3 | blindTilt) & devicesConfig) {
     await this.debugLog(`master: ${device.master}`)
     let registerCurtain: boolean
     if (device.master && device.group) {
@@ -2503,11 +2443,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       registerCurtain = true
       await this.debugLog(`deviceName: ${device.deviceName} [${device.deviceType} Config] device.master: ${device.master}, device.group: ${device.group} connectionType; ${device.connectionType}`)
       await this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`)
-    } else if (!device.master && device.curtain?.disable_group) {
-      // !device.group && device.connectionType === 'BLE'
-      // OpenAPI: Non-Master Curtains/Blind Tilts that has Disable Grouping Checked
+    } else if (!device.master && (device as blindTiltConfig | curtainConfig).disable_group) {
       registerCurtain = true
-      await this.debugLog(`deviceName: ${device.deviceName} [${device.deviceType} Config] device.master: ${device.master}, disable_group: ${device.curtain?.disable_group}, connectionType; ${device.connectionType}`)
+      await this.debugLog(`deviceName: ${device.deviceName} [${device.deviceType} Config] device.master: ${device.master}, disable_group: ${(device as blindTiltConfig | curtainConfig).disable_group}, connectionType; ${device.connectionType}`)
       await this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`)
     } else if (device.master && !device.group) {
       // OpenAPI: Master Curtains/Blind Tilts not in Group
@@ -2521,13 +2459,13 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       await this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`)
     } else {
       registerCurtain = false
-      await this.debugErrorLog(`deviceName: ${device.deviceName} [${device.deviceType} Config] disable_group: ${device.curtain?.disable_group}, device.master: ${device.master}, device.group: ${device.group}`)
+      await this.debugErrorLog(`deviceName: ${device.deviceName} [${device.deviceType} Config] disable_group: ${(device as blindTiltConfig | curtainConfig).disable_group}, device.master: ${device.master}, device.group: ${device.group}`)
       await this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}, device.connectionType: ${device.connectionType}`)
     }
     return registerCurtain
   }
 
-  async connectionType(device: device & devicesConfig): Promise<any> {
+  async connectionType(device: (device & devicesConfig) | (irdevice & irDevicesConfig)): Promise<any> {
     let connectionType: string
     if (!device.connectionType && this.config.credentials?.token && this.config.credentials.secret) {
       connectionType = 'OpenAPI'
@@ -2577,7 +2515,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     return registerDevice
   }
 
-  public async externalOrPlatform(device: device & (irDevicesConfig | devicesConfig), accessory: PlatformAccessory) {
+  public async externalOrPlatform(device: (device & devicesConfig) | (irdevice & irDevicesConfig), accessory: PlatformAccessory) {
     const { displayName } = accessory
     const isExternal = device.external ?? false
 
@@ -2639,18 +2577,15 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  async retryRequest(deviceMaxRetries: number, deviceDelayBetweenRetries: number, url: string | URL | UrlObject, options?: { dispatcher?: Dispatcher } & Omit<Dispatcher.RequestOptions, 'origin' | 'path' | 'method'> & Partial<Pick<Dispatcher.RequestOptions, 'method'>>): Promise<{ body: any, statusCode: number }> {
+  async retryRequest(deviceId: string, deviceMaxRetries: number, deviceDelayBetweenRetries: number): Promise<{ response: deviceStatus, statusCode: deviceStatusRequest['statusCode'] }> {
     let retryCount = 0
     const maxRetries = deviceMaxRetries
     const delayBetweenRetries = deviceDelayBetweenRetries
     while (retryCount < maxRetries) {
       try {
-        const { body, statusCode } = await request(url, options)
-        if (statusCode === 200 || statusCode === 100) {
-          return { body, statusCode }
-        } else {
-          await this.debugLog(`Received status code: ${statusCode}`)
-        }
+        const { response, statusCode } = await this.switchBotAPI.getDeviceStatus(deviceId)
+        await this.debugLog(`response: ${JSON.stringify(response)}`)
+        return { response, statusCode }
       } catch (error: any) {
         await this.errorLog(`Error making request: ${error.message}`)
       }
@@ -2658,18 +2593,24 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       await this.debugLog(`Retry attempt ${retryCount} of ${maxRetries}`)
       await sleep(delayBetweenRetries)
     }
-    return { body: null, statusCode: -1 }
+    return { response: {
+      deviceId: '',
+      deviceType: '',
+      hubDeviceId: '',
+      version: 0,
+      deviceName: '',
+      enableCloudService: false,
+    }, statusCode: 500 }
   }
 
   // BLE Connection
   async connectBLE(accessory: PlatformAccessory, device: device & devicesConfig): Promise<any> {
     try {
-      const switchbot = new SwitchBot()
-      queueScheduler.schedule(async () => switchbot)
-      await this.debugLog(`${device.deviceType}: ${accessory.displayName} 'node-switchbot' found: ${switchbot}`)
-      return switchbot
+      queueScheduler.schedule(async () => this.switchBotBLE)
+      await this.debugLog(`${device.deviceType}: ${accessory.displayName} 'node-switchbot' found: ${this.switchBotBLE}`)
+      return this.switchBotBLE
     } catch (e: any) {
-      await this.errorLog(`${device.deviceType}: ${accessory.displayName} 'node-switchbot' not found, Error: ${e}`)
+      await this.errorLog(`${device.deviceType}: ${accessory.displayName} 'node-switchbot' not found, Error: ${e.message ?? e}`)
       return false
     }
   }

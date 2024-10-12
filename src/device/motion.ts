@@ -3,13 +3,10 @@
  * motion.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
+import type { device, motionSensorServiceData, motionSensorStatus, motionSensorWebhookContext } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig } from '../settings.js'
-import type { motionSensorServiceData } from '../types/bledevicestatus.js'
-import type { device } from '../types/devicelist.js'
-import type { motionSensorStatus } from '../types/devicestatus.js'
-import type { motionSensorWebhookContext } from '../types/devicewebhookstatus.js'
+import type { devicesConfig, motionConfig } from '../settings.js'
 
 /*
 * For Testing Locally:
@@ -107,7 +104,7 @@ export class Motion extends deviceBase {
     })
 
     // Initialize Light Sensor Service
-    if (device.motion?.hide_lightsensor) {
+    if ((device as motionConfig).hide_lightsensor) {
       if (this.LightSensor) {
         this.debugLog('Removing Light Sensor Service')
         this.LightSensor.Service = this.accessory.getService(this.hap.Service.LightSensor) as Service
@@ -133,7 +130,7 @@ export class Motion extends deviceBase {
       this.debugLog('Retrieve initial values and update Homekit')
       this.refreshStatus()
     } catch (e: any) {
-      this.errorLog(`failed to retrieve initial values and update Homekit, Error: ${e}`)
+      this.errorLog(`failed to retrieve initial values and update Homekit, Error: ${e.message ?? e}`)
     }
 
     // regisiter webhook event handler if enabled
@@ -141,7 +138,7 @@ export class Motion extends deviceBase {
       this.debugLog('Registering Webhook Event Handler')
       this.registerWebhook()
     } catch (e: any) {
-      this.errorLog(`failed to registerWebhook, Error: ${e}`)
+      this.errorLog(`failed to registerWebhook, Error: ${e.message ?? e}`)
     }
 
     // regisiter platform BLE event handler if enabled
@@ -149,7 +146,7 @@ export class Motion extends deviceBase {
       this.debugLog('Registering Platform BLE Event Handler')
       this.registerPlatformBLE()
     } catch (e: any) {
-      this.errorLog(`failed to registerPlatformBLE, Error: ${e}`)
+      this.errorLog(`failed to registerPlatformBLE, Error: ${e.message ?? e}`)
     }
 
     // Start an update interval
@@ -169,9 +166,9 @@ export class Motion extends deviceBase {
     await this.debugLog(`MotionDetected: ${this.MotionSensor.MotionDetected}`)
 
     // CurrentAmbientLightLevel
-    if (!this.device.motion?.hide_lightsensor && this.LightSensor?.Service) {
-      const set_minLux = this.device.blindTilt?.set_minLux ?? 1
-      const set_maxLux = this.device.blindTilt?.set_maxLux ?? 6001
+    if (!(this.device as motionConfig).hide_lightsensor && this.LightSensor?.Service) {
+      const set_minLux = (this.device as motionConfig).set_minLux ?? 1
+      const set_maxLux = (this.device as motionConfig).set_maxLux ?? 6001
       const lightLevel = this.serviceData.lightLevel === 'bright' ? set_maxLux : set_minLux
       this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
       await this.debugLog(`LightLevel: ${this.serviceData.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
@@ -197,9 +194,9 @@ export class Motion extends deviceBase {
     await this.debugLog(`MotionDetected: ${this.MotionSensor.MotionDetected}`)
 
     // CurrentAmbientLightLevel
-    if (!this.device.motion?.hide_lightsensor && this.LightSensor?.Service) {
-      const set_minLux = this.device.blindTilt?.set_minLux ?? 1
-      const set_maxLux = this.device.blindTilt?.set_maxLux ?? 6001
+    if (!(this.device as motionConfig).hide_lightsensor && this.LightSensor?.Service) {
+      const set_minLux = (this.device as motionConfig).set_minLux ?? 1
+      const set_maxLux = (this.device as motionConfig).set_maxLux ?? 6001
       const lightLevel = this.deviceStatus.brightness === 'bright' ? set_maxLux : set_minLux
       this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
       await this.debugLog(`LightLevel: ${this.deviceStatus.brightness}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
@@ -257,22 +254,22 @@ export class Motion extends deviceBase {
 
   async BLERefreshStatus(): Promise<void> {
     await this.debugLog('BLERefreshStatus')
-    const switchbot = await this.switchbotBLE()
-    if (switchbot === undefined) {
-      await this.BLERefreshConnection(switchbot)
+    const switchBotBLE = await this.switchbotBLE()
+    if (switchBotBLE === undefined) {
+      await this.BLERefreshConnection(switchBotBLE)
     } else {
       // Start to monitor advertisement packets
       (async () => {
         // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchbot) as motionSensorServiceData
+        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as motionSensorServiceData
         // Update HomeKit
         if (serviceData.model === SwitchBotBLEModel.MotionSensor && serviceData.modelName === SwitchBotBLEModelName.MotionSensor) {
           this.serviceData = serviceData
           await this.BLEparseStatus()
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`)
-          await this.BLERefreshConnection(switchbot)
+          await this.errorLog(`failed to get serviceData, serviceData: ${JSON.stringify(serviceData)}`)
+          await this.BLERefreshConnection(switchBotBLE)
         }
       })()
     }
@@ -293,7 +290,7 @@ export class Motion extends deviceBase {
             await this.BLEparseStatus()
             await this.updateHomeKitCharacteristics()
           } catch (e: any) {
-            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`)
+            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
           }
         }
       } catch (error) {
@@ -307,17 +304,17 @@ export class Motion extends deviceBase {
   async openAPIRefreshStatus(): Promise<void> {
     await this.debugLog('openAPIRefreshStatus')
     try {
-      const { body, statusCode } = await this.deviceRefreshStatus()
-      const deviceStatus: any = await body.json()
-      await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-      if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
-        await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+      const { body } = await this.deviceRefreshStatus()
+      const deviceStatus: any = await body
+      await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+      if (await this.successfulStatusCodes(deviceStatus)) {
+        await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         this.deviceStatus = deviceStatus.body
         await this.openAPIparseStatus()
         await this.updateHomeKitCharacteristics()
       } else {
-        await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        await this.debugWarnLog(statusCode, deviceStatus)
+        await this.debugWarnLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        await this.debugWarnLog(deviceStatus)
       }
     } catch (e: any) {
       await this.apiError(e)
@@ -335,7 +332,7 @@ export class Motion extends deviceBase {
           await this.parseStatusWebhook()
           await this.updateHomeKitCharacteristics()
         } catch (e: any) {
-          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`)
+          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
         }
       }
     } else {
@@ -354,7 +351,7 @@ export class Motion extends deviceBase {
     // StatusLowBattery
     await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery, 'StatusLowBattery')
     // CurrentAmbientLightLevel
-    if (!this.device.motion?.hide_lightsensor && this.LightSensor?.Service) {
+    if (!(this.device as motionConfig).hide_lightsensor && this.LightSensor?.Service) {
       await this.updateCharacteristic(this.LightSensor.Service, this.hap.Characteristic.CurrentAmbientLightLevel, this.LightSensor.CurrentAmbientLightLevel, 'CurrentAmbientLightLevel')
     }
   }
@@ -377,7 +374,7 @@ export class Motion extends deviceBase {
     this.MotionSensor.Service.updateCharacteristic(this.hap.Characteristic.MotionDetected, e)
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e)
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, e)
-    if (!this.device.motion?.hide_lightsensor && this.LightSensor?.Service) {
+    if (!(this.device as motionConfig).hide_lightsensor && this.LightSensor?.Service) {
       this.LightSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, e)
     }
   }

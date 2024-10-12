@@ -3,13 +3,10 @@
  * humidifier.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
+import type { bodyChange, device, humidifierServiceData, humidifierStatus, humidifierWebhookContext, SwitchbotDevice, WoHumi } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig } from '../settings.js'
-import type { humidifierServiceData } from '../types/bledevicestatus.js'
-import type { device } from '../types/devicelist.js'
-import type { humidifierStatus } from '../types/devicestatus.js'
-import type { humidifierWebhookContext } from '../types/devicewebhookstatus.js'
+import type { devicesConfig, humidifierConfig } from '../settings.js'
 
 /*
 * For Testing Locally:
@@ -103,13 +100,13 @@ export class Humidifier extends deviceBase {
       validValueRanges: [0, 100],
       minValue: 0,
       maxValue: 100,
-      minStep: device.humidifier?.set_minStep ?? 1,
+      minStep: (device as humidifierConfig).set_minStep ?? 1,
     }).onGet(() => {
       return this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold
     }).onSet(this.RelativeHumidityHumidifierThresholdSet.bind(this))
 
     // Initialize the Temperature Sensor Service
-    if (device.humidifier?.hide_temperature) {
+    if ((device as humidifierConfig).hide_temperature) {
       if (this.TemperatureSensor) {
         this.debugLog('Removing Temperature Sensor Service')
         this.TemperatureSensor!.Service = this.accessory.getService(this.hap.Service.TemperatureSensor) as Service
@@ -140,7 +137,7 @@ export class Humidifier extends deviceBase {
       this.debugLog('Retrieve initial values and update Homekit')
       this.refreshStatus()
     } catch (e: any) {
-      this.errorLog(`failed to retrieve initial values and update Homekit, Error: ${e}`)
+      this.errorLog(`failed to retrieve initial values and update Homekit, Error: ${e.message ?? e}`)
     }
 
     // regisiter webhook event handler if enabled
@@ -148,7 +145,7 @@ export class Humidifier extends deviceBase {
       this.debugLog('Registering Webhook Event Handler')
       this.registerWebhook()
     } catch (e: any) {
-      this.errorLog(`failed to registerWebhook, Error: ${e}`)
+      this.errorLog(`failed to registerWebhook, Error: ${e.message ?? e}`)
     }
 
     // regisiter platform BLE event handler if enabled
@@ -156,7 +153,7 @@ export class Humidifier extends deviceBase {
       this.debugLog('Registering Platform BLE Event Handler')
       this.registerPlatformBLE()
     } catch (e: any) {
-      this.errorLog(`failed to registerPlatformBLE, Error: ${e}`)
+      this.errorLog(`failed to registerPlatformBLE, Error: ${e.message ?? e}`)
     }
 
     // Start an update interval
@@ -236,7 +233,7 @@ export class Humidifier extends deviceBase {
     await this.debugLog(`CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`)
 
     // Current Temperature
-    if (!this.device.humidifier?.hide_temperature && this.TemperatureSensor?.Service) {
+    if (!(this.device as humidifierConfig).hide_temperature && this.TemperatureSensor?.Service) {
       this.TemperatureSensor.CurrentTemperature = this.deviceStatus.temperature
       await this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}`)
     }
@@ -289,15 +286,15 @@ export class Humidifier extends deviceBase {
 
   async parseStatusWebhook(): Promise<void> {
     await this.debugLog('parseStatusWebhook')
-    await this.debugLog(`(temperature, humidity) = Webhook:(${convertUnits(this.webhookContext.temperature, this.webhookContext.scale, this.device.iosensor?.convertUnitTo)}, ${this.webhookContext.humidity}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumidifierDehumidifier.CurrentRelativeHumidity})`)
+    await this.debugLog(`(temperature, humidity) = Webhook:(${convertUnits(this.webhookContext.temperature, this.webhookContext.scale, (this.device as humidifierConfig).convertUnitTo)}, ${this.webhookContext.humidity}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumidifierDehumidifier.CurrentRelativeHumidity})`)
 
     // CurrentRelativeHumidity
     this.HumidifierDehumidifier.CurrentRelativeHumidity = validHumidity(this.webhookContext.humidity)
     await this.debugLog(`CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`)
 
     // CurrentTemperature
-    if (!this.device.humidifier?.hide_temperature && this.TemperatureSensor?.Service) {
-      this.TemperatureSensor.CurrentTemperature = convertUnits(this.webhookContext.temperature, this.webhookContext.scale, this.device.iosensor?.convertUnitTo)
+    if (!(this.device as humidifierConfig).hide_temperature && this.TemperatureSensor?.Service) {
+      this.TemperatureSensor.CurrentTemperature = convertUnits(this.webhookContext.temperature, this.webhookContext.scale, (this.device as humidifierConfig).convertUnitTo)
       await this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}`)
     }
   }
@@ -320,22 +317,22 @@ export class Humidifier extends deviceBase {
 
   async BLERefreshStatus(): Promise<void> {
     await this.debugLog('BLERefreshStatus')
-    const switchbot = await this.switchbotBLE()
-    if (switchbot === undefined) {
-      await this.BLERefreshConnection(switchbot)
+    const switchBotBLE = await this.switchbotBLE()
+    if (switchBotBLE === undefined) {
+      await this.BLERefreshConnection(switchBotBLE)
     } else {
       // Start to monitor advertisement packets
       (async () => {
         // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchbot) as humidifierServiceData
+        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as humidifierServiceData
         // Update HomeKit
         if (serviceData.model === SwitchBotBLEModel.Humidifier && serviceData.modelName === SwitchBotBLEModelName.Humidifier) {
           this.serviceData = serviceData
           await this.BLEparseStatus()
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.errorLog(`failed to get serviceData, serviceData: ${serviceData}`)
-          await this.BLERefreshConnection(switchbot)
+          await this.errorLog(`failed to get serviceData, serviceData: ${JSON.stringify(serviceData)}`)
+          await this.BLERefreshConnection(switchBotBLE)
         }
       })()
     }
@@ -356,7 +353,7 @@ export class Humidifier extends deviceBase {
             await this.BLEparseStatus()
             await this.updateHomeKitCharacteristics()
           } catch (e: any) {
-            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e}`)
+            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
           }
         }
       } catch (error) {
@@ -370,17 +367,17 @@ export class Humidifier extends deviceBase {
   async openAPIRefreshStatus(): Promise<void> {
     await this.debugLog('openAPIRefreshStatus')
     try {
-      const { body, statusCode } = await this.deviceRefreshStatus()
-      const deviceStatus: any = await body.json()
-      await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-      if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
-        await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+      const { body } = await this.deviceRefreshStatus()
+      const deviceStatus: any = await body
+      await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+      if (await this.successfulStatusCodes(deviceStatus)) {
+        await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         this.deviceStatus = deviceStatus.body
         await this.openAPIparseStatus()
         await this.updateHomeKitCharacteristics()
       } else {
-        await this.debugWarnLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        await this.debugWarnLog(statusCode, deviceStatus)
+        await this.debugWarnLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        await this.debugWarnLog(deviceStatus)
       }
     } catch (e: any) {
       await this.apiError(e)
@@ -398,7 +395,7 @@ export class Humidifier extends deviceBase {
           await this.parseStatusWebhook()
           await this.updateHomeKitCharacteristics()
         } catch (e: any) {
-          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e}`)
+          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
         }
       }
     }
@@ -432,16 +429,17 @@ export class Humidifier extends deviceBase {
     if ((this.HumidifierDehumidifier.TargetHumidifierDehumidifierState === this.hap.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER)
       && (this.HumidifierDehumidifier.Active === this.hap.Characteristic.Active.ACTIVE)
       && (this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold !== this.HumidifierDehumidifier.CurrentRelativeHumidity)) {
-      const switchbot = await this.platform.connectBLE(this.accessory, this.device)
+      const switchBotBLE = await this.platform.connectBLE(this.accessory, this.device)
       try {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
         await this.debugLog(`bleMac: ${this.device.bleMac}`)
-        if (switchbot !== false) {
-          switchbot
+        if (switchBotBLE !== false) {
+          switchBotBLE
             .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
-            .then(async (device_list: any) => {
-              return await device_list[0].percentage(this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold)
+            .then(async (device_list: SwitchbotDevice[]) => {
+              const deviceList = device_list as unknown as WoHumi[]
+              return await deviceList[0].percentage(this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold)
             })
             .then(async () => {
               await this.successLog(`RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold} sent over BLE,  sent successfully`)
@@ -453,7 +451,7 @@ export class Humidifier extends deviceBase {
               await this.BLEPushConnection()
             })
         } else {
-          await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
+          await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(switchBotBLE)}`)
           await this.BLEPushConnection()
         }
       } catch (error) {
@@ -470,21 +468,20 @@ export class Humidifier extends deviceBase {
       && (this.HumidifierDehumidifier.Active === this.hap.Characteristic.Active.ACTIVE)
       && (this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold !== this.HumidifierDehumidifier.CurrentRelativeHumidity)) {
       await this.debugLog(`Auto Off, RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold}!`)
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'setMode',
         parameter: `${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold}`,
         commandType: 'command',
-      })
+      }
       await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const { body, statusCode } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body.json()
-        await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
-          await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        const { body } = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = await body
+        await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        if (await this.successfulStatusCodes(deviceStatus)) {
+          await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.statusCode(statusCode)
           await this.statusCode(deviceStatus.statusCode)
         }
       } catch (e: any) {
@@ -507,21 +504,20 @@ export class Humidifier extends deviceBase {
       === this.hap.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER_OR_DEHUMIDIFIER)
       && (this.HumidifierDehumidifier.Active === this.hap.Characteristic.Active.ACTIVE)) {
       await this.debugLog('Pushing Auto')
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'setMode',
         parameter: 'auto',
         commandType: 'command',
-      })
+      }
       await this.debugLog(`pushAutoChanges, SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const { body, statusCode } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body.json()
-        await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
-          await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        const { body } = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = await body
+        await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        if (await this.successfulStatusCodes(deviceStatus)) {
+          await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.statusCode(statusCode)
           await this.statusCode(deviceStatus.statusCode)
         }
       } catch (e: any) {
@@ -540,21 +536,20 @@ export class Humidifier extends deviceBase {
     await this.debugLog('pushActiveChanges')
     if (this.HumidifierDehumidifier.Active === this.hap.Characteristic.Active.INACTIVE) {
       await this.debugLog('Pushing Off')
-      const bodyChange = JSON.stringify({
+      const bodyChange: bodyChange = {
         command: 'turnOff',
         parameter: 'default',
         commandType: 'command',
-      })
+      }
       await this.debugLog(`pushActiveChanges, SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const { body, statusCode } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body.json()
-        await this.debugLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        if (await this.successfulStatusCodes(statusCode, deviceStatus)) {
-          await this.debugSuccessLog(`statusCode: ${statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        const { body } = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = await body
+        await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        if (await this.successfulStatusCodes(deviceStatus)) {
+          await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.statusCode(statusCode)
           await this.statusCode(deviceStatus.statusCode)
         }
       } catch (e: any) {
@@ -630,7 +625,7 @@ export class Humidifier extends deviceBase {
     // RelativeHumidityHumidifierThreshold
     await this.updateCharacteristic(this.HumidifierDehumidifier.Service, this.hap.Characteristic.RelativeHumidityHumidifierThreshold, this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold, 'RelativeHumidityHumidifierThreshold')
     // CurrentTemperature
-    if (!this.device.humidifier?.hide_temperature && this.TemperatureSensor?.Service) {
+    if (!(this.device as humidifierConfig).hide_temperature && this.TemperatureSensor?.Service) {
       await this.updateCharacteristic(this.TemperatureSensor.Service, this.hap.Characteristic.CurrentTemperature, this.TemperatureSensor.CurrentTemperature, 'CurrentTemperature')
     }
   }
@@ -665,7 +660,7 @@ export class Humidifier extends deviceBase {
     this.HumidifierDehumidifier.Service.updateCharacteristic(this.hap.Characteristic.TargetHumidifierDehumidifierState, e)
     this.HumidifierDehumidifier.Service.updateCharacteristic(this.hap.Characteristic.Active, e)
     this.HumidifierDehumidifier.Service.updateCharacteristic(this.hap.Characteristic.RelativeHumidityHumidifierThreshold, e)
-    if (!this.device.humidifier?.hide_temperature && this.TemperatureSensor?.Service) {
+    if (!(this.device as humidifierConfig).hide_temperature && this.TemperatureSensor?.Service) {
       this.TemperatureSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, e)
     }
   }

@@ -5,19 +5,16 @@
 
 import type { API, CharacteristicValue, HAP, Logging, PlatformAccessory, Service } from 'homebridge'
 import type { MqttClient } from 'mqtt'
+import type { ad, bodyChange, device, deviceStatus, deviceStatusRequest, pushResponse } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig, SwitchBotPlatformConfig } from '../settings.js'
-import type { ad } from '../types/bledevicestatus.js'
-import type { device } from '../types/devicelist.js'
+import type { blindTiltConfig, botConfig, ceilingLightConfig, colorBulbConfig, contactConfig, curtainConfig, devicesConfig, hubConfig, humidifierConfig, indoorOutdoorSensorConfig, lockConfig, meterConfig, motionConfig, plugConfig, stripLightConfig, SwitchBotPlatformConfig, waterDetectorConfig } from '../settings.js'
 
 import { hostname } from 'node:os'
 
 import { SwitchBotBLEModel, SwitchBotBLEModelFriendlyName, SwitchBotBLEModelName, SwitchBotModel } from 'node-switchbot'
-import { request } from 'undici'
 
-import { Devices } from '../settings.js'
-import { BlindTiltMappingMode, formatDeviceIdAsMac, sleep } from '../utils.js'
+import { formatDeviceIdAsMac, sleep } from '../utils.js'
 
 export abstract class deviceBase {
   public readonly api: API
@@ -182,25 +179,65 @@ export abstract class deviceBase {
       device.maxRetries !== 0 && { maxRetries: device.maxRetries },
       device.delayBetweenRetries !== 0 && { delayBetweenRetries: device.delayBetweenRetries },
     )
+    let deviceSpecificConfig = {}
+    switch (device.configDeviceType) {
+      case 'Bot':
+        deviceSpecificConfig = device as botConfig
+        break
+      case 'Meter':
+      case 'MeterPlus':
+        deviceSpecificConfig = device as meterConfig
+        break
+      case 'WoIOSensor':
+        deviceSpecificConfig = device as indoorOutdoorSensorConfig
+        break
+      case 'Humidifier':
+        deviceSpecificConfig = device as humidifierConfig
+        break
+      case 'Curtain':
+      case 'Curtain3':
+        deviceSpecificConfig = device as curtainConfig
+        break
+      case 'Blind Tilt':
+        deviceSpecificConfig = device as blindTiltConfig
+        break
+      case 'Contact Sensor':
+        deviceSpecificConfig = device as contactConfig
+        break
+      case 'Motion Sensor':
+        deviceSpecificConfig = device as motionConfig
+        break
+      case 'Water Detector':
+        deviceSpecificConfig = device as waterDetectorConfig
+        break
+      case 'Plug':
+      case 'Plug Mini (US)':
+      case 'Plug Mini (JP)':
+        deviceSpecificConfig = device as plugConfig
+        break
+      case 'Color Bulb':
+        deviceSpecificConfig = device as colorBulbConfig
+        break
+      case 'Strip Light':
+        deviceSpecificConfig = device as stripLightConfig
+        break
+      case 'Ceiling Light':
+      case 'Ceiling Light Pro':
+        deviceSpecificConfig = device as ceilingLightConfig
+        break
+      case 'Smart Lock':
+      case 'Smart Lock Pro':
+        deviceSpecificConfig = device as lockConfig
+        break
+      case 'Hub 2':
+        deviceSpecificConfig = device as hubConfig
+        break
+      default:
+    }
     const config = Object.assign(
       {},
       deviceConfig,
-      device.bot,
-      device.lock,
-      device.ceilinglight,
-      device.colorbulb,
-      device.contact,
-      device.motion,
-      device.curtain,
-      device.hub,
-      device.waterdetector,
-      device.humidifier,
-      device.meter,
-      device.iosensor,
-      device.striplight,
-      device.plug,
-      device.blindTilt?.mode === undefined ? { mode: BlindTiltMappingMode.OnlyUp } : {},
-      device.blindTilt,
+      deviceSpecificConfig,
     )
 
     if (Object.keys(config).length !== 0) {
@@ -278,14 +315,14 @@ export abstract class deviceBase {
   }
 
   async switchbotBLE(): Promise<any> {
-    const switchbot = await this.platform.connectBLE(this.accessory, this.device)
+    const switchBotBLE = await this.platform.connectBLE(this.accessory, this.device)
     // Convert to BLE Address
     try {
       const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
       this.device.bleMac = formattedDeviceId
       await this.debugLog(`bleMac: ${this.device.bleMac}`)
-      await this.getCustomBLEAddress(switchbot)
-      return switchbot
+      await this.getCustomBLEAddress(switchBotBLE)
+      return switchBotBLE
     } catch (error) {
       await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
     }
@@ -293,7 +330,11 @@ export abstract class deviceBase {
 
   async monitorAdvertisementPackets(switchbot: any) {
     await this.debugLog(`Scanning for ${this.device.bleModelName} devices...`)
-    await switchbot.startScan({ model: this.device.bleModel, id: this.device.bleMac })
+    try {
+      await switchbot.startScan({ model: this.device.bleModel, id: this.device.bleMac })
+    } catch (e: any) {
+      await this.errorLog(`Failed to start BLE scanning. Error:${e.message ?? e}`)
+    }
     // Set an event handler
     let serviceData = { model: this.device.bleModel, modelName: this.device.bleModelName } as ad['serviceData']
     switchbot.onadvertisement = async (ad: ad) => {
@@ -303,14 +344,18 @@ export abstract class deviceBase {
         this.debugLog(`serviceData: ${JSON.stringify(ad.serviceData)}`)
         serviceData = ad.serviceData
       } else {
-        serviceData = { model: '', modelName: '' } as ad['serviceData']
+        serviceData = { model: '', modelName: '', modelFriendlyName: '' } as unknown as ad['serviceData']
         this.debugLog(`serviceData: ${JSON.stringify(ad.serviceData)}`)
       }
     }
     // Wait
     await switchbot.wait(this.scanDuration * 1000)
     // Stop to monitor
-    await switchbot.stopScan()
+    try {
+      await switchbot.stopScan()
+    } catch (e: any) {
+      await this.errorLog(`Failed to stop BLE scanning. Error:${e.message ?? e}`)
+    }
     return serviceData
   }
 
@@ -319,32 +364,38 @@ export abstract class deviceBase {
       this.debugLog(`customBLEaddress: ${this.device.customBLEaddress}`);
       (async () => {
         // Start to monitor advertisement packets
-        await switchbot.startScan({ model: this.device.bleModel })
+        try {
+          await switchbot.startScan({ model: this.device.bleModel })
+        } catch (e: any) {
+          await this.errorLog(`Failed to start BLE scanning. Error:${e.message ?? e}`)
+        }
         // Set an event handler
         switchbot.onadvertisement = async (ad: ad) => {
           this.warnLog(`ad: ${JSON.stringify(ad, null, '  ')}`)
         }
         await sleep(10000)
         // Stop to monitor
-        switchbot.stopScan()
+        try {
+          switchbot.stopScan()
+        } catch (e: any) {
+          await this.errorLog(`Failed to stop BLE scanning. Error:${e.message ?? e}`)
+        }
       })()
     }
   }
 
-  async pushChangeRequest(bodyChange: string): Promise<{ body: any, statusCode: any }> {
-    return await request(`${Devices}/${this.device.deviceId}/commands`, {
-      body: bodyChange,
-      method: 'POST',
-      headers: this.platform.generateHeaders(),
-    })
+  async pushChangeRequest(bodyChange: bodyChange): Promise<{ body: pushResponse['body'], statusCode: pushResponse['statusCode'] }> {
+    const { response, statusCode } = await this.platform.switchBotAPI.controlDevice(this.device.deviceId, bodyChange.command, bodyChange.parameter, bodyChange.commandType)
+    return { body: response, statusCode }
   }
 
-  async deviceRefreshStatus(): Promise<{ body: any, statusCode: any }> {
-    return await this.platform.retryRequest(this.deviceMaxRetries, this.deviceDelayBetweenRetries, `${Devices}/${this.device.deviceId}/status`, { headers: this.platform.generateHeaders() })
+  async deviceRefreshStatus(): Promise<{ body: deviceStatus, statusCode: deviceStatusRequest['statusCode'] }> {
+    const { response, statusCode } = await this.platform.retryRequest(this.device.deviceId, this.deviceMaxRetries, this.deviceDelayBetweenRetries)
+    return { body: response, statusCode }
   }
 
-  async successfulStatusCodes(statusCode: any, deviceStatus: any) {
-    return (statusCode === 200 || statusCode === 100) && (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)
+  async successfulStatusCodes(deviceStatus: deviceStatusRequest) {
+    return (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)
   }
 
   /**
@@ -466,6 +517,18 @@ export abstract class deviceBase {
         bleModelName: SwitchBotBLEModelName.Curtain3,
         bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Curtain3,
       },
+      'WoRollerShade': {
+        model: SwitchBotModel.Curtain3,
+        bleModel: SwitchBotBLEModel.Curtain3,
+        bleModelName: SwitchBotBLEModelName.Curtain3,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Curtain3,
+      },
+      'Roller Shade': {
+        model: SwitchBotModel.Curtain3,
+        bleModel: SwitchBotBLEModel.Curtain3,
+        bleModelName: SwitchBotBLEModelName.Curtain3,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Curtain3,
+      },
       'Blind Tilt': {
         model: SwitchBotModel.BlindTilt,
         bleModel: SwitchBotBLEModel.BlindTilt,
@@ -510,6 +573,12 @@ export abstract class deviceBase {
       },
       'K10+': {
         model: SwitchBotModel.K10,
+        bleModel: SwitchBotBLEModel.Unknown,
+        bleModelName: SwitchBotBLEModelName.Unknown,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,
+      },
+      'K10+ Pro': {
+        model: SwitchBotModel.K10Pro,
         bleModel: SwitchBotBLEModel.Unknown,
         bleModelName: SwitchBotBLEModelName.Unknown,
         bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,
