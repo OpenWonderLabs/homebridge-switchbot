@@ -35,6 +35,7 @@ export interface options {
   devices?: devicesConfig[]
   deviceConfig?: { [deviceType: string]: devicesConfig }
   irdevices?: irDevicesConfig[]
+  irdeviceConfig?: { [remoteType: string]: irDevicesConfig }
   allowInvalidCharacters?: boolean
   mqttURL?: string
   mqttOptions?: IClientOptions

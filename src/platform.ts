@@ -511,7 +511,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   private async handleDevices(deviceLists: any[]) {
-    if (!this.config.options?.devices) {
+    if (!this.config.options?.devices && !this.config.options?.deviceConfig) {
       await this.debugLog(`SwitchBot Device Config Not Set: ${JSON.stringify(this.config.options?.devices)}`)
       if (deviceLists.length === 0) {
         await this.debugLog('SwitchBot API Has No Devices With Cloud Services Enabled')
@@ -525,7 +525,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           }
         }
       }
-    } else {
+    } else if (this.config.options?.devices || this.config.options?.deviceConfig) {
       await this.debugLog(`SwitchBot Device Config Set: ${JSON.stringify(this.config.options?.devices)}`)
 
       // Step 1: Check and assign configDeviceType to deviceType if deviceType is not present
@@ -546,7 +546,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       // Wait for all promises to resolve
       const devicesWithTypeConfig = (await Promise.all(devicesWithTypeConfigPromises)).filter(device => device !== null) // Filter out skipped devices
 
-      const devices = this.mergeByDeviceId(this.config.options.devices, devicesWithTypeConfig)
+      const devices = this.mergeByDeviceId(this.config.options.devices ?? [], devicesWithTypeConfig ?? [])
 
       await this.debugLog(`SwitchBot Devices: ${JSON.stringify(devices)}`)
 
@@ -564,19 +564,44 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   }
 
   private async handleIRDevices(irDeviceLists: any[]) {
-    if (!this.config.options?.irdevices) {
+    if (!this.config.options?.irdevices && !this.config.options?.irdeviceConfig) {
       await this.debugLog(`IR Device Config Not Set: ${JSON.stringify(this.config.options?.irdevices)}`)
       for (const device of irDeviceLists) {
         if (device.remoteType) {
           await this.createIRDevice(device)
         }
       }
-    } else {
+    } else if (this.config.options?.irdevices || this.config.options?.irdeviceConfig) {
       await this.debugLog(`IR Device Config Set: ${JSON.stringify(this.config.options?.irdevices)}`)
-      const devices = this.mergeByDeviceId(irDeviceLists, this.config.options.irdevices)
+
+      // Step 1: Check and assign configRemoteType to remoteType if remoteType is not present
+      const devicesWithTypeConfigPromises = irDeviceLists.map(async (device) => {
+        if (!device.remoteType && device.configRemoteType) {
+          device.remoteType = device.configRemoteType
+          await this.warnLog(`API is displaying no remoteType: ${device.remoteType}, So using configRemoteType: ${device.configRemoteType}`)
+        } else if (!device.remoteType && !device.configDeviceName) {
+          await this.errorLog('No remoteType or configRemoteType for device. No device will be created.')
+          return null // Skip this device
+        }
+
+        // Retrieve remoteTypeConfig for each device and merge it
+        const remoteTypeConfig = this.config.options?.irdeviceConfig?.[device.remoteType] || {}
+        return Object.assign({}, device, remoteTypeConfig)
+      })
+      // Wait for all promises to resolve
+      const devicesWithRemoteTypeConfig = (await Promise.all(devicesWithTypeConfigPromises)).filter(device => device !== null) // Filter out skipped devices
+
+      const devices = this.mergeByDeviceId(this.config.options.irdevices ?? [], devicesWithRemoteTypeConfig ?? [])
+
       await this.debugLog(`IR Devices: ${JSON.stringify(devices)}`)
       for (const device of devices) {
-        await this.createIRDevice(device)
+        const irdeviceIdConfig = this.config.options?.irdevices?.[device.deviceId] || {}
+        const irdeviceWithConfig = Object.assign({}, device, irdeviceIdConfig)
+
+        if (device.configDeviceName) {
+          device.deviceName = device.configDeviceName
+        }
+        await this.createIRDevice(irdeviceWithConfig)
       }
     }
   }
