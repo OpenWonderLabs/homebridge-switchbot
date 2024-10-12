@@ -52,11 +52,6 @@
               "title": "Devices",
               "type": "object",
               "properties": {
-                "deviceId": {
-                  "title": "Device ID",
-                  "type": "string",
-                  "placeholder": "81F3UT59513F"
-                },
                 "configDeviceName": {
                   "title": "Device Name",
                   "type": "string",
@@ -65,9 +60,25 @@
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId);"
                   }
                 },
+                "deviceId": {
+                  "title": "Device ID",
+                  "type": "string",
+                  "placeholder": "81F3UT59513F"
+                },
+                "hide_device": {
+                  "title": "Hide Device",
+                  "type": "boolean",
+                  "description": "If true, device will be removed or hidden from HomeKit.",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId);"
+                  }
+                },
                 "configDeviceType": {
                   "title": "Device Type",
                   "type": "string",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
+                  },
                   "oneOf": [
                     {
                       "title": "Blind Tilt",
@@ -172,6 +183,18 @@
                       ]
                     },
                     {
+                      "title": "K10+",
+                      "enum": [
+                        "K10+"
+                      ]
+                    },
+                    {
+                      "title": "K10+ Pro",
+                      "enum": [
+                        "K10+ Pro"
+                      ]
+                    },
+                    {
                       "title": "Mini Robot Vacuum K10+",
                       "enum": [
                         "WoSweeperMini"
@@ -214,9 +237,15 @@
                       ]
                     },
                     {
+                      "title": "Robot Vacuum Cleaner S10",
+                      "enum": [
+                        "Robot Vacuum Cleaner S10"
+                      ]
+                    },
+                    {
                       "title": "Roller Shade",
                       "enum": [
-                        "Roller Shade"
+                        "WoRollerShade"
                       ]
                     },
                     {
@@ -243,9 +272,48 @@
                         "Strip Light"
                       ]
                     }
-                  ],
+                  ]
+                },
+                "connectionType": {
+                  "title": "Connection Type",
+                  "type": "string",
+                  "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
+                  },
+                  "oneOf": [
+                    {
+                      "title": "BLE",
+                      "enum": [
+                        "BLE"
+                      ]
+                    },
+                    {
+                      "title": "BLE/OpenAPI",
+                      "enum": [
+                        "BLE/OpenAPI"
+                      ]
+                    },
+                    {
+                      "title": "Disable",
+                      "enum": [
+                        "Disabled"
+                      ]
+                    },
+                    {
+                      "title": "OpenAPI",
+                      "enum": [
+                        "OpenAPI"
+                      ]
+                    }
+                  ]
+                },
+                "scanDuration": {
+                  "title": "Scan Duration (Default is 1 Second) for BLE",
+                  "type": "number",
+                  "placeholder": 1,
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].connectionType === 'BLE' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
                   }
                 },
                 "customBLEaddress": {
@@ -256,108 +324,11 @@
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].connectionType === 'BLE' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
                   }
                 },
-                "hide_temperature": {
-                  "title": "Hide Temperature Sensor",
+                "webhook": {
+                  "title": "Enable Webhook",
                   "type": "boolean",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Humidifier' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)') && model.options.devices[arrayIndices].deviceId);"
-                  }
-                },
-                "convertUnitTo": {
-                  "title": "Convert Temperature Unit To",
-                  "type": "string",
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)') && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_temperature);"
-                  },
-                  "oneOf": [
-                    {
-                      "title": "Celsius",
-                      "enum": [
-                        "CELSIUS"
-                      ]
-                    },
-                    {
-                      "title": "Fahrenheit",
-                      "enum": [
-                        "FAHRENHEIT"
-                      ]
-                    }
-                  ]
-                },
-                "hide_humidity": {
-                  "title": "Hide Humidity Sensor",
-                  "type": "boolean",
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)') && model.options.devices[arrayIndices].deviceId);"
-                  }
-                },
-                "hide_lightsensor": {
-                  "title": "Hide Light Sensor",
-                  "type": "boolean",
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Contact Sensor' || model.options.devices[arrayIndices].configDeviceType === 'Motion Sensor' || model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3') && model.options.devices[arrayIndices].deviceId);"
-                  }
-                },
-                "mode": {
-                  "title": "Bot Mode",
-                  "type": "string",
-                  "required": true,
-                  "default": "",
-                  "oneOf": [
-                    {
-                      "title": "Default",
-                      "enum": [""]
-                    },
-                    {
-                      "title": "Multi-Press",
-                      "enum": ["multipress"]
-                    },
-                    {
-                      "title": "Press",
-                      "enum": ["press"]
-                    },
-                    {
-                      "title": "Switch",
-                      "enum": ["switch"]
-                    }
-                  ],
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Bot' && model.options.devices[arrayIndices].deviceId);"
-                  }
-                },
-                "mapping": {
-                  "title": "Mapping Mode",
-                  "type": "string",
-                  "required": true,
-                  "default": "",
-                  "oneOf": [
-                    {
-                      "title": "Default",
-                      "enum": [""]
-                    },
-                    {
-                      "title": "Down and Up",
-                      "enum": ["down_and_up"]
-                    },
-                    {
-                      "title": "Only Down",
-                      "enum": ["only_down"]
-                    },
-                    {
-                      "title": "Only Up",
-                      "enum": ["only_up"]
-                    },
-                    {
-                      "title": "Up and Down",
-                      "enum": ["up_and_down"]
-                    },
-                    {
-                      "title": "Use Tilt for Direction",
-                      "enum": ["use_tilt_for_direction"]
-                    }
-                  ],
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' && model.options.devices[arrayIndices].deviceId);"
+                    "functionBody": "return (model.options && model.options.devices && model.options.webhookURL && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].connectionType === 'OpenAPI' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
                   }
                 },
                 "type": {
@@ -365,6 +336,10 @@
                   "type": "string",
                   "required": true,
                   "default": "",
+                  "placeholder": "outlet",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Bot' && model.options.devices[arrayIndices].deviceId);"
+                  },
                   "oneOf": [
                     {
                       "title": "Default",
@@ -432,10 +407,68 @@
                         "windowcovering"
                       ]
                     }
+                  ]
+                },
+                "mode": {
+                  "title": "Bot Mode",
+                  "type": "string",
+                  "required": true,
+                  "default": "",
+                  "oneOf": [
+                    {
+                      "title": "Default",
+                      "enum": [""]
+                    },
+                    {
+                      "title": "Multi-Press",
+                      "enum": ["multipress"]
+                    },
+                    {
+                      "title": "Press",
+                      "enum": ["press"]
+                    },
+                    {
+                      "title": "Switch",
+                      "enum": ["switch"]
+                    }
                   ],
-                  "placeholder": "outlet",
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Bot' && model.options.devices[arrayIndices].deviceId);"
+                  }
+                },
+                "mapping": {
+                  "title": "Mapping Mode",
+                  "type": "string",
+                  "required": true,
+                  "default": "",
+                  "oneOf": [
+                    {
+                      "title": "Default",
+                      "enum": [""]
+                    },
+                    {
+                      "title": "Down and Up",
+                      "enum": ["down_and_up"]
+                    },
+                    {
+                      "title": "Only Down",
+                      "enum": ["only_down"]
+                    },
+                    {
+                      "title": "Only Up",
+                      "enum": ["only_up"]
+                    },
+                    {
+                      "title": "Up and Down",
+                      "enum": ["up_and_down"]
+                    },
+                    {
+                      "title": "Use Tilt for Direction",
+                      "enum": ["use_tilt_for_direction"]
+                    }
+                  ],
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' && model.options.devices[arrayIndices].deviceId);"
                   }
                 },
                 "allowPush": {
@@ -443,7 +476,7 @@
                   "description": "If set to true, this will allow commands to be sent even if device state is already in state that is being pushed.",
                   "type": "boolean",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Bot' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].bot && model.options.devices[arrayIndices].mode);"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId);"
                   }
                 },
                 "doublePress": {
@@ -451,7 +484,7 @@
                   "type": "number",
                   "placeholder": "2",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Bot' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].bot && model.options.devices[arrayIndices].mode);"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Bot' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].mode);"
                   }
                 },
                 "pushRatePress": {
@@ -460,7 +493,63 @@
                   "placeholder": "15",
                   "description": "Indicates the number of seconds between pushes for double presses to SwitchBot API",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Bot' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].bot && model.options.devices[arrayIndices].mode && model.options.devices[arrayIndices].doublePress > 1);"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Bot' && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].mode && model.options.devices[arrayIndices].doublePress > 1);"
+                  }
+                },
+                "hide_temperature": {
+                  "title": "Hide Temperature Sensor",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Humidifier' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)') && model.options.devices[arrayIndices].deviceId);"
+                  }
+                },
+                "convertUnitTo": {
+                  "title": "Convert Temperature Unit To",
+                  "type": "string",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Humidifier' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)') && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_temperature);"
+                  },
+                  "oneOf": [
+                    {
+                      "title": "Celsius",
+                      "enum": [
+                        "CELSIUS"
+                      ]
+                    },
+                    {
+                      "title": "Fahrenheit",
+                      "enum": [
+                        "FAHRENHEIT"
+                      ]
+                    }
+                  ]
+                },
+                "hide_humidity": {
+                  "title": "Hide Humidity Sensor",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)') && model.options.devices[arrayIndices].deviceId);"
+                  }
+                },
+                "hide_lightsensor": {
+                  "title": "Hide Light Sensor",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Contact Sensor' || model.options.devices[arrayIndices].configDeviceType === 'Motion Sensor' || model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3' || model.options.devices[arrayIndices].configDeviceType === 'WoRollerShade' || model.options.devices[arrayIndices].configDeviceType === 'Roller Shade') && model.options.devices[arrayIndices].deviceId);"
+                  }
+                },
+                "hide_motionsensor": {
+                  "title": "Hide Contact Sensor's Motion Sensor",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Contact Sensor' && model.options.devices[arrayIndices].deviceId);"
+                  }
+                },
+                "hide_contactsensor": {
+                  "title": "Hide Lock's Contact Sensor",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Smart Lock' || model.options.devices[arrayIndices].configDeviceType === 'Smart Lock Pro') && model.options.devices[arrayIndices].deviceId);"
                   }
                 },
                 "hide_leak": {
@@ -468,6 +557,36 @@
                   "type": "boolean",
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Water Detector' && model.options.devices[arrayIndices].deviceId);"
+                  }
+                },
+                "disable_group": {
+                  "title": "Disable Grouping",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3' || model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' || model.options.devices[arrayIndices].configDeviceType === 'WoRollerShade' || model.options.devices[arrayIndices].configDeviceType === 'Roller Shade') && model.options.devices[arrayIndices].deviceId);"
+                  }
+                },
+                "disableCaching": {
+                  "title": "Disable Caching",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId);"
+                  }
+                },
+                "adaptiveLightingShift": {
+                  "title": "Adaptive Lighting Shift",
+                  "type": "number",
+                  "placeholder": "-1",
+                  "description": "The mired for each Adaptive Lighting update will be increased by this value, making the light appear warmer. Set to -1 to remove Adaptive Lighting feature. Must be -1 or more.",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Color Bulb' || model.options.devices[arrayIndices].configDeviceType === 'Strip Light' || model.options.devices[arrayIndices].configDeviceType === 'Ceiling Light' || model.options.devices[arrayIndices].configDeviceType === 'Ceiling Light Pro') && model.options.devices[arrayIndices].deviceId);"
+                  }
+                },
+                "activate_latchbutton": {
+                  "title": "Activate Latch Button",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Smart Lock' || model.options.devices[arrayIndices].configDeviceType === 'Smart Lock Pro') && model.options.devices[arrayIndices].deviceId);"
                   }
                 },
                 "dry": {
@@ -484,7 +603,7 @@
                   "placeholder": "1",
                   "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Strip Light' || model.options.devices[arrayIndices].configDeviceType === 'Color Bulb' || model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3' || model.options.devices[arrayIndices].configDeviceType === 'Humidifier') && model.options.devices[arrayIndices].deviceId);"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Strip Light' || model.options.devices[arrayIndices].configDeviceType === 'Color Bulb' || model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3' || model.options.devices[arrayIndices].configDeviceType === 'WoRollerShade' || model.options.devices[arrayIndices].configDeviceType === 'Roller Shade' || model.options.devices[arrayIndices].configDeviceType === 'Humidifier') && model.options.devices[arrayIndices].deviceId);"
                   }
                 },
                 "set_min": {
@@ -493,7 +612,7 @@
                   "placeholder": "0",
                   "description": "Sets the minimum percentage before needed to set to Open",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3') && model.options.devices[arrayIndices].deviceId);"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3' || model.options.devices[arrayIndices].configDeviceType === 'WoRollerShade' || model.options.devices[arrayIndices].configDeviceType === 'Roller Shade' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Motion Sensor' || model.options.devices[arrayIndices].configDeviceType === 'Contact Sensor' || model.options.devices[arrayIndices].configDeviceType === 'Humidifier' || model.options.devices[arrayIndices].configDeviceType === 'Strip Light' || model.options.devices[arrayIndices].configDeviceType === 'Ceiling Light' || model.options.devices[arrayIndices].configDeviceType === 'Ceiling Light Pro') && model.options.devices[arrayIndices].deviceId);"
                   }
                 },
                 "set_max": {
@@ -502,63 +621,7 @@
                   "placeholder": "100",
                   "description": "Sets the maximum percentage before needing to set to Closed",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3') && model.options.devices[arrayIndices].deviceId);"
-                  }
-                },
-                "disable_group": {
-                  "title": "Disable Grouping",
-                  "type": "boolean",
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3' || model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt') && model.options.devices[arrayIndices].deviceId);"
-                  }
-                },
-                "setOpenMode": {
-                  "title": "Opening Mode",
-                  "type": "string",
-                  "oneOf": [
-                    {
-                      "enum": [
-                        "0"
-                      ],
-                      "title": "Performance Mode"
-                    },
-                    {
-                      "enum": [
-                        "1"
-                      ],
-                      "title": "Silent Mode"
-                    }
-                  ],
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3' || model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt') && model.options.devices[arrayIndices].deviceId);"
-                  }
-                },
-                "setCloseMode": {
-                  "title": "Closing Mode",
-                  "type": "string",
-                  "oneOf": [
-                    {
-                      "enum": [
-                        "0"
-                      ],
-                      "title": "Performance Mode"
-                    },
-                    {
-                      "enum": [
-                        "1"
-                      ],
-                      "title": "Silent Mode"
-                    }
-                  ],
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3' || model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt') && model.options.devices[arrayIndices].deviceId);"
-                  }
-                },
-                "silentModeSwitch": {
-                  "title": "Enable Silent Mode Switches",
-                  "type": "boolean",
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3') && model.options.devices[arrayIndices].deviceId);"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3' || model.options.devices[arrayIndices].configDeviceType === 'WoRollerShade' || model.options.devices[arrayIndices].configDeviceType === 'Roller Shade' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Motion Sensor' || model.options.devices[arrayIndices].configDeviceType === 'Contact Sensor' || model.options.devices[arrayIndices].configDeviceType === 'Humidifier' || model.options.devices[arrayIndices].configDeviceType === 'Strip Light' || model.options.devices[arrayIndices].configDeviceType === 'Ceiling Light' || model.options.devices[arrayIndices].configDeviceType === 'Ceiling Light Pro') && model.options.devices[arrayIndices].deviceId);"
                   }
                 },
                 "set_minlux": {
@@ -566,7 +629,7 @@
                   "type": "number",
                   "placeholder": "1",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Motion Sensor' || model.options.devices[arrayIndices].configDeviceType === 'Contact Sensor' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3') && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_lightsensor);"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Contact Sensor' || model.options.devices[arrayIndices].configDeviceType === 'Motion Sensor' || model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3' || model.options.devices[arrayIndices].configDeviceType === 'WoRollerShade' || model.options.devices[arrayIndices].configDeviceType === 'Roller Shade') && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_lightsensor);"
                   }
                 },
                 "set_maxlux": {
@@ -574,37 +637,80 @@
                   "type": "number",
                   "placeholder": "6001",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Motion Sensor' || model.options.devices[arrayIndices].configDeviceType === 'Contact Sensor' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3') && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_lightsensor);"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Contact Sensor' || model.options.devices[arrayIndices].configDeviceType === 'Motion Sensor' || model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3' || model.options.devices[arrayIndices].configDeviceType === 'WoRollerShade' || model.options.devices[arrayIndices].configDeviceType === 'Roller Shade') && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_lightsensor);"
                   }
                 },
-                "hide_motionsensor": {
-                  "title": "Hide Contact Sensor's Motion Sensor",
+                "setOpenMode": {
+                  "title": "Opening Mode",
+                  "type": "string",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3' || model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' || model.options.devices[arrayIndices].configDeviceType === 'WoRollerShade' || model.options.devices[arrayIndices].configDeviceType === 'Roller Shade') && model.options.devices[arrayIndices].deviceId);"
+                  },
+                  "oneOf": [
+                    {
+                      "enum": [
+                        "0"
+                      ],
+                      "title": "Performance Mode"
+                    },
+                    {
+                      "enum": [
+                        "1"
+                      ],
+                      "title": "Silent Mode"
+                    }
+                  ]
+                },
+                "setCloseMode": {
+                  "title": "Closing Mode",
+                  "type": "string",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3' || model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' || model.options.devices[arrayIndices].configDeviceType === 'WoRollerShade' || model.options.devices[arrayIndices].configDeviceType === 'Roller Shade') && model.options.devices[arrayIndices].deviceId);"
+                  },
+                  "oneOf": [
+                    {
+                      "enum": [
+                        "0"
+                      ],
+                      "title": "Performance Mode"
+                    },
+                    {
+                      "enum": [
+                        "1"
+                      ],
+                      "title": "Silent Mode"
+                    }
+                  ]
+                },
+                "silentModeSwitch": {
+                  "title": "Enable Silent Mode Switches",
                   "type": "boolean",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Contact Sensor' && model.options.devices[arrayIndices].deviceId);"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3' || model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' || model.options.devices[arrayIndices].configDeviceType === 'WoRollerShade' || model.options.devices[arrayIndices].configDeviceType === 'Roller Shade') && model.options.devices[arrayIndices].deviceId);"
                   }
                 },
-                "adaptiveLightingShift": {
-                  "title": "Adaptive Lighting Shift",
+                "maxRetry": {
+                  "title": "Max Retries for BLE",
                   "type": "number",
-                  "placeholder": "-1",
-                  "description": "The mired for each Adaptive Lighting update will be increased by this value, making the light appear warmer. Set to -1 to remove Adaptive Lighting feature. Must be -1 or more.",
+                  "placeholder": "5",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Color Bulb' || model.options.devices[arrayIndices].configDeviceType === 'Strip Light') && model.options.devices[arrayIndices].deviceId);"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].connectionType === 'BLE' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
                   }
                 },
-                "hide_contactsensor": {
-                  "title": "Hide Lock's Contact Sensor",
-                  "type": "boolean",
+                "maxRetries": {
+                  "title": "Device Max Retries for OpenAPI",
+                  "type": "number",
+                  "placeholder": 5,
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Smart Lock' || model.options.devices[arrayIndices].configDeviceType === 'Smart Lock Pro') && model.options.devices[arrayIndices].deviceId);"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].connectionType === 'OpenAPI' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
                   }
                 },
-                "activate_latchbutton": {
-                  "title": "Activate Latch Button",
-                  "type": "boolean",
+                "delayBetweenRetries": {
+                  "title": "Device Delay Between Retries for OpenAPI (In Seconds)",
+                  "type": "number",
+                  "placeholder": 3,
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Smart Lock' || model.options.devices[arrayIndices].configDeviceType === 'Smart Lock Pro') && model.options.devices[arrayIndices].deviceId);"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].connectionType === 'OpenAPI' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
                   }
                 },
                 "mqttURL": {
@@ -629,43 +735,16 @@
                     "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].mqttURL && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Water Detector' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
                   }
                 },
-                "hide_device": {
-                  "title": "Hide Device",
-                  "type": "boolean",
-                  "description": "If true, device will be removed or hidden from HomeKit.",
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId);"
-                  }
-                },
-                "external": {
-                  "title": "External Accessory",
+                "history": {
+                  "title": "EVE History",
                   "type": "boolean",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Water Detector' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
                   }
                 },
-                "refreshRate": {
-                  "title": "Device Refresh Rate",
-                  "type": "number",
-                  "placeholder": 360,
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
-                  }
-                },
-                "updateRate": {
-                  "title": "Update Rate",
-                  "type": "number",
-                  "minimum": 1,
-                  "placeholder": 5,
-                  "description": "Indicates the number of seconds before refreshing status while updating progress.",
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3' || model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt') && model.options.devices[arrayIndices].deviceId);"
-                  }
-                },
-                "pushRate": {
-                  "title": "Device Push Rate",
-                  "type": "number",
-                  "placeholder": 360,
+                "offline": {
+                  "title": "Offline as Off",
+                  "type": "boolean",
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
                   }
@@ -678,11 +757,21 @@
                     "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].configDeviceType);"
                   }
                 },
+                "external": {
+                  "title": "External Accessory",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
+                  }
+                },
                 "logging": {
                   "title": "Device Logging Override Setting",
                   "type": "string",
                   "required": true,
                   "default": "",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
+                  },
                   "oneOf": [
                     {
                       "title": "Debug Logging",
@@ -708,103 +797,32 @@
                         "standard"
                       ]
                     }
-                  ],
+                  ]
+                },
+                "refreshRate": {
+                  "title": "Device Refresh Rate",
+                  "type": "number",
+                  "placeholder": 360,
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
                   }
                 },
-                "connectionType": {
-                  "title": "Connection Type",
-                  "type": "string",
-                  "oneOf": [
-                    {
-                      "title": "BLE",
-                      "enum": [
-                        "BLE"
-                      ]
-                    },
-                    {
-                      "title": "BLE/OpenAPI",
-                      "enum": [
-                        "BLE/OpenAPI"
-                      ]
-                    },
-                    {
-                      "title": "Disable",
-                      "enum": [
-                        "Disabled"
-                      ]
-                    },
-                    {
-                      "title": "OpenAPI",
-                      "enum": [
-                        "OpenAPI"
-                      ]
-                    }
-                  ],
-                  "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device);"
-                  }
-                },
-                "scanDuration": {
-                  "title": "Scan Duration (Default is 1 Second) for BLE",
+                "updateRate": {
+                  "title": "Update Rate",
                   "type": "number",
-                  "placeholder": 1,
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].connectionType === 'BLE' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
-                  }
-                },
-                "offline": {
-                  "title": "Offline as Off",
-                  "type": "boolean",
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
-                  }
-                },
-                "maxRetry": {
-                  "title": "Max Retries for BLE",
-                  "type": "number",
-                  "placeholder": "5",
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].connectionType === 'BLE' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI') && (model.options.devices[arrayIndices].configDeviceType === 'Bot' || model.options.devices[arrayIndices].configDeviceType === 'Robot Vacuum Cleaner S1' || model.options.devices[arrayIndices].configDeviceType === 'Robot Vacuum Cleaner S1 Plus' || model.options.devices[arrayIndices].configDeviceType === 'Strip Light' || model.options.devices[arrayIndices].configDeviceType === 'Plug' || model.options.devices[arrayIndices].configDeviceType === 'Plug Mini (JP)' || model.options.devices[arrayIndices].configDeviceType === 'Plug Mini (US)' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3' || model.options.devices[arrayIndices].configDeviceType === 'Color Bulb' || model.options.devices[arrayIndices].configDeviceType === 'Ceiling Light' || model.options.devices[arrayIndices].configDeviceType === 'Ceiling Light Pro' || model.options.devices[arrayIndices].configDeviceType === 'Motion Sensor'));"
-                  }
-                },
-                "maxRetries": {
-                  "title": "Device Max Retries for OpenAPI",
-                  "type": "number",
+                  "minimum": 1,
                   "placeholder": 5,
+                  "description": "Indicates the number of seconds before refreshing status while updating progress.",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].connectionType === 'OpenAPI' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3' || model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' || model.options.devices[arrayIndices].configDeviceType === 'WoRollerShade' || model.options.devices[arrayIndices].configDeviceType === 'Roller Shade') && model.options.devices[arrayIndices].deviceId);"
                   }
                 },
-                "delayBetweenRetries": {
-                  "title": "Device Delay Between Retries for OpenAPI (In Seconds)",
+                "pushRate": {
+                  "title": "Device Push Rate",
                   "type": "number",
-                  "placeholder": 3,
+                  "placeholder": 360,
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].connectionType === 'OpenAPI' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
-                  }
-                },
-                "disableCaching": {
-                  "title": "Disable Caching",
-                  "type": "boolean",
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3'));"
-                  }
-                },
-                "history": {
-                  "title": "EVE History",
-                  "type": "boolean",
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Water Detector' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
-                  }
-                },
-                "webhook": {
-                  "title": "Enable Webhook",
-                  "type": "boolean",
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.webhookURL && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].connectionType === 'OpenAPI' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
                   }
                 }
               },
@@ -869,7 +887,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Humidifier'] && !model.options.deviceConfig['Humidifier'].hide_device);"
                     },
@@ -1084,7 +1102,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Hub 2'] && !model.options.deviceConfig['Hub 2'].hide_device);"
                     },
@@ -1394,7 +1412,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Bot'] && !model.options.deviceConfig['Bot'].hide_device);"
                     },
@@ -1609,7 +1627,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Meter'] && !model.options.deviceConfig['Meter'].hide_device);"
                     },
@@ -1824,7 +1842,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPlus'] && !model.options.deviceConfig['MeterPlus'].hide_device);"
                     },
@@ -2039,7 +2057,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Meter Plus (JP)'] && !model.options.deviceConfig['Meter Plus (JP)'].hide_device);"
                     },
@@ -2254,7 +2272,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['WoIOSensor'] && !model.options.deviceConfig['WoIOSensor'].hide_device);"
                     },
@@ -2449,7 +2467,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Water Detector'] && !model.options.deviceConfig['Water Detector'].hide_device);"
                     },
@@ -2652,7 +2670,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Water Detector'] && !model.options.deviceConfig['Water Detector'].hide_device);"
                     },
@@ -2862,7 +2880,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Contact Sensor'] && !model.options.deviceConfig['Contact Sensor'].hide_device);"
                     },
@@ -3148,7 +3166,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Curtain'] && !model.options.deviceConfig['Curtain'].hide_device);"
                     },
@@ -3434,7 +3452,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Curtain3'] && !model.options.deviceConfig['Curtain3'].hide_device);"
                     },
@@ -3720,7 +3738,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['WoRollerShade'] && !model.options.deviceConfig['WoRollerShade'].hide_device);"
                     },
@@ -4006,7 +4024,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Roller Shade'] && !model.options.deviceConfig['Roller Shade'].hide_device);"
                     },
@@ -4327,7 +4345,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Blind Tilt'] && !model.options.deviceConfig['Blind Tilt'].hide_device);"
                     },
@@ -4504,19 +4522,10 @@
                     "type": "boolean",
                     "description": "If true, device will be removed or hidden from HomeKit."
                   },
-                  "set_minStep": {
-                    "title": "Set Minimum Step",
-                    "type": "number",
-                    "placeholder": "1",
-                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100",
-                    "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Plug'].hide_device);"
-                    }
-                  },
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Plug'] && !model.options.deviceConfig['Plug'].hide_device);"
                     },
@@ -4693,19 +4702,10 @@
                     "type": "boolean",
                     "description": "If true, device will be removed or hidden from HomeKit."
                   },
-                  "set_minStep": {
-                    "title": "Set Minimum Step",
-                    "type": "number",
-                    "placeholder": "1",
-                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100",
-                    "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Plug Mini (US)'].hide_device);"
-                    }
-                  },
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Plug Mini (US)'] && !model.options.deviceConfig['Plug Mini (US)'].hide_device);"
                     },
@@ -4882,19 +4882,10 @@
                     "type": "boolean",
                     "description": "If true, device will be removed or hidden from HomeKit."
                   },
-                  "set_minStep": {
-                    "title": "Set Minimum Step",
-                    "type": "number",
-                    "placeholder": "1",
-                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100",
-                    "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Plug Mini (JP)'].hide_device);"
-                    }
-                  },
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Plug Mini (JP)'] && !model.options.deviceConfig['Plug Mini (JP)'].hide_device);"
                     },
@@ -5088,7 +5079,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Smart Lock'] && !model.options.deviceConfig['Smart Lock'].hide_device);"
                     },
@@ -5282,7 +5273,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Smart Lock Pro'] && !model.options.deviceConfig['Smart Lock Pro'].hide_device);"
                     },
@@ -5480,7 +5471,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Color Bulb'] && !model.options.deviceConfig['Color Bulb'].hide_device);"
                     },
@@ -5660,7 +5651,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['K10+'] && !model.options.deviceConfig['K10+'].hide_device);"
                     },
@@ -5829,6 +5820,186 @@
                   }
                 }
               },
+              "K10+ Pro": {
+                "type": "object",
+                "properties": {
+                  "hide_device": {
+                    "title": "Hide All K10+ Pros",
+                    "type": "boolean",
+                    "description": "If true, device will be removed or hidden from HomeKit."
+                  },
+                  "connectionType": {
+                    "title": "Connection Type",
+                    "type": "string",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['K10+ Pro'] && !model.options.deviceConfig['K10+ Pro'].hide_device);"
+                    },
+                    "oneOf": [
+                      {
+                        "title": "BLE",
+                        "enum": [
+                          "BLE"
+                        ]
+                      },
+                      {
+                        "title": "BLE/OpenAPI",
+                        "enum": [
+                          "BLE/OpenAPI"
+                        ]
+                      },
+                      {
+                        "title": "Disable",
+                        "enum": [
+                          "Disabled"
+                        ]
+                      },
+                      {
+                        "title": "OpenAPI",
+                        "enum": [
+                          "OpenAPI"
+                        ]
+                      }
+                    ]
+                  },
+                  "scanDuration": {
+                    "title": "Scan Duration (Default is 1 Second) for BLE",
+                    "type": "number",
+                    "placeholder": 1,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['K10+ Pro'] && !model.options.deviceConfig['K10+ Pro'].hide_device && (model.options.deviceConfig['K10+ Pro'].connectionType === 'BLE' || model.options.deviceConfig['K10+ Pro'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "webhook": {
+                    "title": "Enable Webhook for all K10+ Pros",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['K10+ Pro'] && !model.options.deviceConfig['K10+ Pro'].hide_device && (model.options.deviceConfig['K10+ Pro'].connectionType === 'OpenAPI' || model.options.deviceConfig['K10+ Pro'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "external": {
+                    "title": "External Accessory",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['K10+ Pro'] && !model.options.deviceConfig['K10+ Pro'].hide_device);"
+                    }
+                  },
+                  "maxRetry": {
+                    "title": "Max Retries for BLE",
+                    "type": "number",
+                    "placeholder": "5",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['K10+ Pro'] && !model.options.deviceConfig['K10+ Pro'].hide_device && (model.options.deviceConfig['K10+ Pro'].connectionType === 'BLE' || model.options.deviceConfig['K10+ Pro'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "maxRetries": {
+                    "title": "Device Max Retries for OpenAPI",
+                    "type": "number",
+                    "placeholder": 5,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['K10+ Pro'] && !model.options.deviceConfig['K10+ Pro'].hide_device && (model.options.deviceConfig['K10+ Pro'].connectionType === 'OpenAPI' || model.options.deviceConfig['K10+ Pro'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "delayBetweenRetries": {
+                    "title": "Device Delay Between Retries for OpenAPI (In Seconds)",
+                    "type": "number",
+                    "placeholder": 3,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['K10+ Pro'] && !model.options.deviceConfig['K10+ Pro'].hide_device && (model.options.deviceConfig['K10+ Pro'].connectionType === 'OpenAPI' || model.options.deviceConfig['K10+ Pro'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "disableCaching": {
+                    "title": "Disable Caching",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['K10+ Pro'] && !model.options.deviceConfig['K10+ Pro'].hide_device);"
+                    }
+                  },
+                  "offline": {
+                    "title": "Offline as Off",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['K10+ Pro'].hide_device);"
+                    }
+                  },
+                  "history": {
+                    "title": "EVE History",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['K10+ Pro'].hide_device);"
+                    }
+                  },
+                  "firmware": {
+                    "title": "Firmware Override",
+                    "type": "string",
+                    "placeholder": "1.2.8",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['K10+ Pro'].hide_device);"
+                    }
+                  },
+                  "logging": {
+                    "title": "Logging by Device Type",
+                    "type": "string",
+                    "required": true,
+                    "default": "",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['K10+ Pro'].hide_device);"
+                    },
+                    "oneOf": [
+                      {
+                        "title": "Debug Logging",
+                        "enum": [
+                          "debug"
+                        ]
+                      },
+                      {
+                        "title": "Default Logging",
+                        "enum": [
+                          ""
+                        ]
+                      },
+                      {
+                        "title": "No Logging",
+                        "enum": [
+                          "none"
+                        ]
+                      },
+                      {
+                        "title": "Standard Logging",
+                        "enum": [
+                          "standard"
+                        ]
+                      }
+                    ]
+                  },
+                  "refreshRate": {
+                    "title": "Device Refresh Rate",
+                    "type": "number",
+                    "placeholder": 360,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['K10+ Pro'].hide_device);"
+                    }
+                  },
+                  "updateRate": {
+                    "title": "Update Rate",
+                    "type": "number",
+                    "minimum": 1,
+                    "placeholder": 5,
+                    "description": "Indicates the number of seconds before refreshing status while updating progress.",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['K10+ Pro'].hide_device);"
+                    }
+                  },
+                  "pushRate": {
+                    "title": "Device Push Rate",
+                    "type": "number",
+                    "placeholder": 360,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['K10+ Pro'].hide_device);"
+                    }
+                  }
+                }
+              },
               "WoSweeper": {
                 "type": "object",
                 "properties": {
@@ -5840,7 +6011,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['WoSweeper'] && !model.options.deviceConfig['WoSweeper'].hide_device);"
                     },
@@ -6020,7 +6191,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['WoSweeperMini'] && !model.options.deviceConfig['WoSweeperMini'].hide_device);"
                     },
@@ -6200,7 +6371,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Robot Vacuum Cleaner S1'] && !model.options.deviceConfig['Robot Vacuum Cleaner S1'].hide_device);"
                     },
@@ -6380,7 +6551,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Robot Vacuum Cleaner S1 Plus'] && !model.options.deviceConfig['Robot Vacuum Cleaner S1 Plus'].hide_device);"
                     },
@@ -6560,7 +6731,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Robot Vacuum Cleaner S10'] && !model.options.deviceConfig['Robot Vacuum Cleaner S10'].hide_device);"
                     },
@@ -6758,7 +6929,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Ceiling Light'] && !model.options.deviceConfig['Ceiling Light'].hide_device);"
                     },
@@ -6956,7 +7127,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Ceiling Light Pro'] && !model.options.deviceConfig['Ceiling Light Pro'].hide_device);"
                     },
@@ -7154,7 +7325,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Strip Light'] && !model.options.deviceConfig['Strip Light'].hide_device);"
                     },
@@ -7343,7 +7514,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Battery Circulator Fan'] && !model.options.deviceConfig['Battery Circulator Fan'].hide_device);"
                     },
@@ -7520,11 +7691,6 @@
               "title": "IR Devices",
               "type": "object",
               "properties": {
-                "deviceId": {
-                  "title": "Device ID",
-                  "type": "string",
-                  "placeholder": "81F3UT59513F"
-                },
                 "configDeviceName": {
                   "title": "Device Name",
                   "type": "string",
@@ -7532,6 +7698,11 @@
                   "condition": {
                     "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId);"
                   }
+                },
+                "deviceId": {
+                  "title": "Device ID",
+                  "type": "string",
+                  "placeholder": "81F3UT59513F"
                 },
                 "hide_device": {
                   "title": "Hide Device",
@@ -7735,6 +7906,77 @@
                     "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType);"
                   }
                 },
+                "type": {
+                  "title": "What Type of Device do you want to display in the Home App?",
+                  "type": "string",
+                  "required": true,
+                  "default": "",
+                  "oneOf": [
+                    {
+                      "title": "Door",
+                      "enum": [
+                        "door"
+                      ]
+                    },
+                    {
+                      "title": "Fan",
+                      "enum": [
+                        "fan"
+                      ]
+                    },
+                    {
+                      "title": "Faucet",
+                      "enum": [
+                        "faucet"
+                      ]
+                    },
+                    {
+                      "title": "Garage Door",
+                      "enum": [
+                        "garagedoor"
+                      ]
+                    },
+                    {
+                      "title": "Lock",
+                      "enum": [
+                        "lock"
+                      ]
+                    },
+                    {
+                      "title": "Outlet",
+                      "enum": [
+                        "outlet"
+                      ]
+                    },
+                    {
+                      "title": "Stateful Programmable Switch (Only Works in 3rd Party Home Apps)",
+                      "enum": [
+                        "stateful"
+                      ]
+                    },
+                    {
+                      "title": "Switch",
+                      "enum": [
+                        "switch"
+                      ]
+                    },
+                    {
+                      "title": "Window",
+                      "enum": [
+                        "window"
+                      ]
+                    },
+                    {
+                      "title": "Window Covering",
+                      "enum": [
+                        "windowcovering"
+                      ]
+                    }
+                  ],
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType === 'Others' && model.options.irdevices[arrayIndices].deviceId);"
+                  }
+                },
                 "customize": {
                   "title": "Custom IR Commands",
                   "type": "boolean",
@@ -7886,15 +8128,15 @@
                     "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Air Conditioner' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Air Conditioner') && model.options.irdevices[arrayIndices].deviceId && model.options.irdevices[arrayIndices].irair?.meterType);"
                   }
                 },
-                "swing_mode": {
-                  "title": "Enable Swing Mode",
+                "rotation_speed": {
+                  "title": "Enable Rotation Speed",
                   "type": "boolean",
                   "condition": {
                     "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Fan' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Fan') && model.options.irdevices[arrayIndices].deviceId);"
                   }
                 },
-                "rotation_speed": {
-                  "title": "Enable Rotation Speed",
+                "swing_mode": {
+                  "title": "Enable Swing Mode",
                   "type": "boolean",
                   "condition": {
                     "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Fan' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Fan') && model.options.irdevices[arrayIndices].deviceId);"
@@ -7931,88 +8173,38 @@
                     "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && (model.options.irdevices[arrayIndices].configRemoteType === 'Light' || model.options.irdevices[arrayIndices].configRemoteType === 'DIY Light') && model.options.irdevices[arrayIndices].deviceId);"
                   }
                 },
-                "type": {
-                  "title": "What Type of Device do you want to display in the Home App?",
-                  "type": "string",
-                  "required": true,
-                  "default": "",
-                  "oneOf": [
-                    {
-                      "title": "Door",
-                      "enum": [
-                        "door"
-                      ]
-                    },
-                    {
-                      "title": "Fan",
-                      "enum": [
-                        "fan"
-                      ]
-                    },
-                    {
-                      "title": "Faucet",
-                      "enum": [
-                        "faucet"
-                      ]
-                    },
-                    {
-                      "title": "Garage Door",
-                      "enum": [
-                        "garagedoor"
-                      ]
-                    },
-                    {
-                      "title": "Lock",
-                      "enum": [
-                        "lock"
-                      ]
-                    },
-                    {
-                      "title": "Outlet",
-                      "enum": [
-                        "outlet"
-                      ]
-                    },
-                    {
-                      "title": "Stateful Programmable Switch (Only Works in 3rd Party Home Apps)",
-                      "enum": [
-                        "stateful"
-                      ]
-                    },
-                    {
-                      "title": "Switch",
-                      "enum": [
-                        "switch"
-                      ]
-                    },
-                    {
-                      "title": "Window",
-                      "enum": [
-                        "window"
-                      ]
-                    },
-                    {
-                      "title": "Window Covering",
-                      "enum": [
-                        "windowcovering"
-                      ]
-                    }
-                  ],
+                "external": {
+                  "title": "External Accessory",
+                  "type": "boolean",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.irdevices && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType === 'Others' && model.options.irdevices[arrayIndices].deviceId);"
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType);"
+                  }
+                },
+                "disableCaching": {
+                  "title": "Disable Caching",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device);"
+                  }
+                },
+                "offline": {
+                  "title": "Offline as Off",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device);"
+                  }
+                },
+                "history": {
+                  "title": "EVE History",
+                  "type": "boolean",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device);"
                   }
                 },
                 "firmware": {
                   "title": "Firmware Override",
                   "type": "string",
                   "placeholder": "1.2.8",
-                  "condition": {
-                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType);"
-                  }
-                },
-                "external": {
-                  "title": "External Accessory",
-                  "type": "boolean",
                   "condition": {
                     "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType);"
                   }
@@ -8051,6 +8243,32 @@
                   "condition": {
                     "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device && model.options.irdevices[arrayIndices].configRemoteType);"
                   }
+                },
+                "refreshRate": {
+                  "title": "Device Refresh Rate",
+                  "type": "number",
+                  "placeholder": 360,
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device);"
+                  }
+                },
+                "updateRate": {
+                  "title": "Update Rate",
+                  "type": "number",
+                  "minimum": 1,
+                  "placeholder": 5,
+                  "description": "Indicates the number of seconds before refreshing status while updating progress.",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device);"
+                  }
+                },
+                "pushRate": {
+                  "title": "Device Push Rate",
+                  "type": "number",
+                  "placeholder": 360,
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device);"
+                  }
                 }
               },
               "required": [
@@ -8076,7 +8294,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['TV'] && !model.options.irdeviceConfig['TV'].hide_device);"
                     },
@@ -8205,7 +8423,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY TV'] && !model.options.irdeviceConfig['DIY TV'].hide_device);"
                     },
@@ -8334,7 +8552,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['Projector'] && !model.options.irdeviceConfig['Projector'].hide_device);"
                     },
@@ -8463,7 +8681,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY Projector'] && !model.options.irdeviceConfig['DIY Projector'].hide_device);"
                     },
@@ -8592,7 +8810,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['Set Top Box'] && !model.options.irdeviceConfig['Set Top Box'].hide_device);"
                     },
@@ -8721,7 +8939,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY Set Top Box'] && !model.options.irdeviceConfig['DIY Set Top Box'].hide_device);"
                     },
@@ -8850,7 +9068,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['IPTV'] && !model.options.irdeviceConfig['IPTV'].hide_device);"
                     },
@@ -8979,7 +9197,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY IPTV'] && !model.options.irdeviceConfig['DIY IPTV'].hide_device);"
                     },
@@ -9108,7 +9326,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DVD'] && !model.options.irdeviceConfig['DVD'].hide_device);"
                     },
@@ -9237,7 +9455,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY DVD'] && !model.options.irdeviceConfig['DIY DVD'].hide_device);"
                     },
@@ -9366,7 +9584,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['Speaker'] && !model.options.irdeviceConfig['Speaker'].hide_device);"
                     },
@@ -9495,7 +9713,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY Speaker'] && !model.options.irdeviceConfig['DIY Speaker'].hide_device);"
                     },
@@ -9624,7 +9842,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['Fan'] && !model.options.irdeviceConfig['Fan'].hide_device);"
                     },
@@ -9753,7 +9971,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY Fan'] && !model.options.irdeviceConfig['DIY Fan'].hide_device);"
                     },
@@ -9882,7 +10100,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['Air Conditioner'] && !model.options.irdeviceConfig['Air Conditioner'].hide_device);"
                     },
@@ -10011,7 +10229,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY Air Conditioner'] && !model.options.irdeviceConfig['DIY Air Conditioner'].hide_device);"
                     },
@@ -10140,7 +10358,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['Light'] && !model.options.irdeviceConfig['Light'].hide_device);"
                     },
@@ -10269,7 +10487,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY Light'] && !model.options.irdeviceConfig['DIY Light'].hide_device);"
                     },
@@ -10398,7 +10616,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['Air Purifier'] && !model.options.irdeviceConfig['Air Purifier'].hide_device);"
                     },
@@ -10527,7 +10745,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY Air Purifier'] && !model.options.irdeviceConfig['DIY Air Purifier'].hide_device);"
                     },
@@ -10656,7 +10874,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['Water Heater'] && !model.options.irdeviceConfig['Water Heater'].hide_device);"
                     },
@@ -10785,7 +11003,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY Water Heater'] && !model.options.irdeviceConfig['DIY Water Heater'].hide_device);"
                     },
@@ -10914,7 +11132,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['Vacuum Cleaner'] && !model.options.irdeviceConfig['Vacuum Cleaner'].hide_device);"
                     },
@@ -11043,7 +11261,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY Vacuum Cleaner'] && !model.options.irdeviceConfig['DIY Vacuum Cleaner'].hide_device);"
                     },
@@ -11172,7 +11390,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['Camera'] && !model.options.irdeviceConfig['Camera'].hide_device);"
                     },
@@ -11301,7 +11519,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY Camera'] && !model.options.irdeviceConfig['DIY Camera'].hide_device);"
                     },
@@ -11430,7 +11648,7 @@
                   "connectionType": {
                     "title": "Connection Type",
                     "type": "string",
-                    "description": "Bluetooth (BLE) API is only available for the following Device Types: Humidifier, Meter, MeterPlus, Curtain, Bot, Motion Sensor, Contact Sensor, Plug Mini (US), Plug Mini (JP), & Color Bulb",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['Others'] && !model.options.irdeviceConfig['Others'].hide_device);"
                     },
@@ -11690,6 +11908,8 @@
             "options.devices[].hide_device",
             "options.devices[].configDeviceType",
             "options.devices[].connectionType",
+            "options.devices[].scanDuration",
+            "options.devices[].customBLEaddress",
             "options.devices[].webhook",
             "options.devices[].type",
             "options.devices[].mode",
@@ -11701,31 +11921,33 @@
             "options.devices[].convertUnitTo",
             "options.devices[].hide_humidity",
             "options.devices[].hide_lightsensor",
-            "options.devices[].set_minlux",
-            "options.devices[].set_maxlux",
+            "options.devices[].hide_motionsensor",
+            "options.devices[].hide_contactsensor",
             "options.devices[].hide_leak",
+            "options.devices[].disable_group",
+            "options.devices[].disableCaching",
+            "options.devices[].adaptiveLightingShift",
+            "options.devices[].activate_latchbutton",
             "options.devices[].dry",
             "options.devices[].set_minStep",
             "options.devices[].set_min",
             "options.devices[].set_max",
+            "options.devices[].set_minlux",
+            "options.devices[].set_maxlux",
             "options.devices[].setOpenMode",
             "options.devices[].setCloseMode",
             "options.devices[].silentModeSwitch",
-            "options.devices[].disable_group",
-            "options.devices[].hide_motionsensor",
-            "options.devices[].adaptiveLightingShift",
-            "options.devices[].hide_contactsensor",
-            "options.devices[].activate_latchbutton",
-            "options.devices[].disableCaching",
+            "options.devices[].maxRetry",
             "options.devices[].maxRetries",
             "options.devices[].delayBetweenRetries",
-            "options.devices[].maxRetry",
             "options.devices[].mqttURL",
             "options.devices[].mqttOptions",
             "options.devices[].mqttPubOptions",
             "options.devices[].history",
+            "options.devices[].offline",
             "options.devices[].firmware",
-            "options.devices[].scanDuration",
+            "options.devices[].external",
+            "options.devices[].logging",
             {
               "key": "options.devices[].refreshRate",
               "description": "<em class='primary-text'>Specifies the interval, in seconds, for retrieving the latest device status from the SwitchBot API. This interval applies only to this specific device.</em>"
@@ -11737,10 +11959,7 @@
             {
               "key": "options.devices[].pushRate",
               "description": "<em class='primary-text'>Specifies the interval, in seconds, between pushes to the SwitchBot API for this specific device.</em>"
-            },
-            "options.devices[].offline",
-            "options.devices[].external",
-            "options.devices[].logging"
+            }
           ]
         }
       ]
@@ -12205,7 +12424,6 @@
           "expanded": false,
           "items": [
             "options.deviceConfig['Plug'].hide_device",
-            "options.deviceConfig['Plug'].set_minStep",
             "options.deviceConfig['Plug'].connectionType",
             "options.deviceConfig['Plug'].scanDuration",
             "options.deviceConfig['Plug'].webhook",
@@ -12230,7 +12448,6 @@
           "expanded": false,
           "items": [
             "options.deviceConfig['Plug Mini (US)'].hide_device",
-            "options.deviceConfig['Plug Mini (US)'].set_minStep",
             "options.deviceConfig['Plug Mini (US)'].connectionType",
             "options.deviceConfig['Plug Mini (US)'].scanDuration",
             "options.deviceConfig['Plug Mini (US)'].webhook",
@@ -12255,7 +12472,6 @@
           "expanded": false,
           "items": [
             "options.deviceConfig['Plug Mini (JP)'].hide_device",
-            "options.deviceConfig['Plug Mini (JP)'].set_minStep",
             "options.deviceConfig['Plug Mini (JP)'].connectionType",
             "options.deviceConfig['Plug Mini (JP)'].scanDuration",
             "options.deviceConfig['Plug Mini (JP)'].webhook",
@@ -12373,6 +12589,30 @@
             "options.deviceConfig['K10+'].refreshRate",
             "options.deviceConfig['K10+'].updateRate",
             "options.deviceConfig['K10+'].pushRate"
+          ]
+        },
+        {
+          "type": "fieldset",
+          "title": "K10+ Pro Settings",
+          "expandable": true,
+          "expanded": false,
+          "items": [
+            "options.deviceConfig['K10+ Pro'].hide_device",
+            "options.deviceConfig['K10+ Pro'].connectionType",
+            "options.deviceConfig['K10+ Pro'].scanDuration",
+            "options.deviceConfig['K10+ Pro'].webhook",
+            "options.deviceConfig['K10+ Pro'].external",
+            "options.deviceConfig['K10+ Pro'].maxRetry",
+            "options.deviceConfig['K10+ Pro'].maxRetries",
+            "options.deviceConfig['K10+ Pro'].delayBetweenRetries",
+            "options.deviceConfig['K10+ Pro'].disableCaching",
+            "options.deviceConfig['K10+ Pro'].offline",
+            "options.deviceConfig['K10+ Pro'].history",
+            "options.deviceConfig['K10+ Pro'].firmware",
+            "options.deviceConfig['K10+ Pro'].logging",
+            "options.deviceConfig['K10+ Pro'].refreshRate",
+            "options.deviceConfig['K10+ Pro'].updateRate",
+            "options.deviceConfig['K10+ Pro'].pushRate"
           ]
         },
         {
@@ -12646,9 +12886,15 @@
             "options.irdevices[].set_min",
             "options.irdevices[].set_max",
             "options.irdevices[].stateless",
-            "options.irdevices[].firmware",
             "options.irdevices[].external",
-            "options.irdevices[].logging"
+            "options.irdevices[].disableCaching",
+            "options.irdevices[].offline",
+            "options.irdevices[].history",
+            "options.irdevices[].firmware",
+            "options.irdevices[].logging",
+            "options.irdevices[].refreshRate",
+            "options.irdevices[].updateRate",
+            "options.irdevices[].pushRate"
           ]
         }
       ]

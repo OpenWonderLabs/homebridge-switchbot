@@ -646,6 +646,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       'Smart Lock Pro': this.createLock.bind(this),
       'Color Bulb': this.createColorBulb.bind(this),
       'K10+': this.createRobotVacuumCleaner.bind(this),
+      'K10+ Pro': this.createRobotVacuumCleaner.bind(this),
       'WoSweeper': this.createRobotVacuumCleaner.bind(this),
       'WoSweeperMini': this.createRobotVacuumCleaner.bind(this),
       'Robot Vacuum Cleaner S1': this.createRobotVacuumCleaner.bind(this),

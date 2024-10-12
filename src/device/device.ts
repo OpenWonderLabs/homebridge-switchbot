@@ -8,7 +8,7 @@ import type { MqttClient } from 'mqtt'
 import type { ad, bodyChange, device, deviceStatus, deviceStatusRequest, pushResponse } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { blindTiltConfig, botConfig, ceilingLightConfig, colorBulbConfig, contactConfig, curtainConfig, devicesConfig, hubConfig, humidifierConfig, indoorOutdoorSensorConfig, lockConfig, meterConfig, motionConfig, stripLightConfig, SwitchBotPlatformConfig, waterDetectorConfig } from '../settings.js'
+import type { blindTiltConfig, botConfig, ceilingLightConfig, colorBulbConfig, contactConfig, curtainConfig, devicesConfig, hubConfig, humidifierConfig, indoorOutdoorSensorConfig, lockConfig, meterConfig, motionConfig, plugConfig, stripLightConfig, SwitchBotPlatformConfig, waterDetectorConfig } from '../settings.js'
 
 import { hostname } from 'node:os'
 
@@ -188,7 +188,7 @@ export abstract class deviceBase {
       case 'MeterPlus':
         deviceSpecificConfig = device as meterConfig
         break
-      case 'IOSensor':
+      case 'WoIOSensor':
         deviceSpecificConfig = device as indoorOutdoorSensorConfig
         break
       case 'Humidifier':
@@ -210,6 +210,11 @@ export abstract class deviceBase {
       case 'Water Detector':
         deviceSpecificConfig = device as waterDetectorConfig
         break
+      case 'Plug':
+      case 'Plug Mini (US)':
+      case 'Plug Mini (JP)':
+        deviceSpecificConfig = device as plugConfig
+        break
       case 'Color Bulb':
         deviceSpecificConfig = device as colorBulbConfig
         break
@@ -220,11 +225,11 @@ export abstract class deviceBase {
       case 'Ceiling Light Pro':
         deviceSpecificConfig = device as ceilingLightConfig
         break
-      case 'Lock':
-      case 'Lock Pro':
+      case 'Smart Lock':
+      case 'Smart Lock Pro':
         deviceSpecificConfig = device as lockConfig
         break
-      case 'Hub2':
+      case 'Hub 2':
         deviceSpecificConfig = device as hubConfig
         break
       default:
@@ -512,6 +517,18 @@ export abstract class deviceBase {
         bleModelName: SwitchBotBLEModelName.Curtain3,
         bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Curtain3,
       },
+      'WoRollerShade': {
+        model: SwitchBotModel.Curtain3,
+        bleModel: SwitchBotBLEModel.Curtain3,
+        bleModelName: SwitchBotBLEModelName.Curtain3,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Curtain3,
+      },
+      'Roller Shade': {
+        model: SwitchBotModel.Curtain3,
+        bleModel: SwitchBotBLEModel.Curtain3,
+        bleModelName: SwitchBotBLEModelName.Curtain3,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Curtain3,
+      },
       'Blind Tilt': {
         model: SwitchBotModel.BlindTilt,
         bleModel: SwitchBotBLEModel.BlindTilt,
@@ -556,6 +573,12 @@ export abstract class deviceBase {
       },
       'K10+': {
         model: SwitchBotModel.K10,
+        bleModel: SwitchBotBLEModel.Unknown,
+        bleModelName: SwitchBotBLEModelName.Unknown,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,
+      },
+      'K10+ Pro': {
+        model: SwitchBotModel.K10Pro,
         bleModel: SwitchBotBLEModel.Unknown,
         bleModelName: SwitchBotBLEModelName.Unknown,
         bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,

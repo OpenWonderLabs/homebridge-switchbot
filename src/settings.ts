@@ -53,7 +53,7 @@ export interface options {
   logging?: string
 };
 
-export type devicesConfig = botConfig | meterConfig | indoorOutdoorSensorConfig | humidifierConfig | curtainConfig | blindTiltConfig | contactConfig | motionConfig | waterDetectorConfig | colorBulbConfig | stripLightConfig | ceilingLightConfig | lockConfig | hubConfig
+export type devicesConfig = botConfig | meterConfig | indoorOutdoorSensorConfig | humidifierConfig | curtainConfig | blindTiltConfig | contactConfig | motionConfig | waterDetectorConfig | plugConfig | colorBulbConfig | stripLightConfig | ceilingLightConfig | lockConfig | hubConfig
 
 export interface BaseDeviceConfig extends device {
   bleMac?: string
@@ -104,7 +104,7 @@ export interface meterConfig extends BaseDeviceConfig {
 };
 
 export interface indoorOutdoorSensorConfig extends BaseDeviceConfig {
-  configDeviceType: 'IOSensor'
+  configDeviceType: 'WoIOSensor'
   hide_temperature?: boolean
   convertUnitTo?: string
   hide_humidity?: boolean
@@ -118,7 +118,7 @@ export interface humidifierConfig extends BaseDeviceConfig {
 };
 
 export interface curtainConfig extends BaseDeviceConfig {
-  configDeviceType: 'Curtain' | 'Curtain3'
+  configDeviceType: 'Curtain' | 'Curtain3' | 'WoRollerShade' | 'Roller Shade'
   disable_group?: boolean
   hide_lightsensor?: boolean
   set_minLux?: number
@@ -167,6 +167,10 @@ export interface waterDetectorConfig extends BaseDeviceConfig {
   dry?: boolean
 };
 
+export interface plugConfig extends BaseDeviceConfig {
+  configDeviceType: 'Plug' | 'Plug Mini (US)' | 'Plug Mini (JP)'
+};
+
 export interface colorBulbConfig extends BaseDeviceConfig {
   configDeviceType: 'Color Bulb'
   set_minStep?: number
@@ -186,13 +190,13 @@ export interface ceilingLightConfig extends BaseDeviceConfig {
 };
 
 export interface lockConfig extends BaseDeviceConfig {
-  configDeviceType: 'Lock' | 'Lock Pro'
+  configDeviceType: 'Smart Lock' | 'Smart Lock Pro'
   hide_contactsensor?: boolean
   activate_latchbutton?: boolean
 };
 
 export interface hubConfig extends BaseDeviceConfig {
-  configDeviceType: 'Hub2'
+  configDeviceType: 'Hub 2'
   hide_temperature?: boolean
   convertUnitTo?: string
   hide_humidity?: boolean
