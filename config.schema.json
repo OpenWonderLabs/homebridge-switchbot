@@ -20,6 +20,7 @@
           "token": {
             "title": "Token",
             "type": "string",
+            "pattern": "^[0-9A-Fa-f]+$",
             "x-schema-form": {
               "type": "token"
             }
@@ -27,6 +28,7 @@
           "secret": {
             "title": "Secret",
             "type": "string",
+            "pattern": "^[0-9A-Fa-f]+$",
             "x-schema-form": {
               "type": "secret"
             }
@@ -55,6 +57,7 @@
                 "configDeviceName": {
                   "title": "Device Name",
                   "type": "string",
+                  "pattern": "^[\\p{L}\\p{N}][\\p{L}\\p{N} ']*[\\p{L}\\p{N}]$",
                   "placeholder": "SwitchBot",
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId);"
@@ -63,7 +66,8 @@
                 "deviceId": {
                   "title": "Device ID",
                   "type": "string",
-                  "placeholder": "81F3UT59513F"
+                  "placeholder": "81F3UT59513F",
+                  "pattern": "^[0-9A-F]{12}$"
                 },
                 "hide_device": {
                   "title": "Hide Device",
@@ -7695,6 +7699,7 @@
                   "title": "Device Name",
                   "type": "string",
                   "placeholder": "SwitchBot",
+                  "pattern": "^[\\p{L}\\p{N}][\\p{L}\\p{N} ']*[\\p{L}\\p{N}]$",
                   "condition": {
                     "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId);"
                   }
@@ -7702,7 +7707,8 @@
                 "deviceId": {
                   "title": "Device ID",
                   "type": "string",
-                  "placeholder": "81F3UT59513F"
+                  "placeholder": "81F3UT59513F",
+                  "pattern": "^[0-9A-F]+$"
                 },
                 "hide_device": {
                   "title": "Hide Device",
