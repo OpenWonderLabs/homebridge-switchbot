@@ -582,10 +582,10 @@ export class Bot extends deviceBase {
         parameter: 'default',
         commandType: 'command',
       }
-      this.debugLog(`Sending request to SwitchBot API, body: ${JSON.stringify(bodyChange)},`)
+      await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
         const { body } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = body
+        const deviceStatus: any = await body
         await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         if (await this.successfulStatusCodes(deviceStatus)) {
           await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)

@@ -504,7 +504,7 @@ export class Curtain extends deviceBase {
     await this.debugLog('openAPIRefreshStatus')
     try {
       const { body } = await this.deviceRefreshStatus()
-      const deviceStatus: any = await body
+      const deviceStatus: any = body
       await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
       if (await this.successfulStatusCodes(deviceStatus)) {
         await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)

@@ -196,7 +196,7 @@ export class Light extends irdeviceBase {
   async pushChanges(bodyChange: any, On: boolean): Promise<void> {
     this.debugLog('pushChanges')
     if (this.device.connectionType === 'OpenAPI') {
-      this.infoLog(`Sending request to SwitchBot API, body: ${bodyChange},`)
+      await this.infoLog(`Sending request to SwitchBot API, body: ${JSON.stringify(bodyChange)}`)
       try {
         const { body } = await this.pushChangeRequest(bodyChange)
         const deviceStatus: any = await body

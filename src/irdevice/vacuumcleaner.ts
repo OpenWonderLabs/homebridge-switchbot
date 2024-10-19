@@ -95,7 +95,7 @@ export class VacuumCleaner extends irdeviceBase {
   async pushChanges(bodyChange: any): Promise<void> {
     await this.debugLog('pushChanges')
     if (this.device.connectionType === 'OpenAPI') {
-      await this.infoLog(`Sending request to SwitchBot API, body: ${bodyChange},`)
+      await this.infoLog(`Sending request to SwitchBot API, body: ${JSON.stringify(bodyChange)}`)
       try {
         const { body } = await this.pushChangeRequest(bodyChange)
         const deviceStatus: any = await body

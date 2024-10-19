@@ -7708,7 +7708,7 @@
                   "title": "Device ID",
                   "type": "string",
                   "placeholder": "81F3UT59513F",
-                  "pattern": "^[0-9A-F]+$"
+                  "pattern": "^[0-9A-Za-z]{2}-[0-9A-Za-z]{12}-[0-9A-Za-z]{8}$"
                 },
                 "hide_device": {
                   "title": "Hide Device",

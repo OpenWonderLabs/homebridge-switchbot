@@ -344,7 +344,7 @@ export class TV extends irdeviceBase {
   async pushTVChanges(bodyChange: any): Promise<void> {
     await this.debugLog('pushTVChanges')
     if (this.device.connectionType === 'OpenAPI') {
-      await this.infoLog(`Sending request to SwitchBot API, body: ${bodyChange},`)
+      await this.infoLog(`Sending request to SwitchBot API, body: ${JSON.stringify(bodyChange)}`)
       try {
         const { body } = await this.pushChangeRequest(bodyChange)
         const deviceStatus: any = await body
