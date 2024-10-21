@@ -81,7 +81,7 @@
     "async-mqtt": "^2.6.3",
     "fakegato-history": "^0.6.5",
     "homebridge-lib": "^7.0.9",
-    "node-switchbot": "^3.1.2-beta.2",
+    "node-switchbot": "^3.1.2-beta.5",
     "rxjs": "^7.8.1"
   },
   "devDependencies": {
@@ -97,7 +97,7 @@
     "eslint": "^9.13.0",
     "eslint-plugin-format": "^0.1.2",
     "homebridge": "^1.8.4",
-    "homebridge-config-ui-x": "4.61.0",
+    "homebridge-config-ui-x": "4.62.0",
     "nodemon": "^3.1.7",
     "npm-check-updates": "^17.1.4",
     "shx": "^0.3.4",

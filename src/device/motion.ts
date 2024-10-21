@@ -120,9 +120,7 @@ export class Motion extends deviceBase {
       accessory.context.LightSensor = this.LightSensor as object
 
       // Initialize LightSensor Characteristics
-      this.LightSensor.Service.setCharacteristic(this.hap.Characteristic.Name, this.LightSensor.Name).setCharacteristic(this.hap.Characteristic.StatusActive, true).getCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel).onGet(() => {
-        return this.LightSensor!.CurrentAmbientLightLevel
-      })
+      this.LightSensor.Service.setCharacteristic(this.hap.Characteristic.Name, this.LightSensor.Name).setCharacteristic(this.hap.Characteristic.StatusActive, true)
     };
 
     // Retrieve initial values and updateHomekit
