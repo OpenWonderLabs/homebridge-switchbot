@@ -1,13 +1,14 @@
 /* Copyright(C) 2021-2024, donavanbecker (https://github.com/donavanbecker). All rights reserved.
  *
- * motion.ts: @switchbot/homebridge-switchbot.
+ * MeterPro.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
-import type { device, motionSensorServiceData, motionSensorStatus, motionSensorWebhookContext } from 'node-switchbot'
+import type { device, meterProServiceData, meterProStatus, meterProWebhookContext } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig, motionConfig } from '../settings.js'
+import type { devicesConfig, meterConfig } from '../settings.js'
 
+import { Units } from 'homebridge'
 /*
 * For Testing Locally:
 * import { SwitchBotBLEModel, SwitchBotBLEModelName } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
@@ -15,7 +16,7 @@ import type { devicesConfig, motionConfig } from '../settings.js'
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot'
 import { interval, skipWhile, Subject } from 'rxjs'
 
-import { formatDeviceIdAsMac } from '../utils.js'
+import { convertUnits, formatDeviceIdAsMac, validHumidity } from '../utils.js'
 import { deviceBase } from './device.js'
 
 /**
@@ -23,7 +24,7 @@ import { deviceBase } from './device.js'
  * An instance of this class is created for each accessory your platform registers
  * Each accessory may expose multiple services of different service types.
  */
-export class Motion extends deviceBase {
+export class MeterPro extends deviceBase {
   // Services
   private Battery: {
     Name: CharacteristicValue
@@ -32,30 +33,30 @@ export class Motion extends deviceBase {
     StatusLowBattery: CharacteristicValue
   }
 
-  private MotionSensor: {
+  private HumiditySensor?: {
     Name: CharacteristicValue
     Service: Service
-    MotionDetected: CharacteristicValue
+    CurrentRelativeHumidity: CharacteristicValue
   }
 
-  private LightSensor?: {
+  private TemperatureSensor?: {
     Name: CharacteristicValue
     Service: Service
-    CurrentAmbientLightLevel: CharacteristicValue
+    CurrentTemperature: CharacteristicValue
   }
 
   // OpenAPI
-  deviceStatus!: motionSensorStatus
+  deviceStatus!: meterProStatus
 
   // Webhook
-  webhookContext!: motionSensorWebhookContext
+  webhookContext!: meterProWebhookContext
 
   // BLE
-  serviceData!: motionSensorServiceData
+  serviceData!: meterProServiceData
 
   // Updates
-  motionUbpdateInProgress!: boolean
-  doMotionUpdate!: Subject<void>
+  meterUpdateInProgress!: boolean
+  doMeterUpdate: Subject<void>
 
   constructor(
     readonly platform: SwitchBotPlatform,
@@ -67,22 +68,8 @@ export class Motion extends deviceBase {
     accessory.category = this.hap.Categories.SENSOR
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
-    this.doMotionUpdate = new Subject()
-    this.motionUbpdateInProgress = false
-
-    // Initialize Motion Sensor property
-    accessory.context.MotionSensor = accessory.context.MotionSensor ?? {}
-    this.MotionSensor = {
-      Name: `${accessory.displayName} Motion Sensor`,
-      Service: accessory.getService(this.hap.Service.MotionSensor) ?? accessory.addService(this.hap.Service.MotionSensor) as Service,
-      MotionDetected: accessory.context.MotionDetected ?? false,
-    }
-    accessory.context.MotionSensor = this.MotionSensor as object
-
-    // Initialize Motion Sensor Characteristics
-    this.MotionSensor.Service.setCharacteristic(this.hap.Characteristic.Name, this.MotionSensor.Name).setCharacteristic(this.hap.Characteristic.StatusActive, true).getCharacteristic(this.hap.Characteristic.MotionDetected).onGet(() => {
-      return this.MotionSensor.MotionDetected
-    })
+    this.doMeterUpdate = new Subject()
+    this.meterUpdateInProgress = false
 
     // Initialize Battery Service
     accessory.context.Battery = accessory.context.Battery ?? {}
@@ -99,29 +86,60 @@ export class Motion extends deviceBase {
       return this.Battery.BatteryLevel
     })
 
-    this.Battery.Service.setCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery).getCharacteristic(this.hap.Characteristic.StatusLowBattery).onGet(() => {
+    this.Battery.Service.getCharacteristic(this.hap.Characteristic.StatusLowBattery).onGet(() => {
       return this.Battery.StatusLowBattery
     })
 
-    // Initialize Light Sensor Service
-    if ((device as motionConfig).hide_lightsensor) {
-      if (this.LightSensor) {
-        this.debugLog('Removing Light Sensor Service')
-        this.LightSensor.Service = this.accessory.getService(this.hap.Service.LightSensor) as Service
-        accessory.removeService(this.LightSensor.Service)
+    // Initialize Temperature Sensor Service
+    if ((device as meterConfig).hide_temperature) {
+      if (this.TemperatureSensor) {
+        this.debugLog('Removing Temperature Sensor Service')
+        this.TemperatureSensor.Service = this.accessory.getService(this.hap.Service.TemperatureSensor) as Service
+        accessory.removeService(this.TemperatureSensor.Service)
       }
     } else {
-      accessory.context.LightSensor = accessory.context.LightSensor ?? {}
-      this.LightSensor = {
-        Name: `${accessory.displayName} Light Sensor`,
-        Service: accessory.getService(this.hap.Service.LightSensor) ?? this.accessory.addService(this.hap.Service.LightSensor) as Service,
-        CurrentAmbientLightLevel: accessory.context.CurrentAmbientLightLevel ?? 0.0001,
+      accessory.context.TemperatureSensor = accessory.context.TemperatureSensor ?? {}
+      this.TemperatureSensor = {
+        Name: `${accessory.displayName} Temperature Sensor`,
+        Service: accessory.getService(this.hap.Service.TemperatureSensor) ?? this.accessory.addService(this.hap.Service.TemperatureSensor) as Service,
+        CurrentTemperature: accessory.context.CurrentTemperature ?? 30,
       }
-      accessory.context.LightSensor = this.LightSensor as object
+      accessory.context.TemperatureSensor = this.TemperatureSensor as object
 
-      // Initialize LightSensor Characteristics
-      this.LightSensor.Service.setCharacteristic(this.hap.Characteristic.Name, this.LightSensor.Name).setCharacteristic(this.hap.Characteristic.StatusActive, true)
-    };
+      // Initialize Temperature Sensor Characteristics
+      this.TemperatureSensor.Service.setCharacteristic(this.hap.Characteristic.Name, this.TemperatureSensor.Name).getCharacteristic(this.hap.Characteristic.CurrentTemperature).setProps({
+        unit: Units.CELSIUS,
+        validValueRanges: [-273.15, 100],
+        minValue: -273.15,
+        maxValue: 100,
+        minStep: 0.1,
+      }).onGet(() => {
+        return this.TemperatureSensor!.CurrentTemperature!
+      })
+    }
+    // Initialize Humidity Sensor Service
+    if ((device as meterConfig).hide_humidity) {
+      if (this.HumiditySensor) {
+        this.debugLog('Removing Humidity Sensor Service')
+        this.HumiditySensor.Service = this.accessory.getService(this.hap.Service.HumiditySensor) as Service
+        accessory.removeService(this.HumiditySensor.Service)
+      }
+    } else {
+      accessory.context.HumiditySensor = accessory.context.HumiditySensor ?? {}
+      this.HumiditySensor = {
+        Name: `${accessory.displayName} Humidity Sensor`,
+        Service: accessory.getService(this.hap.Service.HumiditySensor) ?? this.accessory.addService(this.hap.Service.HumiditySensor) as Service,
+        CurrentRelativeHumidity: accessory.context.CurrentRelativeHumidity ?? 50,
+      }
+      accessory.context.HumiditySensor = this.HumiditySensor as object
+
+      // Initialize Humidity Sensor Characteristics
+      this.HumiditySensor.Service.setCharacteristic(this.hap.Characteristic.Name, this.HumiditySensor.Name).getCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity).setProps({
+        minStep: 0.1,
+      }).onGet(() => {
+        return this.HumiditySensor!.CurrentRelativeHumidity!
+      })
+    }
 
     // Retrieve initial values and updateHomekit
     try {
@@ -149,7 +167,7 @@ export class Motion extends deviceBase {
 
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
-      .pipe(skipWhile(() => this.motionUbpdateInProgress))
+      .pipe(skipWhile(() => this.meterUpdateInProgress))
       .subscribe(async () => {
         await this.refreshStatus()
       })
@@ -157,25 +175,22 @@ export class Motion extends deviceBase {
 
   async BLEparseStatus(): Promise<void> {
     await this.debugLog('BLEparseStatus')
-    await this.debugLog(`(moveDetected) = BLE: (${this.serviceData.movement}), current: (${this.MotionSensor.MotionDetected})`)
+    await this.debugLog(`(temperature, humidity) = BLE:(${this.serviceData.celsius}, ${this.serviceData.humidity}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity})`)
 
-    // Movement
-    this.MotionSensor.MotionDetected = this.serviceData.movement
-    await this.debugLog(`MotionDetected: ${this.MotionSensor.MotionDetected}`)
-
-    // CurrentAmbientLightLevel
-    if (!(this.device as motionConfig).hide_lightsensor && this.LightSensor?.Service) {
-      const set_minLux = (this.device as motionConfig).set_minLux ?? 1
-      const set_maxLux = (this.device as motionConfig).set_maxLux ?? 6001
-      const lightLevel = this.serviceData.lightLevel === 'bright' ? set_maxLux : set_minLux
-      this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
-      await this.debugLog(`LightLevel: ${this.serviceData.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
+    // CurrentRelativeHumidity
+    if (!(this.device as meterConfig).hide_humidity && this.HumiditySensor?.Service) {
+      this.HumiditySensor.CurrentRelativeHumidity = validHumidity(this.serviceData.humidity, 0, 100)
+      await this.debugLog(`CurrentRelativeHumidity: ${this.HumiditySensor.CurrentRelativeHumidity}%`)
     }
-
+    // Current Temperature
+    if (!(this.device as meterConfig).hide_temperature && this.TemperatureSensor?.Service) {
+      const CELSIUS = this.serviceData.celsius < 0 ? 0 : this.serviceData.celsius > 100 ? 100 : this.serviceData.celsius
+      this.TemperatureSensor.CurrentTemperature = CELSIUS
+      await this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}°c`)
+    }
     // BatteryLevel
     this.Battery.BatteryLevel = this.serviceData.battery
     await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
-
     // StatusLowBattery
     this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
       ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
@@ -185,20 +200,20 @@ export class Motion extends deviceBase {
 
   async openAPIparseStatus(): Promise<void> {
     await this.debugLog('openAPIparseStatus')
-    await this.debugLog(`(moveDetected) = OpenAPI: (${this.deviceStatus.moveDetected}), current: (${this.MotionSensor.MotionDetected})`)
+    await this.debugLog(`(temperature, humidity) = OpenAPI:(${this.deviceStatus.temperature}, ${this.deviceStatus.humidity}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity})`)
 
-    // Motion State
-    this.MotionSensor.MotionDetected = this.deviceStatus.moveDetected
-    await this.debugLog(`MotionDetected: ${this.MotionSensor.MotionDetected}`)
-
-    // CurrentAmbientLightLevel
-    if (!(this.device as motionConfig).hide_lightsensor && this.LightSensor?.Service) {
-      const set_minLux = (this.device as motionConfig).set_minLux ?? 1
-      const set_maxLux = (this.device as motionConfig).set_maxLux ?? 6001
-      const lightLevel = this.deviceStatus.brightness === 'bright' ? set_maxLux : set_minLux
-      this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
-      await this.debugLog(`LightLevel: ${this.deviceStatus.brightness}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
+    // CurrentRelativeHumidity
+    if (!(this.device as meterConfig).hide_humidity && this.HumiditySensor?.Service) {
+      this.HumiditySensor.CurrentRelativeHumidity = this.deviceStatus.humidity
+      await this.debugLog(`CurrentRelativeHumidity: ${this.HumiditySensor.CurrentRelativeHumidity}%`)
     }
+
+    // CurrentTemperature
+    if (!(this.device as meterConfig).hide_temperature && this.TemperatureSensor?.Service) {
+      this.TemperatureSensor.CurrentTemperature = this.deviceStatus.temperature
+      await this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}°c`)
+    }
+
     // BatteryLevel
     this.Battery.BatteryLevel = this.deviceStatus.battery
     await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
@@ -212,7 +227,7 @@ export class Motion extends deviceBase {
     // FirmwareVersion
     if (this.deviceStatus.version) {
       const version = this.deviceStatus.version.toString()
-      await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`)
+      this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`)
       const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0'
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
@@ -221,17 +236,29 @@ export class Motion extends deviceBase {
         .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
         .updateValue(deviceVersion)
       this.accessory.context.version = deviceVersion
-      await this.debugLog(`version: ${this.accessory.context.version}`)
+      this.debugSuccessLog(`v: ${this.accessory.context.version}`)
     }
   }
 
   async parseStatusWebhook(): Promise<void> {
     await this.debugLog('parseStatusWebhook')
-    await this.debugLog(`(detectionState) = Webhook: (${this.webhookContext.detectionState}), current: (${this.MotionSensor.MotionDetected})`)
+    await this.debugLog(`(scale, temperature, humidity) = Webhook:(${this.webhookContext.scale}, ${convertUnits(this.webhookContext.temperature, this.webhookContext.scale, (this.device as meterConfig).convertUnitTo)}, ${this.webhookContext.humidity}) current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity})`)
+    // Check if the scale is not CELSIUS
+    if (this.webhookContext.scale !== 'CELSIUS' && (this.device as meterConfig).convertUnitTo === undefined) {
+      await this.warnLog(`received a non-CELSIUS Webhook scale: ${this.webhookContext.scale}, Use the *convertUnitsTo* config under Hub settings, if displaying incorrectly in HomeKit.`)
+    }
 
-    // MotionDetected
-    this.MotionSensor.MotionDetected = this.webhookContext.detectionState === 'DETECTED'
-    await this.debugLog(`MotionDetected: ${this.MotionSensor.MotionDetected}`)
+    // CurrentRelativeHumidity
+    if (!(this.device as meterConfig).hide_humidity && this.HumiditySensor?.Service) {
+      this.HumiditySensor.CurrentRelativeHumidity = this.webhookContext.humidity
+      await this.debugLog(`CurrentRelativeHumidity: ${this.HumiditySensor.CurrentRelativeHumidity}`)
+    }
+
+    // CurrentTemperature
+    if (!(this.device as meterConfig).hide_temperature && this.TemperatureSensor?.Service) {
+      this.TemperatureSensor.CurrentTemperature = convertUnits(this.webhookContext.temperature, this.webhookContext.scale, (this.device as meterConfig).convertUnitTo)
+      await this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}`)
+    }
   }
 
   /**
@@ -259,9 +286,9 @@ export class Motion extends deviceBase {
       // Start to monitor advertisement packets
       (async () => {
         // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as motionSensorServiceData
+        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as meterProServiceData
         // Update HomeKit
-        if (serviceData.model === SwitchBotBLEModel.MotionSensor && serviceData.modelName === SwitchBotBLEModelName.MotionSensor) {
+        if (serviceData.model === SwitchBotBLEModel.MeterPro && serviceData.modelName === SwitchBotBLEModelName.MeterPro) {
           this.serviceData = serviceData
           await this.BLEparseStatus()
           await this.updateHomeKitCharacteristics()
@@ -281,7 +308,7 @@ export class Motion extends deviceBase {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
         await this.debugLog(`bleMac: ${this.device.bleMac}`)
-        this.platform.bleEventHandler[this.device.bleMac] = async (context: motionSensorServiceData) => {
+        this.platform.bleEventHandler[this.device.bleMac] = async (context: meterProServiceData) => {
           try {
             await this.debugLog(`received BLE: ${JSON.stringify(context)}`)
             this.serviceData = context
@@ -323,7 +350,7 @@ export class Motion extends deviceBase {
   async registerWebhook() {
     if (this.device.webhook) {
       await this.debugLog('is listening webhook.')
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context: motionSensorWebhookContext) => {
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context: meterProWebhookContext) => {
         try {
           await this.debugLog(`received Webhook: ${JSON.stringify(context)}`)
           this.webhookContext = context
@@ -342,16 +369,18 @@ export class Motion extends deviceBase {
    * Updates the status for each of the HomeKit Characteristics
    */
   async updateHomeKitCharacteristics(): Promise<void> {
-    // MotionDetected
-    await this.updateCharacteristic(this.MotionSensor.Service, this.hap.Characteristic.MotionDetected, this.MotionSensor.MotionDetected, 'MotionDetected')
+    // CurrentRelativeHumidity
+    if (!(this.device as meterConfig).hide_humidity && this.HumiditySensor?.Service) {
+      await this.updateCharacteristic(this.HumiditySensor.Service, this.hap.Characteristic.CurrentRelativeHumidity, this.HumiditySensor.CurrentRelativeHumidity, 'CurrentRelativeHumidity')
+    }
+    // CurrentTemperature
+    if (!(this.device as meterConfig).hide_temperature && this.TemperatureSensor?.Service) {
+      await this.updateCharacteristic(this.TemperatureSensor.Service, this.hap.Characteristic.CurrentTemperature, this.TemperatureSensor.CurrentTemperature, 'CurrentTemperature')
+    }
     // BatteryLevel
     await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.BatteryLevel, this.Battery.BatteryLevel, 'BatteryLevel')
     // StatusLowBattery
     await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery, 'StatusLowBattery')
-    // CurrentAmbientLightLevel
-    if (!(this.device as motionConfig).hide_lightsensor && this.LightSensor?.Service) {
-      await this.updateCharacteristic(this.LightSensor.Service, this.hap.Characteristic.CurrentAmbientLightLevel, this.LightSensor.CurrentAmbientLightLevel, 'CurrentAmbientLightLevel')
-    }
   }
 
   async BLERefreshConnection(switchbot: any): Promise<void> {
@@ -364,16 +393,25 @@ export class Motion extends deviceBase {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      this.MotionSensor.Service.updateCharacteristic(this.hap.Characteristic.MotionDetected, false)
+      if (!(this.device as meterConfig).hide_humidity && this.HumiditySensor?.Service) {
+        this.HumiditySensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity, 50)
+      }
+      if (!(this.device as meterConfig).hide_temperature && this.TemperatureSensor?.Service) {
+        this.TemperatureSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, 30)
+      }
+      this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, 100)
+      this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL)
     }
   }
 
   async apiError(e: any): Promise<void> {
-    this.MotionSensor.Service.updateCharacteristic(this.hap.Characteristic.MotionDetected, e)
+    if (!(this.device as meterConfig).hide_humidity && this.HumiditySensor?.Service) {
+      this.HumiditySensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity, e)
+    }
+    if (!(this.device as meterConfig).hide_temperature && this.TemperatureSensor?.Service) {
+      this.TemperatureSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, e)
+    }
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e)
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, e)
-    if (!(this.device as motionConfig).hide_lightsensor && this.LightSensor?.Service) {
-      this.LightSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, e)
-    }
   }
 }

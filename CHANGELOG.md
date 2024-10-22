@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [4.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v4.1.0) (2024-10-21)
+
+### What's Changed
+- Add `Meter Pro` deviceType Support
+- Fix `node-switchbot` noble issue.
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.0.0...v4.1.0
+
 ## [4.0.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v4.0.0) (2024-10-11)
 
 ### What's Changed

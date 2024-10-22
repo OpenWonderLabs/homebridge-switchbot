@@ -175,7 +175,7 @@ export abstract class irdeviceBase {
 
   async successfulPushChange(deviceStatus: any, bodyChange: any) {
     this.debugSuccessLog(`deviceStatus StatusCode: ${deviceStatus.statusCode}`)
-    this.successLog(`request to SwitchBot API, body: ${JSON.stringify(JSON.parse(bodyChange))} sent successfully`)
+    this.successLog(`request to SwitchBot API, body: ${JSON.stringify(bodyChange)} sent successfully`)
   }
 
   async pushChangeError(e: Error) {
