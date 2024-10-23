@@ -447,7 +447,7 @@ export class Lock extends deviceBase {
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
               return await this.retryBLE({
-                max: await this.maxRetryBLE(),
+                max: this.maxRetryBLE(),
                 fn: async () => {
                   if (this.LockMechanism.LockTargetState === this.hap.Characteristic.LockTargetState.SECURED) {
                     return await device_list[0].lock({ id: this.device.bleMac })

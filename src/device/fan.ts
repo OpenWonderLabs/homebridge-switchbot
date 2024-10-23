@@ -462,7 +462,7 @@ export class Fan extends deviceBase {
             .then(async (device_list: SwitchbotDevice[]) => {
               const deviceList = device_list as unknown as SwitchbotDevice[]
               return await this.retryBLE({
-                max: await this.maxRetryBLE(),
+                max: this.maxRetryBLE(),
                 fn: async () => {
                   if (this.Fan.Active) {
                     return await deviceList[0].turnOn()

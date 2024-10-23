@@ -310,7 +310,7 @@ export class Plug extends deviceBase {
               const deviceList = device_list as unknown as WoPlugMini[]
               this.infoLog(`On: ${this.Outlet.On}`)
               return await this.retryBLE({
-                max: await this.maxRetryBLE(),
+                max: this.maxRetryBLE(),
                 fn: async () => {
                   if (this.Outlet.On) {
                     return await deviceList[0].turnOn()

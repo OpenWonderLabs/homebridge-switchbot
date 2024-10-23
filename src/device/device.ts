@@ -129,7 +129,7 @@ export abstract class deviceBase {
     })
   }
 
-  async maxRetryBLE(): Promise<number> {
+  maxRetryBLE(): number {
     return this.device.maxRetry ? this.device.maxRetry : 5
   }
 
