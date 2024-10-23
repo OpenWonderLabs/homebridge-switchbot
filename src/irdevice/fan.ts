@@ -83,7 +83,7 @@ export class IRFan extends irdeviceBase {
   }
 
   async SwingModeSet(value: CharacteristicValue): Promise<void> {
-    await this.debugLog(`SwingMode: ${value}`)
+    this.debugLog(`SwingMode: ${value}`)
     if (value > this.Fan.SwingMode) {
       this.Fan.SwingMode = 1
       await this.pushFanOnChanges()
@@ -98,7 +98,7 @@ export class IRFan extends irdeviceBase {
   }
 
   async RotationSpeedSet(value: CharacteristicValue): Promise<void> {
-    await this.debugLog(`RotationSpeed: ${value}`)
+    this.debugLog(`RotationSpeed: ${value}`)
     if (value > this.Fan.RotationSpeed) {
       this.Fan.RotationSpeed = 1
       this.pushFanSpeedUpChanges()
@@ -112,7 +112,7 @@ export class IRFan extends irdeviceBase {
   }
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
-    await this.debugLog(`Active: ${value}`)
+    this.debugLog(`Active: ${value}`)
 
     this.Fan.Active = value
     if (this.Fan.Active === this.hap.Characteristic.Active.ACTIVE) {
@@ -132,7 +132,7 @@ export class IRFan extends irdeviceBase {
    * Fan -        "command"       "highSpeed"      "default"          =        fan speed to high
    */
   async pushFanOnChanges(): Promise<void> {
-    await this.debugLog(`pushFanOnChanges Active: ${this.Fan.Active}, disablePushOn: ${this.disablePushOn}`)
+    this.debugLog(`pushFanOnChanges Active: ${this.Fan.Active}, disablePushOn: ${this.disablePushOn}`)
     if (this.Fan.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOn()
@@ -146,7 +146,7 @@ export class IRFan extends irdeviceBase {
   }
 
   async pushFanOffChanges(): Promise<void> {
-    await this.debugLog(`pushLightOffChanges Active: ${this.Fan.Active}, disablePushOff: ${this.disablePushOff}`)
+    this.debugLog(`pushLightOffChanges Active: ${this.Fan.Active}, disablePushOff: ${this.disablePushOff}`)
     if (this.Fan.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOff) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOff()
@@ -187,9 +187,9 @@ export class IRFan extends irdeviceBase {
   }
 
   async pushChanges(bodyChange: any): Promise<void> {
-    await this.debugLog('pushChanges')
+    this.debugLog('pushChanges')
     if (this.device.connectionType === 'OpenAPI') {
-      await this.infoLog(`Sending request to SwitchBot API, body: ${JSON.stringify(bodyChange)}`)
+      this.infoLog(`Sending request to SwitchBot API, body: ${JSON.stringify(bodyChange)}`)
       try {
         const { body } = await this.pushChangeRequest(bodyChange)
         const deviceStatus: any = await body
@@ -205,12 +205,12 @@ export class IRFan extends irdeviceBase {
         await this.pushChangeError(e)
       }
     } else {
-      await this.warnLog(`Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`)
+      this.warnLog(`Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`)
     }
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
-    await this.debugLog('updateHomeKitCharacteristics')
+    this.debugLog('updateHomeKitCharacteristics')
     // Active
     await this.updateCharacteristic(this.Fan.Service, this.hap.Characteristic.Active, this.Fan.Active, 'Active')
     // SwingMode

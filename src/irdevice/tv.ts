@@ -107,7 +107,7 @@ export class TV extends irdeviceBase {
   }
 
   async VolumeSelectorSet(value: CharacteristicValue): Promise<void> {
-    await this.debugLog(`VolumeSelector: ${value}`)
+    this.debugLog(`VolumeSelector: ${value}`)
     if (value === this.hap.Characteristic.VolumeSelector.INCREMENT) {
       this.pushVolumeUpChanges()
     } else {
@@ -118,61 +118,61 @@ export class TV extends irdeviceBase {
   async RemoteKeySet(value: CharacteristicValue): Promise<void> {
     switch (value) {
       case this.hap.Characteristic.RemoteKey.REWIND: {
-        await this.debugLog('Set Remote Key Pressed: REWIND')
+        this.debugLog('Set Remote Key Pressed: REWIND')
         break
       }
       case this.hap.Characteristic.RemoteKey.FAST_FORWARD: {
-        await this.debugLog('Set Remote Key Pressed: FAST_FORWARD')
+        this.debugLog('Set Remote Key Pressed: FAST_FORWARD')
         break
       }
       case this.hap.Characteristic.RemoteKey.NEXT_TRACK: {
-        await this.debugLog('Set Remote Key Pressed: NEXT_TRACK')
+        this.debugLog('Set Remote Key Pressed: NEXT_TRACK')
         break
       }
       case this.hap.Characteristic.RemoteKey.PREVIOUS_TRACK: {
-        await this.debugLog('Set Remote Key Pressed: PREVIOUS_TRACK')
+        this.debugLog('Set Remote Key Pressed: PREVIOUS_TRACK')
         break
       }
       case this.hap.Characteristic.RemoteKey.ARROW_UP: {
-        await this.debugLog('Set Remote Key Pressed: ARROW_UP')
+        this.debugLog('Set Remote Key Pressed: ARROW_UP')
         // this.pushUpChanges();
         break
       }
       case this.hap.Characteristic.RemoteKey.ARROW_DOWN: {
-        await this.debugLog('Set Remote Key Pressed: ARROW_DOWN')
+        this.debugLog('Set Remote Key Pressed: ARROW_DOWN')
         // this.pushDownChanges();
         break
       }
       case this.hap.Characteristic.RemoteKey.ARROW_LEFT: {
-        await this.debugLog('Set Remote Key Pressed: ARROW_LEFT')
+        this.debugLog('Set Remote Key Pressed: ARROW_LEFT')
         // this.pushLeftChanges();
         break
       }
       case this.hap.Characteristic.RemoteKey.ARROW_RIGHT: {
-        await this.debugLog('Set Remote Key Pressed: ARROW_RIGHT')
+        this.debugLog('Set Remote Key Pressed: ARROW_RIGHT')
         // this.pushRightChanges();
         break
       }
       case this.hap.Characteristic.RemoteKey.SELECT: {
-        await this.debugLog('Set Remote Key Pressed: SELECT')
+        this.debugLog('Set Remote Key Pressed: SELECT')
         // this.pushOkChanges();
         break
       }
       case this.hap.Characteristic.RemoteKey.BACK: {
-        await this.debugLog('Set Remote Key Pressed: BACK')
+        this.debugLog('Set Remote Key Pressed: BACK')
         // this.pushBackChanges();
         break
       }
       case this.hap.Characteristic.RemoteKey.EXIT: {
-        await this.debugLog('Set Remote Key Pressed: EXIT')
+        this.debugLog('Set Remote Key Pressed: EXIT')
         break
       }
       case this.hap.Characteristic.RemoteKey.PLAY_PAUSE: {
-        await this.debugLog('Set Remote Key Pressed: PLAY_PAUSE')
+        this.debugLog('Set Remote Key Pressed: PLAY_PAUSE')
         break
       }
       case this.hap.Characteristic.RemoteKey.INFORMATION: {
-        await this.debugLog('Set Remote Key Pressed: INFORMATION')
+        this.debugLog('Set Remote Key Pressed: INFORMATION')
         // this.pushMenuChanges();
         break
       }
@@ -180,12 +180,12 @@ export class TV extends irdeviceBase {
   }
 
   async ActiveIdentifierSet(value: CharacteristicValue): Promise<void> {
-    await this.debugLog(`ActiveIdentifier: ${value}`)
+    this.debugLog(`ActiveIdentifier: ${value}`)
     this.Television.ActiveIdentifier = value
   }
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
-    await this.debugLog(`Active (value): ${value}`)
+    this.debugLog(`Active (value): ${value}`)
 
     this.Television.Active = value
     if (this.Television.Active === this.hap.Characteristic.Active.ACTIVE) {
@@ -206,7 +206,7 @@ export class TV extends irdeviceBase {
    * TV           "command"       "channelSub"      "default"          previous channel
    */
   async pushTvOnChanges(): Promise<void> {
-    await this.debugLog(`pushTvOnChanges Active: ${this.Television.Active}, disablePushOn: ${this.disablePushOn}`)
+    this.debugLog(`pushTvOnChanges Active: ${this.Television.Active}, disablePushOn: ${this.disablePushOn}`)
     if (this.Television.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOn()
@@ -220,7 +220,7 @@ export class TV extends irdeviceBase {
   }
 
   async pushTvOffChanges(): Promise<void> {
-    await this.debugLog(`pushTvOffChanges Active: ${this.Television.Active}, disablePushOff: ${this.disablePushOff}`)
+    this.debugLog(`pushTvOffChanges Active: ${this.Television.Active}, disablePushOff: ${this.disablePushOff}`)
     if (this.Television.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOff) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOff()
@@ -234,7 +234,7 @@ export class TV extends irdeviceBase {
   }
 
   async pushOkChanges(): Promise<void> {
-    await this.debugLog(`pushOkChanges disablePushDetail: ${this.disablePushDetail}`)
+    this.debugLog(`pushOkChanges disablePushDetail: ${this.disablePushDetail}`)
     if (!this.disablePushDetail) {
       const bodyChange: bodyChange = {
         command: 'Ok',
@@ -246,7 +246,7 @@ export class TV extends irdeviceBase {
   }
 
   async pushBackChanges(): Promise<void> {
-    await this.debugLog(`pushBackChanges disablePushDetail: ${this.disablePushDetail}`)
+    this.debugLog(`pushBackChanges disablePushDetail: ${this.disablePushDetail}`)
     if (!this.disablePushDetail) {
       const bodyChange: bodyChange = {
         command: 'Back',
@@ -258,7 +258,7 @@ export class TV extends irdeviceBase {
   }
 
   async pushMenuChanges(): Promise<void> {
-    await this.debugLog(`pushMenuChanges disablePushDetail: ${this.disablePushDetail}`)
+    this.debugLog(`pushMenuChanges disablePushDetail: ${this.disablePushDetail}`)
     if (!this.disablePushDetail) {
       const bodyChange: bodyChange = {
         command: 'Menu',
@@ -270,7 +270,7 @@ export class TV extends irdeviceBase {
   }
 
   async pushUpChanges(): Promise<void> {
-    await this.debugLog(`pushUpChanges disablePushDetail: ${this.disablePushDetail}`)
+    this.debugLog(`pushUpChanges disablePushDetail: ${this.disablePushDetail}`)
     if (!this.disablePushDetail) {
       const bodyChange: bodyChange = {
         command: 'Up',
@@ -282,7 +282,7 @@ export class TV extends irdeviceBase {
   }
 
   async pushDownChanges(): Promise<void> {
-    await this.debugLog(`pushDownChanges disablePushDetail: ${this.disablePushDetail}`)
+    this.debugLog(`pushDownChanges disablePushDetail: ${this.disablePushDetail}`)
     if (!this.disablePushDetail) {
       const bodyChange: bodyChange = {
         command: 'Down',
@@ -294,7 +294,7 @@ export class TV extends irdeviceBase {
   }
 
   async pushRightChanges(): Promise<void> {
-    await this.debugLog(`pushRightChanges disablePushDetail: ${this.disablePushDetail}`)
+    this.debugLog(`pushRightChanges disablePushDetail: ${this.disablePushDetail}`)
     if (!this.disablePushDetail) {
       const bodyChange: bodyChange = {
         command: 'Right',
@@ -306,7 +306,7 @@ export class TV extends irdeviceBase {
   }
 
   async pushLeftChanges(): Promise<void> {
-    await this.debugLog(`pushLeftChanges disablePushDetail: ${this.disablePushDetail}`)
+    this.debugLog(`pushLeftChanges disablePushDetail: ${this.disablePushDetail}`)
     if (!this.disablePushDetail) {
       const bodyChange: bodyChange = {
         command: 'Left',
@@ -318,7 +318,7 @@ export class TV extends irdeviceBase {
   }
 
   async pushVolumeUpChanges(): Promise<void> {
-    await this.debugLog(`pushVolumeUpChanges disablePushDetail: ${this.disablePushDetail}`)
+    this.debugLog(`pushVolumeUpChanges disablePushDetail: ${this.disablePushDetail}`)
     if (!this.disablePushDetail) {
       const bodyChange: bodyChange = {
         command: 'volumeAdd',
@@ -330,7 +330,7 @@ export class TV extends irdeviceBase {
   }
 
   async pushVolumeDownChanges(): Promise<void> {
-    await this.debugLog(`pushVolumeDownChanges disablePushDetail: ${this.disablePushDetail}`)
+    this.debugLog(`pushVolumeDownChanges disablePushDetail: ${this.disablePushDetail}`)
     if (!this.disablePushDetail) {
       const bodyChange: bodyChange = {
         command: 'volumeSub',
@@ -342,9 +342,9 @@ export class TV extends irdeviceBase {
   }
 
   async pushTVChanges(bodyChange: any): Promise<void> {
-    await this.debugLog('pushTVChanges')
+    this.debugLog('pushTVChanges')
     if (this.device.connectionType === 'OpenAPI') {
-      await this.infoLog(`Sending request to SwitchBot API, body: ${JSON.stringify(bodyChange)}`)
+      this.infoLog(`Sending request to SwitchBot API, body: ${JSON.stringify(bodyChange)}`)
       try {
         const { body } = await this.pushChangeRequest(bodyChange)
         const deviceStatus: any = await body
@@ -360,12 +360,12 @@ export class TV extends irdeviceBase {
         await this.pushChangeError(e)
       }
     } else {
-      await this.warnLog(`Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`)
+      this.warnLog(`Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`)
     }
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
-    await this.debugLog('updateHomeKitCharacteristics')
+    this.debugLog('updateHomeKitCharacteristics')
     // Active
     await this.updateCharacteristic(this.Television.Service, this.hap.Characteristic.Active, this.Television.Active, 'Active')
     // ActiveIdentifier
