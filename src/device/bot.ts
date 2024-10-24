@@ -777,7 +777,7 @@ export class Bot extends deviceBase {
 
   async getBotConfigSettings(device: device & devicesConfig) {
     // Bot Device Type
-    this.botDeviceType = (device as botConfig).type ?? 'outlet'
+    this.botDeviceType = (device as botConfig).type ?? 'Outlet'
     const botDeviceType = (device as botConfig).type ? 'Device Config' : 'Default'
     await this.debugWarnLog(`Use ${botDeviceType} Device Type: ${this.botDeviceType}`)
     // Bot Mode
