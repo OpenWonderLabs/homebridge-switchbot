@@ -498,7 +498,7 @@ export class Bot extends deviceBase {
         this.debugLog(`Bot Mode: ${this.botMode}`)
         if (this.botMode === 'press') {
           switchBotBLE
-            .discover({ model: 'H', quick: true, id: this.device.bleMac })
+            .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
               const deviceList = device_list as unknown as WoHand[]
               this.infoLog(`On: ${this.On}`)
@@ -777,7 +777,7 @@ export class Bot extends deviceBase {
 
   async getBotConfigSettings(device: device & devicesConfig) {
     // Bot Device Type
-    this.botDeviceType = (device as botConfig).type ?? 'outlet'
+    this.botDeviceType = (device as botConfig).type ?? 'Outlet'
     const botDeviceType = (device as botConfig).type ? 'Device Config' : 'Default'
     this.debugWarnLog(`Use ${botDeviceType} Device Type: ${this.botDeviceType}`)
     // Bot Mode

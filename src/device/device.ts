@@ -343,9 +343,6 @@ export abstract class deviceBase {
         this.debugLog(`address: ${ad.address}, model: ${ad.serviceData.model}`)
         this.debugLog(`serviceData: ${JSON.stringify(ad.serviceData)}`)
         serviceData = ad.serviceData
-      } else {
-        serviceData = { model: '', modelName: '', modelFriendlyName: '' } as unknown as ad['serviceData']
-        this.debugLog(`serviceData: ${JSON.stringify(ad.serviceData)}`)
       }
     }
     // Wait
@@ -480,6 +477,18 @@ export abstract class deviceBase {
         bleModel: SwitchBotBLEModel.MeterPlus,
         bleModelName: SwitchBotBLEModelName.MeterPlus,
         bleModelFriendlyName: SwitchBotBLEModelFriendlyName.MeterPlus,
+      },
+      'Meter Pro': {
+        model: SwitchBotModel.MeterPro,
+        bleModel: SwitchBotBLEModel.MeterPro,
+        bleModelName: SwitchBotBLEModelName.MeterPro,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.MeterPro,
+      },
+      'Meter Pro CO2': {
+        model: SwitchBotModel.MeterProCO2,
+        bleModel: SwitchBotBLEModel.MeterPro,
+        bleModelName: SwitchBotBLEModelName.MeterPro,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.MeterPro,
       },
       'WoIOSensor': {
         model: SwitchBotModel.OutdoorMeter,

@@ -83,7 +83,7 @@ export class Others extends irdeviceBase {
     this.getOtherConfigSettings(accessory, device)
 
     // deviceType
-    if (this.otherDeviceType === 'switch') {
+    if (this.otherDeviceType === 'Switch') {
       // Set category
       accessory.category = this.hap.Categories.SWITCH
       // Initialize Switch Service
@@ -106,7 +106,7 @@ export class Others extends irdeviceBase {
       this.removeGarageDoorService(accessory)
       this.removeWindowCoveringService(accessory)
       this.removeStatefulProgrammableSwitchService(accessory)
-    } else if (this.otherDeviceType === 'garagedoor') {
+    } else if (this.otherDeviceType === 'GarageDoor') {
       // Set category
       accessory.category = this.hap.Categories.GARAGE_DOOR_OPENER
       // Initialize GarageDoor Service
@@ -134,7 +134,7 @@ export class Others extends irdeviceBase {
       this.removeWindowService(accessory)
       this.removeWindowCoveringService(accessory)
       this.removeStatefulProgrammableSwitchService(accessory)
-    } else if (this.otherDeviceType === 'door') {
+    } else if (this.otherDeviceType === 'Door') {
       // Set category
       accessory.category = this.hap.Categories.DOOR
       // Initialize Door Service
@@ -162,7 +162,7 @@ export class Others extends irdeviceBase {
       this.removeGarageDoorService(accessory)
       this.removeWindowCoveringService(accessory)
       this.removeStatefulProgrammableSwitchService(accessory)
-    } else if (this.otherDeviceType === 'window') {
+    } else if (this.otherDeviceType === 'Window') {
       // Set category
       accessory.category = this.hap.Categories.WINDOW
       // Initialize Window Service
@@ -190,7 +190,7 @@ export class Others extends irdeviceBase {
       this.removeGarageDoorService(accessory)
       this.removeWindowCoveringService(accessory)
       this.removeStatefulProgrammableSwitchService(accessory)
-    } else if (this.otherDeviceType === 'windowcovering') {
+    } else if (this.otherDeviceType === 'WindowCovering') {
       // Set category
       accessory.category = this.hap.Categories.WINDOW_COVERING
       // Initialize WindowCovering Service
@@ -218,7 +218,7 @@ export class Others extends irdeviceBase {
       this.removeWindowService(accessory)
       this.removeGarageDoorService(accessory)
       this.removeStatefulProgrammableSwitchService(accessory)
-    } else if (this.otherDeviceType === 'lock') {
+    } else if (this.otherDeviceType === 'Lock') {
       // Set category
       accessory.category = this.hap.Categories.DOOR_LOCK
       // Initialize Lock Service
@@ -241,7 +241,7 @@ export class Others extends irdeviceBase {
       this.removeGarageDoorService(accessory)
       this.removeWindowCoveringService(accessory)
       this.removeStatefulProgrammableSwitchService(accessory)
-    } else if (this.otherDeviceType === 'faucet') {
+    } else if (this.otherDeviceType === 'Faucet') {
       // Set category
       accessory.category = this.hap.Categories.FAUCET
       // Initialize Faucet Service
@@ -264,7 +264,7 @@ export class Others extends irdeviceBase {
       this.removeGarageDoorService(accessory)
       this.removeWindowCoveringService(accessory)
       this.removeStatefulProgrammableSwitchService(accessory)
-    } else if (this.otherDeviceType === 'fan') {
+    } else if (this.otherDeviceType === 'Fan') {
       // Set category
       accessory.category = this.hap.Categories.FAN
       // Initialize Fan Service
@@ -287,7 +287,7 @@ export class Others extends irdeviceBase {
       this.removeGarageDoorService(accessory)
       this.removeWindowCoveringService(accessory)
       this.removeStatefulProgrammableSwitchService(accessory)
-    } else if (this.otherDeviceType === 'stateful') {
+    } else if (this.otherDeviceType === 'Stateful') {
       // Set category
       accessory.category = this.hap.Categories.PROGRAMMABLE_SWITCH
       // Initialize StatefulProgrammableSwitch Service
@@ -310,7 +310,7 @@ export class Others extends irdeviceBase {
       this.removeWindowService(accessory)
       this.removeGarageDoorService(accessory)
       this.removeWindowCoveringService(accessory)
-    } else if (this.otherDeviceType === 'outlet') {
+    } else if (this.otherDeviceType === 'Outlet') {
       // Set category
       accessory.category = this.hap.Categories.OUTLET
       // Initialize Switch property
@@ -342,42 +342,42 @@ export class Others extends irdeviceBase {
    * Handle requests to set the "On" characteristic
    */
   async OnSet(value: CharacteristicValue): Promise<void> {
-    if (this.otherDeviceType === 'switch') {
+    if (this.otherDeviceType === 'Switch') {
       if (this.Switch) {
         this.debugLog(`Set On: ${value}`)
         this.On = value !== false
       }
-    } else if (this.otherDeviceType === 'garagedoor') {
+    } else if (this.otherDeviceType === 'GarageDoor') {
       if (this.GarageDoor) {
         this.debugLog(`Set TargetDoorState: ${value}`)
         this.On = value !== this.hap.Characteristic.TargetDoorState.CLOSED
       }
-    } else if (this.otherDeviceType === 'door') {
+    } else if (this.otherDeviceType === 'Door') {
       if (this.Door) {
         this.debugLog(`Set TargetPosition: ${value}`)
         this.On = value !== 0
       }
-    } else if (this.otherDeviceType === 'window') {
+    } else if (this.otherDeviceType === 'Window') {
       if (this.Window) {
         this.debugLog(`Set TargetPosition: ${value}`)
         this.On = value !== 0
       }
-    } else if (this.otherDeviceType === 'windowcovering') {
+    } else if (this.otherDeviceType === 'WindowCovering') {
       if (this.WindowCovering) {
         this.debugLog(`Set TargetPosition: ${value}`)
         this.On = value !== 0
       }
-    } else if (this.otherDeviceType === 'lock') {
+    } else if (this.otherDeviceType === 'Lock') {
       if (this.LockMechanism) {
         this.debugLog(`Set LockTargetState: ${value}`)
         this.On = value !== this.hap.Characteristic.LockTargetState.SECURED
       }
-    } else if (this.otherDeviceType === 'faucet') {
+    } else if (this.otherDeviceType === 'Faucet') {
       if (this.Faucet) {
         this.debugLog(`Set Active: ${value}`)
         this.On = value !== this.hap.Characteristic.Active.INACTIVE
       }
-    } else if (this.otherDeviceType === 'stateful') {
+    } else if (this.otherDeviceType === 'Stateful') {
       if (this.StatefulProgrammableSwitch) {
         this.debugLog(`Set ProgrammableSwitchOutputState: ${value}`)
         this.On = value !== 0
@@ -468,14 +468,14 @@ export class Others extends irdeviceBase {
   async updateHomeKitCharacteristics(): Promise<void> {
     this.debugLog('updateHomeKitCharacteristics')
     // State
-    if (this.otherDeviceType === 'switch' && this.Switch) {
+    if (this.otherDeviceType === 'Switch' && this.Switch) {
       if (this.On === undefined) {
         this.debugLog(`On: ${this.On}`)
       } else {
         this.Switch.Service.updateCharacteristic(this.hap.Characteristic.On, this.On)
         this.debugLog(`updateCharacteristic On: ${this.On}`)
       }
-    } else if (this.otherDeviceType === 'garagedoor' && this.GarageDoor) {
+    } else if (this.otherDeviceType === 'GarageDoor' && this.GarageDoor) {
       if (this.On === undefined) {
         this.debugLog(`On: ${this.On}`)
       } else {
@@ -490,7 +490,7 @@ export class Others extends irdeviceBase {
         }
       }
       this.debugLog(`Garage Door On: ${this.On}`)
-    } else if (this.otherDeviceType === 'door' && this.Door) {
+    } else if (this.otherDeviceType === 'Door' && this.Door) {
       if (this.On === undefined) {
         this.debugLog(`On: ${this.On}`)
       } else {
@@ -507,7 +507,7 @@ export class Others extends irdeviceBase {
         }
       }
       this.debugLog(`Door On: ${this.On}`)
-    } else if (this.otherDeviceType === 'window' && this.Window) {
+    } else if (this.otherDeviceType === 'Window' && this.Window) {
       if (this.On === undefined) {
         this.debugLog(`On: ${this.On}`)
       } else {
@@ -524,7 +524,7 @@ export class Others extends irdeviceBase {
         }
       }
       this.debugLog(`Window On: ${this.On}`)
-    } else if (this.otherDeviceType === 'windowcovering' && this.WindowCovering) {
+    } else if (this.otherDeviceType === 'WindowCovering' && this.WindowCovering) {
       if (this.On === undefined) {
         this.debugLog(`On: ${this.On}`)
       } else {
@@ -541,7 +541,7 @@ export class Others extends irdeviceBase {
         }
       }
       this.debugLog(`Window Covering On: ${this.On}`)
-    } else if (this.otherDeviceType === 'lock' && this.LockMechanism) {
+    } else if (this.otherDeviceType === 'Lock' && this.LockMechanism) {
       if (this.On === undefined) {
         this.debugLog(`On: ${this.On}`)
       } else {
@@ -556,7 +556,7 @@ export class Others extends irdeviceBase {
         }
       }
       this.debugLog(`Lock On: ${this.On}`)
-    } else if (this.otherDeviceType === 'faucet' && this.Faucet) {
+    } else if (this.otherDeviceType === 'Faucet' && this.Faucet) {
       if (this.On === undefined) {
         this.debugLog(`On: ${this.On}`)
       } else {
@@ -569,7 +569,7 @@ export class Others extends irdeviceBase {
         }
       }
       this.debugLog(`Faucet On: ${this.On}`)
-    } else if (this.otherDeviceType === 'fan' && this.Fan) {
+    } else if (this.otherDeviceType === 'Fan' && this.Fan) {
       if (this.On === undefined) {
         this.debugLog(`On: ${this.On}`)
       } else {
@@ -582,7 +582,7 @@ export class Others extends irdeviceBase {
         }
       }
       this.debugLog(`Fan On: ${this.On}`)
-    } else if (this.otherDeviceType === 'stateful' && this.StatefulProgrammableSwitch) {
+    } else if (this.otherDeviceType === 'Stateful' && this.StatefulProgrammableSwitch) {
       if (this.On === undefined) {
         this.debugLog(`On: ${this.On}`)
       } else {
@@ -597,7 +597,7 @@ export class Others extends irdeviceBase {
         }
       }
       this.debugLog(`StatefulProgrammableSwitch On: ${this.On}`)
-    } else if (this.otherDeviceType === 'outlet' && this.Outlet) {
+    } else if (this.otherDeviceType === 'Outlet' && this.Outlet) {
       if (this.On === undefined) {
         this.debugLog(`On: ${this.On}`)
       } else {
@@ -610,49 +610,49 @@ export class Others extends irdeviceBase {
   }
 
   async apiError(e: any): Promise<void> {
-    if (this.otherDeviceType === 'garagedoor') {
+    if (this.otherDeviceType === 'GarageDoor') {
       if (this.GarageDoor) {
         this.GarageDoor.Service.updateCharacteristic(this.hap.Characteristic.TargetDoorState, e)
         this.GarageDoor.Service.updateCharacteristic(this.hap.Characteristic.CurrentDoorState, e)
         this.GarageDoor.Service.updateCharacteristic(this.hap.Characteristic.ObstructionDetected, e)
       }
-    } else if (this.otherDeviceType === 'door') {
+    } else if (this.otherDeviceType === 'Door') {
       if (this.Door) {
         this.Door.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, e)
         this.Door.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, e)
         this.Door.Service.updateCharacteristic(this.hap.Characteristic.PositionState, e)
       }
-    } else if (this.otherDeviceType === 'window') {
+    } else if (this.otherDeviceType === 'Window') {
       if (this.Window) {
         this.Window.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, e)
         this.Window.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, e)
         this.Window.Service.updateCharacteristic(this.hap.Characteristic.PositionState, e)
       }
-    } else if (this.otherDeviceType === 'windowcovering') {
+    } else if (this.otherDeviceType === 'WindowCovering') {
       if (this.WindowCovering) {
         this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.TargetPosition, e)
         this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.CurrentPosition, e)
         this.WindowCovering.Service.updateCharacteristic(this.hap.Characteristic.PositionState, e)
       }
-    } else if (this.otherDeviceType === 'lock') {
+    } else if (this.otherDeviceType === 'Lock') {
       if (this.LockMechanism) {
         this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockTargetState, e)
         this.LockMechanism.Service.updateCharacteristic(this.hap.Characteristic.LockCurrentState, e)
       }
-    } else if (this.otherDeviceType === 'faucet') {
+    } else if (this.otherDeviceType === 'Faucet') {
       if (this.Faucet) {
         this.Faucet.Service.updateCharacteristic(this.hap.Characteristic.Active, e)
       }
-    } else if (this.otherDeviceType === 'fan') {
+    } else if (this.otherDeviceType === 'Fan') {
       if (this.Fan) {
         this.Fan.Service.updateCharacteristic(this.hap.Characteristic.On, e)
       }
-    } else if (this.otherDeviceType === 'stateful') {
+    } else if (this.otherDeviceType === 'Stateful') {
       if (this.StatefulProgrammableSwitch) {
         this.StatefulProgrammableSwitch.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchEvent, e)
         this.StatefulProgrammableSwitch.Service.updateCharacteristic(this.hap.Characteristic.ProgrammableSwitchOutputState, e)
       }
-    } else if (this.otherDeviceType === 'switch') {
+    } else if (this.otherDeviceType === 'Switch') {
       if (this.Switch) {
         this.Switch.Service.updateCharacteristic(this.hap.Characteristic.On, e)
       }
@@ -784,7 +784,7 @@ export class Others extends irdeviceBase {
   }
 
   async getOtherConfigSettings(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): Promise<void> {
-    this.otherDeviceType = (device as irOtherConfig).type ?? 'outlet'
+    this.otherDeviceType = (device as irOtherConfig).type ?? 'Outlet'
     const deviceType = (device as irOtherConfig).type ? 'Device Config' : 'Default'
     this.debugLog(`Use ${deviceType} Device Type: ${this.otherDeviceType}`)
   }
