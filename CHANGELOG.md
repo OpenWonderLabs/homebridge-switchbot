@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [4.1.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v4.1.0) (2024-10-21)
+
+### What's Changed
+- Fix device typesg [#1091](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1091), Thanks [@dnicolson](https://github.com/dnicolson)
+- Fix curtain light sensor [#1090](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1090), Thanks [@dnicolson](https://github.com/dnicolson)
+- RRemove unneeded async code [#1089](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1089), Thanks [@dnicolson](https://github.com/dnicolson)
+- Fix max retry [#1088](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1088), Thanks [@dnicolson](https://github.com/dnicolson)
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.0.0...v4.1.0
+
 ## [4.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v4.1.0) (2024-10-21)
 
 ### What's Changed
