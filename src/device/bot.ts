@@ -498,7 +498,7 @@ export class Bot extends deviceBase {
         await this.debugLog(`Bot Mode: ${this.botMode}`)
         if (this.botMode === 'press') {
           switchBotBLE
-            .discover({ model: 'H', quick: true, id: this.device.bleMac })
+            .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
               const deviceList = device_list as unknown as WoHand[]
               await this.infoLog(`On: ${this.On}`)
