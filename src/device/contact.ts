@@ -201,7 +201,7 @@ export class Contact extends deviceBase {
       const set_minLux = (this.device as contactConfig).set_minLux ?? 1
       const set_maxLux = (this.device as contactConfig).set_maxLux ?? 6001
       const lightLevel = this.serviceData.lightLevel === 'bright' ? set_maxLux : set_minLux
-      this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
+      this.LightSensor.CurrentAmbientLightLevel = this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
       this.debugLog(`LightLevel: ${this.serviceData.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
     }
     // BatteryLevel
@@ -230,7 +230,7 @@ export class Contact extends deviceBase {
       const set_minLux = (this.device as contactConfig).set_minLux ?? 1
       const set_maxLux = (this.device as contactConfig).set_maxLux ?? 6001
       const lightLevel = this.deviceStatus.brightness === 'bright' ? set_maxLux : set_minLux
-      this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
+      this.LightSensor.CurrentAmbientLightLevel = this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
       this.debugLog(`LightLevel: ${this.deviceStatus.brightness}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
     }
     // BatteryLevel
@@ -272,7 +272,7 @@ export class Contact extends deviceBase {
       const set_minLux = (this.device as contactConfig).set_minLux ?? 1
       const set_maxLux = (this.device as contactConfig).set_maxLux ?? 6001
       const lightLevel = this.webhookContext.brightness === 'bright' ? set_maxLux : set_minLux
-      this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
+      this.LightSensor.CurrentAmbientLightLevel = this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
       this.debugLog(`LightLevel: ${this.webhookContext.brightness}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
     }
   }

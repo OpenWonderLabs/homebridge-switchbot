@@ -194,7 +194,7 @@ export class Hub extends deviceBase {
       const set_minLux = (this.device as hubConfig).set_minLux ?? 1
       const set_maxLux = (this.device as hubConfig).set_maxLux ?? 6001
       const lightLevel = this.serviceData.lightLevel
-      this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 19)
+      this.LightSensor.CurrentAmbientLightLevel = this.getLightLevel(lightLevel, set_minLux, set_maxLux, 19)
       this.debugLog(`LightLevel: ${this.serviceData.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
     }
   }
@@ -220,7 +220,7 @@ export class Hub extends deviceBase {
       const set_minLux = (this.device as hubConfig).set_minLux ?? 1
       const set_maxLux = (this.device as hubConfig).set_maxLux ?? 6001
       const lightLevel = this.deviceStatus.lightLevel
-      this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 19)
+      this.LightSensor.CurrentAmbientLightLevel = this.getLightLevel(lightLevel, set_minLux, set_maxLux, 19)
       this.debugLog(`LightLevel: ${this.deviceStatus.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`)
     }
 
@@ -264,7 +264,7 @@ export class Hub extends deviceBase {
     if (!(this.device as hubConfig).hide_lightsensor && this.LightSensor?.Service) {
       const set_minLux = (this.device as hubConfig).set_minLux ?? 1
       const set_maxLux = (this.device as hubConfig).set_maxLux ?? 6001
-      this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(this.webhookContext.lightLevel, set_minLux, set_maxLux, 19)
+      this.LightSensor.CurrentAmbientLightLevel = this.getLightLevel(this.webhookContext.lightLevel, set_minLux, set_maxLux, 19)
       this.debugLog(`CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
     }
   }

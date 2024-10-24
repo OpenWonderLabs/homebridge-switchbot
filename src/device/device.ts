@@ -253,7 +253,10 @@ export abstract class deviceBase {
    * @param spaceBetweenLevels number
    * @returns CurrentAmbientLightLevel
    */
-  async getLightLevel(lightLevel: number, set_minLux: number, set_maxLux: number, spaceBetweenLevels: number): Promise<number> {
+  getLightLevel(lightLevel: number, set_minLux: number, set_maxLux: number, spaceBetweenLevels: number): number {
+    if (lightLevel === 0) {
+      return 0.0001
+    }
     const numberOfLevels = spaceBetweenLevels + 1
     this.debugLog(`LightLevel: ${lightLevel}, set_minLux: ${set_minLux}, set_maxLux: ${set_maxLux}, spaceBetweenLevels: ${spaceBetweenLevels}, numberOfLevels: ${numberOfLevels}`)
     const CurrentAmbientLightLevel = lightLevel === 1
