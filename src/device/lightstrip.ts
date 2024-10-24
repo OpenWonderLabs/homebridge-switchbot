@@ -188,28 +188,28 @@ export class StripLight extends deviceBase {
           await this.pushChanges()
         } catch (e: any) {
           await this.apiError(e)
-          await this.errorLog(`failed pushChanges with ${device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+          this.errorLog(`failed pushChanges with ${device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
         }
         this.stripLightUpdateInProgress = false
       })
   }
 
   async BLEparseStatus(): Promise<void> {
-    await this.debugLog('BLEparseStatus')
-    await this.debugLog(`(power, brightness, color) = BLE:(${this.serviceData.power}, ${this.serviceData.brightness}, ${this.serviceData.red}:${this.serviceData.green}:${this.serviceData.blue}), current:(${this.LightBulb.On}, ${this.LightBulb.Brightness}, ${this.LightBulb.Hue}, ${this.LightBulb.Saturation})`)
+    this.debugLog('BLEparseStatus')
+    this.debugLog(`(power, brightness, color) = BLE:(${this.serviceData.power}, ${this.serviceData.brightness}, ${this.serviceData.red}:${this.serviceData.green}:${this.serviceData.blue}), current:(${this.LightBulb.On}, ${this.LightBulb.Brightness}, ${this.LightBulb.Hue}, ${this.LightBulb.Saturation})`)
 
     // On
     this.LightBulb.On = this.serviceData.power
-    await this.debugLog(`On: ${this.LightBulb.On}`)
+    this.debugLog(`On: ${this.LightBulb.On}`)
 
     // Brightness
     this.LightBulb.Brightness = this.serviceData.brightness
-    await this.debugLog(`Brightness: ${this.LightBulb.Brightness}`)
+    this.debugLog(`Brightness: ${this.LightBulb.Brightness}`)
 
     // Color, Hue & Brightness
-    await this.debugLog(`red: ${this.serviceData.red}, green: ${this.serviceData.green}, blue: ${this.serviceData.blue}`)
+    this.debugLog(`red: ${this.serviceData.red}, green: ${this.serviceData.green}, blue: ${this.serviceData.blue}`)
     const [hue, saturation] = rgb2hs(this.serviceData.red, this.serviceData.green, this.serviceData.blue)
-    await this.debugLog(`hs: ${JSON.stringify(rgb2hs(this.serviceData.red, this.serviceData.green, this.serviceData.blue))}`)
+    this.debugLog(`hs: ${JSON.stringify(rgb2hs(this.serviceData.red, this.serviceData.green, this.serviceData.blue))}`)
 
     // Hue
     this.LightBulb.Hue = hue
@@ -221,36 +221,36 @@ export class StripLight extends deviceBase {
   }
 
   async openAPIparseStatus(): Promise<void> {
-    await this.debugLog('openAPIparseStatus')
-    await this.debugLog(`(power, brightness, color) = API:(${this.deviceStatus.power}, ${this.deviceStatus.brightness}, ${this.deviceStatus.color}), current:(${this.LightBulb.On}, ${this.LightBulb.Brightness}, ${this.LightBulb.Hue}, ${this.LightBulb.Saturation})`)
+    this.debugLog('openAPIparseStatus')
+    this.debugLog(`(power, brightness, color) = API:(${this.deviceStatus.power}, ${this.deviceStatus.brightness}, ${this.deviceStatus.color}), current:(${this.LightBulb.On}, ${this.LightBulb.Brightness}, ${this.LightBulb.Hue}, ${this.LightBulb.Saturation})`)
 
     // On
     this.LightBulb.On = this.deviceStatus.power === 'on'
-    await this.debugLog(`On: ${this.LightBulb.On}`)
+    this.debugLog(`On: ${this.LightBulb.On}`)
 
     // Brightness
     this.LightBulb.Brightness = this.deviceStatus.brightness
-    await this.debugLog(`Brightness: ${this.LightBulb.Brightness}`)
+    this.debugLog(`Brightness: ${this.LightBulb.Brightness}`)
 
     // Color, Hue & Brightness
-    await this.debugLog(`color: ${JSON.stringify(this.deviceStatus.color)}`)
+    this.debugLog(`color: ${JSON.stringify(this.deviceStatus.color)}`)
     const [red, green, blue] = this.deviceStatus.color.split(':')
-    await this.debugLog(`red: ${JSON.stringify(red)}, green: ${JSON.stringify(green)}, blue: ${JSON.stringify(blue)}`)
+    this.debugLog(`red: ${JSON.stringify(red)}, green: ${JSON.stringify(green)}, blue: ${JSON.stringify(blue)}`)
     const [hue, saturation] = rgb2hs(red, green, blue)
-    await this.debugLog(`hs: ${JSON.stringify(rgb2hs(red, green, blue))}`)
+    this.debugLog(`hs: ${JSON.stringify(rgb2hs(red, green, blue))}`)
 
     // Hue
     this.LightBulb.Hue = hue
-    await this.debugLog(`Hue: ${this.LightBulb.Hue}`)
+    this.debugLog(`Hue: ${this.LightBulb.Hue}`)
 
     // Saturation
     this.LightBulb.Saturation = saturation
-    await this.debugLog(`Saturation: ${this.LightBulb.Saturation}`)
+    this.debugLog(`Saturation: ${this.LightBulb.Saturation}`)
 
     // Firmware Version
     if (this.deviceStatus.version) {
       const version = this.deviceStatus.version.toString()
-      await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`)
+      this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`)
       const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0'
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
@@ -259,36 +259,36 @@ export class StripLight extends deviceBase {
         .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
         .updateValue(deviceVersion)
       this.accessory.context.version = deviceVersion
-      await this.debugSuccessLog(`version: ${this.accessory.context.version}`)
+      this.debugSuccessLog(`version: ${this.accessory.context.version}`)
     }
   }
 
   async parseStatusWebhook(): Promise<void> {
-    await this.debugLog('parseStatusWebhook')
-    await this.debugLog(`(powerState, brightness, color) = Webhook:(${this.webhookContext.powerState}, ${this.webhookContext.brightness}, ${this.webhookContext.color}), current:(${this.LightBulb.On}, ${this.LightBulb.Brightness}, ${this.LightBulb.Hue}, ${this.LightBulb.Saturation})`)
+    this.debugLog('parseStatusWebhook')
+    this.debugLog(`(powerState, brightness, color) = Webhook:(${this.webhookContext.powerState}, ${this.webhookContext.brightness}, ${this.webhookContext.color}), current:(${this.LightBulb.On}, ${this.LightBulb.Brightness}, ${this.LightBulb.Hue}, ${this.LightBulb.Saturation})`)
 
     // On
     this.LightBulb.On = this.webhookContext.powerState === 'ON'
-    await this.debugLog(`On: ${this.LightBulb.On}`)
+    this.debugLog(`On: ${this.LightBulb.On}`)
 
     // Brightness
     this.LightBulb.Brightness = this.webhookContext.brightness
-    await this.debugLog(`Brightness: ${this.LightBulb.Brightness}`)
+    this.debugLog(`Brightness: ${this.LightBulb.Brightness}`)
 
     // Color, Hue & Brightness
-    await this.debugLog(`color: ${JSON.stringify(this.webhookContext.color)}`)
+    this.debugLog(`color: ${JSON.stringify(this.webhookContext.color)}`)
     const [red, green, blue] = this.webhookContext.color.split(':')
-    await this.debugLog(`red: ${JSON.stringify(red)}, green: ${JSON.stringify(green)}, blue: ${JSON.stringify(blue)}`)
+    this.debugLog(`red: ${JSON.stringify(red)}, green: ${JSON.stringify(green)}, blue: ${JSON.stringify(blue)}`)
     const [hue, saturation] = rgb2hs(red, green, blue)
-    await this.debugLog(`hs: ${JSON.stringify(rgb2hs(red, green, blue))}`)
+    this.debugLog(`hs: ${JSON.stringify(rgb2hs(red, green, blue))}`)
 
     // Hue
     this.LightBulb.Hue = hue
-    await this.debugLog(`Hue: ${this.LightBulb.Hue}`)
+    this.debugLog(`Hue: ${this.LightBulb.Hue}`)
 
     // Saturation
     this.LightBulb.Saturation = saturation
-    await this.debugLog(`Saturation: ${this.LightBulb.Saturation}`)
+    this.debugLog(`Saturation: ${this.LightBulb.Saturation}`)
   }
 
   /**
@@ -296,19 +296,19 @@ export class StripLight extends deviceBase {
    */
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
-      await this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`)
+      this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`)
     } else if (this.BLE) {
       await this.BLERefreshStatus()
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus()
     } else {
       await this.offlineOff()
-      await this.debugWarnLog(`Connection Type: ${this.device.connectionType}, refreshStatus will not happen.`)
+      this.debugWarnLog(`Connection Type: ${this.device.connectionType}, refreshStatus will not happen.`)
     }
   }
 
   async BLERefreshStatus(): Promise<void> {
-    await this.debugLog('BLERefreshStatus')
+    this.debugLog('BLERefreshStatus')
     const switchBotBLE = await this.switchbotBLE()
     if (switchBotBLE === undefined) {
       await this.BLERefreshConnection(switchBotBLE)
@@ -323,7 +323,7 @@ export class StripLight extends deviceBase {
           await this.BLEparseStatus()
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.errorLog(`failed to get serviceData, serviceData: ${JSON.stringify(serviceData)}`)
+          this.errorLog(`failed to get serviceData, serviceData: ${JSON.stringify(serviceData)}`)
           await this.BLERefreshConnection(switchBotBLE)
         }
       })()
@@ -331,67 +331,67 @@ export class StripLight extends deviceBase {
   }
 
   async registerPlatformBLE(): Promise<void> {
-    await this.debugLog('registerPlatformBLE')
+    this.debugLog('registerPlatformBLE')
     if (this.config.options?.BLE) {
-      await this.debugLog('is listening to Platform BLE.')
+      this.debugLog('is listening to Platform BLE.')
       try {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
-        await this.debugLog(`bleMac: ${this.device.bleMac}`)
+        this.debugLog(`bleMac: ${this.device.bleMac}`)
         this.platform.bleEventHandler[this.device.bleMac] = async (context: stripLightServiceData) => {
           try {
-            await this.debugLog(`received BLE: ${JSON.stringify(context)}`)
+            this.debugLog(`received BLE: ${JSON.stringify(context)}`)
             this.serviceData = context
             await this.BLEparseStatus()
             await this.updateHomeKitCharacteristics()
           } catch (e: any) {
-            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
+            this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
           }
         }
       } catch (error) {
-        await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
+        this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
-      await this.debugLog('is not listening to Platform BLE')
+      this.debugLog('is not listening to Platform BLE')
     }
   }
 
   async openAPIRefreshStatus(): Promise<void> {
-    await this.debugLog('openAPIRefreshStatus')
+    this.debugLog('openAPIRefreshStatus')
     try {
-      const { body } = await this.deviceRefreshStatus()
-      const deviceStatus: any = await body
-      await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+      const response = await this.deviceRefreshStatus()
+      const deviceStatus: any = response.body
+      this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
       if (await this.successfulStatusCodes(deviceStatus)) {
-        await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         this.deviceStatus = deviceStatus.body
         await this.openAPIparseStatus()
         await this.updateHomeKitCharacteristics()
       } else {
-        await this.debugWarnLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        await this.debugWarnLog(deviceStatus)
+        this.debugWarnLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        this.debugWarnLog(deviceStatus)
       }
     } catch (e: any) {
       await this.apiError(e)
-      await this.errorLog(`failed openAPIRefreshStatus with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+      this.errorLog(`failed openAPIRefreshStatus with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
     }
   }
 
   async registerWebhook() {
     if (this.device.webhook) {
-      await this.debugLog('is listening webhook.')
+      this.debugLog('is listening webhook.')
       this.platform.webhookEventHandler[this.device.deviceId] = async (context: stripLightWebhookContext) => {
         try {
-          await this.debugLog(`received Webhook: ${JSON.stringify(context)}`)
+          this.debugLog(`received Webhook: ${JSON.stringify(context)}`)
           this.webhookContext = context
           await this.parseStatusWebhook()
           await this.updateHomeKitCharacteristics()
         } catch (e: any) {
-          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
+          this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
         }
       }
     } else {
-      await this.debugLog('is not listening webhook.')
+      this.debugLog('is not listening webhook.')
     }
   }
 
@@ -412,36 +412,36 @@ export class StripLight extends deviceBase {
       await this.BLEpushChanges()
       if (this.LightBulb.On) {
         // Push Brightness Update
-        await this.debugLog(`Brightness: ${this.LightBulb.Brightness}`)
+        this.debugLog(`Brightness: ${this.LightBulb.Brightness}`)
         await this.BLEpushBrightnessChanges()
         // Push Hue & Saturation Update
-        await this.debugLog(`Hue: ${this.LightBulb.Hue}, Saturation: ${this.LightBulb.Saturation}`)
+        this.debugLog(`Hue: ${this.LightBulb.Hue}, Saturation: ${this.LightBulb.Saturation}`)
         await this.BLEpushRGBChanges()
         // Set ColorTemperature
         if (this.LightBulb.ColorTemperature !== this.accessory.context.ColorTemperature) {
           const kelvin = Math.round(1000000 / Number(this.LightBulb.ColorTemperature))
           this.accessory.context.kelvin = kelvin
         } else {
-          await this.debugLog(`No pushColorTemperatureChanges, ColorTemperature: ${this.LightBulb.ColorTemperature}, ColorTemperatureCached: ${this.accessory.context.ColorTemperature}`)
+          this.debugLog(`No pushColorTemperatureChanges, ColorTemperature: ${this.LightBulb.ColorTemperature}, ColorTemperatureCached: ${this.accessory.context.ColorTemperature}`)
         }
       } else {
-        await this.debugLog('BLE (Brightness), (Hue), & (Saturation) changes will not happen, as the device is OFF.')
+        this.debugLog('BLE (Brightness), (Hue), & (Saturation) changes will not happen, as the device is OFF.')
       }
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges()
       if (this.LightBulb.On) {
         // Push Brightness Update
-        await this.debugLog(`Brightness: ${this.LightBulb.Brightness}`)
+        this.debugLog(`Brightness: ${this.LightBulb.Brightness}`)
         await this.pushBrightnessChanges()
         // Push Hue & Saturation Update
-        await this.debugLog(`Hue: ${this.LightBulb.Hue}, Saturation: ${this.LightBulb.Saturation}`)
+        this.debugLog(`Hue: ${this.LightBulb.Hue}, Saturation: ${this.LightBulb.Saturation}`)
         await this.pushHueSaturationChanges()
       } else {
-        await this.debugLog('openAPI (Brightness), (ColorTemperature), (Hue), & (Saturation) changes will not happen, as the device is OFF.')
+        this.debugLog('openAPI (Brightness), (ColorTemperature), (Hue), & (Saturation) changes will not happen, as the device is OFF.')
       }
     } else {
       await this.offlineOff()
-      await this.debugWarnLog(`Connection Type: ${this.device.connectionType}, pushChanges will not happen.`)
+      this.debugWarnLog(`Connection Type: ${this.device.connectionType}, pushChanges will not happen.`)
     }
     // Refresh the status from the API
     interval(15000)
@@ -453,22 +453,22 @@ export class StripLight extends deviceBase {
   }
 
   async BLEpushChanges(): Promise<void> {
-    await this.debugLog('BLEpushChanges')
+    this.debugLog('BLEpushChanges')
     if (this.LightBulb.On !== this.accessory.context.On) {
-      await this.debugLog(`BLEpushChanges On: ${this.LightBulb.On}, OnCached: ${this.accessory.context.On}`)
+      this.debugLog(`BLEpushChanges On: ${this.LightBulb.On}, OnCached: ${this.accessory.context.On}`)
       const switchBotBLE = await this.platform.connectBLE(this.accessory, this.device)
       try {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
-        await this.debugLog(`bleMac: ${this.device.bleMac}`)
+        this.debugLog(`bleMac: ${this.device.bleMac}`)
         if (switchBotBLE !== false) {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
               const deviceList = device_list as unknown as WoStrip[]
-              await this.infoLog(`On: ${this.LightBulb.On}`)
+              this.infoLog(`On: ${this.LightBulb.On}`)
               return await this.retryBLE({
-                max: await this.maxRetryBLE(),
+                max: this.maxRetryBLE(),
                 fn: async () => {
                   if (this.LightBulb.On) {
                     return await deviceList[0].turnOn()
@@ -479,103 +479,103 @@ export class StripLight extends deviceBase {
               })
             })
             .then(async () => {
-              await this.successLog(`On: ${this.LightBulb.On} sent over SwitchBot BLE,  sent successfully`)
+              this.successLog(`On: ${this.LightBulb.On} sent over SwitchBot BLE,  sent successfully`)
               await this.updateHomeKitCharacteristics()
             })
             .catch(async (e: any) => {
               await this.apiError(e)
-              await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+              this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
               await this.BLEPushConnection()
             })
         } else {
-          await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(switchBotBLE)}`)
+          this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(switchBotBLE)}`)
           await this.BLEPushConnection()
         }
       } catch (error) {
-        await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
+        this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
-      await this.debugLog(`No changes (BLEpushChanges), On: ${this.LightBulb.On}, OnCached: ${this.accessory.context.On}`)
+      this.debugLog(`No changes (BLEpushChanges), On: ${this.LightBulb.On}, OnCached: ${this.accessory.context.On}`)
     }
   }
 
   async BLEpushBrightnessChanges(): Promise<void> {
-    await this.debugLog('BLEpushBrightnessChanges')
+    this.debugLog('BLEpushBrightnessChanges')
     if (this.LightBulb.Brightness !== this.accessory.context.Brightness) {
       const switchBotBLE = await this.platform.connectBLE(this.accessory, this.device)
       try {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
-        await this.debugLog(`bleMac: ${this.device.bleMac}`)
+        this.debugLog(`bleMac: ${this.device.bleMac}`)
         if (switchBotBLE !== false) {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
-              await this.infoLog(`Brightness: ${this.LightBulb.Brightness}`)
+              this.infoLog(`Brightness: ${this.LightBulb.Brightness}`)
               return await device_list[0].setBrightness(this.LightBulb.Brightness)
             })
             .then(async () => {
-              await this.successLog(`Brightness: ${this.LightBulb.Brightness} sent over SwitchBot BLE,  sent successfully`)
+              this.successLog(`Brightness: ${this.LightBulb.Brightness} sent over SwitchBot BLE,  sent successfully`)
               await this.updateHomeKitCharacteristics()
             })
             .catch(async (e: any) => {
               await this.apiError(e)
-              await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+              this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
               await this.BLEPushConnection()
             })
         } else {
-          await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(switchBotBLE)}`)
+          this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(switchBotBLE)}`)
           await this.BLEPushConnection()
         }
       } catch (error) {
-        await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
+        this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
-      await this.debugLog(`No changes (BLEpushBrightnessChanges), Brightness: ${this.LightBulb.Brightness}, BrightnessCached: ${this.accessory.context.Brightness}`)
+      this.debugLog(`No changes (BLEpushBrightnessChanges), Brightness: ${this.LightBulb.Brightness}, BrightnessCached: ${this.accessory.context.Brightness}`)
     }
   }
 
   async BLEpushRGBChanges(): Promise<void> {
-    await this.debugLog('BLEpushRGBChanges')
+    this.debugLog('BLEpushRGBChanges')
     if ((this.LightBulb.Hue !== this.accessory.context.Hue) || (this.LightBulb.Saturation !== this.accessory.context.Saturation)) {
-      await this.debugLog(`Hue: ${JSON.stringify(this.LightBulb.Hue)}, Saturation: ${JSON.stringify(this.LightBulb.Saturation)}`)
+      this.debugLog(`Hue: ${JSON.stringify(this.LightBulb.Hue)}, Saturation: ${JSON.stringify(this.LightBulb.Saturation)}`)
       const [red, green, blue] = hs2rgb(this.LightBulb.Hue, this.LightBulb.Saturation)
-      await this.debugLog(`rgb: ${JSON.stringify([red, green, blue])}`)
+      this.debugLog(`rgb: ${JSON.stringify([red, green, blue])}`)
       const switchBotBLE = await this.platform.connectBLE(this.accessory, this.device)
       try {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
-        await this.debugLog(`bleMac: ${this.device.bleMac}`)
+        this.debugLog(`bleMac: ${this.device.bleMac}`)
         if (switchBotBLE !== false) {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
-              await this.infoLog(`RGB: ${(this.LightBulb.Brightness, red, green, blue)}`)
+              this.infoLog(`RGB: ${(this.LightBulb.Brightness, red, green, blue)}`)
               return await device_list[0].setRGB(this.LightBulb.Brightness, red, green, blue)
             })
             .then(async () => {
-              await this.successLog(`RGB: ${(this.LightBulb.Brightness, red, green, blue)} sent over SwitchBot BLE,  sent successfully`)
+              this.successLog(`RGB: ${(this.LightBulb.Brightness, red, green, blue)} sent over SwitchBot BLE,  sent successfully`)
               await this.updateHomeKitCharacteristics()
             })
             .catch(async (e: any) => {
               await this.apiError(e)
-              await this.errorLog(`failed BLEpushRGBChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+              this.errorLog(`failed BLEpushRGBChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
               await this.BLEPushConnection()
             })
         } else {
-          await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(switchBotBLE)}`)
+          this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(switchBotBLE)}`)
           await this.BLEPushConnection()
         }
       } catch (error) {
-        await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
+        this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
-      await this.debugLog(`No changes (BLEpushRGBChanges), Hue: ${this.LightBulb.Hue}, HueCached: ${this.accessory.context.Hue}, Saturation: ${this.LightBulb.Saturation}, SaturationCached: ${this.accessory.context.Saturation}`)
+      this.debugLog(`No changes (BLEpushRGBChanges), Hue: ${this.LightBulb.Hue}, HueCached: ${this.accessory.context.Hue}, Saturation: ${this.LightBulb.Saturation}, SaturationCached: ${this.accessory.context.Saturation}`)
     }
   }
 
   async openAPIpushChanges() {
-    await this.debugLog('openAPIpushChanges')
+    this.debugLog('openAPIpushChanges')
     if (this.LightBulb.On !== this.accessory.context.On) {
       const command = this.LightBulb.On ? 'turnOn' : 'turnOff'
       const bodyChange: bodyChange = {
@@ -583,82 +583,82 @@ export class StripLight extends deviceBase {
         parameter: 'default',
         commandType: 'command',
       }
-      await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
+      this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const { body } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body
-        await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        const response = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = response.body
+        this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         if (await this.successfulStatusCodes(deviceStatus)) {
-          await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+          this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
           await this.updateHomeKitCharacteristics()
         } else {
           await this.statusCode(deviceStatus.statusCode)
         }
       } catch (e: any) {
         await this.apiError(e)
-        await this.errorLog(`failed openAPIpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+        this.errorLog(`failed openAPIpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
       }
     } else {
-      await this.debugLog(`No changes (openAPIpushChanges), On: ${this.LightBulb.On}, OnCached: ${this.accessory.context.On}`)
+      this.debugLog(`No changes (openAPIpushChanges), On: ${this.LightBulb.On}, OnCached: ${this.accessory.context.On}`)
     }
   }
 
   async pushHueSaturationChanges(): Promise<void> {
-    await this.debugLog('pushHueSaturationChanges')
+    this.debugLog('pushHueSaturationChanges')
     if ((this.LightBulb.Hue !== this.accessory.context.Hue) || (this.LightBulb.Saturation !== this.accessory.context.Saturation)) {
-      await this.debugLog(`Hue: ${JSON.stringify(this.LightBulb.Hue)}, Saturation: ${JSON.stringify(this.LightBulb.Saturation)}`)
+      this.debugLog(`Hue: ${JSON.stringify(this.LightBulb.Hue)}, Saturation: ${JSON.stringify(this.LightBulb.Saturation)}`)
       const [red, green, blue] = hs2rgb(this.LightBulb.Hue, this.LightBulb.Saturation)
-      await this.debugLog(`rgb: ${JSON.stringify([red, green, blue])}`)
+      this.debugLog(`rgb: ${JSON.stringify([red, green, blue])}`)
       const bodyChange: bodyChange = {
         command: 'setColor',
         parameter: `${red}:${green}:${blue}`,
         commandType: 'command',
       }
-      await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
+      this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const { body } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body
-        await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        const response = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = response.body
+        this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         if (await this.successfulStatusCodes(deviceStatus)) {
-          await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+          this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
           await this.updateHomeKitCharacteristics()
         } else {
           await this.statusCode(deviceStatus.statusCode)
         }
       } catch (e: any) {
         await this.apiError(e)
-        await this.errorLog(`failed pushHueSaturationChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+        this.errorLog(`failed pushHueSaturationChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
       }
     } else {
-      await this.debugLog(`No changes (pushHueSaturationChanges), Hue: ${this.LightBulb.Hue}, HueCached: ${this.accessory.context.Hue}, Saturation: ${this.LightBulb.Saturation}, SaturationCached: ${this.accessory.context.Saturation}`)
+      this.debugLog(`No changes (pushHueSaturationChanges), Hue: ${this.LightBulb.Hue}, HueCached: ${this.accessory.context.Hue}, Saturation: ${this.LightBulb.Saturation}, SaturationCached: ${this.accessory.context.Saturation}`)
     }
   }
 
   async pushBrightnessChanges(): Promise<void> {
-    await this.debugLog('pushBrightnessChanges')
+    this.debugLog('pushBrightnessChanges')
     if (this.LightBulb.Brightness !== this.accessory.context.Brightness) {
       const bodyChange: bodyChange = {
         command: 'setBrightness',
         parameter: `${this.LightBulb.Brightness}`,
         commandType: 'command',
       }
-      await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
+      this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const { body } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body
-        await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        const response = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = response.body
+        this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         if (await this.successfulStatusCodes(deviceStatus)) {
-          await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+          this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
           await this.updateHomeKitCharacteristics()
         } else {
           await this.statusCode(deviceStatus.statusCode)
         }
       } catch (e: any) {
         await this.apiError(e)
-        await this.errorLog(`failed pushBrightnessChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+        this.errorLog(`failed pushBrightnessChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
       }
     } else {
-      await this.debugLog(`No changes (pushBrightnessChanges), Brightness: ${this.LightBulb.Brightness}, BrightnessCached: ${this.accessory.context.Brightness}`)
+      this.debugLog(`No changes (pushBrightnessChanges), Brightness: ${this.LightBulb.Brightness}, BrightnessCached: ${this.accessory.context.Brightness}`)
     }
   }
 
@@ -667,9 +667,9 @@ export class StripLight extends deviceBase {
    */
   async OnSet(value: CharacteristicValue): Promise<void> {
     if (this.LightBulb.On !== this.accessory.context.On) {
-      await this.infoLog(`Set On: ${value}`)
+      this.infoLog(`Set On: ${value}`)
     } else {
-      await this.debugLog(`No Changes, On: ${value}`)
+      this.debugLog(`No Changes, On: ${value}`)
     }
 
     this.LightBulb.On = value
@@ -681,7 +681,7 @@ export class StripLight extends deviceBase {
    */
   async BrightnessSet(value: CharacteristicValue): Promise<void> {
     if (this.LightBulb.On && (this.LightBulb.Brightness !== this.accessory.context.Brightness)) {
-      await this.infoLog(`Set Brightness: ${value}`)
+      this.infoLog(`Set Brightness: ${value}`)
     } else {
       if (this.LightBulb.On) {
         this.debugLog(`No Changes, Brightness: ${value}`)
@@ -784,7 +784,7 @@ export class StripLight extends deviceBase {
   async getAdaptiveLightingSettings(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
     // Adaptive Lighting
     this.adaptiveLighting = accessory.context.adaptiveLighting ?? true
-    await this.debugLog(`adaptiveLighting: ${this.adaptiveLighting}`)
+    this.debugLog(`adaptiveLighting: ${this.adaptiveLighting}`)
     // Adaptive Lighting Shift
     this.adaptiveLightingShift = (device as stripLightConfig).adaptiveLightingShift ?? 0
     this.debugLog(`adaptiveLightingShift: ${this.adaptiveLightingShift}`)
@@ -792,15 +792,15 @@ export class StripLight extends deviceBase {
 
   async BLEPushConnection() {
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
-      await this.warnLog('Using OpenAPI Connection to Push Changes')
+      this.warnLog('Using OpenAPI Connection to Push Changes')
       await this.openAPIpushChanges()
     }
   }
 
   async BLERefreshConnection(switchbot: any): Promise<void> {
-    await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
+    this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
-      await this.warnLog('Using OpenAPI Connection to Refresh Status')
+      this.warnLog('Using OpenAPI Connection to Refresh Status')
       await this.openAPIRefreshStatus()
     }
   }

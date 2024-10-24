@@ -111,7 +111,7 @@ export class Light extends irdeviceBase {
   }
 
   async OnSet(value: CharacteristicValue): Promise<void> {
-    await this.debugLog(`On: ${value}`)
+    this.debugLog(`On: ${value}`)
 
     this.LightBulb!.On = value
     if (this.LightBulb?.On) {
@@ -128,7 +128,7 @@ export class Light extends irdeviceBase {
   }
 
   async ProgrammableSwitchOutputStateSetOn(value: CharacteristicValue): Promise<void> {
-    await this.debugLog(`On: ${value}`)
+    this.debugLog(`On: ${value}`)
 
     this.ProgrammableSwitchOn!.ProgrammableSwitchOutputState = value
     if (this.ProgrammableSwitchOn?.ProgrammableSwitchOutputState === 1) {
@@ -142,7 +142,7 @@ export class Light extends irdeviceBase {
   }
 
   async ProgrammableSwitchOutputStateSetOff(value: CharacteristicValue): Promise<void> {
-    await this.debugLog(`On: ${value}`)
+    this.debugLog(`On: ${value}`)
 
     this.ProgrammableSwitchOff!.ProgrammableSwitchOutputState = value
     if (this.ProgrammableSwitchOff?.ProgrammableSwitchOutputState === 1) {
@@ -166,7 +166,7 @@ export class Light extends irdeviceBase {
    * Light -       "command"       "channelSub"      "default"          =        previous channel
    */
   async pushLightOnChanges(On: boolean): Promise<void> {
-    await this.debugLog(`pushLightOnChanges On: ${On}, disablePushOn: ${this.disablePushOn}`)
+    this.debugLog(`pushLightOnChanges On: ${On}, disablePushOn: ${this.disablePushOn}`)
     if (On === true && this.disablePushOn === false) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOn()
@@ -180,7 +180,7 @@ export class Light extends irdeviceBase {
   }
 
   async pushLightOffChanges(On: boolean): Promise<void> {
-    await this.debugLog(`pushLightOffChanges On: ${On}, disablePushOff: ${this.disablePushOff}`)
+    this.debugLog(`pushLightOffChanges On: ${On}, disablePushOff: ${this.disablePushOff}`)
     if (On === false && this.disablePushOff === false) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOff()
@@ -196,10 +196,10 @@ export class Light extends irdeviceBase {
   async pushChanges(bodyChange: any, On: boolean): Promise<void> {
     this.debugLog('pushChanges')
     if (this.device.connectionType === 'OpenAPI') {
-      await this.infoLog(`Sending request to SwitchBot API, body: ${JSON.stringify(bodyChange)}`)
+      this.infoLog(`Sending request to SwitchBot API, body: ${JSON.stringify(bodyChange)}`)
       try {
-        const { body } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body
+        const response = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = response.body
         await this.pushStatusCodes(deviceStatus)
         if (await this.successfulStatusCodes(deviceStatus)) {
           await this.successfulPushChange(deviceStatus, bodyChange)
@@ -218,7 +218,7 @@ export class Light extends irdeviceBase {
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
-    await this.debugLog('updateHomeKitCharacteristics')
+    this.debugLog('updateHomeKitCharacteristics')
     if (!(this.device as irLightConfig).stateless && this.LightBulb?.Service) {
       // On
       await this.updateCharacteristic(this.LightBulb.Service, this.hap.Characteristic.On, this.LightBulb.On, 'On')

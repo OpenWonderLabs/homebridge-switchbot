@@ -47,7 +47,7 @@ export class WaterHeater extends irdeviceBase {
   }
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
-    await this.debugLog(`Active: ${value}`)
+    this.debugLog(`Active: ${value}`)
 
     this.Valve.Active = value
     if (this.Valve.Active === this.hap.Characteristic.Active.ACTIVE) {
@@ -66,7 +66,7 @@ export class WaterHeater extends irdeviceBase {
    * WaterHeater     "command"       "turnOn"          "default"         set to ON state
    */
   async pushWaterHeaterOnChanges(): Promise<void> {
-    await this.debugLog(`pushWaterHeaterOnChanges Active: ${this.Valve.Active}, disablePushOn: ${this.disablePushOn}`)
+    this.debugLog(`pushWaterHeaterOnChanges Active: ${this.Valve.Active}, disablePushOn: ${this.disablePushOn}`)
     if (this.Valve.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOn()
@@ -80,7 +80,7 @@ export class WaterHeater extends irdeviceBase {
   }
 
   async pushWaterHeaterOffChanges(): Promise<void> {
-    await this.debugLog(`pushWaterHeaterOffChanges Active: ${this.Valve.Active}, disablePushOff: ${this.disablePushOff}`)
+    this.debugLog(`pushWaterHeaterOffChanges Active: ${this.Valve.Active}, disablePushOff: ${this.disablePushOff}`)
     if (this.Valve.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOff) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOff()
@@ -94,12 +94,12 @@ export class WaterHeater extends irdeviceBase {
   }
 
   async pushChanges(bodyChange: any): Promise<void> {
-    await this.debugLog('pushChanges')
+    this.debugLog('pushChanges')
     if (this.device.connectionType === 'OpenAPI') {
-      await this.infoLog(`Sending request to SwitchBot API, body: ${JSON.stringify(bodyChange)}`)
+      this.infoLog(`Sending request to SwitchBot API, body: ${JSON.stringify(bodyChange)}`)
       try {
-        const { body } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body
+        const response = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = response.body
         await this.pushStatusCodes(deviceStatus)
         if (await this.successfulStatusCodes(deviceStatus)) {
           await this.successfulPushChange(deviceStatus, bodyChange)
@@ -112,12 +112,12 @@ export class WaterHeater extends irdeviceBase {
         await this.pushChangeError(e)
       }
     } else {
-      await this.warnLog(`Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`)
+      this.warnLog(`Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`)
     }
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
-    await this.debugLog('updateHomeKitCharacteristics')
+    this.debugLog('updateHomeKitCharacteristics')
     // Active
     await this.updateCharacteristic(this.Valve.Service, this.hap.Characteristic.Active, this.Valve.Active, 'Active')
   }

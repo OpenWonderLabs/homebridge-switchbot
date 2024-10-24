@@ -177,24 +177,24 @@ export class Humidifier extends deviceBase {
           await this.pushChanges()
         } catch (e: any) {
           await this.apiError(e)
-          await this.errorLog(`failed pushChanges with ${device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+          this.errorLog(`failed pushChanges with ${device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
         }
         this.humidifierUpdateInProgress = false
       })
   }
 
   async BLEparseStatus(): Promise<void> {
-    await this.debugLog('BLEparseStatus')
-    await this.debugLog(`(onState, percentage, autoMode) = BLE:(${this.serviceData.onState}, ${this.serviceData.percentage}, ${this.serviceData.autoMode}), current:(${this.HumidifierDehumidifier.Active}, ${this.HumidifierDehumidifier.CurrentRelativeHumidity}, ${this.HumidifierDehumidifier.TargetHumidifierDehumidifierState}, ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold})`,
+    this.debugLog('BLEparseStatus')
+    this.debugLog(`(onState, percentage, autoMode) = BLE:(${this.serviceData.onState}, ${this.serviceData.percentage}, ${this.serviceData.autoMode}), current:(${this.HumidifierDehumidifier.Active}, ${this.HumidifierDehumidifier.CurrentRelativeHumidity}, ${this.HumidifierDehumidifier.TargetHumidifierDehumidifierState}, ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold})`,
     )
 
     // Active
     this.HumidifierDehumidifier.Active = this.serviceData.onState ? this.hap.Characteristic.Active.ACTIVE : this.hap.Characteristic.Active.INACTIVE
-    await this.debugLog(`Active: ${this.HumidifierDehumidifier.Active}`)
+    this.debugLog(`Active: ${this.HumidifierDehumidifier.Active}`)
 
     // Current Relative Humidity
     this.HumidifierDehumidifier.CurrentRelativeHumidity = validHumidity(this.serviceData.humidity)
-    await this.debugLog(`CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`)
+    this.debugLog(`CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`)
 
     // Target Humidifier Dehumidifier State
     switch (this.serviceData.autoMode) {
@@ -215,27 +215,27 @@ export class Humidifier extends deviceBase {
           this.HumidifierDehumidifier.CurrentHumidifierDehumidifierState = this.hap.Characteristic.CurrentHumidifierDehumidifierState.HUMIDIFYING
         }
     }
-    await this.debugLog(`TargetHumidifierDehumidifierState: ${this.HumidifierDehumidifier.TargetHumidifierDehumidifierState}, RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold}, CurrentHumidifierDehumidifierState: ${this.HumidifierDehumidifier.CurrentHumidifierDehumidifierState}`)
+    this.debugLog(`TargetHumidifierDehumidifierState: ${this.HumidifierDehumidifier.TargetHumidifierDehumidifierState}, RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold}, CurrentHumidifierDehumidifierState: ${this.HumidifierDehumidifier.CurrentHumidifierDehumidifierState}`)
   }
 
   async openAPIparseStatus(): Promise<void> {
-    await this.debugLog('openAPIparseStatus')
-    await this.debugLog(`(power, auto, temperature, lackWater, nebulizationEfficiency, version) = OpenAPI:(${this.deviceStatus.power}, ${this.deviceStatus.auto}, ${this.deviceStatus.temperature}, ${this.deviceStatus.lackWater}, ${this.deviceStatus.nebulizationEfficiency}, ${this.deviceStatus.version}), current:(${this.HumidifierDehumidifier.Active}, ${this.HumidifierDehumidifier.CurrentRelativeHumidity}, ${this.HumidifierDehumidifier.TargetHumidifierDehumidifierState}, ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold})`)
+    this.debugLog('openAPIparseStatus')
+    this.debugLog(`(power, auto, temperature, lackWater, nebulizationEfficiency, version) = OpenAPI:(${this.deviceStatus.power}, ${this.deviceStatus.auto}, ${this.deviceStatus.temperature}, ${this.deviceStatus.lackWater}, ${this.deviceStatus.nebulizationEfficiency}, ${this.deviceStatus.version}), current:(${this.HumidifierDehumidifier.Active}, ${this.HumidifierDehumidifier.CurrentRelativeHumidity}, ${this.HumidifierDehumidifier.TargetHumidifierDehumidifierState}, ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold})`)
 
     // Active
     this.HumidifierDehumidifier.Active = this.deviceStatus.power === 'on'
       ? this.hap.Characteristic.Active.ACTIVE
       : this.hap.Characteristic.Active.INACTIVE
-    await this.debugLog(`Active: ${this.HumidifierDehumidifier.Active}`)
+    this.debugLog(`Active: ${this.HumidifierDehumidifier.Active}`)
 
     // Current Relative Humidity
     this.HumidifierDehumidifier.CurrentRelativeHumidity = validHumidity(this.deviceStatus.humidity)
-    await this.debugLog(`CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`)
+    this.debugLog(`CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`)
 
     // Current Temperature
     if (!(this.device as humidifierConfig).hide_temperature && this.TemperatureSensor?.Service) {
       this.TemperatureSensor.CurrentTemperature = this.deviceStatus.temperature
-      await this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}`)
+      this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}`)
     }
     // Target Humidifier Dehumidifier State
     switch (this.deviceStatus.auto) {
@@ -258,7 +258,7 @@ export class Humidifier extends deviceBase {
           this.HumidifierDehumidifier.CurrentHumidifierDehumidifierState = this.hap.Characteristic.CurrentHumidifierDehumidifierState.HUMIDIFYING
         }
     }
-    await this.debugLog(`TargetHumidifierDehumidifierState: ${this.HumidifierDehumidifier.TargetHumidifierDehumidifierState}, RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold}, CurrentHumidifierDehumidifierState: ${this.HumidifierDehumidifier.CurrentHumidifierDehumidifierState}`)
+    this.debugLog(`TargetHumidifierDehumidifierState: ${this.HumidifierDehumidifier.TargetHumidifierDehumidifierState}, RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold}, CurrentHumidifierDehumidifierState: ${this.HumidifierDehumidifier.CurrentHumidifierDehumidifierState}`)
 
     // Water Level
     if (this.deviceStatus.lackWater) {
@@ -266,12 +266,12 @@ export class Humidifier extends deviceBase {
     } else {
       this.HumidifierDehumidifier.WaterLevel = 100
     }
-    await this.debugLog(`WaterLevel: ${this.HumidifierDehumidifier.WaterLevel}`)
+    this.debugLog(`WaterLevel: ${this.HumidifierDehumidifier.WaterLevel}`)
 
     // Firmware Version
     if (this.deviceStatus.version) {
       const version = this.deviceStatus.version.toString()
-      await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`)
+      this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`)
       const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0'
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
@@ -280,22 +280,22 @@ export class Humidifier extends deviceBase {
         .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
         .updateValue(deviceVersion)
       this.accessory.context.version = deviceVersion
-      await this.debugSuccessLog(`version: ${this.accessory.context.version}`)
+      this.debugSuccessLog(`version: ${this.accessory.context.version}`)
     }
   }
 
   async parseStatusWebhook(): Promise<void> {
-    await this.debugLog('parseStatusWebhook')
-    await this.debugLog(`(temperature, humidity) = Webhook:(${convertUnits(this.webhookContext.temperature, this.webhookContext.scale, (this.device as humidifierConfig).convertUnitTo)}, ${this.webhookContext.humidity}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumidifierDehumidifier.CurrentRelativeHumidity})`)
+    this.debugLog('parseStatusWebhook')
+    this.debugLog(`(temperature, humidity) = Webhook:(${convertUnits(this.webhookContext.temperature, this.webhookContext.scale, (this.device as humidifierConfig).convertUnitTo)}, ${this.webhookContext.humidity}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumidifierDehumidifier.CurrentRelativeHumidity})`)
 
     // CurrentRelativeHumidity
     this.HumidifierDehumidifier.CurrentRelativeHumidity = validHumidity(this.webhookContext.humidity)
-    await this.debugLog(`CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`)
+    this.debugLog(`CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`)
 
     // CurrentTemperature
     if (!(this.device as humidifierConfig).hide_temperature && this.TemperatureSensor?.Service) {
       this.TemperatureSensor.CurrentTemperature = convertUnits(this.webhookContext.temperature, this.webhookContext.scale, (this.device as humidifierConfig).convertUnitTo)
-      await this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}`)
+      this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}`)
     }
   }
 
@@ -304,19 +304,19 @@ export class Humidifier extends deviceBase {
    */
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
-      await this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`)
+      this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`)
     } else if (this.BLE) {
       await this.BLERefreshStatus()
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus()
     } else {
       await this.offlineOff()
-      await this.debugWarnLog(`Connection Type: ${this.device.connectionType}, refreshStatus will not happen.`)
+      this.debugWarnLog(`Connection Type: ${this.device.connectionType}, refreshStatus will not happen.`)
     }
   }
 
   async BLERefreshStatus(): Promise<void> {
-    await this.debugLog('BLERefreshStatus')
+    this.debugLog('BLERefreshStatus')
     const switchBotBLE = await this.switchbotBLE()
     if (switchBotBLE === undefined) {
       await this.BLERefreshConnection(switchBotBLE)
@@ -331,7 +331,7 @@ export class Humidifier extends deviceBase {
           await this.BLEparseStatus()
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.errorLog(`failed to get serviceData, serviceData: ${JSON.stringify(serviceData)}`)
+          this.errorLog(`failed to get serviceData, serviceData: ${JSON.stringify(serviceData)}`)
           await this.BLERefreshConnection(switchBotBLE)
         }
       })()
@@ -339,63 +339,63 @@ export class Humidifier extends deviceBase {
   }
 
   async registerPlatformBLE(): Promise<void> {
-    await this.debugLog('registerPlatformBLE')
+    this.debugLog('registerPlatformBLE')
     if (this.config.options?.BLE) {
-      await this.debugLog('is listening to Platform BLE.')
+      this.debugLog('is listening to Platform BLE.')
       try {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
-        await this.debugLog(`bleMac: ${this.device.bleMac}`)
+        this.debugLog(`bleMac: ${this.device.bleMac}`)
         this.platform.bleEventHandler[this.device.bleMac] = async (context: humidifierServiceData) => {
           try {
-            await this.debugLog(`received BLE: ${JSON.stringify(context)}`)
+            this.debugLog(`received BLE: ${JSON.stringify(context)}`)
             this.serviceData = context
             await this.BLEparseStatus()
             await this.updateHomeKitCharacteristics()
           } catch (e: any) {
-            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
+            this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
           }
         }
       } catch (error) {
-        await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
+        this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
-      await this.debugLog('is not listening to Platform BLE')
+      this.debugLog('is not listening to Platform BLE')
     }
   }
 
   async openAPIRefreshStatus(): Promise<void> {
-    await this.debugLog('openAPIRefreshStatus')
+    this.debugLog('openAPIRefreshStatus')
     try {
-      const { body } = await this.deviceRefreshStatus()
-      const deviceStatus: any = await body
-      await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+      const response = await this.deviceRefreshStatus()
+      const deviceStatus: any = response.body
+      this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
       if (await this.successfulStatusCodes(deviceStatus)) {
-        await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         this.deviceStatus = deviceStatus.body
         await this.openAPIparseStatus()
         await this.updateHomeKitCharacteristics()
       } else {
-        await this.debugWarnLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        await this.debugWarnLog(deviceStatus)
+        this.debugWarnLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        this.debugWarnLog(deviceStatus)
       }
     } catch (e: any) {
       await this.apiError(e)
-      await this.errorLog(`failed openAPIRefreshStatus with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+      this.errorLog(`failed openAPIRefreshStatus with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
     }
   }
 
   async registerWebhook() {
     if (this.device.webhook) {
-      await this.debugLog('is listening webhook.')
+      this.debugLog('is listening webhook.')
       this.platform.webhookEventHandler[this.device.deviceId] = async (context: humidifierWebhookContext) => {
         try {
-          await this.debugLog(`received Webhook: ${JSON.stringify(context)}`)
+          this.debugLog(`received Webhook: ${JSON.stringify(context)}`)
           this.webhookContext = context
           await this.parseStatusWebhook()
           await this.updateHomeKitCharacteristics()
         } catch (e: any) {
-          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
+          this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
         }
       }
     }
@@ -406,14 +406,14 @@ export class Humidifier extends deviceBase {
    */
   async pushChanges(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
-      await this.errorLog(`pushChanges enableCloudService: ${this.device.enableCloudService}`)
+      this.errorLog(`pushChanges enableCloudService: ${this.device.enableCloudService}`)
     } else if (this.BLE) {
       await this.BLEpushChanges()
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges()
     } else {
       await this.offlineOff()
-      await this.debugWarnLog(`Connection Type: ${this.device.connectionType}, pushChanges will not happen.`)
+      this.debugWarnLog(`Connection Type: ${this.device.connectionType}, pushChanges will not happen.`)
     }
     // Refresh the status from the API
     interval(15000)
@@ -425,7 +425,7 @@ export class Humidifier extends deviceBase {
   }
 
   async BLEpushChanges(): Promise<void> {
-    await this.debugLog('BLEpushChanges')
+    this.debugLog('BLEpushChanges')
     if ((this.HumidifierDehumidifier.TargetHumidifierDehumidifierState === this.hap.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER)
       && (this.HumidifierDehumidifier.Active === this.hap.Characteristic.Active.ACTIVE)
       && (this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold !== this.HumidifierDehumidifier.CurrentRelativeHumidity)) {
@@ -433,7 +433,7 @@ export class Humidifier extends deviceBase {
       try {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
-        await this.debugLog(`bleMac: ${this.device.bleMac}`)
+        this.debugLog(`bleMac: ${this.device.bleMac}`)
         if (switchBotBLE !== false) {
           switchBotBLE
             .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
@@ -442,51 +442,51 @@ export class Humidifier extends deviceBase {
               return await deviceList[0].percentage(this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold)
             })
             .then(async () => {
-              await this.successLog(`RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold} sent over BLE,  sent successfully`)
+              this.successLog(`RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold} sent over BLE,  sent successfully`)
               await this.updateHomeKitCharacteristics()
             })
             .catch(async (e: any) => {
               await this.apiError(e)
-              await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+              this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
               await this.BLEPushConnection()
             })
         } else {
-          await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(switchBotBLE)}`)
+          this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(switchBotBLE)}`)
           await this.BLEPushConnection()
         }
       } catch (error) {
-        await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
+        this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
-      await this.debugLog(`No changes (BLEpushChanges), Active: ${this.HumidifierDehumidifier.Active}, RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold}, CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`)
+      this.debugLog(`No changes (BLEpushChanges), Active: ${this.HumidifierDehumidifier.Active}, RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold}, CurrentRelativeHumidity: ${this.HumidifierDehumidifier.CurrentRelativeHumidity}`)
     }
   }
 
   async openAPIpushChanges(): Promise<void> {
-    await this.debugLog('openAPIpushChanges')
+    this.debugLog('openAPIpushChanges')
     if ((this.HumidifierDehumidifier.TargetHumidifierDehumidifierState === this.hap.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER)
       && (this.HumidifierDehumidifier.Active === this.hap.Characteristic.Active.ACTIVE)
       && (this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold !== this.HumidifierDehumidifier.CurrentRelativeHumidity)) {
-      await this.debugLog(`Auto Off, RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold}!`)
+      this.debugLog(`Auto Off, RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold}!`)
       const bodyChange: bodyChange = {
         command: 'setMode',
         parameter: `${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold}`,
         commandType: 'command',
       }
-      await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
+      this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const { body } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body
-        await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        const response = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = response.body
+        this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         if (await this.successfulStatusCodes(deviceStatus)) {
-          await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+          this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
           await this.updateHomeKitCharacteristics()
         } else {
           await this.statusCode(deviceStatus.statusCode)
         }
       } catch (e: any) {
         await this.apiError(e)
-        await this.errorLog(`failed openAPIpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+        this.errorLog(`failed openAPIpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
       }
     } else if ((this.HumidifierDehumidifier.TargetHumidifierDehumidifierState === this.hap.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER_OR_DEHUMIDIFIER) && (this.HumidifierDehumidifier.Active === this.hap.Characteristic.Active.ACTIVE)) {
       await this.pushAutoChanges()
@@ -503,29 +503,29 @@ export class Humidifier extends deviceBase {
     if ((this.HumidifierDehumidifier.TargetHumidifierDehumidifierState
       === this.hap.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER_OR_DEHUMIDIFIER)
       && (this.HumidifierDehumidifier.Active === this.hap.Characteristic.Active.ACTIVE)) {
-      await this.debugLog('Pushing Auto')
+      this.debugLog('Pushing Auto')
       const bodyChange: bodyChange = {
         command: 'setMode',
         parameter: 'auto',
         commandType: 'command',
       }
-      await this.debugLog(`pushAutoChanges, SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
+      this.debugLog(`pushAutoChanges, SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const { body } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body
-        await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        const response = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = response.body
+        this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         if (await this.successfulStatusCodes(deviceStatus)) {
-          await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+          this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
           await this.updateHomeKitCharacteristics()
         } else {
           await this.statusCode(deviceStatus.statusCode)
         }
       } catch (e: any) {
         await this.apiError(e)
-        await this.errorLog(`failed pushAutoChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+        this.errorLog(`failed pushAutoChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
       }
     } else {
-      await this.debugLog(`No changes (pushAutoChanges), TargetHumidifierDehumidifierState: ${this.HumidifierDehumidifier.TargetHumidifierDehumidifierState}, Active: ${this.HumidifierDehumidifier.Active}`)
+      this.debugLog(`No changes (pushAutoChanges), TargetHumidifierDehumidifierState: ${this.HumidifierDehumidifier.TargetHumidifierDehumidifierState}, Active: ${this.HumidifierDehumidifier.Active}`)
     }
   }
 
@@ -533,31 +533,31 @@ export class Humidifier extends deviceBase {
    * Pushes the requested changes to the SwitchBot API
    */
   async pushActiveChanges(): Promise<void> {
-    await this.debugLog('pushActiveChanges')
+    this.debugLog('pushActiveChanges')
     if (this.HumidifierDehumidifier.Active === this.hap.Characteristic.Active.INACTIVE) {
-      await this.debugLog('Pushing Off')
+      this.debugLog('Pushing Off')
       const bodyChange: bodyChange = {
         command: 'turnOff',
         parameter: 'default',
         commandType: 'command',
       }
-      await this.debugLog(`pushActiveChanges, SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
+      this.debugLog(`pushActiveChanges, SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const { body } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body
-        await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        const response = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = response.body
+        this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         if (await this.successfulStatusCodes(deviceStatus)) {
-          await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+          this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
           await this.updateHomeKitCharacteristics()
         } else {
           await this.statusCode(deviceStatus.statusCode)
         }
       } catch (e: any) {
         await this.apiError(e)
-        await this.errorLog(`failed pushActiveChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+        this.errorLog(`failed pushActiveChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
       }
     } else {
-      await this.debugLog(`No changes (pushActiveChanges), Active: ${this.HumidifierDehumidifier.Active}`)
+      this.debugLog(`No changes (pushActiveChanges), Active: ${this.HumidifierDehumidifier.Active}`)
     }
   }
 
@@ -566,9 +566,9 @@ export class Humidifier extends deviceBase {
    */
   async ActiveSet(value: CharacteristicValue): Promise<void> {
     if (this.HumidifierDehumidifier.Active !== this.accessory.context.Active) {
-      await this.infoLog(`Set Active: ${value}`)
+      this.infoLog(`Set Active: ${value}`)
     } else {
-      await this.debugLog(`No Changes, Active: ${value}`)
+      this.debugLog(`No Changes, Active: ${value}`)
     }
 
     this.HumidifierDehumidifier.Active = value
@@ -580,9 +580,9 @@ export class Humidifier extends deviceBase {
    */
   async TargetHumidifierDehumidifierStateSet(value: CharacteristicValue): Promise<void> {
     if (this.HumidifierDehumidifier.Active === this.hap.Characteristic.Active.ACTIVE) {
-      await this.infoLog(`Set TargetHumidifierDehumidifierState: ${value}`)
+      this.infoLog(`Set TargetHumidifierDehumidifierState: ${value}`)
     } else {
-      await this.debugLog(`No Changes, TargetHumidifierDehumidifierState: ${value}`)
+      this.debugLog(`No Changes, TargetHumidifierDehumidifierState: ${value}`)
     }
 
     this.HumidifierDehumidifier.TargetHumidifierDehumidifierState = value
@@ -594,9 +594,9 @@ export class Humidifier extends deviceBase {
    */
   async RelativeHumidityHumidifierThresholdSet(value: CharacteristicValue): Promise<void> {
     if (this.HumidifierDehumidifier.Active === this.hap.Characteristic.Active.ACTIVE) {
-      await this.infoLog(`Set RelativeHumidityHumidifierThreshold: ${value}`)
+      this.infoLog(`Set RelativeHumidityHumidifierThreshold: ${value}`)
     } else {
-      await this.debugLog(`No Changes, RelativeHumidityHumidifierThreshold: ${value}`)
+      this.debugLog(`No Changes, RelativeHumidityHumidifierThreshold: ${value}`)
     }
     // If the Humidifier is off, turn it on
     if (this.HumidifierDehumidifier.Active === this.hap.Characteristic.Active.INACTIVE) {
@@ -632,15 +632,15 @@ export class Humidifier extends deviceBase {
 
   async BLEPushConnection() {
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
-      await this.warnLog('Using OpenAPI Connection to Push Changes')
+      this.warnLog('Using OpenAPI Connection to Push Changes')
       await this.openAPIpushChanges()
     }
   }
 
   async BLERefreshConnection(switchbot: any): Promise<void> {
-    await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
+    this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
-      await this.warnLog('Using OpenAPI Connection to Refresh Status')
+      this.warnLog('Using OpenAPI Connection to Refresh Status')
       await this.openAPIRefreshStatus()
     }
   }

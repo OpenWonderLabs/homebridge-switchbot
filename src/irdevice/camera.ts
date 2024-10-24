@@ -47,7 +47,7 @@ export class Camera extends irdeviceBase {
   }
 
   async OnSet(value: CharacteristicValue): Promise<void> {
-    await this.debugLog(`On: ${value}`)
+    this.debugLog(`On: ${value}`)
 
     this.Switch.On = value
     if (this.Switch.On) {
@@ -68,7 +68,7 @@ export class Camera extends irdeviceBase {
    * Camera -        "command"       "channelSub"      "default"          =        previous channel
    */
   async pushOnChanges(): Promise<void> {
-    await this.debugLog(`pushOnChanges On: ${this.Switch.On}, disablePushOn: ${this.disablePushOn}`)
+    this.debugLog(`pushOnChanges On: ${this.Switch.On}, disablePushOn: ${this.disablePushOn}`)
     if (this.Switch.On && !this.disablePushOn) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOn()
@@ -82,7 +82,7 @@ export class Camera extends irdeviceBase {
   }
 
   async pushOffChanges(): Promise<void> {
-    await this.debugLog(`pushOffChanges On: ${this.Switch.On}, disablePushOff: ${this.disablePushOff}`)
+    this.debugLog(`pushOffChanges On: ${this.Switch.On}, disablePushOff: ${this.disablePushOff}`)
     if (!this.Switch.On && !this.disablePushOff) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOff()
@@ -96,12 +96,12 @@ export class Camera extends irdeviceBase {
   }
 
   async pushChanges(bodyChange: any): Promise<void> {
-    await this.debugLog('pushChanges')
+    this.debugLog('pushChanges')
     if (this.device.connectionType === 'OpenAPI') {
-      await this.infoLog(`Sending request to SwitchBot API, body: ${JSON.stringify(bodyChange)}`)
+      this.infoLog(`Sending request to SwitchBot API, body: ${JSON.stringify(bodyChange)}`)
       try {
-        const { body } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body
+        const response = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = response.body
         await this.pushStatusCodes(deviceStatus)
         if (await this.successfulStatusCodes(deviceStatus)) {
           await this.successfulPushChange(deviceStatus, bodyChange)
@@ -114,12 +114,12 @@ export class Camera extends irdeviceBase {
         await this.pushChangeError(e)
       }
     } else {
-      await this.warnLog(`Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`)
+      this.warnLog(`Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`)
     }
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
-    await this.debugLog('updateHomeKitCharacteristics')
+    this.debugLog('updateHomeKitCharacteristics')
     // Active
     await this.updateCharacteristic(this.Switch.Service, this.hap.Characteristic.On, this.Switch.On, 'On')
   }

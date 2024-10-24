@@ -186,15 +186,15 @@ export class Contact extends deviceBase {
   }
 
   async BLEparseStatus(): Promise<void> {
-    await this.debugLog('BLEparseStatus')
+    this.debugLog('BLEparseStatus')
     // ContactSensorState
     this.ContactSensor.ContactSensorState = this.getContactSensorState(this.serviceData.doorState)
-    await this.debugLog(`ContactSensorState: ${this.ContactSensor.ContactSensorState}`)
+    this.debugLog(`ContactSensorState: ${this.ContactSensor.ContactSensorState}`)
 
     // MotionDetected
     if (!(this.device as contactConfig).hide_motionsensor && this.MotionSensor?.Service) {
       this.MotionSensor.MotionDetected = this.serviceData.movement
-      await this.debugLog(`MotionDetected: ${this.MotionSensor.MotionDetected}`)
+      this.debugLog(`MotionDetected: ${this.MotionSensor.MotionDetected}`)
     }
     // CurrentAmbientLightLevel
     if (!(this.device as contactConfig).hide_lightsensor && this.LightSensor?.Service) {
@@ -202,28 +202,28 @@ export class Contact extends deviceBase {
       const set_maxLux = (this.device as contactConfig).set_maxLux ?? 6001
       const lightLevel = this.serviceData.lightLevel === 'bright' ? set_maxLux : set_minLux
       this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
-      await this.debugLog(`LightLevel: ${this.serviceData.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
+      this.debugLog(`LightLevel: ${this.serviceData.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
     }
     // BatteryLevel
     this.Battery.BatteryLevel = this.serviceData.battery
-    await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
+    this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
     // StatusLowBattery
     this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
       ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
       : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
-    await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
+    this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
   }
 
   async openAPIparseStatus(): Promise<void> {
-    await this.debugLog('openAPIparseStatus')
+    this.debugLog('openAPIparseStatus')
     // Contact State
     this.ContactSensor.ContactSensorState = this.getContactSensorState(this.deviceStatus.openState)
-    await this.debugLog(`ContactSensorState: ${this.ContactSensor.ContactSensorState}`)
+    this.debugLog(`ContactSensorState: ${this.ContactSensor.ContactSensorState}`)
 
     // MotionDetected
     if (!(this.device as contactConfig).hide_motionsensor && this.MotionSensor?.Service) {
       this.MotionSensor.MotionDetected = this.deviceStatus.moveDetected
-      await this.debugLog(`MotionDetected: ${this.MotionSensor.MotionDetected}`)
+      this.debugLog(`MotionDetected: ${this.MotionSensor.MotionDetected}`)
     }
     // Light Level
     if (!(this.device as contactConfig).hide_lightsensor && this.LightSensor?.Service) {
@@ -231,20 +231,20 @@ export class Contact extends deviceBase {
       const set_maxLux = (this.device as contactConfig).set_maxLux ?? 6001
       const lightLevel = this.deviceStatus.brightness === 'bright' ? set_maxLux : set_minLux
       this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
-      await this.debugLog(`LightLevel: ${this.deviceStatus.brightness}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
+      this.debugLog(`LightLevel: ${this.deviceStatus.brightness}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
     }
     // BatteryLevel
     this.Battery.BatteryLevel = this.deviceStatus.battery
-    await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
+    this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
     // StatusLowBattery
     this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
       ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
       : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
-    await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
+    this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
     // FirmwareVersion
     if (this.deviceStatus.version) {
       const version = this.deviceStatus.version.toString()
-      await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`)
+      this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`)
       const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0'
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
@@ -253,27 +253,27 @@ export class Contact extends deviceBase {
         .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
         .updateValue(deviceVersion)
       this.accessory.context.version = deviceVersion
-      await this.debugLog(`version: ${this.accessory.context.version}`)
+      this.debugLog(`version: ${this.accessory.context.version}`)
     }
   }
 
   async parseStatusWebhook(): Promise<void> {
-    await this.debugLog('parseStatusWebhook')
-    await this.debugLog(`(detectionState, brightness, openState) = Webhook:(${this.webhookContext.detectionState}, ${this.webhookContext.brightness}, ${this.webhookContext.openState}), current:(${this.MotionSensor?.MotionDetected}, ${this.LightSensor?.CurrentAmbientLightLevel}, ${this.ContactSensor.ContactSensorState})`)
+    this.debugLog('parseStatusWebhook')
+    this.debugLog(`(detectionState, brightness, openState) = Webhook:(${this.webhookContext.detectionState}, ${this.webhookContext.brightness}, ${this.webhookContext.openState}), current:(${this.MotionSensor?.MotionDetected}, ${this.LightSensor?.CurrentAmbientLightLevel}, ${this.ContactSensor.ContactSensorState})`)
     // ContactSensorState
     this.ContactSensor.ContactSensorState = this.getContactSensorState(this.webhookContext.openState)
-    await this.debugLog(`ContactSensorState: ${this.ContactSensor.ContactSensorState}`)
+    this.debugLog(`ContactSensorState: ${this.ContactSensor.ContactSensorState}`)
     if (!(this.device as contactConfig).hide_motionsensor && this.MotionSensor?.Service) {
       // MotionDetected
       this.MotionSensor.MotionDetected = this.webhookContext.detectionState === 'DETECTED'
-      await this.debugLog(`MotionDetected: ${this.MotionSensor.MotionDetected}`)
+      this.debugLog(`MotionDetected: ${this.MotionSensor.MotionDetected}`)
     }
     if (!(this.device as contactConfig).hide_lightsensor && this.LightSensor?.Service) {
       const set_minLux = (this.device as contactConfig).set_minLux ?? 1
       const set_maxLux = (this.device as contactConfig).set_maxLux ?? 6001
       const lightLevel = this.webhookContext.brightness === 'bright' ? set_maxLux : set_minLux
       this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
-      await this.debugLog(`LightLevel: ${this.webhookContext.brightness}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
+      this.debugLog(`LightLevel: ${this.webhookContext.brightness}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
     }
   }
 
@@ -282,19 +282,19 @@ export class Contact extends deviceBase {
    */
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
-      await this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`)
+      this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`)
     } else if (this.BLE) {
       await this.BLERefreshStatus()
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus()
     } else {
       await this.offlineOff()
-      await this.debugWarnLog(`Connection Type: ${this.device.connectionType}, refreshStatus will not happen.`)
+      this.debugWarnLog(`Connection Type: ${this.device.connectionType}, refreshStatus will not happen.`)
     }
   }
 
   async BLERefreshStatus(): Promise<void> {
-    await this.debugLog('BLERefreshStatus')
+    this.debugLog('BLERefreshStatus')
     const switchBotBLE = await this.switchbotBLE()
     if (switchBotBLE === undefined) {
       await this.BLERefreshConnection(switchBotBLE)
@@ -309,7 +309,7 @@ export class Contact extends deviceBase {
           await this.BLEparseStatus()
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.errorLog(`failed to get serviceData, serviceData: ${JSON.stringify(serviceData)}`)
+          this.errorLog(`failed to get serviceData, serviceData: ${JSON.stringify(serviceData)}`)
           await this.BLERefreshConnection(switchBotBLE)
         }
       })()
@@ -317,67 +317,67 @@ export class Contact extends deviceBase {
   }
 
   async registerPlatformBLE(): Promise<void> {
-    await this.debugLog('registerPlatformBLE')
+    this.debugLog('registerPlatformBLE')
     if (this.config.options?.BLE) {
-      await this.debugLog('is listening to Platform BLE.')
+      this.debugLog('is listening to Platform BLE.')
       try {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
-        await this.debugLog(`bleMac: ${this.device.bleMac}`)
+        this.debugLog(`bleMac: ${this.device.bleMac}`)
         this.platform.bleEventHandler[this.device.bleMac] = async (context: contactSensorServiceData) => {
           try {
-            await this.debugLog(`received BLE: ${JSON.stringify(context)}`)
+            this.debugLog(`received BLE: ${JSON.stringify(context)}`)
             this.serviceData = context
             await this.BLEparseStatus()
             await this.updateHomeKitCharacteristics()
           } catch (e: any) {
-            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
+            this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
           }
         }
       } catch (error) {
-        await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
+        this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
-      await this.debugLog('is not listening to Platform BLE')
+      this.debugLog('is not listening to Platform BLE')
     }
   }
 
   async openAPIRefreshStatus(): Promise<void> {
-    await this.debugLog('openAPIRefreshStatus')
+    this.debugLog('openAPIRefreshStatus')
     try {
-      const { body } = await this.deviceRefreshStatus()
-      const deviceStatus: any = await body
-      await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+      const response = await this.deviceRefreshStatus()
+      const deviceStatus: any = response.body
+      this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
       if (await this.successfulStatusCodes(deviceStatus)) {
-        await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         this.deviceStatus = deviceStatus.body
         await this.openAPIparseStatus()
         await this.updateHomeKitCharacteristics()
       } else {
-        await this.debugWarnLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        await this.debugWarnLog(deviceStatus)
+        this.debugWarnLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        this.debugWarnLog(deviceStatus)
       }
     } catch (e: any) {
       await this.apiError(e)
-      await this.errorLog(`failed openAPIRefreshStatus with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+      this.errorLog(`failed openAPIRefreshStatus with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
     }
   }
 
   async registerWebhook() {
     if (this.device.webhook) {
-      await this.debugLog('is listening webhook.')
+      this.debugLog('is listening webhook.')
       this.platform.webhookEventHandler[this.device.deviceId] = async (context: contactSensorWebhookContext) => {
         try {
-          await this.debugLog(`received Webhook: ${JSON.stringify(context)}`)
+          this.debugLog(`received Webhook: ${JSON.stringify(context)}`)
           this.webhookContext = context
           await this.parseStatusWebhook()
           await this.updateHomeKitCharacteristics()
         } catch (e: any) {
-          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
+          this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
         }
       }
     } else {
-      await this.debugLog('is not listening webhook.')
+      this.debugLog('is not listening webhook.')
     }
   }
 
@@ -402,9 +402,9 @@ export class Contact extends deviceBase {
   }
 
   async BLERefreshConnection(switchbot: any): Promise<void> {
-    await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
+    this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
-      await this.warnLog('Using OpenAPI Connection to Refresh Status')
+      this.warnLog('Using OpenAPI Connection to Refresh Status')
       await this.openAPIRefreshStatus()
     }
   }

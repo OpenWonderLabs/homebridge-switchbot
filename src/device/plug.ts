@@ -111,33 +111,33 @@ export class Plug extends deviceBase {
           await this.pushChanges()
         } catch (e: any) {
           await this.apiError(e)
-          await this.errorLog(`failed pushChanges with ${device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+          this.errorLog(`failed pushChanges with ${device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
         }
         this.plugUpdateInProgress = false
       })
   }
 
   async BLEparseStatus(): Promise<void> {
-    await this.debugLog('BLEparseStatus')
-    await this.debugLog(`(powerState) = BLE: (${this.serviceData.state}), current:(${this.Outlet.On})`)
+    this.debugLog('BLEparseStatus')
+    this.debugLog(`(powerState) = BLE: (${this.serviceData.state}), current:(${this.Outlet.On})`)
 
     // On
     this.Outlet.On = this.serviceData.state === 'on'
-    await this.debugLog(`On: ${this.Outlet.On}`)
+    this.debugLog(`On: ${this.Outlet.On}`)
   }
 
   async openAPIparseStatus() {
-    await this.debugLog('openAPIparseStatus')
-    await this.debugLog(`(powerState) = OpenAPI: (${this.deviceStatus.power}), current:(${this.Outlet.On})`)
+    this.debugLog('openAPIparseStatus')
+    this.debugLog(`(powerState) = OpenAPI: (${this.deviceStatus.power}), current:(${this.Outlet.On})`)
 
     // On
     this.Outlet.On = this.deviceStatus.power === 'on'
-    await this.debugLog(`On: ${this.Outlet.On}`)
+    this.debugLog(`On: ${this.Outlet.On}`)
 
     // Firmware Version
     if (this.deviceStatus.version) {
       const version = this.deviceStatus.version.toString()
-      await this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`)
+      this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`)
       const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0'
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
@@ -146,17 +146,17 @@ export class Plug extends deviceBase {
         .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
         .updateValue(deviceVersion)
       this.accessory.context.version = deviceVersion
-      await this.debugSuccessLog(`version: ${this.accessory.context.version}`)
+      this.debugSuccessLog(`version: ${this.accessory.context.version}`)
     }
   }
 
   async parseStatusWebhook(): Promise<void> {
-    await this.debugLog('parseStatusWebhook')
-    await this.debugLog(`(powerState) = Webhook: (${this.webhookContext.powerState}), current:(${this.Outlet.On})`)
+    this.debugLog('parseStatusWebhook')
+    this.debugLog(`(powerState) = Webhook: (${this.webhookContext.powerState}), current:(${this.Outlet.On})`)
 
     // On
     this.Outlet.On = this.webhookContext.powerState === 'ON'
-    await this.debugLog(`On: ${this.Outlet.On}`)
+    this.debugLog(`On: ${this.Outlet.On}`)
   }
 
   /**
@@ -164,19 +164,19 @@ export class Plug extends deviceBase {
    */
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
-      await this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`)
+      this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`)
     } else if (this.BLE) {
       await this.BLERefreshStatus()
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus()
     } else {
       await this.offlineOff()
-      await this.debugWarnLog(`Connection Type: ${this.device.connectionType}, refreshStatus will not happen.`)
+      this.debugWarnLog(`Connection Type: ${this.device.connectionType}, refreshStatus will not happen.`)
     }
   }
 
   async BLERefreshStatus(): Promise<void> {
-    await this.debugLog('BLERefreshStatus')
+    this.debugLog('BLERefreshStatus')
     const switchBotBLE = await this.switchbotBLE()
     if (switchBotBLE === undefined) {
       await this.BLERefreshConnection(switchBotBLE)
@@ -192,7 +192,7 @@ export class Plug extends deviceBase {
           await this.BLEparseStatus()
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.errorLog(`failed to get serviceData, serviceData: ${JSON.stringify(serviceData)}`)
+          this.errorLog(`failed to get serviceData, serviceData: ${JSON.stringify(serviceData)}`)
           await this.BLERefreshConnection(switchBotBLE)
         }
       })()
@@ -200,67 +200,67 @@ export class Plug extends deviceBase {
   }
 
   async registerPlatformBLE(): Promise<void> {
-    await this.debugLog('registerPlatformBLE')
+    this.debugLog('registerPlatformBLE')
     if (this.config.options?.BLE) {
-      await this.debugLog('is listening to Platform BLE.')
+      this.debugLog('is listening to Platform BLE.')
       try {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
-        await this.debugLog(`bleMac: ${this.device.bleMac}`)
+        this.debugLog(`bleMac: ${this.device.bleMac}`)
         this.platform.bleEventHandler[this.device.bleMac] = async (context: plugMiniUSServiceData | plugMiniJPServiceData) => {
           try {
-            await this.debugLog(`received BLE: ${JSON.stringify(context)}`)
+            this.debugLog(`received BLE: ${JSON.stringify(context)}`)
             this.serviceData = context
             await this.BLEparseStatus()
             await this.updateHomeKitCharacteristics()
           } catch (e: any) {
-            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
+            this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
           }
         }
       } catch (error) {
-        await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
+        this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
-      await this.debugLog('is not listening to Platform BLE')
+      this.debugLog('is not listening to Platform BLE')
     }
   }
 
   async openAPIRefreshStatus(): Promise<void> {
-    await this.debugLog('openAPIRefreshStatus')
+    this.debugLog('openAPIRefreshStatus')
     try {
-      const { body } = await this.deviceRefreshStatus()
-      const deviceStatus: any = await body
-      await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+      const response = await this.deviceRefreshStatus()
+      const deviceStatus: any = response.body
+      this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
       if (await this.successfulStatusCodes(deviceStatus)) {
-        await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         this.deviceStatus = deviceStatus.body
         await this.openAPIparseStatus()
         await this.updateHomeKitCharacteristics()
       } else {
-        await this.debugWarnLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        await this.debugWarnLog(deviceStatus)
+        this.debugWarnLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        this.debugWarnLog(deviceStatus)
       }
     } catch (e: any) {
       await this.apiError(e)
-      await this.errorLog(`failed openAPIRefreshStatus with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+      this.errorLog(`failed openAPIRefreshStatus with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
     }
   }
 
   async registerWebhook() {
     if (this.device.webhook) {
-      await this.debugLog('is listening webhook.')
+      this.debugLog('is listening webhook.')
       this.platform.webhookEventHandler[this.device.deviceId] = async (context: plugWebhookContext | plugMiniUSWebhookContext | plugMiniJPWebhookContext) => {
         try {
-          await this.debugLog(`received Webhook: ${JSON.stringify(context)}`)
+          this.debugLog(`received Webhook: ${JSON.stringify(context)}`)
           this.webhookContext = context
           await this.parseStatusWebhook()
           await this.updateHomeKitCharacteristics()
         } catch (e: any) {
-          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
+          this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
         }
       }
     } else {
-      await this.debugLog('is not listening webhook.')
+      this.debugLog('is not listening webhook.')
     }
   }
 
@@ -276,14 +276,14 @@ export class Plug extends deviceBase {
 
   async pushChanges(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
-      await this.errorLog(`pushChanges enableCloudService: ${this.device.enableCloudService}`)
+      this.errorLog(`pushChanges enableCloudService: ${this.device.enableCloudService}`)
     } else if (this.BLE) {
       await this.BLEpushChanges()
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges()
     } else {
       await this.offlineOff()
-      await this.debugWarnLog(`Connection Type: ${this.device.connectionType}, pushChanges will not happen.`)
+      this.debugWarnLog(`Connection Type: ${this.device.connectionType}, pushChanges will not happen.`)
     }
     // Refresh the status from the API
     interval(15000)
@@ -295,22 +295,22 @@ export class Plug extends deviceBase {
   }
 
   async BLEpushChanges(): Promise<void> {
-    await this.debugLog('BLEpushChanges')
+    this.debugLog('BLEpushChanges')
     if (this.Outlet.On !== this.accessory.context.On) {
-      await this.debugLog(`BLEpushChanges On: ${this.Outlet.On}, OnCached: ${this.accessory.context.On}`)
+      this.debugLog(`BLEpushChanges On: ${this.Outlet.On}, OnCached: ${this.accessory.context.On}`)
       const switchBotBLE = await this.platform.connectBLE(this.accessory, this.device)
       try {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
-        await this.debugLog(`bleMac: ${this.device.bleMac}`)
+        this.debugLog(`bleMac: ${this.device.bleMac}`)
         if (switchBotBLE !== false) {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
               const deviceList = device_list as unknown as WoPlugMini[]
-              await this.infoLog(`On: ${this.Outlet.On}`)
+              this.infoLog(`On: ${this.Outlet.On}`)
               return await this.retryBLE({
-                max: await this.maxRetryBLE(),
+                max: this.maxRetryBLE(),
                 fn: async () => {
                   if (this.Outlet.On) {
                     return await deviceList[0].turnOn()
@@ -321,28 +321,28 @@ export class Plug extends deviceBase {
               })
             })
             .then(async () => {
-              await this.successLog(`On: ${this.Outlet.On} sent over SwitchBot BLE,  sent successfully`)
+              this.successLog(`On: ${this.Outlet.On} sent over SwitchBot BLE,  sent successfully`)
               await this.updateHomeKitCharacteristics()
             })
             .catch(async (e: any) => {
               await this.apiError(e)
-              await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+              this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
               await this.BLEPushConnection()
             })
         } else {
-          await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(switchBotBLE)}`)
+          this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(switchBotBLE)}`)
           await this.BLEPushConnection()
         }
       } catch (error) {
-        await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
+        this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
-      await this.debugLog(`No changes (BLEpushChanges), On: ${this.Outlet.On}, OnCached: ${this.accessory.context.On}`)
+      this.debugLog(`No changes (BLEpushChanges), On: ${this.Outlet.On}, OnCached: ${this.accessory.context.On}`)
     }
   }
 
   async openAPIpushChanges() {
-    await this.debugLog('openAPIpushChanges')
+    this.debugLog('openAPIpushChanges')
     if (this.Outlet.On !== this.accessory.context.On) {
       const command = this.Outlet.On ? 'turnOn' : 'turnOff'
       const bodyChange: bodyChange = {
@@ -350,23 +350,23 @@ export class Plug extends deviceBase {
         parameter: 'default',
         commandType: 'command',
       }
-      await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
+      this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const { body } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body
-        await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        const response = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = response.body
+        this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         if (await this.successfulStatusCodes(deviceStatus)) {
-          await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+          this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
           await this.updateHomeKitCharacteristics()
         } else {
           await this.statusCode(deviceStatus.statusCode)
         }
       } catch (e: any) {
         await this.apiError(e)
-        await this.errorLog(`failed openAPIpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+        this.errorLog(`failed openAPIpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
       }
     } else {
-      await this.debugLog(`No changes (openAPIpushChanges), On: ${this.Outlet.On}, OnCached: ${this.accessory.context.On}`)
+      this.debugLog(`No changes (openAPIpushChanges), On: ${this.Outlet.On}, OnCached: ${this.accessory.context.On}`)
     }
   }
 
@@ -375,9 +375,9 @@ export class Plug extends deviceBase {
    */
   async OnSet(value: CharacteristicValue): Promise<void> {
     if (this.Outlet.On !== this.accessory.context.On) {
-      await this.infoLog(`Set On: ${value}`)
+      this.infoLog(`Set On: ${value}`)
     } else {
-      await this.debugLog(`No Changes, On: ${value}`)
+      this.debugLog(`No Changes, On: ${value}`)
     }
 
     this.Outlet.On = value
@@ -391,15 +391,15 @@ export class Plug extends deviceBase {
 
   async BLEPushConnection() {
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
-      await this.warnLog('Using OpenAPI Connection to Push Changes')
+      this.warnLog('Using OpenAPI Connection to Push Changes')
       await this.openAPIpushChanges()
     }
   }
 
   async BLERefreshConnection(switchbot: any): Promise<void> {
-    await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
+    this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
-      await this.warnLog('Using OpenAPI Connection to Refresh Status')
+      this.warnLog('Using OpenAPI Connection to Refresh Status')
       await this.openAPIRefreshStatus()
     }
   }

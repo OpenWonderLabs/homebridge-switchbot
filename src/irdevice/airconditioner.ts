@@ -158,7 +158,7 @@ export class AirConditioner extends irdeviceBase {
    * AirConditioner:        "command"       "highSpeed"        "default"                   =        fan speed to high
    */
   async pushAirConditionerOnChanges(): Promise<void> {
-    await this.debugLog(`pushAirConditionerOnChanges Active: ${this.HeaterCooler.Active}, disablePushOn: ${this.disablePushOn}`)
+    this.debugLog(`pushAirConditionerOnChanges Active: ${this.HeaterCooler.Active}, disablePushOn: ${this.disablePushOn}`)
     if (this.HeaterCooler.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOn()
@@ -172,7 +172,7 @@ export class AirConditioner extends irdeviceBase {
   }
 
   async pushAirConditionerOffChanges(): Promise<void> {
-    await this.debugLog(`pushAirConditionerOffChanges Active: ${this.HeaterCooler.Active}, disablePushOff: ${this.disablePushOff}`)
+    this.debugLog(`pushAirConditionerOffChanges Active: ${this.HeaterCooler.Active}, disablePushOff: ${this.disablePushOff}`)
     if (this.HeaterCooler.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOff) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOff()
@@ -186,7 +186,7 @@ export class AirConditioner extends irdeviceBase {
   }
 
   async pushAirConditionerStatusChanges(): Promise<void> {
-    await this.debugLog(`pushAirConditionerStatusChanges Active: ${this.HeaterCooler.Active}, disablePushOff: ${this.disablePushOff},  disablePushOn: ${this.disablePushOn}`)
+    this.debugLog(`pushAirConditionerStatusChanges Active: ${this.HeaterCooler.Active}, disablePushOff: ${this.disablePushOff},  disablePushOn: ${this.disablePushOn}`)
     if (!this.Busy) {
       this.Busy = true
       this.HeaterCooler.CurrentHeaterCoolerState = this.hap.Characteristic.CurrentHeaterCoolerState.IDLE
@@ -198,7 +198,7 @@ export class AirConditioner extends irdeviceBase {
   }
 
   async pushAirConditionerDetailsChanges(): Promise<void> {
-    await this.debugLog(`pushAirConditionerDetailsChanges Active: ${this.HeaterCooler.Active}, disablePushOff: ${this.disablePushOff},  disablePushOn: ${this.disablePushOn}`)
+    this.debugLog(`pushAirConditionerDetailsChanges Active: ${this.HeaterCooler.Active}, disablePushOff: ${this.disablePushOff},  disablePushOn: ${this.disablePushOn}`)
     // await this.deviceContext();
     if (this.CurrentMode === undefined) {
       this.CurrentMode = 1
@@ -214,7 +214,7 @@ export class AirConditioner extends irdeviceBase {
     if (this.CurrentMode === 1) {
       // Remove or make configurable?
       this.HeaterCooler.ThresholdTemperature = 25
-      await this.debugLog(`CurrentMode: ${this.CurrentMode}, ThresholdTemperature: ${this.HeaterCooler.ThresholdTemperature}`)
+      this.debugLog(`CurrentMode: ${this.CurrentMode}, ThresholdTemperature: ${this.HeaterCooler.ThresholdTemperature}`)
     }
     const parameter = `${this.HeaterCooler.ThresholdTemperature},${this.CurrentMode},${this.CurrentFanSpeed},${this.state}`
 
@@ -312,12 +312,12 @@ export class AirConditioner extends irdeviceBase {
   }
 
   async pushChanges(bodyChange: any): Promise<void> {
-    await this.debugLog('pushChanges')
+    this.debugLog('pushChanges')
     if (this.device.connectionType === 'OpenAPI' && !this.disablePushDetail) {
-      await this.infoLog(`Sending request to SwitchBot API, body: ${JSON.stringify(bodyChange)}`)
+      this.infoLog(`Sending request to SwitchBot API, body: ${JSON.stringify(bodyChange)}`)
       try {
-        const { body } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body
+        const response = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = response.body
         await this.pushStatusCodes(deviceStatus)
         if (await this.successfulStatusCodes(deviceStatus)) {
           await this.successfulPushChange(deviceStatus, bodyChange)
@@ -330,8 +330,8 @@ export class AirConditioner extends irdeviceBase {
         await this.pushChangeError(e)
       }
     } else {
-      await this.warnLog(`Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`)
-      await this.debugLog(`Connection Type: ${this.device.connectionType}, disablePushDetails: ${this.disablePushDetail}`)
+      this.warnLog(`Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`)
+      this.debugLog(`Connection Type: ${this.device.connectionType}, disablePushDetails: ${this.disablePushDetail}`)
       await this.updateHomeKitCharacteristics()
     }
   }
@@ -339,22 +339,22 @@ export class AirConditioner extends irdeviceBase {
   async CurrentTemperatureGet(): Promise<CharacteristicValue> {
     if (this.meter?.context?.CurrentTemperature) {
       this.accessory.context.CurrentTemperature = this.meter.context.CurrentTemperature
-      await this.debugLog(`Using CurrentTemperature from ${this.meter.context.deviceType} (${this.meter.context.deviceId})`)
+      this.debugLog(`Using CurrentTemperature from ${this.meter.context.deviceType} (${this.meter.context.deviceId})`)
     }
 
     this.HeaterCooler.CurrentTemperature = this.accessory.context.CurrentTemperature || 24
-    await this.debugLog(`Get CurrentTemperature: ${this.HeaterCooler.CurrentTemperature}`)
+    this.debugLog(`Get CurrentTemperature: ${this.HeaterCooler.CurrentTemperature}`)
     return this.HeaterCooler.CurrentTemperature
   }
 
   async CurrentRelativeHumidityGet(): Promise<CharacteristicValue> {
     if (this.meter?.context?.CurrentRelativeHumidity) {
       this.accessory.context.CurrentRelativeHumidity = this.meter.context.CurrentRelativeHumidity
-      await this.debugLog(`Using CurrentRelativeHumidity from ${this.meter.context.deviceType} (${this.meter.context.deviceId})`)
+      this.debugLog(`Using CurrentRelativeHumidity from ${this.meter.context.deviceType} (${this.meter.context.deviceId})`)
     }
 
     this.HumiditySensor!.CurrentRelativeHumidity = this.accessory.context.CurrentRelativeHumidity || 0
-    await this.debugLog(`Get CurrentRelativeHumidity: ${this.HumiditySensor!.CurrentRelativeHumidity}`)
+    this.debugLog(`Get CurrentRelativeHumidity: ${this.HumiditySensor!.CurrentRelativeHumidity}`)
     return this.HumiditySensor!.CurrentRelativeHumidity as CharacteristicValue
   }
 
@@ -364,7 +364,7 @@ export class AirConditioner extends irdeviceBase {
     } else {
       this.HeaterCooler.RotationSpeed = this.CurrentFanSpeed - 1
     }
-    await this.debugLog(`Get RotationSpeed: ${this.HeaterCooler.RotationSpeed}`)
+    this.debugLog(`Get RotationSpeed: ${this.HeaterCooler.RotationSpeed}`)
     return this.HeaterCooler.RotationSpeed
   }
 
@@ -375,23 +375,23 @@ export class AirConditioner extends irdeviceBase {
       this.CurrentFanSpeed = Number(value) + 1
     }
     this.HeaterCooler.RotationSpeed = value
-    await this.debugLog(`Set RotationSpeed: ${this.HeaterCooler.RotationSpeed}, CurrentFanSpeed: ${this.CurrentFanSpeed}`)
+    this.debugLog(`Set RotationSpeed: ${this.HeaterCooler.RotationSpeed}, CurrentFanSpeed: ${this.CurrentFanSpeed}`)
     this.pushAirConditionerStatusChanges()
   }
 
   async ActiveSet(value: CharacteristicValue): Promise<void> {
-    await this.debugLog(`Set Active: ${value}`)
+    this.debugLog(`Set Active: ${value}`)
 
     this.HeaterCooler.Active = value
     if (this.HeaterCooler.Active === this.hap.Characteristic.Active.ACTIVE) {
-      await this.debugLog(`pushAirConditionerOnChanges, Active: ${this.HeaterCooler.Active}`)
+      this.debugLog(`pushAirConditionerOnChanges, Active: ${this.HeaterCooler.Active}`)
       if (this.disablePushOn) {
         this.pushAirConditionerStatusChanges()
       } else {
         this.pushAirConditionerOnChanges()
       }
     } else {
-      await this.debugLog(`pushAirConditionerOffChanges, Active: ${this.HeaterCooler.Active}`)
+      this.debugLog(`pushAirConditionerOffChanges, Active: ${this.HeaterCooler.Active}`)
       this.pushAirConditionerOffChanges()
     }
   }
@@ -399,7 +399,7 @@ export class AirConditioner extends irdeviceBase {
   async TargetHeaterCoolerStateGet(): Promise<CharacteristicValue> {
     const targetState = this.HeaterCooler.TargetHeaterCoolerState || this.accessory.context.TargetHeaterCoolerState
     this.HeaterCooler.TargetHeaterCoolerState = this.ValidValues.includes(targetState) ? targetState : this.ValidValues[0]
-    await this.debugLog(`Get (${this.getTargetHeaterCoolerStateName()}) TargetHeaterCoolerState: ${this.HeaterCooler.TargetHeaterCoolerState}, ValidValues: ${this.ValidValues},  hide_automode: ${this.hide_automode}`)
+    this.debugLog(`Get (${this.getTargetHeaterCoolerStateName()}) TargetHeaterCoolerState: ${this.HeaterCooler.TargetHeaterCoolerState}, ValidValues: ${this.ValidValues},  hide_automode: ${this.hide_automode}`)
     return this.HeaterCooler.TargetHeaterCoolerState
   }
 
@@ -419,27 +419,27 @@ export class AirConditioner extends irdeviceBase {
   async TargetHeaterCoolerStateAUTO(): Promise<void> {
     this.HeaterCooler.TargetHeaterCoolerState = this.hap.Characteristic.TargetHeaterCoolerState.AUTO
     this.CurrentMode = 1
-    await this.debugLog(`Set (AUTO) TargetHeaterCoolerState: ${this.HeaterCooler.TargetHeaterCoolerState}`)
-    await this.debugLog(`Switchbot CurrentMode: ${this.CurrentMode}`)
+    this.debugLog(`Set (AUTO) TargetHeaterCoolerState: ${this.HeaterCooler.TargetHeaterCoolerState}`)
+    this.debugLog(`Switchbot CurrentMode: ${this.CurrentMode}`)
   }
 
   async TargetHeaterCoolerStateCOOL(): Promise<void> {
     this.HeaterCooler.TargetHeaterCoolerState = this.hap.Characteristic.TargetHeaterCoolerState.COOL
     this.CurrentMode = 2
-    await this.debugLog(`Set (COOL) TargetHeaterCoolerState: ${this.HeaterCooler.TargetHeaterCoolerState}`)
-    await this.debugLog(`Switchbot CurrentMode: ${this.CurrentMode}`)
+    this.debugLog(`Set (COOL) TargetHeaterCoolerState: ${this.HeaterCooler.TargetHeaterCoolerState}`)
+    this.debugLog(`Switchbot CurrentMode: ${this.CurrentMode}`)
   }
 
   async TargetHeaterCoolerStateHEAT(): Promise<void> {
     this.HeaterCooler.TargetHeaterCoolerState = this.hap.Characteristic.TargetHeaterCoolerState.HEAT
     this.CurrentMode = 5
-    await this.debugLog(`Set (HEAT) TargetHeaterCoolerState: ${this.HeaterCooler.TargetHeaterCoolerState}`)
-    await this.debugLog(`Switchbot CurrentMode: ${this.CurrentMode}`)
+    this.debugLog(`Set (HEAT) TargetHeaterCoolerState: ${this.HeaterCooler.TargetHeaterCoolerState}`)
+    this.debugLog(`Switchbot CurrentMode: ${this.CurrentMode}`)
   }
 
   async CurrentHeaterCoolerStateGet(): Promise<CharacteristicValue> {
     await this.UpdateCurrentHeaterCoolerState()
-    await this.debugLog(`Get (${this.getTargetHeaterCoolerStateName()}) CurrentHeaterCoolerState: ${this.HeaterCooler.CurrentHeaterCoolerState}`)
+    this.debugLog(`Get (${this.getTargetHeaterCoolerStateName()}) CurrentHeaterCoolerState: ${this.HeaterCooler.CurrentHeaterCoolerState}`)
 
     return this.HeaterCooler.CurrentHeaterCoolerState
   }
@@ -481,18 +481,18 @@ export class AirConditioner extends irdeviceBase {
         ? 0
         : this.HumiditySensor.CurrentRelativeHumidity ?? this.accessory.context.CurrentRelativeHumidity
     }
-    await this.debugLog(`Get ThresholdTemperature: ${this.HeaterCooler.ThresholdTemperature}`)
+    this.debugLog(`Get ThresholdTemperature: ${this.HeaterCooler.ThresholdTemperature}`)
     return this.HeaterCooler.ThresholdTemperature
   }
 
   async ThresholdTemperatureSet(value: CharacteristicValue): Promise<void> {
     this.HeaterCooler.ThresholdTemperature = value
-    await this.debugLog(`Set ThresholdTemperature: ${this.HeaterCooler.ThresholdTemperature}, ThresholdTemperatureCached: ${this.accessory.context.ThresholdTemperature}`)
+    this.debugLog(`Set ThresholdTemperature: ${this.HeaterCooler.ThresholdTemperature}, ThresholdTemperatureCached: ${this.accessory.context.ThresholdTemperature}`)
     this.pushAirConditionerStatusChanges()
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
-    await this.debugLog('updateHomeKitCharacteristics')
+    this.debugLog('updateHomeKitCharacteristics')
     // Active
     await this.updateCharacteristic(this.HeaterCooler.Service, this.hap.Characteristic.Active, this.HeaterCooler.Active, 'Active')
     // RotationSpeed

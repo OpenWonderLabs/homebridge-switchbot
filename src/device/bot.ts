@@ -263,7 +263,7 @@ export class Bot extends deviceBase {
           }
         } catch (e: any) {
           await this.apiError(e)
-          await this.errorLog(`failed pushChanges with ${device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+          this.errorLog(`failed pushChanges with ${device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
         }
         this.botUpdateInProgress = false
       })
@@ -273,47 +273,47 @@ export class Bot extends deviceBase {
    * Parse the device status from the SwitchBotBLE API
    */
   async BLEparseStatus(): Promise<void> {
-    await this.debugLog('BLEparseStatus')
-    await this.debugLog(`(power, battery, deviceMode) = BLE:(${this.serviceData.state}, ${this.serviceData.battery}, ${this.serviceData.mode}), current:(${this.accessory.context.On}, ${this.Battery.BatteryLevel}, ${this.botMode})`)
+    this.debugLog('BLEparseStatus')
+    this.debugLog(`(power, battery, deviceMode) = BLE:(${this.serviceData.state}, ${this.serviceData.battery}, ${this.serviceData.mode}), current:(${this.accessory.context.On}, ${this.Battery.BatteryLevel}, ${this.botMode})`)
 
     // BLEmode (true if Switch Mode) | (false if Press Mode)
     this.On = this.serviceData.mode ? this.serviceData.state : false
     const mode = this.serviceData.mode ? 'Switch' : 'Press'
-    await this.debugLog(`${mode} Mode, On: ${this.On}`)
+    this.debugLog(`${mode} Mode, On: ${this.On}`)
     this.accessory.context.On = this.On
 
     // BatteryLevel
     this.Battery.BatteryLevel = this.serviceData.battery
-    await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
+    this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
 
     // StatusLowBattery
     this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
       ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
       : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
-    await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
+    this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
   }
 
   /**
    * Parse the device status from the SwitchBot OpenAPI
    */
   async openAPIparseStatus(): Promise<void> {
-    await this.debugLog('openAPIparseStatus')
-    await this.debugLog(`(power, battery, deviceMode) = API:(${this.deviceStatus.power}, ${this.deviceStatus.battery}, ${this.botMode}), current:(${this.accessory.context.On}, ${this.Battery.BatteryLevel}, ${this.botMode})`)
+    this.debugLog('openAPIparseStatus')
+    this.debugLog(`(power, battery, deviceMode) = API:(${this.deviceStatus.power}, ${this.deviceStatus.battery}, ${this.botMode}), current:(${this.accessory.context.On}, ${this.Battery.BatteryLevel}, ${this.botMode})`)
 
     // On
     this.On = this.botMode === 'press' ? false : this.deviceStatus.power === 'on'
-    await this.debugLog(`On: ${this.On}`)
+    this.debugLog(`On: ${this.On}`)
     this.accessory.context.On = this.On
 
     // Battery Level
     this.Battery.BatteryLevel = this.deviceStatus.battery
-    await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
+    this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
 
     // StatusLowBattery
     this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
       ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
       : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
-    await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
+    this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
 
     // Firmware Version
     if (this.deviceStatus.version) {
@@ -327,31 +327,31 @@ export class Bot extends deviceBase {
         .getCharacteristic(this.hap.Characteristic.FirmwareRevision)
         .updateValue(deviceVersion)
       this.accessory.context.version = deviceVersion
-      await this.debugLog(`version: ${deviceVersion}`)
+      this.debugLog(`version: ${deviceVersion}`)
     }
   }
 
   async parseStatusWebhook(): Promise<void> {
-    await this.debugLog('parseStatusWebhook')
-    await this.debugLog(`(power, battery, deviceMode) = Webhook:(${this.webhookContext.power}, ${this.webhookContext.battery}, ${this.webhookContext.deviceMode}), current:(${this.On}, ${this.Battery.BatteryLevel}, ${this.botMode})`)
+    this.debugLog('parseStatusWebhook')
+    this.debugLog(`(power, battery, deviceMode) = Webhook:(${this.webhookContext.power}, ${this.webhookContext.battery}, ${this.webhookContext.deviceMode}), current:(${this.On}, ${this.Battery.BatteryLevel}, ${this.botMode})`)
 
     // On
     this.On = this.webhookContext.power === 'on'
-    await this.debugLog(`On: ${this.On}`)
+    this.debugLog(`On: ${this.On}`)
 
     // BatteryLevel
     this.Battery.BatteryLevel = this.webhookContext.battery
-    await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
+    this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
 
     // StatusLowBattery
     this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
       ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
       : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
-    await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
+    this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
 
     // Mode
     this.botMode = this.webhookContext.deviceMode
-    await this.debugLog(`Mode: ${this.botMode}`)
+    this.debugLog(`Mode: ${this.botMode}`)
   }
 
   /**
@@ -359,19 +359,19 @@ export class Bot extends deviceBase {
    */
   async refreshStatus(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
-      await this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`)
+      this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`)
     } else if (this.BLE) {
       await this.BLERefreshStatus()
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus()
     } else {
       await this.offlineOff()
-      await this.debugWarnLog(`Connection Type: ${this.device.connectionType}, refreshStatus will not happen.`)
+      this.debugWarnLog(`Connection Type: ${this.device.connectionType}, refreshStatus will not happen.`)
     }
   }
 
   async BLERefreshStatus(): Promise<void> {
-    await this.debugLog('BLERefreshStatus')
+    this.debugLog('BLERefreshStatus')
     const switchBotBLE = await this.switchbotBLE()
     if (switchBotBLE === undefined) {
       await this.BLERefreshConnection(switchBotBLE)
@@ -386,7 +386,7 @@ export class Bot extends deviceBase {
           await this.BLEparseStatus()
           await this.updateHomeKitCharacteristics()
         } else {
-          await this.errorLog(`failed to get serviceData, serviceData: ${JSON.stringify(serviceData)}`)
+          this.errorLog(`failed to get serviceData, serviceData: ${JSON.stringify(serviceData)}`)
           await this.BLERefreshConnection(switchBotBLE)
         }
       })()
@@ -394,67 +394,67 @@ export class Bot extends deviceBase {
   }
 
   async registerPlatformBLE(): Promise<void> {
-    await this.debugLog('registerPlatformBLE')
+    this.debugLog('registerPlatformBLE')
     if (this.config.options?.BLE) {
-      await this.debugLog('is listening to Platform BLE.')
+      this.debugLog('is listening to Platform BLE.')
       try {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
-        await this.debugLog(`bleMac: ${this.device.bleMac}`)
+        this.debugLog(`bleMac: ${this.device.bleMac}`)
         this.platform.bleEventHandler[this.device.bleMac] = async (context: botServiceData) => {
           try {
-            await this.debugLog(`received BLE: ${JSON.stringify(context)}`)
+            this.debugLog(`received BLE: ${JSON.stringify(context)}`)
             this.serviceData = context
             await this.BLEparseStatus()
             await this.updateHomeKitCharacteristics()
           } catch (e: any) {
-            await this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
+            this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
           }
         }
       } catch (error) {
-        await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
+        this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
-      await this.debugLog('is not listening to Platform BLE')
+      this.debugLog('is not listening to Platform BLE')
     }
   }
 
   async openAPIRefreshStatus(): Promise<void> {
-    await this.debugLog('openAPIRefreshStatus')
+    this.debugLog('openAPIRefreshStatus')
     try {
-      const { body } = await this.deviceRefreshStatus()
-      const deviceStatus: any = await body
-      await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+      const response = await this.deviceRefreshStatus()
+      const deviceStatus: any = response.body
+      this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
       if (await this.successfulStatusCodes(deviceStatus)) {
-        await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         this.deviceStatus = deviceStatus.body
         await this.openAPIparseStatus()
         await this.updateHomeKitCharacteristics()
       } else {
-        await this.debugWarnLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        await this.debugWarnLog(deviceStatus)
+        this.debugWarnLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        this.debugWarnLog(deviceStatus)
       }
     } catch (e: any) {
       await this.apiError(e)
-      await this.errorLog(`failed openAPIRefreshStatus with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+      this.errorLog(`failed openAPIRefreshStatus with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
     }
   }
 
   async registerWebhook() {
     if (this.device.webhook) {
-      await this.debugLog('is listening webhook.')
+      this.debugLog('is listening webhook.')
       this.platform.webhookEventHandler[this.device.deviceId] = async (context: botWebhookContext) => {
         try {
-          await this.debugLog(`received Webhook: ${JSON.stringify(context)}`)
+          this.debugLog(`received Webhook: ${JSON.stringify(context)}`)
           this.webhookContext = context
           await this.parseStatusWebhook()
           await this.updateHomeKitCharacteristics()
         } catch (e: any) {
-          await this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
+          this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
         }
       }
     } else {
-      await this.debugLog('is not listening webhook.')
+      this.debugLog('is not listening webhook.')
     }
   }
 
@@ -467,14 +467,14 @@ export class Bot extends deviceBase {
    */
   async pushChanges(): Promise<void> {
     if (!this.device.enableCloudService && this.OpenAPI) {
-      await this.errorLog(`pushChanges enableCloudService: ${this.device.enableCloudService}`)
+      this.errorLog(`pushChanges enableCloudService: ${this.device.enableCloudService}`)
     } else if (this.BLE) {
       await this.BLEpushChanges()
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges()
     } else {
       await this.offlineOff()
-      await this.debugWarnLog(`Connection Type: ${this.device.connectionType}, pushChanges will not happen.`)
+      this.debugWarnLog(`Connection Type: ${this.device.connectionType}, pushChanges will not happen.`)
     }
     // Refresh the status from the API
     interval(15000)
@@ -486,26 +486,26 @@ export class Bot extends deviceBase {
   }
 
   async BLEpushChanges(): Promise<void> {
-    await this.debugLog('BLEpushChanges')
+    this.debugLog('BLEpushChanges')
     if ((this.On !== this.accessory.context.On) || this.allowPush) {
-      await this.debugLog(`BLEpushChanges On: ${this.On} OnCached: ${this.accessory.context.On}`)
+      this.debugLog(`BLEpushChanges On: ${this.On} OnCached: ${this.accessory.context.On}`)
       const switchBotBLE = this.platform.switchBotBLE
       try {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
-        await this.debugLog(`bleMac: ${this.device.bleMac}`)
+        this.debugLog(`bleMac: ${this.device.bleMac}`)
         // if (switchBotBLE !== false) {
-        await this.debugLog(`Bot Mode: ${this.botMode}`)
+        this.debugLog(`Bot Mode: ${this.botMode}`)
         if (this.botMode === 'press') {
           switchBotBLE
             .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
               const deviceList = device_list as unknown as WoHand[]
-              await this.infoLog(`On: ${this.On}`)
+              this.infoLog(`On: ${this.On}`)
               return await deviceList[0].press()
             })
             .then(async () => {
-              await this.successLog(`On: ${this.On} sent over SwitchBot BLE,  sent successfully`)
+              this.successLog(`On: ${this.On} sent over SwitchBot BLE,  sent successfully`)
               await this.updateHomeKitCharacteristics()
               setTimeout(async () => {
                 this.On = false
@@ -515,7 +515,7 @@ export class Bot extends deviceBase {
             })
             .catch(async (e: any) => {
               await this.apiError(e)
-              await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+              this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
               await this.BLEPushConnection()
             })
         } else if (this.botMode === 'switch') {
@@ -526,7 +526,7 @@ export class Bot extends deviceBase {
               this.infoLog(`On: ${this.On}`)
               this.warnLog(`device_list: ${JSON.stringify(device_list)}`)
               return await this.retryBLE({
-                max: await this.maxRetryBLE(),
+                max: this.maxRetryBLE(),
                 fn: async () => {
                   if (deviceList.length > 0) {
                     if (this.On) {
@@ -541,38 +541,38 @@ export class Bot extends deviceBase {
               })
             })
             .then(async () => {
-              await this.successLog(`On: ${this.On} sent over SwitchBot BLE,  sent successfully`)
+              this.successLog(`On: ${this.On} sent over SwitchBot BLE,  sent successfully`)
               await this.updateHomeKitCharacteristics()
             })
             .catch(async (e: any) => {
               await this.apiError(e)
-              await this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+              this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
               await this.BLEPushConnection()
             })
         } else {
-          await this.errorLog(`Device Parameters not set for this Bot, please check the device configuration. Bot Mode: ${this.botMode}`)
+          this.errorLog(`Device Parameters not set for this Bot, please check the device configuration. Bot Mode: ${this.botMode}`)
         }
       } catch (error) {
-        await this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
+        this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
-      await this.debugLog(`No Changes (BLEpushChanges), On: ${this.On} OnCached: ${this.accessory.context.On}`)
+      this.debugLog(`No Changes (BLEpushChanges), On: ${this.On} OnCached: ${this.accessory.context.On}`)
     }
   }
 
   async openAPIpushChanges(): Promise<void> {
-    await this.debugLog('openAPIpushChanges')
+    this.debugLog('openAPIpushChanges')
     if (this.multiPressCount > 0) {
-      await this.debugLog(`${this.multiPressCount} request(s) queued.`)
+      this.debugLog(`${this.multiPressCount} request(s) queued.`)
     }
     if ((this.On !== this.accessory.context.On) || this.allowPush || this.multiPressCount > 0) {
       let command = ''
       if (this.botMode === 'switch') {
         command = this.On ? 'turnOn' : 'turnOff'
-        await this.debugLog(`Switch Mode, Command: ${command}`)
+        this.debugLog(`Switch Mode, Command: ${command}`)
       } else if (this.botMode === 'press' || this.botMode === 'multipress') {
         command = 'press'
-        await this.debugLog('Press Mode')
+        this.debugLog('Press Mode')
         this.On = false
       } else {
         throw new Error('Device Parameters not set for this Bot.')
@@ -582,13 +582,13 @@ export class Bot extends deviceBase {
         parameter: 'default',
         commandType: 'command',
       }
-      await this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
+      this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const { body } = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = await body
-        await this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        const response = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = response.body
+        this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         if (await this.successfulStatusCodes(deviceStatus)) {
-          await this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+          this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
           await this.updateHomeKitCharacteristics()
         } else {
           await this.statusCode(deviceStatus.statusCode)
@@ -596,17 +596,17 @@ export class Bot extends deviceBase {
         if ((this.device as botConfig).mode === 'multipress') {
           this.multiPressCount--
           if (this.multiPressCount > 0) {
-            await this.debugLog(`multiPressCount: ${this.multiPressCount}`)
+            this.debugLog(`multiPressCount: ${this.multiPressCount}`)
             this.On = true
             await this.openAPIpushChanges()
           }
         }
       } catch (e: any) {
         await this.apiError(e)
-        await this.errorLog(`failed openAPIpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+        this.errorLog(`failed openAPIpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
       }
     } else {
-      await this.debugLog(`No Changes (openAPIpushChanges), On: ${this.On} OnCached: ${this.accessory.context.On}`)
+      this.debugLog(`No Changes (openAPIpushChanges), On: ${this.On} OnCached: ${this.accessory.context.On}`)
     }
   }
 
@@ -642,27 +642,27 @@ export class Bot extends deviceBase {
    * Updates the status for each of the HomeKit Characteristics
    */
   async updateHomeKitCharacteristics(): Promise<void> {
-    await this.debugLog('updateHomeKitCharacteristics')
+    this.debugLog('updateHomeKitCharacteristics')
     // BatteryLevel
     if (this.Battery.BatteryLevel === undefined) {
-      await this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
+      this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
     } else {
       this.accessory.context.BatteryLevel = this.Battery.BatteryLevel
       this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, this.Battery.BatteryLevel)
-      await this.debugLog(`updateCharacteristic BatteryLevel: ${this.Battery.BatteryLevel}`)
+      this.debugLog(`updateCharacteristic BatteryLevel: ${this.Battery.BatteryLevel}`)
     }
     // StatusLowBattery
     if (this.Battery.StatusLowBattery === undefined) {
-      await this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
+      this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
     } else {
       this.accessory.context.StatusLowBattery = this.Battery.StatusLowBattery
       this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery)
-      await this.debugLog(`updateCharacteristic StatusLowBattery: ${this.Battery.StatusLowBattery}`)
+      this.debugLog(`updateCharacteristic StatusLowBattery: ${this.Battery.StatusLowBattery}`)
     }
     // State
     const updateCharacteristic = async (service: Service, characteristic: any, value: any, logMessage: string) => {
       service.updateCharacteristic(characteristic, value)
-      await this.debugLog(logMessage)
+      this.debugLog(logMessage)
     }
 
     const stateActions: { [key: string]: () => Promise<void> } = {
@@ -716,7 +716,7 @@ export class Bot extends deviceBase {
         }
       },
       outlet: async () => this.Outlet && await updateCharacteristic(this.Outlet.Service, this.hap.Characteristic.On, this.On, `updateCharacteristic On: ${this.On}`),
-      default: async () => await this.errorLog(`botDeviceType: ${this.botDeviceType}, On: ${this.On}`),
+      default: async () => this.errorLog(`botDeviceType: ${this.botDeviceType}, On: ${this.On}`),
     }
 
     const action = stateActions[this.botDeviceType] || stateActions.default
@@ -731,7 +731,7 @@ export class Bot extends deviceBase {
       Service: accessory.getService(this.hap.Service[serviceType]) as Service,
     }
     accessory.context[contextKey] = this[contextKey] as object
-    await this.debugWarnLog(`Removing any leftover ${contextKey} Service`)
+    this.debugWarnLog(`Removing any leftover ${contextKey} Service`)
     accessory.removeService(this[contextKey].Service)
   }
 
@@ -779,7 +779,7 @@ export class Bot extends deviceBase {
     // Bot Device Type
     this.botDeviceType = (device as botConfig).type ?? 'Outlet'
     const botDeviceType = (device as botConfig).type ? 'Device Config' : 'Default'
-    await this.debugWarnLog(`Use ${botDeviceType} Device Type: ${this.botDeviceType}`)
+    this.debugWarnLog(`Use ${botDeviceType} Device Type: ${this.botDeviceType}`)
     // Bot Mode
     this.botMode = (device as botConfig).mode ?? 'switch'
     if (!(device as botConfig).mode) {
@@ -794,42 +794,42 @@ export class Bot extends deviceBase {
     const botModeLog = (device as botConfig).mode
       ? `Using Bot Mode: ${this.botMode}`
       : `No Bot Mode Set, Using default Bot Mode: ${this.botMode}`
-    await this.debugWarnLog(botModeLog)
+    this.debugWarnLog(botModeLog)
     this.accessory.context.botMode = this.botMode
     // Bot Double Press
     this.doublePress = (device as botConfig).doublePress ?? 1
     const doublePress = (device as botConfig).doublePress
       ? `Using Double Press: ${this.doublePress}`
       : `No Double Press Set, Using default Double Press: ${this.doublePress}`
-    await this.debugWarnLog(doublePress)
+    this.debugWarnLog(doublePress)
     // Bot Press PushRate
     this.pushRatePress = (device as botConfig).pushRatePress ?? 15
     const pushRatePress = (device as botConfig).pushRatePress
       ? `Using Bot Push Rate Press: ${this.pushRatePress}`
       : `No Push Rate Press Set, Using default Push Rate Press: ${this.pushRatePress}`
-    await this.debugWarnLog(pushRatePress)
+    this.debugWarnLog(pushRatePress)
     // Bot Allow Push
     this.allowPush = (device as botConfig).allowPush ?? false
     const allowPush = (device as botConfig).allowPush
       ? `Using Allow Push: ${this.allowPush}`
       : `No Allow Push Set, Using default Allow Push: ${this.allowPush}`
-    await this.debugWarnLog(allowPush)
+    this.debugWarnLog(allowPush)
     // Bot Multi Press Count
     this.multiPressCount = 0
-    await this.debugWarnLog(`Multi Press Count: ${this.multiPressCount}`)
+    this.debugWarnLog(`Multi Press Count: ${this.multiPressCount}`)
   }
 
   async BLEPushConnection() {
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
-      await this.warnLog('Using OpenAPI Connection to Push Changes')
+      this.warnLog('Using OpenAPI Connection to Push Changes')
       await this.openAPIpushChanges()
     }
   }
 
   async BLERefreshConnection(switchbot: any): Promise<void> {
-    await this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
+    this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
-      await this.warnLog('Using OpenAPI Connection to Refresh Status')
+      this.warnLog('Using OpenAPI Connection to Refresh Status')
       await this.openAPIRefreshStatus()
     }
   }
