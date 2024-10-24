@@ -347,7 +347,7 @@ export class BlindTilt extends deviceBase {
       const set_maxLux = (this.device as blindTiltConfig).set_maxLux ?? 6001
       const spaceBetweenLevels = 9
 
-      await this.getLightLevel(this.serviceData.lightLevel, set_minLux, set_maxLux, spaceBetweenLevels)
+      this.getLightLevel(this.serviceData.lightLevel, set_minLux, set_maxLux, spaceBetweenLevels)
       this.debugLog(`LightLevel: ${this.serviceData.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`)
     }
 
@@ -378,7 +378,7 @@ export class BlindTilt extends deviceBase {
       const set_minLux = (this.device as blindTiltConfig).set_minLux ?? 1
       const set_maxLux = (this.device as blindTiltConfig).set_maxLux ?? 6001
       const lightLevel = this.deviceStatus.lightLevel === 'bright' ? set_maxLux : set_minLux
-      this.LightSensor.CurrentAmbientLightLevel = await this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
+      this.LightSensor.CurrentAmbientLightLevel = this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
       this.debugLog(`LightLevel: ${this.deviceStatus.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
     }
 
