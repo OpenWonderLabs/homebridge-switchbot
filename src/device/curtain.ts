@@ -379,10 +379,12 @@ export class Curtain extends deviceBase {
     this.debugLog('BLEparseStatus')
     this.debugLog(`(position, battery) = BLE:(${this.serviceData.position}, ${this.serviceData.battery}), current:(${this.WindowCovering.CurrentPosition}, ${this.Battery.BatteryLevel})`)
     // CurrentPosition
-    this.WindowCovering.CurrentPosition = 100 - this.serviceData.position
-    await this.getCurrentPostion()
+    if (this.serviceData.position) {
+      this.WindowCovering.CurrentPosition = 100 - this.serviceData.position
+      await this.getCurrentPostion()
+    }
     // CurrentAmbientLightLevel
-    if (!(this.device as curtainConfig).hide_lightsensor && this.LightSensor?.Service) {
+    if (!(this.device as curtainConfig).hide_lightsensor && this.LightSensor?.Service && this.serviceData.lightLevel) {
       const set_minLux = (this.device as curtainConfig).set_minLux ?? 1
       const set_maxLux = (this.device as curtainConfig).set_maxLux ?? 6001
       const lightLevel = this.serviceData.lightLevel
