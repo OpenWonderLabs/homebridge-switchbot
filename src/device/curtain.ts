@@ -364,14 +364,14 @@ export class Curtain extends deviceBase {
     }
   }
 
-  async updateHistory(): Promise<void> {
+  updateHistory(): void {
     const motion = Number(this.WindowCovering.CurrentPosition) > 0 ? 1 : 0
     this.historyService.addEntry({
       time: Math.round(new Date().valueOf() / 1000),
       motion,
     })
-    setTimeout(async () => {
-      await this.updateHistory()
+    setTimeout(() => {
+      this.updateHistory()
     }, 10 * 60 * 1000)
   }
 
