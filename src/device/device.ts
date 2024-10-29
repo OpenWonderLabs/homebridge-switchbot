@@ -129,8 +129,8 @@ export abstract class deviceBase {
     })
   }
 
-  maxRetryBLE(): number {
-    return this.device.maxRetry ? this.device.maxRetry : 5
+  async maxRetryBLE(): Promise<number> {
+    return this.device.maxRetry !== undefined ? this.device.maxRetry : 5
   }
 
   async getDeviceScanDuration(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
