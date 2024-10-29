@@ -526,7 +526,7 @@ export class Bot extends deviceBase {
               this.infoLog(`On: ${this.On}`)
               this.warnLog(`device_list: ${JSON.stringify(device_list)}`)
               return await this.retryBLE({
-                max: this.maxRetryBLE(),
+                max: await this.maxRetryBLE(),
                 fn: async () => {
                   if (deviceList.length > 0) {
                     if (this.On) {

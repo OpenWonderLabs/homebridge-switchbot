@@ -3,7 +3,7 @@
  * plug.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
-import type { bodyChange, device, plugMiniJPServiceData, plugMiniJPWebhookContext, plugMiniStatus, plugMiniUSServiceData, plugMiniUSWebhookContext, plugStatus, plugWebhookContext, SwitchbotDevice, WoPlugMini } from 'node-switchbot'
+import type { bodyChange, device, plugMiniJPServiceData, plugMiniJPWebhookContext, plugMiniStatus, plugMiniUSServiceData, plugMiniUSWebhookContext, plugStatus, plugWebhookContext, SwitchbotDevice, WoPlugMiniUS } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
@@ -307,10 +307,10 @@ export class Plug extends deviceBase {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
-              const deviceList = device_list as unknown as WoPlugMini[]
+              const deviceList = device_list as unknown as WoPlugMiniUS[]
               this.infoLog(`On: ${this.Outlet.On}`)
               return await this.retryBLE({
-                max: this.maxRetryBLE(),
+                max: await this.maxRetryBLE(),
                 fn: async () => {
                   if (this.Outlet.On) {
                     return await deviceList[0].turnOn()

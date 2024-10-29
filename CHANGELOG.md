@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. This projec
 ## [4.1.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v4.1.0) (2024-10-21)
 
 ### What's Changed
+- Remove unneeded light level check [#1096](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1096), Thanks [@dnicolson](https://github.com/dnicolson)
 - Remove unneeded async [#1089](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1089) & [#1094](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1094), Thanks [@dnicolson](https://github.com/dnicolson)
 - Fix characteristic warning [#1093](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1093), Thanks [@dnicolson](https://github.com/dnicolson)
 - Fix light level [#1092](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1092), Thanks [@dnicolson](https://github.com/dnicolson)

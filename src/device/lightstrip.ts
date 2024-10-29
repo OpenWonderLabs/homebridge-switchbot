@@ -468,7 +468,7 @@ export class StripLight extends deviceBase {
               const deviceList = device_list as unknown as WoStrip[]
               this.infoLog(`On: ${this.LightBulb.On}`)
               return await this.retryBLE({
-                max: this.maxRetryBLE(),
+                max: await this.maxRetryBLE(),
                 fn: async () => {
                   if (this.LightBulb.On) {
                     return await deviceList[0].turnOn()
