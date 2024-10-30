@@ -57,7 +57,7 @@
                 "configDeviceName": {
                   "title": "Device Name",
                   "type": "string",
-                  "pattern": "^[\\p{L}\\p{N}]+([\\p{L}\\p{N} ']*[\\p{L}\\p{N}])?$",
+                  "pattern": "^[\\p{L}\\p{N}]+([\\p{L}\\p{N} '\\s]*[\\p{L}\\p{N}])?$",
                   "placeholder": "SwitchBot",
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId);"
@@ -7699,7 +7699,7 @@
                   "title": "Device Name",
                   "type": "string",
                   "placeholder": "SwitchBot",
-                  "pattern": "^[\\p{L}\\p{N}]+([\\p{L}\\p{N} ']*[\\p{L}\\p{N}])?$",
+                  "pattern": "^[\\p{L}\\p{N}]+([\\p{L}\\p{N} '\\s]*[\\p{L}\\p{N}])?$",
                   "condition": {
                     "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId);"
                   }
