@@ -393,7 +393,7 @@ export class RobotVacuumCleaner extends deviceBase {
               const deviceList = device_list as unknown as SwitchbotDevice[]
               this.infoLog(`On: ${this.LightBulb.On}`)
               return await this.retryBLE({
-                max: await this.maxRetryBLE(),
+                max: this.maxRetryBLE(),
                 fn: async () => {
                   if (this.LightBulb.On) {
                     return await deviceList[0].turnOn()

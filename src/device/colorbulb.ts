@@ -463,7 +463,7 @@ export class ColorBulb extends deviceBase {
             .then(async (device_list: WoBulb[]) => {
               this.infoLog(`On: ${this.LightBulb.On}`)
               return await this.retryBLE({
-                max: await this.maxRetryBLE(),
+                max: this.maxRetryBLE(),
                 fn: async () => {
                   if (this.LightBulb.On) {
                     return await device_list[0].turnOn()

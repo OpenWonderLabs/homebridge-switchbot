@@ -580,7 +580,7 @@ export class BlindTilt extends deviceBase {
             .then(async (device_list: SwitchbotDevice[]) => {
               const deviceList = device_list as unknown as WoBlindTilt[]
               return await this.retryBLE({
-                max: await this.maxRetryBLE(),
+                max: this.maxRetryBLE(),
                 fn: async () => {
                   return await deviceList[0].runToPos(100 - Number(this.WindowCovering.TargetPosition), setPositionMode)
                 },
