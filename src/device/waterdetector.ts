@@ -146,30 +146,29 @@ export class WaterDetector extends deviceBase {
 
   async BLEparseStatus(): Promise<void> {
     this.debugLog('BLEparseStatus')
-    this.debugLog(`(state, status, battery) = BLE: (${this.serviceData.state}, ${this.serviceData.status}, ${this.serviceData.battery}), current:(${this.LeakSensor?.LeakDetected}, ${this.Battery.BatteryLevel})`)
+    this.debugLog(`(leak, tampered, battery) = BLE: (${this.serviceData.leak}, ${this.serviceData.tampered}, ${this.serviceData.battery}), current:(${this.LeakSensor?.LeakDetected}, ${this.LeakSensor?.StatusActive}, ${this.Battery.BatteryLevel})`)
 
     // LeakSensor
     if (!(this.device as waterDetectorConfig).hide_leak && this.LeakSensor?.Service) {
       // StatusActive
-      this.LeakSensor.StatusActive = this.serviceData.state
+      this.LeakSensor.StatusActive = this.serviceData.leak
       this.debugLog(`StatusActive: ${this.LeakSensor.StatusActive}`)
 
       // LeakDetected
-      if ((this.device as waterDetectorConfig).dry) {
-        this.LeakSensor.LeakDetected = this.serviceData.status === 0 ? 1 : 0
-        this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}`)
-      } else {
-        this.LeakSensor.LeakDetected = this.serviceData.status
-        this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}`)
-      }
+      this.LeakSensor.LeakDetected = (this.device as waterDetectorConfig).dry
+        ? this.serviceData.tampered ? 1 : 0
+        : this.serviceData.tampered
+      this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}`)
     }
     // BatteryLevel
     this.Battery.BatteryLevel = this.serviceData.battery
     this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
     // StatusLowBattery
-    this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
+    this.Battery.StatusLowBattery = this.serviceData.low_battery
       ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
-      : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
+      : this.Battery.BatteryLevel < 10
+        ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
+        : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
     this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
   }
 
@@ -277,7 +276,7 @@ export class WaterDetector extends deviceBase {
         // Start to monitor advertisement packets
         const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as waterLeakDetectorServiceData
         // Update HomeKit
-        if (serviceData.model === SwitchBotBLEModel.Unknown && serviceData.modelName === SwitchBotBLEModelName.Unknown) {
+        if (serviceData.model === SwitchBotBLEModel.Leak && serviceData.modelName === SwitchBotBLEModelName.Leak) {
           this.serviceData = serviceData
           await this.BLEparseStatus()
           await this.updateHomeKitCharacteristics()
