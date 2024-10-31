@@ -500,9 +500,7 @@ export class Humidifier extends deviceBase {
    */
   async pushAutoChanges(): Promise<void> {
     this.debugLog('pushAutoChanges')
-    if ((this.HumidifierDehumidifier.TargetHumidifierDehumidifierState
-      === this.hap.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER_OR_DEHUMIDIFIER)
-      && (this.HumidifierDehumidifier.Active === this.hap.Characteristic.Active.ACTIVE)) {
+    if ((this.HumidifierDehumidifier.TargetHumidifierDehumidifierState === this.hap.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER_OR_DEHUMIDIFIER) && (this.HumidifierDehumidifier.Active === this.hap.Characteristic.Active.ACTIVE)) {
       this.debugLog('Pushing Auto')
       const bodyChange: bodyChange = {
         command: 'setMode',
