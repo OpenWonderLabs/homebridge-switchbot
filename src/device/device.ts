@@ -498,9 +498,9 @@ export abstract class deviceBase {
       },
       'Water Detector': {
         model: SwitchBotModel.WaterDetector,
-        bleModel: SwitchBotBLEModel.Unknown,
-        bleModelName: SwitchBotBLEModelName.Unknown,
-        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,
+        bleModel: SwitchBotBLEModel.Leak,
+        bleModelName: SwitchBotBLEModelName.Leak,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Leak,
       },
       'Motion Sensor': {
         model: SwitchBotModel.MotionSensor,
