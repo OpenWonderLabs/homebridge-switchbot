@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
-## [4.1.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v4.1.0) (2024-10-21)
+## [4.1.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v4.1.0) (2024-11-02)
 
 ### What's Changed
 - Remove unneeded light level check [#1096](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1096), Thanks [@dnicolson](https://github.com/dnicolson)
@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file. This projec
 - Fix max retry [#1088](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1088), Thanks [@dnicolson](https://github.com/dnicolson)
 - Housekeeping and updated dependencies.
 
-**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.0.0...v4.1.0
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.1.0...v4.1.1
 
 ## [4.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v4.1.0) (2024-10-21)
 
