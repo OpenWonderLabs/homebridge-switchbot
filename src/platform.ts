@@ -10,7 +10,7 @@ import type { MqttClient } from 'mqtt'
 import type { blindTiltConfig, curtainConfig, devicesConfig, irDevicesConfig, options, SwitchBotPlatformConfig } from './settings.js'
 
 import { readFileSync } from 'node:fs'
-import process from 'node:process'
+import process, { argv } from 'node:process'
 
 import asyncmqtt from 'async-mqtt'
 import fakegato from 'fakegato-history'
@@ -68,14 +68,16 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   public readonly log: Logging
 
   // Configuration properties
-  version!: string
-  Logging?: string
-  debugMode!: boolean
-  maxRetries!: number
-  delayBetweenRetries!: number
-  platformConfig!: SwitchBotPlatformConfig['options']
-  platformLogging!: SwitchBotPlatformConfig['logging']
+  platformConfig!: SwitchBotPlatformConfig
+  platformLogging!: options['logging']
+  platformRefreshRate!: options['refreshRate']
+  platformPushRate!: options['pushRate']
+  platformUpdateRate!: options['updateRate']
+  platformMaxRetries!: options['maxRetries']
+  platformDelayBetweenRetries!: options['delayBetweenRetries']
   config!: SwitchBotPlatformConfig
+  debugMode!: boolean
+  version!: string
 
   // MQTT and Webhook properties
   mqttClient: MqttClient | null = null
@@ -114,11 +116,11 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       credentials: config.credentials as object,
       options: config.options as object,
       devices: config.devices as { deviceId: string }[],
-      deviceConfig: config.deviceConfig as { [deviceType: string]: devicesConfig },
     }
 
     // Plugin Configuration
     this.getPlatformLogSettings()
+    this.getPlatformRateSettings()
     this.getPlatformConfigSettings()
     this.getVersion()
 
@@ -361,20 +363,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     this.config = this.config || {}
     this.config.options = this.config.options || {}
 
-    const platformConfig: options = {}
-    if (this.config.options.logging) {
-      platformConfig.logging = this.config.options.logging
-    }
-    if (this.config.options.logging && this.config.options.refreshRate) {
-      platformConfig.refreshRate = this.config.options.refreshRate
-    }
-    if (this.config.options.logging && this.config.options.pushRate) {
-      platformConfig.pushRate = this.config.options.pushRate
-    }
-    if (Object.entries(platformConfig).length !== 0) {
-      this.debugWarnLog(`Platform Config: ${JSON.stringify(platformConfig)}`)
-    }
-
     if (this.config.options) {
       // Device Config
       if (this.config.options.devices) {
@@ -405,37 +393,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       }
     }
 
-    if (this.config.options!.refreshRate! < 5) {
-      throw new Error('Refresh Rate must be above 5 (5 seconds).')
-    }
-
-    if (!this.config.options.refreshRate) {
-      // default 120 seconds (2 minutes)
-      this.config.options!.refreshRate! = 120
-      this.debugWarnLog('Using Default Refresh Rate (2 minutes).')
-    }
-
-    if (!this.config.options.pushRate) {
-      // default 100 milliseconds
-      this.config.options!.pushRate! = 0.1
-      this.debugWarnLog('Using Default Push Rate.')
-    }
-
-    if (!this.config.options.maxRetries) {
-      this.config.options.maxRetries = 5
-      this.debugWarnLog('Using Default Max Retries.')
-    } else {
-      this.maxRetries = this.config.options.maxRetries
-    }
-
-    if (!this.config.options.delayBetweenRetries) {
-      // default 3 seconds
-      this.config.options!.delayBetweenRetries! = 3000
-      this.debugWarnLog('Using Default Delay Between Retries.')
-    } else {
-      this.delayBetweenRetries = this.config.options.delayBetweenRetries * 1000
-    }
-
     if (!this.config.credentials && !this.config.options) {
       this.debugWarnLog('Missing Credentials')
     } else if (this.config.credentials && !this.config.credentials.notice) {
@@ -458,12 +415,12 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
 
     let retryCount = 0
-    const maxRetries = this.maxRetries
-    const delayBetweenRetries = this.delayBetweenRetries
+    const maxRetries = this.platformMaxRetries ?? 5
+    const delayBetweenRetries = this.platformDelayBetweenRetries || 5000
 
     this.debugWarnLog(`Retry Count: ${retryCount}`)
-    this.debugWarnLog(`Max Retries: ${maxRetries}`)
-    this.debugWarnLog(`Delay Between Retries: ${delayBetweenRetries}`)
+    this.debugWarnLog(`Max Retries: ${this.platformMaxRetries}`)
+    this.debugWarnLog(`Delay Between Retries: ${this.platformDelayBetweenRetries}`)
 
     while (retryCount < maxRetries) {
       try {
@@ -2680,60 +2637,68 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  async getVersion(): Promise<string> {
-    const json = JSON.parse(
-      readFileSync(
-        new URL('../package.json', import.meta.url),
-        'utf-8',
-      ),
-    )
-    this.debugLog(`Plugin Version: ${json.version}`)
-    this.version = json.version
-    return json.version
-  }
-
   async getPlatformConfigSettings() {
-    const { options } = this.config
-    const platformConfig: SwitchBotPlatformConfig['options'] = {}
-
-    if (options) {
-      platformConfig.logging = options.logging
-      platformConfig.refreshRate = options.refreshRate
-      platformConfig.updateRate = options.updateRate
-      platformConfig.pushRate = options.pushRate
-
-      this.maxRetries = options.maxRetries || 3
-      platformConfig.maxRetries = this.maxRetries
-      if (!options.maxRetries) {
-        this.debugWarnLog('Using Default Max Retries')
+    if (this.config.options) {
+      const platformConfig: SwitchBotPlatformConfig = {
+        platform: 'Resideo',
       }
-
-      this.delayBetweenRetries = (options.delayBetweenRetries || 3) * 1000
-      platformConfig.delayBetweenRetries = this.delayBetweenRetries / 1000
-      if (!options.delayBetweenRetries) {
-        this.debugWarnLog('Using Default Delay Between Retries')
+      platformConfig.logging = this.config.options.logging ? this.config.options.logging : undefined
+      platformConfig.refreshRate = this.config.options.refreshRate ? this.config.options.refreshRate : undefined
+      platformConfig.updateRate = this.config.options.updateRate ? this.config.options.updateRate : undefined
+      platformConfig.pushRate = this.config.options.pushRate ? this.config.options.pushRate : undefined
+      platformConfig.maxRetries = this.config.options.maxRetries ? this.config.options.maxRetries : undefined
+      platformConfig.delayBetweenRetries = this.config.options.delayBetweenRetries ? this.config.options.delayBetweenRetries : undefined
+      if (Object.entries(platformConfig).length !== 0) {
+        await this.debugLog(`Platform Config: ${JSON.stringify(platformConfig)}`)
       }
-
-      if (Object.keys(platformConfig).length) {
-        this.debugLog(`Platform Config: ${JSON.stringify(platformConfig)}`)
-      }
-
       this.platformConfig = platformConfig
     }
   }
 
-  async getPlatformLogSettings() {
-    this.debugMode = process.argv.includes('-D') ?? process.argv.includes('--debug')
-    if (this.config.options?.logging === 'debug' || this.config.options?.logging === 'standard' || this.config.options?.logging === 'none') {
-      this.platformLogging = this.config.options.logging
-      this.debugWarnLog(`Using Config Logging: ${this.platformLogging}`)
-    } else if (this.debugMode) {
-      this.platformLogging = 'debugMode'
-      this.debugWarnLog(`Using ${this.platformLogging} Logging`)
-    } else {
-      this.platformLogging = 'standard'
-      this.debugWarnLog(`Using ${this.platformLogging} Logging`)
+  async getPlatformRateSettings() {
+    this.platformRefreshRate = this.config.options?.refreshRate ?? 120
+    if (this.platformRefreshRate < 5) {
+      this.platformRefreshRate = 5
     }
+    const refreshRate = this.config.options?.refreshRate ? 'Using Platform Config refreshRate' : 'refreshRate Disabled by Default'
+    await this.debugLog(`${refreshRate}: ${this.platformRefreshRate}`)
+    this.platformUpdateRate = this.config.options?.updateRate ? this.config.options.updateRate : 1
+    const updateRate = this.config.options?.updateRate ? 'Using Platform Config updateRate' : 'Using Default updateRate'
+    await this.debugLog(`${updateRate}: ${this.platformUpdateRate}`)
+    this.platformPushRate = this.config.options?.pushRate ? this.config.options.pushRate : 0.1
+    const pushRate = this.config.options?.pushRate ? 'Using Platform Config pushRate' : 'Using Default pushRate'
+    await this.debugLog(`${pushRate}: ${this.platformPushRate}`)
+    this.platformMaxRetries = this.config.options?.maxRetries ? this.config.options.maxRetries : 3
+    const maxRetries = this.config.options?.maxRetries ? 'Using Platform Config maxRetries' : 'Using Default maxRetries'
+    await this.debugLog(`${maxRetries}: ${this.platformMaxRetries}`)
+    this.platformDelayBetweenRetries = this.config.options?.delayBetweenRetries ? this.config.options.delayBetweenRetries * 1000 : 3000
+    const delayBetweenRetries = this.config.options?.delayBetweenRetries ? 'Using Platform Config delayBetweenRetries' : 'Using Default delayBetweenRetries'
+    await this.debugLog(`${delayBetweenRetries}: ${this.platformDelayBetweenRetries / 1000}`)
+  }
+
+  async getPlatformLogSettings() {
+    this.debugMode = argv.includes('-D') ?? argv.includes('--debug')
+    this.platformLogging = (this.config.options?.logging === 'debug' || this.config.options?.logging === 'standard'
+      || this.config.options?.logging === 'none')
+      ? this.config.options.logging
+      : this.debugMode ? 'debugMode' : 'standard'
+    const logging = this.config.options?.logging ? 'Platform Config' : this.debugMode ? 'debugMode' : 'Default'
+    await this.debugLog(`Using ${logging} Logging: ${this.platformLogging}`)
+  }
+
+  /**
+   * Asynchronously retrieves the version of the plugin from the package.json file.
+   *
+   * This method reads the package.json file located in the parent directory,
+   * parses its content to extract the version, and logs the version using the debug logger.
+   * The extracted version is then assigned to the `version` property of the class.
+   *
+   * @returns {Promise<void>} A promise that resolves when the version has been retrieved and logged.
+   */
+  async getVersion(): Promise<void> {
+    const { version } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf-8'))
+    this.debugLog(`Plugin Version: ${version}`)
+    this.version = version
   }
 
   /**

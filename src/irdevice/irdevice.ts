@@ -30,7 +30,7 @@ export abstract class irdeviceBase {
     this.config = this.platform.config
     this.hap = this.api.hap
 
-    this.getDeviceLogSettings(device)
+    this.getDeviceLogSettings(accessory, device)
     this.getDeviceConfigSettings(device)
     this.getDeviceContext(accessory, device)
     this.disablePushOnChanges(device)
@@ -48,20 +48,11 @@ export abstract class irdeviceBase {
       .setCharacteristic(this.hap.Characteristic.SerialNumber, device.deviceId)
   }
 
-  async getDeviceLogSettings(device: irdevice & irDevicesConfig): Promise<void> {
-    if (this.platform.debugMode) {
-      this.deviceLogging = this.accessory.context.logging = 'debugMode'
-      this.debugWarnLog(`Using Debug Mode Logging: ${this.deviceLogging}`)
-    } else if (device.logging) {
-      this.deviceLogging = this.accessory.context.logging = device.logging
-      this.debugWarnLog(`Using Device Config Logging: ${this.deviceLogging}`)
-    } else if (this.config.logging) {
-      this.deviceLogging = this.accessory.context.logging = this.config.logging
-      this.debugWarnLog(`Using Platform Config Logging: ${this.deviceLogging}`)
-    } else {
-      this.deviceLogging = this.accessory.context.logging = 'standard'
-      this.debugWarnLog(`Logging Not Set, Using: ${this.deviceLogging}`)
-    }
+  async getDeviceLogSettings(accessory: PlatformAccessory, device: irdevice & irDevicesConfig): Promise<void> {
+    this.deviceLogging = this.platform.debugMode ? 'debugMode' : device.logging ?? this.platform.platformLogging ?? 'standard'
+    const logging = this.platform.debugMode ? 'Debug Mode' : device.logging ? 'Device Config' : this.platform.platformLogging ? 'Platform Config' : 'Default'
+    accessory.context.deviceLogging = this.deviceLogging
+    this.debugLog(`Using ${logging} Logging: ${this.deviceLogging}`)
   }
 
   async getDeviceConfigSettings(device: irdevice & irDevicesConfig): Promise<void> {

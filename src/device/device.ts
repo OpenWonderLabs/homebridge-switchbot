@@ -68,7 +68,6 @@ export abstract class deviceBase {
 
     this.getDeviceLogSettings(accessory, device)
     this.getDeviceRateSettings(accessory, device)
-    this.getDeviceRetry(device)
     this.getDeviceConfigSettings(device)
     this.getDeviceContext(accessory, device)
     this.getDeviceScanDuration(accessory, device)
@@ -87,34 +86,34 @@ export abstract class deviceBase {
   }
 
   async getDeviceLogSettings(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
-    this.deviceLogging = this.platform.debugMode ? 'debugMode' : device.logging ?? this.config.logging ?? 'standard'
-    const logging = this.platform.debugMode ? 'Debug Mode' : device.logging ? 'Device Config' : this.config.logging ? 'Platform Config' : 'Default'
+    this.deviceLogging = this.platform.debugMode ? 'debugMode' : device.logging ?? this.platform.platformLogging ?? 'standard'
+    const logging = this.platform.debugMode ? 'Debug Mode' : device.logging ? 'Device Config' : this.platform.platformLogging ? 'Platform Config' : 'Default'
     accessory.context.deviceLogging = this.deviceLogging
     this.debugLog(`Using ${logging} Logging: ${this.deviceLogging}`)
   }
 
   async getDeviceRateSettings(accessory: PlatformAccessory, device: device & devicesConfig): Promise<void> {
     // refreshRate
-    this.deviceRefreshRate = device.refreshRate ?? this.config.options?.refreshRate ?? 5
+    this.deviceRefreshRate = device.refreshRate ?? this.platform.platformRefreshRate ?? 5
     accessory.context.deviceRefreshRate = this.deviceRefreshRate
-    const refreshRate = device.refreshRate ? 'Device Config' : this.config.options?.refreshRate ? 'Platform Config' : 'Default'
+    const refreshRate = device.refreshRate ? 'Device Config' : this.platform.platformRefreshRate ? 'Platform Config' : 'Default'
     // updateRate
-    this.deviceUpdateRate = device.updateRate ?? this.config.options?.updateRate ?? 5
+    this.deviceUpdateRate = device.updateRate ?? this.platform.platformUpdateRate ?? 5
     accessory.context.deviceUpdateRate = this.deviceUpdateRate
-    const updateRate = device.updateRate ? 'Device Config' : this.config.options?.updateRate ? 'Platform Config' : 'Default'
+    const updateRate = device.updateRate ? 'Device Config' : this.platform.platformUpdateRate ? 'Platform Config' : 'Default'
     // pushRate
-    this.devicePushRate = device.pushRate ?? this.config.options?.pushRate ?? 1
+    this.devicePushRate = device.pushRate ?? this.platform.platformPushRate ?? 1
     accessory.context.devicePushRate = this.devicePushRate
-    const pushRate = device.pushRate ? 'Device Config' : this.config.options?.pushRate ? 'Platform Config' : 'Default'
+    const pushRate = device.pushRate ? 'Device Config' : this.platform.platformPushRate ? 'Platform Config' : 'Default'
     this.debugLog(`Using ${refreshRate} refreshRate: ${this.deviceRefreshRate}, ${updateRate} updateRate: ${this.deviceUpdateRate}, ${pushRate} pushRate: ${this.devicePushRate}`)
-  }
-
-  async getDeviceRetry(device: device & devicesConfig): Promise<void> {
-    this.deviceMaxRetries = device.maxRetries ?? 5
-    const maxRetries = device.maxRetries ? 'Device' : 'Default'
-    this.deviceDelayBetweenRetries = device.delayBetweenRetries ? (device.delayBetweenRetries * 1000) : 3000
-    const delayBetweenRetries = device.delayBetweenRetries ? 'Device' : 'Default'
-    this.debugLog(`Using ${maxRetries} Max Retries: ${this.deviceMaxRetries}, ${delayBetweenRetries} Delay Between Retries: ${this.deviceDelayBetweenRetries}`)
+    // maxRetries
+    this.deviceMaxRetries = device.maxRetries ?? this.platform.platformMaxRetries ?? 5
+    const maxRetries = device.maxRetries ? 'Device' : this.platform.platformMaxRetries ? 'Platform' : 'Default'
+    this.debugLog(`Using ${maxRetries} Max Retries: ${this.deviceMaxRetries}`)
+    // delayBetweenRetries
+    this.deviceDelayBetweenRetries = device.delayBetweenRetries ? (device.delayBetweenRetries * 1000) : this.platform.platformDelayBetweenRetries ? this.platform.platformDelayBetweenRetries : 3000
+    const delayBetweenRetries = device.delayBetweenRetries ? 'Device' : this.platform.platformDelayBetweenRetries ? 'Platform' : 'Default'
+    this.debugLog(`Using ${delayBetweenRetries} Delay Between Retries: ${this.deviceDelayBetweenRetries}`)
   }
 
   async retryBLE({ max, fn }: { max: number, fn: { (): any, (): Promise<any> } }): Promise<null> {
