@@ -173,7 +173,7 @@
 - [SwitchBot Battery Circulator Fan](https://us.switch-bot.com/products/switchbot-battery-circulator-fan)
   - Supports OpenAPI Connection Only
 - [SwitchBot Water Leak Detector](https://us.switch-bot.com/products/switchbot-water-leak-detector)
-  - Supports OpenAPI Connection Only
+  - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
 
 ## Supported IR Devices
 
@@ -216,9 +216,9 @@
 
 ## SwitchBot APIs
 
-- [OpenWonderLabs/SwitchBotAPI](https://github.com/OpenWonderLabs/SwitchBotAPI)
-- [OpenWonderLabs/SwitchBotAPI-BLE](https://github.com/OpenWonderLabs/SwitchBotAPI-BLE)
-  - [OpenWonderLabs/node-switchbot](https://github.com/OpenWonderLabs/node-switchbot)
+- [OpenWonderLabs/node-switchbot](https://github.com/OpenWonderLabs/node-switchbot)
+  - [OpenWonderLabs/SwitchBotAPI](https://github.com/OpenWonderLabs/SwitchBotAPI)
+  - [OpenWonderLabs/SwitchBotAPI-BLE](https://github.com/OpenWonderLabs/SwitchBotAPI-BLE)
 
 ## Community
 

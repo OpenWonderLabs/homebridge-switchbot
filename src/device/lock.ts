@@ -224,16 +224,17 @@ export class Lock extends deviceBase {
         : this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED
       this.debugLog(`ContactSensorState: ${this.ContactSensor.ContactSensorState}`)
     }
-
-    // BatteryLevel
-    this.Battery.BatteryLevel = this.serviceData.battery
-    this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
-
-    // StatusLowBattery
-    this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
-      ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
-      : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
-    this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
+    // Battery Info
+    if (this.serviceData.battery) {
+      // BatteryLevel
+      this.Battery.BatteryLevel = this.serviceData.battery
+      this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
+      // StatusLowBattery
+      this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
+        ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
+        : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
+      this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
+    }
   }
 
   async openAPIparseStatus(): Promise<void> {

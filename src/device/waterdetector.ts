@@ -158,16 +158,17 @@ export class WaterDetector extends deviceBase {
         : this.serviceData.leak ? this.hap.Characteristic.LeakDetected.LEAK_DETECTED : this.hap.Characteristic.LeakDetected.LEAK_NOT_DETECTED
       this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}`)
     }
-    // BatteryLevel
-    this.Battery.BatteryLevel = this.serviceData.battery
-    this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
-    // StatusLowBattery
-    this.Battery.StatusLowBattery = this.serviceData.low_battery
-      ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
-      : this.Battery.BatteryLevel < 10
+    // Battery Info
+    if (this.serviceData.battery) {
+      // BatteryLevel
+      this.Battery.BatteryLevel = this.serviceData.battery
+      this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
+      // StatusLowBattery
+      this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
         ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
         : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
-    this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
+      this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
+    }
   }
 
   async openAPIparseStatus(): Promise<void> {
