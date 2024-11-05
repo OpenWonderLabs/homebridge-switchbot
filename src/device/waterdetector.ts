@@ -149,13 +149,13 @@ export class WaterDetector extends deviceBase {
     // LeakSensor
     if (!(this.device as waterDetectorConfig).hide_leak && this.LeakSensor?.Service) {
       // StatusActive
-      this.LeakSensor.StatusActive = this.serviceData.leak
+      this.LeakSensor.StatusActive = this.serviceData.tampered
       this.debugLog(`StatusActive: ${this.LeakSensor.StatusActive}`)
 
       // LeakDetected
       this.LeakSensor.LeakDetected = (this.device as waterDetectorConfig).dry
-        ? !this.serviceData.tampered ? this.hap.Characteristic.LeakDetected.LEAK_DETECTED : this.hap.Characteristic.LeakDetected.LEAK_NOT_DETECTED
-        : this.serviceData.tampered ? this.hap.Characteristic.LeakDetected.LEAK_DETECTED : this.hap.Characteristic.LeakDetected.LEAK_NOT_DETECTED
+        ? !this.serviceData.leak ? this.hap.Characteristic.LeakDetected.LEAK_DETECTED : this.hap.Characteristic.LeakDetected.LEAK_NOT_DETECTED
+        : this.serviceData.leak ? this.hap.Characteristic.LeakDetected.LEAK_DETECTED : this.hap.Characteristic.LeakDetected.LEAK_NOT_DETECTED
       this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}`)
     }
     // BatteryLevel
