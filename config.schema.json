@@ -1035,7 +1035,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Humidifier'].hide_device);"
                     }
@@ -1250,7 +1250,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Hub 2'].hide_device);"
                     }
@@ -1560,7 +1560,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Bot'].hide_device);"
                     }
@@ -1775,7 +1775,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Meter'].hide_device);"
                     }
@@ -1990,7 +1990,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['MeterPlus'].hide_device);"
                     }
@@ -2205,7 +2205,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Meter Plus (JP)'].hide_device);"
                     }
@@ -2420,7 +2420,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['WoIOSensor'].hide_device);"
                     }
@@ -2615,7 +2615,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Water Detector'].hide_device);"
                     }
@@ -2818,7 +2818,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Water Detector'].hide_device);"
                     }
@@ -3028,7 +3028,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Contact Sensor'].hide_device);"
                     }
@@ -3314,7 +3314,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Curtain'].hide_device);"
                     }
@@ -3600,7 +3600,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Curtain3'].hide_device);"
                     }
@@ -3886,7 +3886,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['WoRollerShade'].hide_device);"
                     }
@@ -4172,7 +4172,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Roller Shade'].hide_device);"
                     }
@@ -4493,7 +4493,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Blind Tilt'].hide_device);"
                     }
@@ -4673,7 +4673,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Plug'].hide_device);"
                     }
@@ -4853,7 +4853,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Plug Mini (US)'].hide_device);"
                     }
@@ -5033,7 +5033,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Plug Mini (JP)'].hide_device);"
                     }
@@ -5227,7 +5227,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Smart Lock'].hide_device);"
                     }
@@ -5421,7 +5421,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Smart Lock Pro'].hide_device);"
                     }
@@ -5619,7 +5619,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Color Bulb'].hide_device);"
                     }
@@ -5799,7 +5799,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['K10+'].hide_device);"
                     }
@@ -5979,7 +5979,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['K10+ Pro'].hide_device);"
                     }
@@ -6159,7 +6159,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['WoSweeper'].hide_device);"
                     }
@@ -6339,7 +6339,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['WoSweeperMini'].hide_device);"
                     }
@@ -6519,7 +6519,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Robot Vacuum Cleaner S1'].hide_device);"
                     }
@@ -6699,7 +6699,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Robot Vacuum Cleaner S1 Plus'].hide_device);"
                     }
@@ -6879,7 +6879,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Robot Vacuum Cleaner S10'].hide_device);"
                     }
@@ -7077,7 +7077,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Ceiling Light'].hide_device);"
                     }
@@ -7275,7 +7275,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Ceiling Light Pro'].hide_device);"
                     }
@@ -7473,7 +7473,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Strip Light'].hide_device);"
                     }
@@ -7662,7 +7662,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Battery Circulator Fan'].hide_device);"
                     }
@@ -8393,7 +8393,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['TV'] && !model.options.irdeviceConfig['TV'].hide_device);"
                     }
@@ -8522,7 +8522,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY TV'] && !model.options.irdeviceConfig['DIY TV'].hide_device);"
                     }
@@ -8651,7 +8651,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['Projector'] && !model.options.irdeviceConfig['Projector'].hide_device);"
                     }
@@ -8780,7 +8780,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY Projector'] && !model.options.irdeviceConfig['DIY Projector'].hide_device);"
                     }
@@ -8909,7 +8909,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['Set Top Box'] && !model.options.irdeviceConfig['Set Top Box'].hide_device);"
                     }
@@ -9038,7 +9038,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY Set Top Box'] && !model.options.irdeviceConfig['DIY Set Top Box'].hide_device);"
                     }
@@ -9167,7 +9167,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['IPTV'] && !model.options.irdeviceConfig['IPTV'].hide_device);"
                     }
@@ -9296,7 +9296,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY IPTV'] && !model.options.irdeviceConfig['DIY IPTV'].hide_device);"
                     }
@@ -9425,7 +9425,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DVD'] && !model.options.irdeviceConfig['DVD'].hide_device);"
                     }
@@ -9554,7 +9554,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY DVD'] && !model.options.irdeviceConfig['DIY DVD'].hide_device);"
                     }
@@ -9683,7 +9683,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['Speaker'] && !model.options.irdeviceConfig['Speaker'].hide_device);"
                     }
@@ -9812,7 +9812,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY Speaker'] && !model.options.irdeviceConfig['DIY Speaker'].hide_device);"
                     }
@@ -9941,7 +9941,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['Fan'] && !model.options.irdeviceConfig['Fan'].hide_device);"
                     }
@@ -10070,7 +10070,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY Fan'] && !model.options.irdeviceConfig['DIY Fan'].hide_device);"
                     }
@@ -10199,7 +10199,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['Air Conditioner'] && !model.options.irdeviceConfig['Air Conditioner'].hide_device);"
                     }
@@ -10328,7 +10328,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY Air Conditioner'] && !model.options.irdeviceConfig['DIY Air Conditioner'].hide_device);"
                     }
@@ -10457,7 +10457,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['Light'] && !model.options.irdeviceConfig['Light'].hide_device);"
                     }
@@ -10586,7 +10586,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY Light'] && !model.options.irdeviceConfig['DIY Light'].hide_device);"
                     }
@@ -10715,7 +10715,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['Air Purifier'] && !model.options.irdeviceConfig['Air Purifier'].hide_device);"
                     }
@@ -10844,7 +10844,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY Air Purifier'] && !model.options.irdeviceConfig['DIY Air Purifier'].hide_device);"
                     }
@@ -10973,7 +10973,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['Water Heater'] && !model.options.irdeviceConfig['Water Heater'].hide_device);"
                     }
@@ -11102,7 +11102,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY Water Heater'] && !model.options.irdeviceConfig['DIY Water Heater'].hide_device);"
                     }
@@ -11231,7 +11231,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['Vacuum Cleaner'] && !model.options.irdeviceConfig['Vacuum Cleaner'].hide_device);"
                     }
@@ -11360,7 +11360,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY Vacuum Cleaner'] && !model.options.irdeviceConfig['DIY Vacuum Cleaner'].hide_device);"
                     }
@@ -11489,7 +11489,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['Camera'] && !model.options.irdeviceConfig['Camera'].hide_device);"
                     }
@@ -11618,7 +11618,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['DIY Camera'] && !model.options.irdeviceConfig['DIY Camera'].hide_device);"
                     }
@@ -11747,7 +11747,7 @@
                   "refreshRate": {
                     "title": "Device Refresh Rate",
                     "type": "number",
-                    "placeholder": 360,
+                    "placeholder": 5,
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && model.options.irdeviceConfig['Others'] && !model.options.irdeviceConfig['Others'].hide_device);"
                     }

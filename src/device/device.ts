@@ -92,7 +92,7 @@ export abstract class deviceBase {
 
   async getDeviceRateSettings(device: device & devicesConfig): Promise<void> {
     // refreshRate
-    this.deviceRefreshRate = device.refreshRate ?? this.platform.platformRefreshRate ?? 360
+    this.deviceRefreshRate = device.refreshRate ?? this.platform.platformRefreshRate ?? 5
     const refreshRate = device.refreshRate ? 'Device Config' : this.platform.platformRefreshRate ? 'Platform Config' : 'Default'
     // updateRate
     this.deviceUpdateRate = device.updateRate ?? this.platform.platformUpdateRate ?? 5
