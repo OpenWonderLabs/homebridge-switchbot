@@ -225,7 +225,7 @@ export class Lock extends deviceBase {
       this.debugLog(`ContactSensorState: ${this.ContactSensor.ContactSensorState}`)
     }
     // Battery Info
-    if (this.serviceData.battery) {
+    if ('battery' in this.serviceData) {
       // BatteryLevel
       this.Battery.BatteryLevel = this.serviceData.battery
       this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)

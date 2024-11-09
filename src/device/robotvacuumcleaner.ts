@@ -171,7 +171,7 @@ export class RobotVacuumCleaner extends deviceBase {
     this.debugLog(`On: ${this.LightBulb.On}`)
 
     // Battery Info
-    if (this.serviceData.battery) {
+    if ('battery' in this.serviceData) {
       // BatteryLevel
       this.Battery.BatteryLevel = this.serviceData.battery
       this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
