@@ -440,7 +440,7 @@ export class CeilingLight extends deviceBase {
               })
             })
             .then(async () => {
-              this.successLog(`On: ${this.LightBulb.On} sent over SwitchBot BLE,  sent successfully`)
+              this.successLog(`On: ${this.LightBulb.On} sent over SwitchBot BLE, sent successfully`)
               this.LightBulb.On = false
             })
             .catch(async (e: any) => {

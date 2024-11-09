@@ -479,7 +479,7 @@ export class StripLight extends deviceBase {
               })
             })
             .then(async () => {
-              this.successLog(`On: ${this.LightBulb.On} sent over SwitchBot BLE,  sent successfully`)
+              this.successLog(`On: ${this.LightBulb.On} sent over SwitchBot BLE, sent successfully`)
               await this.updateHomeKitCharacteristics()
             })
             .catch(async (e: any) => {
@@ -515,7 +515,7 @@ export class StripLight extends deviceBase {
               return await device_list[0].setBrightness(this.LightBulb.Brightness)
             })
             .then(async () => {
-              this.successLog(`Brightness: ${this.LightBulb.Brightness} sent over SwitchBot BLE,  sent successfully`)
+              this.successLog(`Brightness: ${this.LightBulb.Brightness} sent over SwitchBot BLE, sent successfully`)
               await this.updateHomeKitCharacteristics()
             })
             .catch(async (e: any) => {
@@ -554,7 +554,7 @@ export class StripLight extends deviceBase {
               return await device_list[0].setRGB(this.LightBulb.Brightness, red, green, blue)
             })
             .then(async () => {
-              this.successLog(`RGB: ${(this.LightBulb.Brightness, red, green, blue)} sent over SwitchBot BLE,  sent successfully`)
+              this.successLog(`RGB: ${(this.LightBulb.Brightness, red, green, blue)} sent over SwitchBot BLE, sent successfully`)
               await this.updateHomeKitCharacteristics()
             })
             .catch(async (e: any) => {

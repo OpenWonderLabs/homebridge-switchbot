@@ -173,7 +173,7 @@ export class AirPurifier extends irdeviceBase {
   }
 
   async pushAirPurifierStatusChanges(): Promise<void> {
-    this.debugLog(`pushAirPurifierStatusChanges Active: ${this.AirPurifier.Active}, disablePushOff: ${this.disablePushOff},  disablePushOn: ${this.disablePushOn}`)
+    this.debugLog(`pushAirPurifierStatusChanges Active: ${this.AirPurifier.Active}, disablePushOff: ${this.disablePushOff}, disablePushOn: ${this.disablePushOn}`)
     if (!this.Busy) {
       this.Busy = true
       this.AirPurifier.CurrentHeaterCoolerState = this.hap.Characteristic.CurrentHeaterCoolerState.IDLE
@@ -185,7 +185,7 @@ export class AirPurifier extends irdeviceBase {
   }
 
   async pushAirPurifierDetailsChanges(): Promise<void> {
-    this.debugLog(`pushAirPurifierDetailsChanges Active: ${this.AirPurifier.Active}, disablePushOff: ${this.disablePushOff},  disablePushOn: ${this.disablePushOn}`)
+    this.debugLog(`pushAirPurifierDetailsChanges Active: ${this.AirPurifier.Active}, disablePushOff: ${this.disablePushOff}, disablePushOn: ${this.disablePushOn}`)
     this.CurrentAPTemp = this.TemperatureSensor!.CurrentTemperature ?? 24
     this.CurrentAPMode = this.CurrentMode ?? 1
     this.CurrentAPFanSpeed = this.CurrentFanSpeed ?? 1

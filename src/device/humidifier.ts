@@ -442,7 +442,7 @@ export class Humidifier extends deviceBase {
               return await deviceList[0].percentage(this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold)
             })
             .then(async () => {
-              this.successLog(`RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold} sent over BLE,  sent successfully`)
+              this.successLog(`RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold} sent over BLE, sent successfully`)
               await this.updateHomeKitCharacteristics()
             })
             .catch(async (e: any) => {

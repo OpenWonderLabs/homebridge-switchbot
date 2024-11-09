@@ -459,7 +459,7 @@ export class Lock extends deviceBase {
               })
             })
             .then(async () => {
-              this.successLog(`LockTargetState: ${this.LockMechanism.LockTargetState} sent over SwitchBot BLE,  sent successfully`)
+              this.successLog(`LockTargetState: ${this.LockMechanism.LockTargetState} sent over SwitchBot BLE, sent successfully`)
               await this.updateHomeKitCharacteristics()
             })
             .catch(async (e: any) => {
