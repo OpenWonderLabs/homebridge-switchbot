@@ -282,7 +282,7 @@ export class Bot extends deviceBase {
     this.debugLog(`${mode} Mode, On: ${this.On}`)
     this.accessory.context.On = this.On
     // Battery Info
-    if (this.serviceData.battery) {
+    if ('battery' in this.serviceData) {
       // BatteryLevel
       this.Battery.BatteryLevel = this.serviceData.battery
       this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
