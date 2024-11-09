@@ -321,7 +321,7 @@ export class Plug extends deviceBase {
               })
             })
             .then(async () => {
-              this.successLog(`On: ${this.Outlet.On} sent over SwitchBot BLE,  sent successfully`)
+              this.successLog(`On: ${this.Outlet.On} sent over SwitchBot BLE, sent successfully`)
               await this.updateHomeKitCharacteristics()
             })
             .catch(async (e: any) => {

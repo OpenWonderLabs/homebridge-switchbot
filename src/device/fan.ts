@@ -473,7 +473,7 @@ export class Fan extends deviceBase {
               })
             })
             .then(async () => {
-              this.successLog(`Active: ${this.Fan.Active} sent over SwitchBot BLE,  sent successfully`)
+              this.successLog(`Active: ${this.Fan.Active} sent over SwitchBot BLE, sent successfully`)
               await this.updateHomeKitCharacteristics()
             })
             .catch(async (e: any) => {

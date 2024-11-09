@@ -617,7 +617,7 @@ export class Curtain extends deviceBase {
               })
             })
             .then(async () => {
-              this.successLog(`TargetPostion: ${this.WindowCovering.TargetPosition} sent over SwitchBot BLE,  sent successfully`)
+              this.successLog(`TargetPostion: ${this.WindowCovering.TargetPosition} sent over SwitchBot BLE, sent successfully`)
               await this.updateHomeKitCharacteristics()
             })
             .catch(async (e: any) => {

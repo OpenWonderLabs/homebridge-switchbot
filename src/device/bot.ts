@@ -506,7 +506,7 @@ export class Bot extends deviceBase {
               return await deviceList[0].press()
             })
             .then(async () => {
-              this.successLog(`On: ${this.On} sent over SwitchBot BLE,  sent successfully`)
+              this.successLog(`On: ${this.On} sent over SwitchBot BLE, sent successfully`)
               await this.updateHomeKitCharacteristics()
               setTimeout(async () => {
                 this.On = false
@@ -542,7 +542,7 @@ export class Bot extends deviceBase {
               })
             })
             .then(async () => {
-              this.successLog(`On: ${this.On} sent over SwitchBot BLE,  sent successfully`)
+              this.successLog(`On: ${this.On} sent over SwitchBot BLE, sent successfully`)
               await this.updateHomeKitCharacteristics()
             })
             .catch(async (e: any) => {

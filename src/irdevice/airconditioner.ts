@@ -186,7 +186,7 @@ export class AirConditioner extends irdeviceBase {
   }
 
   async pushAirConditionerStatusChanges(): Promise<void> {
-    this.debugLog(`pushAirConditionerStatusChanges Active: ${this.HeaterCooler.Active}, disablePushOff: ${this.disablePushOff},  disablePushOn: ${this.disablePushOn}`)
+    this.debugLog(`pushAirConditionerStatusChanges Active: ${this.HeaterCooler.Active}, disablePushOff: ${this.disablePushOff}, disablePushOn: ${this.disablePushOn}`)
     if (!this.Busy) {
       this.Busy = true
       this.HeaterCooler.CurrentHeaterCoolerState = this.hap.Characteristic.CurrentHeaterCoolerState.IDLE
@@ -198,7 +198,7 @@ export class AirConditioner extends irdeviceBase {
   }
 
   async pushAirConditionerDetailsChanges(): Promise<void> {
-    this.debugLog(`pushAirConditionerDetailsChanges Active: ${this.HeaterCooler.Active}, disablePushOff: ${this.disablePushOff},  disablePushOn: ${this.disablePushOn}`)
+    this.debugLog(`pushAirConditionerDetailsChanges Active: ${this.HeaterCooler.Active}, disablePushOff: ${this.disablePushOff}, disablePushOn: ${this.disablePushOn}`)
     // await this.deviceContext();
     if (this.CurrentMode === undefined) {
       this.CurrentMode = 1
@@ -399,7 +399,7 @@ export class AirConditioner extends irdeviceBase {
   async TargetHeaterCoolerStateGet(): Promise<CharacteristicValue> {
     const targetState = this.HeaterCooler.TargetHeaterCoolerState || this.accessory.context.TargetHeaterCoolerState
     this.HeaterCooler.TargetHeaterCoolerState = this.ValidValues.includes(targetState) ? targetState : this.ValidValues[0]
-    this.debugLog(`Get (${this.getTargetHeaterCoolerStateName()}) TargetHeaterCoolerState: ${this.HeaterCooler.TargetHeaterCoolerState}, ValidValues: ${this.ValidValues},  hide_automode: ${this.hide_automode}`)
+    this.debugLog(`Get (${this.getTargetHeaterCoolerStateName()}) TargetHeaterCoolerState: ${this.HeaterCooler.TargetHeaterCoolerState}, ValidValues: ${this.ValidValues}, hide_automode: ${this.hide_automode}`)
     return this.HeaterCooler.TargetHeaterCoolerState
   }
 
