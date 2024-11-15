@@ -589,6 +589,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       'MeterPlus': this.createMeterPlus.bind(this),
       'Meter Plus (JP)': this.createMeterPlus.bind(this),
       'Meter Pro': this.createMeterPro.bind(this),
+      'MeterPro(CO2)': this.createMeterPro.bind(this),
       'WoIOSensor': this.createIOSensor.bind(this),
       'Water Detector': this.createWaterDetector.bind(this),
       'Motion Sensor': this.createMotion.bind(this),

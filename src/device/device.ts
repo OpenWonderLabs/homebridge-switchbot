@@ -458,11 +458,11 @@ export abstract class deviceBase {
         bleModelName: SwitchBotBLEModelName.MeterPro,
         bleModelFriendlyName: SwitchBotBLEModelFriendlyName.MeterPro,
       },
-      'Meter Pro CO2': {
+      'MeterPro(CO2)': {
         model: SwitchBotModel.MeterProCO2,
-        bleModel: SwitchBotBLEModel.MeterPro,
-        bleModelName: SwitchBotBLEModelName.MeterPro,
-        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.MeterPro,
+        bleModel: SwitchBotBLEModel.MeterProCO2,
+        bleModelName: SwitchBotBLEModelName.MeterProCO2,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.MeterProCO2,
       },
       'WoIOSensor': {
         model: SwitchBotModel.OutdoorMeter,

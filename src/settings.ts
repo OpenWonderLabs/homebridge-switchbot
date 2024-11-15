@@ -52,7 +52,7 @@ export interface options {
   logging?: string
 };
 
-export type devicesConfig = botConfig | meterConfig | indoorOutdoorSensorConfig | humidifierConfig | curtainConfig | blindTiltConfig | contactConfig | motionConfig | waterDetectorConfig | plugConfig | colorBulbConfig | stripLightConfig | ceilingLightConfig | lockConfig | hubConfig
+export type devicesConfig = botConfig | meterConfig | meterProConfig | indoorOutdoorSensorConfig | humidifierConfig | curtainConfig | blindTiltConfig | contactConfig | motionConfig | waterDetectorConfig | plugConfig | colorBulbConfig | stripLightConfig | ceilingLightConfig | lockConfig | hubConfig
 
 export interface BaseDeviceConfig extends device {
   bleMac?: string
@@ -96,10 +96,18 @@ export interface botConfig extends BaseDeviceConfig {
 };
 
 export interface meterConfig extends BaseDeviceConfig {
-  configDeviceType: 'Meter' | 'MeterPlus' | 'Meter Pro' | 'Meter Pro CO2'
+  configDeviceType: 'Meter' | 'MeterPlus'
   hide_temperature?: boolean
   convertUnitTo?: string
   hide_humidity?: boolean
+};
+
+export interface meterProConfig extends BaseDeviceConfig {
+  configDeviceType: 'Meter Pro' | 'MeterPro(CO2)'
+  hide_temperature?: boolean
+  convertUnitTo?: string
+  hide_humidity?: boolean
+  hide_co2?: boolean
 };
 
 export interface indoorOutdoorSensorConfig extends BaseDeviceConfig {
