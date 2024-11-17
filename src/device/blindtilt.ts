@@ -577,7 +577,7 @@ export class BlindTilt extends deviceBase {
           switchBotBLE
             .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
-              const deviceList = device_list as unknown as WoBlindTilt[]
+              const deviceList = device_list as WoBlindTilt[]
               return await this.retryBLE({
                 max: this.maxRetryBLE(),
                 fn: async () => {

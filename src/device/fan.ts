@@ -460,7 +460,7 @@ export class Fan extends deviceBase {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
-              const deviceList = device_list as unknown as SwitchbotDevice[]
+              const deviceList = device_list as SwitchbotDevice[]
               return await this.retryBLE({
                 max: this.maxRetryBLE(),
                 fn: async () => {

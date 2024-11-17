@@ -501,7 +501,7 @@ export class Bot extends deviceBase {
           switchBotBLE
             .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
-              const deviceList = device_list as unknown as WoHand[]
+              const deviceList = device_list as WoHand[]
               this.infoLog(`On: ${this.On}`)
               return await deviceList[0].press()
             })
@@ -523,7 +523,7 @@ export class Bot extends deviceBase {
           switchBotBLE
             .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
-              const deviceList = device_list as unknown as WoHand[]
+              const deviceList = device_list as WoHand[]
               this.infoLog(`On: ${this.On}`)
               this.warnLog(`device_list: ${JSON.stringify(device_list)}`)
               return await this.retryBLE({
