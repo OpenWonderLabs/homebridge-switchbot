@@ -307,7 +307,7 @@ export class Plug extends deviceBase {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
-              const deviceList = device_list as unknown as WoPlugMiniUS[]
+              const deviceList = device_list as WoPlugMiniUS[]
               this.infoLog(`On: ${this.Outlet.On}`)
               return await this.retryBLE({
                 max: this.maxRetryBLE(),

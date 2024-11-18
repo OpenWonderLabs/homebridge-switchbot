@@ -608,7 +608,7 @@ export class Curtain extends deviceBase {
           switchBotBLE
             .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
-              const deviceList = device_list as unknown as WoCurtain[]
+              const deviceList = device_list as WoCurtain[]
               return await this.retryBLE({
                 max: this.maxRetryBLE(),
                 fn: async () => {

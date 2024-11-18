@@ -465,7 +465,7 @@ export class StripLight extends deviceBase {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
-              const deviceList = device_list as unknown as WoStrip[]
+              const deviceList = device_list as WoStrip[]
               this.infoLog(`On: ${this.LightBulb.On}`)
               return await this.retryBLE({
                 max: this.maxRetryBLE(),

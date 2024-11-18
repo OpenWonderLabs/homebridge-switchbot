@@ -506,7 +506,7 @@ export class ColorBulb extends deviceBase {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
-              const deviceList = device_list as unknown as WoBulb[]
+              const deviceList = device_list as WoBulb[]
               this.infoLog(`Target Brightness: ${this.LightBulb.Brightness}`)
               return await deviceList[0].setBrightness(Number(this.LightBulb.Brightness))
             })
@@ -545,7 +545,7 @@ export class ColorBulb extends deviceBase {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
-              const deviceList = device_list as unknown as WoBulb[]
+              const deviceList = device_list as WoBulb[]
               this.infoLog(`ColorTemperature: ${this.LightBulb.ColorTemperature}`)
               return await deviceList[0].setColorTemperature(kelvin)
             })
@@ -585,7 +585,7 @@ export class ColorBulb extends deviceBase {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
-              const deviceList = device_list as unknown as WoBulb[]
+              const deviceList = device_list as WoBulb[]
               this.infoLog(`RGB: ${(this.LightBulb.Brightness, red, green, blue)}`)
               return await deviceList[0].setRGB(Number(this.LightBulb.Brightness), red, green, blue)
             })
