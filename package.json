@@ -80,7 +80,7 @@
     "async-mqtt": "^2.6.3",
     "fakegato-history": "^0.6.5",
     "homebridge-lib": "^7.1.0",
-    "node-switchbot": "^3.3.1-beta.1",
+    "node-switchbot": "^3.4.0",
     "rxjs": "^7.8.1"
   },
   "devDependencies": {
@@ -93,10 +93,10 @@
     "@types/semver": "^7.5.8",
     "@types/source-map-support": "^0.5.10",
     "@vitest/coverage-v8": "^2.1.5",
-    "eslint": "^9.14.0",
+    "eslint": "^9.15.0",
     "eslint-plugin-format": "^0.1.2",
     "homebridge": "^1.8.5",
-    "homebridge-config-ui-x": "4.62.0",
+    "homebridge-config-ui-x": "4.63.0",
     "nodemon": "^3.1.7",
     "shx": "^0.3.4",
     "ts-node": "^10.9.2",

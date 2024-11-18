@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [4.1.4](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v4.1.4) (2024-11-18)
+
+### What's Changed
+- Remove unneeded unknown casting [#1113](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1113), Thanks [@dnicolson](https://github.com/dnicolson)
+- Remove additional space in logging [#1111](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1111), Thanks [@dnicolson](https://github.com/dnicolson)
+- Fix service data check [#1110](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1110), Thanks [@dnicolson](https://github.com/dnicolson)
+- Update default refresh rate [#1109](https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1109), Thanks [@dnicolson](https://github.com/dnicolson)
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.1.3...v4.1.4
+
 ## [4.1.3](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v4.1.3) (2024-11-05)
 
 ### What's Changed
