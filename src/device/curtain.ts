@@ -878,13 +878,13 @@ export class Curtain extends deviceBase {
 
   async setMinMax(): Promise<void> {
     if ((this.device as curtainConfig).set_min) {
-      if (Number(this.WindowCovering.CurrentPosition) <= (this.device as curtainConfig).set_min!) {
-        this.WindowCovering.CurrentPosition = 0
+      if (Number(this.WindowCovering.CurrentPosition) >= (this.device as curtainConfig).set_min!) {
+        this.WindowCovering.CurrentPosition = 100
       }
     }
     if ((this.device as curtainConfig).set_max) {
-      if (Number(this.WindowCovering.CurrentPosition) >= (this.device as curtainConfig).set_max!) {
-        this.WindowCovering.CurrentPosition = 100
+      if (Number(this.WindowCovering.CurrentPosition) <= (this.device as curtainConfig).set_max!) {
+        this.WindowCovering.CurrentPosition = 0
       }
     }
     if (this.device.history) {
