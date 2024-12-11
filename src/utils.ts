@@ -55,6 +55,25 @@ export function convertUnits(value: number, unit: string, convert?: string): num
 }
 
 /**
+ * Safely serializes an object to a JSON string, handling circular references.
+ *
+ * @param obj - The object to be serialized.
+ * @returns The JSON string representation of the object.
+ */
+export function safeStringify(obj: any) {
+  const seen = new WeakSet()
+  return JSON.stringify(obj, (_key, value) => {
+    if (typeof value === 'object' && value !== null) {
+      if (seen.has(value)) {
+        return
+      }
+      seen.add(value)
+    }
+    return value
+  }, '  ')
+}
+
+/**
  * Formats a device ID as a MAC address.
  * Ensures the device ID does not already contain colons.
  *

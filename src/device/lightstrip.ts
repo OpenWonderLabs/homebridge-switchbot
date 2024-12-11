@@ -512,7 +512,7 @@ export class StripLight extends deviceBase {
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
               this.infoLog(`Brightness: ${this.LightBulb.Brightness}`)
-              return await device_list[0].setBrightness(this.LightBulb.Brightness)
+              return await (device_list[0] as WoStrip).setBrightness(Number(this.LightBulb.Brightness))
             })
             .then(async () => {
               this.successLog(`Brightness: ${this.LightBulb.Brightness} sent over SwitchBot BLE, sent successfully`)
@@ -551,7 +551,7 @@ export class StripLight extends deviceBase {
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
               this.infoLog(`RGB: ${(this.LightBulb.Brightness, red, green, blue)}`)
-              return await device_list[0].setRGB(this.LightBulb.Brightness, red, green, blue)
+              return await (device_list[0] as WoStrip).setRGB(Number(this.LightBulb.Brightness), red, green, blue)
             })
             .then(async () => {
               this.successLog(`RGB: ${(this.LightBulb.Brightness, red, green, blue)} sent over SwitchBot BLE, sent successfully`)
