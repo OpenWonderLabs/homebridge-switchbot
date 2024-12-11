@@ -132,8 +132,8 @@ export class IRFan extends irdeviceBase {
    * Fan -        "command"       "highSpeed"      "default"          =        fan speed to high
    */
   async pushFanOnChanges(): Promise<void> {
-    this.debugLog(`pushFanOnChanges Active: ${this.Fan.Active}, disablePushOn: ${this.disablePushOn}`)
-    if (this.Fan.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
+    this.debugLog(`pushFanOnChanges Active: ${this.Fan.Active}, disablePushOn: ${this.deviceDisablePushOn}`)
+    if (this.Fan.Active === this.hap.Characteristic.Active.ACTIVE && !this.deviceDisablePushOn) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOn()
       const bodyChange: bodyChange = {
@@ -146,8 +146,8 @@ export class IRFan extends irdeviceBase {
   }
 
   async pushFanOffChanges(): Promise<void> {
-    this.debugLog(`pushLightOffChanges Active: ${this.Fan.Active}, disablePushOff: ${this.disablePushOff}`)
-    if (this.Fan.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOff) {
+    this.debugLog(`pushLightOffChanges Active: ${this.Fan.Active}, disablePushOff: ${this.deviceDisablePushOff}`)
+    if (this.Fan.Active === this.hap.Characteristic.Active.INACTIVE && !this.deviceDisablePushOff) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOff()
       const bodyChange: bodyChange = {

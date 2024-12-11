@@ -407,9 +407,9 @@ export class Others extends irdeviceBase {
    * Other -       "command"       "channelSub"      "default"          =        previous channel
    */
   async pushOnChanges(On: boolean): Promise<void> {
-    this.debugLog(`pushOnChanges On: ${On}, disablePushOn: ${this.disablePushOn}, customize: ${this.device.customize}, customOn: ${this.device.customOn}`)
+    this.debugLog(`pushOnChanges On: ${On}, disablePushOn: ${this.deviceDisablePushOn}, customize: ${this.device.customize}, customOn: ${this.device.customOn}`)
     if (this.device.customize) {
-      if (On === true && !this.disablePushOn) {
+      if (On === true && !this.deviceDisablePushOn) {
         const commandType: string = await this.commandType()
         const command: string = await this.commandOn()
         const bodyChange: bodyChange = {
@@ -425,9 +425,9 @@ export class Others extends irdeviceBase {
   }
 
   async pushOffChanges(On: boolean): Promise<void> {
-    this.debugLog(`pushOffChanges On: ${On}, disablePushOff: ${this.disablePushOff}, customize: ${this.device.customize}, customOff: ${this.device.customOff}`)
+    this.debugLog(`pushOffChanges On: ${On}, disablePushOff: ${this.deviceDisablePushOff}, customize: ${this.device.customize}, customOff: ${this.device.customOff}`)
     if (this.device.customize) {
-      if (On === false && !this.disablePushOff) {
+      if (On === false && !this.deviceDisablePushOff) {
         const commandType: string = await this.commandType()
         const command: string = await this.commandOff()
         const bodyChange: bodyChange = {

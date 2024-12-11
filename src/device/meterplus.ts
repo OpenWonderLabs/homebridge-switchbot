@@ -189,7 +189,7 @@ export class MeterPlus extends deviceBase {
       this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}°c`)
     }
     // Battery Info
-    if (this.serviceData.battery) {
+    if ('battery' in this.serviceData) {
       // BatteryLevel
       this.Battery.BatteryLevel = this.serviceData.battery
       this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)

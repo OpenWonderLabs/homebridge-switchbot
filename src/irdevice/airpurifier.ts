@@ -145,8 +145,8 @@ export class AirPurifier extends irdeviceBase {
    * AirPurifier:        "command"       "highSpeed"      "default"         =        fan speed to high
    */
   async pushAirPurifierOnChanges(): Promise<void> {
-    this.debugLog(`pushAirPurifierOnChanges Active: ${this.AirPurifier.Active}, disablePushOn: ${this.disablePushOn}`)
-    if (this.AirPurifier.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
+    this.debugLog(`pushAirPurifierOnChanges Active: ${this.AirPurifier.Active}, disablePushOn: ${this.deviceDisablePushOn}`)
+    if (this.AirPurifier.Active === this.hap.Characteristic.Active.ACTIVE && !this.deviceDisablePushOn) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOn()
       const bodyChange: bodyChange = {
@@ -159,8 +159,8 @@ export class AirPurifier extends irdeviceBase {
   }
 
   async pushAirPurifierOffChanges(): Promise<void> {
-    this.debugLog(`pushAirPurifierOffChanges Active: ${this.AirPurifier.Active}, disablePushOff: ${this.disablePushOff}`)
-    if (this.AirPurifier.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOn) {
+    this.debugLog(`pushAirPurifierOffChanges Active: ${this.AirPurifier.Active}, disablePushOff: ${this.deviceDisablePushOff}`)
+    if (this.AirPurifier.Active === this.hap.Characteristic.Active.INACTIVE && !this.deviceDisablePushOn) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOff()
       const bodyChange: bodyChange = {
@@ -173,7 +173,7 @@ export class AirPurifier extends irdeviceBase {
   }
 
   async pushAirPurifierStatusChanges(): Promise<void> {
-    this.debugLog(`pushAirPurifierStatusChanges Active: ${this.AirPurifier.Active}, disablePushOff: ${this.disablePushOff},  disablePushOn: ${this.disablePushOn}`)
+    this.debugLog(`pushAirPurifierStatusChanges Active: ${this.AirPurifier.Active}, disablePushOff: ${this.deviceDisablePushOff}, disablePushOn: ${this.deviceDisablePushOn}`)
     if (!this.Busy) {
       this.Busy = true
       this.AirPurifier.CurrentHeaterCoolerState = this.hap.Characteristic.CurrentHeaterCoolerState.IDLE
@@ -185,7 +185,7 @@ export class AirPurifier extends irdeviceBase {
   }
 
   async pushAirPurifierDetailsChanges(): Promise<void> {
-    this.debugLog(`pushAirPurifierDetailsChanges Active: ${this.AirPurifier.Active}, disablePushOff: ${this.disablePushOff},  disablePushOn: ${this.disablePushOn}`)
+    this.debugLog(`pushAirPurifierDetailsChanges Active: ${this.AirPurifier.Active}, disablePushOff: ${this.deviceDisablePushOff}, disablePushOn: ${this.deviceDisablePushOn}`)
     this.CurrentAPTemp = this.TemperatureSensor!.CurrentTemperature ?? 24
     this.CurrentAPMode = this.CurrentMode ?? 1
     this.CurrentAPFanSpeed = this.CurrentFanSpeed ?? 1

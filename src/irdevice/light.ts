@@ -166,8 +166,8 @@ export class Light extends irdeviceBase {
    * Light -       "command"       "channelSub"      "default"          =        previous channel
    */
   async pushLightOnChanges(On: boolean): Promise<void> {
-    this.debugLog(`pushLightOnChanges On: ${On}, disablePushOn: ${this.disablePushOn}`)
-    if (On === true && this.disablePushOn === false) {
+    this.debugLog(`pushLightOnChanges On: ${On}, disablePushOn: ${this.deviceDisablePushOn}`)
+    if (On === true && this.deviceDisablePushOn === false) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOn()
       const bodyChange: bodyChange = {
@@ -180,8 +180,8 @@ export class Light extends irdeviceBase {
   }
 
   async pushLightOffChanges(On: boolean): Promise<void> {
-    this.debugLog(`pushLightOffChanges On: ${On}, disablePushOff: ${this.disablePushOff}`)
-    if (On === false && this.disablePushOff === false) {
+    this.debugLog(`pushLightOffChanges On: ${On}, disablePushOff: ${this.deviceDisablePushOff}`)
+    if (On === false && this.deviceDisablePushOff === false) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOff()
       const bodyChange: bodyChange = {

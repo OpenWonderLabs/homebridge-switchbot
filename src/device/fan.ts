@@ -460,20 +460,19 @@ export class Fan extends deviceBase {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
-              const deviceList = device_list as unknown as SwitchbotDevice[]
               return await this.retryBLE({
                 max: this.maxRetryBLE(),
                 fn: async () => {
                   if (this.Fan.Active) {
-                    return await deviceList[0].turnOn()
+                    return await (device_list[0] as any).turnOn()
                   } else {
-                    return await deviceList[0].turnOff()
+                    return await (device_list[0] as any).turnOff()
                   }
                 },
               })
             })
             .then(async () => {
-              this.successLog(`Active: ${this.Fan.Active} sent over SwitchBot BLE,  sent successfully`)
+              this.successLog(`Active: ${this.Fan.Active} sent over SwitchBot BLE, sent successfully`)
               await this.updateHomeKitCharacteristics()
             })
             .catch(async (e: any) => {

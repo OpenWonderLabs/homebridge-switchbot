@@ -206,8 +206,8 @@ export class TV extends irdeviceBase {
    * TV           "command"       "channelSub"      "default"          previous channel
    */
   async pushTvOnChanges(): Promise<void> {
-    this.debugLog(`pushTvOnChanges Active: ${this.Television.Active}, disablePushOn: ${this.disablePushOn}`)
-    if (this.Television.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
+    this.debugLog(`pushTvOnChanges Active: ${this.Television.Active}, disablePushOn: ${this.deviceDisablePushOn}`)
+    if (this.Television.Active === this.hap.Characteristic.Active.ACTIVE && !this.deviceDisablePushOn) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOn()
       const bodyChange: bodyChange = {
@@ -220,8 +220,8 @@ export class TV extends irdeviceBase {
   }
 
   async pushTvOffChanges(): Promise<void> {
-    this.debugLog(`pushTvOffChanges Active: ${this.Television.Active}, disablePushOff: ${this.disablePushOff}`)
-    if (this.Television.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOff) {
+    this.debugLog(`pushTvOffChanges Active: ${this.Television.Active}, disablePushOff: ${this.deviceDisablePushOff}`)
+    if (this.Television.Active === this.hap.Characteristic.Active.INACTIVE && !this.deviceDisablePushOff) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOff()
       const bodyChange: bodyChange = {
@@ -234,8 +234,8 @@ export class TV extends irdeviceBase {
   }
 
   async pushOkChanges(): Promise<void> {
-    this.debugLog(`pushOkChanges disablePushDetail: ${this.disablePushDetail}`)
-    if (!this.disablePushDetail) {
+    this.debugLog(`pushOkChanges disablePushDetail: ${this.deviceDisablePushDetail}`)
+    if (!this.deviceDisablePushDetail) {
       const bodyChange: bodyChange = {
         command: 'Ok',
         parameter: 'default',
@@ -246,8 +246,8 @@ export class TV extends irdeviceBase {
   }
 
   async pushBackChanges(): Promise<void> {
-    this.debugLog(`pushBackChanges disablePushDetail: ${this.disablePushDetail}`)
-    if (!this.disablePushDetail) {
+    this.debugLog(`pushBackChanges disablePushDetail: ${this.deviceDisablePushDetail}`)
+    if (!this.deviceDisablePushDetail) {
       const bodyChange: bodyChange = {
         command: 'Back',
         parameter: 'default',
@@ -258,8 +258,8 @@ export class TV extends irdeviceBase {
   }
 
   async pushMenuChanges(): Promise<void> {
-    this.debugLog(`pushMenuChanges disablePushDetail: ${this.disablePushDetail}`)
-    if (!this.disablePushDetail) {
+    this.debugLog(`pushMenuChanges disablePushDetail: ${this.deviceDisablePushDetail}`)
+    if (!this.deviceDisablePushDetail) {
       const bodyChange: bodyChange = {
         command: 'Menu',
         parameter: 'default',
@@ -270,8 +270,8 @@ export class TV extends irdeviceBase {
   }
 
   async pushUpChanges(): Promise<void> {
-    this.debugLog(`pushUpChanges disablePushDetail: ${this.disablePushDetail}`)
-    if (!this.disablePushDetail) {
+    this.debugLog(`pushUpChanges disablePushDetail: ${this.deviceDisablePushDetail}`)
+    if (!this.deviceDisablePushDetail) {
       const bodyChange: bodyChange = {
         command: 'Up',
         parameter: 'default',
@@ -282,8 +282,8 @@ export class TV extends irdeviceBase {
   }
 
   async pushDownChanges(): Promise<void> {
-    this.debugLog(`pushDownChanges disablePushDetail: ${this.disablePushDetail}`)
-    if (!this.disablePushDetail) {
+    this.debugLog(`pushDownChanges disablePushDetail: ${this.deviceDisablePushDetail}`)
+    if (!this.deviceDisablePushDetail) {
       const bodyChange: bodyChange = {
         command: 'Down',
         parameter: 'default',
@@ -294,8 +294,8 @@ export class TV extends irdeviceBase {
   }
 
   async pushRightChanges(): Promise<void> {
-    this.debugLog(`pushRightChanges disablePushDetail: ${this.disablePushDetail}`)
-    if (!this.disablePushDetail) {
+    this.debugLog(`pushRightChanges disablePushDetail: ${this.deviceDisablePushDetail}`)
+    if (!this.deviceDisablePushDetail) {
       const bodyChange: bodyChange = {
         command: 'Right',
         parameter: 'default',
@@ -306,8 +306,8 @@ export class TV extends irdeviceBase {
   }
 
   async pushLeftChanges(): Promise<void> {
-    this.debugLog(`pushLeftChanges disablePushDetail: ${this.disablePushDetail}`)
-    if (!this.disablePushDetail) {
+    this.debugLog(`pushLeftChanges disablePushDetail: ${this.deviceDisablePushDetail}`)
+    if (!this.deviceDisablePushDetail) {
       const bodyChange: bodyChange = {
         command: 'Left',
         parameter: 'default',
@@ -318,8 +318,8 @@ export class TV extends irdeviceBase {
   }
 
   async pushVolumeUpChanges(): Promise<void> {
-    this.debugLog(`pushVolumeUpChanges disablePushDetail: ${this.disablePushDetail}`)
-    if (!this.disablePushDetail) {
+    this.debugLog(`pushVolumeUpChanges disablePushDetail: ${this.deviceDisablePushDetail}`)
+    if (!this.deviceDisablePushDetail) {
       const bodyChange: bodyChange = {
         command: 'volumeAdd',
         parameter: 'default',
@@ -330,8 +330,8 @@ export class TV extends irdeviceBase {
   }
 
   async pushVolumeDownChanges(): Promise<void> {
-    this.debugLog(`pushVolumeDownChanges disablePushDetail: ${this.disablePushDetail}`)
-    if (!this.disablePushDetail) {
+    this.debugLog(`pushVolumeDownChanges disablePushDetail: ${this.deviceDisablePushDetail}`)
+    if (!this.deviceDisablePushDetail) {
       const bodyChange: bodyChange = {
         command: 'volumeSub',
         parameter: 'default',

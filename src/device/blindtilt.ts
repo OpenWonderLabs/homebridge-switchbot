@@ -351,7 +351,7 @@ export class BlindTilt extends deviceBase {
       this.debugLog(`LightLevel: ${this.serviceData.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`)
     }
     // Battery Info
-    if (this.serviceData.battery) {
+    if ('battery' in this.serviceData) {
       // BatteryLevel
       this.Battery.BatteryLevel = this.serviceData.battery
       this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
@@ -577,7 +577,7 @@ export class BlindTilt extends deviceBase {
           switchBotBLE
             .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
-              const deviceList = device_list as unknown as WoBlindTilt[]
+              const deviceList = device_list as WoBlindTilt[]
               return await this.retryBLE({
                 max: this.maxRetryBLE(),
                 fn: async () => {
@@ -586,7 +586,7 @@ export class BlindTilt extends deviceBase {
               })
             })
             .then(async () => {
-              this.successLog(`TargetPostion: ${this.WindowCovering.TargetPosition} sent over SwitchBot BLE,  sent successfully`)
+              this.successLog(`TargetPostion: ${this.WindowCovering.TargetPosition} sent over SwitchBot BLE, sent successfully`)
               await this.updateHomeKitCharacteristics()
             })
             .catch(async (e: any) => {

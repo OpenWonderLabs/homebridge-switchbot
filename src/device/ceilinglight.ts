@@ -289,7 +289,7 @@ export class CeilingLight extends deviceBase {
     } else {
       (async () => {
         // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as unknown as ceilingLightServiceData
+        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as ceilingLightServiceData
         // Update HomeKit
         if ((serviceData.model === SwitchBotBLEModel.CeilingLight || SwitchBotBLEModel.CeilingLightPro) && (serviceData.modelName === SwitchBotBLEModelName.CeilingLight || SwitchBotBLEModelName.CeilingLightPro)) {
           this.serviceData = serviceData
@@ -426,7 +426,7 @@ export class CeilingLight extends deviceBase {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
-              const deviceList = device_list[0] as unknown as WoCeilingLight
+              const deviceList = device_list[0] as WoCeilingLight
               this.infoLog(`On: ${this.LightBulb.On}`)
               return await this.retryBLE({
                 max: this.maxRetryBLE(),
@@ -440,7 +440,7 @@ export class CeilingLight extends deviceBase {
               })
             })
             .then(async () => {
-              this.successLog(`On: ${this.LightBulb.On} sent over SwitchBot BLE,  sent successfully`)
+              this.successLog(`On: ${this.LightBulb.On} sent over SwitchBot BLE, sent successfully`)
               this.LightBulb.On = false
             })
             .catch(async (e: any) => {
