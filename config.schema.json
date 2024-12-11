@@ -605,7 +605,7 @@
                   "title": "Set Minimum Step",
                   "type": "number",
                   "placeholder": "1",
-                  "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100",
+                  "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100.",
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Strip Light' || model.options.devices[arrayIndices].configDeviceType === 'Color Bulb' || model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3' || model.options.devices[arrayIndices].configDeviceType === 'WoRollerShade' || model.options.devices[arrayIndices].configDeviceType === 'Roller Shade' || model.options.devices[arrayIndices].configDeviceType === 'Humidifier') && model.options.devices[arrayIndices].deviceId);"
                   }
@@ -614,7 +614,7 @@
                   "title": "Set Minimum Open State",
                   "type": "number",
                   "placeholder": "0",
-                  "description": "Sets the minimum percentage before needed to set to Open",
+                  "description": "Sets the minimum percentage before needed to set to Open.",
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3' || model.options.devices[arrayIndices].configDeviceType === 'WoRollerShade' || model.options.devices[arrayIndices].configDeviceType === 'Roller Shade' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Motion Sensor' || model.options.devices[arrayIndices].configDeviceType === 'Contact Sensor' || model.options.devices[arrayIndices].configDeviceType === 'Humidifier' || model.options.devices[arrayIndices].configDeviceType === 'Strip Light' || model.options.devices[arrayIndices].configDeviceType === 'Ceiling Light' || model.options.devices[arrayIndices].configDeviceType === 'Ceiling Light Pro') && model.options.devices[arrayIndices].deviceId);"
                   }
@@ -623,7 +623,7 @@
                   "title": "Set Maximum Close State",
                   "type": "number",
                   "placeholder": "100",
-                  "description": "Sets the maximum percentage before needing to set to Closed",
+                  "description": "Sets the maximum percentage before needing to set to Closed.",
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3' || model.options.devices[arrayIndices].configDeviceType === 'WoRollerShade' || model.options.devices[arrayIndices].configDeviceType === 'Roller Shade' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Motion Sensor' || model.options.devices[arrayIndices].configDeviceType === 'Contact Sensor' || model.options.devices[arrayIndices].configDeviceType === 'Humidifier' || model.options.devices[arrayIndices].configDeviceType === 'Strip Light' || model.options.devices[arrayIndices].configDeviceType === 'Ceiling Light' || model.options.devices[arrayIndices].configDeviceType === 'Ceiling Light Pro') && model.options.devices[arrayIndices].deviceId);"
                   }
@@ -883,7 +883,7 @@
                     "title": "Set Minimum Step",
                     "type": "number",
                     "placeholder": "1",
-                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100",
+                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Humidifier'].hide_device);"
                     }
@@ -3095,7 +3095,7 @@
                     "title": "Set Minimum Open State",
                     "type": "number",
                     "placeholder": "0",
-                    "description": "Sets the minimum percentage before needed to set to Open",
+                    "description": "Sets the minimum percentage before needed to set to Open.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Curtain'].hide_device);"
                     }
@@ -3104,7 +3104,7 @@
                     "title": "Set Maximum Close State",
                     "type": "number",
                     "placeholder": "100",
-                    "description": "Sets the maximum percentage before needing to set to Closed",
+                    "description": "Sets the maximum percentage before needing to set to Closed.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Curtain'].hide_device);"
                     }
@@ -3113,7 +3113,7 @@
                     "title": "Set Minimum Step",
                     "type": "number",
                     "placeholder": "1",
-                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100",
+                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Curtain'].hide_device);"
                     }
@@ -3381,7 +3381,7 @@
                     "title": "Set Minimum Open State",
                     "type": "number",
                     "placeholder": "0",
-                    "description": "Sets the minimum percentage before needed to set to Open",
+                    "description": "Sets the minimum percentage before needed to set to Open.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Curtain3'].hide_device);"
                     }
@@ -3390,7 +3390,7 @@
                     "title": "Set Maximum Close State",
                     "type": "number",
                     "placeholder": "100",
-                    "description": "Sets the maximum percentage before needing to set to Closed",
+                    "description": "Sets the maximum percentage before needing to set to Closed.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Curtain3'].hide_device);"
                     }
@@ -3399,7 +3399,7 @@
                     "title": "Set Minimum Step",
                     "type": "number",
                     "placeholder": "1",
-                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100",
+                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Curtain3'].hide_device);"
                     }
@@ -3667,7 +3667,7 @@
                     "title": "Set Minimum Open State",
                     "type": "number",
                     "placeholder": "0",
-                    "description": "Sets the minimum percentage before needed to set to Open",
+                    "description": "Sets the minimum percentage before needed to set to Open.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['WoRollerShade'].hide_device);"
                     }
@@ -3676,7 +3676,7 @@
                     "title": "Set Maximum Close State",
                     "type": "number",
                     "placeholder": "100",
-                    "description": "Sets the maximum percentage before needing to set to Closed",
+                    "description": "Sets the maximum percentage before needing to set to Closed.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['WoRollerShade'].hide_device);"
                     }
@@ -3685,7 +3685,7 @@
                     "title": "Set Minimum Step",
                     "type": "number",
                     "placeholder": "1",
-                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100",
+                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['WoRollerShade'].hide_device);"
                     }
@@ -3953,7 +3953,7 @@
                     "title": "Set Minimum Open State",
                     "type": "number",
                     "placeholder": "0",
-                    "description": "Sets the minimum percentage before needed to set to Open",
+                    "description": "Sets the minimum percentage before needed to set to Open.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Roller Shade'].hide_device);"
                     }
@@ -3962,7 +3962,7 @@
                     "title": "Set Maximum Close State",
                     "type": "number",
                     "placeholder": "100",
-                    "description": "Sets the maximum percentage before needing to set to Closed",
+                    "description": "Sets the maximum percentage before needing to set to Closed.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Roller Shade'].hide_device);"
                     }
@@ -3971,7 +3971,7 @@
                     "title": "Set Minimum Step",
                     "type": "number",
                     "placeholder": "1",
-                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100",
+                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Roller Shade'].hide_device);"
                     }
@@ -4274,7 +4274,7 @@
                     "title": "Set Minimum Open State",
                     "type": "number",
                     "placeholder": "0",
-                    "description": "Sets the minimum percentage before needed to set to Open",
+                    "description": "Sets the minimum percentage before needed to set to Open.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Blind Tilt'].hide_device);"
                     }
@@ -4283,7 +4283,7 @@
                     "title": "Set Maximum Close State",
                     "type": "number",
                     "placeholder": "100",
-                    "description": "Sets the maximum percentage before needing to set to Closed",
+                    "description": "Sets the maximum percentage before needing to set to Closed.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Blind Tilt'].hide_device);"
                     }
@@ -4292,7 +4292,7 @@
                     "title": "Set Minimum Step",
                     "type": "number",
                     "placeholder": "1",
-                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100",
+                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Blind Tilt'].hide_device);"
                     }
@@ -5458,7 +5458,7 @@
                     "title": "Set Minimum Step",
                     "type": "number",
                     "placeholder": "1",
-                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100",
+                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Color Bulb'].hide_device);"
                     }
@@ -6916,7 +6916,7 @@
                     "title": "Set Minimum Step",
                     "type": "number",
                     "placeholder": "1",
-                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100",
+                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Ceiling Light'].hide_device);"
                     }
@@ -7114,7 +7114,7 @@
                     "title": "Set Minimum Step",
                     "type": "number",
                     "placeholder": "1",
-                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100",
+                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Ceiling Light Pro'].hide_device);"
                     }
@@ -7312,7 +7312,7 @@
                     "title": "Set Minimum Step",
                     "type": "number",
                     "placeholder": "1",
-                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100",
+                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Strip Light'].hide_device);"
                     }
@@ -7510,7 +7510,7 @@
                     "title": "Set Minimum Step",
                     "type": "number",
                     "placeholder": "1",
-                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100",
+                    "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Battery Circulator Fan'].hide_device);"
                     }
