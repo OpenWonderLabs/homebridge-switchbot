@@ -844,7 +844,6 @@ export class Curtain extends deviceBase {
       this.hasLoggedStandby = false
       this.infoLog('Checking Status ...')
       this.curtainMoving = true
-      await this.setMinMax()
       if (this.WindowCovering.TargetPosition > this.WindowCovering.CurrentPosition) {
         this.debugLog(`Closing, CurrentPosition: ${this.WindowCovering.CurrentPosition}`)
         this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.INCREASING

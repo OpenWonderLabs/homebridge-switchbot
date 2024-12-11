@@ -14,7 +14,7 @@ import { hostname } from 'node:os'
 
 import { SwitchBotBLEModel, SwitchBotBLEModelFriendlyName, SwitchBotBLEModelName, SwitchBotModel } from 'node-switchbot'
 
-import { formatDeviceIdAsMac, sleep } from '../utils.js'
+import { formatDeviceIdAsMac, safeStringify, sleep } from '../utils.js'
 
 export abstract class deviceBase {
   public readonly api: API
@@ -94,12 +94,15 @@ export abstract class deviceBase {
     // refreshRate
     this.deviceRefreshRate = device.refreshRate ?? this.platform.platformRefreshRate ?? 300
     const refreshRate = device.refreshRate ? 'Device Config' : this.platform.platformRefreshRate ? 'Platform Config' : 'Default'
+    this.accessory.context.refreshRate = this.deviceRefreshRate
     // updateRate
     this.deviceUpdateRate = device.updateRate ?? this.platform.platformUpdateRate ?? 5
     const updateRate = device.updateRate ? 'Device Config' : this.platform.platformUpdateRate ? 'Platform Config' : 'Default'
+    this.accessory.context.updateRate = this.deviceUpdateRate
     // pushRate
     this.devicePushRate = device.pushRate ?? this.platform.platformPushRate ?? 0.1
     const pushRate = device.pushRate ? 'Device Config' : this.platform.platformPushRate ? 'Platform Config' : 'Default'
+    this.accessory.context.pushRate = this.devicePushRate
     this.debugLog(`Using ${refreshRate} refreshRate: ${this.deviceRefreshRate}, ${updateRate} updateRate: ${this.deviceUpdateRate}, ${pushRate} pushRate: ${this.devicePushRate}`)
     // maxRetries
     this.deviceMaxRetries = device.maxRetries ?? this.platform.platformMaxRetries ?? 2
@@ -312,6 +315,7 @@ export abstract class deviceBase {
     // Set an event handler
     let serviceData = { model: this.device.bleModel, modelName: this.device.bleModelName } as ad['serviceData']
     switchbot.onadvertisement = (ad: ad) => {
+      this.debugLog(`ad: ${safeStringify(ad)}`)
       if (this.device.bleMac === ad.address && ad.serviceData.model === this.device.bleModel) {
         this.debugLog(`${JSON.stringify(ad, null, '  ')}`)
         this.debugLog(`address: ${ad.address}, model: ${ad.serviceData.model}`)

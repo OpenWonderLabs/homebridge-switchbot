@@ -392,15 +392,14 @@ export class RobotVacuumCleaner extends deviceBase {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
-              const deviceList = device_list as SwitchbotDevice[]
               this.infoLog(`On: ${this.LightBulb.On}`)
               return await this.retryBLE({
                 max: this.maxRetryBLE(),
                 fn: async () => {
                   if (this.LightBulb.On) {
-                    return await deviceList[0].turnOn()
+                    return await (device_list[0] as any).turnOn()
                   } else {
-                    return await deviceList[0].turnOff()
+                    return await (device_list[0] as any).turnOff()
                   }
                 },
               })

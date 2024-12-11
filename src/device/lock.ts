@@ -3,7 +3,7 @@
  * lock.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
-import type { bodyChange, device, lockProServiceData, lockProStatus, lockProWebhookContext, lockServiceData, lockStatus, lockWebhookContext, SwitchbotDevice } from 'node-switchbot'
+import type { bodyChange, device, lockProServiceData, lockProStatus, lockProWebhookContext, lockServiceData, lockStatus, lockWebhookContext, SwitchbotDevice, WoSmartLock } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig, lockConfig } from '../settings.js'
@@ -451,9 +451,9 @@ export class Lock extends deviceBase {
                 max: this.maxRetryBLE(),
                 fn: async () => {
                   if (this.LockMechanism.LockTargetState === this.hap.Characteristic.LockTargetState.SECURED) {
-                    return await device_list[0].lock({ id: this.device.bleMac })
+                    return await (device_list[0] as WoSmartLock).lock()
                   } else {
-                    return await device_list[0].unlock({ id: this.device.bleMac })
+                    return await (device_list[0] as WoSmartLock).unlock()
                   }
                 },
               })
