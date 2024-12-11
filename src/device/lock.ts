@@ -225,7 +225,7 @@ export class Lock extends deviceBase {
       this.debugLog(`ContactSensorState: ${this.ContactSensor.ContactSensorState}`)
     }
     // Battery Info
-    if (this.serviceData.battery) {
+    if ('battery' in this.serviceData) {
       // BatteryLevel
       this.Battery.BatteryLevel = this.serviceData.battery
       this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
@@ -459,7 +459,7 @@ export class Lock extends deviceBase {
               })
             })
             .then(async () => {
-              this.successLog(`LockTargetState: ${this.LockMechanism.LockTargetState} sent over SwitchBot BLE,  sent successfully`)
+              this.successLog(`LockTargetState: ${this.LockMechanism.LockTargetState} sent over SwitchBot BLE, sent successfully`)
               await this.updateHomeKitCharacteristics()
             })
             .catch(async (e: any) => {

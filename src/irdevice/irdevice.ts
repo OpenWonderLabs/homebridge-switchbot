@@ -1,6 +1,6 @@
 /* Copyright(C) 2021-2024, donavanbecker (https://github.com/donavanbecker). All rights reserved.
  *
- * device.ts: @switchbot/homebridge-switchbot.
+ * irdevice.ts: @switchbot/homebridge-switchbot.
  */
 import type { API, CharacteristicValue, HAP, Logging, PlatformAccessory, Service } from 'homebridge'
 import type { bodyChange, irdevice } from 'node-switchbot'
@@ -16,9 +16,14 @@ export abstract class irdeviceBase {
 
   // Config
   protected deviceLogging!: string
-  protected disablePushOn!: boolean
-  protected disablePushOff!: boolean
-  protected disablePushDetail?: boolean
+  protected deviceRefreshRate!: number
+  protected deviceUpdateRate!: number
+  protected devicePushRate!: number
+  protected deviceMaxRetries!: number
+  protected deviceDelayBetweenRetries!: number
+  protected deviceDisablePushOn!: boolean
+  protected deviceDisablePushOff!: boolean
+  protected deviceDisablePushDetail?: boolean
 
   constructor(
     protected readonly platform: SwitchBotPlatform,
@@ -31,10 +36,9 @@ export abstract class irdeviceBase {
     this.hap = this.api.hap
 
     this.getDeviceLogSettings(accessory, device)
+    this.getDeviceRateSettings(device)
     this.getDeviceConfigSettings(device)
     this.getDeviceContext(accessory, device)
-    this.disablePushOnChanges(device)
-    this.disablePushOffChanges(device)
 
     // Set accessory information
     accessory
@@ -53,6 +57,38 @@ export abstract class irdeviceBase {
     const logging = this.platform.debugMode ? 'Debug Mode' : device.logging ? 'Device Config' : this.platform.platformLogging ? 'Platform Config' : 'Default'
     accessory.context.deviceLogging = this.deviceLogging
     this.debugLog(`Using ${logging} Logging: ${this.deviceLogging}`)
+  }
+
+  async getDeviceRateSettings(device: irdevice & irDevicesConfig): Promise<void> {
+    // refreshRate
+    this.deviceRefreshRate = device.refreshRate ?? this.platform.platformRefreshRate ?? 300
+    const refreshRate = device.refreshRate ? 'Device Config' : this.platform.platformRefreshRate ? 'Platform Config' : 'Default'
+    // updateRate
+    this.deviceUpdateRate = device.updateRate ?? this.platform.platformUpdateRate ?? 5
+    const updateRate = device.updateRate ? 'Device Config' : this.platform.platformUpdateRate ? 'Platform Config' : 'Default'
+    // pushRate
+    this.devicePushRate = device.pushRate ?? this.platform.platformPushRate ?? 0.1
+    const pushRate = device.pushRate ? 'Device Config' : this.platform.platformPushRate ? 'Platform Config' : 'Default'
+    this.debugLog(`Using ${refreshRate} refreshRate: ${this.deviceRefreshRate}, ${updateRate} updateRate: ${this.deviceUpdateRate}, ${pushRate} pushRate: ${this.devicePushRate}`)
+    // maxRetries
+    this.deviceMaxRetries = device.maxRetries ?? this.platform.platformMaxRetries ?? 2
+    const maxRetries = device.maxRetries ? 'Device' : this.platform.platformMaxRetries ? 'Platform' : 'Default'
+    this.debugLog(`Using ${maxRetries} Max Retries: ${this.deviceMaxRetries}`)
+    // delayBetweenRetries
+    this.deviceDelayBetweenRetries = device.delayBetweenRetries ? (device.delayBetweenRetries * 1000) : this.platform.platformDelayBetweenRetries ?? 3000
+    const delayBetweenRetries = device.delayBetweenRetries ? 'Device' : this.platform.platformDelayBetweenRetries ? 'Platform' : 'Default'
+    this.debugLog(`Using ${delayBetweenRetries} Delay Between Retries: ${this.deviceDelayBetweenRetries}`)
+
+    // disablePushOn
+    this.deviceDisablePushOn = device.disablePushOn ?? false
+    const disablePushOn = device.disablePushOn ? 'Device Config' : 'Default'
+    // disablePushOff
+    this.deviceDisablePushOff = device.disablePushOff ?? false
+    const disablePushOff = device.disablePushOff ? 'Device Config' : 'Default'
+    // disablePushDetail
+    this.deviceDisablePushDetail = device.disablePushDetail ?? false
+    const disablePushDetail = device.disablePushDetail ? 'Device Config' : 'Default'
+    this.debugLog(`Using ${disablePushOn} Disable Push On: ${this.deviceDisablePushOn}, ${disablePushOff} Disable Push Off: ${this.deviceDisablePushOff}, ${disablePushDetail} Disable Push Detail: ${this.deviceDisablePushDetail}`)
   }
 
   async getDeviceConfigSettings(device: irdevice & irDevicesConfig): Promise<void> {
@@ -171,30 +207,6 @@ export abstract class irdeviceBase {
 
   async pushChangeError(e: Error) {
     this.errorLog(`failed pushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
-  }
-
-  async disablePushOnChanges(device: irdevice & irDevicesConfig): Promise<void> {
-    if (device.disablePushOn === undefined) {
-      this.disablePushOn = false
-    } else {
-      this.disablePushOn = device.disablePushOn
-    }
-  }
-
-  async disablePushOffChanges(device: irdevice & irDevicesConfig): Promise<void> {
-    if (device.disablePushOff === undefined) {
-      this.disablePushOff = false
-    } else {
-      this.disablePushOff = device.disablePushOff
-    }
-  }
-
-  async disablePushDetailChanges(device: irdevice & irDevicesConfig): Promise<void> {
-    if (device.disablePushDetail === undefined) {
-      this.disablePushDetail = false
-    } else {
-      this.disablePushDetail = device.disablePushDetail
-    }
   }
 
   async commandType(): Promise<string> {

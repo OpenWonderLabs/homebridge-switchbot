@@ -1,4 +1,4 @@
-name: Node-CI Beta
+name: Beta Release
 
 on:
   push:
@@ -20,6 +20,8 @@ jobs:
   publish:
     needs: lint
     if: ${{ github.repository == 'OpenWonderLabs/homebridge-switchbot' }}
+    permissions:
+      id-token: write
     uses: OpenWonderLabs/.github/.github/workflows/npm-publish.yml@latest
     with:
       tag: 'beta'

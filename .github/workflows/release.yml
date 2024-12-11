@@ -1,4 +1,4 @@
-name: Node Release
+name: Release
 
 on:
   release:
@@ -14,9 +14,9 @@ jobs:
 
   publish:
     needs: build_and_test
-
     if: ${{ github.repository == 'OpenWonderLabs/homebridge-switchbot' }}
-
+    permissions:
+      id-token: write
     uses: OpenWonderLabs/.github/.github/workflows/npm-publish.yml@latest
     secrets:
       npm_auth_token: ${{ secrets.npm_token }}

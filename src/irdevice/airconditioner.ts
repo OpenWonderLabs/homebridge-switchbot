@@ -158,8 +158,8 @@ export class AirConditioner extends irdeviceBase {
    * AirConditioner:        "command"       "highSpeed"        "default"                   =        fan speed to high
    */
   async pushAirConditionerOnChanges(): Promise<void> {
-    this.debugLog(`pushAirConditionerOnChanges Active: ${this.HeaterCooler.Active}, disablePushOn: ${this.disablePushOn}`)
-    if (this.HeaterCooler.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
+    this.debugLog(`pushAirConditionerOnChanges Active: ${this.HeaterCooler.Active}, disablePushOn: ${this.deviceDisablePushOn}`)
+    if (this.HeaterCooler.Active === this.hap.Characteristic.Active.ACTIVE && !this.deviceDisablePushOn) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOn()
       const bodyChange: bodyChange = {
@@ -172,8 +172,8 @@ export class AirConditioner extends irdeviceBase {
   }
 
   async pushAirConditionerOffChanges(): Promise<void> {
-    this.debugLog(`pushAirConditionerOffChanges Active: ${this.HeaterCooler.Active}, disablePushOff: ${this.disablePushOff}`)
-    if (this.HeaterCooler.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOff) {
+    this.debugLog(`pushAirConditionerOffChanges Active: ${this.HeaterCooler.Active}, disablePushOff: ${this.deviceDisablePushOff}`)
+    if (this.HeaterCooler.Active === this.hap.Characteristic.Active.INACTIVE && !this.deviceDisablePushOff) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOff()
       const bodyChange: bodyChange = {
@@ -186,7 +186,7 @@ export class AirConditioner extends irdeviceBase {
   }
 
   async pushAirConditionerStatusChanges(): Promise<void> {
-    this.debugLog(`pushAirConditionerStatusChanges Active: ${this.HeaterCooler.Active}, disablePushOff: ${this.disablePushOff},  disablePushOn: ${this.disablePushOn}`)
+    this.debugLog(`pushAirConditionerStatusChanges Active: ${this.HeaterCooler.Active}, disablePushOff: ${this.deviceDisablePushOff}, disablePushOn: ${this.deviceDisablePushOn}`)
     if (!this.Busy) {
       this.Busy = true
       this.HeaterCooler.CurrentHeaterCoolerState = this.hap.Characteristic.CurrentHeaterCoolerState.IDLE
@@ -198,7 +198,7 @@ export class AirConditioner extends irdeviceBase {
   }
 
   async pushAirConditionerDetailsChanges(): Promise<void> {
-    this.debugLog(`pushAirConditionerDetailsChanges Active: ${this.HeaterCooler.Active}, disablePushOff: ${this.disablePushOff},  disablePushOn: ${this.disablePushOn}`)
+    this.debugLog(`pushAirConditionerDetailsChanges Active: ${this.HeaterCooler.Active}, disablePushOff: ${this.deviceDisablePushOff}, disablePushOn: ${this.deviceDisablePushOn}`)
     // await this.deviceContext();
     if (this.CurrentMode === undefined) {
       this.CurrentMode = 1
@@ -313,7 +313,7 @@ export class AirConditioner extends irdeviceBase {
 
   async pushChanges(bodyChange: any): Promise<void> {
     this.debugLog('pushChanges')
-    if (this.device.connectionType === 'OpenAPI' && !this.disablePushDetail) {
+    if (this.device.connectionType === 'OpenAPI' && !this.deviceDisablePushDetail) {
       this.infoLog(`Sending request to SwitchBot API, body: ${JSON.stringify(bodyChange)}`)
       try {
         const response = await this.pushChangeRequest(bodyChange)
@@ -331,7 +331,7 @@ export class AirConditioner extends irdeviceBase {
       }
     } else {
       this.warnLog(`Connection Type: ${this.device.connectionType}, commands will not be sent to OpenAPI`)
-      this.debugLog(`Connection Type: ${this.device.connectionType}, disablePushDetails: ${this.disablePushDetail}`)
+      this.debugLog(`Connection Type: ${this.device.connectionType}, disablePushDetails: ${this.deviceDisablePushDetail}`)
       await this.updateHomeKitCharacteristics()
     }
   }
@@ -385,7 +385,7 @@ export class AirConditioner extends irdeviceBase {
     this.HeaterCooler.Active = value
     if (this.HeaterCooler.Active === this.hap.Characteristic.Active.ACTIVE) {
       this.debugLog(`pushAirConditionerOnChanges, Active: ${this.HeaterCooler.Active}`)
-      if (this.disablePushOn) {
+      if (this.deviceDisablePushOn) {
         this.pushAirConditionerStatusChanges()
       } else {
         this.pushAirConditionerOnChanges()
@@ -399,7 +399,7 @@ export class AirConditioner extends irdeviceBase {
   async TargetHeaterCoolerStateGet(): Promise<CharacteristicValue> {
     const targetState = this.HeaterCooler.TargetHeaterCoolerState || this.accessory.context.TargetHeaterCoolerState
     this.HeaterCooler.TargetHeaterCoolerState = this.ValidValues.includes(targetState) ? targetState : this.ValidValues[0]
-    this.debugLog(`Get (${this.getTargetHeaterCoolerStateName()}) TargetHeaterCoolerState: ${this.HeaterCooler.TargetHeaterCoolerState}, ValidValues: ${this.ValidValues},  hide_automode: ${this.hide_automode}`)
+    this.debugLog(`Get (${this.getTargetHeaterCoolerStateName()}) TargetHeaterCoolerState: ${this.HeaterCooler.TargetHeaterCoolerState}, ValidValues: ${this.ValidValues}, hide_automode: ${this.hide_automode}`)
     return this.HeaterCooler.TargetHeaterCoolerState
   }
 

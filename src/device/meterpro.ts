@@ -3,10 +3,10 @@
  * MeterPro.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
-import type { device, meterProServiceData, meterProStatus, meterProWebhookContext } from 'node-switchbot'
+import type { device, meterProCO2ServiceData, meterProCO2Status, meterProCO2WebhookContext, meterProServiceData, meterProStatus, meterProWebhookContext } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig, meterConfig } from '../settings.js'
+import type { devicesConfig, meterProConfig } from '../settings.js'
 
 import { Units } from 'homebridge'
 /*
@@ -45,14 +45,21 @@ export class MeterPro extends deviceBase {
     CurrentTemperature: CharacteristicValue
   }
 
+  private CarbonDioxideSensor?: {
+    Name: CharacteristicValue
+    Service: Service
+    CarbonDioxideDetected: CharacteristicValue
+    CarbonDioxideLevel: CharacteristicValue
+  }
+
   // OpenAPI
-  deviceStatus!: meterProStatus
+  deviceStatus!: meterProStatus | meterProCO2Status
 
   // Webhook
-  webhookContext!: meterProWebhookContext
+  webhookContext!: meterProWebhookContext | meterProCO2WebhookContext
 
   // BLE
-  serviceData!: meterProServiceData
+  serviceData!: meterProServiceData | meterProCO2ServiceData
 
   // Updates
   meterUpdateInProgress!: boolean
@@ -91,7 +98,7 @@ export class MeterPro extends deviceBase {
     })
 
     // Initialize Temperature Sensor Service
-    if ((device as meterConfig).hide_temperature) {
+    if ((device as meterProConfig).hide_temperature) {
       if (this.TemperatureSensor) {
         this.debugLog('Removing Temperature Sensor Service')
         this.TemperatureSensor.Service = this.accessory.getService(this.hap.Service.TemperatureSensor) as Service
@@ -118,7 +125,7 @@ export class MeterPro extends deviceBase {
       })
     }
     // Initialize Humidity Sensor Service
-    if ((device as meterConfig).hide_humidity) {
+    if ((device as meterProConfig).hide_humidity) {
       if (this.HumiditySensor) {
         this.debugLog('Removing Humidity Sensor Service')
         this.HumiditySensor.Service = this.accessory.getService(this.hap.Service.HumiditySensor) as Service
@@ -139,6 +146,40 @@ export class MeterPro extends deviceBase {
       }).onGet(() => {
         return this.HumiditySensor!.CurrentRelativeHumidity!
       })
+    }
+
+    // Initialize Carbon Dioxide Sensor Service
+    if ((device as meterProConfig).hide_co2) {
+      if (this.CarbonDioxideSensor) {
+        this.debugLog('Removing Carbon Dioxide Sensor Service')
+        this.CarbonDioxideSensor.Service = this.accessory.getService(this.hap.Service.CarbonDioxideSensor) as Service
+        accessory.removeService(this.CarbonDioxideSensor.Service)
+      }
+    } else if (this.device.deviceType === 'MeterPro(CO2)') {
+      accessory.context.CarbonDioxideSensor = accessory.context.CarbonDioxideSensor ?? {}
+      this.CarbonDioxideSensor = {
+        Name: `${accessory.displayName} Carbon Dioxide Sensor`,
+        Service: accessory.getService(this.hap.Service.CarbonDioxideSensor) ?? this.accessory.addService(this.hap.Service.CarbonDioxideSensor) as Service,
+        CarbonDioxideDetected: accessory.context.CarbonDioxideDetected ?? this.hap.Characteristic.CarbonDioxideDetected.CO2_LEVELS_NORMAL,
+        CarbonDioxideLevel: accessory.context.CarbonDioxideLevel ?? 0,
+      }
+      accessory.context.CarbonDioxideSensor = this.CarbonDioxideSensor as object
+
+      // Initialize Carbon Dioxide Sensor Characteristics
+      this.CarbonDioxideSensor.Service.setCharacteristic(this.hap.Characteristic.Name, this.CarbonDioxideSensor.Name).getCharacteristic(this.hap.Characteristic.CarbonDioxideDetected).onGet(() => {
+        return this.CarbonDioxideSensor!.CarbonDioxideDetected!
+      })
+      this.CarbonDioxideSensor.Service.getCharacteristic(this.hap.Characteristic.CarbonDioxideLevel).setProps({
+        minStep: 1,
+      }).onGet(() => {
+        return this.CarbonDioxideSensor!.CarbonDioxideLevel!
+      })
+    } else {
+      if (this.CarbonDioxideSensor) {
+        this.debugLog('Removing Carbon Dioxide Sensor Service')
+        this.CarbonDioxideSensor.Service = this.accessory.getService(this.hap.Service.CarbonDioxideSensor) as Service
+        accessory.removeService(this.CarbonDioxideSensor.Service)
+      }
     }
 
     // Retrieve initial values and updateHomekit
@@ -175,21 +216,31 @@ export class MeterPro extends deviceBase {
 
   async BLEparseStatus(): Promise<void> {
     this.debugLog('BLEparseStatus')
-    this.debugLog(`(temperature, humidity) = BLE:(${this.serviceData.celsius}, ${this.serviceData.humidity}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity})`)
+    this.debugLog(`(temperature, humidity${this.device.deviceType === 'MeterPro(CO2)' ? ', co2' : ''}) = BLE:(${this.serviceData.celsius}, ${this.serviceData.humidity}${this.device.deviceType === 'MeterPro(CO2)' ? `, ${(this.serviceData as meterProCO2ServiceData).co2}` : ''}) current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity}${this.device.deviceType === 'MeterPro(CO2)' ? `, ${this.CarbonDioxideSensor?.CarbonDioxideLevel}` : ''})`)
 
     // CurrentRelativeHumidity
-    if (!(this.device as meterConfig).hide_humidity && this.HumiditySensor?.Service) {
+    if (!(this.device as meterProConfig).hide_humidity && this.HumiditySensor?.Service) {
       this.HumiditySensor.CurrentRelativeHumidity = validHumidity(this.serviceData.humidity, 0, 100)
       this.debugLog(`CurrentRelativeHumidity: ${this.HumiditySensor.CurrentRelativeHumidity}%`)
     }
     // Current Temperature
-    if (!(this.device as meterConfig).hide_temperature && this.TemperatureSensor?.Service) {
+    if (!(this.device as meterProConfig).hide_temperature && this.TemperatureSensor?.Service) {
       const CELSIUS = this.serviceData.celsius < 0 ? 0 : this.serviceData.celsius > 100 ? 100 : this.serviceData.celsius
       this.TemperatureSensor.CurrentTemperature = CELSIUS
       this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}°c`)
     }
+    // Carbon Dioxide Sensor
+    if (!(this.device as meterProConfig).hide_co2 && this.CarbonDioxideSensor?.Service && this.device.deviceType === 'MeterPro(CO2)') {
+      this.CarbonDioxideSensor.CarbonDioxideLevel = (this.serviceData as meterProCO2ServiceData).co2
+      this.debugLog(`CarbonDioxideLevel: ${this.CarbonDioxideSensor.CarbonDioxideLevel}ppm`)
+      this.CarbonDioxideSensor.CarbonDioxideDetected = this.CarbonDioxideSensor.CarbonDioxideLevel > 0
+        ? this.hap.Characteristic.CarbonDioxideDetected.CO2_LEVELS_ABNORMAL
+        : this.hap.Characteristic.CarbonDioxideDetected.CO2_LEVELS_NORMAL
+      this.debugLog(`CarbonDioxideDetected: ${this.CarbonDioxideSensor.CarbonDioxideDetected}`)
+      this.warnLog('Carbon Dioxide Sensor is not supported yet.')
+    }
     // Battery Info
-    if (this.serviceData.battery) {
+    if ('battery' in this.serviceData) {
       // BatteryLevel
       this.Battery.BatteryLevel = this.serviceData.battery
       this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
@@ -203,29 +254,43 @@ export class MeterPro extends deviceBase {
 
   async openAPIparseStatus(): Promise<void> {
     this.debugLog('openAPIparseStatus')
-    this.debugLog(`(temperature, humidity) = OpenAPI:(${this.deviceStatus.temperature}, ${this.deviceStatus.humidity}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity})`)
+    this.debugLog(`(temperature, humidity${this.device.deviceType === 'MeterPro(CO2)' ? ', co2' : ''}) = OpenAPI:(${this.deviceStatus.temperature}, ${this.deviceStatus.humidity}${this.device.deviceType === 'MeterPro(CO2)' ? `, ${(this.deviceStatus as meterProCO2Status).co2}` : ''}) current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity}${this.device.deviceType === 'MeterPro(CO2)' ? `, ${this.CarbonDioxideSensor?.CarbonDioxideLevel}` : ''})`)
 
     // CurrentRelativeHumidity
-    if (!(this.device as meterConfig).hide_humidity && this.HumiditySensor?.Service) {
+    if (!(this.device as meterProConfig).hide_humidity && this.HumiditySensor?.Service) {
       this.HumiditySensor.CurrentRelativeHumidity = this.deviceStatus.humidity
       this.debugLog(`CurrentRelativeHumidity: ${this.HumiditySensor.CurrentRelativeHumidity}%`)
     }
 
     // CurrentTemperature
-    if (!(this.device as meterConfig).hide_temperature && this.TemperatureSensor?.Service) {
+    if (!(this.device as meterProConfig).hide_temperature && this.TemperatureSensor?.Service) {
       this.TemperatureSensor.CurrentTemperature = this.deviceStatus.temperature
       this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}°c`)
     }
 
-    // BatteryLevel
-    this.Battery.BatteryLevel = this.deviceStatus.battery
-    this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
+    // Carbon Dioxide Sensor
+    if (!(this.device as meterProConfig).hide_co2 && this.CarbonDioxideSensor?.Service && this.device.deviceType === 'MeterPro(CO2)') {
+      this.CarbonDioxideSensor.CarbonDioxideLevel = (this.deviceStatus as meterProCO2Status).co2
+      this.debugLog(`CarbonDioxideLevel: ${this.CarbonDioxideSensor.CarbonDioxideLevel}ppm`)
+      this.CarbonDioxideSensor.CarbonDioxideDetected = this.CarbonDioxideSensor.CarbonDioxideLevel > 0
+        ? this.hap.Characteristic.CarbonDioxideDetected.CO2_LEVELS_ABNORMAL
+        : this.hap.Characteristic.CarbonDioxideDetected.CO2_LEVELS_NORMAL
+      this.debugLog(`CarbonDioxideDetected: ${this.CarbonDioxideSensor.CarbonDioxideDetected}`)
+      this.warnLog('Carbon Dioxide Sensor is not supported yet.')
+    }
 
-    // StatusLowBattery
-    this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
-      ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
-      : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
-    this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
+    // Battery Info
+    if ('battery' in this.serviceData) {
+    // BatteryLevel
+      this.Battery.BatteryLevel = this.deviceStatus.battery
+      this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
+
+      // StatusLowBattery
+      this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
+        ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
+        : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
+      this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
+    }
 
     // FirmwareVersion
     if (this.deviceStatus.version) {
@@ -245,22 +310,33 @@ export class MeterPro extends deviceBase {
 
   async parseStatusWebhook(): Promise<void> {
     this.debugLog('parseStatusWebhook')
-    this.debugLog(`(scale, temperature, humidity) = Webhook:(${this.webhookContext.scale}, ${convertUnits(this.webhookContext.temperature, this.webhookContext.scale, (this.device as meterConfig).convertUnitTo)}, ${this.webhookContext.humidity}) current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity})`)
+    this.debugLog(`(scale, temperature, humidity${this.device.deviceType === 'MeterPro(CO2)' ? ', co2' : ''}) = Webhook:(${this.webhookContext.scale}, ${convertUnits(this.webhookContext.temperature, this.webhookContext.scale, (this.device as meterProConfig).convertUnitTo)}, ${this.webhookContext.humidity}${this.device.deviceType === 'MeterPro(CO2)' ? `, ${(this.webhookContext as meterProCO2WebhookContext).co2}` : ''}) current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity}${this.device.deviceType === 'MeterPro(CO2)' ? `, ${this.CarbonDioxideSensor?.CarbonDioxideLevel}` : ''})`)
     // Check if the scale is not CELSIUS
-    if (this.webhookContext.scale !== 'CELSIUS' && (this.device as meterConfig).convertUnitTo === undefined) {
+    if (this.webhookContext.scale !== 'CELSIUS' && (this.device as meterProConfig).convertUnitTo === undefined) {
       this.warnLog(`received a non-CELSIUS Webhook scale: ${this.webhookContext.scale}, Use the *convertUnitsTo* config under Hub settings, if displaying incorrectly in HomeKit.`)
     }
 
     // CurrentRelativeHumidity
-    if (!(this.device as meterConfig).hide_humidity && this.HumiditySensor?.Service) {
+    if (!(this.device as meterProConfig).hide_humidity && this.HumiditySensor?.Service) {
       this.HumiditySensor.CurrentRelativeHumidity = this.webhookContext.humidity
       this.debugLog(`CurrentRelativeHumidity: ${this.HumiditySensor.CurrentRelativeHumidity}`)
     }
 
     // CurrentTemperature
-    if (!(this.device as meterConfig).hide_temperature && this.TemperatureSensor?.Service) {
-      this.TemperatureSensor.CurrentTemperature = convertUnits(this.webhookContext.temperature, this.webhookContext.scale, (this.device as meterConfig).convertUnitTo)
+    if (!(this.device as meterProConfig).hide_temperature && this.TemperatureSensor?.Service) {
+      this.TemperatureSensor.CurrentTemperature = convertUnits(this.webhookContext.temperature, this.webhookContext.scale, (this.device as meterProConfig).convertUnitTo)
       this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}`)
+    }
+
+    // Carbon Dioxide Sensor
+    if (!(this.device as meterProConfig).hide_co2 && this.CarbonDioxideSensor?.Service && this.device.deviceType === 'MeterPro(CO2)') {
+      this.CarbonDioxideSensor.CarbonDioxideLevel = (this.webhookContext as meterProCO2WebhookContext).co2
+      this.debugLog(`CarbonDioxideLevel: ${this.CarbonDioxideSensor.CarbonDioxideLevel}ppm`)
+      this.CarbonDioxideSensor.CarbonDioxideDetected = this.CarbonDioxideSensor.CarbonDioxideLevel > 0
+        ? this.hap.Characteristic.CarbonDioxideDetected.CO2_LEVELS_ABNORMAL
+        : this.hap.Characteristic.CarbonDioxideDetected.CO2_LEVELS_NORMAL
+      this.debugLog(`CarbonDioxideDetected: ${this.CarbonDioxideSensor.CarbonDioxideDetected}`)
+      this.warnLog('Carbon Dioxide Sensor is not supported yet.')
     }
   }
 
@@ -289,7 +365,7 @@ export class MeterPro extends deviceBase {
       // Start to monitor advertisement packets
       (async () => {
         // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as meterProServiceData
+        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as meterProServiceData | meterProCO2ServiceData
         // Update HomeKit
         if (serviceData.model === SwitchBotBLEModel.MeterPro && serviceData.modelName === SwitchBotBLEModelName.MeterPro) {
           this.serviceData = serviceData
@@ -373,11 +449,11 @@ export class MeterPro extends deviceBase {
    */
   async updateHomeKitCharacteristics(): Promise<void> {
     // CurrentRelativeHumidity
-    if (!(this.device as meterConfig).hide_humidity && this.HumiditySensor?.Service) {
+    if (!(this.device as meterProConfig).hide_humidity && this.HumiditySensor?.Service) {
       await this.updateCharacteristic(this.HumiditySensor.Service, this.hap.Characteristic.CurrentRelativeHumidity, this.HumiditySensor.CurrentRelativeHumidity, 'CurrentRelativeHumidity')
     }
     // CurrentTemperature
-    if (!(this.device as meterConfig).hide_temperature && this.TemperatureSensor?.Service) {
+    if (!(this.device as meterProConfig).hide_temperature && this.TemperatureSensor?.Service) {
       await this.updateCharacteristic(this.TemperatureSensor.Service, this.hap.Characteristic.CurrentTemperature, this.TemperatureSensor.CurrentTemperature, 'CurrentTemperature')
     }
     // BatteryLevel
@@ -396,10 +472,10 @@ export class MeterPro extends deviceBase {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      if (!(this.device as meterConfig).hide_humidity && this.HumiditySensor?.Service) {
+      if (!(this.device as meterProConfig).hide_humidity && this.HumiditySensor?.Service) {
         this.HumiditySensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity, 50)
       }
-      if (!(this.device as meterConfig).hide_temperature && this.TemperatureSensor?.Service) {
+      if (!(this.device as meterProConfig).hide_temperature && this.TemperatureSensor?.Service) {
         this.TemperatureSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, 30)
       }
       this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, 100)
@@ -408,10 +484,10 @@ export class MeterPro extends deviceBase {
   }
 
   async apiError(e: any): Promise<void> {
-    if (!(this.device as meterConfig).hide_humidity && this.HumiditySensor?.Service) {
+    if (!(this.device as meterProConfig).hide_humidity && this.HumiditySensor?.Service) {
       this.HumiditySensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentRelativeHumidity, e)
     }
-    if (!(this.device as meterConfig).hide_temperature && this.TemperatureSensor?.Service) {
+    if (!(this.device as meterProConfig).hide_temperature && this.TemperatureSensor?.Service) {
       this.TemperatureSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, e)
     }
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e)

@@ -171,7 +171,7 @@ export class RobotVacuumCleaner extends deviceBase {
     this.debugLog(`On: ${this.LightBulb.On}`)
 
     // Battery Info
-    if (this.serviceData.battery) {
+    if ('battery' in this.serviceData) {
       // BatteryLevel
       this.Battery.BatteryLevel = this.serviceData.battery
       this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
@@ -273,7 +273,7 @@ export class RobotVacuumCleaner extends deviceBase {
       // Start to monitor advertisement packets
       (async () => {
         // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as unknown as robotVacuumCleanerServiceData
+        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as robotVacuumCleanerServiceData
         // Update HomeKit
         if (serviceData.model === SwitchBotBLEModel.Unknown && serviceData.modelName === SwitchBotBLEModelName.Unknown) {
           this.serviceData = serviceData
@@ -392,7 +392,7 @@ export class RobotVacuumCleaner extends deviceBase {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
-              const deviceList = device_list as unknown as SwitchbotDevice[]
+              const deviceList = device_list as SwitchbotDevice[]
               this.infoLog(`On: ${this.LightBulb.On}`)
               return await this.retryBLE({
                 max: this.maxRetryBLE(),
@@ -406,7 +406,7 @@ export class RobotVacuumCleaner extends deviceBase {
               })
             })
             .then(async () => {
-              this.successLog(`On: ${this.LightBulb.On} sent over SwitchBot BLE,  sent successfully`)
+              this.successLog(`On: ${this.LightBulb.On} sent over SwitchBot BLE, sent successfully`)
               await this.updateHomeKitCharacteristics()
             })
             .catch(async (e: any) => {

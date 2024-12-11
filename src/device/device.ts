@@ -92,7 +92,7 @@ export abstract class deviceBase {
 
   async getDeviceRateSettings(device: device & devicesConfig): Promise<void> {
     // refreshRate
-    this.deviceRefreshRate = device.refreshRate ?? this.platform.platformRefreshRate ?? 360
+    this.deviceRefreshRate = device.refreshRate ?? this.platform.platformRefreshRate ?? 300
     const refreshRate = device.refreshRate ? 'Device Config' : this.platform.platformRefreshRate ? 'Platform Config' : 'Default'
     // updateRate
     this.deviceUpdateRate = device.updateRate ?? this.platform.platformUpdateRate ?? 5
@@ -102,7 +102,7 @@ export abstract class deviceBase {
     const pushRate = device.pushRate ? 'Device Config' : this.platform.platformPushRate ? 'Platform Config' : 'Default'
     this.debugLog(`Using ${refreshRate} refreshRate: ${this.deviceRefreshRate}, ${updateRate} updateRate: ${this.deviceUpdateRate}, ${pushRate} pushRate: ${this.devicePushRate}`)
     // maxRetries
-    this.deviceMaxRetries = device.maxRetries ?? this.platform.platformMaxRetries ?? 5
+    this.deviceMaxRetries = device.maxRetries ?? this.platform.platformMaxRetries ?? 2
     const maxRetries = device.maxRetries ? 'Device' : this.platform.platformMaxRetries ? 'Platform' : 'Default'
     this.debugLog(`Using ${maxRetries} Max Retries: ${this.deviceMaxRetries}`)
     // delayBetweenRetries
@@ -458,11 +458,11 @@ export abstract class deviceBase {
         bleModelName: SwitchBotBLEModelName.MeterPro,
         bleModelFriendlyName: SwitchBotBLEModelFriendlyName.MeterPro,
       },
-      'Meter Pro CO2': {
+      'MeterPro(CO2)': {
         model: SwitchBotModel.MeterProCO2,
-        bleModel: SwitchBotBLEModel.MeterPro,
-        bleModelName: SwitchBotBLEModelName.MeterPro,
-        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.MeterPro,
+        bleModel: SwitchBotBLEModel.MeterProCO2,
+        bleModelName: SwitchBotBLEModelName.MeterProCO2,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.MeterProCO2,
       },
       'WoIOSensor': {
         model: SwitchBotModel.OutdoorMeter,

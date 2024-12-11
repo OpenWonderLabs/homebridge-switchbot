@@ -65,8 +65,8 @@ export class VacuumCleaner extends irdeviceBase {
    * Vacuum Cleaner    "command"       "turnOn"       "default"       set to ON state
    */
   async pushOnChanges(): Promise<void> {
-    this.debugLog(`pushOnChanges On: ${this.Switch.On}, disablePushOn: ${this.disablePushOn}`)
-    if (this.Switch.On && !this.disablePushOn) {
+    this.debugLog(`pushOnChanges On: ${this.Switch.On}, disablePushOn: ${this.deviceDisablePushOn}`)
+    if (this.Switch.On && !this.deviceDisablePushOn) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOn()
       const bodyChange: bodyChange = {
@@ -79,8 +79,8 @@ export class VacuumCleaner extends irdeviceBase {
   }
 
   async pushOffChanges(): Promise<void> {
-    this.debugLog(`pushOffChanges On: ${this.Switch.On}, disablePushOff: ${this.disablePushOff}`)
-    if (!this.Switch.On && !this.disablePushOff) {
+    this.debugLog(`pushOffChanges On: ${this.Switch.On}, disablePushOff: ${this.deviceDisablePushOff}`)
+    if (!this.Switch.On && !this.deviceDisablePushOff) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOff()
       const bodyChange: bodyChange = {

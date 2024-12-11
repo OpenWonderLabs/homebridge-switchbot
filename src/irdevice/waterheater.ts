@@ -66,8 +66,8 @@ export class WaterHeater extends irdeviceBase {
    * WaterHeater     "command"       "turnOn"          "default"         set to ON state
    */
   async pushWaterHeaterOnChanges(): Promise<void> {
-    this.debugLog(`pushWaterHeaterOnChanges Active: ${this.Valve.Active}, disablePushOn: ${this.disablePushOn}`)
-    if (this.Valve.Active === this.hap.Characteristic.Active.ACTIVE && !this.disablePushOn) {
+    this.debugLog(`pushWaterHeaterOnChanges Active: ${this.Valve.Active}, disablePushOn: ${this.deviceDisablePushOn}`)
+    if (this.Valve.Active === this.hap.Characteristic.Active.ACTIVE && !this.deviceDisablePushOn) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOn()
       const bodyChange: bodyChange = {
@@ -80,8 +80,8 @@ export class WaterHeater extends irdeviceBase {
   }
 
   async pushWaterHeaterOffChanges(): Promise<void> {
-    this.debugLog(`pushWaterHeaterOffChanges Active: ${this.Valve.Active}, disablePushOff: ${this.disablePushOff}`)
-    if (this.Valve.Active === this.hap.Characteristic.Active.INACTIVE && !this.disablePushOff) {
+    this.debugLog(`pushWaterHeaterOffChanges Active: ${this.Valve.Active}, disablePushOff: ${this.deviceDisablePushOff}`)
+    if (this.Valve.Active === this.hap.Characteristic.Active.INACTIVE && !this.deviceDisablePushOff) {
       const commandType: string = await this.commandType()
       const command: string = await this.commandOff()
       const bodyChange: bodyChange = {
