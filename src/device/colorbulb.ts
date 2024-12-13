@@ -119,7 +119,6 @@ export class ColorBulb extends deviceBase {
     }).onGet(() => {
       return this.LightBulb.Saturation
     }).onSet(this.SaturationSet.bind(this))
-    
 
     if (this.adaptiveLighting && this.adaptiveLightingShift === -1 && this.LightBulb) {
       accessory.removeService(this.LightBulb.Service)
@@ -139,7 +138,6 @@ export class ColorBulb extends deviceBase {
       accessory.context.adaptiveLighting = false
       this.debugLog(`adaptiveLighting: ${accessory.context.adaptiveLighting}`)
     }
-
 
     // Retrieve initial values and updateHomekit
     try {
