@@ -82,25 +82,6 @@ export class ColorBulb extends deviceBase {
     }
     accessory.context.LightBulb = this.LightBulb as object
 
-    if (this.adaptiveLighting && this.adaptiveLightingShift === -1 && this.LightBulb) {
-      accessory.removeService(this.LightBulb.Service)
-      this.LightBulb.Service = accessory.addService(this.hap.Service.Lightbulb)
-      accessory.context.adaptiveLighting = false
-      this.debugLog(`adaptiveLighting: ${this.adaptiveLighting}`)
-    } else if (this.adaptiveLighting && this.adaptiveLightingShift >= 0 && this.LightBulb) {
-      this.AdaptiveLightingController = new platform.api.hap.AdaptiveLightingController(this.LightBulb.Service, {
-        controllerMode: this.hap.AdaptiveLightingControllerMode.AUTOMATIC,
-        customTemperatureAdjustment: this.adaptiveLightingShift,
-      })
-      accessory.configureController(this.AdaptiveLightingController)
-      accessory.context.adaptiveLighting = true
-      this.debugLog(`adaptiveLighting: ${this.adaptiveLighting}, adaptiveLightingShift: ${this.adaptiveLightingShift}`,
-      )
-    } else {
-      accessory.context.adaptiveLighting = false
-      this.debugLog(`adaptiveLighting: ${accessory.context.adaptiveLighting}`)
-    }
-
     // Initialize LightBulb Characteristics
     this.LightBulb.Service.setCharacteristic(this.hap.Characteristic.Name, this.LightBulb.Name).getCharacteristic(this.hap.Characteristic.On).onGet(() => {
       return this.LightBulb.On
@@ -138,6 +119,27 @@ export class ColorBulb extends deviceBase {
     }).onGet(() => {
       return this.LightBulb.Saturation
     }).onSet(this.SaturationSet.bind(this))
+    
+
+    if (this.adaptiveLighting && this.adaptiveLightingShift === -1 && this.LightBulb) {
+      accessory.removeService(this.LightBulb.Service)
+      this.LightBulb.Service = accessory.addService(this.hap.Service.Lightbulb)
+      accessory.context.adaptiveLighting = false
+      this.debugLog(`adaptiveLighting: ${this.adaptiveLighting}`)
+    } else if (this.adaptiveLighting && this.adaptiveLightingShift >= 0 && this.LightBulb) {
+      this.AdaptiveLightingController = new platform.api.hap.AdaptiveLightingController(this.LightBulb.Service, {
+        controllerMode: this.hap.AdaptiveLightingControllerMode.AUTOMATIC,
+        customTemperatureAdjustment: this.adaptiveLightingShift,
+      })
+      accessory.configureController(this.AdaptiveLightingController)
+      accessory.context.adaptiveLighting = true
+      this.debugLog(`adaptiveLighting: ${this.adaptiveLighting}, adaptiveLightingShift: ${this.adaptiveLightingShift}`,
+      )
+    } else {
+      accessory.context.adaptiveLighting = false
+      this.debugLog(`adaptiveLighting: ${accessory.context.adaptiveLighting}`)
+    }
+
 
     // Retrieve initial values and updateHomekit
     try {
