@@ -43,6 +43,7 @@ export interface options {
   discoverBLE?: boolean
   disableLogsforBLE?: boolean
   disableLogsforOpenAPI?: boolean
+  hostname?: string
   webhookURL?: string
   maxRetries?: number
   delayBetweenRetries?: number

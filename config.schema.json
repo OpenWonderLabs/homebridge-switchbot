@@ -11790,6 +11790,12 @@
             "title": "Disable Logging from OpenAPI",
             "type": "boolean"
           },
+          "hostname": {
+            "title": "hostname",
+            "type": "string",
+            "placeholder": "https://api.switch-bot.com",
+            "description": "Allows for the override of the SwitchBot API hostname."
+          },
           "webhookURL": {
             "title": "Webhook URL",
             "type": "string",
@@ -13449,6 +13455,7 @@
           "key": "options.disableLogsforOpenAPI",
           "description": "This will disable the logs coming from <em class='primary-text>node-switchbot</em> OpenAPI."
         },
+        "options.hostname",
         "options.webhookURL",
         "options.mqttURL",
         "options.mqttOptions",

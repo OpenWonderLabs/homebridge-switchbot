@@ -16,6 +16,7 @@ import type { blindTilt, curtain, curtain3, device, deviceStatus, deviceStatusRe
 import type { blindTiltConfig, curtainConfig, devicesConfig, irDevicesConfig, options, SwitchBotPlatformConfig } from './settings.js'
 
 import { readFileSync } from 'node:fs'
+import { hostname } from 'node:os'
 import process, { argv } from 'node:process'
 
 import asyncmqtt from 'async-mqtt'
@@ -138,7 +139,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
     // SwitchBot OpenAPI
     if (this.config.credentials?.token && this.config.credentials?.secret) {
-      this.switchBotAPI = new SwitchBotOpenAPI(this.config.credentials.token, this.config.credentials.secret)
+      this.switchBotAPI = new SwitchBotOpenAPI(this.config.credentials.token, this.config.credentials.secret, this.config.options?.hostname)
     } else {
       this.debugErrorLog('Missing SwitchBot API credentials (token or secret).')
     }
