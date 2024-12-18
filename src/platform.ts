@@ -583,6 +583,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   private async createDevice(device: device & devicesConfig) {
     const deviceTypeHandlers: { [key: string]: (device: device & devicesConfig) => Promise<void> } = {
       'Humidifier': this.createHumidifier.bind(this),
+      'Humidifier2': this.createHumidifier.bind(this),
       'Hub 2': this.createHub2.bind(this),
       'Bot': this.createBot.bind(this),
       'Meter': this.createMeter.bind(this),
@@ -685,7 +686,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         existingAccessory.context.device = device
         existingAccessory.context.deviceId = device.deviceId
         existingAccessory.context.deviceType = device.deviceType
-        existingAccessory.context.model = SwitchBotModel.Humidifier
+        existingAccessory.context.model = device.deviceType === 'Humidifier2' ? SwitchBotModel.Humidifier2 : SwitchBotModel.Humidifier
         existingAccessory.displayName = device.configDeviceName
           ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
           : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
@@ -711,7 +712,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       accessory.context.device = device
       accessory.context.deviceId = device.deviceId
       accessory.context.deviceType = device.deviceType
-      accessory.context.model = SwitchBotModel.Humidifier
+      accessory.context.model = device.deviceType === 'Humidifier2' ? SwitchBotModel.Humidifier2 : SwitchBotModel.Humidifier
       accessory.displayName = device.configDeviceName
         ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
         : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)

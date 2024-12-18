@@ -119,7 +119,7 @@ export interface indoorOutdoorSensorConfig extends BaseDeviceConfig {
 };
 
 export interface humidifierConfig extends BaseDeviceConfig {
-  configDeviceType: 'Humidifier'
+  configDeviceType: 'Humidifier' | 'Humidifier2'
   hide_temperature?: boolean
   convertUnitTo?: string
   set_minStep?: number

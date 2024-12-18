@@ -169,6 +169,7 @@ export abstract class deviceBase {
         deviceSpecificConfig = device as indoorOutdoorSensorConfig
         break
       case 'Humidifier':
+      case 'Humidifier2':
         deviceSpecificConfig = device as humidifierConfig
         break
       case 'Curtain':
@@ -413,6 +414,12 @@ export abstract class deviceBase {
         bleModel: SwitchBotBLEModel.Humidifier,
         bleModelName: SwitchBotBLEModelName.Humidifier,
         bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Humidifier,
+      },
+      'Humidifier2': {
+        model: SwitchBotModel.Humidifier2,
+        bleModel: SwitchBotBLEModel.Humidifier2,
+        bleModelName: SwitchBotBLEModelName.Humidifier2,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Humidifier2,
       },
       'Hub Mini': {
         model: SwitchBotModel.HubMini,

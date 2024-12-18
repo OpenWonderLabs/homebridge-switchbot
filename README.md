@@ -87,6 +87,7 @@
   - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
     - Can Push Updates over OpenAPI
     - Can Receive Updates over BLE and OpenAPI
+- [SwitchBot Evaporative Humidifier (Auto-refill)](https://www.switch-bot.com/products/switchbot-evaporative-humidifier-auto-refill)
 - [SwitchBot Meter](https://www.switch-bot.com/products/switchbot-meter)
 - [SwitchBot Meter Plus (US)](https://www.switch-bot.com/products/switchbot-meter-plus)
 - [SwitchBot Meter Plus (JP)](https://www.switchbot.jp/products/switchbot-meter-plus)

@@ -3,7 +3,7 @@
  * humidifier.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
-import type { bodyChange, device, humidifierServiceData, humidifierStatus, humidifierWebhookContext, SwitchbotDevice, WoHumi } from 'node-switchbot'
+import type { bodyChange, device, humidifier2ServiceData, humidifier2Status, humidifier2WebhookContext, humidifierServiceData, humidifierStatus, humidifierWebhookContext, SwitchbotDevice, WoHumi } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig, humidifierConfig } from '../settings.js'
@@ -43,13 +43,13 @@ export class Humidifier extends deviceBase {
   }
 
   // OpenAPI
-  deviceStatus!: humidifierStatus
+  deviceStatus!: humidifierStatus | humidifier2Status
 
   // Webhook
-  webhookContext!: humidifierWebhookContext
+  webhookContext!: humidifierWebhookContext | humidifier2WebhookContext
 
   // BLE
-  serviceData!: humidifierServiceData
+  serviceData!: humidifierServiceData | humidifier2ServiceData
 
   // Updates
   humidifierUpdateInProgress!: boolean
@@ -324,7 +324,7 @@ export class Humidifier extends deviceBase {
       // Start to monitor advertisement packets
       (async () => {
         // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as humidifierServiceData
+        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as humidifierServiceData | humidifier2ServiceData
         // Update HomeKit
         if (serviceData.model === SwitchBotBLEModel.Humidifier && serviceData.modelName === SwitchBotBLEModelName.Humidifier) {
           this.serviceData = serviceData
@@ -346,7 +346,7 @@ export class Humidifier extends deviceBase {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
         this.debugLog(`bleMac: ${this.device.bleMac}`)
-        this.platform.bleEventHandler[this.device.bleMac] = async (context: humidifierServiceData) => {
+        this.platform.bleEventHandler[this.device.bleMac] = async (context: humidifierServiceData | humidifier2ServiceData) => {
           try {
             this.debugLog(`received BLE: ${JSON.stringify(context)}`)
             this.serviceData = context
@@ -388,7 +388,7 @@ export class Humidifier extends deviceBase {
   async registerWebhook() {
     if (this.device.webhook) {
       this.debugLog('is listening webhook.')
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context: humidifierWebhookContext) => {
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context: humidifierWebhookContext | humidifier2WebhookContext) => {
         try {
           this.debugLog(`received Webhook: ${JSON.stringify(context)}`)
           this.webhookContext = context
