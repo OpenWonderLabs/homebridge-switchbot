@@ -96,7 +96,7 @@
     "eslint": "^9.15.0",
     "eslint-plugin-format": "^0.1.2",
     "homebridge": "^1.8.5",
-    "homebridge-config-ui-x": "4.63.0",
+    "homebridge-config-ui-x": "4.65.2",
     "nodemon": "^3.1.7",
     "shx": "^0.3.4",
     "ts-node": "^10.9.2",
