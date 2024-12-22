@@ -254,7 +254,7 @@ export class MeterPro extends deviceBase {
 
   async openAPIparseStatus(): Promise<void> {
     this.debugLog('openAPIparseStatus')
-    this.debugLog(`(temperature, humidity${this.device.deviceType === 'MeterPro(CO2)' ? ', co2' : ''}) = OpenAPI:(${this.deviceStatus.temperature}, ${this.deviceStatus.humidity}${this.device.deviceType === 'MeterPro(CO2)' ? `, ${(this.deviceStatus as meterProCO2Status).co2}` : ''}) current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity}${this.device.deviceType === 'MeterPro(CO2)' ? `, ${this.CarbonDioxideSensor?.CarbonDioxideLevel}` : ''})`)
+    this.debugLog(`(temperature, humidity${this.device.deviceType === 'MeterPro(CO2)' ? ', co2' : ''}) = OpenAPI:(${this.deviceStatus.temperature}, ${this.deviceStatus.humidity}${this.device.deviceType === 'MeterPro(CO2)' ? `, ${(this.deviceStatus as meterProCO2Status).CO2}` : ''}) current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity}${this.device.deviceType === 'MeterPro(CO2)' ? `, ${this.CarbonDioxideSensor?.CarbonDioxideLevel}` : ''})`)
 
     // CurrentRelativeHumidity
     if (!(this.device as meterProConfig).hide_humidity && this.HumiditySensor?.Service) {
@@ -270,7 +270,7 @@ export class MeterPro extends deviceBase {
 
     // Carbon Dioxide Sensor
     if (!(this.device as meterProConfig).hide_co2 && this.CarbonDioxideSensor?.Service && this.device.deviceType === 'MeterPro(CO2)') {
-      this.CarbonDioxideSensor.CarbonDioxideLevel = (this.deviceStatus as meterProCO2Status).co2
+      this.CarbonDioxideSensor.CarbonDioxideLevel = (this.deviceStatus as meterProCO2Status).CO2
       this.debugLog(`CarbonDioxideLevel: ${this.CarbonDioxideSensor.CarbonDioxideLevel}ppm`)
       this.CarbonDioxideSensor.CarbonDioxideDetected = this.CarbonDioxideSensor.CarbonDioxideLevel > 0
         ? this.hap.Characteristic.CarbonDioxideDetected.CO2_LEVELS_ABNORMAL
@@ -294,7 +294,7 @@ export class MeterPro extends deviceBase {
 
     // FirmwareVersion
     if (this.deviceStatus.version) {
-      const version = this.deviceStatus.version.toString()
+      const version = this.deviceStatus.version as string
       this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`)
       const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0'
       this.accessory
@@ -310,7 +310,7 @@ export class MeterPro extends deviceBase {
 
   async parseStatusWebhook(): Promise<void> {
     this.debugLog('parseStatusWebhook')
-    this.debugLog(`(scale, temperature, humidity${this.device.deviceType === 'MeterPro(CO2)' ? ', co2' : ''}) = Webhook:(${this.webhookContext.scale}, ${convertUnits(this.webhookContext.temperature, this.webhookContext.scale, (this.device as meterProConfig).convertUnitTo)}, ${this.webhookContext.humidity}${this.device.deviceType === 'MeterPro(CO2)' ? `, ${(this.webhookContext as meterProCO2WebhookContext).co2}` : ''}) current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity}${this.device.deviceType === 'MeterPro(CO2)' ? `, ${this.CarbonDioxideSensor?.CarbonDioxideLevel}` : ''})`)
+    this.debugLog(`(scale, temperature, humidity${this.device.deviceType === 'MeterPro(CO2)' ? ', co2' : ''}) = Webhook:(${this.webhookContext.scale}, ${convertUnits(this.webhookContext.temperature, this.webhookContext.scale, (this.device as meterProConfig).convertUnitTo)}, ${this.webhookContext.humidity}${this.device.deviceType === 'MeterPro(CO2)' ? `, ${(this.webhookContext as meterProCO2WebhookContext).CO2}` : ''}) current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity}${this.device.deviceType === 'MeterPro(CO2)' ? `, ${this.CarbonDioxideSensor?.CarbonDioxideLevel}` : ''})`)
     // Check if the scale is not CELSIUS
     if (this.webhookContext.scale !== 'CELSIUS' && (this.device as meterProConfig).convertUnitTo === undefined) {
       this.warnLog(`received a non-CELSIUS Webhook scale: ${this.webhookContext.scale}, Use the *convertUnitsTo* config under Hub settings, if displaying incorrectly in HomeKit.`)
@@ -330,7 +330,7 @@ export class MeterPro extends deviceBase {
 
     // Carbon Dioxide Sensor
     if (!(this.device as meterProConfig).hide_co2 && this.CarbonDioxideSensor?.Service && this.device.deviceType === 'MeterPro(CO2)') {
-      this.CarbonDioxideSensor.CarbonDioxideLevel = (this.webhookContext as meterProCO2WebhookContext).co2
+      this.CarbonDioxideSensor.CarbonDioxideLevel = (this.webhookContext as meterProCO2WebhookContext).CO2
       this.debugLog(`CarbonDioxideLevel: ${this.CarbonDioxideSensor.CarbonDioxideLevel}ppm`)
       this.CarbonDioxideSensor.CarbonDioxideDetected = this.CarbonDioxideSensor.CarbonDioxideLevel > 0
         ? this.hap.Characteristic.CarbonDioxideDetected.CO2_LEVELS_ABNORMAL

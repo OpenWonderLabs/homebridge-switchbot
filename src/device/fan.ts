@@ -240,7 +240,7 @@ export class Fan extends deviceBase {
 
     // Firmware Version
     if (this.deviceStatus.version) {
-      const version = this.deviceStatus.version.toString()
+      const version = this.deviceStatus.version as string
       this.debugLog(`Firmware Version: ${version.replace(/^V|-.*$/g, '')}`)
       const deviceVersion = version.replace(/^V|-.*$/g, '') ?? '0.0.0'
       this.accessory
