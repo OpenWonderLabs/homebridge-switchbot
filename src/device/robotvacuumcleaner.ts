@@ -326,7 +326,6 @@ export class RobotVacuumCleaner extends deviceBase {
         await this.updateHomeKitCharacteristics()
       } else {
         this.debugWarnLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        this.debugWarnLog(deviceStatus)
       }
     } catch (e: any) {
       await this.apiError(e)
