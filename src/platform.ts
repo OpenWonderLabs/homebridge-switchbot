@@ -11,7 +11,7 @@ import type { MqttClient } from 'mqtt'
 * import type { blindTilt, curtain, curtain3, device, irdevice } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
 * import { LogLevel, SwitchBotBLE, SwitchBotModel, SwitchBotOpenAPI } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
 */
-import type { blindTilt, curtain, curtain3, device, deviceStatus, deviceStatusRequest, irdevice } from 'node-switchbot'
+import type { blindTilt, bodyChange, curtain, curtain3, device, deviceStatus, deviceStatusRequest, irdevice } from 'node-switchbot'
 
 import type { blindTiltConfig, curtainConfig, devicesConfig, irDevicesConfig, options, SwitchBotPlatformConfig } from './settings.js'
 
@@ -2601,13 +2601,13 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  async retryRequest(deviceId: string, deviceMaxRetries: number, deviceDelayBetweenRetries: number): Promise<{ response: deviceStatus, statusCode: deviceStatusRequest['statusCode'] }> {
+  async retryRequest(device: (device & devicesConfig) | (irdevice & irDevicesConfig), deviceMaxRetries: number, deviceDelayBetweenRetries: number): Promise<{ response: any, statusCode: deviceStatusRequest['statusCode'] }> {
     let retryCount = 0
     const maxRetries = deviceMaxRetries
     const delayBetweenRetries = deviceDelayBetweenRetries
     while (retryCount < maxRetries) {
       try {
-        const { response, statusCode } = await this.switchBotAPI.getDeviceStatus(deviceId, this.config.credentials?.token, this.config.credentials?.secret)
+        const { response, statusCode } = await this.switchBotAPI.getDeviceStatus(device.deviceId, this.config.credentials?.token, this.config.credentials?.secret)
         this.debugLog(`response: ${JSON.stringify(response)}`)
         return { response, statusCode }
       } catch (error: any) {
@@ -2625,6 +2625,25 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       deviceName: '',
       enableCloudService: false,
     }, statusCode: 500 }
+  }
+
+  async retryCommand(device: (device & devicesConfig) | (irdevice & irDevicesConfig), bodyChange: bodyChange, deviceMaxRetries?: number, deviceDelayBetweenRetries?: number): Promise<{ response: any, statusCode: number }> {
+    let retryCount = 0
+    const maxRetries = deviceMaxRetries ?? 1
+    const delayBetweenRetries = deviceDelayBetweenRetries ?? 1000
+    while (retryCount < maxRetries) {
+      try {
+        const { response, statusCode } = await this.switchBotAPI.controlDevice(device.deviceId, bodyChange.command, bodyChange.parameter, bodyChange.commandType, this.config.credentials?.token, this.config.credentials?.secret)
+        this.debugLog(`response: ${JSON.stringify(response)}`)
+        return { response, statusCode }
+      } catch (error: any) {
+        this.errorLog(`Error making request: ${error.message}`)
+      }
+      retryCount++
+      this.debugLog(`Retry attempt ${retryCount} of ${maxRetries}`)
+      await sleep(delayBetweenRetries)
+    }
+    return { response: {}, statusCode: 500 }
   }
 
   // BLE Connection

@@ -168,7 +168,7 @@ export abstract class irdeviceBase {
   }
 
   async pushChangeRequest(bodyChange: bodyChange): Promise<{ body: any, statusCode: number }> {
-    const { response, statusCode } = await this.platform.switchBotAPI.controlDevice(this.device.deviceId, bodyChange.command, bodyChange.parameter, bodyChange.commandType)
+    const { response, statusCode } = await this.platform.retryCommand(this.device, bodyChange, this.deviceMaxRetries, this.deviceDelayBetweenRetries)
     return { body: response, statusCode }
   }
 
