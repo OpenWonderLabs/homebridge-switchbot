@@ -2607,7 +2607,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     const delayBetweenRetries = deviceDelayBetweenRetries
     while (retryCount < maxRetries) {
       try {
-        const { response, statusCode } = await this.switchBotAPI.getDeviceStatus(deviceId)
+        const { response, statusCode } = await this.switchBotAPI.getDeviceStatus(deviceId, this.config.credentials?.token, this.config.credentials?.secret)
         this.debugLog(`response: ${JSON.stringify(response)}`)
         return { response, statusCode }
       } catch (error: any) {
