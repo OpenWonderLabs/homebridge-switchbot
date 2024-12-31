@@ -386,7 +386,7 @@ export abstract class deviceBase {
    *
    */
   async updateCharacteristic(Service: Service, Characteristic: any, CharacteristicValue: CharacteristicValue | undefined, CharacteristicName: string, history?: object): Promise<void> {
-    if (CharacteristicValue === undefined) {
+    if (CharacteristicValue === undefined || CharacteristicValue === null) {
       this.debugLog(`${CharacteristicName}: ${CharacteristicValue}`)
     } else {
       await this.mqtt(CharacteristicName, CharacteristicValue)
