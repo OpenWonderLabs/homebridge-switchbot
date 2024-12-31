@@ -3,7 +3,7 @@
  * blindtilt.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, Controller, ControllerConstructor, ControllerServiceMap, PlatformAccessory, Service } from 'homebridge'
-import type { bodyChange, colorBulbServiceData, colorBulbStatus, colorBulbWebhookContext, device, SwitchbotDevice, WoBulb } from 'node-switchbot'
+import type { bodyChange, colorBulbServiceData, colorBulbStatus, colorBulbWebhookContext, device, SwitchBotBLE, SwitchbotDevice, WoBulb } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { colorBulbConfig, devicesConfig } from '../settings.js'
@@ -863,7 +863,7 @@ export class ColorBulb extends deviceBase {
     }
   }
 
-  async BLERefreshConnection(switchbot: any): Promise<void> {
+  async BLERefreshConnection(switchbot: SwitchBotBLE): Promise<void> {
     this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog('Using OpenAPI Connection to Refresh Status')

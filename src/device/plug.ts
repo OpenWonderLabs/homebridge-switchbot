@@ -3,7 +3,7 @@
  * plug.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
-import type { bodyChange, device, plugMiniJPServiceData, plugMiniJPWebhookContext, plugMiniStatus, plugMiniUSServiceData, plugMiniUSWebhookContext, plugStatus, plugWebhookContext, SwitchbotDevice, WoPlugMiniUS } from 'node-switchbot'
+import type { bodyChange, device, plugMiniJPServiceData, plugMiniJPWebhookContext, plugMiniStatus, plugMiniUSServiceData, plugMiniUSWebhookContext, plugStatus, plugWebhookContext, SwitchBotBLE, SwitchbotDevice, WoPlugMiniUS } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
@@ -395,7 +395,7 @@ export class Plug extends deviceBase {
     }
   }
 
-  async BLERefreshConnection(switchbot: any): Promise<void> {
+  async BLERefreshConnection(switchbot: SwitchBotBLE): Promise<void> {
     this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog('Using OpenAPI Connection to Refresh Status')

@@ -3,7 +3,7 @@
  * humidifier.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
-import type { bodyChange, device, humidifier2ServiceData, humidifier2Status, humidifier2WebhookContext, humidifierServiceData, humidifierStatus, humidifierWebhookContext, SwitchbotDevice, WoHumi } from 'node-switchbot'
+import type { bodyChange, device, humidifier2ServiceData, humidifier2Status, humidifier2WebhookContext, humidifierServiceData, humidifierStatus, humidifierWebhookContext, SwitchBotBLE, SwitchbotDevice, WoHumi } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig, humidifierConfig } from '../settings.js'
@@ -633,7 +633,7 @@ export class Humidifier extends deviceBase {
     }
   }
 
-  async BLERefreshConnection(switchbot: any): Promise<void> {
+  async BLERefreshConnection(switchbot: SwitchBotBLE): Promise<void> {
     this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog('Using OpenAPI Connection to Refresh Status')

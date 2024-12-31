@@ -3,7 +3,7 @@
  * lightstrip.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, Controller, ControllerConstructor, ControllerServiceMap, PlatformAccessory, Service } from 'homebridge'
-import type { bodyChange, device, stripLightServiceData, stripLightStatus, stripLightWebhookContext, SwitchbotDevice, WoStrip } from 'node-switchbot'
+import type { bodyChange, device, stripLightServiceData, stripLightStatus, stripLightWebhookContext, SwitchBotBLE, SwitchbotDevice, WoStrip } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig, stripLightConfig } from '../settings.js'
@@ -796,7 +796,7 @@ export class StripLight extends deviceBase {
     }
   }
 
-  async BLERefreshConnection(switchbot: any): Promise<void> {
+  async BLERefreshConnection(switchbot: SwitchBotBLE): Promise<void> {
     this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog('Using OpenAPI Connection to Refresh Status')

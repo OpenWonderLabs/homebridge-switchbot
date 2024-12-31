@@ -3,7 +3,7 @@
  * curtain.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicChange, CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
-import type { bodyChange, curtain3ServiceData, curtain3WebhookContext, curtainServiceData, curtainStatus, curtainWebhookContext, device, SwitchbotDevice, WoCurtain } from 'node-switchbot'
+import type { bodyChange, curtain3ServiceData, curtain3WebhookContext, curtainServiceData, curtainStatus, curtainWebhookContext, device, SwitchBotBLE, SwitchbotDevice, WoCurtain } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { curtainConfig, devicesConfig } from '../settings.js'
@@ -797,7 +797,7 @@ export class Curtain extends deviceBase {
     }
   }
 
-  async BLERefreshConnection(switchbot: any): Promise<void> {
+  async BLERefreshConnection(switchbot: SwitchBotBLE): Promise<void> {
     this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog('Using OpenAPI Connection to Refresh Status')

@@ -3,7 +3,7 @@
  * robotvacuumcleaner.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
-import type { bodyChange, device, floorCleaningRobotS10Status, floorCleaningRobotS10WebhookContext, robotVacuumCleanerS1PlusStatus, robotVacuumCleanerS1PlusWebhookContext, robotVacuumCleanerS1Status, robotVacuumCleanerS1WebhookContext, robotVacuumCleanerServiceData, SwitchbotDevice } from 'node-switchbot'
+import type { bodyChange, device, floorCleaningRobotS10Status, floorCleaningRobotS10WebhookContext, robotVacuumCleanerS1PlusStatus, robotVacuumCleanerS1PlusWebhookContext, robotVacuumCleanerS1Status, robotVacuumCleanerS1WebhookContext, robotVacuumCleanerServiceData, SwitchBotBLE, SwitchbotDevice } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
@@ -541,7 +541,7 @@ export class RobotVacuumCleaner extends deviceBase {
     }
   }
 
-  async BLERefreshConnection(switchbot: any): Promise<void> {
+  async BLERefreshConnection(switchbot: SwitchBotBLE): Promise<void> {
     this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog('Using OpenAPI Connection to Refresh Status')

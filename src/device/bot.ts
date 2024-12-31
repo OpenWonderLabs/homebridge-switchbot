@@ -3,7 +3,7 @@
  * bot.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
-import type { bodyChange, botServiceData, botStatus, botWebhookContext, device, SwitchbotDevice, WoHand } from 'node-switchbot'
+import type { bodyChange, botServiceData, botStatus, botWebhookContext, device, SwitchBotBLE, SwitchbotDevice, WoHand } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { botConfig, devicesConfig } from '../settings.js'
@@ -825,7 +825,7 @@ export class Bot extends deviceBase {
     }
   }
 
-  async BLERefreshConnection(switchbot: any): Promise<void> {
+  async BLERefreshConnection(switchbot: SwitchBotBLE): Promise<void> {
     this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog('Using OpenAPI Connection to Refresh Status')
