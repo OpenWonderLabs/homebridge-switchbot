@@ -208,16 +208,18 @@ export class StripLight extends deviceBase {
 
     // Color, Hue & Brightness
     this.debugLog(`red: ${this.serviceData.red}, green: ${this.serviceData.green}, blue: ${this.serviceData.blue}`)
-    const [hue, saturation] = rgb2hs(this.serviceData.red, this.serviceData.green, this.serviceData.blue)
-    this.debugLog(`hs: ${JSON.stringify(rgb2hs(this.serviceData.red, this.serviceData.green, this.serviceData.blue))}`)
-
-    // Hue
-    this.LightBulb.Hue = hue
-    this.debugLog(`Hue: ${this.LightBulb.Hue}`)
-
-    // Saturation
-    this.LightBulb.Saturation = saturation
-    this.debugLog(`Saturation: ${this.LightBulb.Saturation}`)
+    if (this.serviceData.red !== undefined && this.serviceData.green !== undefined && this.serviceData.blue !== undefined) {
+      const [hue, saturation] = rgb2hs(this.serviceData.red, this.serviceData.green, this.serviceData.blue)
+      this.debugLog(`hs: ${JSON.stringify(rgb2hs(this.serviceData.red, this.serviceData.green, this.serviceData.blue))}`)
+      // Hue
+      this.LightBulb.Hue = hue
+      this.debugLog(`Hue: ${this.LightBulb.Hue}`)
+      // Saturation
+      this.LightBulb.Saturation = saturation
+      this.debugLog(`Saturation: ${this.LightBulb.Saturation}`)
+    } else {
+      this.errorLog(`Invalid color data: red=${this.serviceData.red}, green=${this.serviceData.green}, blue=${this.serviceData.blue}`)
+    }
   }
 
   async openAPIparseStatus(): Promise<void> {
@@ -233,19 +235,23 @@ export class StripLight extends deviceBase {
     this.debugLog(`Brightness: ${this.LightBulb.Brightness}`)
 
     // Color, Hue & Brightness
-    this.debugLog(`color: ${JSON.stringify(this.deviceStatus.color)}`)
-    const [red, green, blue] = this.deviceStatus.color.split(':')
-    this.debugLog(`red: ${JSON.stringify(red)}, green: ${JSON.stringify(green)}, blue: ${JSON.stringify(blue)}`)
-    const [hue, saturation] = rgb2hs(red, green, blue)
-    this.debugLog(`hs: ${JSON.stringify(rgb2hs(red, green, blue))}`)
+    if (typeof this.deviceStatus.color === 'string') {
+      this.debugLog(`color: ${JSON.stringify(this.deviceStatus.color)}`)
+      const [red, green, blue] = this.deviceStatus.color.split(':')
+      this.debugLog(`red: ${JSON.stringify(red)}, green: ${JSON.stringify(green)}, blue: ${JSON.stringify(blue)}`)
+      const [hue, saturation] = rgb2hs(red, green, blue)
+      this.debugLog(`hs: ${JSON.stringify(rgb2hs(red, green, blue))}`)
 
-    // Hue
-    this.LightBulb.Hue = hue
-    this.debugLog(`Hue: ${this.LightBulb.Hue}`)
+      // Hue
+      this.LightBulb.Hue = hue
+      this.debugLog(`Hue: ${this.LightBulb.Hue}`)
 
-    // Saturation
-    this.LightBulb.Saturation = saturation
-    this.debugLog(`Saturation: ${this.LightBulb.Saturation}`)
+      // Saturation
+      this.LightBulb.Saturation = saturation
+      this.debugLog(`Saturation: ${this.LightBulb.Saturation}`)
+    } else {
+      this.errorLog(`Invalid color format: ${JSON.stringify(this.deviceStatus.color)}`)
+    }
 
     // Firmware Version
     if (this.deviceStatus.version) {
@@ -276,19 +282,23 @@ export class StripLight extends deviceBase {
     this.debugLog(`Brightness: ${this.LightBulb.Brightness}`)
 
     // Color, Hue & Brightness
-    this.debugLog(`color: ${JSON.stringify(this.webhookContext.color)}`)
-    const [red, green, blue] = this.webhookContext.color.split(':')
-    this.debugLog(`red: ${JSON.stringify(red)}, green: ${JSON.stringify(green)}, blue: ${JSON.stringify(blue)}`)
-    const [hue, saturation] = rgb2hs(red, green, blue)
-    this.debugLog(`hs: ${JSON.stringify(rgb2hs(red, green, blue))}`)
+    if (typeof this.webhookContext.color === 'string') {
+      this.debugLog(`color: ${JSON.stringify(this.webhookContext.color)}`)
+      const [red, green, blue] = this.webhookContext.color.split(':')
+      this.debugLog(`red: ${JSON.stringify(red)}, green: ${JSON.stringify(green)}, blue: ${JSON.stringify(blue)}`)
+      const [hue, saturation] = rgb2hs(red, green, blue)
+      this.debugLog(`hs: ${JSON.stringify(rgb2hs(red, green, blue))}`)
 
-    // Hue
-    this.LightBulb.Hue = hue
-    this.debugLog(`Hue: ${this.LightBulb.Hue}`)
+      // Hue
+      this.LightBulb.Hue = hue
+      this.debugLog(`Hue: ${this.LightBulb.Hue}`)
 
-    // Saturation
-    this.LightBulb.Saturation = saturation
-    this.debugLog(`Saturation: ${this.LightBulb.Saturation}`)
+      // Saturation
+      this.LightBulb.Saturation = saturation
+      this.debugLog(`Saturation: ${this.LightBulb.Saturation}`)
+    } else {
+      this.errorLog(`Invalid color format: ${JSON.stringify(this.webhookContext.color)}`)
+    }
   }
 
   /**
