@@ -156,7 +156,7 @@ export class WaterDetector extends deviceBase {
       this.LeakSensor.LeakDetected = (this.device as waterDetectorConfig).dry
         ? !this.serviceData.leak ? this.hap.Characteristic.LeakDetected.LEAK_DETECTED : this.hap.Characteristic.LeakDetected.LEAK_NOT_DETECTED
         : this.serviceData.leak ? this.hap.Characteristic.LeakDetected.LEAK_DETECTED : this.hap.Characteristic.LeakDetected.LEAK_NOT_DETECTED
-      this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}`)
+      this.LeakSensor.LeakDetected === this.hap.Characteristic.LeakDetected.LEAK_DETECTED ? this.warnLog(`LeakDetected: ${this.LeakSensor.LeakDetected}, dry: ${(this.device as waterDetectorConfig).dry}, BLE`) : this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}, dry: ${(this.device as waterDetectorConfig).dry}, BLE`)
     }
     // Battery Info
     if ('battery' in this.serviceData) {
@@ -185,7 +185,7 @@ export class WaterDetector extends deviceBase {
       this.LeakSensor.LeakDetected = (this.device as waterDetectorConfig).dry
         ? this.deviceStatus.status === 0 ? this.hap.Characteristic.LeakDetected.LEAK_DETECTED : this.hap.Characteristic.LeakDetected.LEAK_NOT_DETECTED
         : this.deviceStatus.status === 1 ? this.hap.Characteristic.LeakDetected.LEAK_DETECTED : this.hap.Characteristic.LeakDetected.LEAK_NOT_DETECTED
-      this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}`)
+      this.LeakSensor.LeakDetected === this.hap.Characteristic.LeakDetected.LEAK_DETECTED ? this.warnLog(`LeakDetected: ${this.LeakSensor.LeakDetected}, dry: ${(this.device as waterDetectorConfig).dry}, OpenAPI`) : this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}, dry: ${(this.device as waterDetectorConfig).dry}, OpenAPI`)
     }
 
     // BatteryLevel
@@ -228,7 +228,7 @@ export class WaterDetector extends deviceBase {
       this.LeakSensor.LeakDetected = (this.device as waterDetectorConfig).dry
         ? this.webhookContext.detectionState === 0 ? this.hap.Characteristic.LeakDetected.LEAK_DETECTED : this.hap.Characteristic.LeakDetected.LEAK_NOT_DETECTED
         : this.webhookContext.detectionState === 1 ? this.hap.Characteristic.LeakDetected.LEAK_DETECTED : this.hap.Characteristic.LeakDetected.LEAK_NOT_DETECTED
-      this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}`)
+      this.LeakSensor.LeakDetected === this.hap.Characteristic.LeakDetected.LEAK_DETECTED ? this.warnLog(`LeakDetected: ${this.LeakSensor.LeakDetected}, dry: ${(this.device as waterDetectorConfig).dry}, Webhook`) : this.debugLog(`LeakDetected: ${this.LeakSensor.LeakDetected}, dry: ${(this.device as waterDetectorConfig).dry}, Webhook`)
     }
 
     // BatteryLevel
