@@ -623,7 +623,7 @@ export class BlindTilt extends deviceBase {
     this.debugLog('openAPIpushChanges')
     const hasDifferentAndRelevantHorizontalTiltAngle
       = this.mappingMode === BlindTiltMappingMode.UseTiltForDirection
-      && this.WindowCovering.TargetHorizontalTiltAngle !== this.WindowCovering.CurrentHorizontalTiltAngle
+        && this.WindowCovering.TargetHorizontalTiltAngle !== this.WindowCovering.CurrentHorizontalTiltAngle
     if (this.WindowCovering.TargetPosition !== this.WindowCovering.CurrentPosition
       || hasDifferentAndRelevantHorizontalTiltAngle || this.device.disableCaching) {
       const [direction, position] = this.mapHomekitValuesToDeviceValues(Number(this.WindowCovering.TargetPosition), Number(this.WindowCovering.TargetHorizontalTiltAngle))

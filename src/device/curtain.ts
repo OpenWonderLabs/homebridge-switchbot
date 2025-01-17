@@ -333,7 +333,7 @@ export class Curtain extends deviceBase {
       })
       const motion: Service
       = this.accessory.getService(this.hap.Service.MotionSensor)
-      || this.accessory.addService(this.hap.Service.MotionSensor, 'Motion')
+        || this.accessory.addService(this.hap.Service.MotionSensor, 'Motion')
       motion.addOptionalCharacteristic(this.platform.eve.Characteristics.LastActivation)
       motion.getCharacteristic(this.platform.eve.Characteristics.LastActivation).onGet(() => {
         const lastActivation = this.accessory.context.lastActivation
