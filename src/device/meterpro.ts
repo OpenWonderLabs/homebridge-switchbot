@@ -280,7 +280,7 @@ export class MeterPro extends deviceBase {
     }
 
     // Battery Info
-    if ('battery' in this.serviceData) {
+    if ('battery' in this.deviceStatus) {
     // BatteryLevel
       this.Battery.BatteryLevel = this.deviceStatus.battery
       this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)

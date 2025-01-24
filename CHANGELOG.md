@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [4.3.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v4.3.0) (2025-01-24)
+
+### What's Changed
+- Add Support for Relay Switch 1 & Relay Switch 1PM with OpenAPI
+- Add Meter Pro & Meter Pro (CO2) as `meterType` for IR AirConditioner
+- Fixed SwitchBot Meter Pro Battery Error #1160
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.2.0...v4.3.0
+
 ## [4.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v4.2.0) (2025-01-23)
 
 ### What's Changed

@@ -53,7 +53,7 @@ export interface options {
   logging?: string
 };
 
-export type devicesConfig = botConfig | meterConfig | meterProConfig | indoorOutdoorSensorConfig | humidifierConfig | curtainConfig | blindTiltConfig | contactConfig | motionConfig | waterDetectorConfig | plugConfig | colorBulbConfig | stripLightConfig | ceilingLightConfig | lockConfig | hubConfig
+export type devicesConfig = botConfig | relaySwitch1Config | relaySwitch1PMConfig | meterConfig | meterProConfig | indoorOutdoorSensorConfig | humidifierConfig | curtainConfig | blindTiltConfig | contactConfig | motionConfig | waterDetectorConfig | plugConfig | colorBulbConfig | stripLightConfig | ceilingLightConfig | lockConfig | hubConfig
 
 export interface BaseDeviceConfig extends device {
   bleMac?: string
@@ -95,6 +95,18 @@ export interface botConfig extends BaseDeviceConfig {
   pushRatePress?: number
   allowPush?: boolean
   multiPress?: boolean
+};
+
+export interface relaySwitch1Config extends BaseDeviceConfig {
+  configDeviceType: 'Relay Switch 1'
+  type: string
+  allowPush?: boolean
+};
+
+export interface relaySwitch1PMConfig extends BaseDeviceConfig {
+  configDeviceType: 'Relay Switch 1PM'
+  type: string
+  allowPush?: boolean
 };
 
 export interface meterConfig extends BaseDeviceConfig {

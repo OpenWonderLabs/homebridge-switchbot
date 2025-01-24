@@ -97,6 +97,18 @@
                       ]
                     },
                     {
+                      "title": "Relay Switch 1",
+                      "enum": [
+                        "Relay Switch 1"
+                      ]
+                    },
+                    {
+                      "title": "Relay Switch 1PM",
+                      "enum": [
+                        "Relay Switch 1PM"
+                      ]
+                    },
+                    {
                       "title": "Battery Circulator Fan",
                       "enum": [
                         "Battery Circulator Fan"
@@ -323,7 +335,7 @@
                   "type": "boolean",
                   "description": "If set to true, this will disable the platform BLE for this specific device.",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].connectionType === 'BLE' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].connectionType !== 'Disabled');"
                   }
                 },
                 "scanDuration": {
@@ -786,7 +798,7 @@
                   "title": "Device Logging Override Setting",
                   "type": "string",
                   "required": true,
-                  "default": "",
+                  "default": "standard",
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
                   },
@@ -795,12 +807,6 @@
                       "title": "Debug Logging",
                       "enum": [
                         "debug"
-                      ]
-                    },
-                    {
-                      "title": "Default Logging",
-                      "enum": [
-                        ""
                       ]
                     },
                     {
@@ -843,15 +849,10 @@
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
                   }
                 }
-              },
-              "required": [
-                "deviceId",
-                "configDeviceType",
-                "configDeviceName",
-                "connectionType",
-                "logging"
-              ]
+              }
             },
+            "if": { "properties": "model.options.devices" },
+            "then": { "properties": { "model.options.devices[arrayIndices].logging": { "required": true } } },
             "uniqueItems": true
           },
           "deviceConfig": {
@@ -940,7 +941,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Humidifier'] && !model.options.deviceConfig['Humidifier'].hide_device && model.options.deviceConfig['Humidifier'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Humidifier'] && !model.options.deviceConfig['Humidifier'].hide_device && model.options.deviceConfig['Humidifier'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -1162,7 +1163,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Hub 2'] && !model.options.deviceConfig['Hub 2'].hide_device && model.options.deviceConfig['Hub 2'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Hub 2'] && !model.options.deviceConfig['Hub 2'].hide_device && model.options.deviceConfig['Hub 2'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -1479,7 +1480,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Bot'] && !model.options.deviceConfig['Bot'].hide_device && model.options.deviceConfig['Bot'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Bot'] && !model.options.deviceConfig['Bot'].hide_device && model.options.deviceConfig['Bot'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -1620,6 +1621,552 @@
                   }
                 }
               },
+              "Relay Switch 1": {
+                "type": "object",
+                "properties": {
+                  "hide_device": {
+                    "title": "Hide All Bots",
+                    "type": "boolean",
+                    "description": "If true, all Bot devices will be removed or hidden from HomeKit."
+                  },
+                  "type": {
+                    "title": "What Type of Device do you want to display in the Home App?",
+                    "type": "string",
+                    "required": true,
+                    "default": "",
+                    "placeholder": "outlet",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Relay Switch 1'] && !model.options.deviceConfig['Relay Switch 1'].hide_device);"
+                    },
+                    "oneOf": [
+                      {
+                        "title": "Default",
+                        "enum": [
+                          ""
+                        ]
+                      },
+                      {
+                        "title": "Door",
+                        "enum": [
+                          "door"
+                        ]
+                      },
+                      {
+                        "title": "Fan",
+                        "enum": [
+                          "fan"
+                        ]
+                      },
+                      {
+                        "title": "Faucet",
+                        "enum": [
+                          "faucet"
+                        ]
+                      },
+                      {
+                        "title": "Garage Door",
+                        "enum": [
+                          "garagedoor"
+                        ]
+                      },
+                      {
+                        "title": "Lock",
+                        "enum": [
+                          "lock"
+                        ]
+                      },
+                      {
+                        "title": "Outlet",
+                        "enum": [
+                          "outlet"
+                        ]
+                      },
+                      {
+                        "title": "Stateful Programmable Switch (Only Works in 3rd Party Home Apps)",
+                        "enum": [
+                          "stateful"
+                        ]
+                      },
+                      {
+                        "title": "Switch",
+                        "enum": [
+                          "switch"
+                        ]
+                      },
+                      {
+                        "title": "Window",
+                        "enum": [
+                          "window"
+                        ]
+                      },
+                      {
+                        "title": "Window Covering",
+                        "enum": [
+                          "windowcovering"
+                        ]
+                      }
+                    ]
+                  },
+                  "allowPush": {
+                    "title": "Allow Changes to Be Pushed",
+                    "description": "If set to true, this will allow commands to be sent even if device state is already in state that is being pushed.",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Relay Switch 1'] && !model.options.deviceConfig['Relay Switch 1'].hide_device);"
+                    }
+                  },
+                  "connectionType": {
+                    "title": "Connection Type",
+                    "type": "string",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Relay Switch 1'] && !model.options.deviceConfig['Relay Switch 1'].hide_device);"
+                    },
+                    "oneOf": [
+                      {
+                        "title": "BLE",
+                        "enum": [
+                          "BLE"
+                        ]
+                      },
+                      {
+                        "title": "BLE/OpenAPI",
+                        "enum": [
+                          "BLE/OpenAPI"
+                        ]
+                      },
+                      {
+                        "title": "Disable",
+                        "enum": [
+                          "Disabled"
+                        ]
+                      },
+                      {
+                        "title": "OpenAPI",
+                        "enum": [
+                          "OpenAPI"
+                        ]
+                      }
+                    ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Relay Switch 1'] && !model.options.deviceConfig['Relay Switch 1'].hide_device && model.options.deviceConfig['Relay Switch 1'].connectionType !== 'Disabled');"
+                    }
+                  },
+                  "scanDuration": {
+                    "title": "Scan Duration (Default is 1 Second) for BLE",
+                    "type": "number",
+                    "placeholder": 1,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Relay Switch 1'] && !model.options.deviceConfig['Relay Switch 1'].hide_device && (model.options.deviceConfig['Relay Switch 1'].connectionType === 'BLE' || model.options.deviceConfig['Relay Switch 1'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "webhook": {
+                    "title": "Enable Webhook for all Hub 2s",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Relay Switch 1'] && !model.options.deviceConfig['Relay Switch 1'].hide_device && (model.options.deviceConfig['Relay Switch 1'].connectionType === 'OpenAPI' || model.options.deviceConfig['Relay Switch 1'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "external": {
+                    "title": "External Accessory",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Relay Switch 1'] && !model.options.deviceConfig['Relay Switch 1'].hide_device);"
+                    }
+                  },
+                  "maxRetry": {
+                    "title": "Max Retries for BLE",
+                    "type": "number",
+                    "placeholder": "5",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Relay Switch 1'] && !model.options.deviceConfig['Relay Switch 1'].hide_device && (model.options.deviceConfig['Relay Switch 1'].connectionType === 'BLE' || model.options.deviceConfig['Relay Switch 1'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "maxRetries": {
+                    "title": "Device Max Retries for OpenAPI",
+                    "type": "number",
+                    "placeholder": 5,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Relay Switch 1'] && !model.options.deviceConfig['Relay Switch 1'].hide_device && (model.options.deviceConfig['Relay Switch 1'].connectionType === 'OpenAPI' || model.options.deviceConfig['Relay Switch 1'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "delayBetweenRetries": {
+                    "title": "Device Delay Between Retries for OpenAPI (In Seconds)",
+                    "type": "number",
+                    "placeholder": 3,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Relay Switch 1'] && !model.options.deviceConfig['Relay Switch 1'].hide_device && (model.options.deviceConfig['Relay Switch 1'].connectionType === 'OpenAPI' || model.options.deviceConfig['Relay Switch 1'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "disableCaching": {
+                    "title": "Disable Caching",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Relay Switch 1'] && !model.options.deviceConfig['Relay Switch 1'].hide_device);"
+                    }
+                  },
+                  "offline": {
+                    "title": "Offline as Off",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Relay Switch 1'].hide_device);"
+                    }
+                  },
+                  "history": {
+                    "title": "EVE History",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Relay Switch 1'].hide_device);"
+                    }
+                  },
+                  "firmware": {
+                    "title": "Firmware Override",
+                    "type": "string",
+                    "placeholder": "1.2.8",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Relay Switch 1'].hide_device);"
+                    }
+                  },
+                  "logging": {
+                    "title": "Logging by Device Type",
+                    "type": "string",
+                    "required": true,
+                    "default": "",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Relay Switch 1'].hide_device);"
+                    },
+                    "oneOf": [
+                      {
+                        "title": "Debug Logging",
+                        "enum": [
+                          "debug"
+                        ]
+                      },
+                      {
+                        "title": "Default Logging",
+                        "enum": [
+                          ""
+                        ]
+                      },
+                      {
+                        "title": "No Logging",
+                        "enum": [
+                          "none"
+                        ]
+                      },
+                      {
+                        "title": "Standard Logging",
+                        "enum": [
+                          "standard"
+                        ]
+                      }
+                    ]
+                  },
+                  "refreshRate": {
+                    "title": "Device Refresh Rate",
+                    "type": "number",
+                    "placeholder": 5,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Relay Switch 1'].hide_device);"
+                    }
+                  },
+                  "updateRate": {
+                    "title": "Update Rate",
+                    "type": "number",
+                    "minimum": 1,
+                    "placeholder": 5,
+                    "description": "Indicates the number of seconds before refreshing status while updating progress.",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Relay Switch 1'].hide_device);"
+                    }
+                  },
+                  "pushRate": {
+                    "title": "Device Push Rate",
+                    "type": "number",
+                    "placeholder": 360,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Relay Switch 1'].hide_device);"
+                    }
+                  }
+                }
+              },
+              "Relay Switch 1PM": {
+                "type": "object",
+                "properties": {
+                  "hide_device": {
+                    "title": "Hide All Bots",
+                    "type": "boolean",
+                    "description": "If true, all Bot devices will be removed or hidden from HomeKit."
+                  },
+                  "type": {
+                    "title": "What Type of Device do you want to display in the Home App?",
+                    "type": "string",
+                    "required": true,
+                    "default": "",
+                    "placeholder": "outlet",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Relay Switch 1PM'] && !model.options.deviceConfig['Relay Switch 1PM'].hide_device);"
+                    },
+                    "oneOf": [
+                      {
+                        "title": "Default",
+                        "enum": [
+                          ""
+                        ]
+                      },
+                      {
+                        "title": "Door",
+                        "enum": [
+                          "door"
+                        ]
+                      },
+                      {
+                        "title": "Fan",
+                        "enum": [
+                          "fan"
+                        ]
+                      },
+                      {
+                        "title": "Faucet",
+                        "enum": [
+                          "faucet"
+                        ]
+                      },
+                      {
+                        "title": "Garage Door",
+                        "enum": [
+                          "garagedoor"
+                        ]
+                      },
+                      {
+                        "title": "Lock",
+                        "enum": [
+                          "lock"
+                        ]
+                      },
+                      {
+                        "title": "Outlet",
+                        "enum": [
+                          "outlet"
+                        ]
+                      },
+                      {
+                        "title": "Stateful Programmable Switch (Only Works in 3rd Party Home Apps)",
+                        "enum": [
+                          "stateful"
+                        ]
+                      },
+                      {
+                        "title": "Switch",
+                        "enum": [
+                          "switch"
+                        ]
+                      },
+                      {
+                        "title": "Window",
+                        "enum": [
+                          "window"
+                        ]
+                      },
+                      {
+                        "title": "Window Covering",
+                        "enum": [
+                          "windowcovering"
+                        ]
+                      }
+                    ]
+                  },
+                  "allowPush": {
+                    "title": "Allow Changes to Be Pushed",
+                    "description": "If set to true, this will allow commands to be sent even if device state is already in state that is being pushed.",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Relay Switch 1PM'] && !model.options.deviceConfig['Relay Switch 1PM'].hide_device);"
+                    }
+                  },
+                  "connectionType": {
+                    "title": "Connection Type",
+                    "type": "string",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Relay Switch 1PM'] && !model.options.deviceConfig['Relay Switch 1PM'].hide_device);"
+                    },
+                    "oneOf": [
+                      {
+                        "title": "BLE",
+                        "enum": [
+                          "BLE"
+                        ]
+                      },
+                      {
+                        "title": "BLE/OpenAPI",
+                        "enum": [
+                          "BLE/OpenAPI"
+                        ]
+                      },
+                      {
+                        "title": "Disable",
+                        "enum": [
+                          "Disabled"
+                        ]
+                      },
+                      {
+                        "title": "OpenAPI",
+                        "enum": [
+                          "OpenAPI"
+                        ]
+                      }
+                    ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Relay Switch 1PM'] && !model.options.deviceConfig['Relay Switch 1PM'].hide_device && model.options.deviceConfig['Relay Switch 1PM'].connectionType !== 'Disabled');"
+                    }
+                  },
+                  "scanDuration": {
+                    "title": "Scan Duration (Default is 1 Second) for BLE",
+                    "type": "number",
+                    "placeholder": 1,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Relay Switch 1PM'] && !model.options.deviceConfig['Relay Switch 1PM'].hide_device && (model.options.deviceConfig['Relay Switch 1PM'].connectionType === 'BLE' || model.options.deviceConfig['Relay Switch 1PM'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "webhook": {
+                    "title": "Enable Webhook for all Hub 2s",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Relay Switch 1PM'] && !model.options.deviceConfig['Relay Switch 1PM'].hide_device && (model.options.deviceConfig['Relay Switch 1PM'].connectionType === 'OpenAPI' || model.options.deviceConfig['Relay Switch 1PM'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "external": {
+                    "title": "External Accessory",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Relay Switch 1PM'] && !model.options.deviceConfig['Relay Switch 1PM'].hide_device);"
+                    }
+                  },
+                  "maxRetry": {
+                    "title": "Max Retries for BLE",
+                    "type": "number",
+                    "placeholder": "5",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Relay Switch 1PM'] && !model.options.deviceConfig['Relay Switch 1PM'].hide_device && (model.options.deviceConfig['Relay Switch 1PM'].connectionType === 'BLE' || model.options.deviceConfig['Relay Switch 1PM'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "maxRetries": {
+                    "title": "Device Max Retries for OpenAPI",
+                    "type": "number",
+                    "placeholder": 5,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Relay Switch 1PM'] && !model.options.deviceConfig['Relay Switch 1PM'].hide_device && (model.options.deviceConfig['Relay Switch 1PM'].connectionType === 'OpenAPI' || model.options.deviceConfig['Relay Switch 1PM'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "delayBetweenRetries": {
+                    "title": "Device Delay Between Retries for OpenAPI (In Seconds)",
+                    "type": "number",
+                    "placeholder": 3,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Relay Switch 1PM'] && !model.options.deviceConfig['Relay Switch 1PM'].hide_device && (model.options.deviceConfig['Relay Switch 1PM'].connectionType === 'OpenAPI' || model.options.deviceConfig['Relay Switch 1PM'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "disableCaching": {
+                    "title": "Disable Caching",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Relay Switch 1PM'] && !model.options.deviceConfig['Relay Switch 1PM'].hide_device);"
+                    }
+                  },
+                  "offline": {
+                    "title": "Offline as Off",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Relay Switch 1PM'].hide_device);"
+                    }
+                  },
+                  "history": {
+                    "title": "EVE History",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Relay Switch 1PM'].hide_device);"
+                    }
+                  },
+                  "firmware": {
+                    "title": "Firmware Override",
+                    "type": "string",
+                    "placeholder": "1.2.8",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Relay Switch 1PM'].hide_device);"
+                    }
+                  },
+                  "logging": {
+                    "title": "Logging by Device Type",
+                    "type": "string",
+                    "required": true,
+                    "default": "",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Relay Switch 1PM'].hide_device);"
+                    },
+                    "oneOf": [
+                      {
+                        "title": "Debug Logging",
+                        "enum": [
+                          "debug"
+                        ]
+                      },
+                      {
+                        "title": "Default Logging",
+                        "enum": [
+                          ""
+                        ]
+                      },
+                      {
+                        "title": "No Logging",
+                        "enum": [
+                          "none"
+                        ]
+                      },
+                      {
+                        "title": "Standard Logging",
+                        "enum": [
+                          "standard"
+                        ]
+                      }
+                    ]
+                  },
+                  "refreshRate": {
+                    "title": "Device Refresh Rate",
+                    "type": "number",
+                    "placeholder": 5,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Relay Switch 1PM'].hide_device);"
+                    }
+                  },
+                  "updateRate": {
+                    "title": "Update Rate",
+                    "type": "number",
+                    "minimum": 1,
+                    "placeholder": 5,
+                    "description": "Indicates the number of seconds before refreshing status while updating progress.",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Relay Switch 1PM'].hide_device);"
+                    }
+                  },
+                  "pushRate": {
+                    "title": "Device Push Rate",
+                    "type": "number",
+                    "placeholder": 360,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Relay Switch 1PM'].hide_device);"
+                    }
+                  }
+                }
+              },
               "Meter": {
                 "type": "object",
                 "properties": {
@@ -1701,7 +2248,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Meter'] && !model.options.deviceConfig['Meter'].hide_device && model.options.deviceConfig['Meter'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Meter'] && !model.options.deviceConfig['Meter'].hide_device && model.options.deviceConfig['Meter'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -1923,7 +2470,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPlus'] && !model.options.deviceConfig['MeterPlus'].hide_device && model.options.deviceConfig['MeterPlus'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPlus'] && !model.options.deviceConfig['MeterPlus'].hide_device && model.options.deviceConfig['MeterPlus'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -2145,7 +2692,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Meter Plus (JP)'] && !model.options.deviceConfig['Meter Plus (JP)'].hide_device && model.options.deviceConfig['Meter Plus (JP)'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Meter Plus (JP)'] && !model.options.deviceConfig['Meter Plus (JP)'].hide_device && model.options.deviceConfig['Meter Plus (JP)'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -2367,7 +2914,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['WoIOSensor'] && !model.options.deviceConfig['WoIOSensor'].hide_device && model.options.deviceConfig['WoIOSensor'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['WoIOSensor'] && !model.options.deviceConfig['WoIOSensor'].hide_device && model.options.deviceConfig['WoIOSensor'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -2569,7 +3116,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Water Detector'] && !model.options.deviceConfig['Water Detector'].hide_device && model.options.deviceConfig['Water Detector'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Water Detector'] && !model.options.deviceConfig['Water Detector'].hide_device && model.options.deviceConfig['Water Detector'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -2779,7 +3326,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Motion Sensor'] && !model.options.deviceConfig['Motion Sensor'].hide_device && model.options.deviceConfig['Motion Sensor'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Motion Sensor'] && !model.options.deviceConfig['Motion Sensor'].hide_device && model.options.deviceConfig['Motion Sensor'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -2996,7 +3543,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Contact Sensor'] && !model.options.deviceConfig['Contact Sensor'].hide_device && model.options.deviceConfig['Contact Sensor'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Contact Sensor'] && !model.options.deviceConfig['Contact Sensor'].hide_device && model.options.deviceConfig['Contact Sensor'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -3289,7 +3836,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Curtain'] && !model.options.deviceConfig['Curtain'].hide_device && model.options.deviceConfig['Curtain'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Curtain'] && !model.options.deviceConfig['Curtain'].hide_device && model.options.deviceConfig['Curtain'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -3582,7 +4129,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Curtain3'] && !model.options.deviceConfig['Curtain3'].hide_device && model.options.deviceConfig['Curtain3'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Curtain3'] && !model.options.deviceConfig['Curtain3'].hide_device && model.options.deviceConfig['Curtain3'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -3875,7 +4422,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['WoRollerShade'] && !model.options.deviceConfig['WoRollerShade'].hide_device && model.options.deviceConfig['WoRollerShade'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['WoRollerShade'] && !model.options.deviceConfig['WoRollerShade'].hide_device && model.options.deviceConfig['WoRollerShade'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -4168,7 +4715,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Roller Shade'] && !model.options.deviceConfig['Roller Shade'].hide_device && model.options.deviceConfig['Roller Shade'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Roller Shade'] && !model.options.deviceConfig['Roller Shade'].hide_device && model.options.deviceConfig['Roller Shade'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -4496,7 +5043,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Blind Tilt'] && !model.options.deviceConfig['Blind Tilt'].hide_device && model.options.deviceConfig['Blind Tilt'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Blind Tilt'] && !model.options.deviceConfig['Blind Tilt'].hide_device && model.options.deviceConfig['Blind Tilt'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -4683,7 +5230,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Plug'] && !model.options.deviceConfig['Humidifier'].hide_device && model.options.deviceConfig['Plug'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Plug'] && !model.options.deviceConfig['Humidifier'].hide_device && model.options.deviceConfig['Plug'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -4870,7 +5417,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Plug Mini (US)'] && !model.options.deviceConfig['Plug Mini (US)'].hide_device && model.options.deviceConfig['Plug Mini (US)'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Plug Mini (US)'] && !model.options.deviceConfig['Plug Mini (US)'].hide_device && model.options.deviceConfig['Plug Mini (US)'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -5057,7 +5604,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Plug Mini (JP)'] && !model.options.deviceConfig['Plug Mini (JP)'].hide_device && model.options.deviceConfig['Plug Mini (JP)'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Plug Mini (JP)'] && !model.options.deviceConfig['Plug Mini (JP)'].hide_device && model.options.deviceConfig['Plug Mini (JP)'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -5258,7 +5805,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Smart Lock'] && !model.options.deviceConfig['Smart Lock'].hide_device && model.options.deviceConfig['Smart Lock'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Smart Lock'] && !model.options.deviceConfig['Smart Lock'].hide_device && model.options.deviceConfig['Smart Lock'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -5459,7 +6006,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Smart Lock Pro'] && !model.options.deviceConfig['Smart Lock Pro'].hide_device && model.options.deviceConfig['Smart Lock Pro'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Smart Lock Pro'] && !model.options.deviceConfig['Smart Lock Pro'].hide_device && model.options.deviceConfig['Smart Lock Pro'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -5664,7 +6211,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Color Bulb'] && !model.options.deviceConfig['Color Bulb'].hide_device && model.options.deviceConfig['Color Bulb'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Color Bulb'] && !model.options.deviceConfig['Color Bulb'].hide_device && model.options.deviceConfig['Color Bulb'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -5851,7 +6398,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['K10+'] && !model.options.deviceConfig['K10+'].hide_device && model.options.deviceConfig['K10+'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['K10+'] && !model.options.deviceConfig['K10+'].hide_device && model.options.deviceConfig['K10+'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -6038,7 +6585,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['K10+ Pro'] && !model.options.deviceConfig['K10+ Pro'].hide_device && model.options.deviceConfig['K10+ Pro'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['K10+ Pro'] && !model.options.deviceConfig['K10+ Pro'].hide_device && model.options.deviceConfig['K10+ Pro'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -6225,7 +6772,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['WoSweeper'] && !model.options.deviceConfig['WoSweeper'].hide_device && model.options.deviceConfig['WoSweeper'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['WoSweeper'] && !model.options.deviceConfig['WoSweeper'].hide_device && model.options.deviceConfig['WoSweeper'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -6412,7 +6959,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['WoSweeperMini'] && !model.options.deviceConfig['WoSweeperMini'].hide_device && model.options.deviceConfig['WoSweeperMini'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['WoSweeperMini'] && !model.options.deviceConfig['WoSweeperMini'].hide_device && model.options.deviceConfig['WoSweeperMini'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -6599,7 +7146,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Robot Vacuum Cleaner S1'] && !model.options.deviceConfig['Robot Vacuum Cleaner S1'].hide_device && model.options.deviceConfig['Robot Vacuum Cleaner S1'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Robot Vacuum Cleaner S1'] && !model.options.deviceConfig['Robot Vacuum Cleaner S1'].hide_device && model.options.deviceConfig['Robot Vacuum Cleaner S1'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -6786,7 +7333,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Robot Vacuum Cleaner S1 Plus'] && !model.options.deviceConfig['Robot Vacuum Cleaner S1 Plus'].hide_device && model.options.deviceConfig['Robot Vacuum Cleaner S1 Plus'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Robot Vacuum Cleaner S1 Plus'] && !model.options.deviceConfig['Robot Vacuum Cleaner S1 Plus'].hide_device && model.options.deviceConfig['Robot Vacuum Cleaner S1 Plus'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -6973,7 +7520,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Robot Vacuum Cleaner S10'] && !model.options.deviceConfig['Robot Vacuum Cleaner S10'].hide_device && model.options.deviceConfig['Robot Vacuum Cleaner S10'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Robot Vacuum Cleaner S10'] && !model.options.deviceConfig['Robot Vacuum Cleaner S10'].hide_device && model.options.deviceConfig['Robot Vacuum Cleaner S10'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -7178,7 +7725,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Ceiling Light'] && !model.options.deviceConfig['Ceiling Light'].hide_device && model.options.deviceConfig['Ceiling Light'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Ceiling Light'] && !model.options.deviceConfig['Ceiling Light'].hide_device && model.options.deviceConfig['Ceiling Light'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -7383,7 +7930,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Ceiling Light Pro'] && !model.options.deviceConfig['Ceiling Light Pro'].hide_device && model.options.deviceConfig['Ceiling Light Pro'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Ceiling Light Pro'] && !model.options.deviceConfig['Ceiling Light Pro'].hide_device && model.options.deviceConfig['Ceiling Light Pro'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -7588,7 +8135,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Strip Light'] && !model.options.deviceConfig['Strip Light'].hide_device && model.options.deviceConfig['Strip Light'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Strip Light'] && !model.options.deviceConfig['Strip Light'].hide_device && model.options.deviceConfig['Strip Light'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -7784,7 +8331,7 @@
                     "title": "Disable Platform BLE",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Battery Circulator Fan'] && !model.options.deviceConfig['Battery Circulator Fan'].hide_device && model.options.deviceConfig['Battery Circulator Fan'].connectionType === 'BLE');"
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Battery Circulator Fan'] && !model.options.deviceConfig['Battery Circulator Fan'].hide_device && model.options.deviceConfig['Battery Circulator Fan'].connectionType !== 'Disabled');"
                     }
                   },
                   "scanDuration": {
@@ -8349,6 +8896,18 @@
                       ]
                     },
                     {
+                      "title": "Meter Pro",
+                      "enum": [
+                        "Meter Pro"
+                      ]
+                    },
+                    {
+                      "title": "Meter Pro (CO2)",
+                      "enum": [
+                        "MeterPro(CO2)"
+                      ]
+                    },
+                    {
                       "title": "WoIOSensor",
                       "enum": [
                         "WoIOSensor"
@@ -8514,14 +9073,10 @@
                     "functionBody": "return (model.options && model.options.irdevices && model.options.irdevices[arrayIndices].deviceId && !model.options.irdevices[arrayIndices].hide_device);"
                   }
                 }
-              },
-              "required": [
-                "deviceId",
-                "configRemoteType",
-                "connectionType",
-                "logging"
-              ]
+              }
             },
+            "if": { "properties": "model.options.irdevices" },
+            "then": { "properties": { "model.options.irdevices[arrayIndices].logging": { "required": true } } },
             "uniqueItems": true
           },
           "irdeviceConfig": {
@@ -12309,6 +12864,60 @@
             "options.deviceConfig['Bot'].refreshRate",
             "options.deviceConfig['Bot'].updateRate",
             "options.deviceConfig['Bot'].pushRate"
+          ]
+        },
+        {
+          "type": "fieldset",
+          "title": "Relay Switch 1 Settings",
+          "expandable": true,
+          "expanded": false,
+          "items": [
+            "options.deviceConfig['Relay Switch 1'].hide_device",
+            "options.deviceConfig['Relay Switch 1'].type",
+            "options.deviceConfig['Relay Switch 1'].allowPush",
+            "options.deviceConfig['Relay Switch 1'].connectionType",
+            "options.deviceConfig['Relay Switch 1'].disablePlatformBLE",
+            "options.deviceConfig['Relay Switch 1'].scanDuration",
+            "options.deviceConfig['Relay Switch 1'].webhook",
+            "options.deviceConfig['Relay Switch 1'].external",
+            "options.deviceConfig['Relay Switch 1'].maxRetry",
+            "options.deviceConfig['Relay Switch 1'].maxRetries",
+            "options.deviceConfig['Relay Switch 1'].delayBetweenRetries",
+            "options.deviceConfig['Relay Switch 1'].disableCaching",
+            "options.deviceConfig['Relay Switch 1'].offline",
+            "options.deviceConfig['Relay Switch 1'].history",
+            "options.deviceConfig['Relay Switch 1'].firmware",
+            "options.deviceConfig['Relay Switch 1'].logging",
+            "options.deviceConfig['Relay Switch 1'].refreshRate",
+            "options.deviceConfig['Relay Switch 1'].updateRate",
+            "options.deviceConfig['Relay Switch 1'].pushRate"
+          ]
+        },
+        {
+          "type": "fieldset",
+          "title": "Relay Switch 1PM Settings",
+          "expandable": true,
+          "expanded": false,
+          "items": [
+            "options.deviceConfig['Relay Switch 1PM'].hide_device",
+            "options.deviceConfig['Relay Switch 1PM'].type",
+            "options.deviceConfig['Relay Switch 1PM'].allowPush",
+            "options.deviceConfig['Relay Switch 1PM'].connectionType",
+            "options.deviceConfig['Relay Switch 1PM'].disablePlatformBLE",
+            "options.deviceConfig['Relay Switch 1PM'].scanDuration",
+            "options.deviceConfig['Relay Switch 1PM'].webhook",
+            "options.deviceConfig['Relay Switch 1PM'].external",
+            "options.deviceConfig['Relay Switch 1PM'].maxRetry",
+            "options.deviceConfig['Relay Switch 1PM'].maxRetries",
+            "options.deviceConfig['Relay Switch 1PM'].delayBetweenRetries",
+            "options.deviceConfig['Relay Switch 1PM'].disableCaching",
+            "options.deviceConfig['Relay Switch 1PM'].offline",
+            "options.deviceConfig['Relay Switch 1PM'].history",
+            "options.deviceConfig['Relay Switch 1PM'].firmware",
+            "options.deviceConfig['Relay Switch 1PM'].logging",
+            "options.deviceConfig['Relay Switch 1PM'].refreshRate",
+            "options.deviceConfig['Relay Switch 1PM'].updateRate",
+            "options.deviceConfig['Relay Switch 1PM'].pushRate"
           ]
         },
         {
