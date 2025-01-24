@@ -8,7 +8,7 @@ import type { MqttClient } from 'mqtt'
 import type { ad, bodyChange, device, deviceStatus, deviceStatusRequest, pushResponse, SwitchBotBLE } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { blindTiltConfig, botConfig, ceilingLightConfig, colorBulbConfig, contactConfig, curtainConfig, devicesConfig, hubConfig, humidifierConfig, indoorOutdoorSensorConfig, lockConfig, meterConfig, motionConfig, plugConfig, stripLightConfig, SwitchBotPlatformConfig, waterDetectorConfig } from '../settings.js'
+import type { blindTiltConfig, botConfig, ceilingLightConfig, colorBulbConfig, contactConfig, curtainConfig, devicesConfig, hubConfig, humidifierConfig, indoorOutdoorSensorConfig, lockConfig, meterConfig, motionConfig, plugConfig, relaySwitch1Config, relaySwitch1PMConfig, stripLightConfig, SwitchBotPlatformConfig, waterDetectorConfig } from '../settings.js'
 
 import { hostname } from 'node:os'
 
@@ -149,6 +149,7 @@ export abstract class deviceBase {
       device.maxRetry !== 0 && { maxRetry: device.maxRetry },
       device.webhook === true && { webhook: device.webhook },
       device.connectionType !== '' && { connectionType: device.connectionType },
+      device.disablePlatformBLE !== false && { disablePlatformBLE: device.disablePlatformBLE },
       device.external === true && { external: device.external },
       device.mqttURL !== '' && { mqttURL: device.mqttURL },
       device.mqttOptions && { mqttOptions: device.mqttOptions },
@@ -160,6 +161,12 @@ export abstract class deviceBase {
     switch (device.configDeviceType) {
       case 'Bot':
         deviceSpecificConfig = device as botConfig
+        break
+      case 'Relay Switch 1':
+        deviceSpecificConfig = device as relaySwitch1Config
+        break
+      case 'Relay Switch 1PM':
+        deviceSpecificConfig = device as relaySwitch1PMConfig
         break
       case 'Meter':
       case 'MeterPlus':
@@ -444,6 +451,18 @@ export abstract class deviceBase {
         bleModel: SwitchBotBLEModel.Bot,
         bleModelName: SwitchBotBLEModelName.Bot,
         bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Bot,
+      },
+      'Relay Switch 1': {
+        model: SwitchBotModel.RelaySwitch1,
+        bleModel: SwitchBotBLEModel.RelaySwitch1,
+        bleModelName: SwitchBotBLEModelName.RelaySwitch1,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.RelaySwitch1,
+      },
+      'Relay Switch 1PM': {
+        model: SwitchBotModel.RelaySwitch1PM,
+        bleModel: SwitchBotBLEModel.RelaySwitch1PM,
+        bleModelName: SwitchBotBLEModelName.RelaySwitch1PM,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.RelaySwitch1PM,
       },
       'Meter': {
         model: SwitchBotModel.Meter,
