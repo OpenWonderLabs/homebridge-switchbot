@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [4.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v4.2.0) (2025-01-23)
+
+### What's Changed
+- Add option to disable platform BLE for specific devices.
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.1.7...v4.2.0
+
 ## [4.1.7](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v4.1.7) (2024-12-22)
 
 ### What's Changed

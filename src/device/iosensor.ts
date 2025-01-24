@@ -309,7 +309,7 @@ export class IOSensor extends deviceBase {
 
   async registerPlatformBLE(): Promise<void> {
     this.debugLog('registerPlatformBLE')
-    if (this.config.options?.BLE) {
+    if (this.config.options?.BLE && !this.device.disablePlatformBLE) {
       this.debugLog('is listening to Platform BLE.')
       try {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)

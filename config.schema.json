@@ -318,6 +318,14 @@
                     }
                   ]
                 },
+                "disablePlatformBLE": {
+                  "title": "Disable Platform BLE",
+                  "type": "boolean",
+                  "description": "If set to true, this will disable the platform BLE for this specific device.",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].connectionType === 'BLE' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
+                  }
+                },
                 "scanDuration": {
                   "title": "Scan Duration (Default is 1 Second) for BLE",
                   "type": "number",
@@ -928,6 +936,13 @@
                       }
                     ]
                   },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Humidifier'] && !model.options.deviceConfig['Humidifier'].hide_device && model.options.deviceConfig['Humidifier'].connectionType === 'BLE');"
+                    }
+                  },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
                     "type": "number",
@@ -1142,6 +1157,13 @@
                         ]
                       }
                     ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Hub 2'] && !model.options.deviceConfig['Hub 2'].hide_device && model.options.deviceConfig['Hub 2'].connectionType === 'BLE');"
+                    }
                   },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
@@ -1453,6 +1475,13 @@
                       }
                     ]
                   },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Bot'] && !model.options.deviceConfig['Bot'].hide_device && model.options.deviceConfig['Bot'].connectionType === 'BLE');"
+                    }
+                  },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
                     "type": "number",
@@ -1667,6 +1696,13 @@
                         ]
                       }
                     ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Meter'] && !model.options.deviceConfig['Meter'].hide_device && model.options.deviceConfig['Meter'].connectionType === 'BLE');"
+                    }
                   },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
@@ -1883,6 +1919,13 @@
                       }
                     ]
                   },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPlus'] && !model.options.deviceConfig['MeterPlus'].hide_device && model.options.deviceConfig['MeterPlus'].connectionType === 'BLE');"
+                    }
+                  },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
                     "type": "number",
@@ -2097,6 +2140,13 @@
                         ]
                       }
                     ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Meter Plus (JP)'] && !model.options.deviceConfig['Meter Plus (JP)'].hide_device && model.options.deviceConfig['Meter Plus (JP)'].connectionType === 'BLE');"
+                    }
                   },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
@@ -2313,6 +2363,13 @@
                       }
                     ]
                   },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['WoIOSensor'] && !model.options.deviceConfig['WoIOSensor'].hide_device && model.options.deviceConfig['WoIOSensor'].connectionType === 'BLE');"
+                    }
+                  },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
                     "type": "number",
@@ -2507,6 +2564,13 @@
                         ]
                       }
                     ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Water Detector'] && !model.options.deviceConfig['Water Detector'].hide_device && model.options.deviceConfig['Water Detector'].connectionType === 'BLE');"
+                    }
                   },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
@@ -2710,6 +2774,13 @@
                         ]
                       }
                     ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Motion Sensor'] && !model.options.deviceConfig['Motion Sensor'].hide_device && model.options.deviceConfig['Motion Sensor'].connectionType === 'BLE');"
+                    }
                   },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
@@ -2920,6 +2991,13 @@
                         ]
                       }
                     ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Contact Sensor'] && !model.options.deviceConfig['Contact Sensor'].hide_device && model.options.deviceConfig['Contact Sensor'].connectionType === 'BLE');"
+                    }
                   },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
@@ -3207,6 +3285,13 @@
                       }
                     ]
                   },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Curtain'] && !model.options.deviceConfig['Curtain'].hide_device && model.options.deviceConfig['Curtain'].connectionType === 'BLE');"
+                    }
+                  },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
                     "type": "number",
@@ -3492,6 +3577,13 @@
                         ]
                       }
                     ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Curtain3'] && !model.options.deviceConfig['Curtain3'].hide_device && model.options.deviceConfig['Curtain3'].connectionType === 'BLE');"
+                    }
                   },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
@@ -3779,6 +3871,13 @@
                       }
                     ]
                   },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['WoRollerShade'] && !model.options.deviceConfig['WoRollerShade'].hide_device && model.options.deviceConfig['WoRollerShade'].connectionType === 'BLE');"
+                    }
+                  },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
                     "type": "number",
@@ -4064,6 +4163,13 @@
                         ]
                       }
                     ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Roller Shade'] && !model.options.deviceConfig['Roller Shade'].hide_device && model.options.deviceConfig['Roller Shade'].connectionType === 'BLE');"
+                    }
                   },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
@@ -4386,6 +4492,13 @@
                       }
                     ]
                   },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Blind Tilt'] && !model.options.deviceConfig['Blind Tilt'].hide_device && model.options.deviceConfig['Blind Tilt'].connectionType === 'BLE');"
+                    }
+                  },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
                     "type": "number",
@@ -4565,6 +4678,13 @@
                         ]
                       }
                     ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Plug'] && !model.options.deviceConfig['Humidifier'].hide_device && model.options.deviceConfig['Plug'].connectionType === 'BLE');"
+                    }
                   },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
@@ -4746,6 +4866,13 @@
                       }
                     ]
                   },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Plug Mini (US)'] && !model.options.deviceConfig['Plug Mini (US)'].hide_device && model.options.deviceConfig['Plug Mini (US)'].connectionType === 'BLE');"
+                    }
+                  },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
                     "type": "number",
@@ -4925,6 +5052,13 @@
                         ]
                       }
                     ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Plug Mini (JP)'] && !model.options.deviceConfig['Plug Mini (JP)'].hide_device && model.options.deviceConfig['Plug Mini (JP)'].connectionType === 'BLE');"
+                    }
                   },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
@@ -5120,6 +5254,13 @@
                       }
                     ]
                   },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Smart Lock'] && !model.options.deviceConfig['Smart Lock'].hide_device && model.options.deviceConfig['Smart Lock'].connectionType === 'BLE');"
+                    }
+                  },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
                     "type": "number",
@@ -5313,6 +5454,13 @@
                         ]
                       }
                     ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Smart Lock Pro'] && !model.options.deviceConfig['Smart Lock Pro'].hide_device && model.options.deviceConfig['Smart Lock Pro'].connectionType === 'BLE');"
+                    }
                   },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
@@ -5512,6 +5660,13 @@
                       }
                     ]
                   },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Color Bulb'] && !model.options.deviceConfig['Color Bulb'].hide_device && model.options.deviceConfig['Color Bulb'].connectionType === 'BLE');"
+                    }
+                  },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
                     "type": "number",
@@ -5691,6 +5846,13 @@
                         ]
                       }
                     ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['K10+'] && !model.options.deviceConfig['K10+'].hide_device && model.options.deviceConfig['K10+'].connectionType === 'BLE');"
+                    }
                   },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
@@ -5872,6 +6034,13 @@
                       }
                     ]
                   },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['K10+ Pro'] && !model.options.deviceConfig['K10+ Pro'].hide_device && model.options.deviceConfig['K10+ Pro'].connectionType === 'BLE');"
+                    }
+                  },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
                     "type": "number",
@@ -6051,6 +6220,13 @@
                         ]
                       }
                     ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['WoSweeper'] && !model.options.deviceConfig['WoSweeper'].hide_device && model.options.deviceConfig['WoSweeper'].connectionType === 'BLE');"
+                    }
                   },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
@@ -6232,6 +6408,13 @@
                       }
                     ]
                   },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['WoSweeperMini'] && !model.options.deviceConfig['WoSweeperMini'].hide_device && model.options.deviceConfig['WoSweeperMini'].connectionType === 'BLE');"
+                    }
+                  },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
                     "type": "number",
@@ -6411,6 +6594,13 @@
                         ]
                       }
                     ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Robot Vacuum Cleaner S1'] && !model.options.deviceConfig['Robot Vacuum Cleaner S1'].hide_device && model.options.deviceConfig['Robot Vacuum Cleaner S1'].connectionType === 'BLE');"
+                    }
                   },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
@@ -6592,6 +6782,13 @@
                       }
                     ]
                   },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Robot Vacuum Cleaner S1 Plus'] && !model.options.deviceConfig['Robot Vacuum Cleaner S1 Plus'].hide_device && model.options.deviceConfig['Robot Vacuum Cleaner S1 Plus'].connectionType === 'BLE');"
+                    }
+                  },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
                     "type": "number",
@@ -6771,6 +6968,13 @@
                         ]
                       }
                     ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Robot Vacuum Cleaner S10'] && !model.options.deviceConfig['Robot Vacuum Cleaner S10'].hide_device && model.options.deviceConfig['Robot Vacuum Cleaner S10'].connectionType === 'BLE');"
+                    }
                   },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
@@ -6970,6 +7174,13 @@
                       }
                     ]
                   },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Ceiling Light'] && !model.options.deviceConfig['Ceiling Light'].hide_device && model.options.deviceConfig['Ceiling Light'].connectionType === 'BLE');"
+                    }
+                  },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
                     "type": "number",
@@ -7167,6 +7378,13 @@
                         ]
                       }
                     ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Ceiling Light Pro'] && !model.options.deviceConfig['Ceiling Light Pro'].hide_device && model.options.deviceConfig['Ceiling Light Pro'].connectionType === 'BLE');"
+                    }
                   },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
@@ -7366,6 +7584,13 @@
                       }
                     ]
                   },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Strip Light'] && !model.options.deviceConfig['Strip Light'].hide_device && model.options.deviceConfig['Strip Light'].connectionType === 'BLE');"
+                    }
+                  },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
                     "type": "number",
@@ -7554,6 +7779,13 @@
                         ]
                       }
                     ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Battery Circulator Fan'] && !model.options.deviceConfig['Battery Circulator Fan'].hide_device && model.options.deviceConfig['Battery Circulator Fan'].connectionType === 'BLE');"
+                    }
                   },
                   "scanDuration": {
                     "title": "Scan Duration (Default is 1 Second) for BLE",
@@ -11926,6 +12158,7 @@
             "options.devices[].hide_device",
             "options.devices[].configDeviceType",
             "options.devices[].connectionType",
+            "options.devices[].disablePlatformBLE",
             "options.devices[].scanDuration",
             "options.devices[].customBLEaddress",
             "options.devices[].webhook",
@@ -12003,6 +12236,7 @@
             "options.deviceConfig['Humidifier'].convertUnitTo",
             "options.deviceConfig['Humidifier'].set_minStep",
             "options.deviceConfig['Humidifier'].connectionType",
+            "options.deviceConfig['Humidifier'].disablePlatformBLE",
             "options.deviceConfig['Humidifier'].scanDuration",
             "options.deviceConfig['Humidifier'].webhook",
             "options.deviceConfig['Humidifier'].external",
@@ -12030,6 +12264,7 @@
             "options.deviceConfig['Hub 2'].convertUnitTo",
             "options.deviceConfig['Hub 2'].hide_humidity",
             "options.deviceConfig['Hub 2'].connectionType",
+            "options.deviceConfig['Hub 2'].disablePlatformBLE",
             "options.deviceConfig['Hub 2'].scanDuration",
             "options.deviceConfig['Hub 2'].webhook",
             "options.deviceConfig['Hub 2'].external",
@@ -12059,6 +12294,7 @@
             "options.deviceConfig['Bot'].pushRatePress",
             "options.deviceConfig['Bot'].allowPush",
             "options.deviceConfig['Bot'].connectionType",
+            "options.deviceConfig['Bot'].disablePlatformBLE",
             "options.deviceConfig['Bot'].scanDuration",
             "options.deviceConfig['Bot'].webhook",
             "options.deviceConfig['Bot'].external",
@@ -12086,6 +12322,7 @@
             "options.deviceConfig['Meter'].convertUnitTo",
             "options.deviceConfig['Meter'].hide_humidity",
             "options.deviceConfig['Meter'].connectionType",
+            "options.deviceConfig['Meter'].disablePlatformBLE",
             "options.deviceConfig['Meter'].scanDuration",
             "options.deviceConfig['Meter'].webhook",
             "options.deviceConfig['Meter'].external",
@@ -12113,6 +12350,7 @@
             "options.deviceConfig['MeterPlus'].convertUnitTo",
             "options.deviceConfig['MeterPlus'].hide_humidity",
             "options.deviceConfig['MeterPlus'].connectionType",
+            "options.deviceConfig['MeterPlus'].disablePlatformBLE",
             "options.deviceConfig['MeterPlus'].scanDuration",
             "options.deviceConfig['MeterPlus'].webhook",
             "options.deviceConfig['MeterPlus'].external",
@@ -12140,6 +12378,7 @@
             "options.deviceConfig['Meter Plus (JP)'].convertUnitTo",
             "options.deviceConfig['Meter Plus (JP)'].hide_humidity",
             "options.deviceConfig['Meter Plus (JP)'].connectionType",
+            "options.deviceConfig['Meter Plus (JP)'].disablePlatformBLE",
             "options.deviceConfig['Meter Plus (JP)'].scanDuration",
             "options.deviceConfig['Meter Plus (JP)'].webhook",
             "options.deviceConfig['Meter Plus (JP)'].external",
@@ -12167,6 +12406,7 @@
             "options.deviceConfig['WoIOSensor'].convertUnitTo",
             "options.deviceConfig['WoIOSensor'].hide_humidity",
             "options.deviceConfig['WoIOSensor'].connectionType",
+            "options.deviceConfig['WoIOSensor'].disablePlatformBLE",
             "options.deviceConfig['WoIOSensor'].scanDuration",
             "options.deviceConfig['WoIOSensor'].webhook",
             "options.deviceConfig['WoIOSensor'].external",
@@ -12193,6 +12433,7 @@
             "options.deviceConfig['Water Detector']hide_leak",
             "options.deviceConfig['Water Detector']dry",
             "options.deviceConfig['Water Detector'].connectionType",
+            "options.deviceConfig['Water Detector'].disablePlatformBLE",
             "options.deviceConfig['Water Detector'].scanDuration",
             "options.deviceConfig['Water Detector'].webhook",
             "options.deviceConfig['Water Detector'].external",
@@ -12220,6 +12461,7 @@
             "options.deviceConfig['Motion Sensor'].set_minlux",
             "options.deviceConfig['Motion Sensor'].set_maxlux",
             "options.deviceConfig['Motion Sensor'].connectionType",
+            "options.deviceConfig['Motion Sensor'].disablePlatformBLE",
             "options.deviceConfig['Motion Sensor'].scanDuration",
             "options.deviceConfig['Motion Sensor'].webhook",
             "options.deviceConfig['Motion Sensor'].external",
@@ -12248,6 +12490,7 @@
             "options.deviceConfig['Contact Sensor'].set_maxlux",
             "options.deviceConfig['Contact Sensor'].hide_motionsensor",
             "options.deviceConfig['Contact Sensor'].connectionType",
+            "options.deviceConfig['Contact Sensor'].disablePlatformBLE",
             "options.deviceConfig['Contact Sensor'].scanDuration",
             "options.deviceConfig['Contact Sensor'].webhook",
             "options.deviceConfig['Contact Sensor'].external",
@@ -12282,6 +12525,7 @@
             "options.deviceConfig['Curtain'].setOpenMode",
             "options.deviceConfig['Curtain'].silentModeSwitch",
             "options.deviceConfig['Curtain'].connectionType",
+            "options.deviceConfig['Curtain'].disablePlatformBLE",
             "options.deviceConfig['Curtain'].scanDuration",
             "options.deviceConfig['Curtain'].webhook",
             "options.deviceConfig['Curtain'].external",
@@ -12316,6 +12560,7 @@
             "options.deviceConfig['Curtain3'].setOpenMode",
             "options.deviceConfig['Curtain3'].silentModeSwitch",
             "options.deviceConfig['Curtain3'].connectionType",
+            "options.deviceConfig['Curtain3'].disablePlatformBLE",
             "options.deviceConfig['Curtain3'].scanDuration",
             "options.deviceConfig['Curtain3'].webhook",
             "options.deviceConfig['Curtain3'].external",
@@ -12350,6 +12595,7 @@
             "options.deviceConfig['WoRollerShade'].setOpenMode",
             "options.deviceConfig['WoRollerShade'].silentModeSwitch",
             "options.deviceConfig['WoRollerShade'].connectionType",
+            "options.deviceConfig['WoRollerShade'].disablePlatformBLE",
             "options.deviceConfig['WoRollerShade'].scanDuration",
             "options.deviceConfig['WoRollerShade'].webhook",
             "options.deviceConfig['WoRollerShade'].external",
@@ -12384,6 +12630,7 @@
             "options.deviceConfig['Roller Shade'].setOpenMode",
             "options.deviceConfig['Roller Shade'].silentModeSwitch",
             "options.deviceConfig['Roller Shade'].connectionType",
+            "options.deviceConfig['Roller Shade'].disablePlatformBLE",
             "options.deviceConfig['Roller Shade'].scanDuration",
             "options.deviceConfig['Roller Shade'].webhook",
             "options.deviceConfig['Roller Shade'].external",
@@ -12419,6 +12666,7 @@
             "options.deviceConfig['Blind Tilt'].setOpenMode",
             "options.deviceConfig['Blind Tilt'].silentModeSwitch",
             "options.deviceConfig['Blind Tilt'].connectionType",
+            "options.deviceConfig['Blind Tilt'].disablePlatformBLE",
             "options.deviceConfig['Blind Tilt'].scanDuration",
             "options.deviceConfig['Blind Tilt'].webhook",
             "options.deviceConfig['Blind Tilt'].external",
@@ -12443,6 +12691,7 @@
           "items": [
             "options.deviceConfig['Plug'].hide_device",
             "options.deviceConfig['Plug'].connectionType",
+            "options.deviceConfig['Plug'].disablePlatformBLE",
             "options.deviceConfig['Plug'].scanDuration",
             "options.deviceConfig['Plug'].webhook",
             "options.deviceConfig['Plug'].external",
@@ -12467,6 +12716,7 @@
           "items": [
             "options.deviceConfig['Plug Mini (US)'].hide_device",
             "options.deviceConfig['Plug Mini (US)'].connectionType",
+            "options.deviceConfig['Plug Mini (US)'].disablePlatformBLE",
             "options.deviceConfig['Plug Mini (US)'].scanDuration",
             "options.deviceConfig['Plug Mini (US)'].webhook",
             "options.deviceConfig['Plug Mini (US)'].external",
@@ -12491,6 +12741,7 @@
           "items": [
             "options.deviceConfig['Plug Mini (JP)'].hide_device",
             "options.deviceConfig['Plug Mini (JP)'].connectionType",
+            "options.deviceConfig['Plug Mini (JP)'].disablePlatformBLE",
             "options.deviceConfig['Plug Mini (JP)'].scanDuration",
             "options.deviceConfig['Plug Mini (JP)'].webhook",
             "options.deviceConfig['Plug Mini (JP)'].external",
@@ -12517,6 +12768,7 @@
             "options.deviceConfig['Smart Lock'].hide_contactsensor",
             "options.deviceConfig['Smart Lock'].activate_latchbutton",
             "options.deviceConfig['Smart Lock'].connectionType",
+            "options.deviceConfig['Smart Lock'].disablePlatformBLE",
             "options.deviceConfig['Smart Lock'].scanDuration",
             "options.deviceConfig['Smart Lock'].webhook",
             "options.deviceConfig['Smart Lock'].external",
@@ -12543,6 +12795,7 @@
             "options.deviceConfig['Smart Lock Pro'].hide_contactsensor",
             "options.deviceConfig['Smart Lock Pro'].activate_latchbutton",
             "options.deviceConfig['Smart Lock Pro'].connectionType",
+            "options.deviceConfig['Smart Lock Pro'].disablePlatformBLE",
             "options.deviceConfig['Smart Lock Pro'].scanDuration",
             "options.deviceConfig['Smart Lock Pro'].webhook",
             "options.deviceConfig['Smart Lock Pro'].external",
@@ -12569,6 +12822,7 @@
             "options.deviceConfig['Color Bulb'].set_minStep",
             "options.deviceConfig['Color Bulb'].adaptiveLightingShift",
             "options.deviceConfig['Color Bulb'].connectionType",
+            "options.deviceConfig['Color Bulb'].disablePlatformBLE",
             "options.deviceConfig['Color Bulb'].scanDuration",
             "options.deviceConfig['Color Bulb'].webhook",
             "options.deviceConfig['Color Bulb'].external",
@@ -12593,6 +12847,7 @@
           "items": [
             "options.deviceConfig['K10+'].hide_device",
             "options.deviceConfig['K10+'].connectionType",
+            "options.deviceConfig['K10+'].disablePlatformBLE",
             "options.deviceConfig['K10+'].scanDuration",
             "options.deviceConfig['K10+'].webhook",
             "options.deviceConfig['K10+'].external",
@@ -12617,6 +12872,7 @@
           "items": [
             "options.deviceConfig['K10+ Pro'].hide_device",
             "options.deviceConfig['K10+ Pro'].connectionType",
+            "options.deviceConfig['K10+ Pro'].disablePlatformBLE",
             "options.deviceConfig['K10+ Pro'].scanDuration",
             "options.deviceConfig['K10+ Pro'].webhook",
             "options.deviceConfig['K10+ Pro'].external",
@@ -12641,6 +12897,7 @@
           "items": [
             "options.deviceConfig['WoSweeper'].hide_device",
             "options.deviceConfig['WoSweeper'].connectionType",
+            "options.deviceConfig['WoSweeper'].disablePlatformBLE",
             "options.deviceConfig['WoSweeper'].scanDuration",
             "options.deviceConfig['WoSweeper'].webhook",
             "options.deviceConfig['WoSweeper'].external",
@@ -12665,6 +12922,7 @@
           "items": [
             "options.deviceConfig['WoSweeperMini'].hide_device",
             "options.deviceConfig['WoSweeperMini'].connectionType",
+            "options.deviceConfig['WoSweeperMini'].disablePlatformBLE",
             "options.deviceConfig['WoSweeperMini'].scanDuration",
             "options.deviceConfig['WoSweeperMini'].webhook",
             "options.deviceConfig['WoSweeperMini'].external",
@@ -12689,6 +12947,7 @@
           "items": [
             "options.deviceConfig['Robot Vacuum Cleaner S1'].hide_device",
             "options.deviceConfig['Robot Vacuum Cleaner S1'].connectionType",
+            "options.deviceConfig['Robot Vacuum Cleaner S1'].disablePlatformBLE",
             "options.deviceConfig['Robot Vacuum Cleaner S1'].scanDuration",
             "options.deviceConfig['Robot Vacuum Cleaner S1'].webhook",
             "options.deviceConfig['Robot Vacuum Cleaner S1'].external",
@@ -12713,6 +12972,7 @@
           "items": [
             "options.deviceConfig['Robot Vacuum Cleaner S1 Plus'].hide_device",
             "options.deviceConfig['Robot Vacuum Cleaner S1 Plus'].connectionType",
+            "options.deviceConfig['Robot Vacuum Cleaner S1 Plus'].disablePlatformBLE",
             "options.deviceConfig['Robot Vacuum Cleaner S1 Plus'].scanDuration",
             "options.deviceConfig['Robot Vacuum Cleaner S1 Plus'].webhook",
             "options.deviceConfig['Robot Vacuum Cleaner S1 Plus'].external",
@@ -12737,6 +12997,7 @@
           "items": [
             "options.deviceConfig['Robot Vacuum Cleaner S10'].hide_device",
             "options.deviceConfig['Robot Vacuum Cleaner S10'].connectionType",
+            "options.deviceConfig['Robot Vacuum Cleaner S10'].disablePlatformBLE",
             "options.deviceConfig['Robot Vacuum Cleaner S10'].scanDuration",
             "options.deviceConfig['Robot Vacuum Cleaner S10'].webhook",
             "options.deviceConfig['Robot Vacuum Cleaner S10'].external",
@@ -12763,6 +13024,7 @@
             "options.deviceConfig['Ceiling Light'].set_minStep",
             "options.deviceConfig['Ceiling Light'].adaptiveLightingShift",
             "options.deviceConfig['Ceiling Light'].connectionType",
+            "options.deviceConfig['Ceiling Light'].disablePlatformBLE",
             "options.deviceConfig['Ceiling Light'].scanDuration",
             "options.deviceConfig['Ceiling Light'].webhook",
             "options.deviceConfig['Ceiling Light'].external",
@@ -12789,6 +13051,7 @@
             "options.deviceConfig['Ceiling Light Pro'].set_minStep",
             "options.deviceConfig['Ceiling Light Pro'].adaptiveLightingShift",
             "options.deviceConfig['Ceiling Light Pro'].connectionType",
+            "options.deviceConfig['Ceiling Light Pro'].disablePlatformBLE",
             "options.deviceConfig['Ceiling Light Pro'].scanDuration",
             "options.deviceConfig['Ceiling Light Pro'].webhook",
             "options.deviceConfig['Ceiling Light Pro'].external",
@@ -12815,6 +13078,7 @@
             "options.deviceConfig['Strip Light'].set_minStep",
             "options.deviceConfig['Strip Light'].adaptiveLightingShift",
             "options.deviceConfig['Strip Light'].connectionType",
+            "options.deviceConfig['Strip Light'].disablePlatformBLE",
             "options.deviceConfig['Strip Light'].scanDuration",
             "options.deviceConfig['Strip Light'].webhook",
             "options.deviceConfig['Strip Light'].external",
@@ -12840,6 +13104,7 @@
             "options.deviceConfig['Battery Circulator Fan'].hide_device",
             "options.deviceConfig['Battery Circulator Fan'].set_minStep",
             "options.deviceConfig['Battery Circulator Fan'].connectionType",
+            "options.deviceConfig['Battery Circulator Fan'].disablePlatformBLE",
             "options.deviceConfig['Battery Circulator Fan'].scanDuration",
             "options.deviceConfig['Battery Circulator Fan'].webhook",
             "options.deviceConfig['Battery Circulator Fan'].external",
