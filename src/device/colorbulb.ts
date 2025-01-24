@@ -3,7 +3,7 @@
  * blindtilt.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, Controller, ControllerConstructor, ControllerServiceMap, PlatformAccessory, Service } from 'homebridge'
-import type { bodyChange, colorBulbServiceData, colorBulbStatus, colorBulbWebhookContext, device, SwitchbotDevice, WoBulb } from 'node-switchbot'
+import type { bodyChange, colorBulbServiceData, colorBulbStatus, colorBulbWebhookContext, device, SwitchBotBLE, SwitchbotDevice, WoBulb } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { colorBulbConfig, devicesConfig } from '../settings.js'
@@ -203,14 +203,18 @@ export class ColorBulb extends deviceBase {
     this.debugLog(`Brightness: ${this.LightBulb.Brightness}`)
     // Color, Hue & Brightness
     this.debugLog(`red: ${this.serviceData.red}, green: ${this.serviceData.green}, blue: ${this.serviceData.blue}`)
-    const [hue, saturation] = rgb2hs(this.serviceData.red, this.serviceData.green, this.serviceData.blue)
-    this.debugLog(`hs: ${JSON.stringify(rgb2hs(this.serviceData.red, this.serviceData.green, this.serviceData.blue))}`)
-    // Hue
-    this.LightBulb.Hue = hue
-    this.debugLog(`Hue: ${this.LightBulb.Hue}`)
-    // Saturation
-    this.LightBulb.Saturation = saturation
-    this.debugLog(`Saturation: ${this.LightBulb.Saturation}`)
+    if (this.serviceData.red !== undefined && this.serviceData.green !== undefined && this.serviceData.blue !== undefined) {
+      const [hue, saturation] = rgb2hs(this.serviceData.red, this.serviceData.green, this.serviceData.blue)
+      this.debugLog(`hs: ${JSON.stringify(rgb2hs(this.serviceData.red, this.serviceData.green, this.serviceData.blue))}`)
+      // Hue
+      this.LightBulb.Hue = hue
+      this.debugLog(`Hue: ${this.LightBulb.Hue}`)
+      // Saturation
+      this.LightBulb.Saturation = saturation
+      this.debugLog(`Saturation: ${this.LightBulb.Saturation}`)
+    } else {
+      this.errorLog(`Invalid color data: red=${this.serviceData.red}, green=${this.serviceData.green}, blue=${this.serviceData.blue}`)
+    }
     // ColorTemperature
     const miredColorTemperature = Math.round(1000000 / this.serviceData.color_temperature)
     this.LightBulb.ColorTemperature = Math.max(Math.min(miredColorTemperature, 500), 140)
@@ -229,17 +233,21 @@ export class ColorBulb extends deviceBase {
     this.LightBulb.Brightness = this.deviceStatus.brightness
     this.debugLog(`Brightness: ${this.LightBulb.Brightness}`)
     // Color, Hue & Brightness
-    this.debugLog(`color: ${JSON.stringify(this.deviceStatus.color)}`)
-    const [red, green, blue] = this.deviceStatus.color.split(':')
-    this.debugLog(`red: ${JSON.stringify(red)}, green: ${JSON.stringify(green)}, blue: ${JSON.stringify(blue)}`)
-    const [hue, saturation] = rgb2hs(red, green, blue)
-    this.debugLog(`hs: ${JSON.stringify(rgb2hs(red, green, blue))}`)
-    // Hue
-    this.LightBulb.Hue = hue
-    this.debugLog(`Hue: ${this.LightBulb.Hue}`)
-    // Saturation
-    this.LightBulb.Saturation = saturation
-    this.debugLog(`Saturation: ${this.LightBulb.Saturation}`)
+    if (typeof this.deviceStatus.color === 'string') {
+      this.debugLog(`color: ${JSON.stringify(this.deviceStatus.color)}`)
+      const [red, green, blue] = this.deviceStatus.color.split(':')
+      this.debugLog(`red: ${JSON.stringify(red)}, green: ${JSON.stringify(green)}, blue: ${JSON.stringify(blue)}`)
+      const [hue, saturation] = rgb2hs(red, green, blue)
+      this.debugLog(`hs: ${JSON.stringify(rgb2hs(red, green, blue))}`)
+      // Hue
+      this.LightBulb.Hue = hue
+      this.debugLog(`Hue: ${this.LightBulb.Hue}`)
+      // Saturation
+      this.LightBulb.Saturation = saturation
+      this.debugLog(`Saturation: ${this.LightBulb.Saturation}`)
+    } else {
+      this.errorLog(`Invalid color format: ${JSON.stringify(this.deviceStatus.color)}`)
+    }
     // ColorTemperature
     const miredColorTemperature = Math.round(1000000 / this.deviceStatus.colorTemperature)
     this.LightBulb.ColorTemperature = Math.max(Math.min(miredColorTemperature, 500), 140)
@@ -270,17 +278,21 @@ export class ColorBulb extends deviceBase {
     this.LightBulb.Brightness = this.webhookContext.brightness
     this.debugLog(`Brightness: ${this.LightBulb.Brightness}`)
     // Color, Hue & Brightness
-    this.debugLog(`color: ${JSON.stringify(this.webhookContext.color)}`)
-    const [red, green, blue] = this.webhookContext.color.split(':')
-    this.debugLog(`red: ${JSON.stringify(red)}, green: ${JSON.stringify(green)}, blue: ${JSON.stringify(blue)}`)
-    const [hue, saturation] = rgb2hs(red, green, blue)
-    this.debugLog(`hs: ${JSON.stringify(rgb2hs(red, green, blue))}`)
-    // Hue
-    this.LightBulb.Hue = hue
-    this.debugLog(`Hue: ${this.LightBulb.Hue}`)
-    // Saturation
-    this.LightBulb.Saturation = saturation
-    this.debugLog(`Saturation: ${this.LightBulb.Saturation}`)
+    if (typeof this.webhookContext.color === 'string') {
+      this.debugLog(`color: ${JSON.stringify(this.webhookContext.color)}`)
+      const [red, green, blue] = this.webhookContext.color.split(':')
+      this.debugLog(`red: ${JSON.stringify(red)}, green: ${JSON.stringify(green)}, blue: ${JSON.stringify(blue)}`)
+      const [hue, saturation] = rgb2hs(red, green, blue)
+      this.debugLog(`hs: ${JSON.stringify(rgb2hs(red, green, blue))}`)
+      // Hue
+      this.LightBulb.Hue = hue
+      this.debugLog(`Hue: ${this.LightBulb.Hue}`)
+      // Saturation
+      this.LightBulb.Saturation = saturation
+      this.debugLog(`Saturation: ${this.LightBulb.Saturation}`)
+    } else {
+      this.errorLog(`Invalid color format: ${JSON.stringify(this.webhookContext.color)}`)
+    }
     // ColorTemperature
     const miredColorTemperature = Math.round(1000000 / this.webhookContext.colorTemperature)
     this.LightBulb.ColorTemperature = Math.max(Math.min(miredColorTemperature, 500), 140)
@@ -316,8 +328,13 @@ export class ColorBulb extends deviceBase {
         // Update HomeKit
         if (serviceData.model === SwitchBotBLEModel.ColorBulb && serviceData.modelName === SwitchBotBLEModelName.ColorBulb) {
           this.serviceData = serviceData
-          await this.BLEparseStatus()
-          await this.updateHomeKitCharacteristics()
+          if (serviceData !== undefined || serviceData !== null) {
+            await this.BLEparseStatus()
+            await this.updateHomeKitCharacteristics()
+          } else {
+            this.errorLog(`serviceData is either undefined or null, serviceData: ${JSON.stringify(serviceData)}`)
+            await this.BLERefreshConnection(switchBotBLE)
+          }
         } else {
           this.errorLog(`failed to get serviceData, serviceData: ${JSON.stringify(serviceData)}`)
           await this.BLERefreshConnection(switchBotBLE)
@@ -328,7 +345,7 @@ export class ColorBulb extends deviceBase {
 
   async registerPlatformBLE(): Promise<void> {
     this.debugLog('registerPlatformBLE')
-    if (this.config.options?.BLE) {
+    if (this.config.options?.BLE && !this.device.disablePlatformBLE) {
       this.debugLog('is listening to Platform BLE.')
       try {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
@@ -336,10 +353,15 @@ export class ColorBulb extends deviceBase {
         this.debugLog(`bleMac: ${this.device.bleMac}`)
         this.platform.bleEventHandler[this.device.bleMac] = async (context: colorBulbServiceData) => {
           try {
-            this.debugLog(`received BLE: ${JSON.stringify(context)}`)
             this.serviceData = context
-            await this.BLEparseStatus()
-            await this.updateHomeKitCharacteristics()
+            if (context !== undefined || context !== null) {
+              this.debugLog(`received BLE: ${JSON.stringify(context)}`)
+              await this.BLEparseStatus()
+              await this.updateHomeKitCharacteristics()
+            } else {
+              this.errorLog(`context is either undefined or null, context: ${JSON.stringify(context)}`)
+              await this.BLERefreshConnection(context)
+            }
           } catch (e: any) {
             this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
           }
@@ -377,10 +399,14 @@ export class ColorBulb extends deviceBase {
       this.debugLog('is listening webhook.')
       this.platform.webhookEventHandler[this.device.deviceId] = async (context: colorBulbWebhookContext) => {
         try {
-          this.debugLog(`received Webhook: ${JSON.stringify(context)}`)
           this.webhookContext = context
-          await this.parseStatusWebhook()
-          await this.updateHomeKitCharacteristics()
+          if (context !== undefined || context !== null) {
+            this.debugLog(`received Webhook: ${JSON.stringify(context)}`)
+            await this.parseStatusWebhook()
+            await this.updateHomeKitCharacteristics()
+          } else {
+            this.errorLog(`context is either undefined or null, context: ${JSON.stringify(context)}`)
+          }
         } catch (e: any) {
           this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
         }
@@ -863,7 +889,7 @@ export class ColorBulb extends deviceBase {
     }
   }
 
-  async BLERefreshConnection(switchbot: any): Promise<void> {
+  async BLERefreshConnection(switchbot: SwitchBotBLE): Promise<void> {
     this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog('Using OpenAPI Connection to Refresh Status')

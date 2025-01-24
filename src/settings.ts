@@ -79,6 +79,7 @@ export interface BaseDeviceConfig extends device {
   maxRetries?: number
   delayBetweenRetries?: number
   disableCaching?: boolean
+  disablePlatformBLE?: boolean
   mqttURL?: string
   mqttOptions?: IClientOptions
   mqttPubOptions?: IClientOptions

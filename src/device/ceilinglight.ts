@@ -3,7 +3,7 @@
  * ceilinglight.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, Controller, ControllerConstructor, ControllerServiceMap, PlatformAccessory, Service } from 'homebridge'
-import type { bodyChange, ceilingLightProServiceData, ceilingLightProStatus, ceilingLightProWebhookContext, ceilingLightServiceData, ceilingLightStatus, ceilingLightWebhookContext, device, SwitchbotDevice, WoCeilingLight } from 'node-switchbot'
+import type { bodyChange, ceilingLightProServiceData, ceilingLightProStatus, ceilingLightProWebhookContext, ceilingLightServiceData, ceilingLightStatus, ceilingLightWebhookContext, device, SwitchBotBLE, SwitchbotDevice, WoCeilingLight } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { ceilingLightConfig, devicesConfig } from '../settings.js'
@@ -293,8 +293,13 @@ export class CeilingLight extends deviceBase {
         // Update HomeKit
         if ((serviceData.model === SwitchBotBLEModel.CeilingLight || SwitchBotBLEModel.CeilingLightPro) && (serviceData.modelName === SwitchBotBLEModelName.CeilingLight || SwitchBotBLEModelName.CeilingLightPro)) {
           this.serviceData = serviceData
-          await this.BLEparseStatus()
-          await this.updateHomeKitCharacteristics()
+          if (serviceData !== undefined || serviceData !== null) {
+            await this.BLEparseStatus()
+            await this.updateHomeKitCharacteristics()
+          } else {
+            this.errorLog(`serviceData is either undefined or null, serviceData: ${JSON.stringify(serviceData)}`)
+            await this.BLERefreshConnection(switchBotBLE)
+          }
         } else {
           this.errorLog(`failed to get serviceData, serviceData: ${JSON.stringify(serviceData)}`)
           await this.BLERefreshConnection(switchBotBLE)
@@ -305,7 +310,7 @@ export class CeilingLight extends deviceBase {
 
   async registerPlatformBLE(): Promise<void> {
     this.debugLog('registerPlatformBLE')
-    if (this.config.options?.BLE) {
+    if (this.config.options?.BLE && !this.device.disablePlatformBLE) {
       this.debugLog('is listening to Platform BLE.')
       try {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
@@ -313,10 +318,15 @@ export class CeilingLight extends deviceBase {
         this.debugLog(`bleMac: ${this.device.bleMac}`)
         this.platform.bleEventHandler[this.device.bleMac] = async (context: ceilingLightServiceData | ceilingLightProServiceData) => {
           try {
-            this.debugLog(`received BLE: ${JSON.stringify(context)}`)
             this.serviceData = context
-            await this.BLEparseStatus()
-            await this.updateHomeKitCharacteristics()
+            if (context !== undefined || context !== null) {
+              this.debugLog(`received BLE: ${JSON.stringify(context)}`)
+              await this.BLEparseStatus()
+              await this.updateHomeKitCharacteristics()
+            } else {
+              this.errorLog(`context is either undefined or null, context: ${JSON.stringify(context)}`)
+              await this.BLERefreshConnection(context)
+            }
           } catch (e: any) {
             this.errorLog(`failed to handle BLE. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
           }
@@ -354,10 +364,14 @@ export class CeilingLight extends deviceBase {
       this.debugLog('is listening webhook.')
       this.platform.webhookEventHandler[this.device.deviceId] = async (context: ceilingLightWebhookContext | ceilingLightProWebhookContext) => {
         try {
-          this.debugLog(`received Webhook: ${JSON.stringify(context)}`)
           this.webhookContext = context
-          await this.parseStatusWebhook()
-          await this.updateHomeKitCharacteristics()
+          if (context !== undefined || context !== null) {
+            this.debugLog(`received Webhook: ${JSON.stringify(context)}`)
+            await this.parseStatusWebhook()
+            await this.updateHomeKitCharacteristics()
+          } else {
+            this.errorLog(`context is either undefined or null, context: ${JSON.stringify(context)}`)
+          }
         } catch (e: any) {
           this.errorLog(`failed to handle webhook. Received: ${JSON.stringify(context)} Error: ${e.message ?? e}`)
         }
@@ -713,7 +727,7 @@ export class CeilingLight extends deviceBase {
     }
   }
 
-  async BLERefreshConnection(switchbot: any): Promise<void> {
+  async BLERefreshConnection(switchbot: SwitchBotBLE): Promise<void> {
     this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog('Using OpenAPI Connection to Refresh Status')

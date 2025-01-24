@@ -5,7 +5,7 @@
 
 import type { API, CharacteristicValue, HAP, Logging, PlatformAccessory, Service } from 'homebridge'
 import type { MqttClient } from 'mqtt'
-import type { ad, bodyChange, device, deviceStatus, deviceStatusRequest, pushResponse } from 'node-switchbot'
+import type { ad, bodyChange, device, deviceStatus, deviceStatusRequest, pushResponse, SwitchBotBLE } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { blindTiltConfig, botConfig, ceilingLightConfig, colorBulbConfig, contactConfig, curtainConfig, devicesConfig, hubConfig, humidifierConfig, indoorOutdoorSensorConfig, lockConfig, meterConfig, motionConfig, plugConfig, stripLightConfig, SwitchBotPlatformConfig, waterDetectorConfig } from '../settings.js'
@@ -306,8 +306,8 @@ export abstract class deviceBase {
     }
   }
 
-  async monitorAdvertisementPackets(switchbot: any) {
-    this.debugLog(`Scanning for ${this.device.bleModelName} devices...`)
+  async monitorAdvertisementPackets(switchbot: SwitchBotBLE): Promise<ad['serviceData']> {
+    this.debugLog(`Scanning for deviceID: ${this.device.bleMac} Model: ${this.device.bleModel} ModelName: ${this.device.bleModelName}...`)
     try {
       await switchbot.startScan({ model: this.device.bleModel, id: this.device.bleMac })
     } catch (e: any) {
@@ -316,8 +316,8 @@ export abstract class deviceBase {
     // Set an event handler
     let serviceData = { model: this.device.bleModel, modelName: this.device.bleModelName } as ad['serviceData']
     switchbot.onadvertisement = (ad: ad) => {
-      this.debugLog(`ad: ${safeStringify(ad)}`)
-      if (this.device.bleMac === ad.address && ad.serviceData.model === this.device.bleModel) {
+      if (ad.address === this.device.bleMac && ad.serviceData.model === this.device.bleModel) {
+        this.debugLog(`ad: ${safeStringify(ad)}`)
         this.debugLog(`${JSON.stringify(ad, null, '  ')}`)
         this.debugLog(`address: ${ad.address}, model: ${ad.serviceData.model}`)
         this.debugLog(`serviceData: ${JSON.stringify(ad.serviceData)}`)
@@ -335,7 +335,7 @@ export abstract class deviceBase {
     return serviceData
   }
 
-  async getCustomBLEAddress(switchbot: any): Promise<void> {
+  async getCustomBLEAddress(switchbot: SwitchBotBLE): Promise<void> {
     if (this.device.customBLEaddress && this.deviceLogging.includes('debug')) {
       this.debugLog(`customBLEaddress: ${this.device.customBLEaddress}`);
       (async () => {
@@ -386,7 +386,7 @@ export abstract class deviceBase {
    *
    */
   async updateCharacteristic(Service: Service, Characteristic: any, CharacteristicValue: CharacteristicValue | undefined, CharacteristicName: string, history?: object): Promise<void> {
-    if (CharacteristicValue === undefined) {
+    if (CharacteristicValue === undefined || CharacteristicValue === null) {
       this.debugLog(`${CharacteristicName}: ${CharacteristicValue}`)
     } else {
       await this.mqtt(CharacteristicName, CharacteristicValue)
