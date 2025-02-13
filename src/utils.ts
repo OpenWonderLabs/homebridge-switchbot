@@ -91,6 +91,7 @@ export function formatDeviceIdAsMac(deviceId: string, cassSensative?: boolean): 
 
   const macAddressRegex = /^(?:[0-9a-f]{2}:){5}[0-9a-f]{2}$/i
   const hexRegex = /^[0-9a-f]{12}$/i
+  const vacuumFormatRegex = /^[a-z0-9]{18}$/i
 
   // Check if the deviceId is already in a valid MAC address format
   if (macAddressRegex.test(deviceId)) {
@@ -103,7 +104,13 @@ export function formatDeviceIdAsMac(deviceId: string, cassSensative?: boolean): 
     return cassSensative ? formattedDeviceId : formattedDeviceId.toLowerCase()
   }
 
-  throw new Error('Invalid device ID format. Must be a valid MAC address or a 12-character hexadecimal string.')
+  // Check if the deviceId matches the custom format
+  if (vacuumFormatRegex.test(deviceId)) {
+    const formattedDeviceId = deviceId.slice(-12).match(/.{1,2}/g)!.join(':')
+    return cassSensative ? formattedDeviceId : formattedDeviceId.toLowerCase()
+  }
+
+  throw new Error('Invalid device ID format. Must be a valid MAC address, a 12-character hexadecimal string, or an 18-character alphanumeric string.')
 }
 
 export function rgb2hs(r: any, g: any, b: any) {
@@ -546,7 +553,7 @@ export function m2hs(m) {
     389: [45.6, 27.2],
     390: [45.8, 27.2],
     391: [46, 27.2],
-    392: [46.2, 27.2],
+    392: [46.2, 27.3],
     393: [46.4, 27.3],
     394: [46.5, 27.3],
     395: [46.7, 27.3],
