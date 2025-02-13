@@ -110,7 +110,7 @@ export function formatDeviceIdAsMac(deviceId: string, cassSensative?: boolean): 
     return cassSensative ? formattedDeviceId : formattedDeviceId.toLowerCase()
   }
 
-  throw new Error('Invalid device ID format. Must be a valid MAC address, a 12-character hexadecimal string, or an 18-character alphanumeric string.')
+  throw new Error(`Invalid device ID format. Must be a valid MAC address, a 12-character hexadecimal string, or an 18-character alphanumeric string. Device ID: ${deviceId}`)
 }
 
 export function rgb2hs(r: any, g: any, b: any) {

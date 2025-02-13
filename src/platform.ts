@@ -492,7 +492,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           device.deviceType = device.configDeviceType
           this.warnLog(`API is displaying no deviceType: ${device.deviceType}, So using configDeviceType: ${device.configDeviceType}`)
         } else if (!device.deviceType && !device.configDeviceName) {
-          this.errorLog('No deviceType or configDeviceType for device. No device will be created.')
+          this.errorLog(`No deviceType or configDeviceType for device. No device will be created. Device: ${JSON.stringify(device)}`)
           return null // Skip this device
         }
 
