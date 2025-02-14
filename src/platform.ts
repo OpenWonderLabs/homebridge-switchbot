@@ -447,8 +447,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.debugLog(`SwitchBot Device Manual Config Set: ${JSON.stringify(this.config.options?.devices)}`)
       const devices = this.config.options.devices.map((v: any) => v)
       for (const device of devices) {
-        device.deviceType = device.configDeviceType
-        device.deviceName = device.configDeviceName
+        device.deviceType = device.configDeviceType ?? 'Unknown'
+        device.deviceName = device.configDeviceName ?? 'Unknown'
         try {
           device.deviceId = formatDeviceIdAsMac(device.deviceId, true)
           this.debugLog(`deviceId: ${device.deviceId}`)
@@ -488,12 +488,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
 
       // Step 1: Check and assign configDeviceType to deviceType if deviceType is not present
       const devicesWithTypeConfigPromises = deviceLists.map(async (device) => {
-        if (!device.deviceType && device.configDeviceType) {
-          device.deviceType = device.configDeviceType
+        if (!device.deviceType) {
+          device.deviceType = device.configDeviceType ?? 'Unknown'
           this.warnLog(`API is displaying no deviceType: ${device.deviceType}, So using configDeviceType: ${device.configDeviceType}`)
-        } else if (!device.deviceType && !device.configDeviceName) {
-          this.errorLog(`No deviceType or configDeviceType for device. No device will be created. Device: ${JSON.stringify(device)}`)
-          return null // Skip this device
         }
 
         // Retrieve deviceTypeConfig for each device and merge it
