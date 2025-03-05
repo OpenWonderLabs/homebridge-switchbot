@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [4.3.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v4.3.1) (2025-03-04)
+
+# *No New Releases During Lent*
+
+### What's Changed
+- Fixed issue with plugin config not displaying.
+- Housekeeping and updated dependencies.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.3.0...v4.3.1
+
 ## [4.3.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v4.3.0) (2025-01-24)
 
 ### What's Changed

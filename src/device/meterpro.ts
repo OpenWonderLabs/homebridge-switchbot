@@ -269,6 +269,7 @@ export class MeterPro extends deviceBase {
     }
 
     // Carbon Dioxide Sensor
+    this.warnLog(`(before, after) CarbonDioxideLevel: (${this.CarbonDioxideSensor?.CarbonDioxideLevel},${(this.webhookContext as meterProCO2WebhookContext).CO2})`)
     if (!(this.device as meterProConfig).hide_co2 && this.CarbonDioxideSensor?.Service && this.device.deviceType === 'MeterPro(CO2)') {
       this.CarbonDioxideSensor.CarbonDioxideLevel = (this.deviceStatus as meterProCO2Status).CO2
       this.debugLog(`CarbonDioxideLevel: ${this.CarbonDioxideSensor.CarbonDioxideLevel}ppm`)
@@ -329,6 +330,7 @@ export class MeterPro extends deviceBase {
     }
 
     // Carbon Dioxide Sensor
+    this.warnLog(`(before, after) CarbonDioxideLevel: (${this.CarbonDioxideSensor?.CarbonDioxideLevel},${(this.webhookContext as meterProCO2WebhookContext).CO2})`)
     if (!(this.device as meterProConfig).hide_co2 && this.CarbonDioxideSensor?.Service && this.device.deviceType === 'MeterPro(CO2)') {
       this.CarbonDioxideSensor.CarbonDioxideLevel = (this.webhookContext as meterProCO2WebhookContext).CO2
       this.debugLog(`CarbonDioxideLevel: ${this.CarbonDioxideSensor.CarbonDioxideLevel}ppm`)

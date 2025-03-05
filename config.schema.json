@@ -67,7 +67,7 @@
                   "title": "Device ID",
                   "type": "string",
                   "placeholder": "81F3UT59513F",
-                  "pattern": "^[0-9A-F]{12}$"
+                  "pattern": "^[0-9A-F]{12}$|^[0-9A-Z0-9]{15}$|^[0-9A-Z0-9]{18}$"
                 },
                 "hide_device": {
                   "title": "Hide Device",
@@ -205,21 +205,39 @@
                       ]
                     },
                     {
-                      "title": "K10+",
+                      "title": "Meter Pro",
                       "enum": [
-                        "K10+"
+                        "MeterPro"
                       ]
                     },
                     {
-                      "title": "K10+ Pro",
+                      "title": "Meter Pro (CO2)",
                       "enum": [
-                        "K10+ Pro"
+                        "MeterPro(CO2)"
                       ]
                     },
                     {
                       "title": "Mini Robot Vacuum K10+",
                       "enum": [
+                        "K10+"
+                      ]
+                    },
+                    {
+                      "title": "Mini Robot Vacuum K10+ Pro",
+                      "enum": [
+                        "K10+ Pro"
+                      ]
+                    },
+                    {
+                      "title": "Mini Robot Vacuum K10+ (WoSweeperMini)",
+                      "enum": [
                         "WoSweeperMini"
+                      ]
+                    },
+                    {
+                      "title": "Mini Robot Vacuum K10+ Pro  (WoSweeperMiniPro)",
+                      "enum": [
+                        "WoSweeperMiniPro"
                       ]
                     },
                     {
@@ -249,13 +267,13 @@
                     {
                       "title": "Robot Vacuum Cleaner S1",
                       "enum": [
-                        "Robot Vacuum Cleaner S1"
+                        "WoSweeper"
                       ]
                     },
                     {
                       "title": "Robot Vacuum Cleaner S1 Plus",
                       "enum": [
-                        "Robot Vacuum Cleaner S1 Plus"
+                        "WoSweeperPlus"
                       ]
                     },
                     {
@@ -292,6 +310,12 @@
                       "title": "Strip Light",
                       "enum": [
                         "Strip Light"
+                      ]
+                    },
+                    {
+                      "title": "Wallet Finder",
+                      "enum": [
+                        "WalletFinder"
                       ]
                     }
                   ]
@@ -364,7 +388,6 @@
                 "type": {
                   "title": "What Type of Device do you want to display in the Home App?",
                   "type": "string",
-                  "required": true,
                   "default": "",
                   "placeholder": "outlet",
                   "condition": {
@@ -442,24 +465,31 @@
                 "mode": {
                   "title": "Bot Mode",
                   "type": "string",
-                  "required": true,
                   "default": "",
                   "oneOf": [
                     {
                       "title": "Default",
-                      "enum": [""]
+                      "enum": [
+                        ""
+                      ]
                     },
                     {
                       "title": "Multi-Press",
-                      "enum": ["multipress"]
+                      "enum": [
+                        "multipress"
+                      ]
                     },
                     {
                       "title": "Press",
-                      "enum": ["press"]
+                      "enum": [
+                        "press"
+                      ]
                     },
                     {
                       "title": "Switch",
-                      "enum": ["switch"]
+                      "enum": [
+                        "switch"
+                      ]
                     }
                   ],
                   "condition": {
@@ -469,32 +499,43 @@
                 "mapping": {
                   "title": "Mapping Mode",
                   "type": "string",
-                  "required": true,
                   "default": "",
                   "oneOf": [
                     {
                       "title": "Default",
-                      "enum": [""]
+                      "enum": [
+                        ""
+                      ]
                     },
                     {
                       "title": "Down and Up",
-                      "enum": ["down_and_up"]
+                      "enum": [
+                        "down_and_up"
+                      ]
                     },
                     {
                       "title": "Only Down",
-                      "enum": ["only_down"]
+                      "enum": [
+                        "only_down"
+                      ]
                     },
                     {
                       "title": "Only Up",
-                      "enum": ["only_up"]
+                      "enum": [
+                        "only_up"
+                      ]
                     },
                     {
                       "title": "Up and Down",
-                      "enum": ["up_and_down"]
+                      "enum": [
+                        "up_and_down"
+                      ]
                     },
                     {
                       "title": "Use Tilt for Direction",
-                      "enum": ["use_tilt_for_direction"]
+                      "enum": [
+                        "use_tilt_for_direction"
+                      ]
                     }
                   ],
                   "condition": {
@@ -530,14 +571,14 @@
                   "title": "Hide Temperature Sensor",
                   "type": "boolean",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Humidifier'  || model.options.devices[arrayIndices].configDeviceType === 'Humidifier2' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)') && model.options.devices[arrayIndices].deviceId);"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Humidifier'  || model.options.devices[arrayIndices].configDeviceType === 'Humidifier2' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)' || model.options.devices[arrayIndices].configDeviceType === 'MeterPro' || model.options.devices[arrayIndices].configDeviceType === 'MeterPro(CO2)') && model.options.devices[arrayIndices].deviceId);"
                   }
                 },
                 "convertUnitTo": {
                   "title": "Convert Temperature Unit To",
                   "type": "string",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Humidifier' || model.options.devices[arrayIndices].configDeviceType === 'Humidifier2'  || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)') && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_temperature);"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Humidifier' || model.options.devices[arrayIndices].configDeviceType === 'Humidifier2'  || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)' || model.options.devices[arrayIndices].configDeviceType === 'MeterPro' || model.options.devices[arrayIndices].configDeviceType === 'MeterPro(CO2)') && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_temperature);"
                   },
                   "oneOf": [
                     {
@@ -558,7 +599,7 @@
                   "title": "Hide Humidity Sensor",
                   "type": "boolean",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)') && model.options.devices[arrayIndices].deviceId);"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)' || model.options.devices[arrayIndices].configDeviceType === 'MeterPro' || model.options.devices[arrayIndices].configDeviceType === 'MeterPro(CO2)') && model.options.devices[arrayIndices].deviceId);"
                   }
                 },
                 "hide_lightsensor": {
@@ -748,28 +789,28 @@
                   "type": "string",
                   "placeholder": "192.168.7.1",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Water Detector' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Water Detector' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)' || model.options.devices[arrayIndices].configDeviceType === 'MeterPro' || model.options.devices[arrayIndices].configDeviceType === 'MeterPro(CO2)'));"
                   }
                 },
                 "mqttOptions": {
                   "title": "MQTT Options (Device Specific)",
                   "type": "string",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].mqttURL && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Water Detector' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].mqttURL && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Water Detector' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)' || model.options.devices[arrayIndices].configDeviceType === 'MeterPro' || model.options.devices[arrayIndices].configDeviceType === 'MeterPro(CO2)'));"
                   }
                 },
                 "mqttPubOptions": {
                   "title": "MQTT Pub Options (Device Specific)",
                   "type": "string",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].mqttURL && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Water Detector' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && model.options.devices[arrayIndices].mqttURL && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Water Detector' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)' || model.options.devices[arrayIndices].configDeviceType === 'MeterPro' || model.options.devices[arrayIndices].configDeviceType === 'MeterPro(CO2)'));"
                   }
                 },
                 "history": {
                   "title": "EVE History",
                   "type": "boolean",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Water Detector' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)'));"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Water Detector' || model.options.devices[arrayIndices].configDeviceType === 'WoIOSensor' || model.options.devices[arrayIndices].configDeviceType === 'Hub 2' || model.options.devices[arrayIndices].configDeviceType === 'Meter' || model.options.devices[arrayIndices].configDeviceType === 'MeterPlus' || model.options.devices[arrayIndices].configDeviceType === 'Meter Plus (JP)' || model.options.devices[arrayIndices].configDeviceType === 'MeterPro' || model.options.devices[arrayIndices].configDeviceType === 'MeterPro(CO2)'));"
                   }
                 },
                 "offline": {
@@ -797,7 +838,6 @@
                 "logging": {
                   "title": "Device Logging Override Setting",
                   "type": "string",
-                  "required": true,
                   "default": "standard",
                   "condition": {
                     "functionBody": "return (model.options && model.options.devices && model.options.devices[arrayIndices].deviceId && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType);"
@@ -851,8 +891,6 @@
                 }
               }
             },
-            "if": { "properties": "model.options.devices" },
-            "then": { "properties": { "model.options.devices[arrayIndices].logging": { "required": true } } },
             "uniqueItems": true
           },
           "deviceConfig": {
@@ -1022,7 +1060,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Humidifier'].hide_device);"
@@ -1244,7 +1281,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Hub 2'].hide_device);"
@@ -1315,7 +1351,6 @@
                   "mode": {
                     "title": "Bot Mode",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Bot'] && !model.options.deviceConfig['Bot'].hide_device);"
@@ -1323,26 +1358,33 @@
                     "oneOf": [
                       {
                         "title": "Default",
-                        "enum": [""]
+                        "enum": [
+                          ""
+                        ]
                       },
                       {
                         "title": "Multi-Press",
-                        "enum": ["multipress"]
+                        "enum": [
+                          "multipress"
+                        ]
                       },
                       {
                         "title": "Press",
-                        "enum": ["press"]
+                        "enum": [
+                          "press"
+                        ]
                       },
                       {
                         "title": "Switch",
-                        "enum": ["switch"]
+                        "enum": [
+                          "switch"
+                        ]
                       }
                     ]
                   },
                   "type": {
                     "title": "What Type of Device do you want to display in the Home App?",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "placeholder": "outlet",
                     "condition": {
@@ -1561,7 +1603,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Bot'].hide_device);"
@@ -1632,7 +1673,6 @@
                   "type": {
                     "title": "What Type of Device do you want to display in the Home App?",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "placeholder": "outlet",
                     "condition": {
@@ -1834,7 +1874,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Relay Switch 1'].hide_device);"
@@ -1905,7 +1944,6 @@
                   "type": {
                     "title": "What Type of Device do you want to display in the Home App?",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "placeholder": "outlet",
                     "condition": {
@@ -2107,7 +2145,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Relay Switch 1PM'].hide_device);"
@@ -2329,7 +2366,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Meter'].hide_device);"
@@ -2551,7 +2587,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['MeterPlus'].hide_device);"
@@ -2773,7 +2808,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Meter Plus (JP)'].hide_device);"
@@ -2829,6 +2863,448 @@
                     "placeholder": 360,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Meter Plus (JP)'].hide_device);"
+                    }
+                  }
+                }
+              },
+              "MeterPro": {
+                "type": "object",
+                "properties": {
+                  "hide_device": {
+                    "title": "Hide All Meter Pluses",
+                    "type": "boolean",
+                    "description": "If true, device will be removed or hidden from HomeKit."
+                  },
+                  "hide_temperature": {
+                    "title": "Hide Temperature Sensor",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro'] && !model.options.deviceConfig['MeterPro'].hide_device);"
+                    }
+                  },
+                  "convertUnitTo": {
+                    "title": "Convert Temperature Unit To",
+                    "type": "string",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro'] && !model.options.deviceConfig['MeterPro'].hide_device);"
+                    },
+                    "oneOf": [
+                      {
+                        "title": "Celsius",
+                        "enum": [
+                          "CELSIUS"
+                        ]
+                      },
+                      {
+                        "title": "Fahrenheit",
+                        "enum": [
+                          "FAHRENHEIT"
+                        ]
+                      }
+                    ]
+                  },
+                  "hide_humidity": {
+                    "title": "Hide Humidity Sensor",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro'] && !model.options.deviceConfig['MeterPro'].hide_device);"
+                    }
+                  },
+                  "connectionType": {
+                    "title": "Connection Type",
+                    "type": "string",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro'] && !model.options.deviceConfig['MeterPro'].hide_device);"
+                    },
+                    "oneOf": [
+                      {
+                        "title": "BLE",
+                        "enum": [
+                          "BLE"
+                        ]
+                      },
+                      {
+                        "title": "BLE/OpenAPI",
+                        "enum": [
+                          "BLE/OpenAPI"
+                        ]
+                      },
+                      {
+                        "title": "Disable",
+                        "enum": [
+                          "Disabled"
+                        ]
+                      },
+                      {
+                        "title": "OpenAPI",
+                        "enum": [
+                          "OpenAPI"
+                        ]
+                      }
+                    ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro'] && !model.options.deviceConfig['MeterPro'].hide_device && model.options.deviceConfig['MeterPlus'].connectionType !== 'Disabled');"
+                    }
+                  },
+                  "scanDuration": {
+                    "title": "Scan Duration (Default is 1 Second) for BLE",
+                    "type": "number",
+                    "placeholder": 1,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro'] && !model.options.deviceConfig['MeterPro'].hide_device && (model.options.deviceConfig['MeterPlus'].connectionType === 'BLE' || model.options.deviceConfig['MeterPro'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "webhook": {
+                    "title": "Enable Webhook for all Meter Pluses",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro'] && !model.options.deviceConfig['MeterPro'].hide_device && (model.options.deviceConfig['MeterPlus'].connectionType === 'OpenAPI' || model.options.deviceConfig['MeterPro'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "external": {
+                    "title": "External Accessory",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro'] && !model.options.deviceConfig['MeterPro'].hide_device);"
+                    }
+                  },
+                  "maxRetry": {
+                    "title": "Max Retries for BLE",
+                    "type": "number",
+                    "placeholder": "5",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro'] && !model.options.deviceConfig['MeterPro'].hide_device && (model.options.deviceConfig['MeterPro'].connectionType === 'BLE' || model.options.deviceConfig['MeterPro'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "maxRetries": {
+                    "title": "Device Max Retries for OpenAPI",
+                    "type": "number",
+                    "placeholder": 5,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro'] && !model.options.deviceConfig['MeterPro'].hide_device && (model.options.deviceConfig['MeterPro'].connectionType === 'OpenAPI' || model.options.deviceConfig['MeterPro'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "delayBetweenRetries": {
+                    "title": "Device Delay Between Retries for OpenAPI (In Seconds)",
+                    "type": "number",
+                    "placeholder": 3,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro'] && !model.options.deviceConfig['MeterPro'].hide_device && (model.options.deviceConfig['MeterPro'].connectionType === 'OpenAPI' || model.options.deviceConfig['MeterPro'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "disableCaching": {
+                    "title": "Disable Caching",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro'] && !model.options.deviceConfig['MeterPro'].hide_device);"
+                    }
+                  },
+                  "offline": {
+                    "title": "Offline as Off",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['MeterPro'].hide_device);"
+                    }
+                  },
+                  "history": {
+                    "title": "EVE History",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['MeterPro'].hide_device);"
+                    }
+                  },
+                  "firmware": {
+                    "title": "Firmware Override",
+                    "type": "string",
+                    "placeholder": "1.2.8",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['MeterPro'].hide_device);"
+                    }
+                  },
+                  "logging": {
+                    "title": "Logging by Device Type",
+                    "type": "string",
+                    "default": "",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['MeterPro'].hide_device);"
+                    },
+                    "oneOf": [
+                      {
+                        "title": "Debug Logging",
+                        "enum": [
+                          "debug"
+                        ]
+                      },
+                      {
+                        "title": "Default Logging",
+                        "enum": [
+                          ""
+                        ]
+                      },
+                      {
+                        "title": "No Logging",
+                        "enum": [
+                          "none"
+                        ]
+                      },
+                      {
+                        "title": "Standard Logging",
+                        "enum": [
+                          "standard"
+                        ]
+                      }
+                    ]
+                  },
+                  "refreshRate": {
+                    "title": "Device Refresh Rate",
+                    "type": "number",
+                    "placeholder": 5,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['MeterPro'].hide_device);"
+                    }
+                  },
+                  "updateRate": {
+                    "title": "Update Rate",
+                    "type": "number",
+                    "minimum": 1,
+                    "placeholder": 5,
+                    "description": "Indicates the number of seconds before refreshing status while updating progress.",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['MeterPro'].hide_device);"
+                    }
+                  },
+                  "pushRate": {
+                    "title": "Device Push Rate",
+                    "type": "number",
+                    "placeholder": 360,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['MeterPro'].hide_device);"
+                    }
+                  }
+                }
+              },
+              "MeterPro(CO2)": {
+                "type": "object",
+                "properties": {
+                  "hide_device": {
+                    "title": "Hide All Meter Pluses",
+                    "type": "boolean",
+                    "description": "If true, device will be removed or hidden from HomeKit."
+                  },
+                  "hide_temperature": {
+                    "title": "Hide Temperature Sensor",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro(CO2)'] && !model.options.deviceConfig['MeterPro(CO2)'].hide_device);"
+                    }
+                  },
+                  "convertUnitTo": {
+                    "title": "Convert Temperature Unit To",
+                    "type": "string",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro(CO2)'] && !model.options.deviceConfig['MeterPro(CO2)'].hide_device);"
+                    },
+                    "oneOf": [
+                      {
+                        "title": "Celsius",
+                        "enum": [
+                          "CELSIUS"
+                        ]
+                      },
+                      {
+                        "title": "Fahrenheit",
+                        "enum": [
+                          "FAHRENHEIT"
+                        ]
+                      }
+                    ]
+                  },
+                  "hide_humidity": {
+                    "title": "Hide Humidity Sensor",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro(CO2)'] && !model.options.deviceConfig['MeterPro(CO2)'].hide_device);"
+                    }
+                  },
+                  "connectionType": {
+                    "title": "Connection Type",
+                    "type": "string",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro(CO2)'] && !model.options.deviceConfig['MeterPro(CO2)'].hide_device);"
+                    },
+                    "oneOf": [
+                      {
+                        "title": "BLE",
+                        "enum": [
+                          "BLE"
+                        ]
+                      },
+                      {
+                        "title": "BLE/OpenAPI",
+                        "enum": [
+                          "BLE/OpenAPI"
+                        ]
+                      },
+                      {
+                        "title": "Disable",
+                        "enum": [
+                          "Disabled"
+                        ]
+                      },
+                      {
+                        "title": "OpenAPI",
+                        "enum": [
+                          "OpenAPI"
+                        ]
+                      }
+                    ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro(CO2)'] && !model.options.deviceConfig['MeterPro(CO2)'].hide_device && model.options.deviceConfig['MeterPro(CO2)'].connectionType !== 'Disabled');"
+                    }
+                  },
+                  "scanDuration": {
+                    "title": "Scan Duration (Default is 1 Second) for BLE",
+                    "type": "number",
+                    "placeholder": 1,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro(CO2)'] && !model.options.deviceConfig['MeterPro(CO2)'].hide_device && (model.options.deviceConfig['MeterPro(CO2)'].connectionType === 'BLE' || model.options.deviceConfig['MeterPro(CO2)'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "webhook": {
+                    "title": "Enable Webhook for all Meter Pluses",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro(CO2)'] && !model.options.deviceConfig['MeterPro(CO2)'].hide_device && (model.options.deviceConfig['MeterPro(CO2)'].connectionType === 'OpenAPI' || model.options.deviceConfig['MeterPro(CO2)'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "external": {
+                    "title": "External Accessory",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro(CO2)'] && !model.options.deviceConfig['MeterPro(CO2)'].hide_device);"
+                    }
+                  },
+                  "maxRetry": {
+                    "title": "Max Retries for BLE",
+                    "type": "number",
+                    "placeholder": "5",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro(CO2)'] && !model.options.deviceConfig['MeterPro(CO2)'].hide_device && (model.options.deviceConfig['MeterPro(CO2)'].connectionType === 'BLE' || model.options.deviceConfig['MeterPro(CO2)'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "maxRetries": {
+                    "title": "Device Max Retries for OpenAPI",
+                    "type": "number",
+                    "placeholder": 5,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro(CO2)'] && !model.options.deviceConfig['MeterPro(CO2)'].hide_device && (model.options.deviceConfig['MeterPro(CO2)'].connectionType === 'OpenAPI' || model.options.deviceConfig['MeterPro(CO2)'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "delayBetweenRetries": {
+                    "title": "Device Delay Between Retries for OpenAPI (In Seconds)",
+                    "type": "number",
+                    "placeholder": 3,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro(CO2)'] && !model.options.deviceConfig['MeterPro(CO2)'].hide_device && (model.options.deviceConfig['MeterPro(CO2)'].connectionType === 'OpenAPI' || model.options.deviceConfig['MeterPro(CO2)'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "disableCaching": {
+                    "title": "Disable Caching",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['MeterPro(CO2)'] && !model.options.deviceConfig['MeterPro(CO2)'].hide_device);"
+                    }
+                  },
+                  "offline": {
+                    "title": "Offline as Off",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['MeterPro(CO2)'].hide_device);"
+                    }
+                  },
+                  "history": {
+                    "title": "EVE History",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['MeterPro(CO2)'].hide_device);"
+                    }
+                  },
+                  "firmware": {
+                    "title": "Firmware Override",
+                    "type": "string",
+                    "placeholder": "1.2.8",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['MeterPro(CO2)'].hide_device);"
+                    }
+                  },
+                  "logging": {
+                    "title": "Logging by Device Type",
+                    "type": "string",
+                    "default": "",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['MeterPro(CO2)'].hide_device);"
+                    },
+                    "oneOf": [
+                      {
+                        "title": "Debug Logging",
+                        "enum": [
+                          "debug"
+                        ]
+                      },
+                      {
+                        "title": "Default Logging",
+                        "enum": [
+                          ""
+                        ]
+                      },
+                      {
+                        "title": "No Logging",
+                        "enum": [
+                          "none"
+                        ]
+                      },
+                      {
+                        "title": "Standard Logging",
+                        "enum": [
+                          "standard"
+                        ]
+                      }
+                    ]
+                  },
+                  "refreshRate": {
+                    "title": "Device Refresh Rate",
+                    "type": "number",
+                    "placeholder": 5,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['MeterPro(CO2)'].hide_device);"
+                    }
+                  },
+                  "updateRate": {
+                    "title": "Update Rate",
+                    "type": "number",
+                    "minimum": 1,
+                    "placeholder": 5,
+                    "description": "Indicates the number of seconds before refreshing status while updating progress.",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['MeterPro(CO2)'].hide_device);"
+                    }
+                  },
+                  "pushRate": {
+                    "title": "Device Push Rate",
+                    "type": "number",
+                    "placeholder": 360,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['MeterPro(CO2)'].hide_device);"
                     }
                   }
                 }
@@ -2995,7 +3471,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['WoIOSensor'].hide_device);"
@@ -3197,7 +3672,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Water Detector'].hide_device);"
@@ -3407,7 +3881,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Water Detector'].hide_device);"
@@ -3624,7 +4097,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Contact Sensor'].hide_device);"
@@ -3917,7 +4389,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Curtain'].hide_device);"
@@ -4210,7 +4681,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Curtain3'].hide_device);"
@@ -4503,7 +4973,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['WoRollerShade'].hide_device);"
@@ -4796,7 +5265,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Roller Shade'].hide_device);"
@@ -4874,32 +5342,43 @@
                   "mapping": {
                     "title": "Mapping Mode",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "oneOf": [
                       {
                         "title": "Default",
-                        "enum": [""]
+                        "enum": [
+                          ""
+                        ]
                       },
                       {
                         "title": "Down and Up",
-                        "enum": ["down_and_up"]
+                        "enum": [
+                          "down_and_up"
+                        ]
                       },
                       {
                         "title": "Only Down",
-                        "enum": ["only_down"]
+                        "enum": [
+                          "only_down"
+                        ]
                       },
                       {
                         "title": "Only Up",
-                        "enum": ["only_up"]
+                        "enum": [
+                          "only_up"
+                        ]
                       },
                       {
                         "title": "Up and Down",
-                        "enum": ["up_and_down"]
+                        "enum": [
+                          "up_and_down"
+                        ]
                       },
                       {
                         "title": "Use Tilt for Direction",
-                        "enum": ["use_tilt_for_direction"]
+                        "enum": [
+                          "use_tilt_for_direction"
+                        ]
                       }
                     ],
                     "condition": {
@@ -5124,7 +5603,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Blind Tilt'].hide_device);"
@@ -5311,7 +5789,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Plug'].hide_device);"
@@ -5498,7 +5975,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Plug Mini (US)'].hide_device);"
@@ -5685,7 +6161,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Plug Mini (JP)'].hide_device);"
@@ -5886,7 +6361,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Smart Lock'].hide_device);"
@@ -6087,7 +6561,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Smart Lock Pro'].hide_device);"
@@ -6292,7 +6765,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Color Bulb'].hide_device);"
@@ -6479,7 +6951,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['K10+'].hide_device);"
@@ -6666,7 +7137,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['K10+ Pro'].hide_device);"
@@ -6853,7 +7323,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['WoSweeper'].hide_device);"
@@ -7040,7 +7509,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['WoSweeperMini'].hide_device);"
@@ -7227,7 +7695,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Robot Vacuum Cleaner S1'].hide_device);"
@@ -7414,7 +7881,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Robot Vacuum Cleaner S1 Plus'].hide_device);"
@@ -7601,7 +8067,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Robot Vacuum Cleaner S10'].hide_device);"
@@ -7806,7 +8271,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Ceiling Light'].hide_device);"
@@ -8011,7 +8475,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Ceiling Light Pro'].hide_device);"
@@ -8216,7 +8679,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Strip Light'].hide_device);"
@@ -8412,7 +8874,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Battery Circulator Fan'].hide_device);"
@@ -8493,7 +8954,7 @@
                   "title": "Device ID",
                   "type": "string",
                   "placeholder": "81F3UT59513F",
-                  "pattern": "^[0-9A-Za-z]{2}-[0-9A-Za-z]{12}-[0-9A-Za-z]{8}$"
+                  "pattern": "^[0-9A-Za-z]{2}-[0-9A-Za-z]{12}-[0-9A-Za-z]{8}$|^[0-9A-Za-z]{18}$"
                 },
                 "hide_device": {
                   "title": "Hide Device",
@@ -8700,7 +9161,6 @@
                 "type": {
                   "title": "What Type of Device do you want to display in the Home App?",
                   "type": "string",
-                  "required": true,
                   "default": "",
                   "oneOf": [
                     {
@@ -9015,7 +9475,6 @@
                 "logging": {
                   "title": "Device Logging Override Setting",
                   "type": "string",
-                  "required": true,
                   "default": "",
                   "oneOf": [
                     {
@@ -9075,8 +9534,6 @@
                 }
               }
             },
-            "if": { "properties": "model.options.irdevices" },
-            "then": { "properties": { "model.options.irdevices[arrayIndices].logging": { "required": true } } },
             "uniqueItems": true
           },
           "irdeviceConfig": {
@@ -9151,7 +9608,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['TV'].hide_device);"
@@ -9280,7 +9736,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['DIY TV'].hide_device);"
@@ -9409,7 +9864,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['Projector'].hide_device);"
@@ -9538,7 +9992,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['DIY Projector'].hide_device);"
@@ -9667,7 +10120,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['Set Top Box'].hide_device);"
@@ -9796,7 +10248,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['DIY Set Top Box'].hide_device);"
@@ -9925,7 +10376,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['IPTV'].hide_device);"
@@ -10054,7 +10504,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['DIY IPTV'].hide_device);"
@@ -10183,7 +10632,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['DVD'].hide_device);"
@@ -10312,7 +10760,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['DIY DVD'].hide_device);"
@@ -10441,7 +10888,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['Speaker'].hide_device);"
@@ -10570,7 +11016,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['DIY Speaker'].hide_device);"
@@ -10699,7 +11144,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['Fan'].hide_device);"
@@ -10828,7 +11272,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['DIY Fan'].hide_device);"
@@ -10957,7 +11400,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['Air Conditioner'].hide_device);"
@@ -11086,7 +11528,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['DIY Air Conditioner'].hide_device);"
@@ -11215,7 +11656,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['Light'].hide_device);"
@@ -11344,7 +11784,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['DIY Light'].hide_device);"
@@ -11473,7 +11912,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['Air Purifier'].hide_device);"
@@ -11602,7 +12040,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['DIY Air Purifier'].hide_device);"
@@ -11731,7 +12168,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['Water Heater'].hide_device);"
@@ -11860,7 +12296,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['DIY Water Heater'].hide_device);"
@@ -11989,7 +12424,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['Vacuum Cleaner'].hide_device);"
@@ -12118,7 +12552,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['DIY Vacuum Cleaner'].hide_device);"
@@ -12247,7 +12680,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['Camera'].hide_device);"
@@ -12376,7 +12808,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['DIY Camera'].hide_device);"
@@ -12505,7 +12936,6 @@
                   "logging": {
                     "title": "Logging by Device Type",
                     "type": "string",
-                    "required": true,
                     "default": "",
                     "condition": {
                       "functionBody": "return (model.options && model.options.irdeviceConfig && !model.options.irdeviceConfig['Others'].hide_device);"
@@ -12635,19 +13065,12 @@
           "logging": {
             "title": "Logging Setting",
             "type": "string",
-            "required": true,
-            "default": "",
+            "default": "standard",
             "oneOf": [
               {
                 "title": "Debug Logging",
                 "enum": [
                   "debug"
-                ]
-              },
-              {
-                "title": "Default Logging",
-                "enum": [
-                  ""
                 ]
               },
               {
@@ -13002,6 +13425,62 @@
             "options.deviceConfig['Meter Plus (JP)'].refreshRate",
             "options.deviceConfig['Meter Plus (JP)'].updateRate",
             "options.deviceConfig['Meter Plus (JP)'].pushRate"
+          ]
+        },
+        {
+          "type": "fieldset",
+          "title": "Meter Pro Settings",
+          "expandable": true,
+          "expanded": false,
+          "items": [
+            "options.deviceConfig['MeterPro'].hide_device",
+            "options.deviceConfig['MeterPro'].hide_temperature",
+            "options.deviceConfig['MeterPro'].convertUnitTo",
+            "options.deviceConfig['MeterPro'].hide_humidity",
+            "options.deviceConfig['MeterPro'].connectionType",
+            "options.deviceConfig['MeterPro'].disablePlatformBLE",
+            "options.deviceConfig['MeterPro'].scanDuration",
+            "options.deviceConfig['MeterPro'].webhook",
+            "options.deviceConfig['MeterPro'].external",
+            "options.deviceConfig['MeterPro'].maxRetry",
+            "options.deviceConfig['MeterPro'].maxRetries",
+            "options.deviceConfig['MeterPro'].delayBetweenRetries",
+            "options.deviceConfig['MeterPro'].disableCaching",
+            "options.deviceConfig['MeterPro'].offline",
+            "options.deviceConfig['MeterPro'].history",
+            "options.deviceConfig['MeterPro'].firmware",
+            "options.deviceConfig['MeterPro'].logging",
+            "options.deviceConfig['MeterPro'].refreshRate",
+            "options.deviceConfig['MeterPro'].updateRate",
+            "options.deviceConfig['MeterPro'].pushRate"
+          ]
+        },
+        {
+          "type": "fieldset",
+          "title": "Meter Pro (CO2) Settings",
+          "expandable": true,
+          "expanded": false,
+          "items": [
+            "options.deviceConfig['MeterPro(CO2)'].hide_device",
+            "options.deviceConfig['MeterPro(CO2)'].hide_temperature",
+            "options.deviceConfig['MeterPro(CO2)'].convertUnitTo",
+            "options.deviceConfig['MeterPro(CO2)'].hide_humidity",
+            "options.deviceConfig['MeterPro(CO2)'].connectionType",
+            "options.deviceConfig['MeterPro(CO2)'].disablePlatformBLE",
+            "options.deviceConfig['MeterPro(CO2)'].scanDuration",
+            "options.deviceConfig['MeterPro(CO2)'].webhook",
+            "options.deviceConfig['MeterPro(CO2)'].external",
+            "options.deviceConfig['MeterPro(CO2)'].maxRetry",
+            "options.deviceConfig['MeterPro(CO2)'].maxRetries",
+            "options.deviceConfig['MeterPro(CO2)'].delayBetweenRetries",
+            "options.deviceConfig['MeterPro(CO2)'].disableCaching",
+            "options.deviceConfig['MeterPro(CO2)'].offline",
+            "options.deviceConfig['MeterPro(CO2)'].history",
+            "options.deviceConfig['MeterPro(CO2)'].firmware",
+            "options.deviceConfig['MeterPro(CO2)'].logging",
+            "options.deviceConfig['MeterPro(CO2)'].refreshRate",
+            "options.deviceConfig['MeterPro(CO2)'].updateRate",
+            "options.deviceConfig['MeterPro(CO2)'].pushRate"
           ]
         },
         {

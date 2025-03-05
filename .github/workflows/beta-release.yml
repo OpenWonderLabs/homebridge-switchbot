@@ -22,7 +22,7 @@ jobs:
     if: ${{ github.repository == 'OpenWonderLabs/homebridge-switchbot' }}
     permissions:
       id-token: write
-    uses: OpenWonderLabs/.github/.github/workflows/npm-publish.yml@latest
+    uses: OpenWonderLabs/.github/.github/workflows/npm-publish-esm.yml@latest
     with:
       tag: 'beta'
       dynamically_adjust_version: true

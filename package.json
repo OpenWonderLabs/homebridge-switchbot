@@ -2,7 +2,7 @@
   "name": "@switchbot/homebridge-switchbot",
   "displayName": "SwitchBot",
   "type": "module",
-  "version": "4.3.0",
+  "version": "4.3.1",
   "description": "The SwitchBot plugin allows you to access your SwitchBot device(s) from HomeKit.",
   "author": "SwitchBot <support@wondertechlabs.com> (https://github.com/SwitchBot)",
   "contributors": [
@@ -55,7 +55,7 @@
   "icon": "https://raw.githubusercontent.com/OpenWonderLabs/homebridge-switchbot/latest/branding/icon.png",
   "engineStrict": true,
   "engines": {
-    "homebridge": "^1.8.5 || ^2.0.0 || ^2.0.0-beta.23 || ^2.0.0-alpha.37",
+    "homebridge": "^1.9.0 || ^2.0.0 || ^2.0.0-beta.23 || ^2.0.0-alpha.37",
     "node": "^20 || ^22"
   },
   "scripts": {
@@ -82,31 +82,31 @@
     "@homebridge/plugin-ui-utils": "^2.0.1",
     "async-mqtt": "^2.6.3",
     "fakegato-history": "^0.6.5",
-    "homebridge-lib": "^7.1.2",
-    "node-switchbot": "^3.4.9",
-    "rxjs": "^7.8.1"
+    "homebridge-lib": "^7.1.4",
+    "node-switchbot": "^3.5.0",
+    "rxjs": "^7.8.2"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^3.16.0",
+    "@antfu/eslint-config": "^4.4.0",
     "@types/aes-js": "^3.1.4",
     "@types/debug": "^4.1.12",
     "@types/fs-extra": "^11.0.4",
     "@types/mdast": "^4.0.4",
-    "@types/node": "^22.10.7",
+    "@types/node": "^22.13.9",
     "@types/semver": "^7.5.8",
     "@types/source-map-support": "^0.5.10",
     "@typhonjs-typedoc/typedoc-theme-dmt": "^0.3.1",
-    "@vitest/coverage-v8": "^3.0.0",
-    "eslint": "^9.18.0",
+    "@vitest/coverage-v8": "^3.0.7",
+    "eslint": "^9.21.0",
     "eslint-plugin-format": "^1.0.1",
-    "homebridge": "^1.8.5",
-    "homebridge-config-ui-x": "4.68.0",
+    "homebridge": "^1.9.0",
+    "homebridge-config-ui-x": "4.71.2",
     "nodemon": "^3.1.9",
     "shx": "^0.3.4",
     "ts-node": "^10.9.2",
-    "typedoc": "^0.27.6",
-    "typescript": "^5.7.3",
-    "vitest": "^3.0.0"
+    "typedoc": "^0.27.9",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.7"
   },
   "directories": {
     "doc": "docs"
