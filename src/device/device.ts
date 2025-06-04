@@ -367,17 +367,17 @@ export abstract class deviceBase {
     }
   }
 
-  async pushChangeRequest(bodyChange: bodyChange): Promise<{ body: pushResponse['body'], statusCode: pushResponse['statusCode'] }> {
+  async pushChangeRequest<T extends pushResponse['body']>(bodyChange: bodyChange): Promise<{ body: T, statusCode: pushResponse['statusCode'] }> {
     const { response, statusCode } = await this.platform.retryCommand(this.device, bodyChange, this.deviceMaxRetries, this.deviceDelayBetweenRetries)
     return { body: response, statusCode }
   }
 
-  async deviceRefreshStatus(): Promise<{ body: deviceStatus, statusCode: deviceStatusRequest['statusCode'] }> {
+  async deviceRefreshStatus<T extends deviceStatus>(): Promise<{ body: T, statusCode: deviceStatusRequest['statusCode'] }> {
     const { response, statusCode } = await this.platform.retryRequest(this.device, this.deviceMaxRetries, this.deviceDelayBetweenRetries)
     return { body: response, statusCode }
   }
 
-  async successfulStatusCodes(deviceStatus: deviceStatusRequest) {
+  async successfulStatusCodes<T extends { statusCode: number }>(deviceStatus: T) {
     return (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)
   }
 
