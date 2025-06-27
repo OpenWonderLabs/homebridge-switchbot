@@ -342,8 +342,7 @@ export class MeterPlus extends deviceBase {
   async openAPIRefreshStatus(): Promise<void> {
     this.debugLog('openAPIRefreshStatus')
     try {
-      const response = await this.deviceRefreshStatus()
-      const deviceStatus: any = response.body
+      const deviceStatus = await this.deviceRefreshStatus<meterPlusStatus>()
       this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
       if (await this.successfulStatusCodes(deviceStatus)) {
         this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
