@@ -285,7 +285,7 @@ export class Meter extends deviceBase {
       // Start to monitor advertisement packets
       (async () => {
         // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as meterServiceData
+        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as unknown as meterServiceData
         // Update HomeKit
         if (serviceData.model === SwitchBotBLEModel.Meter && serviceData.modelName === SwitchBotBLEModelName.Meter) {
           this.serviceData = serviceData
