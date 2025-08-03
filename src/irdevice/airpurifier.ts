@@ -15,7 +15,7 @@ import { irdeviceBase } from './irdevice.js'
  * An instance of this class is created for each accessory your platform registers
  * Each accessory may expose multiple services of different service types.
  */
-export class AirPurifier extends irdeviceBase {
+export class AirPurifierIR extends irdeviceBase {
   // Services
   private AirPurifier: {
     Name: CharacteristicValue
@@ -111,13 +111,13 @@ export class AirPurifier extends irdeviceBase {
   async TargetAirPurifierStateSet(value: CharacteristicValue): Promise<void> {
     switch (value) {
       case this.hap.Characteristic.CurrentAirPurifierState.PURIFYING_AIR:
-        this.CurrentMode = AirPurifier.PURIFYING_AIR
+        this.CurrentMode = AirPurifierIR.PURIFYING_AIR
         break
       case this.hap.Characteristic.CurrentAirPurifierState.IDLE:
-        this.CurrentMode = AirPurifier.IDLE
+        this.CurrentMode = AirPurifierIR.IDLE
         break
       case this.hap.Characteristic.CurrentAirPurifierState.INACTIVE:
-        this.CurrentMode = AirPurifier.INACTIVE
+        this.CurrentMode = AirPurifierIR.INACTIVE
         break
       default:
         break
