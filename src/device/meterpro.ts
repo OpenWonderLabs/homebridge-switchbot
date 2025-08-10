@@ -368,7 +368,7 @@ export class MeterPro extends deviceBase {
         const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as meterProServiceData | meterProCO2ServiceData
         // Update HomeKit
         if ((serviceData.model === SwitchBotBLEModel.MeterPro && serviceData.modelName === SwitchBotBLEModelName.MeterPro)
-          ?? (serviceData.model === SwitchBotBLEModel.MeterProCO2 && serviceData.modelName === SwitchBotBLEModelName.MeterProCO2)) {
+          || (serviceData.model === SwitchBotBLEModel.MeterProCO2 && serviceData.modelName === SwitchBotBLEModelName.MeterProCO2)) {
           this.serviceData = serviceData
           if (serviceData !== undefined || serviceData !== null) {
             await this.BLEparseStatus()
