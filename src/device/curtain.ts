@@ -332,8 +332,8 @@ export class Curtain extends deviceBase {
         filename: `${hostname().split('.')[0]}_${this.device.bleMac}_persist.json`,
       })
       const motion: Service
-      = this.accessory.getService(this.hap.Service.MotionSensor)
-        || this.accessory.addService(this.hap.Service.MotionSensor, 'Motion')
+        = this.accessory.getService(this.hap.Service.MotionSensor)
+          || this.accessory.addService(this.hap.Service.MotionSensor, 'Motion')
       motion.addOptionalCharacteristic(this.platform.eve.Characteristics.LastActivation)
       motion.getCharacteristic(this.platform.eve.Characteristics.LastActivation).onGet(() => {
         const lastActivation = this.accessory.context.lastActivation
@@ -470,9 +470,7 @@ export class Curtain extends deviceBase {
    * Asks the SwitchBot API for the latest device information
    */
   async refreshStatus(): Promise<void> {
-    if (!this.device.enableCloudService && this.OpenAPI) {
-      this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`)
-    } else if (this.BLE) {
+    if (this.BLE) {
       await this.BLERefreshStatus()
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus()
@@ -514,8 +512,7 @@ export class Curtain extends deviceBase {
   async openAPIRefreshStatus(): Promise<void> {
     this.debugLog('openAPIRefreshStatus')
     try {
-      const { body } = await this.deviceRefreshStatus()
-      const deviceStatus: any = body
+      const deviceStatus = await this.deviceRefreshStatus<curtainStatus>()
       this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
       if (await this.successfulStatusCodes(deviceStatus)) {
         this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
@@ -588,9 +585,7 @@ export class Curtain extends deviceBase {
    * Pushes the requested changes to the SwitchBot API
    */
   async pushChanges(): Promise<void> {
-    if (!this.device.enableCloudService && this.OpenAPI) {
-      this.errorLog(`pushChanges enableCloudService: ${this.device.enableCloudService}`)
-    } else if (this.BLE) {
+    if (this.BLE) {
       await this.BLEpushChanges()
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges()
@@ -679,8 +674,7 @@ export class Curtain extends deviceBase {
       }
       this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const response = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = response.body
+        const deviceStatus = await this.pushChangeRequest(bodyChange)
         this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         if (await this.successfulStatusCodes(deviceStatus)) {
           this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
