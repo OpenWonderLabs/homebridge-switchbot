@@ -156,6 +156,7 @@
     - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub 2](https://us.switch-bot.com/products/switchbot-hub-2) Required
     - Enable Cloud Services for Device on SwitchBot App
 - [SwitchBot Bot](https://www.switch-bot.com/products/switchbot-bot)
+- [SwitchBot Bot S1](https://www.switch-bot.com/products/switchbot-bot)
   - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
   - If using OpenAPI:
     - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini) or [SwitchBot Hub 2](https://us.switch-bot.com/products/switchbot-hub-2) Required
