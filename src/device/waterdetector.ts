@@ -79,7 +79,7 @@ export class WaterDetector extends deviceBase {
 
     // Initialize Battery Characteristic
     this.Battery.Service.setCharacteristic(this.hap.Characteristic.Name, this.Battery.Name).setCharacteristic(this.hap.Characteristic.ChargingState, this.hap.Characteristic.ChargingState.NOT_CHARGEABLE).getCharacteristic(this.hap.Characteristic.BatteryLevel).onGet(() => {
-      return this.Battery.StatusLowBattery
+      return this.Battery.BatteryLevel
     })
 
     this.Battery.Service.getCharacteristic(this.hap.Characteristic.StatusLowBattery).onGet(() => {
