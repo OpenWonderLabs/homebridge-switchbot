@@ -201,27 +201,57 @@ export class Hub extends deviceBase {
 
   async openAPIparseStatus(): Promise<void> {
     this.debugLog('openAPIparseStatus')
+    this.debugLog(`Raw deviceStatus: ${JSON.stringify(this.deviceStatus)}`)
     this.debugLog(`(temperature, humidity, lightLevel) = OpenAPI:(${this.deviceStatus.temperature}, ${this.deviceStatus.humidity}, ${this.deviceStatus.lightLevel}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity}, ${this.LightSensor?.CurrentAmbientLightLevel})`)
+
+    // Validate that we have the expected data
+    if (this.deviceStatus.temperature === undefined || this.deviceStatus.temperature === null) {
+      this.warnLog(`OpenAPI response missing temperature data. Full response: ${JSON.stringify(this.deviceStatus)}`)
+    }
+    if (this.deviceStatus.humidity === undefined || this.deviceStatus.humidity === null) {
+      this.warnLog(`OpenAPI response missing humidity data. Full response: ${JSON.stringify(this.deviceStatus)}`)
+    }
+    if (this.deviceStatus.lightLevel === undefined || this.deviceStatus.lightLevel === null) {
+      this.warnLog(`OpenAPI response missing lightLevel data. Full response: ${JSON.stringify(this.deviceStatus)}`)
+    }
 
     // CurrentRelativeHumidity
     if (!(this.device as hubConfig).hide_humidity && this.HumiditySensor?.Service) {
-      this.HumiditySensor.CurrentRelativeHumidity = this.deviceStatus.humidity
-      this.debugLog(`CurrentRelativeHumidity: ${this.HumiditySensor.CurrentRelativeHumidity}%`)
+      // Ensure humidity is a valid number and within reasonable bounds
+      const humidity = Number(this.deviceStatus.humidity)
+      if (!isNaN(humidity) && humidity >= 0 && humidity <= 100) {
+        this.HumiditySensor.CurrentRelativeHumidity = humidity
+        this.debugLog(`CurrentRelativeHumidity: ${this.HumiditySensor.CurrentRelativeHumidity}%`)
+      } else {
+        this.warnLog(`Invalid humidity value from OpenAPI: ${this.deviceStatus.humidity}, keeping current value`)
+      }
     }
 
     // CurrentTemperature
     if (!(this.device as hubConfig).hide_temperature && this.TemperatureSensor?.Service) {
-      this.TemperatureSensor.CurrentTemperature = this.deviceStatus.temperature
-      this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}°c`)
+      // Ensure temperature is a valid number
+      const temperature = Number(this.deviceStatus.temperature)
+      if (!isNaN(temperature) && temperature >= -50 && temperature <= 80) {
+        this.TemperatureSensor.CurrentTemperature = temperature
+        this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}°c`)
+      } else {
+        this.warnLog(`Invalid temperature value from OpenAPI: ${this.deviceStatus.temperature}, keeping current value`)
+      }
     }
 
     // LightSensor
     if (!(this.device as hubConfig).hide_lightsensor && this.LightSensor?.Service) {
       const set_minLux = (this.device as hubConfig).set_minLux ?? 1
       const set_maxLux = (this.device as hubConfig).set_maxLux ?? 6001
-      const lightLevel = this.deviceStatus.lightLevel
-      this.LightSensor.CurrentAmbientLightLevel = this.getLightLevel(lightLevel, set_minLux, set_maxLux, 19)
-      this.debugLog(`LightLevel: ${this.deviceStatus.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`)
+      const lightLevel = Number(this.deviceStatus.lightLevel)
+      
+      // Validate lightLevel is a reasonable number
+      if (!isNaN(lightLevel) && lightLevel >= 0 && lightLevel <= 100) {
+        this.LightSensor.CurrentAmbientLightLevel = this.getLightLevel(lightLevel, set_minLux, set_maxLux, 19)
+        this.debugLog(`LightLevel: ${this.deviceStatus.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`)
+      } else {
+        this.warnLog(`Invalid lightLevel value from OpenAPI: ${this.deviceStatus.lightLevel}, keeping current value`)
+      }
     }
 
     // Firmware Version
