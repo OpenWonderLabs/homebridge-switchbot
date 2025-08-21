@@ -369,10 +369,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         for (const deviceConfig of this.config.options.devices) {
           if (!deviceConfig.hide_device) {
             if (!deviceConfig.deviceId) {
-              throw new Error('The devices config section is missing the *Device ID* in the config. Please check your config.')
+              this.errorLog('The devices config section is missing the *Device ID* in the config. Please check your config.')
             }
             if (!deviceConfig.configDeviceType && (deviceConfig as devicesConfig).connectionType) {
-              throw new Error('The devices config section is missing the *Device Type* in the config. Please check your config.')
+              this.errorLog('The devices config section is missing the *Device Type* in the config. Please check your config.')
             }
           }
         }
