@@ -117,7 +117,7 @@ export interface meterConfig extends BaseDeviceConfig {
 };
 
 export interface meterProConfig extends BaseDeviceConfig {
-  configDeviceType: 'Meter Pro' | 'MeterPro(CO2)'
+  configDeviceType: 'Meter Pro' | 'MeterPro' | 'MeterPro(CO2)'
   hide_temperature?: boolean
   convertUnitTo?: string
   hide_humidity?: boolean
