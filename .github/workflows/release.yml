@@ -1,39 +1,75 @@
-name: Release
+name: Unified Release
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      #- "alpha-*"
+      #- "beta-*"
+      - latest
+  workflow_dispatch:
 
 jobs:
-  build_and_test:
-    uses: OpenWonderLabs/.github/.github/workflows/nodejs-build-and-test.yml@latest
+  # 1️⃣ Determine release type, ESM status, and branch name
+  determine-release-type:
+    uses: homebridge/.github/.github/workflows/determine-release-type.yml@latest
     with:
-      enable_coverage: true
-    secrets:
-      token: ${{ secrets.GITHUB_TOKEN }}
+      ref_name: ${{ github.ref_name }}
 
-  publish:
-    needs: build_and_test
-    if: ${{ github.repository == 'OpenWonderLabs/homebridge-switchbot' }}
+  # 2️⃣ Update version and changelog using the scripts
+  update-version:
+    needs: determine-release-type
+    uses: homebridge/.github/.github/workflows/update-version.yml@latest
+    with:
+      release_type: ${{ needs.determine-release-type.outputs.release_type }}
+      is_esm: ${{ needs.determine-release-type.outputs.is_esm == 'true' }}
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # 3️⃣ Publish to NPM and create GitHub release
+  publish-release:
+    needs: [determine-release-type, update-version]
     permissions:
       id-token: write
-    uses: OpenWonderLabs/.github/.github/workflows/npm-publish-esm.yml@latest
+      contents: write
+    uses: homebridge/.github/.github/workflows/publish-release.yml@latest
+    with:
+      release_type: ${{ needs.determine-release-type.outputs.release_type }}
+      version: ${{ needs.update-version.outputs.version }}
+      is_esm: ${{ needs.determine-release-type.outputs.is_esm == 'true' }}
     secrets:
-      npm_auth_token: ${{ secrets.npm_token }}
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+  # 4️⃣ Promote branch if this is a prerelease (alpha/beta)
+  promote-branch:
+    needs: [determine-release-type, publish-release]
+    if: ${{ needs.determine-release-type.outputs.release_type != 'latest' && needs.determine-release-type.outputs.release_type != 'skip' }}
+    uses: homebridge/.github/.github/workflows/promote-branch.yml@latest
+    with:
+      branch_name: ${{ needs.determine-release-type.outputs.branch_name }}
+      release_type: ${{ needs.determine-release-type.outputs.release_type }}
+      is_esm: ${{ needs.determine-release-type.outputs.is_esm == 'true' }}
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # 5️⃣ Notify if any previous job fails
+  workflow-failure:
+    if: ${{ failure() }}
+    needs: [determine-release-type, update-version, publish-release, promote-branch]
+    uses: homebridge/.github/.github/workflows/report-failure.yml@latest
+    with:
+      workflow_name: ${{ github.workflow }}
+      job_name: ${{ github.job }}
+      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+  # 6️⃣ Post to Discord
   github-releases-to-discord:
     name: Discord Webhooks
-    needs: [build_and_test,publish]
-    if: ${{ github.repository == 'OpenWonderLabs/homebridge-switchbot' }}
-    uses: OpenWonderLabs/.github/.github/workflows/discord-webhooks.yml@latest
+    needs: [determine-release-type, update-version, publish-release]
+    uses: homebridge/.github/.github/workflows/discord-webhooks.yml@latest
     with:
       title: "SwitchBot Release"
       description: |
-        Version `v${{ needs.publish.outputs.NPM_VERSION }}`
-      url: "https://github.com/homebridge/camera-utils/releases/tag/v${{ needs.publish.outputs.NPM_VERSION }}"
+        Version `v${{ needs.update-version.outputs.version }}`
+      url: "https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v${{ needs.update-version.outputs.version }}"
     secrets:
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL_LATEST }}
-
-
-
-
