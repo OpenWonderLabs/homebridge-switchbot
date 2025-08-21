@@ -651,7 +651,7 @@ export class RelaySwitch extends deviceBase {
 
   async getRelaySwitchConfigSettings(device: device & devicesConfig) {
     // RelaySwitch Device Type
-    this.relaySwitchDeviceType = (device as relaySwitch1Config | relaySwitch1PMConfig).type ?? 'Outlet'
+    this.relaySwitchDeviceType = (device as relaySwitch1Config | relaySwitch1PMConfig).type ?? 'outlet'
     const relaySwitchDeviceType = (device as relaySwitch1Config | relaySwitch1PMConfig).type ? 'Device Config' : 'Default'
     this.debugWarnLog(`Use ${relaySwitchDeviceType} Device Type: ${this.relaySwitchDeviceType}`)
     // RelaySwitch Allow Push
