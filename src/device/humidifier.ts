@@ -451,7 +451,11 @@ export class Humidifier extends deviceBase {
           switchBotBLE
             .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
-              return await (device_list[0] as WoHumi).percentage(Number(this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold))
+              if (device_list.length > 0) {
+                return await (device_list[0] as WoHumi).percentage(Number(this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold))
+              } else {
+                throw new Error('No devices found during discovery.')
+              }
             })
             .then(async () => {
               this.successLog(`RelativeHumidityHumidifierThreshold: ${this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold} sent over BLE, sent successfully`)

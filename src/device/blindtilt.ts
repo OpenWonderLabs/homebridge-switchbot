@@ -594,7 +594,11 @@ export class BlindTilt extends deviceBase {
               return await this.retryBLE({
                 max: this.maxRetryBLE(),
                 fn: async () => {
-                  return await deviceList[0].runToPos(100 - Number(this.WindowCovering.TargetPosition), setPositionMode)
+                  if (deviceList.length > 0) {
+                    return await deviceList[0].runToPos(100 - Number(this.WindowCovering.TargetPosition), setPositionMode)
+                  } else {
+                    throw new Error('No devices found during discovery.')
+                  }
                 },
               })
             })

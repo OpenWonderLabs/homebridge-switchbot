@@ -490,10 +490,14 @@ export class ColorBulb extends deviceBase {
               return await this.retryBLE({
                 max: this.maxRetryBLE(),
                 fn: async () => {
-                  if (this.LightBulb.On) {
-                    return await device_list[0].turnOn()
+                  if (device_list.length > 0) {
+                    if (this.LightBulb.On) {
+                      return await device_list[0].turnOn()
+                    } else {
+                      return await device_list[0].turnOff()
+                    }
                   } else {
-                    return await device_list[0].turnOff()
+                    throw new Error('No devices found during discovery.')
                   }
                 },
               })

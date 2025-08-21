@@ -535,7 +535,11 @@ export class StripLight extends deviceBase {
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
               this.infoLog(`Brightness: ${this.LightBulb.Brightness}`)
-              return await (device_list[0] as WoStrip).setBrightness(Number(this.LightBulb.Brightness))
+              if (device_list.length > 0) {
+                return await (device_list[0] as WoStrip).setBrightness(Number(this.LightBulb.Brightness))
+              } else {
+                throw new Error('No devices found during discovery.')
+              }
             })
             .then(async () => {
               this.successLog(`Brightness: ${this.LightBulb.Brightness} sent over SwitchBot BLE, sent successfully`)
@@ -574,7 +578,11 @@ export class StripLight extends deviceBase {
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
               this.infoLog(`RGB: ${(this.LightBulb.Brightness, red, green, blue)}`)
-              return await (device_list[0] as WoStrip).setRGB(Number(this.LightBulb.Brightness), red, green, blue)
+              if (device_list.length > 0) {
+                return await (device_list[0] as WoStrip).setRGB(Number(this.LightBulb.Brightness), red, green, blue)
+              } else {
+                throw new Error('No devices found during discovery.')
+              }
             })
             .then(async () => {
               this.successLog(`RGB: ${(this.LightBulb.Brightness, red, green, blue)} sent over SwitchBot BLE, sent successfully`)

@@ -463,10 +463,14 @@ export class Lock extends deviceBase {
               return await this.retryBLE({
                 max: this.maxRetryBLE(),
                 fn: async () => {
-                  if (this.LockMechanism.LockTargetState === this.hap.Characteristic.LockTargetState.SECURED) {
-                    return await (device_list[0] as WoSmartLock).lock()
+                  if (device_list.length > 0) {
+                    if (this.LockMechanism.LockTargetState === this.hap.Characteristic.LockTargetState.SECURED) {
+                      return await (device_list[0] as WoSmartLock).lock()
+                    } else {
+                      return await (device_list[0] as WoSmartLock).unlock()
+                    }
                   } else {
-                    return await (device_list[0] as WoSmartLock).unlock()
+                    throw new Error('No devices found during discovery.')
                   }
                 },
               })

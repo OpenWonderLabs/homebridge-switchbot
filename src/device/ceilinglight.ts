@@ -439,18 +439,22 @@ export class CeilingLight extends deviceBase {
           switchBotBLE
             .discover({ model: this.device.bleModel, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
-              const deviceList = device_list[0] as WoCeilingLight
-              this.infoLog(`On: ${this.LightBulb.On}`)
-              return await this.retryBLE({
-                max: this.maxRetryBLE(),
-                fn: async () => {
-                  if (this.LightBulb.On) {
-                    return await deviceList[0].turnOn()
-                  } else {
-                    return await deviceList[0].turnOff()
-                  }
-                },
-              })
+              if (device_list.length > 0) {
+                const deviceList = device_list[0] as WoCeilingLight
+                this.infoLog(`On: ${this.LightBulb.On}`)
+                return await this.retryBLE({
+                  max: this.maxRetryBLE(),
+                  fn: async () => {
+                    if (this.LightBulb.On) {
+                      return await deviceList.turnOn()
+                    } else {
+                      return await deviceList.turnOff()
+                    }
+                  },
+                })
+              } else {
+                throw new Error('No devices found during discovery.')
+              }
             })
             .then(async () => {
               this.successLog(`On: ${this.LightBulb.On} sent over SwitchBot BLE, sent successfully`)

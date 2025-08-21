@@ -476,10 +476,14 @@ export class Fan extends deviceBase {
               return await this.retryBLE({
                 max: this.maxRetryBLE(),
                 fn: async () => {
-                  if (this.Fan.Active) {
-                    return await (device_list[0] as any).turnOn()
+                  if (device_list.length > 0) {
+                    if (this.Fan.Active) {
+                      return await (device_list[0] as any).turnOn()
+                    } else {
+                      return await (device_list[0] as any).turnOff()
+                    }
                   } else {
-                    return await (device_list[0] as any).turnOff()
+                    throw new Error('No devices found during discovery.')
                   }
                 },
               })
