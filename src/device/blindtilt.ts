@@ -307,7 +307,16 @@ export class BlindTilt extends deviceBase {
     this.debugLog(`(direction, slidePosition, battery, version) = BLE:(${this.serviceData.tilt}, ${this.serviceData.tilt}, ${this.serviceData.battery}, ${this.accessory.context.version}), current:(${this.WindowCovering.CurrentHorizontalTiltAngle}, ${this.WindowCovering.CurrentPosition}, ${this.Battery.BatteryLevel}, ${this.accessory.context.version})`)
 
     // CurrentPosition
-    this.WindowCovering.CurrentPosition = 100 - Number(this.serviceData.tilt)
+    if (this.serviceData.tilt !== undefined && this.serviceData.tilt !== null) {
+      this.WindowCovering.CurrentPosition = 100 - Number(this.serviceData.tilt)
+    } else {
+      this.debugWarnLog(`serviceData.tilt is undefined or null: ${this.serviceData.tilt}, keeping current position: ${this.WindowCovering.CurrentPosition}`)
+      // Keep the current position if tilt data is unavailable
+      if (this.WindowCovering.CurrentPosition === undefined || this.WindowCovering.CurrentPosition === null || Number.isNaN(this.WindowCovering.CurrentPosition)) {
+        this.WindowCovering.CurrentPosition = 50 // Default to middle position
+        this.debugWarnLog(`Setting default CurrentPosition: ${this.WindowCovering.CurrentPosition}`)
+      }
+    }
     await this.setMinMax()
     this.debugLog(`CurrentPosition ${this.WindowCovering.CurrentPosition}`)
     if (this.setNewTarget) {
@@ -316,12 +325,12 @@ export class BlindTilt extends deviceBase {
     if (this.setNewTarget && this.serviceData.inMotion) {
       this.blindTiltMoving = true
       await this.setMinMax()
-      if (Number(this.WindowCovering.TargetPosition) > this.WindowCovering.CurrentPosition) {
+      if (Number(this.WindowCovering.TargetPosition) > Number(this.WindowCovering.CurrentPosition)) {
         this.debugLog(`Closing, CurrentPosition: ${this.WindowCovering.CurrentPosition}`)
         this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.INCREASING
         this.WindowCovering.Service.getCharacteristic(this.hap.Characteristic.PositionState).updateValue(this.WindowCovering.PositionState)
         this.debugLog(`Increasing, PositionState: ${this.WindowCovering.PositionState}`)
-      } else if (Number(this.WindowCovering.TargetPosition) < this.WindowCovering.CurrentPosition) {
+      } else if (Number(this.WindowCovering.TargetPosition) < Number(this.WindowCovering.CurrentPosition)) {
         this.debugLog(`Opening, CurrentPosition: ${this.WindowCovering.CurrentPosition}`)
         this.WindowCovering.PositionState = this.hap.Characteristic.PositionState.DECREASING
         this.WindowCovering.Service.getCharacteristic(this.hap.Characteristic.PositionState).updateValue(this.WindowCovering.PositionState)
@@ -467,7 +476,7 @@ export class BlindTilt extends deviceBase {
         // Update HomeKit
         if (serviceData.model === SwitchBotBLEModel.BlindTilt && serviceData.modelName === SwitchBotBLEModelName.BlindTilt) {
           this.serviceData = serviceData
-          if (serviceData !== undefined || serviceData !== null) {
+          if (serviceData !== undefined && serviceData !== null) {
             await this.BLEparseStatus()
             await this.updateHomeKitCharacteristics()
           } else {
@@ -493,7 +502,7 @@ export class BlindTilt extends deviceBase {
         this.platform.bleEventHandler[this.device.bleMac] = async (context: blindTiltServiceData) => {
           try {
             this.serviceData = context
-            if (context !== undefined || context !== null) {
+            if (context !== undefined && context !== null) {
               this.debugLog(`received BLE: ${JSON.stringify(context)}`)
               await this.BLEparseStatus()
               await this.updateHomeKitCharacteristics()
@@ -577,7 +586,11 @@ export class BlindTilt extends deviceBase {
 
   async BLEpushChanges(): Promise<void> {
     this.debugLog('BLEpushChanges')
-    if (this.WindowCovering.TargetPosition !== this.WindowCovering.CurrentPosition) {
+    // Ensure both positions are valid numbers before comparison
+    const targetPos = Number(this.WindowCovering.TargetPosition)
+    const currentPos = Number(this.WindowCovering.CurrentPosition)
+    
+    if (!Number.isNaN(targetPos) && !Number.isNaN(currentPos) && targetPos !== currentPos) {
       this.debugLog(`BLEpushChanges On: ${this.WindowCovering.TargetPosition} OnCached: ${this.WindowCovering.CurrentPosition}`)
       const switchBotBLE = await this.platform.connectBLE(this.accessory, this.device)
       try {
@@ -615,7 +628,7 @@ export class BlindTilt extends deviceBase {
         this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
-      this.debugLog(`No changes (BLEpushChanges), TargetPosition: ${this.WindowCovering.TargetPosition}, CurrentPosition: ${this.WindowCovering.CurrentPosition}`)
+      this.debugLog(`No changes (BLEpushChanges), TargetPosition: ${targetPos}, CurrentPosition: ${currentPos}`)
     }
   }
 
@@ -767,12 +780,16 @@ export class BlindTilt extends deviceBase {
     if (this.mappingMode === BlindTiltMappingMode.UseTiltForDirection) {
       await this.updateCharacteristic(this.WindowCovering.Service, this.hap.Characteristic.CurrentHorizontalTiltAngle, this.WindowCovering.CurrentHorizontalTiltAngle, 'CurrentHorizontalTiltAngle')
     }
-    // CurrentPosition
-    await this.updateCharacteristic(this.WindowCovering.Service, this.hap.Characteristic.CurrentPosition, this.WindowCovering.CurrentPosition, 'CurrentPosition')
+    // CurrentPosition - ensure it's not NaN
+    const currentPosition = Number.isNaN(Number(this.WindowCovering.CurrentPosition)) ? 50 : this.WindowCovering.CurrentPosition
+    this.WindowCovering.CurrentPosition = currentPosition // Update the instance variable
+    await this.updateCharacteristic(this.WindowCovering.Service, this.hap.Characteristic.CurrentPosition, currentPosition, 'CurrentPosition')
     // PositionState
     await this.updateCharacteristic(this.WindowCovering.Service, this.hap.Characteristic.PositionState, this.WindowCovering.PositionState, 'PositionState')
-    // TargetPosition
-    await this.updateCharacteristic(this.WindowCovering.Service, this.hap.Characteristic.TargetPosition, this.WindowCovering.TargetPosition, 'TargetPosition')
+    // TargetPosition - ensure it's not NaN
+    const targetPosition = Number.isNaN(Number(this.WindowCovering.TargetPosition)) ? 50 : this.WindowCovering.TargetPosition
+    this.WindowCovering.TargetPosition = targetPosition // Update the instance variable
+    await this.updateCharacteristic(this.WindowCovering.Service, this.hap.Characteristic.TargetPosition, targetPosition, 'TargetPosition')
     // CurrentAmbientLightLevel
     if (!(this.device as blindTiltConfig).hide_lightsensor && this.LightSensor?.Service) {
       const history = { time: Math.round(new Date().valueOf() / 1000), lux: this.LightSensor.CurrentAmbientLightLevel }
