@@ -515,7 +515,17 @@ export class Bot extends deviceBase {
             .then(async (device_list: SwitchbotDevice[]) => {
               const deviceList = device_list as WoHand[]
               this.infoLog(`On: ${this.On}`)
-              return await deviceList[0].press()
+              this.debugLog(`device_list: ${JSON.stringify(device_list)}`)
+              return await this.retryBLE({
+                max: this.maxRetryBLE(),
+                fn: async () => {
+                  if (deviceList.length > 0) {
+                    return await deviceList[0].press()
+                  } else {
+                    throw new Error('No device found')
+                  }
+                },
+              })
             })
             .then(async () => {
               this.successLog(`On: ${this.On} sent over SwitchBot BLE, sent successfully`)
