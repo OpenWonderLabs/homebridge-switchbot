@@ -509,13 +509,22 @@ export class Bot extends deviceBase {
         this.debugLog(`bleMac: ${this.device.bleMac}`)
         // if (switchBotBLE !== false) {
         this.debugLog(`Bot Mode: ${this.botMode}`)
-        if (this.botMode === 'press') {
+        if (this.botMode === 'press' || this.botMode === 'multipress') {
           switchBotBLE
             .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
             .then(async (device_list: SwitchbotDevice[]) => {
               const deviceList = device_list as WoHand[]
               this.infoLog(`On: ${this.On}`)
-              return await deviceList[0].press()
+              return await this.retryBLE({
+                max: this.maxRetryBLE(),
+                fn: async () => {
+                  if (deviceList.length > 0) {
+                    return await deviceList[0].press()
+                  } else {
+                    throw new Error('No device found')
+                  }
+                },
+              })
             })
             .then(async () => {
               this.successLog(`On: ${this.On} sent over SwitchBot BLE, sent successfully`)
