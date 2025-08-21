@@ -179,7 +179,7 @@ export class IOSensor extends deviceBase {
     this.debugLog('BLEparseStatus')
     this.debugLog(`(battery, temperature, humidity) = BLE:(${this.serviceData.battery}, ${this.serviceData.celsius}, ${this.serviceData.humidity}), current:(${this.Battery.BatteryLevel}, ${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity})`)
     // Battery Info
-    if ('battery' in this.serviceData) {
+    if ('battery' in this.serviceData && this.serviceData.battery !== undefined && this.serviceData.battery !== null) {
       // BatteryLevel
       this.Battery.BatteryLevel = this.serviceData.battery
       this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
@@ -188,17 +188,27 @@ export class IOSensor extends deviceBase {
         ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
         : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
       this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
+    } else {
+      this.debugLog(`Battery data is undefined or null, skipping battery update`)
     }
     // CurrentRelativeHumidity
     if (!(this.device as indoorOutdoorSensorConfig).hide_humidity && this.HumiditySensor?.Service) {
-      this.HumiditySensor.CurrentRelativeHumidity = validHumidity(this.serviceData.humidity, 0, 100)
-      this.debugLog(`CurrentRelativeHumidity: ${this.HumiditySensor.CurrentRelativeHumidity}%`)
+      if (this.serviceData.humidity !== undefined && this.serviceData.humidity !== null) {
+        this.HumiditySensor.CurrentRelativeHumidity = validHumidity(this.serviceData.humidity, 0, 100)
+        this.debugLog(`CurrentRelativeHumidity: ${this.HumiditySensor.CurrentRelativeHumidity}%`)
+      } else {
+        this.debugLog(`Humidity data is undefined or null, skipping humidity update`)
+      }
     }
     // Current Temperature
     if (!(this.device as indoorOutdoorSensorConfig).hide_temperature && this.TemperatureSensor?.Service) {
-      const CELSIUS = this.serviceData.celsius < 0 ? 0 : this.serviceData.celsius > 100 ? 100 : this.serviceData.celsius
-      this.TemperatureSensor.CurrentTemperature = CELSIUS
-      this.debugLog(`Temperature: ${this.TemperatureSensor.CurrentTemperature}°c`)
+      if (this.serviceData.celsius !== undefined && this.serviceData.celsius !== null) {
+        const CELSIUS = this.serviceData.celsius < 0 ? 0 : this.serviceData.celsius > 100 ? 100 : this.serviceData.celsius
+        this.TemperatureSensor.CurrentTemperature = CELSIUS
+        this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}°c`)
+      } else {
+        this.debugLog(`Temperature data is undefined or null, skipping temperature update`)
+      }
     }
   }
 
@@ -252,12 +262,12 @@ export class IOSensor extends deviceBase {
       this.warnLog(`received a non-CELSIUS Webhook scale: ${this.webhookContext.scale}, Use the *convertUnitsTo* config under Hub settings, if displaying incorrectly in HomeKit.`)
     }
     // CurrentRelativeHumidity
-    if ((this.device as indoorOutdoorSensorConfig).hide_humidity && this.HumiditySensor?.Service) {
+    if (!(this.device as indoorOutdoorSensorConfig).hide_humidity && this.HumiditySensor?.Service) {
       this.HumiditySensor.CurrentRelativeHumidity = this.webhookContext.humidity
       this.debugLog(`CurrentRelativeHumidity: ${this.HumiditySensor.CurrentRelativeHumidity}%`)
     }
     // CurrentTemperature
-    if ((this.device as indoorOutdoorSensorConfig).hide_temperature && this.TemperatureSensor?.Service) {
+    if (!(this.device as indoorOutdoorSensorConfig).hide_temperature && this.TemperatureSensor?.Service) {
       this.TemperatureSensor.CurrentTemperature = convertUnits(this.webhookContext.temperature, this.webhookContext.scale, (this.device as indoorOutdoorSensorConfig).convertUnitTo)
       this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}°c`)
     }
