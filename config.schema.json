@@ -13094,7 +13094,6 @@
           }
         },
         "required": [
-          "name",
           "logging"
         ]
       }
