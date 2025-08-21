@@ -452,6 +452,12 @@ export abstract class deviceBase {
         bleModelName: SwitchBotBLEModelName.Bot,
         bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Bot,
       },
+      'Bot S1': {
+        model: SwitchBotModel.Bot,
+        bleModel: SwitchBotBLEModel.Bot,
+        bleModelName: SwitchBotBLEModelName.Bot,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Bot,
+      },
       'Relay Switch 1': {
         model: SwitchBotModel.RelaySwitch1,
         bleModel: SwitchBotBLEModel.RelaySwitch1,
