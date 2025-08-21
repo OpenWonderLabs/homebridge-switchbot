@@ -510,58 +510,76 @@ export class Bot extends deviceBase {
         // if (switchBotBLE !== false) {
         this.debugLog(`Bot Mode: ${this.botMode}`)
         if (this.botMode === 'press') {
-          switchBotBLE
-            .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
-            .then(async (device_list: SwitchbotDevice[]) => {
+          await this.retryBLEDiscovery({
+            max: this.maxRetryBLE(),
+            fn: async () => {
+              const device_list = await switchBotBLE.discover({ 
+                model: this.device.bleModel, 
+                quick: this.getBLEQuickMode(), 
+                id: this.device.bleMac,
+                duration: this.getBLEScanDuration()
+              })
               const deviceList = device_list as WoHand[]
+              if (deviceList.length === 0) {
+                throw new Error('No devices found during discovery.')
+              }
               this.infoLog(`On: ${this.On}`)
               return await deviceList[0].press()
-            })
-            .then(async () => {
-              this.successLog(`On: ${this.On} sent over SwitchBot BLE, sent successfully`)
+            }
+          })
+          .then(async () => {
+            this.successLog(`On: ${this.On} sent over SwitchBot BLE, sent successfully`)
+            await this.updateHomeKitCharacteristics()
+            setTimeout(async () => {
+              this.On = false
               await this.updateHomeKitCharacteristics()
-              setTimeout(async () => {
-                this.On = false
-                await this.updateHomeKitCharacteristics()
-                this.debugLog(`On: ${this.On}, Switch Timeout`)
-              }, 500)
-            })
-            .catch(async (e: any) => {
-              await this.apiError(e)
-              this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
-              await this.BLEPushConnection()
-            })
+              this.debugLog(`On: ${this.On}, Switch Timeout`)
+            }, 500)
+          })
+          .catch(async (e: any) => {
+            await this.apiError(e)
+            this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+            this.provideBLETroubleshootingAdvice(e)
+            await this.BLEPushConnection()
+          })
         } else if (this.botMode === 'switch') {
-          switchBotBLE
-            .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
-            .then(async (device_list: SwitchbotDevice[]) => {
+          await this.retryBLEDiscovery({
+            max: this.maxRetryBLE(),
+            fn: async () => {
+              const device_list = await switchBotBLE.discover({ 
+                model: this.device.bleModel, 
+                quick: this.getBLEQuickMode(), 
+                id: this.device.bleMac,
+                duration: this.getBLEScanDuration()
+              })
               const deviceList = device_list as WoHand[]
+              if (deviceList.length === 0) {
+                throw new Error('No devices found during discovery.')
+              }
               this.infoLog(`On: ${this.On}`)
               this.warnLog(`device_list: ${JSON.stringify(device_list)}`)
               return await this.retryBLE({
                 max: this.maxRetryBLE(),
                 fn: async () => {
-                  if (deviceList.length > 0) {
-                    if (this.On) {
-                      return await deviceList[0].turnOn()
-                    } else {
-                      return await deviceList[0].turnOff()
-                    }
+                  if (this.On) {
+                    return await deviceList[0].turnOn()
                   } else {
-                    throw new Error('No device found')
+                    return await deviceList[0].turnOff()
                   }
                 },
               })
-            })
-            .then(async () => {
-              this.successLog(`On: ${this.On} sent over SwitchBot BLE, sent successfully`)
-              await this.updateHomeKitCharacteristics()
-            })
-            .catch(async (e: any) => {
-              await this.apiError(e)
-              this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
-              await this.BLEPushConnection()
-            })
+            }
+          })
+          .then(async () => {
+            this.successLog(`On: ${this.On} sent over SwitchBot BLE, sent successfully`)
+            await this.updateHomeKitCharacteristics()
+          })
+          .catch(async (e: any) => {
+            await this.apiError(e)
+            this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+            this.provideBLETroubleshootingAdvice(e)
+            await this.BLEPushConnection()
+          })
         } else {
           this.errorLog(`Device Parameters not set for this Bot, please check the device configuration. Bot Mode: ${this.botMode}`)
         }
@@ -844,6 +862,107 @@ export class Bot extends deviceBase {
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog('Using OpenAPI Connection to Refresh Status')
       await this.openAPIRefreshStatus()
+    }
+  }
+
+  /**
+   * Retry BLE discovery with progressive backoff
+   */
+  async retryBLEDiscovery({ max, fn }: { max: number, fn: { (): any, (): Promise<any> } }): Promise<any> {
+    const maxAttempts = max + 1
+    let attempt = 1
+    
+    const executeWithRetry = async (): Promise<any> => {
+      try {
+        return await fn()
+      } catch (e: any) {
+        if (attempt >= maxAttempts) {
+          throw e
+        }
+        
+        // Check if this is a discovery failure
+        const isDiscoveryError = e.message?.includes('No devices found during discovery')
+        if (isDiscoveryError) {
+          this.warnLog(`BLE discovery attempt ${attempt}/${maxAttempts} failed: ${e.message}`)
+          this.infoLog(`Retrying BLE discovery in ${attempt * 2} seconds...`)
+          
+          // Progressive backoff: 2s, 4s, 6s, etc.
+          await new Promise(resolve => setTimeout(resolve, attempt * 2000))
+          attempt++
+          return executeWithRetry()
+        } else {
+          // For non-discovery errors, use standard retry logic
+          this.warnLog(e)
+          this.infoLog('Retrying BLE operation')
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          attempt++
+          return executeWithRetry()
+        }
+      }
+    }
+    
+    return executeWithRetry()
+  }
+
+  /**
+   * Get BLE scan duration, with longer duration for Linux/Raspberry Pi
+   */
+  getBLEScanDuration(): number {
+    // Use device-specific scan duration if configured
+    if (this.device.scanDuration) {
+      return this.device.scanDuration * 1000 // Convert to milliseconds
+    }
+    
+    // Use platform scan duration
+    if (this.scanDuration) {
+      return this.scanDuration * 1000
+    }
+    
+    // Default duration with longer timeout for Linux systems
+    const isLinux = process.platform === 'linux'
+    return isLinux ? 10000 : 5000 // 10s for Linux, 5s for others
+  }
+
+  /**
+   * Get BLE quick mode setting, disabled for Linux/Raspberry Pi for better reliability
+   */
+  getBLEQuickMode(): boolean {
+    // Allow override via device config
+    if (this.device.quick !== undefined) {
+      return this.device.quick
+    }
+    
+    // Disable quick mode on Linux for better device discovery
+    const isLinux = process.platform === 'linux'
+    return !isLinux
+  }
+
+  /**
+   * Provide troubleshooting advice for BLE connection issues
+   */
+  provideBLETroubleshootingAdvice(error: any): void {
+    if (error.message?.includes('No devices found during discovery')) {
+      this.warnLog('='.repeat(60))
+      this.warnLog('BLE DISCOVERY TROUBLESHOOTING:')
+      
+      if (process.platform === 'linux') {
+        this.warnLog('For Raspberry Pi / Linux systems:')
+        this.warnLog('1. Ensure Bluetooth is enabled: sudo bluetoothctl power on')
+        this.warnLog('2. Check if device is discoverable: sudo bluetoothctl scan on')
+        this.warnLog('3. Verify the BLE MAC address in your configuration')
+        this.warnLog('4. Try restarting the Bluetooth service: sudo systemctl restart bluetooth')
+        this.warnLog('5. Check Bluetooth permissions for Node.js process')
+      } else {
+        this.warnLog('For macOS systems:')
+        this.warnLog('1. Grant Bluetooth permissions to Node.js in System Preferences')
+        this.warnLog('2. Ensure SwitchBot device is not connected to another device')
+        this.warnLog('3. Try restarting Bluetooth service')
+      }
+      
+      this.warnLog('4. Verify device is in range and has sufficient battery')
+      this.warnLog('5. Check if customBLEaddress is correctly configured')
+      this.warnLog('6. Consider increasing scanDuration in device configuration')
+      this.warnLog('='.repeat(60))
     }
   }
 
