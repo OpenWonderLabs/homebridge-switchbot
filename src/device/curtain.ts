@@ -656,7 +656,7 @@ export class Curtain extends deviceBase {
       const adjustedTargetPosition = 100 - Number(this.WindowCovering.TargetPosition)
       const { setPositionMode, Mode }: { setPositionMode: number, Mode: string } = await this.setPerformance()
       this.debugLog(`Mode: ${Mode}, setPositionMode: ${setPositionMode}`)
-      const adjustedMode = setPositionMode || 'ff'
+      const adjustedMode = setPositionMode === 1 ? '01' : '00'
       let bodyChange: bodyChange
       if (this.WindowCovering.HoldPosition) {
         bodyChange = {
