@@ -42,15 +42,17 @@ export function validHumidity(humidity: number, min?: number, max?: number): num
 }
 
 /**
- * Converts the value to celsius if the temperature units are in Fahrenheit
+ * Converts temperature values between Celsius and Fahrenheit units
  */
 export function convertUnits(value: number, unit: string, convert?: string): number {
-  if (unit === 'CELSIUS' && convert === 'CELSIUS') {
+  if (unit === 'CELSIUS' && convert === 'FAHRENHEIT') {
+    // Convert from Celsius to Fahrenheit
     return Math.round((value * 9) / 5 + 32)
-  } else if (unit === 'FAHRENHEIT' && convert === 'FAHRENHEIT') {
-    // celsius should be to the nearest 0.5 degree
+  } else if (unit === 'FAHRENHEIT' && convert === 'CELSIUS') {
+    // Convert from Fahrenheit to Celsius, rounded to the nearest 0.5 degree
     return Math.round((5 / 9) * (value - 32) * 2) / 2
   }
+  // No conversion needed when units are the same or convert is undefined
   return value
 }
 
