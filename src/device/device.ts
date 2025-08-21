@@ -488,6 +488,12 @@ export abstract class deviceBase {
         bleModelName: SwitchBotBLEModelName.MeterPro,
         bleModelFriendlyName: SwitchBotBLEModelFriendlyName.MeterPro,
       },
+      'MeterPro': {
+        model: SwitchBotModel.MeterPro,
+        bleModel: SwitchBotBLEModel.MeterPro,
+        bleModelName: SwitchBotBLEModelName.MeterPro,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.MeterPro,
+      },
       'MeterPro(CO2)': {
         model: SwitchBotModel.MeterProCO2,
         bleModel: SwitchBotBLEModel.MeterProCO2,
