@@ -202,6 +202,15 @@ export class Hub extends deviceBase {
   async openAPIparseStatus(): Promise<void> {
     this.debugLog('openAPIparseStatus')
     this.debugLog(`Raw deviceStatus: ${JSON.stringify(this.deviceStatus)}`)
+    this.debugLog(`Device type: ${this.device.deviceType}, Device model: ${this.accessory.context.model}`)
+    
+    // Check if deviceStatus has the expected structure for Hub 2
+    const hasExpectedFields = 'temperature' in this.deviceStatus && 'humidity' in this.deviceStatus && 'lightLevel' in this.deviceStatus
+    if (!hasExpectedFields) {
+      this.warnLog(`OpenAPI response may have unexpected structure for Hub 2. Expected fields: temperature, humidity, lightLevel. Received: ${Object.keys(this.deviceStatus).join(', ')}`)
+      this.debugLog(`Full response structure: ${JSON.stringify(this.deviceStatus, null, 2)}`)
+    }
+    
     this.debugLog(`(temperature, humidity, lightLevel) = OpenAPI:(${this.deviceStatus.temperature}, ${this.deviceStatus.humidity}, ${this.deviceStatus.lightLevel}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity}, ${this.LightSensor?.CurrentAmbientLightLevel})`)
 
     // Validate that we have the expected data
@@ -230,10 +239,29 @@ export class Hub extends deviceBase {
     // CurrentTemperature
     if (!(this.device as hubConfig).hide_temperature && this.TemperatureSensor?.Service) {
       // Ensure temperature is a valid number
-      const temperature = Number(this.deviceStatus.temperature)
-      if (!isNaN(temperature) && temperature >= -50 && temperature <= 80) {
-        this.TemperatureSensor.CurrentTemperature = temperature
-        this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}°c`)
+      let temperature = Number(this.deviceStatus.temperature)
+      if (!isNaN(temperature)) {
+        // Check if this might be a Fahrenheit value that needs conversion to Celsius
+        // If user specified convertUnitTo and the temperature seems like it might be in Fahrenheit
+        if ((this.device as hubConfig).convertUnitTo === 'CELSIUS' && temperature > 50) {
+          // Values above 50 are likely Fahrenheit (122°F+), convert to Celsius
+          const convertedTemp = convertUnits(temperature, 'FAHRENHEIT', 'CELSIUS')
+          this.debugLog(`Suspected Fahrenheit temperature, converting: ${temperature}°F -> ${convertedTemp}°C`)
+          temperature = convertedTemp
+        } else if ((this.device as hubConfig).convertUnitTo === 'FAHRENHEIT' && temperature < 40) {
+          // Values below 40 might be Celsius that need conversion to Fahrenheit
+          const convertedTemp = convertUnits(temperature, 'CELSIUS', 'FAHRENHEIT')
+          this.debugLog(`Converting temperature to Fahrenheit: ${temperature}°C -> ${convertedTemp}°F`)
+          temperature = convertedTemp
+        }
+        
+        // Final validation of temperature range
+        if (temperature >= -50 && temperature <= 80) {
+          this.TemperatureSensor.CurrentTemperature = temperature
+          this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}°c`)
+        } else {
+          this.warnLog(`Temperature ${temperature}°C is outside valid range (-50°C to 80°C), keeping current value`)
+        }
       } else {
         this.warnLog(`Invalid temperature value from OpenAPI: ${this.deviceStatus.temperature}, keeping current value`)
       }
