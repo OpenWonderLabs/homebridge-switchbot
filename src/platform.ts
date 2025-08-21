@@ -118,6 +118,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       devices: config.devices as { deviceId: string }[],
     }
 
+    // Handle legacy configuration format for backward compatibility
+    this.handleLegacyConfig(config)
+
     // Plugin Configuration
     this.getPlatformLogSettings()
     this.getPlatformRateSettings()
@@ -210,6 +213,36 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.setupBlE()
     } catch (e: any) {
       this.errorLog(`Setup Platform BLE, Error Message: ${e.message ?? e}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
+    }
+  }
+
+  /**
+   * Handle legacy configuration format for backward compatibility
+   * Maps access_token/refresh_token to credentials.token/credentials.secret
+   */
+  private handleLegacyConfig(config: any): void {
+    // Check if legacy token fields are present
+    if (config.access_token || config.refresh_token) {
+      this.debugLog('Legacy token configuration detected, migrating to new format')
+      
+      // Initialize credentials object if it doesn't exist
+      if (!this.config.credentials) {
+        this.config.credentials = {}
+      }
+      
+      // Map legacy access_token to credentials.token
+      if (config.access_token && !this.config.credentials.token) {
+        this.config.credentials.token = config.access_token
+        this.debugLog('Mapped access_token to credentials.token')
+      }
+      
+      // Map legacy refresh_token to credentials.secret  
+      if (config.refresh_token && !this.config.credentials.secret) {
+        this.config.credentials.secret = config.refresh_token
+        this.debugLog('Mapped refresh_token to credentials.secret')
+      }
+      
+      this.debugLog('Legacy configuration migration completed')
     }
   }
 
