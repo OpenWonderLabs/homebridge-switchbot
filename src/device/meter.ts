@@ -209,7 +209,7 @@ export class Meter extends deviceBase {
 
     // CurrentTemperature
     if (!(this.device as meterConfig).hide_temperature && this.TemperatureSensor?.Service) {
-      this.TemperatureSensor.CurrentTemperature = this.deviceStatus.temperature
+      this.TemperatureSensor.CurrentTemperature = convertUnits(this.deviceStatus.temperature, 'CELSIUS', (this.device as meterConfig).convertUnitTo)
       this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}°c`)
     }
 
