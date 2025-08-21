@@ -378,9 +378,11 @@ export class Curtain extends deviceBase {
     this.debugLog('BLEparseStatus')
     this.debugLog(`(position, battery) = BLE:(${this.serviceData.position}, ${this.serviceData.battery}), current:(${this.WindowCovering.CurrentPosition}, ${this.Battery.BatteryLevel})`)
     // CurrentPosition
-    if ('position' in this.serviceData) {
-      this.WindowCovering.CurrentPosition = 100 - this.serviceData.position
+    if ('position' in this.serviceData && this.serviceData.position !== undefined && this.serviceData.position !== null && !isNaN(Number(this.serviceData.position))) {
+      this.WindowCovering.CurrentPosition = 100 - Number(this.serviceData.position)
       await this.getCurrentPostion()
+    } else {
+      this.warnLog(`Invalid position data from BLE: ${this.serviceData.position}`)
     }
     // CurrentAmbientLightLevel
     if (!(this.device as curtainConfig).hide_lightsensor && this.LightSensor?.Service && 'lightLevel' in this.serviceData) {
@@ -489,10 +491,10 @@ export class Curtain extends deviceBase {
         // Start to monitor advertisement packets
         const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as curtainServiceData | curtain3ServiceData
         // Update HomeKit
-        if ((serviceData.model === SwitchBotBLEModel.Curtain || SwitchBotBLEModel.Curtain3)
-          && (serviceData.modelName === SwitchBotBLEModelName.Curtain || SwitchBotBLEModelName.Curtain3)) {
+        if ((serviceData.model === SwitchBotBLEModel.Curtain || serviceData.model === SwitchBotBLEModel.Curtain3)
+          && (serviceData.modelName === SwitchBotBLEModelName.Curtain || serviceData.modelName === SwitchBotBLEModelName.Curtain3)) {
           this.serviceData = serviceData
-          if (serviceData !== undefined || serviceData !== null) {
+          if (serviceData !== undefined && serviceData !== null) {
             await this.BLEparseStatus()
             await this.updateHomeKitCharacteristics()
           } else {
@@ -559,7 +561,7 @@ export class Curtain extends deviceBase {
         this.platform.bleEventHandler[this.device.bleMac] = async (context: curtainServiceData | curtain3ServiceData) => {
           try {
             this.serviceData = context
-            if (context !== undefined || context !== null) {
+            if (context !== undefined && context !== null) {
               this.debugLog(`received BLE: ${JSON.stringify(context)}`)
               await this.BLEparseStatus()
               await this.updateHomeKitCharacteristics()
@@ -619,7 +621,11 @@ export class Curtain extends deviceBase {
               return await this.retryBLE({
                 max: this.maxRetryBLE(),
                 fn: async () => {
-                  return await deviceList[0].runToPos(100 - Number(this.WindowCovering.TargetPosition), adjustedMode)
+                  if (deviceList && Array.isArray(deviceList) && deviceList.length > 0) {
+                    return await deviceList[0].runToPos(100 - Number(this.WindowCovering.TargetPosition), adjustedMode)
+                  } else {
+                    throw new Error('No device found')
+                  }
                 },
               })
             })
@@ -777,6 +783,17 @@ export class Curtain extends deviceBase {
 
   async updateHomeKitCharacteristics(): Promise<void> {
     await this.setMinMax()
+    
+    // Validate position values to prevent NaN
+    if (isNaN(Number(this.WindowCovering.CurrentPosition))) {
+      this.warnLog(`CurrentPosition is NaN, keeping previous value`)
+      this.WindowCovering.CurrentPosition = this.accessory.context.CurrentPosition ?? 100
+    }
+    if (isNaN(Number(this.WindowCovering.TargetPosition))) {
+      this.warnLog(`TargetPosition is NaN, keeping previous value`)
+      this.WindowCovering.TargetPosition = this.accessory.context.TargetPosition ?? 100
+    }
+    
     // CurrentPosition
     await this.updateCharacteristic(this.WindowCovering.Service, this.hap.Characteristic.CurrentPosition, this.WindowCovering.CurrentPosition, 'CurrentPosition')
     // PositionState
@@ -799,17 +816,22 @@ export class Curtain extends deviceBase {
   }
 
   async BLEPushConnection() {
+    this.warnLog('BLE connection failed for push operation')
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog('Using OpenAPI Connection to Push Changes')
       await this.openAPIpushChanges()
+    } else {
+      this.errorLog('No fallback available for BLE push failure. Consider using BLE/OpenAPI connection type.')
     }
   }
 
   async BLERefreshConnection(switchbot: SwitchBotBLE): Promise<void> {
-    this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${switchbot}`)
+    this.warnLog(`BLE connection failed for refresh operation, node-switchbot: ${switchbot}`)
     if (this.platform.config.credentials?.token && this.device.connectionType === 'BLE/OpenAPI') {
       this.warnLog('Using OpenAPI Connection to Refresh Status')
       await this.openAPIRefreshStatus()
+    } else {
+      this.errorLog('No fallback available for BLE refresh failure. Consider using BLE/OpenAPI connection type.')
     }
   }
 
