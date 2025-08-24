@@ -446,6 +446,12 @@ export abstract class deviceBase {
         bleModelName: SwitchBotBLEModelName.Hub2,
         bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Hub2,
       },
+      'Hub 3': {
+        model: SwitchBotModel.Hub2,
+        bleModel: SwitchBotBLEModel.Hub2,
+        bleModelName: SwitchBotBLEModelName.Hub2,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Hub2,
+      },
       'Bot': {
         model: SwitchBotModel.Bot,
         bleModel: SwitchBotBLEModel.Bot,
