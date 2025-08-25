@@ -582,6 +582,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       'Humidifier': this.createHumidifier.bind(this),
       'Humidifier2': this.createHumidifier.bind(this),
       'Hub 2': this.createHub2.bind(this),
+      'Hub 3': this.createHub2.bind(this),
       'Bot': this.createBot.bind(this),
       'Relay Switch 1': this.createRelaySwitch.bind(this),
       'Relay Switch 1PM': this.createRelaySwitch.bind(this),
@@ -2695,7 +2696,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     const delayBetweenRetries = deviceDelayBetweenRetries ?? 1000
     while (retryCount < maxRetries) {
       try {
-        const { response, statusCode } = await this.switchBotAPI.controlDevice(device.deviceId, bodyChange.command, bodyChange.parameter, bodyChange.commandType, this.config.credentials?.token, this.config.credentials?.secret)
+        const { response, statusCode } = await this.switchBotAPI.controlDevice(device.deviceId, bodyChange.command, bodyChange.parameter, bodyChange.commandType as any, this.config.credentials?.token, this.config.credentials?.secret)
         this.debugLog(`response: ${JSON.stringify(response)}`)
         return { response, statusCode }
       } catch (error: any) {
