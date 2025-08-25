@@ -11,6 +11,7 @@ jobs:
     uses: OpenWonderLabs/.github/.github/workflows/nodejs-build-and-test.yml@latest
     with:
       enable_coverage: false
+      install_cmd: npm install --legacy-peer-deps
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
   lint:
