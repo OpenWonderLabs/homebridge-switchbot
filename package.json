@@ -73,7 +73,6 @@
     "test-coverage": "npm run test -- --coverage",
     "docs": "typedoc",
     "docs:lint": "typedoc --emit none --treatWarningsAsErrors"
-
   },
   "publishConfig": {
     "access": "public"
@@ -95,7 +94,6 @@
     "@types/node": "^24.1.0",
     "@types/semver": "^7.7.0",
     "@types/source-map-support": "^0.5.10",
-
     "@vitest/coverage-v8": "^3.2.4",
     "eslint": "^9.32.0",
     "eslint-plugin-format": "^1.0.1",
