@@ -233,7 +233,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
               const context = JSON.parse(message.toString())
               this.webhookEventHandler[context.deviceMac]?.(context)
             } catch (e: any) {
-              this.errorLog(`Failed to handle webhook event. Error:${e.message ?? e}`)
+              this.errorLog(`Failed to handle webhook event. Error: ${e.message ?? e}`)
             }
           })
         }
@@ -260,14 +260,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           this.webhookEventHandler[body.context.deviceMac]?.(body.context)
         })
       } catch (e: any) {
-        this.errorLog(`Failed to setup webhook. Error:${e.message ?? e}`)
+        this.errorLog(`Failed to setup webhook. Error: ${e.message ?? e}`)
       }
 
       this.api.on('shutdown', async () => {
         try {
           this.switchBotAPI.deleteWebhook(url)
         } catch (e: any) {
-          this.errorLog(`Failed to delete webhook. Error:${e.message ?? e}`)
+          this.errorLog(`Failed to delete webhook. Error: ${e.message ?? e}`)
         }
       })
     }
@@ -318,14 +318,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           try {
             await this.switchBotBLE.startScan()
           } catch (e: any) {
-            this.errorLog(`Failed to start BLE scanning. Error:${e.message ?? e}`)
+            this.errorLog(`Failed to start BLE scanning. Error: ${e.message ?? e}`)
           }
           // Set an event handler to monitor advertisement packets
           this.switchBotBLE.onadvertisement = async (ad: any) => {
             try {
               this.bleEventHandler[ad.address]?.(ad.serviceData)
             } catch (e: any) {
-              this.errorLog(`Failed to handle BLE event. Error:${e.message ?? e}`)
+              this.errorLog(`Failed to handle BLE event. Error: ${e.message ?? e}`)
             }
           }
         })()
@@ -335,7 +335,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
             // this.switchBotBLE.stopScan()
             this.infoLog('Stopped BLE scanning to close listening.')
           } catch (e: any) {
-            this.errorLog(`Failed to stop Platform BLE scanning. Error:${e.message ?? e}`)
+            this.errorLog(`Failed to stop Platform BLE scanning. Error: ${e.message ?? e}`)
           }
         })
       }
@@ -583,6 +583,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       'Humidifier': this.createHumidifier.bind(this),
       'Humidifier2': this.createHumidifier.bind(this),
       'Hub 2': this.createHub2.bind(this),
+      'Hub 3': this.createHub2.bind(this),
       'Bot': this.createBot.bind(this),
       'Relay Switch 1': this.createRelaySwitch.bind(this),
       'Relay Switch 1PM': this.createRelaySwitch.bind(this),

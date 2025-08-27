@@ -1,6 +1,8 @@
 #Others
 node_modules
 dist/
+coverage/
+docs/
 #DS_Store Files
 .DS_Store
 src/.DS_Store

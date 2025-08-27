@@ -318,7 +318,7 @@ export abstract class deviceBase {
     try {
       await switchbot.startScan({ model: this.device.bleModel, id: this.device.bleMac })
     } catch (e: any) {
-      this.errorLog(`Failed to start BLE scanning. Error:${e.message ?? e}`)
+      this.errorLog(`Failed to start BLE scanning. Error: ${e.message ?? e}`)
     }
     // Set an event handler
     let serviceData = { model: this.device.bleModel, modelName: this.device.bleModelName } as ad['serviceData']
@@ -337,7 +337,7 @@ export abstract class deviceBase {
     try {
       await switchbot.stopScan()
     } catch (e: any) {
-      this.errorLog(`Failed to stop BLE scanning. Error:${e.message ?? e}`)
+      this.errorLog(`Failed to stop BLE scanning. Error: ${e.message ?? e}`)
     }
     return serviceData
   }
@@ -350,7 +350,7 @@ export abstract class deviceBase {
         try {
           await switchbot.startScan({ model: this.device.bleModel })
         } catch (e: any) {
-          this.errorLog(`Failed to start BLE scanning. Error:${e.message ?? e}`)
+          this.errorLog(`Failed to start BLE scanning. Error: ${e.message ?? e}`)
         }
         // Set an event handler
         switchbot.onadvertisement = (ad: ad) => {
@@ -361,7 +361,7 @@ export abstract class deviceBase {
         try {
           switchbot.stopScan()
         } catch (e: any) {
-          this.errorLog(`Failed to stop BLE scanning. Error:${e.message ?? e}`)
+          this.errorLog(`Failed to stop BLE scanning. Error: ${e.message ?? e}`)
         }
       })()
     }
@@ -445,6 +445,12 @@ export abstract class deviceBase {
         bleModel: SwitchBotBLEModel.Hub2,
         bleModelName: SwitchBotBLEModelName.Hub2,
         bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Hub2,
+      },
+      'Hub 3': {
+        model: SwitchBotModel.Hub3,
+        bleModel: SwitchBotBLEModel.Hub3,
+        bleModelName: SwitchBotBLEModelName.Hub3,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Hub3,
       },
       'Bot': {
         model: SwitchBotModel.Bot,
