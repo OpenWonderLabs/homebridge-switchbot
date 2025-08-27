@@ -3,7 +3,7 @@
  * plug.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
-import type { batteryCirculatorFanServiceData, batteryCirculatorFanStatus, batteryCirculatorFanWebhookContext, bodyChange, device, SwitchBotBLE, SwitchbotDevice } from 'node-switchbot'
+import type { airPurifierServiceData, airPurifierStatus, airPurifierTableServiceData, airPurifierTableStatus, airPurifierTableWebhookContext, airPurifierWebhookContext, bodyChange, device, SwitchBotBLE, SwitchbotDevice } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { devicesConfig } from '../settings.js'
@@ -18,43 +18,30 @@ import { debounceTime, interval, skipWhile, Subject, take, tap } from 'rxjs'
 import { formatDeviceIdAsMac } from '../utils.js'
 import { deviceBase } from './device.js'
 
-export class Fan extends deviceBase {
+export class AirPurifier extends deviceBase {
   // Services
-  private Fan: {
+  private AirPurifier: {
     Name: CharacteristicValue
     Service: Service
     Active: CharacteristicValue
-    SwingMode: CharacteristicValue
     RotationSpeed: CharacteristicValue
-  }
-
-  private Battery: {
-    Name: CharacteristicValue
-    Service: Service
-    BatteryLevel: CharacteristicValue
-    StatusLowBattery: CharacteristicValue
-    ChargingState: CharacteristicValue
-  }
-
-  private LightBulb: {
-    Name: CharacteristicValue
-    Service: Service
-    On: CharacteristicValue
-    Brightness: CharacteristicValue
+    CurrentAirPurifierState: CharacteristicValue
+    TargetAirPurifierState: CharacteristicValue
+    CurrentHeaterCoolerState: CharacteristicValue
   }
 
   // OpenAPI
-  deviceStatus!: batteryCirculatorFanStatus
+  deviceStatus!: airPurifierStatus | airPurifierTableStatus
 
   // Webhook
-  webhookContext!: batteryCirculatorFanWebhookContext
+  webhookContext!: airPurifierWebhookContext | airPurifierTableWebhookContext
 
   // BLE
-  serviceData!: batteryCirculatorFanServiceData
+  serviceData!: airPurifierServiceData | airPurifierTableServiceData
 
   // Updates
-  fanUpdateInProgress!: boolean
-  doFanUpdate!: Subject<void>
+  airPurifierUpdateInProgress!: boolean
+  doAirPurifierUpdate!: Subject<void>
 
   constructor(
     readonly platform: SwitchBotPlatform,
@@ -63,83 +50,34 @@ export class Fan extends deviceBase {
   ) {
     super(platform, accessory, device)
     // Set category
-    accessory.category = this.hap.Categories.FAN
+    accessory.category = this.hap.Categories.AIR_PURIFIER
 
     // this is subject we use to track when we need to POST changes to the SwitchBot API
-    this.doFanUpdate = new Subject()
-    this.fanUpdateInProgress = false
+    this.doAirPurifierUpdate = new Subject()
+    this.airPurifierUpdateInProgress = false
 
-    // Initialize Fan Service
-    accessory.context.Fan = accessory.context.Fan ?? {}
-    this.Fan = {
+    // Initialize AirPurifier Service
+    accessory.context.AirPurifier = accessory.context.AirPurifier ?? {}
+    this.AirPurifier = {
       Name: accessory.displayName,
-      Service: accessory.getService(this.hap.Service.Fanv2) ?? accessory.addService(this.hap.Service.Fanv2) as Service,
+      Service: accessory.getService(this.hap.Service.AirPurifier) ?? accessory.addService(this.hap.Service.AirPurifier) as Service,
       Active: accessory.context.Active ?? this.hap.Characteristic.Active.INACTIVE,
-      SwingMode: accessory.context.SwingMode ?? this.hap.Characteristic.SwingMode.SWING_DISABLED,
       RotationSpeed: accessory.context.RotationSpeed ?? 0,
+      CurrentAirPurifierState: accessory.context.CurrentAirPurifierState ?? this.hap.Characteristic.CurrentAirPurifierState.INACTIVE,
+      TargetAirPurifierState: accessory.context.TargetAirPurifierState ?? this.hap.Characteristic.TargetAirPurifierState.AUTO,
+      CurrentHeaterCoolerState: accessory.context.CurrentHeaterCoolerState ?? this.hap.Characteristic.CurrentHeaterCoolerState.INACTIVE,
     }
-    accessory.context.Fan = this.Fan as object
+    accessory.context.AirPurifier = this.AirPurifier as object
 
-    // Initialize Fan Service
-    this.Fan.Service.setCharacteristic(this.hap.Characteristic.Name, this.Fan.Name).getCharacteristic(this.hap.Characteristic.Active).onGet(() => {
-      return this.Fan.Active
+    // Initialize AirPurifier Service
+    this.AirPurifier.Service.setCharacteristic(this.hap.Characteristic.Name, this.AirPurifier.Name).getCharacteristic(this.hap.Characteristic.Active).onGet(() => {
+      return this.AirPurifier.Active
     }).onSet(this.ActiveSet.bind(this))
 
     // Initialize Fan RotationSpeed Characteristic
-    this.Fan.Service.getCharacteristic(this.hap.Characteristic.RotationSpeed).onGet(() => {
-      return this.Fan.RotationSpeed
+    this.AirPurifier.Service.getCharacteristic(this.hap.Characteristic.RotationSpeed).onGet(() => {
+      return this.AirPurifier.RotationSpeed
     }).onSet(this.RotationSpeedSet.bind(this))
-
-    // Initialize Fan SwingMode Characteristic
-    this.Fan.Service.getCharacteristic(this.hap.Characteristic.SwingMode).onGet(() => {
-      return this.Fan.SwingMode
-    }).onSet(this.SwingModeSet.bind(this))
-
-    // Initialize Battery Service
-    accessory.context.Battery = accessory.context.Battery ?? {}
-    this.Battery = {
-      Name: `${accessory.displayName} Battery`,
-      Service: accessory.getService(this.hap.Service.Battery) ?? accessory.addService(this.hap.Service.Battery) as Service,
-      BatteryLevel: accessory.context.BatteryLevel ?? 100,
-      StatusLowBattery: accessory.context.StatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
-      ChargingState: accessory.context.ChargingState ?? this.hap.Characteristic.ChargingState.NOT_CHARGING,
-    }
-    accessory.context.Battery = this.Battery as object
-
-    // Initialize Battery Service
-    this.Battery.Service.setCharacteristic(this.hap.Characteristic.Name, this.Battery.Name).getCharacteristic(this.hap.Characteristic.BatteryLevel).onGet(() => {
-      return this.Battery.BatteryLevel
-    })
-
-    // Initialize Battery ChargingState Characteristic
-    this.Battery.Service.getCharacteristic(this.hap.Characteristic.ChargingState).onGet(() => {
-      return this.Battery.ChargingState
-    })
-
-    // Initialize Battery StatusLowBattery Characteristic
-    this.Battery.Service.getCharacteristic(this.hap.Characteristic.StatusLowBattery).onGet(() => {
-      return this.Battery.StatusLowBattery
-    })
-
-    // Initialize LightBulb Service
-    accessory.context.LightBulb = accessory.context.LightBulb ?? {}
-    this.LightBulb = {
-      Name: `${accessory.displayName} Night Light`,
-      Service: accessory.getService(this.hap.Service.Lightbulb) ?? accessory.addService(this.hap.Service.Lightbulb) as Service,
-      On: accessory.context.On ?? false,
-      Brightness: accessory.context.Brightness ?? 0,
-    }
-    accessory.context.LightBulb = this.LightBulb as object
-
-    // Initialize LightBulb Characteristics
-    this.LightBulb.Service.setCharacteristic(this.hap.Characteristic.Name, this.LightBulb.Name).getCharacteristic(this.hap.Characteristic.On).onGet(() => {
-      return this.LightBulb.On
-    }).onSet(this.OnSet.bind(this))
-
-    // Initialize LightBulb Brightness Characteristic
-    this.LightBulb.Service.getCharacteristic(this.hap.Characteristic.Brightness).onGet(() => {
-      return this.LightBulb.Brightness
-    }).onSet(this.BrightnessSet.bind(this))
 
     // Retrieve initial values and updateHomekit
     try {
@@ -167,17 +105,17 @@ export class Fan extends deviceBase {
 
     // Start an update interval
     interval(this.deviceRefreshRate * 1000)
-      .pipe(skipWhile(() => this.fanUpdateInProgress))
+      .pipe(skipWhile(() => this.airPurifierUpdateInProgress))
       .subscribe(async () => {
         await this.refreshStatus()
       })
 
     // Watch for Plug change events
     // We put in a debounce of 100ms so we don't make duplicate calls
-    this.doFanUpdate
+    this.doAirPurifierUpdate
       .pipe(
         tap(() => {
-          this.fanUpdateInProgress = true
+          this.airPurifierUpdateInProgress = true
         }),
         debounceTime(this.devicePushRate * 1000),
       )
@@ -188,55 +126,57 @@ export class Fan extends deviceBase {
           await this.apiError(e)
           this.errorLog(`failed pushChanges with ${device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
         }
-        this.fanUpdateInProgress = false
+        this.airPurifierUpdateInProgress = false
       })
   }
 
   async BLEparseStatus(): Promise<void> {
     this.debugLog('BLEparseStatus')
-    this.debugLog(`(powerState, fanSpeed) = BLE:(${this.serviceData.state}, ${this.serviceData.fanSpeed}), current:(${this.Fan.Active}, ${this.Fan.RotationSpeed})`)
+    this.debugLog(`(powerState, fanSpeed) = BLE:(${this.serviceData.isOn}, ${this.serviceData.speed}), current:(${this.AirPurifier.Active}, ${this.AirPurifier.RotationSpeed})`)
 
     // Active
-    this.Fan.Active = this.serviceData.state === 'on' ? this.hap.Characteristic.Active.ACTIVE : this.hap.Characteristic.Active.INACTIVE
-    this.debugLog(`Active: ${this.Fan.Active}`)
+    this.AirPurifier.Active = this.serviceData.isOn ? this.hap.Characteristic.Active.ACTIVE : this.hap.Characteristic.Active.INACTIVE
+    this.debugLog(`Active: ${this.AirPurifier.Active}`)
 
     // RotationSpeed
-    this.Fan.RotationSpeed = this.serviceData.fanSpeed // ?? 0
-    this.debugLog(`RotationSpeed: ${this.Fan.RotationSpeed}`)
+    this.AirPurifier.RotationSpeed = this.serviceData.speed
+    this.debugLog(`RotationSpeed: ${this.AirPurifier.RotationSpeed}`)
   }
 
   async openAPIparseStatus() {
     this.debugLog('openAPIparseStatus')
-    this.debugLog(`(version, battery, powerState, oscillation, chargingStatus, fanSpeed) = OpenAPI:(${this.deviceStatus.version}, ${this.deviceStatus.battery}, ${this.deviceStatus.power}, ${this.deviceStatus.oscillation}, ${this.deviceStatus.chargingStatus}, ${this.deviceStatus.fanSpeed}), current:(${this.accessory.context.version}, ${this.Battery.BatteryLevel}, ${this.Fan.Active}, ${this.Fan.SwingMode}, ${this.Battery.ChargingState}, ${this.Fan.RotationSpeed})`)
+    this.debugLog(`(version, power, mode, childLock) = OpenAPI:(${this.deviceStatus.version}, ${this.deviceStatus.power}, ${this.deviceStatus.mode}, ${this.deviceStatus.childLock}), current:(${this.accessory.context.version}, ${this.AirPurifier.Active}, ${this.AirPurifier.TargetAirPurifierState})`)
 
-    // Active
-    this.Fan.Active = this.deviceStatus.power === 'on' ? this.hap.Characteristic.Active.ACTIVE : this.hap.Characteristic.Active.INACTIVE
-    this.debugLog(`Active: ${this.Fan.Active}`)
+    // Active - handle both "ON"/"on" and "OFF"/"off"
+    this.AirPurifier.Active = (this.deviceStatus.power === 'ON' || this.deviceStatus.power === 'on')
+      ? this.hap.Characteristic.Active.ACTIVE
+      : this.hap.Characteristic.Active.INACTIVE
+    this.debugLog(`Active: ${this.AirPurifier.Active}`)
 
-    // SwingMode
-    this.Fan.SwingMode = this.deviceStatus.oscillation === 'on'
-      ? this.hap.Characteristic.SwingMode.SWING_ENABLED
-      : this.hap.Characteristic.SwingMode.SWING_DISABLED
-    this.debugLog(`SwingMode: ${this.Fan.SwingMode}`)
+    // Map mode to TargetAirPurifierState
+    if (this.deviceStatus.mode !== undefined) {
+      switch (this.deviceStatus.mode) {
+        case 1: // normal/fan mode
+          this.AirPurifier.TargetAirPurifierState = this.hap.Characteristic.TargetAirPurifierState.MANUAL
+          break
+        case 2: // auto mode
+          this.AirPurifier.TargetAirPurifierState = this.hap.Characteristic.TargetAirPurifierState.AUTO
+          break
+        case 3: // sleep mode
+        case 4: // pet mode
+          this.AirPurifier.TargetAirPurifierState = this.hap.Characteristic.TargetAirPurifierState.MANUAL
+          break
+        default:
+          this.AirPurifier.TargetAirPurifierState = this.hap.Characteristic.TargetAirPurifierState.AUTO
+      }
+      this.debugLog(`TargetAirPurifierState (mode ${this.deviceStatus.mode}): ${this.AirPurifier.TargetAirPurifierState}`)
+    }
 
-    // RotationSpeed
-    this.Fan.RotationSpeed = this.deviceStatus.fanSpeed ?? 0
-    this.debugLog(`RotationSpeed: ${this.Fan.RotationSpeed}`)
-
-    // ChargingState
-    this.Battery.ChargingState = this.deviceStatus.chargingStatus === 'charging'
-      ? this.hap.Characteristic.ChargingState.CHARGING
-      : this.hap.Characteristic.ChargingState.NOT_CHARGING
-
-    // BatteryLevel
-    this.Battery.BatteryLevel = this.deviceStatus.battery
-    this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
-
-    // StatusLowBattery
-    this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
-      ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
-      : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
-    this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
+    // CurrentAirPurifierState based on power
+    this.AirPurifier.CurrentAirPurifierState = this.AirPurifier.Active
+      ? this.hap.Characteristic.CurrentAirPurifierState.PURIFYING_AIR
+      : this.hap.Characteristic.CurrentAirPurifierState.INACTIVE
+    this.debugLog(`CurrentAirPurifierState: ${this.AirPurifier.CurrentAirPurifierState}`)
 
     // Firmware Version
     if (this.deviceStatus.version) {
@@ -256,40 +196,35 @@ export class Fan extends deviceBase {
 
   async parseStatusWebhook(): Promise<void> {
     this.debugLog('parseStatusWebhook')
-    this.debugLog(`(version, battery, powerState, oscillation, chargingStatus, fanSpeed) = Webhook:(${this.webhookContext.version}, ${this.webhookContext.battery}, ${this.webhookContext.powerState}, ${this.webhookContext.oscillation}, ${this.webhookContext.chargingStatus}, ${this.webhookContext.fanSpeed}), current:(${this.accessory.context.version}, ${this.Battery.BatteryLevel}, ${this.Fan.Active}, ${this.Fan.SwingMode}, ${this.Battery.ChargingState}, ${this.Fan.RotationSpeed})`)
+    this.debugLog(`(power, mode, childLock) = Webhook:(${this.webhookContext.power}, ${this.webhookContext.mode}, ${this.webhookContext.childLock}), current:(${this.AirPurifier.Active}, ${this.AirPurifier.TargetAirPurifierState})`)
 
-    // Active
-    this.Fan.Active = this.webhookContext.powerState === 'ON' ? this.hap.Characteristic.Active.ACTIVE : this.hap.Characteristic.Active.INACTIVE
-    this.debugLog(`Active: ${this.Fan.Active}`)
+    // Active - handle webhook power state
+    this.AirPurifier.Active = (this.webhookContext.power === 'ON' || this.webhookContext.power === 'on')
+      ? this.hap.Characteristic.Active.ACTIVE
+      : this.hap.Characteristic.Active.INACTIVE
+    this.debugLog(`Active: ${this.AirPurifier.Active}`)
 
-    // SwingMode
-    this.Fan.SwingMode = this.webhookContext.oscillation === 'on'
-      ? this.hap.Characteristic.SwingMode.SWING_ENABLED
-      : this.hap.Characteristic.SwingMode.SWING_DISABLED
-    this.debugLog(`SwingMode: ${this.Fan.SwingMode}`)
-
-    // RotationSpeed
-    this.Fan.RotationSpeed = this.webhookContext.fanSpeed // ?? 0
-    this.debugLog(`RotationSpeed: ${this.Fan.RotationSpeed}`)
-
-    // BatteryLevel
-    this.Battery.BatteryLevel = this.webhookContext.battery
-    this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
-
-    // StatusLowBattery
-    this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
-      ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
-      : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
-    this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
-
-    // ChargingState
-    this.Battery.ChargingState = this.webhookContext.chargingStatus === 'charging'
-      ? this.hap.Characteristic.ChargingState.CHARGING
-      : this.hap.Characteristic.ChargingState.NOT_CHARGING
-    this.debugLog(`ChargingState: ${this.Battery.ChargingState}`)
+    // Handle mode from webhook if available
+    if (this.webhookContext.mode !== undefined) {
+      switch (this.webhookContext.mode) {
+        case 1:
+          this.AirPurifier.TargetAirPurifierState = this.hap.Characteristic.TargetAirPurifierState.MANUAL
+          break
+        case 2:
+          this.AirPurifier.TargetAirPurifierState = this.hap.Characteristic.TargetAirPurifierState.AUTO
+          break
+        case 3:
+        case 4:
+          this.AirPurifier.TargetAirPurifierState = this.hap.Characteristic.TargetAirPurifierState.MANUAL
+          break
+        default:
+          this.AirPurifier.TargetAirPurifierState = this.hap.Characteristic.TargetAirPurifierState.AUTO
+      }
+      this.debugLog(`TargetAirPurifierState: ${this.AirPurifier.TargetAirPurifierState}`)
+    }
 
     // FirmwareVersion
-    if (this.webhookContext.version) {
+    /* if (this.webhookContext.version) {
       const deviceVersion = this.webhookContext.version.replace(/^V|-.*$/g, '') ?? '0.0.0'
       this.accessory
         .getService(this.hap.Service.AccessoryInformation)!
@@ -299,7 +234,7 @@ export class Fan extends deviceBase {
         .updateValue(deviceVersion)
       this.accessory.context.version = deviceVersion
       this.debugSuccessLog(`version: ${this.accessory.context.version}`)
-    }
+    } */
   }
 
   /**
@@ -325,9 +260,9 @@ export class Fan extends deviceBase {
       // Start to monitor advertisement packets
       (async () => {
         // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as batteryCirculatorFanServiceData
+        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as unknown as airPurifierServiceData | airPurifierTableServiceData
         // Update HomeKit
-        if (serviceData.model === SwitchBotBLEModel.Unknown && SwitchBotBLEModelName.Unknown) {
+        if ((serviceData.model === SwitchBotBLEModel.AirPurifier && SwitchBotBLEModelName.AirPurifier) ?? (serviceData.model === SwitchBotBLEModel.AirPurifierTable && SwitchBotBLEModelName.AirPurifierTable)) {
           this.serviceData = serviceData
           if (serviceData !== undefined || serviceData !== null) {
             await this.BLEparseStatus()
@@ -352,7 +287,7 @@ export class Fan extends deviceBase {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
         this.debugLog(`bleMac: ${this.device.bleMac}`)
-        this.platform.bleEventHandler[this.device.bleMac] = async (context: batteryCirculatorFanServiceData) => {
+        this.platform.bleEventHandler[this.device.bleMac] = async (context: airPurifierServiceData | airPurifierTableServiceData) => {
           try {
             this.serviceData = context
             if (context !== undefined || context !== null) {
@@ -378,7 +313,7 @@ export class Fan extends deviceBase {
   async openAPIRefreshStatus(): Promise<void> {
     this.debugLog('openAPIRefreshStatus')
     try {
-      const deviceStatus = await this.deviceRefreshStatus<batteryCirculatorFanStatus>()
+      const deviceStatus = await this.deviceRefreshStatus<airPurifierStatus>()
       this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
       if (await this.successfulStatusCodes(deviceStatus)) {
         this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
@@ -397,7 +332,7 @@ export class Fan extends deviceBase {
   async registerWebhook() {
     if (this.device.webhook) {
       this.debugLog('is listening webhook.')
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context: batteryCirculatorFanWebhookContext) => {
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context: airPurifierWebhookContext | airPurifierTableWebhookContext) => {
         try {
           this.webhookContext = context
           if (context !== undefined || context !== null) {
@@ -431,14 +366,11 @@ export class Fan extends deviceBase {
       await this.BLEpushChanges()
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges()
-      if (this.Fan.Active) {
-        this.debugLog(`Active: ${this.Fan.Active}`)
+      if (this.AirPurifier.Active) {
+        this.debugLog(`Active: ${this.AirPurifier.Active}`)
         // Push RotationSpeed Update
-        this.debugLog(`RotationSpeed: ${this.Fan.RotationSpeed}`)
+        this.debugLog(`RotationSpeed: ${this.AirPurifier.RotationSpeed}`)
         await this.pushRotationSpeedChanges()
-        // Push SwingMode Update
-        this.debugLog(`SwingMode: ${this.Fan.SwingMode}`)
-        await this.pushSwingModeChanges()
       } else {
         this.debugLog('BLE (RotationSpeed) & (SwingMode) changes will not happen, as the device is Off.')
       }
@@ -448,7 +380,7 @@ export class Fan extends deviceBase {
     }
     // Refresh the status from the API
     interval(15000)
-      .pipe(skipWhile(() => this.fanUpdateInProgress))
+      .pipe(skipWhile(() => this.airPurifierUpdateInProgress))
       .pipe(take(1))
       .subscribe(async () => {
         await this.refreshStatus()
@@ -457,8 +389,8 @@ export class Fan extends deviceBase {
 
   async BLEpushChanges(): Promise<void> {
     this.debugLog('BLEpushChanges')
-    if (this.Fan.Active !== this.accessory.context.Active) {
-      this.debugLog(`BLEpushChanges On: ${this.Fan.Active} OnCached: ${this.accessory.context.Active}`)
+    if (this.AirPurifier.Active !== this.accessory.context.Active) {
+      this.debugLog(`BLEpushChanges On: ${this.AirPurifier.Active} OnCached: ${this.accessory.context.Active}`)
       const switchBotBLE = await this.platform.connectBLE(this.accessory, this.device)
       try {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
@@ -471,7 +403,7 @@ export class Fan extends deviceBase {
               return await this.retryBLE({
                 max: this.maxRetryBLE(),
                 fn: async () => {
-                  if (this.Fan.Active) {
+                  if (this.AirPurifier.Active) {
                     return await (device_list[0] as any).turnOn()
                   } else {
                     return await (device_list[0] as any).turnOff()
@@ -480,7 +412,7 @@ export class Fan extends deviceBase {
               })
             })
             .then(async () => {
-              this.successLog(`Active: ${this.Fan.Active} sent over SwitchBot BLE, sent successfully`)
+              this.successLog(`Active: ${this.AirPurifier.Active} sent over SwitchBot BLE, sent successfully`)
               await this.updateHomeKitCharacteristics()
             })
             .catch(async (e: any) => {
@@ -496,14 +428,14 @@ export class Fan extends deviceBase {
         this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
       }
     } else {
-      this.debugLog(`No change (BLEpushChanges), Active: ${this.Fan.Active}, ActiveCached: ${this.accessory.context.Active}`)
+      this.debugLog(`No change (BLEpushChanges), Active: ${this.AirPurifier.Active}, ActiveCached: ${this.accessory.context.Active}`)
     }
   }
 
   async openAPIpushChanges() {
     this.debugLog('openAPIpushChanges')
-    if (this.Fan.Active !== this.accessory.context.Active) {
-      const command = this.Fan.Active ? 'turnOn' : 'turnOff'
+    if (this.AirPurifier.Active !== this.accessory.context.Active) {
+      const command = this.AirPurifier.Active ? 'turnOn' : 'turnOff'
       const bodyChange: bodyChange = {
         command: `${command}`,
         parameter: 'default',
@@ -524,16 +456,16 @@ export class Fan extends deviceBase {
         this.errorLog(`failed openAPIpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
       }
     } else {
-      this.debugLog(`No changes (openAPIpushChanges), Active: ${this.Fan.Active}, ActiveCached: ${this.accessory.context.Active}`)
+      this.debugLog(`No changes (openAPIpushChanges), Active: ${this.AirPurifier.Active}, ActiveCached: ${this.accessory.context.Active}`)
     }
   }
 
   async pushRotationSpeedChanges(): Promise<void> {
     this.debugLog('pushRotationSpeedChanges')
-    if (this.Fan.SwingMode !== this.accessory.context.SwingMode) {
+    if (this.AirPurifier.RotationSpeed !== this.accessory.context.RotationSpeed) {
       const bodyChange: bodyChange = {
         command: 'setWindSpeed',
-        parameter: `${this.Fan.RotationSpeed}`,
+        parameter: `${this.AirPurifier.RotationSpeed}`,
         commandType: 'command',
       }
       this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
@@ -551,35 +483,7 @@ export class Fan extends deviceBase {
         this.errorLog(`failed pushRotationSpeedChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
       }
     } else {
-      this.debugLog(`No changes (pushRotationSpeedChanges), RotationSpeed: ${this.Fan.RotationSpeed}, RotationSpeedCached: ${this.accessory.context.RotationSpeed}`)
-    }
-  }
-
-  async pushSwingModeChanges(): Promise<void> {
-    this.debugLog('pushSwingModeChanges')
-    if (this.Fan.SwingMode !== this.accessory.context.SwingMode) {
-      const parameter = this.Fan.SwingMode === this.hap.Characteristic.SwingMode.SWING_ENABLED ? 'on' : 'off'
-      const bodyChange: bodyChange = {
-        command: 'setOscillation',
-        parameter: `${parameter}`,
-        commandType: 'command',
-      }
-      this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
-      try {
-        const deviceStatus = await this.pushChangeRequest(bodyChange)
-        this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        if (await this.successfulStatusCodes(deviceStatus)) {
-          this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-          await this.updateHomeKitCharacteristics()
-        } else {
-          await this.statusCode(deviceStatus.statusCode)
-        }
-      } catch (e: any) {
-        await this.apiError(e)
-        this.errorLog(`failed pushSwingModeChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
-      }
-    } else {
-      this.debugLog(`No changes (pushSwingModeChanges), SwingMode: ${this.Fan.SwingMode}, SwingModeCached: ${this.accessory.context.SwingMode}`)
+      this.debugLog(`No changes (pushRotationSpeedChanges), RotationSpeed: ${this.AirPurifier.RotationSpeed}, RotationSpeedCached: ${this.accessory.context.RotationSpeed}`)
     }
   }
 
@@ -587,93 +491,41 @@ export class Fan extends deviceBase {
    * Handle requests to set the value of the "On" characteristic
    */
   async ActiveSet(value: CharacteristicValue): Promise<void> {
-    if (this.Fan.Active !== this.accessory.context.Active) {
+    if (this.AirPurifier.Active !== this.accessory.context.Active) {
       this.infoLog(`Set Active: ${value}`)
     } else {
       this.debugLog(`No Changes, Active: ${value}`)
     }
 
-    this.Fan.Active = value
-    this.doFanUpdate.next()
+    this.AirPurifier.Active = value
+    this.doAirPurifierUpdate.next()
   }
 
   /**
    * Handle requests to set the value of the "On" characteristic
    */
   async RotationSpeedSet(value: CharacteristicValue): Promise<void> {
-    if (this.Fan.RotationSpeed !== this.accessory.context.RotationSpeed) {
+    if (this.AirPurifier.RotationSpeed !== this.accessory.context.RotationSpeed) {
       this.infoLog(`Set RotationSpeed ${value}`)
     } else {
       this.debugLog(`No Changes, RotationSpeed: ${value}`)
     }
 
-    this.Fan.RotationSpeed = value
-    this.doFanUpdate.next()
-  }
-
-  /**
-   * Handle requests to set the value of the "On" characteristic
-   */
-  async SwingModeSet(value: CharacteristicValue): Promise<void> {
-    if (this.Fan.SwingMode !== this.accessory.context.SwingMode) {
-      this.infoLog(`Set SwingMode ${value}`)
-    } else {
-      this.debugLog(`No Changes, SwingMode: ${value}`)
-    }
-
-    this.Fan.SwingMode = value
-    this.doFanUpdate.next()
-  }
-
-  /**
-   * Handle requests to set the value of the "On" characteristic
-   */
-  async OnSet(value: CharacteristicValue): Promise<void> {
-    if (this.LightBulb.On !== this.accessory.context.On) {
-      this.infoLog(`Set On: ${value}`)
-    } else {
-      this.debugLog(`No Changes, On: ${value}`)
-    }
-
-    this.LightBulb.On = value
-    this.doFanUpdate.next()
-  }
-
-  /**
-   * Handle requests to set the value of the "Brightness" characteristic
-   */
-  async BrightnessSet(value: CharacteristicValue): Promise<void> {
-    if (this.LightBulb.On && (this.LightBulb.Brightness !== this.accessory.context.Brightness)) {
-      this.infoLog(`Set Brightness: ${value}`)
-    } else {
-      if (this.LightBulb.On) {
-        this.debugLog(`No Changes, Brightness: ${value}`)
-      } else {
-        this.debugLog(`Set Brightness: ${value}, On: ${this.LightBulb.On}`)
-      }
-    }
-
-    this.LightBulb.Brightness = value
-    this.doFanUpdate.next()
+    this.AirPurifier.RotationSpeed = value
+    this.doAirPurifierUpdate.next()
   }
 
   async updateHomeKitCharacteristics(): Promise<void> {
     // Active
-    await this.updateCharacteristic(this.Fan.Service, this.hap.Characteristic.Active, this.Fan.Active, 'Active')
+    await this.updateCharacteristic(this.AirPurifier.Service, this.hap.Characteristic.Active, this.AirPurifier.Active, 'Active')
     // RotationSpeed
-    await this.updateCharacteristic(this.Fan.Service, this.hap.Characteristic.RotationSpeed, this.Fan.RotationSpeed, 'RotationSpeed')
-    // SwingMode
-    await this.updateCharacteristic(this.Fan.Service, this.hap.Characteristic.SwingMode, this.Fan.SwingMode, 'SwingMode')
-    // BatteryLevel
-    await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.BatteryLevel, this.Battery.BatteryLevel, 'BatteryLevel')
-    // ChargingState
-    await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.ChargingState, this.Battery.ChargingState, 'ChargingState')
-    // StatusLowBattery
-    await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery, 'StatusLowBattery')
-    // On
-    await this.updateCharacteristic(this.LightBulb.Service, this.hap.Characteristic.On, this.LightBulb.On, 'On')
-    // Brightness
-    await this.updateCharacteristic(this.LightBulb.Service, this.hap.Characteristic.Brightness, this.LightBulb.Brightness, 'Brightness')
+    await this.updateCharacteristic(this.AirPurifier.Service, this.hap.Characteristic.RotationSpeed, this.AirPurifier.RotationSpeed, 'RotationSpeed')
+    // CurrentAirPurifierState
+    await this.updateCharacteristic(this.AirPurifier.Service, this.hap.Characteristic.CurrentAirPurifierState, this.AirPurifier.CurrentAirPurifierState, 'CurrentAirPurifierState')
+    // TargetAirPurifierState
+    await this.updateCharacteristic(this.AirPurifier.Service, this.hap.Characteristic.TargetAirPurifierState, this.AirPurifier.TargetAirPurifierState, 'TargetAirPurifierState')
+    // CurrentHeaterCoolerState
+    await this.updateCharacteristic(this.AirPurifier.Service, this.hap.Characteristic.CurrentHeaterCoolerState, this.AirPurifier.CurrentHeaterCoolerState, 'CurrentHeaterCoolerState')
   }
 
   async BLEPushConnection() {
@@ -693,19 +545,19 @@ export class Fan extends deviceBase {
 
   async offlineOff(): Promise<void> {
     if (this.device.offline) {
-      this.Fan.Service.updateCharacteristic(this.hap.Characteristic.Active, this.hap.Characteristic.Active.INACTIVE)
-      this.Fan.Service.updateCharacteristic(this.hap.Characteristic.RotationSpeed, 0)
-      this.Fan.Service.updateCharacteristic(this.hap.Characteristic.SwingMode, this.hap.Characteristic.SwingMode.SWING_DISABLED)
-      this.LightBulb.Service.updateCharacteristic(this.hap.Characteristic.On, false)
-      this.LightBulb.Service.updateCharacteristic(this.hap.Characteristic.Brightness, 0)
+      this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.Active, this.hap.Characteristic.Active.INACTIVE)
+      this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.RotationSpeed, 0)
+      this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.CurrentAirPurifierState, this.hap.Characteristic.CurrentAirPurifierState.INACTIVE)
+      this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.TargetAirPurifierState, this.hap.Characteristic.TargetAirPurifierState.AUTO)
+      this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.CurrentHeaterCoolerState, this.hap.Characteristic.CurrentHeaterCoolerState.INACTIVE)
     }
   }
 
   async apiError(e: any): Promise<void> {
-    this.Fan.Service.updateCharacteristic(this.hap.Characteristic.Active, e)
-    this.Fan.Service.updateCharacteristic(this.hap.Characteristic.RotationSpeed, e)
-    this.Fan.Service.updateCharacteristic(this.hap.Characteristic.SwingMode, e)
-    this.LightBulb.Service.updateCharacteristic(this.hap.Characteristic.On, e)
-    this.LightBulb.Service.updateCharacteristic(this.hap.Characteristic.Brightness, e)
+    this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.Active, e)
+    this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.RotationSpeed, e)
+    this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.CurrentAirPurifierState, e)
+    this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.TargetAirPurifierState, e)
+    this.AirPurifier.Service.updateCharacteristic(this.hap.Characteristic.CurrentHeaterCoolerState, e)
   }
 }

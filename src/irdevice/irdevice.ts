@@ -198,12 +198,12 @@ export abstract class irdeviceBase {
     }
   }
 
-  async pushStatusCodes(deviceStatus: any) {
+  async pushStatusCodes<T extends { statusCode: number }>(deviceStatus: T) {
     this.debugWarnLog(`deviceStatus: ${JSON.stringify(deviceStatus)}`)
     this.debugWarnLog(`deviceStatus statusCode: ${deviceStatus.statusCode}`)
   }
 
-  async successfulPushChange(deviceStatus: any, bodyChange: any) {
+  async successfulPushChange<T extends { statusCode: number }>(deviceStatus: T, bodyChange: any) {
     this.debugSuccessLog(`deviceStatus StatusCode: ${deviceStatus.statusCode}`)
     this.successLog(`request to SwitchBot API, body: ${JSON.stringify(bodyChange)} sent successfully`)
   }
