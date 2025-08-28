@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Unreleased]
+
+### What's Changed
+- Enhanced K10+ Pro support with advanced features:
+  - Added Water Base Battery service to show separate water tank battery level
+  - Added Task Type sensor to display current cleaning activity status
+  - Improved status parsing for floor cleaning robots (K10+ Pro, S10)
+  - Full support for `waterBaseBattery` and `taskType` fields from SwitchBot API
+
 ## [4.3.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v4.3.1) (2025-03-04)
 
 # *No New Releases During Lent*
