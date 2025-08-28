@@ -35,6 +35,21 @@ export class RobotVacuumCleaner extends deviceBase {
     ChargingState: CharacteristicValue
   }
 
+  // Water Base Battery Service (for Floor Cleaning Robots like K10+ Pro and S10)
+  private WaterBaseBattery?: {
+    Name: CharacteristicValue
+    Service: Service
+    BatteryLevel: CharacteristicValue
+    StatusLowBattery: CharacteristicValue
+  }
+
+  // Task Type Sensor (for Floor Cleaning Robots like K10+ Pro and S10)
+  private TaskTypeSensor?: {
+    Name: CharacteristicValue
+    Service: Service
+    ContactSensorState: CharacteristicValue
+  }
+
   // OpenAPI
   deviceStatus!: robotVacuumCleanerS1Status | robotVacuumCleanerS1PlusStatus | floorCleaningRobotS10Status
 
@@ -110,6 +125,45 @@ export class RobotVacuumCleaner extends deviceBase {
     this.Battery.Service.getCharacteristic(this.hap.Characteristic.ChargingState).onGet(() => {
       return this.Battery.ChargingState
     })
+
+    // Initialize Water Base Battery Service for Floor Cleaning Robots (K10+ Pro, S10)
+    if (this.isFloorCleaningRobot()) {
+      accessory.context.WaterBaseBattery = accessory.context.WaterBaseBattery ?? {}
+      this.WaterBaseBattery = {
+        Name: `${accessory.displayName} Water Base Battery`,
+        Service: accessory.getService('Water Base Battery') ?? accessory.addService(this.hap.Service.Battery, 'Water Base Battery', 'water-base-battery') as Service,
+        BatteryLevel: accessory.context.WaterBaseBatteryLevel ?? 100,
+        StatusLowBattery: accessory.context.WaterBaseStatusLowBattery ?? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL,
+      }
+      accessory.context.WaterBaseBattery = this.WaterBaseBattery as object
+
+      // Initialize Water Base Battery Characteristics
+      this.WaterBaseBattery.Service.setCharacteristic(this.hap.Characteristic.Name, this.WaterBaseBattery.Name).getCharacteristic(this.hap.Characteristic.BatteryLevel).onGet(() => {
+        return this.WaterBaseBattery!.BatteryLevel
+      })
+
+      this.WaterBaseBattery.Service.getCharacteristic(this.hap.Characteristic.StatusLowBattery).onGet(() => {
+        return this.WaterBaseBattery!.StatusLowBattery
+      })
+
+      this.debugLog('Initialized Water Base Battery service for Floor Cleaning Robot')
+
+      // Initialize Task Type Sensor Service for Floor Cleaning Robots
+      accessory.context.TaskTypeSensor = accessory.context.TaskTypeSensor ?? {}
+      this.TaskTypeSensor = {
+        Name: `${accessory.displayName} Task Status`,
+        Service: accessory.getService('Task Status') ?? accessory.addService(this.hap.Service.ContactSensor, 'Task Status', 'task-status') as Service,
+        ContactSensorState: accessory.context.TaskTypeSensorState ?? this.hap.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED,
+      }
+      accessory.context.TaskTypeSensor = this.TaskTypeSensor as object
+
+      // Initialize Task Type Sensor Characteristics
+      this.TaskTypeSensor.Service.setCharacteristic(this.hap.Characteristic.Name, this.TaskTypeSensor.Name).getCharacteristic(this.hap.Characteristic.ContactSensorState).onGet(() => {
+        return this.TaskTypeSensor!.ContactSensorState
+      })
+
+      this.debugLog('Initialized Task Type Sensor service for Floor Cleaning Robot')
+    }
 
     // Retrieve initial values and updateHomekit
     try {
@@ -207,6 +261,30 @@ export class RobotVacuumCleaner extends deviceBase {
       : this.hap.Characteristic.ChargingState.NOT_CHARGING
     this.debugLog(`ChargingState: ${this.Battery.ChargingState}`)
 
+    // Water Base Battery (for Floor Cleaning Robots)
+    if (this.isFloorCleaningRobot() && this.WaterBaseBattery) {
+      const floorCleaningStatus = this.deviceStatus as floorCleaningRobotS10Status
+      if ('waterBaseBattery' in floorCleaningStatus && floorCleaningStatus.waterBaseBattery !== undefined) {
+        this.WaterBaseBattery.BatteryLevel = floorCleaningStatus.waterBaseBattery
+        this.debugLog(`Water Base BatteryLevel: ${this.WaterBaseBattery.BatteryLevel}`)
+
+        // Water Base StatusLowBattery
+        this.WaterBaseBattery.StatusLowBattery = this.WaterBaseBattery.BatteryLevel < 10
+          ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
+          : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
+        this.debugLog(`Water Base StatusLowBattery: ${this.WaterBaseBattery.StatusLowBattery}`)
+      }
+
+      // Log task type information for debugging
+      if ('taskType' in floorCleaningStatus && floorCleaningStatus.taskType !== undefined) {
+        this.debugLog(`Current Task Type: ${floorCleaningStatus.taskType}`)
+        if (this.TaskTypeSensor) {
+          this.TaskTypeSensor.ContactSensorState = this.getTaskTypeSensorState(floorCleaningStatus.taskType)
+          this.debugLog(`Task Type Sensor State: ${this.TaskTypeSensor.ContactSensorState}`)
+        }
+      }
+    }
+
     // Firmware Version
     if (this.deviceStatus.version) {
       const version = this.deviceStatus.version.toString()
@@ -246,6 +324,30 @@ export class RobotVacuumCleaner extends deviceBase {
       ? this.hap.Characteristic.ChargingState.CHARGING
       : this.hap.Characteristic.ChargingState.NOT_CHARGING
     this.debugLog(`ChargingState: ${this.Battery.ChargingState}`)
+
+    // Water Base Battery (for Floor Cleaning Robots)
+    if (this.isFloorCleaningRobot() && this.WaterBaseBattery) {
+      const floorCleaningWebhook = this.webhookContext as floorCleaningRobotS10WebhookContext
+      if ('waterBaseBattery' in floorCleaningWebhook && floorCleaningWebhook.waterBaseBattery !== undefined) {
+        this.WaterBaseBattery.BatteryLevel = floorCleaningWebhook.waterBaseBattery
+        this.debugLog(`Water Base BatteryLevel: ${this.WaterBaseBattery.BatteryLevel}`)
+
+        // Water Base StatusLowBattery
+        this.WaterBaseBattery.StatusLowBattery = this.WaterBaseBattery.BatteryLevel < 10
+          ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
+          : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
+        this.debugLog(`Water Base StatusLowBattery: ${this.WaterBaseBattery.StatusLowBattery}`)
+      }
+
+      // Log task type information for debugging
+      if ('taskType' in floorCleaningWebhook && floorCleaningWebhook.taskType !== undefined) {
+        this.debugLog(`Current Task Type: ${floorCleaningWebhook.taskType}`)
+        if (this.TaskTypeSensor) {
+          this.TaskTypeSensor.ContactSensorState = this.getTaskTypeSensorState(floorCleaningWebhook.taskType)
+          this.debugLog(`Task Type Sensor State: ${this.TaskTypeSensor.ContactSensorState}`)
+        }
+      }
+    }
   }
 
   /**
@@ -546,6 +648,20 @@ export class RobotVacuumCleaner extends deviceBase {
     await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery, 'StatusLowBattery')
     // ChargingState
     await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.ChargingState, this.Battery.ChargingState, 'ChargingState')
+    
+    // Water Base Battery characteristics (for Floor Cleaning Robots)
+    if (this.isFloorCleaningRobot() && this.WaterBaseBattery) {
+      // Water Base BatteryLevel
+      await this.updateCharacteristic(this.WaterBaseBattery.Service, this.hap.Characteristic.BatteryLevel, this.WaterBaseBattery.BatteryLevel, 'Water Base BatteryLevel')
+      // Water Base StatusLowBattery
+      await this.updateCharacteristic(this.WaterBaseBattery.Service, this.hap.Characteristic.StatusLowBattery, this.WaterBaseBattery.StatusLowBattery, 'Water Base StatusLowBattery')
+    }
+
+    // Task Type Sensor characteristics (for Floor Cleaning Robots)
+    if (this.isFloorCleaningRobot() && this.TaskTypeSensor) {
+      // Task Type ContactSensorState
+      await this.updateCharacteristic(this.TaskTypeSensor.Service, this.hap.Characteristic.ContactSensorState, this.TaskTypeSensor.ContactSensorState, 'Task Type ContactSensorState')
+    }
   }
 
   async BLEPushConnection() {
@@ -571,5 +687,31 @@ export class RobotVacuumCleaner extends deviceBase {
 
   async apiError(e: any): Promise<void> {
     this.LightBulb.Service.updateCharacteristic(this.hap.Characteristic.On, e)
+  }
+
+  /**
+   * Check if the device is a floor cleaning robot that has water base battery
+   */
+  private isFloorCleaningRobot(): boolean {
+    return this.device.deviceType === 'K10+ Pro' 
+      || this.device.deviceType === 'Robot Vacuum Cleaner S10'
+  }
+
+  /**
+   * Convert task type to contact sensor state for HomeKit
+   * CONTACT_DETECTED = Active cleaning tasks
+   * CONTACT_NOT_DETECTED = Idle/standby/charging tasks
+   */
+  private getTaskTypeSensorState(taskType: string): CharacteristicValue {
+    const activeTaskTypes = [
+      'explore', 'cleanAll', 'cleanArea', 'cleanRoom', 
+      'deepWashing', 'collectDust', 'remoteControl', 
+      'cleanWithExplorer', 'fillWaterForHumi'
+    ]
+    
+    const isActiveTask = activeTaskTypes.includes(taskType)
+    return isActiveTask 
+      ? this.hap.Characteristic.ContactSensorState.CONTACT_DETECTED
+      : this.hap.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED
   }
 }
