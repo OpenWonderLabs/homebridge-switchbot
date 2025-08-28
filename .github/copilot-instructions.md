@@ -10,12 +10,36 @@ When creating pull requests, ALWAYS follow this branch targeting strategy:
    - If a beta branch exists, target the most recent beta branch for your PR
    - Beta branches are used for testing and staging changes before they go to the main branch
 
-2. **Fallback Target:** If no beta branches exist, target the `latest` branch
+2. **Beta Branch Creation:** If no beta branches exist, create one based on the next possible version
+   - Parse the current version from `package.json` (e.g., "4.3.1")
+   - Calculate the next version (increment patch version by default: 4.3.1 → 4.3.2)
+   - Create a new beta branch with the format `beta-X.Y.Z` (e.g., `beta-4.3.2`)
+   - Base the new beta branch on the `latest` branch
+   - Push the new beta branch to origin and target it for the PR
+
+3. **Fallback Target:** Only if beta branch creation fails, target the `latest` branch
    - The `latest` branch is the main development branch when no beta releases are in progress
 
-3. **Branch Detection:** Use the GitHub API or git commands to check available branches before creating PRs
-   - GitHub API: Use `github-mcp-server-list_branches` to get all branches and filter for "beta-" prefix
-   - Git command: `git ls-remote --heads origin | grep beta | sort -V | tail -1` to find the latest beta branch
+4. **Branch Detection and Creation:** Use these methods to check and create branches:
+   - **Detection:** GitHub API: Use `github-mcp-server-list_branches` to get all branches and filter for "beta-" prefix
+   - **Detection:** Git command: `git ls-remote --heads origin | grep beta | sort -V | tail -1` to find the latest beta branch
+   - **Version parsing:** Extract version from package.json: `node -p "require('./package.json').version"`
+   - **Next version calculation:** Choose increment type based on change scope:
+     - **Patch increment (default):** `node -p "const v=require('./package.json').version.split('.'); v[2]=parseInt(v[2])+1; v.join('.')"` 
+     - **Minor increment:** `node -p "const v=require('./package.json').version.split('.'); v[1]=parseInt(v[1])+1; v[2]='0'; v.join('.')"` 
+     - **Major increment:** `node -p "const v=require('./package.json').version.split('.'); v[0]=parseInt(v[0])+1; v[1]='0'; v[2]='0'; v.join('.')"` 
+     - Use patch increment for bug fixes, minor for new features, major for breaking changes
+   - **Beta branch creation:**
+     ```bash
+     # Get the next version
+     NEXT_VERSION=$(node -p "const v=require('./package.json').version.split('.'); v[2]=parseInt(v[2])+1; v.join('.')")
+     BETA_BRANCH="beta-${NEXT_VERSION}"
+     
+     # Create and push the beta branch from latest
+     git fetch origin
+     git checkout -b "${BETA_BRANCH}" origin/latest
+     git push origin "${BETA_BRANCH}"
+     ```
    - Always verify the target branch exists before creating the PR
 
 **NEVER target other branches** unless specifically instructed, and avoid targeting:
