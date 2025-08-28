@@ -2,6 +2,29 @@
 
 Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.
 
+## Branch Targeting Strategy
+
+When creating pull requests, ALWAYS follow this branch targeting strategy:
+
+1. **Primary Target:** Look for branches that start with "beta-" (e.g., `beta-4.3.2`, `beta-4.4.0`)
+   - If a beta branch exists, target the most recent beta branch for your PR
+   - Beta branches are used for testing and staging changes before they go to the main branch
+
+2. **Fallback Target:** If no beta branches exist, target the `latest` branch
+   - The `latest` branch is the main development branch when no beta releases are in progress
+
+3. **Branch Detection:** Use the GitHub API or git commands to check available branches before creating PRs
+   - GitHub API: Use `github-mcp-server-list_branches` to get all branches and filter for "beta-" prefix
+   - Git command: `git ls-remote --heads origin | grep beta | sort -V | tail -1` to find the latest beta branch
+   - Always verify the target branch exists before creating the PR
+
+**NEVER target other branches** unless specifically instructed, and avoid targeting:
+- Individual feature branches (copilot/*, fix/*, etc.)
+- Release branches that are not beta branches
+- The main branch directly
+
+This ensures proper workflow where changes are tested in beta branches before being merged to the main development line.
+
 ## Working Effectively
 
 ### Bootstrap and Build Process
