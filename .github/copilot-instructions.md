@@ -12,7 +12,8 @@ When creating pull requests, ALWAYS follow this branch targeting strategy:
 
 2. **Beta Branch Creation:** If no beta branches exist, create one based on the next possible version
    - Parse the current version from `package.json` (e.g., "4.3.1")
-   - Calculate the next version (increment patch version by default: 4.3.1 → 4.3.2)
+   - Determine version increment type using issue/PR labels (patch/minor/major)
+   - Calculate the appropriate next version based on detected labels
    - Create a new beta branch with the format `beta-X.Y.Z` (e.g., `beta-4.3.2`)
    - Base the new beta branch on the `latest` branch
    - Push the new beta branch to origin and target it for the PR
@@ -24,15 +25,32 @@ When creating pull requests, ALWAYS follow this branch targeting strategy:
    - **Detection:** GitHub API: Use `github-mcp-server-list_branches` to get all branches and filter for "beta-" prefix
    - **Detection:** Git command: `git ls-remote --heads origin | grep beta | sort -V | tail -1` to find the latest beta branch
    - **Version parsing:** Extract version from package.json: `node -p "require('./package.json').version"`
-   - **Next version calculation:** Choose increment type based on change scope:
-     - **Patch increment (default):** `node -p "const v=require('./package.json').version.split('.'); v[2]=parseInt(v[2])+1; v.join('.')"` 
-     - **Minor increment:** `node -p "const v=require('./package.json').version.split('.'); v[1]=parseInt(v[1])+1; v[2]='0'; v.join('.')"` 
-     - **Major increment:** `node -p "const v=require('./package.json').version.split('.'); v[0]=parseInt(v[0])+1; v[1]='0'; v[2]='0'; v.join('.')"` 
-     - Use patch increment for bug fixes, minor for new features, major for breaking changes
-   - **Beta branch creation:**
+   - **Label Detection:** Check for version increment labels on the issue/PR:
+     - Use GitHub API to get issue/PR labels
+     - Look for labels: `patch`, `minor`, `major`
+     - These labels should be set before assigning the issue to Copilot
+   - **Version Increment Logic:** Choose increment type based on detected labels:
+     - **patch label found:** `node -p "const v=require('./package.json').version.split('.'); v[2]=parseInt(v[2])+1; v.join('.')"` (4.3.1 → 4.3.2)
+     - **minor label found:** `node -p "const v=require('./package.json').version.split('.'); v[1]=parseInt(v[1])+1; v[2]='0'; v.join('.')"` (4.3.1 → 4.4.0)
+     - **major label found:** `node -p "const v=require('./package.json').version.split('.'); v[0]=parseInt(v[0])+1; v[1]='0'; v[2]='0'; v.join('.')"` (4.3.1 → 5.0.0)
+     - **No relevant labels:** Default to patch increment as fallback
+     - **Multiple increment labels:** Use highest priority (major > minor > patch)
+   - **Label-Based Beta Branch Creation:**
      ```bash
-     # Get the next version
-     NEXT_VERSION=$(node -p "const v=require('./package.json').version.split('.'); v[2]=parseInt(v[2])+1; v.join('.')")
+     # Detect version increment type from issue/PR labels
+     # Use GitHub API: github-mcp-server-get_issue or github-mcp-server-get_pull_request
+     # Check labels array for: patch, minor, major
+     
+     # Calculate next version based on detected labels
+     if [[ labels contains "major" ]]; then
+       NEXT_VERSION=$(node -p "const v=require('./package.json').version.split('.'); v[0]=parseInt(v[0])+1; v[1]='0'; v[2]='0'; v.join('.')")
+     elif [[ labels contains "minor" ]]; then
+       NEXT_VERSION=$(node -p "const v=require('./package.json').version.split('.'); v[1]=parseInt(v[1])+1; v[2]='0'; v.join('.')")
+     else
+       # Default to patch increment (includes when "patch" label found or no labels)
+       NEXT_VERSION=$(node -p "const v=require('./package.json').version.split('.'); v[2]=parseInt(v[2])+1; v.join('.')")
+     fi
+     
      BETA_BRANCH="beta-${NEXT_VERSION}"
      
      # Create and push the beta branch from latest
@@ -48,6 +66,18 @@ When creating pull requests, ALWAYS follow this branch targeting strategy:
 - The main branch directly
 
 This ensures proper workflow where changes are tested in beta branches before being merged to the main development line.
+
+### Label Requirements for Version Management
+
+**For Project Maintainers:** Before assigning issues to Copilot, set appropriate version increment labels:
+
+- **`patch`** - Bug fixes, documentation updates, minor improvements (4.3.1 → 4.3.2)
+- **`minor`** - New features, device support additions, non-breaking enhancements (4.3.1 → 4.4.0)  
+- **`major`** - Breaking changes, API modifications, major architectural updates (4.3.1 → 5.0.0)
+
+**Label Priority:** If multiple increment labels are present, the highest priority is used (major > minor > patch).
+
+**Fallback Behavior:** If no version increment labels are found, the system defaults to patch increment to ensure conservative version management.
 
 ## Working Effectively
 
