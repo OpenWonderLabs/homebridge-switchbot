@@ -139,6 +139,7 @@
     - Enable Cloud Services for Device on SwitchBot App
 - [SwitchBot Lock](https://us.switch-bot.com/products/switchbot-lock)
 - [SwitchBot Lock Pro](https://www.switchbot.jp/products/switchbot-lock-pro)
+- [SwitchBot Lock Ultra](https://us.switch-bot.com/products/switchbot-lock-ultra)
   - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
   - If using OpenAPI:
     - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini), [SwitchBot Hub 2](https://us.switch-bot.com/products/switchbot-hub-2), or [SwitchBot Hub 3](https://us.switch-bot.com/products/switchbot-hub-3) Required
