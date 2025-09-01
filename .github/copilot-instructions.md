@@ -67,10 +67,36 @@ When creating pull requests, ALWAYS follow this branch targeting strategy:
 
 This ensures proper workflow where changes are tested in beta branches before being merged to the main development line.
 
+### Branch Targeting Validation and Troubleshooting
+
+**Before Starting Work:**
+1. **Verify Issue Labels:** Check that the assigned issue has appropriate version increment labels (`patch`, `minor`, or `major`)
+2. **Check Existing Beta Branches:** Use GitHub API or Git commands to identify current beta branches
+3. **Validate Target Branch:** Confirm the target beta branch exists or can be created successfully
+
+**Validation Commands:**
+```bash
+# Check for existing beta branches
+git ls-remote --heads origin | grep "beta-" | sort -V
+
+# Get current version for reference
+node -p "require('./package.json').version"
+
+# Example: Calculate next patch version
+node -p "const v=require('./package.json').version.split('.'); v[2]=parseInt(v[2])+1; v.join('.')"
+```
+
+**Troubleshooting Common Issues:**
+- **No version labels on issue:** Proceed with patch increment but notify in PR description
+- **Beta branch creation fails:** Fall back to targeting `latest` branch and document in PR
+- **Multiple conflicting labels:** Use highest priority (major > minor > patch) and document decision
+- **Network/API failures:** Use Git commands as fallback for branch detection
+
 ### Label Requirements for Version Management
 
-**For Project Maintainers:** Before assigning issues to Copilot, set appropriate version increment labels:
+**⚠️ CRITICAL REQUIREMENT:** Before assigning issues to Copilot, project maintainers **MUST** set appropriate version increment labels. This is required for proper branch targeting and version management.
 
+**Required Labels:**
 - **`patch`** - Bug fixes, documentation updates, minor improvements (4.3.1 → 4.3.2)
 - **`minor`** - New features, device support additions, non-breaking enhancements (4.3.1 → 4.4.0)  
 - **`major`** - Breaking changes, API modifications, major architectural updates (4.3.1 → 5.0.0)
@@ -78,6 +104,12 @@ This ensures proper workflow where changes are tested in beta branches before be
 **Label Priority:** If multiple increment labels are present, the highest priority is used (major > minor > patch).
 
 **Fallback Behavior:** If no version increment labels are found, the system defaults to patch increment to ensure conservative version management.
+
+**Validation Process:** Copilot will:
+1. Check for required labels on the assigned issue
+2. Log a warning if no version increment labels are found
+3. Proceed with patch increment as fallback
+4. Create or target the appropriate beta branch based on version increment
 
 ## Working Effectively
 
@@ -265,3 +297,32 @@ Always run the complete validation workflow locally before committing:
 ```bash
 npm run build && npm run test && npm run docs:lint
 ```
+
+## Complete Workflow Examples
+
+### Example 1: Issue with Proper Labels
+**Scenario:** Issue #1234 assigned to Copilot with `minor` label
+
+**Workflow:**
+1. **Label Detection:** Copilot detects `minor` label → target version 4.4.0
+2. **Branch Check:** Look for existing beta branches: `git ls-remote --heads origin | grep beta-`
+3. **Beta Branch Creation:** No beta-4.4.0 exists → create from latest branch
+4. **PR Targeting:** Target the new beta-4.4.0 branch
+5. **Development:** Make changes, test, commit to beta branch
+
+### Example 2: Issue without Version Labels
+**Scenario:** Issue #1276 assigned to Copilot with no version increment labels
+
+**Workflow:**
+1. **Label Detection:** No version labels found → default to patch increment
+2. **Version Calculation:** Current 4.3.1 → next patch 4.3.2
+3. **Branch Check:** beta-4.3.2 already exists → target existing branch
+4. **Development:** Make changes, document label requirement in PR description
+
+### Example 3: Multiple Version Labels
+**Scenario:** Issue assigned with both `minor` and `patch` labels
+
+**Workflow:**
+1. **Label Priority:** minor (higher priority) overrides patch
+2. **Version Target:** Calculate minor increment instead of patch
+3. **Documentation:** Note in PR description why minor was chosen over patch
