@@ -42,6 +42,12 @@ export class Humidifier extends deviceBase {
     CurrentTemperature: CharacteristicValue
   }
 
+  private DryingFilter?: {
+    Name: CharacteristicValue
+    Service: Service
+    On: CharacteristicValue
+  }
+
   // OpenAPI
   deviceStatus!: humidifierStatus | humidifier2Status
 
@@ -54,6 +60,8 @@ export class Humidifier extends deviceBase {
   // Updates
   humidifierUpdateInProgress!: boolean
   doHumidifierUpdate!: Subject<void>
+  dryingFilterUpdateInProgress!: boolean
+  doDryingFilterUpdate!: Subject<void>
 
   constructor(
     readonly platform: SwitchBotPlatform,
@@ -67,6 +75,8 @@ export class Humidifier extends deviceBase {
     // this is subject we use to track when we need to POST changes to the SwitchBot API
     this.doHumidifierUpdate = new Subject()
     this.humidifierUpdateInProgress = false
+    this.doDryingFilterUpdate = new Subject()
+    this.dryingFilterUpdateInProgress = false
 
     // Initialize the HumidifierDehumidifier Service
     accessory.context.HumidifierDehumidifier = accessory.context.HumidifierDehumidifier ?? {}
@@ -132,6 +142,28 @@ export class Humidifier extends deviceBase {
       })
     }
 
+    // Initialize Drying Filter Service
+    if ((device as humidifierConfig).activate_dryingfilter === false) {
+      if (this.DryingFilter) {
+        this.debugLog('Removing Drying Filter Service')
+        this.DryingFilter.Service = accessory.getService(this.hap.Service.Switch) as Service
+        accessory.removeService(this.DryingFilter.Service)
+      }
+    } else {
+      accessory.context.DryingFilter = accessory.context.DryingFilter ?? {}
+      this.DryingFilter = {
+        Name: `${accessory.displayName} Drying Filter`,
+        Service: accessory.getService(this.hap.Service.Switch) ?? accessory.addService(this.hap.Service.Switch) as Service,
+        On: accessory.context.DryingFilterOn ?? false,
+      }
+      accessory.context.DryingFilter = this.DryingFilter as object
+
+      // Initialize Drying Filter Characteristics
+      this.DryingFilter.Service.setCharacteristic(this.hap.Characteristic.Name, this.DryingFilter.Name).getCharacteristic(this.hap.Characteristic.On).onGet(() => {
+        return this.DryingFilter!.On
+      }).onSet(this.DryingFilterOnSet.bind(this))
+    }
+
     // Retrieve initial values and updateHomekit
     try {
       this.debugLog('Retrieve initial values and update Homekit')
@@ -180,6 +212,25 @@ export class Humidifier extends deviceBase {
           this.errorLog(`failed pushChanges with ${device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
         }
         this.humidifierUpdateInProgress = false
+      })
+
+    // Watch for Drying Filter change events
+    // We put in a debounce of 100ms so we don't make duplicate calls
+    this.doDryingFilterUpdate
+      .pipe(
+        tap(() => {
+          this.dryingFilterUpdateInProgress = true
+        }),
+        debounceTime(this.devicePushRate * 1000),
+      )
+      .subscribe(async () => {
+        try {
+          await this.pushDryingFilterChanges()
+        } catch (e: any) {
+          await this.apiError(e)
+          this.errorLog(`failed pushDryingFilterChanges with ${device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+        }
+        this.dryingFilterUpdateInProgress = false
       })
   }
 
@@ -267,6 +318,15 @@ export class Humidifier extends deviceBase {
       this.HumidifierDehumidifier.WaterLevel = 100
     }
     this.debugLog(`WaterLevel: ${this.HumidifierDehumidifier.WaterLevel}`)
+
+    // Drying Filter Status (if service is enabled)
+    if ((this.device as humidifierConfig).activate_dryingfilter !== false && this.DryingFilter) {
+      // Check if the device is in drying mode (mode 8)
+      // For now, we'll need to rely on external state or assume false until we get mode info from API
+      // In a future implementation, we would check: (this.deviceStatus as any).mode === 8
+      this.DryingFilter.On = (this.deviceStatus as any).drying ?? false
+      this.debugLog(`Drying Filter On: ${this.DryingFilter.On}`)
+    }
 
     // Firmware Version
     if (this.deviceStatus.version) {
@@ -619,6 +679,85 @@ export class Humidifier extends deviceBase {
   }
 
   /**
+   * Handle requests to set the "Drying Filter On" characteristic
+   */
+  async DryingFilterOnSet(value: CharacteristicValue): Promise<void> {
+    this.infoLog(`Set Drying Filter: ${value}`)
+    this.DryingFilter!.On = value
+    this.doDryingFilterUpdate.next()
+  }
+
+  /**
+   * Pushes the requested drying filter changes to the SwitchBot API
+   */
+  async pushDryingFilterChanges(): Promise<void> {
+    this.debugLog('pushDryingFilterChanges')
+    if (!this.device.enableCloudService && this.OpenAPI) {
+      this.errorLog(`pushDryingFilterChanges enableCloudService: ${this.device.enableCloudService}`)
+    } else if (this.OpenAPI && this.platform.config.credentials?.token) {
+      await this.openAPIPushDryingFilterChanges()
+    } else {
+      this.debugWarnLog(`Connection Type: ${this.device.connectionType}, pushDryingFilterChanges will not happen.`)
+    }
+  }
+
+  /**
+   * Pushes the requested drying filter changes to the SwitchBot OpenAPI
+   */
+  async openAPIPushDryingFilterChanges(): Promise<void> {
+    this.debugLog('openAPIPushDryingFilterChanges')
+    if (this.DryingFilter?.On) {
+      this.debugLog('Turning on drying filter mode')
+      const bodyChange: bodyChange = {
+        command: 'setMode',
+        parameter: JSON.stringify({mode: 8, targetHumidify: this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold}),
+        commandType: 'command',
+      }
+      this.debugLog(`pushDryingFilterChanges, SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
+      try {
+        const response = await this.pushChangeRequest(bodyChange)
+        const deviceStatus: any = response.body
+        this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        if (await this.successfulStatusCodes(deviceStatus)) {
+          this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+        } else {
+          await this.statusCode(deviceStatus.statusCode)
+        }
+      } catch (e: any) {
+        await this.apiError(e)
+        this.errorLog(`failed openAPIPushDryingFilterChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+      }
+    } else {
+      this.debugLog('Turning off drying filter mode - switching back to previous mode')
+      // When turning off drying filter, switch back to the previous humidifier mode
+      if (this.HumidifierDehumidifier.TargetHumidifierDehumidifierState === this.hap.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER_OR_DEHUMIDIFIER) {
+        await this.pushAutoChanges()
+      } else {
+        // Switch back to manual mode with current threshold
+        const bodyChange: bodyChange = {
+          command: 'setMode',
+          parameter: JSON.stringify({mode: 1, targetHumidify: this.HumidifierDehumidifier.RelativeHumidityHumidifierThreshold}),
+          commandType: 'command',
+        }
+        this.debugLog(`pushDryingFilterChanges (off), SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
+        try {
+          const response = await this.pushChangeRequest(bodyChange)
+          const deviceStatus: any = response.body
+          this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+          if (await this.successfulStatusCodes(deviceStatus)) {
+            this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
+          } else {
+            await this.statusCode(deviceStatus.statusCode)
+          }
+        } catch (e: any) {
+          await this.apiError(e)
+          this.errorLog(`failed openAPIPushDryingFilterChanges (off) with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+        }
+      }
+    }
+  }
+
+  /**
    * Updates the status for each of the HomeKit Characteristics
    */
   async updateHomeKitCharacteristics(): Promise<void> {
@@ -637,6 +776,10 @@ export class Humidifier extends deviceBase {
     // CurrentTemperature
     if (!(this.device as humidifierConfig).hide_temperature && this.TemperatureSensor?.Service) {
       await this.updateCharacteristic(this.TemperatureSensor.Service, this.hap.Characteristic.CurrentTemperature, this.TemperatureSensor.CurrentTemperature, 'CurrentTemperature')
+    }
+    // Drying Filter
+    if ((this.device as humidifierConfig).activate_dryingfilter !== false && this.DryingFilter?.Service) {
+      await this.updateCharacteristic(this.DryingFilter.Service, this.hap.Characteristic.On, this.DryingFilter.On, 'Drying Filter On')
     }
   }
 
@@ -672,6 +815,9 @@ export class Humidifier extends deviceBase {
     this.HumidifierDehumidifier.Service.updateCharacteristic(this.hap.Characteristic.RelativeHumidityHumidifierThreshold, e)
     if (!(this.device as humidifierConfig).hide_temperature && this.TemperatureSensor?.Service) {
       this.TemperatureSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, e)
+    }
+    if ((this.device as humidifierConfig).activate_dryingfilter !== false && this.DryingFilter?.Service) {
+      this.DryingFilter.Service.updateCharacteristic(this.hap.Characteristic.On, e)
     }
   }
 }

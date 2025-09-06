@@ -677,6 +677,14 @@
                     "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Strip Light' || model.options.devices[arrayIndices].configDeviceType === 'Color Bulb' || model.options.devices[arrayIndices].configDeviceType === 'Blind Tilt' || model.options.devices[arrayIndices].configDeviceType === 'Curtain' || model.options.devices[arrayIndices].configDeviceType === 'Curtain3' || model.options.devices[arrayIndices].configDeviceType === 'WoRollerShade' || model.options.devices[arrayIndices].configDeviceType === 'Roller Shade' || model.options.devices[arrayIndices].configDeviceType === 'Humidifier' || model.options.devices[arrayIndices].configDeviceType === 'Humidifier2') && model.options.devices[arrayIndices].deviceId);"
                   }
                 },
+                "activate_dryingfilter": {
+                  "title": "Activate Drying Filter",
+                  "type": "boolean",
+                  "description": "If true, adds a switch to control the drying filter mode for evaporative humidifiers.",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Humidifier' || model.options.devices[arrayIndices].configDeviceType === 'Humidifier2') && model.options.devices[arrayIndices].deviceId);"
+                  }
+                },
                 "set_min": {
                   "title": "Set Minimum Open State",
                   "type": "number",
@@ -937,6 +945,14 @@
                     "type": "number",
                     "placeholder": "1",
                     "description": "Sets the minimum steps device will take. So if set to 20, it would allow you to set the curtain state to 0, 20, 40, 60, 80, and 100.",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Humidifier'].hide_device);"
+                    }
+                  },
+                  "activate_dryingfilter": {
+                    "title": "Activate Drying Filter",
+                    "type": "boolean",
+                    "description": "If true, adds a switch to control the drying filter mode for evaporative humidifiers.",
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Humidifier'].hide_device);"
                     }
@@ -13213,6 +13229,7 @@
             "options.deviceConfig['Humidifier'].hide_temperature",
             "options.deviceConfig['Humidifier'].convertUnitTo",
             "options.deviceConfig['Humidifier'].set_minStep",
+            "options.deviceConfig['Humidifier'].activate_dryingfilter",
             "options.deviceConfig['Humidifier'].connectionType",
             "options.deviceConfig['Humidifier'].disablePlatformBLE",
             "options.deviceConfig['Humidifier'].scanDuration",

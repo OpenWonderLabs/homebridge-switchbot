@@ -136,6 +136,7 @@ export interface humidifierConfig extends BaseDeviceConfig {
   hide_temperature?: boolean
   convertUnitTo?: string
   set_minStep?: number
+  activate_dryingfilter?: boolean
 };
 
 export interface curtainConfig extends BaseDeviceConfig {
