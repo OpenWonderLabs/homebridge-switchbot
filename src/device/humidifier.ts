@@ -303,9 +303,7 @@ export class Humidifier extends deviceBase {
    * Asks the SwitchBot API for the latest device information
    */
   async refreshStatus(): Promise<void> {
-    if (!this.device.enableCloudService && this.OpenAPI) {
-      this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`)
-    } else if (this.BLE) {
+    if (this.BLE) {
       await this.BLERefreshStatus()
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus()
@@ -377,8 +375,7 @@ export class Humidifier extends deviceBase {
   async openAPIRefreshStatus(): Promise<void> {
     this.debugLog('openAPIRefreshStatus')
     try {
-      const response = await this.deviceRefreshStatus()
-      const deviceStatus: any = response.body
+      const deviceStatus = await this.deviceRefreshStatus<humidifierStatus | humidifier2Status>()
       this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
       if (await this.successfulStatusCodes(deviceStatus)) {
         this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
@@ -418,9 +415,7 @@ export class Humidifier extends deviceBase {
    * Pushes the requested changes to the SwitchBot API
    */
   async pushChanges(): Promise<void> {
-    if (!this.device.enableCloudService && this.OpenAPI) {
-      this.errorLog(`pushChanges enableCloudService: ${this.device.enableCloudService}`)
-    } else if (this.BLE) {
+    if (this.BLE) {
       await this.BLEpushChanges()
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges()
@@ -487,8 +482,7 @@ export class Humidifier extends deviceBase {
       }
       this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const response = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = response.body
+        const deviceStatus = await this.pushChangeRequest(bodyChange)
         this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         if (await this.successfulStatusCodes(deviceStatus)) {
           this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
@@ -521,8 +515,7 @@ export class Humidifier extends deviceBase {
       }
       this.debugLog(`pushAutoChanges, SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const response = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = response.body
+        const deviceStatus = await this.pushChangeRequest(bodyChange)
         this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         if (await this.successfulStatusCodes(deviceStatus)) {
           this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
@@ -553,8 +546,7 @@ export class Humidifier extends deviceBase {
       }
       this.debugLog(`pushActiveChanges, SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const response = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = response.body
+        const deviceStatus = await this.pushChangeRequest(bodyChange)
         this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         if (await this.successfulStatusCodes(deviceStatus)) {
           this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)

@@ -269,9 +269,7 @@ export class CeilingLight extends deviceBase {
    * Asks the SwitchBot API for the latest device information
    */
   async refreshStatus(): Promise<void> {
-    if (!this.device.enableCloudService && this.OpenAPI) {
-      this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`)
-    } else if (this.BLE) {
+    if (this.BLE) {
       await this.BLERefreshStatus()
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus()
@@ -342,8 +340,7 @@ export class CeilingLight extends deviceBase {
   async openAPIRefreshStatus(): Promise<void> {
     this.debugLog('openAPIRefreshStatus')
     try {
-      const response = await this.deviceRefreshStatus()
-      const deviceStatus: any = response.body
+      const deviceStatus = await this.deviceRefreshStatus<ceilingLightStatus | ceilingLightProStatus>()
       this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
       if (await this.successfulStatusCodes(deviceStatus)) {
         this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
@@ -393,9 +390,7 @@ export class CeilingLight extends deviceBase {
    *
    */
   async pushChanges(): Promise<void> {
-    if (!this.device.enableCloudService && this.OpenAPI) {
-      this.errorLog(`pushChanges enableCloudService: ${this.device.enableCloudService}`)
-    } else if (this.BLE) {
+    if (this.BLE) {
       await this.BLEpushChanges()
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges()
@@ -484,8 +479,7 @@ export class CeilingLight extends deviceBase {
       }
       this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const response = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = response.body
+        const deviceStatus = await this.pushChangeRequest(bodyChange)
         this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         if (await this.successfulStatusCodes(deviceStatus)) {
           this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
@@ -516,8 +510,7 @@ export class CeilingLight extends deviceBase {
       }
       this.debugLog(`(pushHueSaturationChanges) SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const response = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = response.body
+        const deviceStatus = await this.pushChangeRequest(bodyChange)
         this.debugLog(`(pushHueSaturationChanges) statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         if (await this.successfulStatusCodes(deviceStatus)) {
           this.debugSuccessLog(`(pushHueSaturationChanges) statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
@@ -546,8 +539,7 @@ export class CeilingLight extends deviceBase {
       }
       this.debugLog(`(pushColorTemperatureChanges) SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const response = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = response.body
+        const deviceStatus = await this.pushChangeRequest(bodyChange)
         this.debugLog(`(pushColorTemperatureChanges) statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         if (await this.successfulStatusCodes(deviceStatus)) {
           this.debugSuccessLog(`(pushColorTemperatureChanges) statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
@@ -574,8 +566,7 @@ export class CeilingLight extends deviceBase {
       }
       this.debugLog(`(pushBrightnessChanges) SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const response = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = response.body
+        const deviceStatus = await this.pushChangeRequest(bodyChange)
         this.debugLog(`(pushBrightnessChanges) statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         if (await this.successfulStatusCodes(deviceStatus)) {
           this.debugSuccessLog(`(pushBrightnessChanges) statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)

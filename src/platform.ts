@@ -24,6 +24,7 @@ import { EveHomeKitTypes } from 'homebridge-lib/EveHomeKitTypes'
 import { LogLevel, SwitchBotBLE, SwitchBotModel, SwitchBotOpenAPI } from 'node-switchbot'
 import { queueScheduler } from 'rxjs'
 
+import { AirPurifier } from './device/airpurifier.js'
 import { BlindTilt } from './device/blindtilt.js'
 import { Bot } from './device/bot.js'
 import { CeilingLight } from './device/ceilinglight.js'
@@ -45,7 +46,7 @@ import { RelaySwitch } from './device/relayswitch.js'
 import { RobotVacuumCleaner } from './device/robotvacuumcleaner.js'
 import { WaterDetector } from './device/waterdetector.js'
 import { AirConditioner } from './irdevice/airconditioner.js'
-import { AirPurifier } from './irdevice/airpurifier.js'
+import { AirPurifierIR } from './irdevice/airpurifier.js'
 import { Camera } from './irdevice/camera.js'
 import { IRFan } from './irdevice/fan.js'
 import { Light } from './irdevice/light.js'
@@ -232,7 +233,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
               const context = JSON.parse(message.toString())
               this.webhookEventHandler[context.deviceMac]?.(context)
             } catch (e: any) {
-              this.errorLog(`Failed to handle webhook event. Error:${e.message ?? e}`)
+              this.errorLog(`Failed to handle webhook event. Error: ${e.message ?? e}`)
             }
           })
         }
@@ -259,14 +260,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           this.webhookEventHandler[body.context.deviceMac]?.(body.context)
         })
       } catch (e: any) {
-        this.errorLog(`Failed to setup webhook. Error:${e.message ?? e}`)
+        this.errorLog(`Failed to setup webhook. Error: ${e.message ?? e}`)
       }
 
       this.api.on('shutdown', async () => {
         try {
           this.switchBotAPI.deleteWebhook(url)
         } catch (e: any) {
-          this.errorLog(`Failed to delete webhook. Error:${e.message ?? e}`)
+          this.errorLog(`Failed to delete webhook. Error: ${e.message ?? e}`)
         }
       })
     }
@@ -317,14 +318,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           try {
             await this.switchBotBLE.startScan()
           } catch (e: any) {
-            this.errorLog(`Failed to start BLE scanning. Error:${e.message ?? e}`)
+            this.errorLog(`Failed to start BLE scanning. Error: ${e.message ?? e}`)
           }
           // Set an event handler to monitor advertisement packets
           this.switchBotBLE.onadvertisement = async (ad: any) => {
             try {
               this.bleEventHandler[ad.address]?.(ad.serviceData)
             } catch (e: any) {
-              this.errorLog(`Failed to handle BLE event. Error:${e.message ?? e}`)
+              this.errorLog(`Failed to handle BLE event. Error: ${e.message ?? e}`)
             }
           }
         })()
@@ -334,7 +335,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
             // this.switchBotBLE.stopScan()
             this.infoLog('Stopped BLE scanning to close listening.')
           } catch (e: any) {
-            this.errorLog(`Failed to stop Platform BLE scanning. Error:${e.message ?? e}`)
+            this.errorLog(`Failed to stop Platform BLE scanning. Error: ${e.message ?? e}`)
           }
         })
       }
@@ -582,13 +583,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       'Humidifier': this.createHumidifier.bind(this),
       'Humidifier2': this.createHumidifier.bind(this),
       'Hub 2': this.createHub2.bind(this),
+      'Hub 3': this.createHub2.bind(this),
       'Bot': this.createBot.bind(this),
       'Relay Switch 1': this.createRelaySwitch.bind(this),
       'Relay Switch 1PM': this.createRelaySwitch.bind(this),
       'Meter': this.createMeter.bind(this),
       'MeterPlus': this.createMeterPlus.bind(this),
       'Meter Plus (JP)': this.createMeterPlus.bind(this),
-      'Meter Pro': this.createMeterPro.bind(this),
+      'MeterPro': this.createMeterPro.bind(this),
       'MeterPro(CO2)': this.createMeterPro.bind(this),
       'WoIOSensor': this.createIOSensor.bind(this),
       'Water Detector': this.createWaterDetector.bind(this),
@@ -616,6 +618,10 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       'Ceiling Light Pro': this.createCeilingLight.bind(this),
       'Strip Light': this.createStripLight.bind(this),
       'Battery Circulator Fan': this.createFan.bind(this),
+      'Air Purifier PM2.5': this.createAirPurifier.bind(this),
+      'Air Purifier Table PM2.5': this.createAirPurifier.bind(this),
+      'Air Purifier VOC': this.createAirPurifier.bind(this),
+      'Air Purifier Table VOC': this.createAirPurifier.bind(this),
     }
 
     if (deviceTypeHandlers[device.deviceType!]) {
@@ -649,8 +655,8 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       'DIY Air Conditioner': this.createAirConditioner.bind(this),
       'Light': this.createLight.bind(this),
       'DIY Light': this.createLight.bind(this),
-      'Air Purifier': this.createAirPurifier.bind(this),
-      'DIY Air Purifier': this.createAirPurifier.bind(this),
+      'Air Purifier': this.createAirPurifierIR.bind(this),
+      'DIY Air Purifier': this.createAirPurifierIR.bind(this),
       'Water Heater': this.createWaterHeater.bind(this),
       'DIY Water Heater': this.createWaterHeater.bind(this),
       'Vacuum Cleaner': this.createVacuumCleaner.bind(this),
@@ -1891,6 +1897,68 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
+  private async createAirPurifier(device: device & devicesConfig) {
+    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
+
+    // see if an accessory with the same uuid has already been registered and restored from
+    // the cached devices we stored in the `configureAccessory` method above
+    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
+
+    if (existingAccessory) {
+      // the accessory already exists
+      if (await this.registerDevice(device)) {
+        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
+        existingAccessory.context.device = device
+        existingAccessory.context.deviceId = device.deviceId
+        existingAccessory.context.deviceType = device.deviceType
+        existingAccessory.context.model = SwitchBotModel.BatteryCirculatorFan
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
+        existingAccessory.context.connectionType = await this.connectionType(device)
+        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
+        this.api.updatePlatformAccessories([existingAccessory])
+        // create the accessory handler for the restored accessory
+        // this is imported from `platformAccessory.ts`
+        new AirPurifier(this, existingAccessory, device)
+        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
+      } else {
+        this.unregisterPlatformAccessories(existingAccessory)
+      }
+    } else if (await this.registerDevice(device)) {
+      // create a new accessory
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
+
+      // store a copy of the device object in the `accessory.context`
+      // the `context` property can be used to store any data about the accessory you may need
+      accessory.context.device = device
+      accessory.context.deviceId = device.deviceId
+      accessory.context.deviceType = device.deviceType
+      accessory.context.model = SwitchBotModel.BatteryCirculatorFan
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
+      accessory.context.connectionType = await this.connectionType(device)
+      accessory.context.connectionType = await this.connectionType(device)
+      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
+      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
+      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
+      // create the accessory handler for the newly create accessory
+      // this is imported from `platformAccessory.ts`
+      new AirPurifier(this, accessory, device)
+      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
+
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory)
+      this.accessories.push(accessory)
+    } else {
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
+    }
+  }
+
   private async createRobotVacuumCleaner(device: device & devicesConfig) {
     const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
 
@@ -2207,7 +2275,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  private async createAirPurifier(device: irdevice & irDevicesConfig) {
+  private async createAirPurifierIR(device: irdevice & irDevicesConfig) {
     const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.remoteType}`)
 
     // see if an accessory with the same uuid has already been registered and restored from
@@ -2230,7 +2298,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.api.updatePlatformAccessories([existingAccessory])
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
-        new AirPurifier(this, existingAccessory, device)
+        new AirPurifierIR(this, existingAccessory, device)
         this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${existingAccessory.UUID})`)
       } else {
         this.unregisterPlatformAccessories(existingAccessory)
@@ -2256,7 +2324,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
-      new AirPurifier(this, accessory, device)
+      new AirPurifierIR(this, accessory, device)
       this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`)
 
       // publish device externally or link the accessory to your platform
@@ -2685,7 +2753,6 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       hubDeviceId: '',
       version: 0,
       deviceName: '',
-      enableCloudService: false,
     }, statusCode: 500 }
   }
 
@@ -2695,7 +2762,14 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     const delayBetweenRetries = deviceDelayBetweenRetries ?? 1000
     while (retryCount < maxRetries) {
       try {
-        const { response, statusCode } = await this.switchBotAPI.controlDevice(device.deviceId, bodyChange.command, bodyChange.parameter, bodyChange.commandType, this.config.credentials?.token, this.config.credentials?.secret)
+        const { response, statusCode } = await this.switchBotAPI.controlDevice(
+          device.deviceId,
+          bodyChange.command,
+          bodyChange.parameter,
+          bodyChange.commandType as import('node-switchbot').commandType,
+          this.config.credentials?.token,
+          this.config.credentials?.secret,
+        )
         this.debugLog(`response: ${JSON.stringify(response)}`)
         return { response, statusCode }
       } catch (error: any) {

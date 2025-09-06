@@ -1,8 +1,5 @@
 {
-  "plugin": [
-    "@typhonjs-typedoc/typedoc-theme-dmt"
-  ],
-  "theme": "default-modern",
+  "theme": "default",
   "out": "docs",
   "exclude": ["src/**/*.spec.ts"],
   "entryPoints": [

@@ -252,9 +252,7 @@ export class RobotVacuumCleaner extends deviceBase {
    * Asks the SwitchBot API for the latest device information
    */
   async refreshStatus(): Promise<void> {
-    if (!this.device.enableCloudService && this.OpenAPI) {
-      this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`)
-    } else if (this.BLE) {
+    if (this.BLE) {
       await this.BLERefreshStatus()
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus()
@@ -326,8 +324,7 @@ export class RobotVacuumCleaner extends deviceBase {
   async openAPIRefreshStatus(): Promise<void> {
     this.debugLog('openAPIRefreshStatus')
     try {
-      const response = await this.deviceRefreshStatus()
-      const deviceStatus: any = response.body
+      const deviceStatus = await this.deviceRefreshStatus<robotVacuumCleanerS1Status | robotVacuumCleanerS1PlusStatus | floorCleaningRobotS10Status>()
       this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
       if (await this.successfulStatusCodes(deviceStatus)) {
         this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
@@ -374,9 +371,7 @@ export class RobotVacuumCleaner extends deviceBase {
    * Robot Vacuum Cleaner S1   "command"     "PowLevel"   "{0-3}"     =      set suction power level: 0 (Quiet), 1 (Standard), 2 (Strong), 3 (MAX)
    */
   async pushChanges(): Promise<void> {
-    if (!this.device.enableCloudService && this.OpenAPI) {
-      this.errorLog(`pushChanges enableCloudService: ${this.device.enableCloudService}`)
-    } else if (this.BLE) {
+    if (this.BLE) {
       await this.BLEpushChanges()
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIpushChanges()
@@ -449,8 +444,7 @@ export class RobotVacuumCleaner extends deviceBase {
       }
       this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const response = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = response.body
+        const deviceStatus = await this.pushChangeRequest(bodyChange)
         this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         if (await this.successfulStatusCodes(deviceStatus)) {
           this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
@@ -485,8 +479,7 @@ export class RobotVacuumCleaner extends deviceBase {
       }
       this.debugLog(`SwitchBot OpenAPI bodyChange: ${JSON.stringify(bodyChange)}`)
       try {
-        const response = await this.pushChangeRequest(bodyChange)
-        const deviceStatus: any = response.body
+        const deviceStatus = await this.pushChangeRequest(bodyChange)
         this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
         if (await this.successfulStatusCodes(deviceStatus)) {
           this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)

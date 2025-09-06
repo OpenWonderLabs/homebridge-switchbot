@@ -282,7 +282,7 @@ export class MeterPro extends deviceBase {
 
     // Battery Info
     if ('battery' in this.deviceStatus) {
-    // BatteryLevel
+      // BatteryLevel
       this.Battery.BatteryLevel = this.deviceStatus.battery
       this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
 
@@ -346,9 +346,7 @@ export class MeterPro extends deviceBase {
    * Asks the SwitchBot API for the latest device information
    */
   async refreshStatus(): Promise<void> {
-    if (!this.device.enableCloudService && this.OpenAPI) {
-      this.errorLog(`refreshStatus enableCloudService: ${this.device.enableCloudService}`)
-    } else if (this.BLE) {
+    if (this.BLE) {
       await this.BLERefreshStatus()
     } else if (this.OpenAPI && this.platform.config.credentials?.token) {
       await this.openAPIRefreshStatus()
@@ -369,7 +367,8 @@ export class MeterPro extends deviceBase {
         // Start to monitor advertisement packets
         const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as meterProServiceData | meterProCO2ServiceData
         // Update HomeKit
-        if (serviceData.model === SwitchBotBLEModel.MeterPro && serviceData.modelName === SwitchBotBLEModelName.MeterPro) {
+        if ((serviceData.model === SwitchBotBLEModel.MeterPro && serviceData.modelName === SwitchBotBLEModelName.MeterPro)
+          || (serviceData.model === SwitchBotBLEModel.MeterProCO2 && serviceData.modelName === SwitchBotBLEModelName.MeterProCO2)) {
           this.serviceData = serviceData
           if (serviceData !== undefined || serviceData !== null) {
             await this.BLEparseStatus()
@@ -420,8 +419,7 @@ export class MeterPro extends deviceBase {
   async openAPIRefreshStatus(): Promise<void> {
     this.debugLog('openAPIRefreshStatus')
     try {
-      const response = await this.deviceRefreshStatus()
-      const deviceStatus: any = response.body
+      const deviceStatus = await this.deviceRefreshStatus<meterProStatus>()
       this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
       if (await this.successfulStatusCodes(deviceStatus)) {
         this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)

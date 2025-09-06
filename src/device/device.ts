@@ -318,7 +318,7 @@ export abstract class deviceBase {
     try {
       await switchbot.startScan({ model: this.device.bleModel, id: this.device.bleMac })
     } catch (e: any) {
-      this.errorLog(`Failed to start BLE scanning. Error:${e.message ?? e}`)
+      this.errorLog(`Failed to start BLE scanning. Error: ${e.message ?? e}`)
     }
     // Set an event handler
     let serviceData = { model: this.device.bleModel, modelName: this.device.bleModelName } as ad['serviceData']
@@ -337,7 +337,7 @@ export abstract class deviceBase {
     try {
       await switchbot.stopScan()
     } catch (e: any) {
-      this.errorLog(`Failed to stop BLE scanning. Error:${e.message ?? e}`)
+      this.errorLog(`Failed to stop BLE scanning. Error: ${e.message ?? e}`)
     }
     return serviceData
   }
@@ -350,7 +350,7 @@ export abstract class deviceBase {
         try {
           await switchbot.startScan({ model: this.device.bleModel })
         } catch (e: any) {
-          this.errorLog(`Failed to start BLE scanning. Error:${e.message ?? e}`)
+          this.errorLog(`Failed to start BLE scanning. Error: ${e.message ?? e}`)
         }
         // Set an event handler
         switchbot.onadvertisement = (ad: ad) => {
@@ -361,23 +361,23 @@ export abstract class deviceBase {
         try {
           switchbot.stopScan()
         } catch (e: any) {
-          this.errorLog(`Failed to stop BLE scanning. Error:${e.message ?? e}`)
+          this.errorLog(`Failed to stop BLE scanning. Error: ${e.message ?? e}`)
         }
       })()
     }
   }
 
-  async pushChangeRequest(bodyChange: bodyChange): Promise<{ body: pushResponse['body'], statusCode: pushResponse['statusCode'] }> {
+  async pushChangeRequest<T extends pushResponse['body']>(bodyChange: bodyChange): Promise<{ body: T, statusCode: pushResponse['statusCode'] }> {
     const { response, statusCode } = await this.platform.retryCommand(this.device, bodyChange, this.deviceMaxRetries, this.deviceDelayBetweenRetries)
     return { body: response, statusCode }
   }
 
-  async deviceRefreshStatus(): Promise<{ body: deviceStatus, statusCode: deviceStatusRequest['statusCode'] }> {
+  async deviceRefreshStatus<T extends deviceStatus>(): Promise<{ body: T, statusCode: deviceStatusRequest['statusCode'] }> {
     const { response, statusCode } = await this.platform.retryRequest(this.device, this.deviceMaxRetries, this.deviceDelayBetweenRetries)
     return { body: response, statusCode }
   }
 
-  async successfulStatusCodes(deviceStatus: deviceStatusRequest) {
+  async successfulStatusCodes<T extends { statusCode: number }>(deviceStatus: T) {
     return (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)
   }
 
@@ -446,6 +446,12 @@ export abstract class deviceBase {
         bleModelName: SwitchBotBLEModelName.Hub2,
         bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Hub2,
       },
+      'Hub 3': {
+        model: SwitchBotModel.Hub3,
+        bleModel: SwitchBotBLEModel.Hub3,
+        bleModelName: SwitchBotBLEModelName.Hub3,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Hub3,
+      },
       'Bot': {
         model: SwitchBotModel.Bot,
         bleModel: SwitchBotBLEModel.Bot,
@@ -482,7 +488,7 @@ export abstract class deviceBase {
         bleModelName: SwitchBotBLEModelName.MeterPlus,
         bleModelFriendlyName: SwitchBotBLEModelFriendlyName.MeterPlus,
       },
-      'Meter Pro': {
+      'MeterPro': {
         model: SwitchBotModel.MeterPro,
         bleModel: SwitchBotBLEModel.MeterPro,
         bleModelName: SwitchBotBLEModelName.MeterPro,
