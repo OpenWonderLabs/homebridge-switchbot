@@ -237,7 +237,6 @@ export class MeterPro extends deviceBase {
         ? this.hap.Characteristic.CarbonDioxideDetected.CO2_LEVELS_ABNORMAL
         : this.hap.Characteristic.CarbonDioxideDetected.CO2_LEVELS_NORMAL
       this.debugLog(`CarbonDioxideDetected: ${this.CarbonDioxideSensor.CarbonDioxideDetected}`)
-      this.warnLog('Carbon Dioxide Sensor is not supported yet.')
     }
     // Battery Info
     if ('battery' in this.serviceData) {
@@ -277,7 +276,6 @@ export class MeterPro extends deviceBase {
         ? this.hap.Characteristic.CarbonDioxideDetected.CO2_LEVELS_ABNORMAL
         : this.hap.Characteristic.CarbonDioxideDetected.CO2_LEVELS_NORMAL
       this.debugLog(`CarbonDioxideDetected: ${this.CarbonDioxideSensor.CarbonDioxideDetected}`)
-      this.warnLog('Carbon Dioxide Sensor is not supported yet.')
     }
 
     // Battery Info
@@ -338,7 +336,6 @@ export class MeterPro extends deviceBase {
         ? this.hap.Characteristic.CarbonDioxideDetected.CO2_LEVELS_ABNORMAL
         : this.hap.Characteristic.CarbonDioxideDetected.CO2_LEVELS_NORMAL
       this.debugLog(`CarbonDioxideDetected: ${this.CarbonDioxideSensor.CarbonDioxideDetected}`)
-      this.warnLog('Carbon Dioxide Sensor is not supported yet.')
     }
   }
 
@@ -469,6 +466,14 @@ export class MeterPro extends deviceBase {
     if (!(this.device as meterProConfig).hide_temperature && this.TemperatureSensor?.Service) {
       await this.updateCharacteristic(this.TemperatureSensor.Service, this.hap.Characteristic.CurrentTemperature, this.TemperatureSensor.CurrentTemperature, 'CurrentTemperature')
     }
+    // CarbonDioxideDetected
+    if (!(this.device as meterProConfig).hide_co2 && this.CarbonDioxideSensor?.Service && this.device.deviceType === 'MeterPro(CO2)') {
+      await this.updateCharacteristic(this.CarbonDioxideSensor.Service, this.hap.Characteristic.CarbonDioxideDetected, this.CarbonDioxideSensor.CarbonDioxideDetected, 'CarbonDioxideDetected')
+    }
+    // CarbonDioxideLevel
+    if (!(this.device as meterProConfig).hide_co2 && this.CarbonDioxideSensor?.Service && this.device.deviceType === 'MeterPro(CO2)') {
+      await this.updateCharacteristic(this.CarbonDioxideSensor.Service, this.hap.Characteristic.CarbonDioxideLevel, this.CarbonDioxideSensor.CarbonDioxideLevel, 'CarbonDioxideLevel')
+    }
     // BatteryLevel
     await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.BatteryLevel, this.Battery.BatteryLevel, 'BatteryLevel')
     // StatusLowBattery
@@ -491,6 +496,10 @@ export class MeterPro extends deviceBase {
       if (!(this.device as meterProConfig).hide_temperature && this.TemperatureSensor?.Service) {
         this.TemperatureSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, 30)
       }
+      if (!(this.device as meterProConfig).hide_co2 && this.CarbonDioxideSensor?.Service && this.device.deviceType === 'MeterPro(CO2)') {
+        this.CarbonDioxideSensor.Service.updateCharacteristic(this.hap.Characteristic.CarbonDioxideDetected, this.hap.Characteristic.CarbonDioxideDetected.CO2_LEVELS_NORMAL)
+        this.CarbonDioxideSensor.Service.updateCharacteristic(this.hap.Characteristic.CarbonDioxideLevel, 0)
+      }
       this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, 100)
       this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL)
     }
@@ -502,6 +511,10 @@ export class MeterPro extends deviceBase {
     }
     if (!(this.device as meterProConfig).hide_temperature && this.TemperatureSensor?.Service) {
       this.TemperatureSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentTemperature, e)
+    }
+    if (!(this.device as meterProConfig).hide_co2 && this.CarbonDioxideSensor?.Service && this.device.deviceType === 'MeterPro(CO2)') {
+      this.CarbonDioxideSensor.Service.updateCharacteristic(this.hap.Characteristic.CarbonDioxideDetected, e)
+      this.CarbonDioxideSensor.Service.updateCharacteristic(this.hap.Characteristic.CarbonDioxideLevel, e)
     }
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e)
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, e)
