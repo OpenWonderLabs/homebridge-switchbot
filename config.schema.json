@@ -682,7 +682,7 @@
                   "type": "boolean",
                   "description": "If true, adds a switch to control the drying filter mode for evaporative humidifiers.",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Humidifier' || model.options.devices[arrayIndices].configDeviceType === 'Humidifier2') && model.options.devices[arrayIndices].deviceId);"
+                    "functionBody": "function isHumidifierDevice(device) { return device.configDeviceType === 'Humidifier' || device.configDeviceType === 'Humidifier2'; } return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && isHumidifierDevice(model.options.devices[arrayIndices]) && model.options.devices[arrayIndices].deviceId);"
                   }
                 },
                 "set_min": {
