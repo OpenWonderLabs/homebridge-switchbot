@@ -32,18 +32,8 @@
             "x-schema-form": {
               "type": "secret"
             }
-          },
-          "notice": {
-            "title": "Notice",
-            "type": "string",
-            "default": "Keep your Token & Secret a secret!"
           }
-        },
-        "required": [
-          "token",
-          "secret",
-          "notice"
-        ]
+        }
       },
       "options": {
         "type": "object",
@@ -13094,7 +13084,6 @@
           }
         },
         "required": [
-          "name",
           "logging"
         ]
       }
