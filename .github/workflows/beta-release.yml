@@ -7,22 +7,20 @@ on:
 
 jobs:
   build_and_test:
-    uses: OpenWonderLabs/.github/.github/workflows/nodejs-build-and-test.yml@latest
+    uses: homebridge/.github/.github/workflows/nodejs-build-and-test.yml@latest
     with:
-      enable_coverage: true
+      enable_coverage: false
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
-
   lint:
     needs: build_and_test
-    uses: OpenWonderLabs/.github/.github/workflows/eslint.yml@latest
+    uses: homebridge/.github/.github/workflows/eslint.yml@latest
 
   publish:
     needs: lint
-    if: ${{ github.repository == 'OpenWonderLabs/homebridge-switchbot' }}
     permissions:
       id-token: write
-    uses: OpenWonderLabs/.github/.github/workflows/npm-publish-esm.yml@latest
+    uses: homebridge/.github/.github/workflows/npm-publish-esm.yml@latest
     with:
       tag: 'beta'
       dynamically_adjust_version: true
@@ -33,8 +31,7 @@ jobs:
 
   pre-release:
     needs: publish
-    if: ${{ github.repository == 'OpenWonderLabs/homebridge-switchbot' }}
-    uses: OpenWonderLabs/.github/.github/workflows/pre-release.yml@latest
+    uses: homebridge/.github/.github/workflows/pre-release.yml@latest
     with:
       npm_version: ${{ needs.publish.outputs.NPM_VERSION }}
       body: |
@@ -45,12 +42,11 @@ jobs:
   github-releases-to-discord:
     name: Discord Webhooks
     needs: [build_and_test,publish]
-    if: ${{ github.repository == 'OpenWonderLabs/homebridge-switchbot' }}
-    uses: OpenWonderLabs/.github/.github/workflows/discord-webhooks.yml@latest
+    uses: homebridge/.github/.github/workflows/discord-webhooks.yml@latest
     with:
       title: "SwitchBot Beta Release"
       description: |
         Version `v${{ needs.publish.outputs.NPM_VERSION }}`
-      url: "https://github.com/homebridge/camera-utils/releases/tag/v${{ needs.publish.outputs.NPM_VERSION }}"
+      url: "https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v${{ needs.publish.outputs.NPM_VERSION }}"
     secrets:
-      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL_BETA || secrets.DISCORD_WEBHOOK_URL_LATEST }}
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL_LATEST }}
