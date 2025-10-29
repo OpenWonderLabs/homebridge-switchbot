@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [Unreleased]
+
+### What's Changed
+- Matter platform: register only devices discovered via the SwitchBot OpenAPI by default. Per-device config overrides (by deviceId) are correctly merged into discovered devices.
+- Add `options.allowConfigOnlyDevices` (boolean) to opt-in to registering devices that exist only in config (not discovered).
+- Add unit tests for per-device merging and config-only behavior.
+ - Matter (Matter platform): default to discovery-first registration and automatically remove previously-registered "stale" accessories that are no longer discovered or configured.
+ - Add `options.keepStaleAccessories` (Advanced Settings) — opt-in to preserve previously-registered accessories when set to true. Default: false (stale accessories are removed automatically).
+ - Implement per-device OpenAPI polling with tracked timers and proper lifecycle cleanup (timers and BLE handlers cleared on unregister/shutdown).
+ - Centralize OpenAPI/BLE -> Matter mapping and expand BLE/OpenAPI parsing to include PM2.5/PM10/VOC/CO2, temperature/humidity, improved color parsing, and additional sensor/robot-vacuum fields.
+ - Prefer accessory-specific update helpers where available; fall back to generic Matter updates otherwise.
+ - Add unit tests covering BLE parsing, stale-accessory behavior, mapping helpers, and lifecycle cleanup.
+ - Add `options.dailyApiResetLocalMidnight` (boolean) to control whether the daily API budget resets at local midnight (true) or UTC midnight (false, default).
+ - Fix configuration schema placement for the "Reset Daily Counter at Local Midnight" option: remove erroneous insertion inside IR remote type list and expose it correctly under platform `options`.
+
 ## [4.3.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v4.3.1) (2025-03-04)
 
 # *No New Releases During Lent*

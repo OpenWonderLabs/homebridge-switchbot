@@ -1,10 +1,14 @@
+import type { API, Logging } from 'homebridge'
+import type { blindTilt, curtain, curtain3, device } from 'node-switchbot'
+
+import type { devicesConfig } from './settings.js'
+
 /* Copyright(C) 2017-2024, donavanbecker (https://github.com/donavanbecker). All rights reserved.
  *
  * util.ts: @switchbot/homebridge-switchbot platform class.
  */
-import type { blindTilt, curtain, curtain3, device } from 'node-switchbot'
-
-import type { devicesConfig } from './settings.js'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 export enum BlindTiltMappingMode {
   OnlyUp = 'only_up',
@@ -45,12 +49,22 @@ export function validHumidity(humidity: number, min?: number, max?: number): num
  * Converts the value to celsius if the temperature units are in Fahrenheit
  */
 export function convertUnits(value: number, unit: string, convert?: string): number {
-  if (unit === 'CELSIUS' && convert === 'CELSIUS') {
-    return Math.round((value * 9) / 5 + 32)
-  } else if (unit === 'FAHRENHEIT' && convert === 'FAHRENHEIT') {
-    // celsius should be to the nearest 0.5 degree
-    return Math.round((5 / 9) * (value - 32) * 2) / 2
+  // Convert only when source unit differs from target unit.
+  // Supported values for unit/convert: 'CELSIUS' | 'FAHRENHEIT'
+  if (!convert || unit === convert) {
+    return value
   }
+
+  if (unit === 'CELSIUS' && convert === 'FAHRENHEIT') {
+    return Math.round((value * 9) / 5 + 32)
+  }
+
+  if (unit === 'FAHRENHEIT' && convert === 'CELSIUS') {
+    // Celsius should be to the nearest 0.5 degree
+    return Math.round(((value - 32) * 5) / 9 * 2) / 2
+  }
+
+  // Unknown unit combination: return as-is
   return value
 }
 
@@ -666,4 +680,780 @@ export function m2hs(m) {
   const input = Math.min(Math.max(Math.round(m), 140), 500)
   const toReturn = table[input]
   return [Math.round(toReturn[1]), Math.round(toReturn[0])]
+}
+
+/**
+ * Factory that returns a function to send OpenAPI commands using a retry wrapper.
+ *
+ * @param retryCommandFunc - bound function that calls platform.retryCommand(device, bodyChange, maxRetries, delay)
+ * @param deviceObj - the device object to operate on
+ * @param opts - optional overrides for maxRetries and delayBetweenRetries
+ * @param opts.maxRetries - override for maxRetries
+ * @param opts.delayBetweenRetries - override for delayBetweenRetries
+ */
+export function makeOpenAPISender(retryCommandFunc: any, deviceObj: any, opts?: { maxRetries?: number, delayBetweenRetries?: number }) {
+  return async (command: string, parameter = 'default') => {
+    const bodyChange: any = { command, parameter, commandType: 'command' }
+    return retryCommandFunc(deviceObj, bodyChange, opts?.maxRetries, opts?.delayBetweenRetries)
+  }
+}
+
+/**
+ * Factory that returns a function to perform BLE actions using a SwitchBotBLE client.
+ * Handles discovery retries and method invocation on the discovered device instance.
+ *
+ * @param switchBotBLE - instance of SwitchBotBLE (may be undefined)
+ * @param deviceObj - the device object (used to obtain bleModel/deviceId)
+ * @param opts - optional retry settings
+ * @param opts.bleRetries - number of BLE discovery retries
+ * @param opts.bleRetryDelay - delay between BLE retries in ms
+ */
+export function makeBLESender(switchBotBLE: any, deviceObj: any, opts?: { bleRetries?: number, bleRetryDelay?: number }) {
+  return async (methodName: string, ...args: any[]) => {
+    if (!switchBotBLE) {
+      throw new Error('Platform BLE not available')
+    }
+    const id = formatDeviceIdAsMac(deviceObj.deviceId)
+    const maxRetries = opts?.bleRetries ?? 2
+    const retryDelay = opts?.bleRetryDelay ?? 500
+    let attempt = 0
+    while (attempt < maxRetries) {
+      try {
+        const list = await switchBotBLE.discover({ model: (deviceObj as any).bleModel, id })
+        if (!Array.isArray(list) || list.length === 0) {
+          throw new Error('BLE device not found')
+        }
+        const deviceInst: any = list[0]
+        if (typeof deviceInst[methodName] !== 'function') {
+          throw new TypeError(`BLE method ${methodName} not available on device`)
+        }
+        return await deviceInst[methodName](...args)
+      } catch (e: any) {
+        attempt++
+        if (attempt >= maxRetries) {
+          throw e
+        }
+        await sleep(retryDelay)
+      }
+    }
+    throw new Error('BLE operation failed')
+  }
+}
+
+/**
+ * Decide effective connection type for a device given platform options.
+ * Mirrors the logic previously in platform-matter.
+ */
+export function chooseConnectionType(platformOptions: any, deviceObj: any): 'BLE' | 'OpenAPI' {
+  if (deviceObj?.connectionType) {
+    return deviceObj.connectionType === 'BLE' ? 'BLE' : 'OpenAPI'
+  }
+  if (platformOptions?.BLE && (deviceObj?.bleModel || (typeof deviceObj?.deviceId === 'string' && deviceObj.deviceId.length > 0))) {
+    return 'BLE'
+  }
+  return 'OpenAPI'
+}
+
+/**
+ * Detect whether Matter is enabled/available on the provided Homebridge API object.
+ * This encapsulates the multi-fallback detection used across the project.
+ */
+/**
+ * Detect whether Matter is enabled on the provided Homebridge API object.
+ * Returns an object with an `enabled` boolean and an optional `reason` string
+ * describing which check matched (useful for diagnostics).
+ */
+export function detectMatter(apiObj: API): { enabled: boolean, reason?: string } {
+  try {
+    const maybe = (apiObj as any).isMatterEnabled
+    if (typeof maybe === 'function') {
+      return { enabled: Boolean(maybe.call(apiObj)), reason: 'api.isMatterEnabled() returned truthy' }
+    }
+    if (typeof maybe !== 'undefined') {
+      return { enabled: Boolean(maybe), reason: 'api.isMatterEnabled property present' }
+    }
+
+    const server = (apiObj as any).server ?? (apiObj as any).homebridgeServer ?? (apiObj as any).homebridge_server
+    const serverMaybe = server?.isMatterEnabled
+    if (typeof serverMaybe === 'function') {
+      return { enabled: Boolean(serverMaybe.call(server)), reason: 'server.isMatterEnabled() returned truthy' }
+    }
+    if (typeof server?.isMatterEnabled !== 'undefined') {
+      return { enabled: Boolean(server.isMatterEnabled), reason: 'server.isMatterEnabled property present' }
+    }
+  } catch (e: any) {
+    return { enabled: false, reason: `error during detection: ${String(e?.message ?? e)}` }
+  }
+  return { enabled: false, reason: 'no isMatterEnabled API or server fallback detected' }
+}
+
+/**
+ * Backwards-compatible boolean wrapper for detectMatter.
+ */
+export function detectMatterEnabled(apiObj: API): boolean {
+  return detectMatter(apiObj).enabled
+}
+
+/**
+ * Create platform logging helpers used by both HAP and Matter platforms.
+ *
+ * getPlatformLogging may be either a synchronous string-returning function or an
+ * async function that resolves to the current platform logging setting. The
+ * returned helpers mirror the instance methods previously implemented on the
+ * HAP platform (infoLog, warnLog, errorLog, debugLog, etc.).
+ */
+export function createPlatformLogger(getPlatformLogging: () => string | Promise<string | undefined>, log: Logging) {
+  const getPL = async () => {
+    try {
+      return await getPlatformLogging()
+    } catch {
+      return undefined
+    }
+  }
+
+  const loggingIsDebug = async () => {
+    const pl = await getPL()
+    return pl === 'debugMode' || pl === 'debug'
+  }
+
+  const enablingPlatformLogging = async () => {
+    const pl = await getPL()
+    return pl === 'debugMode' || pl === 'debug' || pl === 'standard'
+  }
+
+  const formatArgs = (args: any[]): string => {
+    return args
+      .map((a: any) => {
+        if (typeof a === 'string') {
+          return a
+        }
+        try {
+          return JSON.stringify(a)
+        } catch {
+          return String(a)
+        }
+      })
+      .join(' ')
+  }
+
+  return {
+    // Format arbitrary arguments into a single string to ensure values are not dropped
+    // when loggers only accept a single message parameter.
+    // Prefer readable JSON for objects, fall back to String() on errors.
+    // Example: infoLog('Loaded', accessory.displayName) => "Loaded My Light"
+    infoLog: async (...args: any[]) => {
+      if (await enablingPlatformLogging()) {
+        const msg = formatArgs(args)
+        log.info(msg)
+      }
+    },
+    successLog: async (...args: any[]) => {
+      if (await enablingPlatformLogging()) {
+        const msg = formatArgs(args)
+        // Some Logging implementations expose `success` — call if present
+        ;(log as any).success?.(msg) ?? log.info(msg)
+      }
+    },
+    debugSuccessLog: async (...args: any[]) => {
+      if (await enablingPlatformLogging()) {
+        if (await loggingIsDebug()) {
+          const msg = formatArgs(args)
+          ;(log as any).success?.(`[DEBUG] ${msg}`) ?? log.info(`[DEBUG] ${msg}`)
+        }
+      }
+    },
+    warnLog: async (...args: any[]) => {
+      if (await enablingPlatformLogging()) {
+        const msg = formatArgs(args)
+        log.warn(msg)
+      }
+    },
+    debugWarnLog: async (...args: any[]) => {
+      if (await enablingPlatformLogging()) {
+        if (await loggingIsDebug()) {
+          const msg = formatArgs(args)
+          log.warn(`[DEBUG] ${msg}`)
+        }
+      }
+    },
+    errorLog: async (...args: any[]) => {
+      if (await enablingPlatformLogging()) {
+        const msg = formatArgs(args)
+        log.error(msg)
+      }
+    },
+    debugErrorLog: async (...args: any[]) => {
+      if (await enablingPlatformLogging()) {
+        if (await loggingIsDebug()) {
+          const msg = formatArgs(args)
+          log.error(`[DEBUG] ${msg}`)
+        }
+      }
+    },
+    debugLog: async (...args: any[]) => {
+      if (await enablingPlatformLogging()) {
+        const pl = await getPL()
+        if (pl === 'debug') {
+          const msg = formatArgs(args)
+          log.info(`[DEBUG] ${msg}`)
+        } else if (pl === 'debugMode') {
+          const msg = formatArgs(args)
+          log.debug(msg)
+        }
+      }
+    },
+    loggingIsDebug,
+    enablingPlatformLogging,
+  }
+}
+
+/**
+ * Create a Platform proxy class that selects between two platform constructors
+ * (HAP vs Matter) at runtime using `detectMatter`. Returns a class suitable
+ * for passing to `api.registerPlatform`.
+ */
+export function createPlatformProxy(HAPCtor: any, MatterCtor: any) {
+  return class PlatformProxy {
+    delegate: any
+
+    constructor(public readonly log: any, public readonly config: any, public readonly api: API) {
+      const matterInfo = detectMatter(this.api)
+      const isMatter = matterInfo.enabled
+      const reason = matterInfo.reason ? ` Reason: ${matterInfo.reason}` : ''
+      this.log.info?.(`Homebridge SwitchBot Plugin initializing in ${isMatter ? 'Matter' : 'HAP'} mode.`)
+      this.log.debug?.(`Homebridge SwitchBot Plugin initializing in ${isMatter ? 'Matter' : 'HAP'} mode.${reason}`)
+      const PlatformCtor = isMatter ? MatterCtor : HAPCtor
+      this.delegate = new PlatformCtor(this.log, this.config, this.api)
+    }
+
+    configureAccessory(accessory: any): void {
+      try {
+        if (this.delegate && typeof this.delegate.configureAccessory === 'function') {
+          return this.delegate.configureAccessory(accessory)
+        }
+      } catch (e) {
+        // swallow — preserve previous behaviour where delegate errors don't bubble here
+      }
+    }
+
+    configureMatterAccessory?(accessory: any): void {
+      try {
+        if (this.delegate && typeof this.delegate.configureMatterAccessory === 'function') {
+          return this.delegate.configureMatterAccessory(accessory)
+        }
+      } catch (e) {
+        // swallow — delegate may not implement this or may throw
+      }
+    }
+
+    get accessories(): any {
+      try {
+        return this.delegate?.accessories
+      } catch (e) {
+        return undefined
+      }
+    }
+
+    get matterAccessories(): any {
+      try {
+        return this.delegate?.matterAccessories
+      } catch (e) {
+        return undefined
+      }
+    }
+  }
+}
+
+/**
+ * API Request Tracker - Persistent tracking of SwitchBot API calls
+ * Tracks requests per day with automatic midnight rollover
+ */
+export class ApiRequestTracker {
+  private count = 0
+  private date = ''
+  private statsFile = ''
+  private hourlyTimer?: NodeJS.Timeout
+  private midnightTimer?: NodeJS.Timeout
+  private log: Logging
+  // Daily limits
+  private dailyLimit: number
+  private reserveForCommands: number
+  private lastWarn: Record<string, number> = {}
+  private pausePollingAtReserve = false
+  private resetAtLocalMidnight = false
+
+  constructor(api: API, log: Logging, pluginName = 'SwitchBot', limits?: { dailyLimit?: number, reserveForCommands?: number, pausePollingAtReserve?: boolean, resetAtLocalMidnight?: boolean }) {
+    this.log = log
+    this.statsFile = join(api.user.storagePath(), `${pluginName.toLowerCase()}-api-stats.json`)
+    this.dailyLimit = Math.max(0, Number(limits?.dailyLimit ?? 10000))
+    this.reserveForCommands = Math.max(0, Number(limits?.reserveForCommands ?? 1000))
+    this.pausePollingAtReserve = Boolean(limits?.pausePollingAtReserve ?? false)
+    this.resetAtLocalMidnight = Boolean(limits?.resetAtLocalMidnight ?? false)
+    this.load()
+  }
+
+  /**
+   * Return date key string (YYYY-MM-DD) based on reset mode
+   * - UTC (default): uses UTC date
+   * - Local: uses local timezone date
+   */
+  private dateKey(now: Date = new Date()): string {
+    if (!this.resetAtLocalMidnight) {
+      return now.toISOString().split('T')[0]
+    }
+    const y = now.getFullYear()
+    const m = (now.getMonth() + 1).toString().padStart(2, '0')
+    const d = now.getDate().toString().padStart(2, '0')
+    return `${y}-${m}-${d}`
+  }
+
+  /**
+   * Load API request statistics from persistent storage
+   */
+  private load(): void {
+    try {
+      const today = this.dateKey()
+
+      if (existsSync(this.statsFile)) {
+        const data = JSON.parse(readFileSync(this.statsFile, 'utf8'))
+
+        // If it's a new day, reset the counter
+        if (data.date === today) {
+          this.count = data.count || 0
+          this.date = data.date
+          this.log.warn?.(`[API Stats] Loaded: ${this.count} requests today (${today})`)
+        } else {
+          this.log.error?.(`[API Stats] New day detected (${this.resetAtLocalMidnight ? 'local' : 'UTC'}). Previous: ${data.count || 0} requests on ${data.date}`)
+          this.count = 0
+          this.date = today
+          this.save()
+        }
+      } else {
+        this.log.debug?.('[API Stats] No existing stats file, starting fresh')
+        this.count = 0
+        this.date = today
+        this.save()
+      }
+    } catch (e: any) {
+      this.log.error?.(`[API Stats] Failed to load stats: ${e?.message ?? e}`)
+      this.count = 0
+      this.date = this.dateKey()
+    }
+  }
+
+  /**
+   * Save API request statistics to persistent storage
+   */
+  private save(): void {
+    try {
+      const data = {
+        date: this.date,
+        count: this.count,
+        lastUpdated: new Date().toISOString(),
+      }
+      writeFileSync(this.statsFile, JSON.stringify(data, null, 2), 'utf8')
+    } catch (e: any) {
+      this.log.debug?.(`[API Stats] Failed to save stats: ${e?.message ?? e}`)
+    }
+  }
+
+  /**
+   * Increment API request counter and save
+   */
+  public track(): void {
+    const today = this.dateKey()
+
+    // Reset counter if it's a new day
+    if (this.date !== today) {
+      this.log.debug?.(`[API Stats] Day rollover: ${this.count} requests on ${this.date}`)
+      this.count = 0
+      this.date = today
+    }
+
+    this.count++
+    this.save()
+  }
+
+  /**
+   * Attempt to spend from the daily budget for a request of a given kind.
+   * Kinds: 'command' (user actions), 'poll' (status refresh), 'discovery'.
+   * Returns true if allowed (and increments the counter), false if blocked.
+   */
+  public trySpend(kind: 'command' | 'poll' | 'discovery', n = 1): boolean {
+    const today = this.dateKey()
+    if (this.date !== today) {
+      // Day rollover
+      this.log.debug?.(`[API Stats] Day rollover: ${this.count} requests on ${this.date}`)
+      this.count = 0
+      this.date = today
+      this.save()
+    }
+
+    const softCap = Math.max(0, this.dailyLimit - this.reserveForCommands)
+    const projected = this.count + n
+    const now = Date.now()
+    const overHardCap = projected > this.dailyLimit
+    const overSoftCap = projected > softCap
+    const shouldRateLimit = (kind === 'command')
+      ? overHardCap
+      : (this.pausePollingAtReserve ? overSoftCap : overHardCap)
+
+    if (shouldRateLimit) {
+      const warnKey = kind === 'command' ? 'hardcap' : 'softcap'
+      const last = this.lastWarn[warnKey] ?? 0
+      if (now - last > 10 * 60 * 1000) { // warn at most every 10 minutes
+        if (kind === 'command') {
+          this.log.error?.(`[API Stats] Daily limit (${this.dailyLimit}) reached. Blocking command requests until reset.`)
+        } else {
+          const remainingForCommands = Math.max(0, this.dailyLimit - this.count)
+          this.log.warn?.(`[API Stats] Near daily limit. Pausing ${kind} requests to reserve ~${this.reserveForCommands} calls for commands. Remaining today: ${remainingForCommands}`)
+        }
+        this.lastWarn[warnKey] = now
+      }
+      return false
+    }
+
+    this.count += n
+    this.save()
+    return true
+  }
+
+  /**
+   * Start hourly logging of API request count
+   */
+  public startHourlyLogging(): void {
+    // Log immediately on startup
+    const softCap = Math.max(0, this.dailyLimit - this.reserveForCommands)
+    const remaining = Math.max(0, this.dailyLimit - this.count)
+    const percentUsed = Math.round((this.count / this.dailyLimit) * 100)
+
+    this.log.info?.(`[API Stats] Today (${this.date}): ${this.count}/${this.dailyLimit} API requests (${percentUsed}%), ${remaining} remaining`)
+    this.log.info?.(`[API Stats] Reset schedule: ${this.resetAtLocalMidnight ? 'local midnight' : 'UTC midnight'}`)
+
+    if (this.count >= this.dailyLimit) {
+      this.log.warn?.('[API Stats] ⚠️ DAILY LIMIT REACHED - All API requests blocked until reset')
+    } else if (this.count >= softCap) {
+      this.log.warn?.(`[API Stats] ⚠️ NEAR LIMIT - Background polling paused, ${remaining} requests reserved for commands`)
+    }
+
+    // Then log every hour
+    this.hourlyTimer = setInterval(() => {
+      const today = this.dateKey()
+      if (this.date !== today) {
+        // Day rollover
+        this.log.info?.(`[API Stats] Day rollover - Previous day (${this.date}): ${this.count} API requests`)
+        this.count = 0
+        this.date = today
+        this.save()
+        this.log.info?.('[API Stats] ✅ Polling resumed after daily reset')
+      }
+
+      const remaining = Math.max(0, this.dailyLimit - this.count)
+      const percentUsed = Math.round((this.count / this.dailyLimit) * 100)
+      const softCap = Math.max(0, this.dailyLimit - this.reserveForCommands)
+
+      // Provide context-aware status message
+      if (this.count >= this.dailyLimit) {
+        this.log.warn?.(`[API Stats] Today (${this.date}): ${this.count}/${this.dailyLimit} requests (${percentUsed}%) - ⚠️ LIMIT REACHED, all requests blocked`)
+      } else if (this.count >= softCap) {
+        this.log.warn?.(`[API Stats] Today (${this.date}): ${this.count}/${this.dailyLimit} requests (${percentUsed}%), ${remaining} remaining - polling paused`)
+      } else {
+        this.log.info?.(`[API Stats] Today (${this.date}): ${this.count}/${this.dailyLimit} requests (${percentUsed}%), ${remaining} remaining`)
+      }
+    }, 60 * 60 * 1000) // Every hour
+
+    // Schedule an exact midnight rollover log/reset
+    this.scheduleMidnightRollover()
+  }
+
+  /**
+   * Stop hourly logging
+   */
+  public stopHourlyLogging(): void {
+    if (this.hourlyTimer) {
+      clearInterval(this.hourlyTimer)
+      this.hourlyTimer = undefined
+    }
+    if (this.midnightTimer) {
+      clearTimeout(this.midnightTimer)
+      this.midnightTimer = undefined
+    }
+  }
+
+  /**
+   * Get current count
+   */
+  public getCount(): number {
+    return this.count
+  }
+
+  /**
+   * Get current date
+   */
+  public getDate(): string {
+    return this.date
+  }
+
+  /** Schedule a precise log/reset at the next UTC midnight */
+  private scheduleMidnightRollover(): void {
+    try {
+      // Clear any previous timer
+      if (this.midnightTimer) {
+        clearTimeout(this.midnightTimer)
+        this.midnightTimer = undefined
+      }
+      const now = new Date()
+      let delay = 0
+      if (this.resetAtLocalMidnight) {
+        // Next local midnight
+        const next = new Date(now)
+        next.setHours(24, 0, 0, 0) // rolls to next day at 00:00 local
+        delay = Math.max(1000, next.getTime() - now.getTime())
+      } else {
+        // Next UTC midnight
+        const nextUtcMidnightMs = Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth(),
+          now.getUTCDate() + 1,
+          0,
+          0,
+          0,
+          0,
+        )
+        delay = Math.max(1000, nextUtcMidnightMs - now.getTime())
+      }
+      this.midnightTimer = setTimeout(() => {
+        try {
+          const today = this.dateKey()
+          if (this.date !== today) {
+            this.log.info?.(`[API Stats] 🌙 Day rollover - Previous day (${this.date}): ${this.count} API requests`)
+            this.count = 0
+            this.date = today
+            this.save()
+          }
+          // Emit the precise resume line and a fresh today counter line
+          this.log.info?.('[API Stats] ✅ Daily API counter reset - Polling resumed')
+          this.log.info?.(`[API Stats] Today (${this.date}): ${this.count}/${this.dailyLimit} API requests`)
+        } catch {}
+        // Reschedule for the next midnight
+        this.scheduleMidnightRollover()
+      }, delay)
+    } catch {}
+  }
+}
+
+/**
+ * Normalize a deviceId for matching (uppercase alphanumerics only)
+ */
+export function normalizeDeviceId(deviceId: string): string {
+  return (deviceId ?? '').toUpperCase().replace(/[^A-Z0-9]+/g, '')
+}
+
+/**
+ * Merge two arrays by deviceId. For each item in a1 (user-provided devices list),
+ * find matching item in a2 (discovered devices) and merge them with user overrides last.
+ */
+export function mergeByDeviceId(a1: { deviceId: string }[], a2: any[], allowConfigOnly = false): any[] {
+  const result: any[] = []
+  for (const itm of (a1 || [])) {
+    const matchingItem = (a2 || []).find(item => normalizeDeviceId(item.deviceId) === normalizeDeviceId(itm.deviceId))
+    if (matchingItem) {
+      result.push({ ...matchingItem, ...itm })
+    } else if (allowConfigOnly) {
+      result.push(itm)
+    }
+  }
+  return result
+}
+
+/**
+ * Apply device-type or remote-type templates to an array of devices.
+ * Templates are config entries with applyToAllDevicesOfType=true.
+ *
+ * @param devices - Array of devices to apply templates to
+ * @param configDevices - User config array that may contain template entries
+ * @param typeKey - Property name to match device types ('deviceType' for devices, 'remoteType' for IR devices)
+ * @param debugLog - Optional debug logging function
+ * @returns Array of devices with templates applied
+ */
+export function applyDeviceTypeTemplates(
+  devices: any[],
+  configDevices: any[],
+  typeKey: string,
+  debugLog?: (message: string) => void,
+): any[] {
+  // Build a map of device-type templates from config devices with applyToAllDevicesOfType=true
+  const typeTemplates = new Map<string, any>()
+
+  for (const configDevice of configDevices || []) {
+    if (configDevice.applyToAllDevicesOfType) {
+      // Get the type value from multiple possible sources
+      const deviceType = configDevice[typeKey] || (configDevice as any).configDeviceType || (configDevice as any).configRemoteType
+      if (!deviceType) {
+        continue
+      }
+
+      // Store all config properties except deviceId and applyToAllDevicesOfType flag
+      const template: any = { ...configDevice }
+      delete template.deviceId
+      delete template.applyToAllDevicesOfType
+
+      typeTemplates.set(deviceType, template)
+      if (debugLog) {
+        debugLog(`Device type template found for '${deviceType}': ${JSON.stringify(template)}`)
+      }
+    }
+  }
+
+  // If no templates found, return original array
+  if (typeTemplates.size === 0) {
+    return devices
+  }
+
+  // Apply templates to devices
+  return devices.map((device) => {
+    const deviceType = device[typeKey] || (device as any).configDeviceType || (device as any).configRemoteType
+    const template = typeTemplates.get(deviceType)
+
+    if (template) {
+      if (debugLog) {
+        debugLog(`Applying device type template to ${device.deviceId} (${deviceType})`)
+      }
+      // Template settings go first, then device data (device data takes precedence)
+      return Object.assign({}, template, device)
+    }
+
+    return device
+  })
+}
+
+/**
+ * Check if an API status code indicates success
+ */
+export function isSuccessfulStatusCode(statusCode: number): boolean {
+  return statusCode === 200 || statusCode === 100
+}
+
+/**
+ * Log status code messages with appropriate log level
+ */
+export async function logStatusCode(statusCode: number, log: {
+  debugLog: (...args: any[]) => void | Promise<void>
+  errorLog: (...args: any[]) => void | Promise<void>
+}): Promise<void> {
+  const messages: { [key: number]: string } = {
+    151: `Command not supported by this device type, statusCode: ${statusCode}, Submit Feature Request Here: 
+          https://tinyurl.com/SwitchBotFeatureRequest`,
+    152: `Device not found, statusCode: ${statusCode}`,
+    160: `Command is not supported, statusCode: ${statusCode}, Submit Bugs Here: https://tinyurl.com/SwitchBotBug`,
+    161: `Device is offline, statusCode: ${statusCode}`,
+    171: `is offline, statusCode: ${statusCode}`,
+    190: `Requests reached the daily limit, statusCode: ${statusCode}`,
+    100: `Command successfully sent, statusCode: ${statusCode}`,
+    200: `Request successful, statusCode: ${statusCode}`,
+    400: `Bad Request, The client has issued an invalid request. This is commonly used to specify validation errors in a request payload, 
+          statusCode: ${statusCode}`,
+    401: `Unauthorized, Authorization for the API is required, but the request has not been authenticated, statusCode: ${statusCode}`,
+    403: `Forbidden, The request has been authenticated but does not have appropriate permissions, or a requested resource is not found, 
+          statusCode: ${statusCode}`,
+    404: `Not Found, Specifies the requested path does not exist, statusCode: ${statusCode}`,
+    406: `Not Acceptable, The client has requested a MIME type via the Accept header for a value not supported by the server, 
+          statusCode: ${statusCode}`,
+    415: `Unsupported Media Type, The client has defined a contentType header that is not supported by the server, statusCode: ${statusCode}`,
+    422: `Unprocessable Entity, The client has made a valid request, but the server cannot process it. This is often used for APIs for which 
+          certain limits have been exceeded, statusCode: ${statusCode}`,
+    429: `Too Many Requests, The client has exceeded the number of requests allowed for a given time window, statusCode: ${statusCode}`,
+    500: `Internal Server Error, An unexpected error on the SmartThings servers has occurred. These errors should be rare, 
+          statusCode: ${statusCode}`,
+  }
+
+  const message = messages[statusCode] ?? `Unknown statusCode, statusCode: ${statusCode}, Submit Bugs Here: https://tinyurl.com/SwitchBotBug`
+
+  if ([100, 200].includes(statusCode)) {
+    await log.debugLog(message)
+  } else {
+    await log.errorLog(message)
+  }
+}
+
+/**
+ * Shared device logging helpers
+ */
+
+/**
+ * Check if device logging is in debug mode
+ */
+export function deviceLoggingIsDebug(deviceLogging?: string): boolean {
+  return deviceLogging === 'debugMode' || deviceLogging === 'debug'
+}
+
+/**
+ * Check if device logging is enabled
+ */
+export function deviceLoggingEnabled(deviceLogging?: string, platformLogging?: string): boolean {
+  // If deviceLogging isn't provided, fall back to platform-wide flag
+  if (deviceLogging === undefined || deviceLogging === '') {
+    return platformLogging === 'debugMode' || platformLogging === 'debug' || platformLogging === 'standard'
+  }
+  return deviceLogging === 'debugMode' || deviceLogging === 'debug' || deviceLogging === 'standard'
+}
+
+/**
+ * Device status code handler with comprehensive messages
+ */
+export interface DeviceStatusCodeLogger {
+  debugLog: (...args: any[]) => void | Promise<void>
+  debugErrorLog?: (...args: any[]) => void | Promise<void>
+  errorLog: (...args: any[]) => void | Promise<void>
+  infoLog?: (...args: any[]) => void | Promise<void>
+}
+
+export async function logDeviceStatusCode(
+  statusCode: number,
+  log: DeviceStatusCodeLogger,
+  deviceId?: string,
+  hubDeviceId?: string,
+): Promise<void> {
+  let adjustedStatusCode = statusCode
+
+  // Handle special case where device is its own hub
+  if (statusCode === 171 && hubDeviceId && deviceId && (hubDeviceId === deviceId || hubDeviceId === '000000000000')) {
+    if (log.debugErrorLog) {
+      log.debugErrorLog(`statusCode 171 changed to 161: hubDeviceId ${hubDeviceId} matches deviceId ${deviceId}, device is its own hub.`)
+    }
+    adjustedStatusCode = 161
+  }
+
+  const statusMessages: { [key: number]: string } = {
+    151: 'Command not supported by this device type',
+    152: 'Device not found',
+    160: 'Command is not supported',
+    161: 'Device is offline',
+    171: hubDeviceId ? `Hub Device is offline. Hub: ${hubDeviceId}` : 'Hub Device is offline',
+    190: 'Device internal error due to device states not synchronized with server, or command format is invalid',
+    100: 'Command successfully sent',
+    200: 'Request successful',
+    400: 'Bad Request, an invalid payload request',
+    401: 'Unauthorized, Authorization for the API is required, but the request has not been authenticated',
+    403: 'Forbidden, The request has been authenticated but does not have appropriate permissions, or a requested resource is not found',
+    404: 'Not Found, Specifies the requested path does not exist',
+    406: 'Not Acceptable, a MIME type has been requested via the Accept header for a value not supported by the server',
+    415: 'Unsupported Media Type, a contentType header has been defined that is not supported by the server',
+    422: 'Unprocessable Entity: The server cannot process the request, often due to exceeded API limits.',
+    429: 'Too Many Requests, exceeded the number of requests allowed for a given time window',
+    500: 'Internal Server Error, An unexpected error occurred. These errors should be rare',
+  }
+
+  const logMessage = statusMessages[adjustedStatusCode] || `Unknown statusCode: ${adjustedStatusCode}, Submit Bugs Here: https://tinyurl.com/SwitchBotBug`
+  const fullMessage = `${logMessage}, statusCode: ${adjustedStatusCode}`
+
+  if ([100, 200].includes(adjustedStatusCode)) {
+    await log.debugLog(fullMessage)
+  } else if (statusMessages[adjustedStatusCode]) {
+    await log.errorLog(fullMessage)
+  } else if (log.infoLog) {
+    await log.infoLog(fullMessage)
+  } else {
+    await log.errorLog(fullMessage)
+  }
 }

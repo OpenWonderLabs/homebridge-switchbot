@@ -5,7 +5,7 @@
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
 import type { bodyChange, irdevice } from 'node-switchbot'
 
-import type { SwitchBotPlatform } from '../platform.js'
+import type { SwitchBotHAPPlatform } from '../platform-hap.js'
 import type { irDevicesConfig } from '../settings.js'
 
 import { irdeviceBase } from './irdevice.js'
@@ -38,7 +38,7 @@ export class TV extends irdeviceBase {
   // Characteristic Values
 
   constructor(
-    readonly platform: SwitchBotPlatform,
+    readonly platform: SwitchBotHAPPlatform,
     accessory: PlatformAccessory,
     device: irdevice & irDevicesConfig,
   ) {

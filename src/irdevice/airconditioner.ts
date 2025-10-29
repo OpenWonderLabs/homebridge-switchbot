@@ -5,7 +5,7 @@
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
 import type { bodyChange, irdevice } from 'node-switchbot'
 
-import type { SwitchBotPlatform } from '../platform.js'
+import type { SwitchBotHAPPlatform } from '../platform-hap.js'
 import type { irAirConfig, irDevicesConfig } from '../settings.js'
 
 import { irdeviceBase } from './irdevice.js'
@@ -52,7 +52,7 @@ export class AirConditioner extends irdeviceBase {
   set_min_cool?: number
 
   constructor(
-    readonly platform: SwitchBotPlatform,
+    readonly platform: SwitchBotHAPPlatform,
     accessory: PlatformAccessory,
     device: irdevice & irDevicesConfig,
   ) {
