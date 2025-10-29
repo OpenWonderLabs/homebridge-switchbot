@@ -43,7 +43,7 @@
     </form>
     <table class="table w-100" id="deviceTable" style="display: none">
       <thead>
-        <tr class="table-active">
+        <tr>
           <th scope="col" style="width: 40%">Device Name</th>
           <th scope="col" style="width: 60%" id="displayName"></th>
         </tr>
@@ -68,6 +68,18 @@
         <tr>
           <th scope="row">Connection Type</th>
           <td id="connectionType"></td>
+        </tr>
+        <tr>
+          <th scope="row">Refresh Rate</th>
+          <td id="refreshRate"></td>
+        </tr>
+        <tr>
+          <th scope="row">Update Rate</th>
+          <td id="updateRate"></td>
+        </tr>
+        <tr>
+          <th scope="row">Push Rate</th>
+          <td id="pushRate"></td>
         </tr>
       </tbody>
     </table>
@@ -122,6 +134,41 @@
   (async () => {
     try {
       const currentConfig = await homebridge.getPluginConfig();
+
+      // Defensive wrapper: ensure token/secret aren't accidentally cleared by
+      // the UI/schema form. Some versions of config UI can omit sensitive
+      // fields from the submitted payload; when that happens we copy the
+      // existing values from `currentConfig` into the outgoing payload so
+      // saved config does not inadvertently remove credentials.
+      try {
+        if (typeof homebridge.updatePluginConfig === 'function') {
+          const _origUpdatePluginConfig = homebridge.updatePluginConfig.bind(homebridge)
+          homebridge.updatePluginConfig = async (cfg) => {
+            try {
+              if (Array.isArray(cfg) && cfg.length > 0 && Array.isArray(currentConfig) && currentConfig.length > 0) {
+                const incoming = cfg[0] || {}
+                const existing = currentConfig[0] || {}
+                incoming.credentials = incoming.credentials || {}
+                // Preserve token/secret when incoming payload leaves them blank/undefined
+                if ((incoming.credentials.token === undefined || String(incoming.credentials.token).trim() === '') && existing.credentials && existing.credentials.token) {
+                  incoming.credentials.token = existing.credentials.token
+                }
+                if ((incoming.credentials.secret === undefined || String(incoming.credentials.secret).trim() === '') && existing.credentials && existing.credentials.secret) {
+                  incoming.credentials.secret = existing.credentials.secret
+                }
+                cfg[0] = incoming
+              }
+            } catch (e) {
+              // Swallow any wrapper errors but log to console for debugging
+              // (do not expose secrets).
+              console.error('updatePluginConfig wrapper error', e)
+            }
+            return await _origUpdatePluginConfig(cfg)
+          }
+        }
+      } catch (e) {
+        console.error('Failed to attach updatePluginConfig wrapper', e)
+      }
       showIntro = () => {
         const introLink = document.getElementById('introLink');
         introLink.addEventListener('click', () => {
@@ -144,10 +191,22 @@
         document.getElementById('menuSettings').classList.add('btn-primary');
         document.getElementById('pageSupport').style.display = 'none';
         document.getElementById('pageDevices').style.display = 'block';
-        const cachedAccessories =
+        let cachedAccessories =
           typeof homebridge.getCachedAccessories === 'function'
             ? await homebridge.getCachedAccessories()
             : await homebridge.request('/getCachedAccessories');
+
+        // If no HAP cached accessories were returned, try the Matter cached list
+        if ((!cachedAccessories || cachedAccessories.length === 0) && typeof homebridge.request === 'function') {
+          try {
+            const matter = await homebridge.request('/getCachedMatterAccessories')
+            if (Array.isArray(matter) && matter.length > 0) {
+              cachedAccessories = matter
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
         if (cachedAccessories.length > 0) {
           cachedAccessories.sort((a, b) => {
             return a.displayName.toLowerCase() > b.displayName.toLowerCase() ? 1 : b.displayName.toLowerCase() > a.displayName.toLowerCase() ? -1 : 0;

@@ -32,10 +32,18 @@ interface credentials {
 
 export interface options {
   devices?: devicesConfig[]
-  deviceConfig?: { [deviceType: string]: devicesConfig }
   irdevices?: irDevicesConfig[]
-  irdeviceConfig?: { [remoteType: string]: irDevicesConfig }
   allowInvalidCharacters?: boolean
+  // When true, devices declared in config.options.devices that are not
+  // discovered via the SwitchBot OpenAPI will still be included (config-only
+  // devices). Default: false.
+  allowConfigOnlyDevices?: boolean
+  /**
+   * When true, previously-registered accessories for devices that are no
+   * longer discovered or configured will be kept on the bridge. Default: false.
+   * When false (default), stale accessories are removed automatically.
+   */
+  keepStaleAccessories?: boolean
   mqttURL?: string
   mqttOptions?: IClientOptions
   mqttPubOptions?: IClientOptions
@@ -45,12 +53,46 @@ export interface options {
   disableLogsforOpenAPI?: boolean
   hostname?: string
   webhookURL?: string
+  /**
+   * When true, enables webhook support for all devices by default.
+   * Individual devices can override this with their own webhook setting.
+   * Requires webhookURL to be configured.
+   */
+  webhook?: boolean
   maxRetries?: number
   delayBetweenRetries?: number
   refreshRate?: number
   updateRate?: number
   pushRate?: number
   logging?: string
+  /**
+   * Maximum number of SwitchBot OpenAPI requests allowed per day.
+   * Defaults to 10,000 if not specified.
+   */
+  dailyApiLimit?: number
+  /**
+   * Number of daily API requests reserved for user-initiated commands.
+   * When remaining budget falls below this reserve, background polling and discovery
+   * are paused until the daily counter resets. Defaults to 1,000.
+   */
+  dailyApiReserveForCommands?: number
+  /**
+   * When true, the plugin will completely stop background polling/discovery
+   * once the remaining daily budget reaches the reserve (webhook-only mode).
+   * When false, polling continues until the hard daily limit is reached.
+   * Default: false.
+   */
+  webhookOnlyOnReserve?: boolean
+  /**
+   * When true, reset the daily API request counter at LOCAL midnight (system timezone).
+   * When false (default), reset at UTC midnight. Default: false.
+   */
+  dailyApiResetAtLocalMidnight?: boolean
+  // Matter platform batch refresh options
+  matterBatchRefreshRate?: number
+  matterBatchConcurrency?: number
+  matterBatchEnabled?: boolean
+  matterBatchJitter?: number
 };
 
 export type devicesConfig = botConfig | relaySwitch1Config | relaySwitch1PMConfig | meterConfig | meterProConfig | indoorOutdoorSensorConfig | humidifierConfig | curtainConfig | blindTiltConfig | contactConfig | motionConfig | waterDetectorConfig | plugConfig | colorBulbConfig | stripLightConfig | ceilingLightConfig | lockConfig | hubConfig
@@ -85,6 +127,12 @@ export interface BaseDeviceConfig extends device {
   mqttPubOptions?: IClientOptions
   history?: boolean
   webhook?: boolean
+  /**
+   * When true, applies this device's configuration to all other devices
+   * of the same deviceType/configDeviceType (e.g., all Humidifiers).
+   * Specific per-device settings will override these template settings.
+   */
+  applyToAllDevicesOfType?: boolean
 }
 
 export interface botConfig extends BaseDeviceConfig {
@@ -136,6 +184,11 @@ export interface humidifierConfig extends BaseDeviceConfig {
   hide_temperature?: boolean
   convertUnitTo?: string
   set_minStep?: number
+  /**
+   * When true (Humidifier2 only), exposes a Switch service in HomeKit
+   * to trigger the built-in Drying Filter mode via OpenAPI (setMode 8).
+   */
+  activate_dryingfilter?: boolean
 };
 
 export interface curtainConfig extends BaseDeviceConfig {
@@ -211,7 +264,7 @@ export interface ceilingLightConfig extends BaseDeviceConfig {
 };
 
 export interface lockConfig extends BaseDeviceConfig {
-  configDeviceType: 'Smart Lock' | 'Smart Lock Pro'
+  configDeviceType: 'Smart Lock' | 'Smart Lock Pro' | 'Smart Lock Ultra'
   hide_contactsensor?: boolean
   activate_latchbutton?: boolean
 };
@@ -244,6 +297,12 @@ export interface irBaseDeviceConfig extends irdevice {
   logging?: string
   customOn?: string
   customOff?: string
+  /**
+   * When true, applies this IR device's configuration to all other IR devices
+   * of the same remoteType/configRemoteType (e.g., all IR Fans).
+   * Specific per-device settings will override these template settings.
+   */
+  applyToAllDevicesOfType?: boolean
   customize?: boolean
   commandType?: string
   disablePushOn?: boolean

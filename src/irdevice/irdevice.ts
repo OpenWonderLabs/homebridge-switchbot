@@ -5,7 +5,7 @@
 import type { API, CharacteristicValue, HAP, Logging, PlatformAccessory, Service } from 'homebridge'
 import type { bodyChange, irdevice } from 'node-switchbot'
 
-import type { SwitchBotPlatform } from '../platform.js'
+import type { SwitchBotHAPPlatform } from '../platform-hap.js'
 import type { irAirConfig, irDevicesConfig, irFanConfig, irLightConfig, irOtherConfig, SwitchBotPlatformConfig } from '../settings.js'
 
 export abstract class irdeviceBase {
@@ -26,7 +26,7 @@ export abstract class irdeviceBase {
   protected deviceDisablePushDetail?: boolean
 
   constructor(
-    protected readonly platform: SwitchBotPlatform,
+    protected readonly platform: SwitchBotHAPPlatform,
     protected accessory: PlatformAccessory,
     protected device: irdevice & irDevicesConfig,
   ) {
@@ -276,69 +276,108 @@ export abstract class irdeviceBase {
   /**
    * Logging for Device
    */
-  async infoLog(...log: any[]): Promise<void> {
-    if (await this.enablingDeviceLogging()) {
-      this.log.info(`${this.device.remoteType}: ${this.accessory.displayName}`, String(...log))
+  infoLog(...log: any[]): void {
+    if (!this.enablingDeviceLogging()) {
+      return
+    }
+    // Delegate to a single helper that prefers platform-provided loggers.
+    this.logWith('info', `${this.device.remoteType}: ${this.accessory.displayName}`, undefined, String(...log))
+  }
+
+  successLog(...log: any[]): void {
+    if (!this.enablingDeviceLogging()) {
+      return
+    }
+    this.logWith('success', `${this.device.remoteType}: ${this.accessory.displayName}`, undefined, String(...log))
+  }
+
+  debugSuccessLog(...log: any[]): void {
+    if (!this.enablingDeviceLogging()) {
+      return
+    }
+    if (!this.loggingIsDebug()) {
+      return
+    }
+    this.logWith('success', `[DEBUG] ${this.device.remoteType}: ${this.accessory.displayName}`, 'debugSuccessLog', String(...log))
+  }
+
+  warnLog(...log: any[]): void {
+    if (!this.enablingDeviceLogging()) {
+      return
+    }
+    this.logWith('warn', `${this.device.remoteType}: ${this.accessory.displayName}`, undefined, String(...log))
+  }
+
+  debugWarnLog(...log: any[]): void {
+    if (!this.enablingDeviceLogging() || !this.loggingIsDebug()) {
+      return
+    }
+    this.logWith('warn', `[DEBUG] ${this.device.remoteType}: ${this.accessory.displayName}`, 'debugWarnLog', String(...log))
+  }
+
+  errorLog(...log: any[]): void {
+    if (!this.enablingDeviceLogging()) {
+      return
+    }
+    this.logWith('error', `${this.device.remoteType}: ${this.accessory.displayName}`, undefined, String(...log))
+  }
+
+  debugErrorLog(...log: any[]): void {
+    if (!this.enablingDeviceLogging() || !this.loggingIsDebug()) {
+      return
+    }
+    this.logWith('error', `[DEBUG] ${this.device.remoteType}: ${this.accessory.displayName}`, 'debugErrorLog', String(...log))
+  }
+
+  debugLog(...log: any[]): void {
+    if (!this.enablingDeviceLogging()) {
+      return
+    }
+    if (this.deviceLogging === 'debug') {
+      this.logWith('debug', `[DEBUG] ${this.device.remoteType}: ${this.accessory.displayName}`, 'debugLog', String(...log))
+    } else if (this.deviceLogging === 'debugMode') {
+      this.logWith('debug', `${this.device.remoteType}: ${this.accessory.displayName}`, 'debugLog', String(...log))
     }
   }
 
-  async successLog(...log: any[]): Promise<void> {
-    if (await this.enablingDeviceLogging()) {
-      this.log.success(`${this.device.remoteType}: ${this.accessory.displayName}`, String(...log))
+  // Generic platform/local logger delegate
+  protected logWith(level: string, message: string, platformMethodName?: string, payload?: string): void {
+    const method = platformMethodName ?? `${level}Log`
+    const pFn = (this.platform as any)?.[method]
+    if (typeof pFn === 'function') {
+      try {
+        if (payload !== undefined) {
+          pFn(message, payload)
+        } else {
+          pFn(message)
+        }
+        return
+      } catch (_err) {
+        // fallthrough to local logger
+      }
     }
-  }
-
-  async debugSuccessLog(...log: any[]): Promise<void> {
-    if (await this.enablingDeviceLogging()) {
-      if (await this.loggingIsDebug()) {
-        this.log.success(`[DEBUG] ${this.device.remoteType}: ${this.accessory.displayName}`, String(...log))
+    const map: Record<string, string> = {
+      info: 'info',
+      success: 'success',
+      debug: 'debug',
+      warn: 'warn',
+      error: 'error',
+    }
+    const local = (this.log as any)[map[level] ?? level]
+    if (typeof local === 'function') {
+      if (payload !== undefined) {
+        local.call(this.log, message, payload)
+      } else {
+        local.call(this.log, message)
       }
     }
   }
 
-  async warnLog(...log: any[]): Promise<void> {
-    if (await this.enablingDeviceLogging()) {
-      this.log.warn(`${this.device.remoteType}: ${this.accessory.displayName}`, String(...log))
-    }
-  }
-
-  async debugWarnLog(...log: any[]): Promise<void> {
-    if (await this.enablingDeviceLogging()) {
-      if (await this.loggingIsDebug()) {
-        this.log.warn(`[DEBUG] ${this.device.remoteType}: ${this.accessory.displayName}`, String(...log))
-      }
-    }
-  }
-
-  async errorLog(...log: any[]): Promise<void> {
-    if (await this.enablingDeviceLogging()) {
-      this.log.error(`${this.device.remoteType}: ${this.accessory.displayName}`, String(...log))
-    }
-  }
-
-  async debugErrorLog(...log: any[]): Promise<void> {
-    if (await this.enablingDeviceLogging()) {
-      if (await this.loggingIsDebug()) {
-        this.log.error(`[DEBUG] ${this.device.remoteType}: ${this.accessory.displayName}`, String(...log))
-      }
-    }
-  }
-
-  async debugLog(...log: any[]): Promise<void> {
-    if (await this.enablingDeviceLogging()) {
-      if (this.deviceLogging === 'debug') {
-        this.log.info(`[DEBUG] ${this.device.remoteType}: ${this.accessory.displayName}`, String(...log))
-      } else if (this.deviceLogging === 'debugMode') {
-        this.log.debug(`${this.device.remoteType}: ${this.accessory.displayName}`, String(...log))
-      }
-    }
-  }
-
-  async loggingIsDebug(): Promise<boolean> {
+  loggingIsDebug(): boolean {
     return this.deviceLogging === 'debugMode' || this.deviceLogging === 'debug'
   }
 
-  async enablingDeviceLogging(): Promise<boolean> {
+  enablingDeviceLogging(): boolean {
     return this.deviceLogging === 'debugMode' || this.deviceLogging === 'debug' || this.deviceLogging === 'standard'
   }
 }
