@@ -1600,26 +1600,22 @@
           "dailyApiLimit": {
             "title": "Daily OpenAPI Limit",
             "type": "number",
-            "placeholder": 10000,
-            "description": "Maximum OpenAPI requests per day. Default: 10000. When close to this limit, the plugin will pause background polling to avoid overage."
+            "placeholder": 10000
           },
           "dailyApiReserveForCommands": {
             "title": "Reserve For Commands (daily)",
             "type": "number",
-            "placeholder": 1000,
-            "description": "Requests reserved for user-initiated commands. When remaining budget is below this, background polling/discovery pauses until reset. Default: 1000."
+            "placeholder": 1000
           },
           "webhookOnlyOnReserve": {
             "title": "Webhook-only When Near Limit",
             "type": "boolean",
-            "default": false,
-            "description": "If true, completely stop background polling/discovery once the remaining budget hits the reserve. Webhooks and commands still work until the hard limit."
+            "default": false
           },
           "dailyApiResetLocalMidnight": {
             "title": "Reset Daily Counter at Local Midnight",
             "type": "boolean",
-            "default": false,
-            "description": "If enabled, the daily API counter resets at local (system timezone) midnight. When disabled, it resets at UTC midnight."
+            "default": false
           },
           "logging": {
             "title": "Logging Setting",
@@ -1904,6 +1900,22 @@
           "key": "options.pushRate",
           "description": "<em class='primary-text'>Specifies the interval, in seconds, between pushes to the SwitchBot API.</em>"
         },
+        {
+          "key": "options.dailyApiLimit",
+          "description": "Maximum OpenAPI requests per day. Default: 10000. When close to this limit, the plugin will pause background polling to avoid overage."
+        },
+        {
+          "key": "options.dailyApiReserveForCommands",
+          "description": "Requests reserved for user-initiated commands. When the remaining budget is below this, background polling/discovery pauses until reset. Default: 1000."
+        },
+        {
+          "key": "options.webhookOnlyOnReserve",
+          "description": "If true, completely stop background polling/discovery once the remaining budget hits the reserve. Webhooks and commands still work until the hard limit."
+        },
+        {
+          "key": "options.dailyApiResetLocalMidnight",
+          "description": "If enabled, the daily API counter resets at local (system timezone) midnight. When disabled, it resets at UTC midnight."
+        },        
         {
           "key": "options.logging",
           "description": "<em class='primary-text'>Specifies the logging level for the plugin. Default: info.</em>"
