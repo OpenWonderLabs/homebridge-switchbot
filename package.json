@@ -55,7 +55,7 @@
   "icon": "https://raw.githubusercontent.com/OpenWonderLabs/homebridge-switchbot/latest/branding/icon.png",
   "engineStrict": true,
   "engines": {
-    "homebridge": "^2.0.0-beta.39",
+    "homebridge": "^2.0.0-beta.45",
     "node": "^20 || ^22 || ^24"
   },
   "scripts": {
@@ -78,7 +78,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@homebridge/plugin-ui-utils": "^2.1.0",
+    "@homebridge/plugin-ui-utils": "^2.1.1-beta.0",
     "async-mqtt": "^2.6.3",
     "fakegato-history": "^0.6.7",
     "homebridge-lib": "^7.1.12",
@@ -94,18 +94,18 @@
     "@types/node": "^24.10.0w",
     "@types/semver": "^7.7.1",
     "@types/source-map-support": "^0.5.10",
-    "@vitest/coverage-v8": "^4.0.6",
-    "eslint": "^9.39.0",
+    "@vitest/coverage-v8": "^4.0.7",
+    "eslint": "^9.39.1",
     "eslint-plugin-format": "^1.0.2",
     "eslint-plugin-import": "^2.32.0",
-    "homebridge": "^2.0.0-beta.41",
+    "homebridge": "^2.0.0-beta.45",
     "homebridge-config-ui-x": "^5.9.0",
     "nodemon": "^3.1.10",
     "shx": "^0.4.0",
     "ts-node": "^10.9.2",
     "typedoc": "^0.28.14",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.6"
+    "vitest": "^4.0.7"
   },
   "directories": {
     "doc": "docs"

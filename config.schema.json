@@ -1915,7 +1915,7 @@
         {
           "key": "options.dailyApiResetLocalMidnight",
           "description": "If enabled, the daily API counter resets at local (system timezone) midnight. When disabled, it resets at UTC midnight."
-        },        
+        },
         {
           "key": "options.logging",
           "description": "<em class='primary-text'>Specifies the logging level for the plugin. Default: info.</em>"
