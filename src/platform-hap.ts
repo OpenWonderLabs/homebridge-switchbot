@@ -235,19 +235,22 @@ export class SwitchBotHAPPlatform implements DynamicPlatformPlugin {
       this.debugLog('Executed didFinishLaunching callback')
 
       // Initialize API request tracking
-      try {
-        const dailyApiLimit = this.config.options?.dailyApiLimit ?? 10000
-        const dailyApiReserveForCommands = this.config.options?.dailyApiReserveForCommands ?? 1000
-        const webhookOnlyOnReserve = this.config.options?.webhookOnlyOnReserve ?? false
-        this.apiTracker = new ApiRequestTracker(this.api, this.log, 'SwitchBot HAP', {
-          dailyLimit: dailyApiLimit,
-          reserveForCommands: dailyApiReserveForCommands,
-          pausePollingAtReserve: webhookOnlyOnReserve,
-          resetAtLocalMidnight: this.config.options?.dailyApiResetAtLocalMidnight ?? false,
-        })
-        this.apiTracker.startHourlyLogging()
-      } catch (e: any) {
-        this.errorLog(`Failed to initialize API request tracking: ${e.message ?? e}`)
+      if (this.switchBotAPI) {
+        try {
+          const dailyApiLimit = this.config.options?.dailyApiLimit ?? 10000
+          const dailyApiReserveForCommands = this.config.options?.dailyApiReserveForCommands ?? 1000
+          const webhookOnlyOnReserve = this.config.options?.webhookOnlyOnReserve ?? false
+          this.apiTracker = new ApiRequestTracker(this.api, this.log, 'SwitchBot HAP', {
+            dailyLimit: dailyApiLimit,
+            reserveForCommands: dailyApiReserveForCommands,
+            pausePollingAtReserve: webhookOnlyOnReserve,
+            resetAtLocalMidnight: this.config.options?.dailyApiResetAtLocalMidnight ?? false,
+          })
+          this.apiTracker.startHourlyLogging()
+          this.debugLog('API request tracking initialized for OpenAPI usage')
+        } catch (e: any) {
+          this.errorLog(`Failed to initialize API request tracking: ${e.message ?? e}`)
+        }
       }
 
       // run the method to discover / register your devices as accessories

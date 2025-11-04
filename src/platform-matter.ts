@@ -180,16 +180,18 @@ export class SwitchBotMatterPlatform implements DynamicPlatformPlugin {
       }
 
       // Initialize API request tracking
-      try {
-        this.apiTracker = new ApiRequestTracker(this.api, this.log, 'SwitchBot Matter', {
-          dailyLimit: this.config.options?.dailyApiLimit ?? 10000,
-          reserveForCommands: this.config.options?.dailyApiReserveForCommands ?? 1000,
-          pausePollingAtReserve: this.config.options?.webhookOnlyOnReserve ?? false,
-          resetAtLocalMidnight: this.config.options?.dailyApiResetAtLocalMidnight ?? false,
-        })
-        this.apiTracker.startHourlyLogging()
-      } catch (e: any) {
-        this.errorLog('Failed to initialize API request tracking:', e?.message ?? e)
+      if (this.switchBotAPI) {
+        try {
+          this.apiTracker = new ApiRequestTracker(this.api, this.log, 'SwitchBot Matter', {
+            dailyLimit: this.config.options?.dailyApiLimit ?? 10000,
+            reserveForCommands: this.config.options?.dailyApiReserveForCommands ?? 1000,
+            pausePollingAtReserve: this.config.options?.webhookOnlyOnReserve ?? false,
+            resetAtLocalMidnight: this.config.options?.dailyApiResetAtLocalMidnight ?? false,
+          })
+          this.apiTracker.startHourlyLogging()
+        } catch (e: any) {
+          this.errorLog('Failed to initialize API request tracking:', e?.message ?? e)
+        }
       }
 
       try {
