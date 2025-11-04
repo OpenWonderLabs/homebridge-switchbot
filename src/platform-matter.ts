@@ -189,6 +189,8 @@ export class SwitchBotMatterPlatform implements DynamicPlatformPlugin {
             resetAtLocalMidnight: this.config.options?.dailyApiResetAtLocalMidnight ?? false,
           })
           this.apiTracker.startHourlyLogging()
+          // Parity with HAP platform: indicate successful initialization of API tracking (Matter-specific wording)
+          this.debugLog('API request tracking initialized (Matter platform, OpenAPI)')
         } catch (e: any) {
           this.errorLog('Failed to initialize API request tracking:', e?.message ?? e)
         }

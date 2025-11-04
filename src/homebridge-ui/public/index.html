@@ -196,10 +196,13 @@
             ? await homebridge.getCachedAccessories()
             : await homebridge.request('/getCachedAccessories');
 
-        // If no HAP cached accessories were returned, try the Matter cached list
-        if ((!cachedAccessories || cachedAccessories.length === 0) && typeof homebridge.request === 'function') {
+        // If no HAP cached accessories were returned, try the Matter cached list using the new native method
+        if ((!cachedAccessories || cachedAccessories.length === 0)) {
           try {
-            const matter = await homebridge.request('/getCachedMatterAccessories')
+            // Use the new native getCachedMatterAccessories() method from @homebridge/plugin-ui-utils v2.1.1-beta.0+
+            const matter = typeof homebridge.getCachedMatterAccessories === 'function'
+              ? await homebridge.getCachedMatterAccessories()
+              : await homebridge.request('/getCachedMatterAccessories'); // Fallback to custom handler for older UI versions
             if (Array.isArray(matter) && matter.length > 0) {
               cachedAccessories = matter
             }
