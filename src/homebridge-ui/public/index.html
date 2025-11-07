@@ -287,6 +287,38 @@
         await homebridge.savePluginConfig();
         homebridge.hideSpinner();
       };
+      const addDeviceToConfig = async (deviceId) => {
+          homebridge.showSpinner();
+          const currentConfig = await homebridge.getPluginConfig();
+          if (!currentConfig[0].options.devices) {
+            currentConfig[0].options.devices = [];
+          }
+          currentConfig[0].options.devices.push({
+            deviceId,
+            hide_device: false,
+            disablePlatformBLE: false,
+            allowPush: false,
+            disableCaching: false,
+          });
+          await homebridge.updatePluginConfig(currentConfig);
+          await homebridge.savePluginConfig();
+          homebridge.toast.success('Device added to config successfully!', 'Success');
+          homebridge.hideSpinner();
+        };
+
+        const addDeviceButton = document.createElement('button');
+        addDeviceButton.textContent = 'Add Device to Config';
+        addDeviceButton.className = 'btn btn-success';
+        addDeviceButton.style.marginTop = '10px';
+        addDeviceButton.addEventListener('click', () => {
+          const deviceId = document.getElementById('deviceId').textContent;
+          if (deviceId) {
+            addDeviceToConfig(deviceId);
+          } else {
+            homebridge.toast.error('No device ID found!', 'Error');
+          }
+        });
+        document.getElementById('deviceInfo').appendChild(addDeviceButton);
       menuHome.addEventListener('click', () => showSupport());
       menuDevices.addEventListener('click', () => showDevices());
       menuSettings.addEventListener('click', () => showSettings());
