@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased — beta-4.3.3
+
+### Added
+- Matter support (child-bridge) with Matter-first registration and HAP fallback.
+- Hybrid `node-switchbot@4` client adapter (BLE + OpenAPI) with OpenAPI fallback.
+- Manual and automated E2E scripts for lights, fans, curtains, and locks (`scripts/e2e/*`).
+- Conditional Vitest E2E harness (`RUN_E2E=true`) and a manual GitHub Actions workflow to run E2E.
+
+### Changed
+- Centralized Matter cluster/attribute numeric ID maps in `src/utils.ts`.
+- Device descriptors refactored to use canonical Matter IDs.
+- OpenAPI fallback hardened with timeouts, retries, backoff, and per-device retry limits.
+
+### Tests
+- Added integration tests and a Matter test harness under `test/`.
+
+### Notes
+- This is a beta release; follow migration notes in MIGRATION.md before upgrading.
+# Changelog
+
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
