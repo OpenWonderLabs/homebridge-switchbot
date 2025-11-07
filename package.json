@@ -55,7 +55,7 @@
   "icon": "https://raw.githubusercontent.com/OpenWonderLabs/homebridge-switchbot/latest/branding/icon.png",
   "engineStrict": true,
   "engines": {
-    "homebridge": "^2.0.0-beta.45",
+    "homebridge": "^2.0.0-beta.50",
     "node": "^20 || ^22 || ^24"
   },
   "scripts": {
@@ -98,7 +98,7 @@
     "eslint": "^9.39.1",
     "eslint-plugin-format": "^1.0.2",
     "eslint-plugin-import": "^2.32.0",
-    "homebridge": "^2.0.0-beta.45",
+    "homebridge": "^2.0.0-beta.50",
     "homebridge-config-ui-x": "^5.9.0",
     "nodemon": "^3.1.10",
     "shx": "^0.4.0",
