@@ -1,0 +1,14 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@2.3.0/schema.json",
+  "changelog": [
+    "@changesets/cli/changelog",
+    { "repo": "OpenWonderLabs/homebridge-switchbot" }
+  ],
+  "commit": false,
+  "fixed": [],
+  "linked": [],
+  "access": "public",
+  "baseBranch": "latest",
+  "updateInternalDependencies": "patch",
+  "ignore": []
+}

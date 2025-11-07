@@ -168,6 +168,9 @@
 - [SwitchBot Hub 2](https://us.switch-bot.com/products/switchbot-hub-2)
   - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
     - Enables Humidity, Temperature, and Light Sensor
+- [SwitchBot Hub Mini 2](https://us.switch-bot.com/products/switchbot-hub-mini-2)
+  - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
+    - Enables Humidity, Temperature, and Light Sensor
 - [SwitchBot Hub 3](https://us.switch-bot.com/products/switchbot-hub-3)
   - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
     - Enables Humidity, Temperature, and Light Sensor
@@ -176,9 +179,52 @@
 - [SwitchBot Water Leak Detector](https://us.switch-bot.com/products/switchbot-water-leak-detector)
   - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
 
+
+## BLE Encryption Support
+
+### BLE Encryption Key and Key ID
+
+Some SwitchBot devices (notably newer locks, curtains, and select sensors) require a BLE encryption key and keyId for secure Bluetooth communication. This plugin supports configuring these fields for each device.
+
+#### How to Obtain BLE Encryption Key and Key ID
+
+1. **Open the SwitchBot App** and select your device.
+2. Go to **Device Settings** (gear icon).
+3. Tap **Device Info**.
+4. If your device supports BLE encryption, you will see fields for **Encryption Key** and **Key ID**. (If not visible, your device may not require encryption or may need a firmware update.)
+5. Copy the **Encryption Key** and **Key ID** values.
+
+#### How to Configure in Homebridge
+
+In the Homebridge UI, when adding or editing a SwitchBot device, enter the **Encryption Key** and **Key ID** in the provided fields. These values will be securely used for BLE communication with your device.
+
+**Example device config excerpt:**
+
+```json
+{
+  "deviceId": "E7F8A1B2C3D4",
+  "deviceName": "SwitchBot Lock",
+  "enableBLE": true,
+  "encryptionKey": "0123456789abcdef0123456789abcdef",
+  "keyId": "01"
+}
+```
+
+#### Which Devices Require BLE Encryption?
+
+- SwitchBot Lock (and Lock Pro)
+- SwitchBot Curtain 3 (and some Curtain 2 with updated firmware)
+- Some sensors and new device models (see device info in app)
+
+If you are unsure, check your device's info in the SwitchBot app. If the fields are present, copy them into the plugin config.
+
+**Note:** If you enter an incorrect key or keyId, BLE communication will fail for that device. Double-check values if you encounter connection issues.
+
+---
+
 ## Supported IR Devices
 
-### _(All IR Devices require [SwitchBot Hub 2](https://us.switch-bot.com/products/switchbot-hub-2), [SwitchBot Hub 3](https://us.switch-bot.com/products/switchbot-hub-3), or [Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini))_
+### _(All IR Devices require [SwitchBot Hub 2](https://us.switch-bot.com/products/switchbot-hub-2), [SwitchBot Hub Mini 2](https://us.switch-bot.com/products/switchbot-hub-mini-2), [SwitchBot Hub 3](https://us.switch-bot.com/products/switchbot-hub-3), or [Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini))_
 
 - TV
   - Allows for On/Off and Volume Controls
@@ -238,6 +284,17 @@ Reliability and rate-limiting:
 
 These controls keep API usage smooth and predictable while preserving per-device control when needed.
 
+## What's new in the v4 beta (summary)
+
+- Matter-first: when Homebridge Matter is available the plugin now prefers registering Matter accessories (with HAP fallback).
+- Hybrid client: the plugin dynamically imports `node-switchbot@4` if available and falls back to OpenAPI when `openApiToken` is configured.
+- UI always served: the plugin UI is packaged into `dist/homebridge-ui` and is always served when Homebridge UI support is present; there is no platform-level opt-out.
+- OpenAPI hardening: OpenAPI calls have AbortController timeouts, jittered exponential backoff, per-device retry limits and cooldowns, and safe response parsing for resilient behavior.
+
+- Write coalescing (debounce): command writes to the same device are coalesced by default to avoid command floods. Configure with `writeDebounceMs` (milliseconds, default 100). Set to `0` to disable coalescing.
+
+See `MIGRATION.md` for migration notes and recommended upgrade steps.
+
 ## OpenAPI rate limiting and daily budget
 
 To prevent hitting SwitchBot’s daily OpenAPI limit, the plugin provides several platform-level options under `options`:
@@ -265,6 +322,16 @@ Example (excerpt):
 - [OpenWonderLabs/node-switchbot](https://github.com/OpenWonderLabs/node-switchbot)
   - [OpenWonderLabs/SwitchBotAPI](https://github.com/OpenWonderLabs/SwitchBotAPI)
   - [OpenWonderLabs/SwitchBotAPI-BLE](https://github.com/OpenWonderLabs/SwitchBotAPI-BLE)
+
+## Development / Tests
+
+- Run unit tests:
+  ```bash
+  npm run test
+  ```
+
+- Notes:
+  - Added Lock Ultra (Cloud + BLE) support (requires `node-switchbot` v3.6.3).
 
 ## Community
 

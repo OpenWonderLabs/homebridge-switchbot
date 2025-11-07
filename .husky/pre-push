@@ -1,0 +1,15 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "Running changeset version before push..."
+if npx @changesets/cli version --yes; then
+  git add package.json package-lock.json CHANGELOG.md || true
+  if ! git diff --staged --quiet; then
+    echo "Committing version and changelog updates"
+    git commit -m "chore(release): version packages [skip ci]" || true
+  else
+    echo "No version changes to commit"
+  fi
+else
+  echo "changeset version failed or no changesets present"
+fi

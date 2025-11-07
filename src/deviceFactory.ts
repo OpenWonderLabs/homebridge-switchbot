@@ -1,0 +1,193 @@
+import type { DeviceType, SwitchBotPluginConfig } from './settings.js'
+
+import { DEVICE_TYPE_NORMALIZATION_MAP } from './device-types.js'
+import {
+  BlindTiltDevice,
+  BotDevice,
+  ContactSensorDevice,
+  Curtain3Device,
+  CurtainDevice,
+  FanDevice,
+  GenericDevice,
+  Hub2Device,
+  HumidifierDevice,
+  LightDevice,
+  LightStripDevice,
+  LockDevice,
+  MeterDevice,
+  MotionSensorDevice,
+  PlugDevice,
+  PlugMiniDevice,
+  RelaySwitch1PMDevice,
+  RelaySwitchDevice,
+  RollerShadeDevice,
+  SmartFanDevice,
+  StripLightDevice,
+  TemperatureSensorDevice,
+  VacuumDevice,
+  WalletFinderDevice,
+  WaterDetectorDevice,
+  WoSweeperDevice,
+  WoSweeperMiniDevice,
+  WoSweeperMiniProDevice,
+} from './devices/genericDevice.js'
+import { SwitchBotClient } from './switchbotClient.js'
+
+export interface DeviceOptions {
+  id: string
+  type: DeviceType
+  name?: string
+  [key: string]: any
+}
+
+const DEVICE_CLASS_MAP: Record<string, any> = {
+  // Primary device type keys (lowercase, simplified)
+  'bot': BotDevice,
+  'curtain': CurtainDevice,
+  'curtain3': Curtain3Device,
+  'fan': FanDevice,
+  'light': LightDevice,
+  'lightstrip': LightStripDevice,
+  'motion': MotionSensorDevice,
+  'contact': ContactSensorDevice,
+  'vacuum': VacuumDevice, // node-switchbot beta
+  // Canonical, normalized device type keys (lowercase, mapped to device classes)
+  'video doorbell': GenericDevice,
+  'smart radiator thermostat': GenericDevice, // node-switchbot beta
+  'woiosensor': GenericDevice,
+  'garage door opener': GenericDevice, // node-switchbot beta
+  'air purifier table pm2.5': GenericDevice,
+  'air purifier voc': GenericDevice,
+  'air purifier table voc': GenericDevice,
+  'meterplus': MeterDevice,
+  'meterpro': MeterDevice,
+  'meterpro(co2)': MeterDevice,
+  'walletfinder': WalletFinderDevice,
+  'plug': PlugDevice,
+  'plug mini (eu)': PlugMiniDevice, // node-switchbot beta
+  'plug mini (jp)': PlugMiniDevice, // node-switchbot beta
+  'plug mini (us)': PlugMiniDevice, // node-switchbot beta
+  'relay switch 1pm': RelaySwitch1PMDevice,
+  'relay switch 2pm': RelaySwitch1PMDevice,
+  'k10+ pro': WoSweeperDevice,
+  'robot vacuum cleaner k10+ pro combo': WoSweeperDevice,
+  'robot vacuum cleaner k11+': WoSweeperDevice,
+  'robot vacuum cleaner k20 plus pro': WoSweeperDevice,
+  'ai hub': GenericDevice,
+  'hub': GenericDevice,
+  'hub 2': Hub2Device,
+  'hub 3': GenericDevice, // node-switchbot beta
+  'hub mini': GenericDevice, // node-switchbot beta
+  'hub plus': GenericDevice,
+  'indoor cam': GenericDevice,
+  'pan/tilt cam': GenericDevice,
+  'pan/tilt cam 2k': GenericDevice,
+  'pan/tilt cam plus 2k': GenericDevice,
+  'pan/tilt cam plus 3k': GenericDevice,
+  'humidifier': HumidifierDevice, // node-switchbot beta (Evaporative Humidifier)
+  'roller shade': RollerShadeDevice, // node-switchbot beta
+  'strip light 3': StripLightDevice, // node-switchbot beta
+  'circulator fan': FanDevice, // node-switchbot beta
+  'smart lock pro': LockDevice, // node-switchbot beta
+  'lock lite': LockDevice, // node-switchbot beta
+  'keypad': LockDevice, // node-switchbot beta
+  'lock vision pro': LockDevice, // node-switchbot beta
+  'floor lamp': LightDevice, // node-switchbot beta
+  'rgbicww floor lamp': LightStripDevice, // node-switchbot beta
+  'rgbicww strip light': LightStripDevice, // node-switchbot beta
+  'home climate panel': GenericDevice, // node-switchbot beta (Climate Panel)
+  'lock': LockDevice,
+  'humidifier2': HumidifierDevice,
+  'temperature': TemperatureSensorDevice,
+  'relay switch 1': RelaySwitchDevice,
+  'blind tilt': BlindTiltDevice,
+  'worollershade': RollerShadeDevice,
+  'wo rollershade': RollerShadeDevice,
+  'rollershade': RollerShadeDevice,
+  'meter': MeterDevice,
+  'meter plus (jp)': MeterDevice,
+  'water detector': WaterDetectorDevice,
+  'smart fan': SmartFanDevice,
+  'strip light': StripLightDevice,
+  'wosweeper': WoSweeperDevice,
+  'wosweepermini': WoSweeperMiniDevice,
+  'wosweeperminipro': WoSweeperMiniProDevice,
+  'k10+': WoSweeperDevice,
+  'k10+ pro (wosweeperminipro)': WoSweeperMiniProDevice,
+  'battery circulator fan': FanDevice,
+  'standing circulator fan': FanDevice,
+  'smart lock': LockDevice,
+  'smart lock ultra': LockDevice,
+  'keypad touch': LockDevice,
+  'keypad vision': LockDevice,
+  'keypad vision pro': LockDevice,
+  'color bulb': LightDevice,
+  'ceiling light': LightDevice,
+  'ceiling light pro': LightDevice,
+  'candle warmer lamp': LightDevice,
+  'rgbic neon rope light': LightStripDevice,
+  'rgbic neon wire rope light': LightStripDevice,
+  'robot vacuum cleaner s1': VacuumDevice,
+  'robot vacuum cleaner s1 plus': VacuumDevice,
+  'robot vacuum cleaner s10': VacuumDevice,
+  'robot vacuum cleaner s20': VacuumDevice,
+}
+
+function classForType(type: string) {
+  const rawKey = (type || '').toLowerCase()
+  const key = DEVICE_TYPE_NORMALIZATION_MAP[rawKey] ?? rawKey
+  return DEVICE_CLASS_MAP[key] ?? GenericDevice
+}
+
+export async function createDevice(opts: DeviceOptions, cfg: SwitchBotPluginConfig, useMatter: boolean, log?: { info: (...args: any[]) => void }) {
+  // Debug: Log the options passed to the device constructor
+  if (opts && opts.name && log && typeof log.info === 'function') {
+    log.info(`[Matter/Debug] createDevice: Passing opts for ${opts.name}:`, JSON.stringify(opts, null, 2))
+  }
+  // Reuse existing client when provided via config to avoid creating
+  // a new SwitchBotClient per device (which can be expensive).
+  let client: any = (cfg as any)?._client ?? null
+  if (!client) {
+    client = new SwitchBotClient(cfg)
+    await client.init()
+  }
+
+  // Pass client via config so devices can access it
+  const mergedCfg = { ...(cfg as any), _client: client }
+  // Pass encryptionKey and keyId to device opts if present
+  const deviceOpts = { ...opts }
+  if (opts.encryptionKey) {
+    deviceOpts.encryptionKey = opts.encryptionKey
+  }
+  if (opts.keyId) {
+    deviceOpts.keyId = opts.keyId
+  }
+
+  const DeviceCtor = classForType(opts.type)
+  const device = new DeviceCtor(deviceOpts, mergedCfg)
+  await device.init()
+
+  // Attach a simple getState delegator to the client where appropriate
+  const originalGetState = device.getState.bind(device)
+  device.getState = async () => {
+    try {
+      // Prefer client-backed getDevice when available
+      const dev = await client.getDevice(opts.id)
+      if (dev) {
+        return dev
+      }
+    } catch (e) {
+      // ignore and fallback to device implementation
+    }
+    return originalGetState()
+  }
+
+  // Provide accessory factory based on platform selection
+  return {
+    instance: device,
+    createAccessory: useMatter
+      ? async (api: any) => await device.createMatterAccessory(api)
+      : (api: any) => device.createHAPAccessory(api),
+    protocol: useMatter ? 'matter' : 'hap',
+  }
+}

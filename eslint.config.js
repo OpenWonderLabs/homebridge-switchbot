@@ -1,4 +1,5 @@
 import antfu from '@antfu/eslint-config'
+import html from 'eslint-plugin-html'
 
 export default antfu(
   {
@@ -7,10 +8,13 @@ export default antfu(
     typescript: true,
     formatters: {
       markdown: true,
+      html: true,
+    },
+    plugins: {
+      html,
     },
     rules: {
       'curly': ['error', 'multi-line'],
-      'import/order': 0,
       'jsdoc/check-alignment': 'error',
       'jsdoc/check-line-alignment': 'error',
       'perfectionist/sort-exports': 'error',
@@ -18,15 +22,10 @@ export default antfu(
         'error',
         {
           groups: [
-            'builtin-type',
-            'external-type',
-            'internal-type',
-            ['parent-type', 'sibling-type', 'index-type'],
-            'builtin',
-            'external',
+            'type',
+            ['builtin', 'external'],
             'internal',
             ['parent', 'sibling', 'index'],
-            'object',
             'unknown',
           ],
           order: 'asc',

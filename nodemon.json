@@ -1,8 +1,8 @@
 {
   "watch": ["src"],
-  "ext": "ts, html, json",
+  "ext": "ts,html,json",
   "ignore": [],
-  "exec": "DEBUG= tsc && homebridge -T -D -P -I -U ~/.homebridge-dev ..",
+  "exec": "npm run build",
   "signal": "SIGTERM",
   "env": {
     "NODE_OPTIONS": "--trace-warnings"
