@@ -55,28 +55,71 @@ export class WindowBlindAccessory extends BaseMatterAccessory {
     this.logInfo('initialized.')
   }
 
-  private async handleGoToLift(request: MatterRequests.GoToLiftPercentage): Promise<void> {
+  public async handleGoToLift(request: MatterRequests.GoToLiftPercentage): Promise<void> {
     this.logInfo(`GoToLiftPercentage request: ${JSON.stringify(request)}`)
     // Matter uses 0=open, 10000=closed, so invert to get open percentage
     const closedPercent = request.liftPercent100thsValue / 100
-    const openPercent = (100 - closedPercent).toFixed(0)
-    this.logInfo(`moved to ${openPercent}% open.`)
-    // TODO: await myBlindAPI.setPosition(openPercent)
+    // SwitchBot API expects position: 0=open, 100=closed
+    const position = Math.max(0, Math.min(100, closedPercent))
+    // Default to performance mode (ff), index is always 0
+    const mode = 'ff' // or '01' for silent mode if needed
+    const parameter = `0,${mode},${position}`
+    this.logInfo(`Sending setPosition to OpenAPI: parameter=${parameter}`)
+    try {
+      if (this.context?.sendOpenAPI) {
+        await this.sendOpenAPICommand('setPosition', parameter)
+        this.logInfo('OpenAPI setPosition command sent.')
+      } else {
+        this.logWarn('OpenAPI sender not available in context.')
+      }
+    } catch (e: any) {
+      this.logWarn(`OpenAPI setPosition failed: ${String(e?.message ?? e)}`)
+    }
   }
 
-  private async handleUpOrOpen(): Promise<void> {
+  public async handleUpOrOpen(): Promise<void> {
     this.logInfo('opened blind.')
-    // TODO: await myBlindAPI.open()
+    try {
+      // Send open command to SwitchBot OpenAPI
+      if (this.context?.sendOpenAPI) {
+        await this.sendOpenAPICommand('turnOn')
+        this.logInfo('OpenAPI open command sent.')
+      } else {
+        this.logWarn('OpenAPI sender not available in context.')
+      }
+    } catch (e: any) {
+      this.logWarn(`OpenAPI open failed: ${String(e?.message ?? e)}`)
+    }
   }
 
-  private async handleDownOrClose(): Promise<void> {
+  public async handleDownOrClose(): Promise<void> {
     this.logInfo('closed blind.')
-    // TODO: await myBlindAPI.close()
+    try {
+      // Send close command to SwitchBot OpenAPI
+      if (this.context?.sendOpenAPI) {
+        await this.sendOpenAPICommand('turnOff')
+        this.logInfo('OpenAPI close command sent.')
+      } else {
+        this.logWarn('OpenAPI sender not available in context.')
+      }
+    } catch (e: any) {
+      this.logWarn(`OpenAPI close failed: ${String(e?.message ?? e)}`)
+    }
   }
 
-  private async handleStop(): Promise<void> {
+  public async handleStop(): Promise<void> {
     this.logInfo('stopped blind.')
-    // TODO: await myBlindAPI.stop()
+    try {
+      // Send pause command to SwitchBot OpenAPI
+      if (this.context?.sendOpenAPI) {
+        await this.sendOpenAPICommand('pause')
+        this.logInfo('OpenAPI pause command sent.')
+      } else {
+        this.logWarn('OpenAPI sender not available in context.')
+      }
+    } catch (e: any) {
+      this.logWarn(`OpenAPI pause failed: ${String(e?.message ?? e)}`)
+    }
   }
 
   public updateLiftPosition(openPercent: number): void {

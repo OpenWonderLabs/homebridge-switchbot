@@ -58,7 +58,7 @@ export class VenetianBlindAccessory extends BaseMatterAccessory {
     this.logInfo('initialized.')
   }
 
-  private async handleGoToLift(request: MatterRequests.GoToLiftPercentage): Promise<void> {
+  public async handleGoToLift(request: MatterRequests.GoToLiftPercentage): Promise<void> {
     this.logInfo(`GoToLiftPercentage request: ${JSON.stringify(request)}`)
 
     // Matter uses 0=open, 10000=closed, so invert to get open percentage
@@ -68,7 +68,7 @@ export class VenetianBlindAccessory extends BaseMatterAccessory {
     // TODO: await myBlindAPI.setPosition(openPercent)
   }
 
-  private async handleGoToTilt(request: MatterRequests.GoToTiltPercentage): Promise<void> {
+  public async handleGoToTilt(request: MatterRequests.GoToTiltPercentage): Promise<void> {
     this.logInfo(`GoToTiltPercentage request: ${JSON.stringify(request)}`)
 
     // Matter tilt: 0=horizontal/open (0deg), 10000=vertical/closed (90deg)
@@ -77,17 +77,17 @@ export class VenetianBlindAccessory extends BaseMatterAccessory {
     // TODO: await myBlindAPI.setTiltAngle(degrees)
   }
 
-  private async handleUpOrOpen(): Promise<void> {
+  public async handleUpOrOpen(): Promise<void> {
     this.logInfo('opened blind.')
     // TODO: await myBlindAPI.open()
   }
 
-  private async handleDownOrClose(): Promise<void> {
+  public async handleDownOrClose(): Promise<void> {
     this.logInfo('closed blind.')
     // TODO: await myBlindAPI.close()
   }
 
-  private async handleStop(): Promise<void> {
+  public async handleStop(): Promise<void> {
     this.logInfo('stopped blind.')
     // TODO: await myBlindAPI.stop()
   }

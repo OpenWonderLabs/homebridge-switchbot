@@ -2344,13 +2344,31 @@ export class SwitchBotMatterPlatform implements DynamicPlatformPlugin {
 
     // Window Blind
     if (this.config.enableWindowBlind !== false) {
-      const device = new WindowBlindAccessory(this.api, this.log)
+      const device = new WindowBlindAccessory(this.api, this.log, {
+        handlers: {
+          windowCovering: {
+            goToLiftPercentage: async request => device?.handleGoToLift?.(request),
+            upOrOpen: async () => device?.handleUpOrOpen?.(),
+            downOrClose: async () => device?.handleDownOrClose?.(),
+            stopMotion: async () => device?.handleStop?.(),
+          },
+        },
+      })
       accessories.push(device.toAccessory())
     }
 
     // Venetian Blind
     if (this.config.enableVenetianBlind !== false) {
-      const device = new VenetianBlindAccessory(this.api, this.log)
+      const device = new VenetianBlindAccessory(this.api, this.log, {
+        handlers: {
+          windowCovering: {
+            goToLiftPercentage: async request => device?.handleGoToLift?.(request),
+            upOrOpen: async () => device?.handleUpOrOpen?.(),
+            downOrClose: async () => device?.handleDownOrClose?.(),
+            stopMotion: async () => device?.handleStop?.(),
+          },
+        },
+      })
       accessories.push(device.toAccessory())
     }
 
