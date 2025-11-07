@@ -785,6 +785,38 @@ export class SwitchBotMatterPlatform implements DynamicPlatformPlugin {
         },
       }
     }
+    // Ensure windowCovering.goToLiftPercentage handler for VenetianBlindAccessory and WindowBlindAccessory
+    if (['Venetian Blind', 'Blind Tilt'].includes(dev.deviceType ?? '')) {
+      handlers.windowCovering = {
+        goToLiftPercentage: async (request: any) => {
+          // Forward to accessory instance if available
+          const instance = this.accessoryInstances.get(this.normalizeDeviceId(dev.deviceId))
+          if (instance && typeof instance.handleGoToLift === 'function') {
+            return instance.handleGoToLift(request)
+          }
+          this.warnLog(`No instance or handleGoToLift for VenetianBlindAccessory deviceId=${dev.deviceId}`)
+        },
+      }
+    }
+    if ([
+      'Curtain',
+      'Curtain2',
+      'Curtain3',
+      'Curtain 2',
+      'WoRollerShade',
+      'Roller Shade',
+    ].includes(dev.deviceType ?? '')) {
+      handlers.windowCovering = {
+        goToLiftPercentage: async (request: any) => {
+          // Forward to accessory instance if available
+          const instance = this.accessoryInstances.get(this.normalizeDeviceId(dev.deviceId))
+          if (instance && typeof instance.handleGoToLift === 'function') {
+            return instance.handleGoToLift(request)
+          }
+          this.warnLog(`No instance or handleGoToLift for WindowBlindAccessory deviceId=${dev.deviceId}`)
+        },
+      }
+    }
 
     // Expose platform helpers to the accessory via context so accessory
     // classes can call OpenAPI/BLE actions (sendOpenAPI/sendBLE) and know
