@@ -88,11 +88,27 @@ export interface options {
    * When false (default), reset at UTC midnight. Default: false.
    */
   dailyApiResetAtLocalMidnight?: boolean
-  // Matter platform batch refresh options
+  /**
+   * When true, resets the daily API request counter to zero. This is useful for testing purposes.
+   */
+  resetDailyApiCounter?: boolean
+  /**
+   * When set, configures the batch refresh rate (in milliseconds) for Matter devices.  Default: 5000 ms.
+   */
   matterBatchRefreshRate?: number
+  /**
+   * When true, enables batch processing for Matter devices.  Default: false.
+   */
   matterBatchConcurrency?: number
+  /**
+   * When true, enables batch processing for Matter devices. Default: false.
+   */
   matterBatchEnabled?: boolean
+  /**
+   * When set, adds a random delay (jitter) to batch requests to avoid thundering herd problems.
+   */
   matterBatchJitter?: number
+  newFeatureEnabled?: boolean
 };
 
 export type devicesConfig = botConfig | relaySwitch1Config | relaySwitch1PMConfig | meterConfig | meterProConfig | indoorOutdoorSensorConfig | humidifierConfig | curtainConfig | blindTiltConfig | contactConfig | motionConfig | waterDetectorConfig | plugConfig | colorBulbConfig | stripLightConfig | ceilingLightConfig | lockConfig | hubConfig

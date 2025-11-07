@@ -180,32 +180,74 @@ export class RoboticVacuumAccessory extends BaseMatterAccessory {
           currentMode: 0,
         },
         rvcCleanMode: (() => {
-          if (capabilities.cleanAction === 'vacuum-only') {
-            return {
-              supportedModes: [
-                { label: 'Quiet', mode: 0, modeTags: [{ value: 2 }] },
-                { label: 'Standard', mode: 1, modeTags: [{ value: 16384 }] },
-                { label: 'Strong', mode: 2, modeTags: [{ value: 7 }] },
-                { label: 'MAX', mode: 3, modeTags: [{ value: 8 }] },
-              ],
-              currentMode: 1,
-            }
-          } else if (capabilities.cleanAction === 'vacuum-or-mop') {
-            return {
-              supportedModes: [
-                { label: 'Vacuum', mode: 0, modeTags: [{ value: 16385 }] },
-                { label: 'Mop', mode: 1, modeTags: [{ value: 16386 }] },
-              ],
-              currentMode: 0,
-            }
-          } else {
-            return {
-              supportedModes: [
-                { label: 'Vacuum', mode: 0, modeTags: [{ value: 16385 }] },
-                { label: 'Vacuum & Mop', mode: 1, modeTags: [{ value: 16385 }, { value: 16386 }] },
-              ],
-              currentMode: 0,
-            }
+          switch (model as string) {
+            case 'K10':
+              return {
+                supportedModes: [
+                  { label: 'Vacuum', mode: 0, modeTags: [{ value: 16385 }] },
+                ],
+                currentMode: 0,
+              }
+            case 'Robot Vacuum Cleaner S1':
+            case 'Robot Vacuum Cleaner S1 Plus':
+              return {
+                supportedModes: [
+                  { label: 'Quiet', mode: 0, modeTags: [{ value: 2 }] },
+                  { label: 'Standard', mode: 1, modeTags: [{ value: 16384 }] },
+                  { label: 'Strong', mode: 2, modeTags: [{ value: 7 }] },
+                  { label: 'MAX', mode: 3, modeTags: [{ value: 8 }] },
+                ],
+                currentMode: 1,
+              }
+            case 'Mini Robot Vacuum K10+':
+            case 'Mini Robot Vacuum K10+ Pro':
+            case 'K10+ Pro Combo':
+              return {
+                supportedModes: [
+                  { label: 'Vacuum', mode: 0, modeTags: [{ value: 16385 }] },
+                  { label: 'Mop', mode: 1, modeTags: [{ value: 16386 }] },
+                  { label: 'Sweep & Mop', mode: 2, modeTags: [{ value: 16385 }, { value: 16386 }] },
+                ],
+                currentMode: 0,
+              }
+            case 'Multitasking Household Robot K20+ Pro':
+              return {
+                supportedModes: [
+                  { label: 'Vacuum', mode: 0, modeTags: [{ value: 16385 }] },
+                  { label: 'Vacuum & Mop', mode: 1, modeTags: [{ value: 16385 }, { value: 16386 }] },
+                  { label: 'Deep Clean', mode: 2, modeTags: [{ value: 16384 }] },
+                ],
+                currentMode: 0,
+              }
+            case 'Floor Cleaning Robot S10':
+            case 'Floor Cleaning Robot S20':
+              return {
+                supportedModes: [
+                  { label: 'Vacuum', mode: 0, modeTags: [{ value: 16385 }] },
+                  { label: 'Mop', mode: 1, modeTags: [{ value: 16386 }] },
+                ],
+                currentMode: 0,
+              }
+            case 'Robot Vacuum K11+':
+              return {
+                supportedModes: [
+                  { label: 'Quiet', mode: 0, modeTags: [{ value: 2 }] },
+                  { label: 'Standard', mode: 1, modeTags: [{ value: 16384 }] },
+                  { label: 'Strong', mode: 2, modeTags: [{ value: 7 }] },
+                  { label: 'MAX', mode: 3, modeTags: [{ value: 8 }] },
+                  { label: 'Deep Clean', mode: 4, modeTags: [{ value: 16384 }, { value: 16385 }] },
+                ],
+                currentMode: 1,
+              }
+            default:
+              return {
+                supportedModes: [
+                  { label: 'Vacuum', mode: 0, modeTags: [{ value: 16385 }] },
+                  { label: 'Vacuum & Mop', mode: 1, modeTags: [{ value: 16385 }, { value: 16386 }] },
+                  { label: 'Deep Clean', mode: 2, modeTags: [{ value: 16384 }] },
+                ],
+                currentMode: 0,
+              }
           }
         })(),
         rvcOperationalState: {
@@ -213,9 +255,12 @@ export class RoboticVacuumAccessory extends BaseMatterAccessory {
             { operationalStateId: 0 }, // Stopped
             { operationalStateId: 1 }, // Running
             { operationalStateId: 2 }, // Paused
+            { operationalStateId: 3 }, // Error
             { operationalStateId: 64 }, // Seeking Charger
             { operationalStateId: 65 }, // Charging
             { operationalStateId: 66 }, // Docked
+            { operationalStateId: 67 }, // In Remote Control
+            { operationalStateId: 68 }, // In Dust Collecting
           ],
           operationalState: 66,
         },
@@ -225,12 +270,17 @@ export class RoboticVacuumAccessory extends BaseMatterAccessory {
           stop: async () => this.handleStop(),
           start: async () => this.handleStart(),
           goHome: async () => this.handleGoHome(),
+          // Always register resume handler, log warning if not supported
+          resume: async () => {
+            if (capabilities.resume) {
+              await this.handleResume()
+            } else {
+              this.logWarn(`Resume operation is not supported for model: ${this.model}`)
+            }
+          },
         }
         if (capabilities.pause) {
           opHandlers.pause = async () => this.handlePause()
-        }
-        if (capabilities.resume) {
-          opHandlers.resume = async () => this.handleResume()
         }
         return {
           rvcRunMode: { changeToMode: async (request: MatterRequests.ChangeToMode) => this.handleChangeRunMode(request) },
@@ -248,58 +298,110 @@ export class RoboticVacuumAccessory extends BaseMatterAccessory {
   private async handleChangeRunMode(request: MatterRequests.ChangeToMode): Promise<void> {
     this.logInfo(`ChangeToMode (run) request received: ${JSON.stringify(request)}`)
     const { newMode } = request
-    const modeStr = ['Idle', 'Cleaning'][newMode] || `Unknown (mode=${newMode})`
-    this.logInfo(`changing run mode to: ${modeStr}`)
-    if (newMode === 1) {
-      await this.handleStart()
-    } else if (newMode === 0) {
-      await this.handleGoHome()
+    const modeStr = ['Idle', 'Cleaning', 'Returning to Dock'][newMode] || `Unknown (mode=${newMode})`
+    this.logInfo(`Changing run mode to: ${modeStr}`)
+
+    switch (this.model) {
+      case 'Robot Vacuum Cleaner S1':
+      case 'Robot Vacuum Cleaner S1 Plus': {
+        if (newMode === 1) {
+          await this.handleStart()
+        } else if (newMode === 0) {
+          await this.handleGoHome()
+        }
+        break
+      }
+      case 'Mini Robot Vacuum K10+':
+      case 'Mini Robot Vacuum K10+ Pro':
+      case 'K10+ Pro Combo': {
+        if (newMode === 1) {
+          await this.handleStart()
+        } else if (newMode === 2) {
+          await this.handleDock()
+        }
+        break
+      }
+      case 'Multitasking Household Robot K20+ Pro': {
+        if (newMode === 1) {
+          await this.handleStart()
+        } else if (newMode === 0) {
+          await this.handleGoHome()
+        } else if (newMode === 2) {
+          await this.handlePause()
+        }
+        break
+      }
+      case 'Floor Cleaning Robot S10':
+      case 'Floor Cleaning Robot S20': {
+        if (newMode === 1) {
+          await this.handleStart()
+        } else if (newMode === 0) {
+          await this.handleGoHome()
+        }
+        break
+      }
+      case 'Robot Vacuum K11+': {
+        if (newMode === 1) {
+          await this.handleStart()
+        } else if (newMode === 0) {
+          await this.handleGoHome()
+        } else if (newMode === 2) {
+          await this.handleDock()
+        }
+        break
+      }
+      default:
+        this.logWarn(`Run mode change not supported for model: ${this.model}`)
     }
   }
 
   private async handleChangeCleanMode(request: MatterRequests.ChangeToMode): Promise<void> {
     this.logInfo(`ChangeToMode (clean) request received: ${JSON.stringify(request)}`)
     const { newMode } = request
-    if (this.capabilities.cleanAction === 'vacuum-only') {
-      const mapPow = ['Quiet', 'Standard', 'Strong', 'MAX'] as const
-      const label = mapPow[newMode] ?? `Unknown (${newMode})`
-      this.logInfo(`changing suction level to: ${label}`)
-      if (this.capabilities.suctionKind === 'powLevel-0-3') {
-        try {
-          this.logInfo(`[OpenAPI] Sending PowLevel: ${newMode}`)
-          await this.sendOpenAPICommand('PowLevel', String(newMode))
-          this.logInfo(`[OpenAPI] PowLevel command sent: ${newMode}`)
-        } catch (e: any) {
-          this.logWarn(`OpenAPI PowLevel failed: ${String(e?.message ?? e)}`)
-        }
-      } else if (this.capabilities.suctionKind === 'fanLevel-1-4') {
-        this.currentFanLevel = (Math.min(3, Math.max(0, Number(newMode))) + 1) as 1 | 2 | 3 | 4
-        try {
-          this.logInfo(`[OpenAPI] Sending changeParam fanLevel: ${this.currentFanLevel}`)
-          await this.sendOpenAPICommand('changeParam', JSON.stringify({ fanLevel: this.currentFanLevel }))
-          this.logInfo(`[OpenAPI] changeParam command sent: fanLevel=${this.currentFanLevel}`)
-        } catch (e: any) {
-          this.logWarn(`OpenAPI changeParam(fanLevel) failed: ${String(e?.message ?? e)}`)
-        }
+
+    switch (this.model) {
+      case 'Robot Vacuum Cleaner S1':
+      case 'Robot Vacuum Cleaner S1 Plus': {
+        const mapPowS1 = ['Quiet', 'Standard', 'Strong', 'MAX'] as const
+        const labelS1 = mapPowS1[newMode] ?? `Unknown (${newMode})`
+        this.logInfo(`Changing suction level to: ${labelS1}`)
+        await this.sendOpenAPICommand('PowLevel', String(newMode))
+        break
       }
-      this.updateCleanMode(newMode)
-      return
+      case 'Mini Robot Vacuum K10+':
+      case 'Mini Robot Vacuum K10+ Pro':
+      case 'K10+ Pro Combo': {
+        const mapPowK10 = ['Vacuum', 'Mop', 'Sweep & Mop'] as const
+        const labelK10 = mapPowK10[newMode] ?? `Unknown (${newMode})`
+        this.logInfo(`Changing cleaning mode to: ${labelK10}`)
+        await this.sendOpenAPICommand('CleanMode', String(newMode))
+        break
+      }
+      case 'Multitasking Household Robot K20+ Pro': {
+        const mapPowK20 = ['Vacuum', 'Vacuum & Mop', 'Deep Clean'] as const
+        const labelK20 = mapPowK20[newMode] ?? `Unknown (${newMode})`
+        this.logInfo(`Changing cleaning mode to: ${labelK20}`)
+        await this.sendOpenAPICommand('CleanMode', String(newMode))
+        break
+      }
+      case 'Floor Cleaning Robot S10':
+      case 'Floor Cleaning Robot S20': {
+        const mapPowS10 = ['Vacuum', 'Mop'] as const
+        const labelS10 = mapPowS10[newMode] ?? `Unknown (${newMode})`
+        this.logInfo(`Changing cleaning mode to: ${labelS10}`)
+        await this.sendOpenAPICommand('CleanMode', String(newMode))
+        break
+      }
+      case 'Robot Vacuum K11+': {
+        const mapPowK11 = ['Quiet', 'Standard', 'Strong', 'MAX', 'Deep Clean'] as const
+        const labelK11 = mapPowK11[newMode] ?? `Unknown (${newMode})`
+        this.logInfo(`Changing suction level to: ${labelK11}`)
+        await this.sendOpenAPICommand('PowLevel', String(newMode))
+        break
+      }
+      default:
+        this.logWarn(`Clean mode change not supported for model: ${this.model}`)
     }
-
-    if (this.capabilities.cleanAction === 'vacuum-or-mop') {
-      const label = newMode === 0 ? 'Vacuum' : 'Mop'
-      this.currentCleanAction = newMode === 0 ? 'vacuum' : 'mop'
-      this.logInfo(`changing clean action to: ${label}`)
-      this.logInfo(`[OpenAPI] (no command sent for cleanAction change, just updating state)`)
-      this.updateCleanMode(newMode)
-      return
-    }
-
-    const label = newMode === 0 ? 'Vacuum' : 'Vacuum & Mop'
-    this.currentCleanAction = newMode === 0 ? 'vacuum' : 'vacuum_mop'
-    this.logInfo(`changing clean action to: ${label}`)
-    this.logInfo(`[OpenAPI] (no command sent for cleanAction change, just updating state)`)
-    this.updateCleanMode(newMode)
   }
 
   private async handlePause(): Promise<void> {
@@ -359,7 +461,15 @@ export class RoboticVacuumAccessory extends BaseMatterAccessory {
 
   private async handleResume(): Promise<void> {
     this.logInfo('resume requested.')
-    await this.handleStart()
+    try {
+      this.logInfo(`[OpenAPI] Sending resume command`)
+      await this.sendOpenAPICommand('resume')
+      this.logInfo(`[OpenAPI] resume command sent`)
+    } catch (e: any) {
+      this.logWarn(`OpenAPI resume failed: ${String(e?.message ?? e)}`)
+    }
+    this.updateRunMode(1)
+    this.updateOperationalState(1)
   }
 
   private async handleGoHome(): Promise<void> {
@@ -397,14 +507,7 @@ export class RoboticVacuumAccessory extends BaseMatterAccessory {
 
   public updateCleanMode(mode: number): void {
     this.updateState('rvcCleanMode', { currentMode: mode })
-    let label = `Unknown (${mode})`
-    if (this.capabilities.cleanAction === 'vacuum-only') {
-      label = ['Quiet', 'Standard', 'Strong', 'MAX'][mode] || label
-    } else if (this.capabilities.cleanAction === 'vacuum-or-mop') {
-      label = ['Vacuum', 'Mop'][mode] || label
-    } else {
-      label = ['Vacuum', 'Vacuum & Mop'][mode] || label
-    }
+    const label = mode === 0 ? 'Vacuum' : mode === 1 ? 'Mop' : mode === 2 ? 'Vacuum & Mop' : 'Unknown'
     this.logInfo(`clean mode updated to: ${label}`)
   }
 
@@ -430,5 +533,89 @@ export class RoboticVacuumAccessory extends BaseMatterAccessory {
       (this.context as any).batteryPercentage = percentage
       ;(this.context as any).batteryChargeLevel = chargeLevel
     }
+  }
+
+  private async handleDock(): Promise<void> {
+    this.logInfo('Docking the vacuum.')
+    try {
+      this.logInfo('[OpenAPI] Sending dock command')
+      await this.sendOpenAPICommand('dock')
+      this.logInfo('[OpenAPI] Dock command sent successfully')
+      this.updateRunMode(0) // Set to Idle after docking
+      this.updateOperationalState(64) // Seeking Charger state
+    } catch (error: any) {
+      this.logWarn(`Docking failed: ${String(error?.message ?? error)}`)
+    }
+  }
+
+  private async handleServiceArea(): Promise<void> {
+    this.logWarn(`Service area functionality is not supported for model: ${this.model}`)
+    // Placeholder for potential future support.
+  }
+
+  private async simulateCleaningSequence(): Promise<void> {
+    this.logInfo('Starting cleaning sequence simulation.')
+    this.updateOperationalState(1) // Set to Running
+
+    setTimeout(async () => {
+      this.logInfo('Cleaning sequence timer expired. Requesting device status update.')
+      try {
+        const status = await this.requestDeviceStatus()
+        if (status && status.operationalState) {
+          this.logInfo(`Device status found: ${status.operationalState}`)
+          this.updateOperationalState(status.operationalState)
+        } else {
+          this.logWarn('Device status not found. Setting operational state to Stopped.')
+          this.updateOperationalState(0) // Default to Stopped
+        }
+      } catch (error: any) {
+        this.logWarn(`Failed to fetch device status: ${String(error?.message ?? error)}`)
+        this.updateOperationalState(0) // Default to Stopped
+      }
+    }, 5000) // Simulate a 5-second cleaning sequence
+  }
+
+  private async simulateDockingSequence(): Promise<void> {
+    this.logInfo('Starting docking sequence simulation.')
+    this.updateOperationalState(64) // Set to Seeking Charger
+
+    setTimeout(async () => {
+      this.logInfo('Docking sequence timer expired. Requesting device status update.')
+      try {
+        const status = await this.requestDeviceStatus()
+        if (status && status.operationalState) {
+          this.logInfo(`Device status found: ${status.operationalState}`)
+          this.updateOperationalState(status.operationalState)
+        } else {
+          this.logWarn('Device status not found. Setting operational state to Docked.')
+          this.updateOperationalState(66) // Default to Docked
+        }
+      } catch (error: any) {
+        this.logWarn(`Failed to fetch device status: ${String(error?.message ?? error)}`)
+        this.updateOperationalState(66) // Default to Docked
+      }
+    }, 5000) // Simulate a 5-second docking sequence
+  }
+
+  private async requestDeviceStatus(): Promise<{ operationalState?: number } | null> {
+    this.logInfo('Requesting device status from OpenAPI.')
+    try {
+      const response = await this.sendOpenAPICommand('getDeviceStatus')
+      this.logInfo(`Device status response: ${JSON.stringify(response)}`)
+      return response
+    } catch (error: any) {
+      this.logWarn(`Failed to request device status: ${String(error?.message ?? error)}`)
+      return null
+    }
+  }
+
+  public async startCleaningSimulation(): Promise<void> {
+    this.logInfo('Initiating cleaning simulation.')
+    await this.simulateCleaningSequence()
+  }
+
+  public async startDockingSimulation(): Promise<void> {
+    this.logInfo('Initiating docking simulation.')
+    await this.simulateDockingSequence()
   }
 }

@@ -1617,6 +1617,11 @@
             "type": "boolean",
             "default": false
           },
+          "resetDailyApiCounter": {
+            "title": "Reset Daily API Counter",
+            "type": "boolean",
+            "description": "Set to true to reset the daily API counter to zero. This is useful for testing purposes."
+          },
           "logging": {
             "title": "Logging Setting",
             "type": "string",
@@ -1913,10 +1918,6 @@
           "description": "If true, completely stop background polling/discovery once the remaining budget hits the reserve. Webhooks and commands still work until the hard limit."
         },
         {
-          "key": "options.dailyApiResetLocalMidnight",
-          "description": "If enabled, the daily API counter resets at local (system timezone) midnight. When disabled, it resets at UTC midnight."
-        },
-        {
           "key": "options.logging",
           "description": "<em class='primary-text'>Specifies the logging level for the plugin. Default: info.</em>"
         },
@@ -1931,6 +1932,10 @@
         {
           "key": "options.dailyApiResetLocalMidnight",
           "description": "<em class='primary-text'>If true, the daily API request counter will reset at local midnight (system timezone). If false (default), it will reset at UTC midnight.</em>"
+        },
+        {
+          "key": "options.resetDailyApiCounter",
+          "description": "<em class='primary-text'>Resets the daily API request counter to zero. This is useful for testing or if you want to manually manage your API usage.</em>"
         },
         {
           "key": "options.allowInvalidCharacters",
