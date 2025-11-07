@@ -790,7 +790,7 @@ export class SwitchBotMatterPlatform implements DynamicPlatformPlugin {
       handlers.windowCovering = {
         goToLiftPercentage: async (request: any) => {
           // Forward to accessory instance if available
-          const instance = this.accessoryInstances.get(this.normalizeDeviceId(dev.deviceId))
+          const instance = this.accessoryInstances.get(normalizeDeviceId(dev.deviceId))
           if (instance && typeof instance.handleGoToLift === 'function') {
             return instance.handleGoToLift(request)
           }
@@ -809,7 +809,7 @@ export class SwitchBotMatterPlatform implements DynamicPlatformPlugin {
       handlers.windowCovering = {
         goToLiftPercentage: async (request: any) => {
           // Forward to accessory instance if available
-          const instance = this.accessoryInstances.get(this.normalizeDeviceId(dev.deviceId))
+          const instance = this.accessoryInstances.get(normalizeDeviceId(dev.deviceId))
           if (instance && typeof instance.handleGoToLift === 'function') {
             return instance.handleGoToLift(request)
           }
@@ -847,7 +847,7 @@ export class SwitchBotMatterPlatform implements DynamicPlatformPlugin {
     // Save instance in registry so platform can call device-specific update methods if needed
     try {
       if (dev?.deviceId) {
-        this.accessoryInstances.set(this.normalizeDeviceId(dev.deviceId), instance)
+        this.accessoryInstances.set(normalizeDeviceId(dev.deviceId), instance)
       }
     } catch (e: any) {
       this.debugLog('Failed to register accessory instance: %s', e?.message ?? e)
