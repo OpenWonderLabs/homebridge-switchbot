@@ -653,16 +653,16 @@ export class SwitchBotMatterPlatform implements DynamicPlatformPlugin {
       'Motion Sensor': OccupancySensorAccessory,
       'Contact Sensor': ContactSensorAccessory,
       'Water Detector': LeakSensorAccessory,
-      'Meter': TemperatureSensorAccessory,
-      'MeterPlus': TemperatureSensorAccessory,
-      'MeterPro': TemperatureSensorAccessory,
-      'WoIOSensor': TemperatureSensorAccessory,
-      'Air Purifier PM2.5': HumiditySensorAccessory,
-      'Air Purifier Table PM2.5': HumiditySensorAccessory,
-      'Air Purifier': HumiditySensorAccessory,
-      'Air Purifier VOC': HumiditySensorAccessory,
-      'Air Purifier Table VOC': HumiditySensorAccessory,
-
+      // Meter devices should expose both temperature and humidity sensors
+      'Meter': [TemperatureSensorAccessory, HumiditySensorAccessory],
+      'MeterPlus': [TemperatureSensorAccessory, HumiditySensorAccessory],
+      'MeterPro': [TemperatureSensorAccessory, HumiditySensorAccessory],
+      'WoIOSensor': [TemperatureSensorAccessory, HumiditySensorAccessory],
+      'Air Purifier PM2.5': [HumiditySensorAccessory],
+      'Air Purifier Table PM2.5': [HumiditySensorAccessory],
+      'Air Purifier': [HumiditySensorAccessory],
+      'Air Purifier VOC': [HumiditySensorAccessory],
+      'Air Purifier Table VOC': [HumiditySensorAccessory],
       // Fans
       'Battery Circulator Fan': FanAccessory,
 
@@ -683,13 +683,13 @@ export class SwitchBotMatterPlatform implements DynamicPlatformPlugin {
       'Relay Switch 3': OnOffSwitchAccessory,
 
       // Misc / hubs / other
-      'Hub 2': undefined,
-      'Hub 3': undefined,
+      'Hub 2': [TemperatureSensorAccessory, HumiditySensorAccessory],
+      'Hub 3': [TemperatureSensorAccessory, HumiditySensorAccessory, OccupancySensorAccessory, LightSensorAccessory],
       'Hub Mini': undefined,
       'Bot': OnOffSwitchAccessory,
       'Smart Bot': OnOffSwitchAccessory,
-      'Humidifier': HumiditySensorAccessory,
-      'Humidifier2': HumiditySensorAccessory,
+      'Humidifier': [HumiditySensorAccessory],
+      'Humidifier2': [HumiditySensorAccessory],
       'Thermostat': ThermostatAccessory,
       'Water Heater': ThermostatAccessory,
     }
