@@ -40,6 +40,7 @@ import { Meter } from './device/meter.js'
 import { MeterPlus } from './device/meterplus.js'
 import { MeterPro } from './device/meterpro.js'
 import { Motion } from './device/motion.js'
+import { Occupancy } from './device/occupancy.js'
 import { Plug } from './device/plug.js'
 import { RelaySwitch } from './device/relayswitch.js'
 import { RobotVacuumCleaner } from './device/robotvacuumcleaner.js'
@@ -594,6 +595,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       'WoIOSensor': this.createIOSensor.bind(this),
       'Water Detector': this.createWaterDetector.bind(this),
       'Motion Sensor': this.createMotion.bind(this),
+      'Presence Sensor': this.createOccupancy.bind(this),
       'Contact Sensor': this.createContact.bind(this),
       'Curtain': this.createCurtain.bind(this),
       'Curtain3': this.createCurtain.bind(this),
@@ -1286,6 +1288,68 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
       new Motion(this, accessory, device)
+      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
+
+      // publish device externally or link the accessory to your platform
+      this.externalOrPlatform(device, accessory)
+      this.accessories.push(accessory)
+    } else {
+      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
+    }
+  }
+
+  private async createOccupancy(device: device & devicesConfig) {
+    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
+
+    // see if an accessory with the same uuid has already been registered and restored from
+    // the cached devices we stored in the `configureAccessory` method above
+    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
+
+    if (existingAccessory) {
+      // the accessory already exists
+      if (await this.registerDevice(device)) {
+        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
+        existingAccessory.context.device = device
+        existingAccessory.context.deviceId = device.deviceId
+        existingAccessory.context.deviceType = device.deviceType
+        existingAccessory.context.model = SwitchBotModel.PresenceSensor
+        existingAccessory.displayName = device.configDeviceName
+          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
+        existingAccessory.context.connectionType = await this.connectionType(device)
+        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
+        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
+        this.api.updatePlatformAccessories([existingAccessory])
+        // create the accessory handler for the restored accessory
+        // this is imported from `platformAccessory.ts`
+        new Occupancy(this, existingAccessory, device)
+        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
+      } else {
+        this.unregisterPlatformAccessories(existingAccessory)
+      }
+    } else if (await this.registerDevice(device)) {
+      // create a new accessory
+      const accessory = new this.api.platformAccessory(device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
+
+      // store a copy of the device object in the `accessory.context`
+      // the `context` property can be used to store any data about the accessory you may need
+      accessory.context.device = device
+      accessory.context.deviceId = device.deviceId
+      accessory.context.deviceType = device.deviceType
+      accessory.context.model = SwitchBotModel.PresenceSensor
+      accessory.displayName = device.configDeviceName
+        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
+        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
+      accessory.context.connectionType = await this.connectionType(device)
+      accessory.context.connectionType = await this.connectionType(device)
+      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
+      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
+      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
+      // create the accessory handler for the newly create accessory
+      // this is imported from `platformAccessory.ts`
+      new Occupancy(this, accessory, device)
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
 
       // publish device externally or link the accessory to your platform

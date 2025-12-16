@@ -182,6 +182,13 @@ export interface motionConfig extends BaseDeviceConfig {
   set_maxLux?: number
 };
 
+export interface occupancyConfig extends BaseDeviceConfig {
+  configDeviceType: 'Occupancy Sensor'
+  hide_lightsensor?: boolean
+  set_minLux?: number
+  set_maxLux?: number
+};
+
 export interface waterDetectorConfig extends BaseDeviceConfig {
   configDeviceType: 'Water Detector'
   hide_leak?: boolean
