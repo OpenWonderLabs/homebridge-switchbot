@@ -22,8 +22,6 @@ jobs:
     with:
       release_type: ${{ needs.determine-release-type.outputs.release_type }}
       is_esm: ${{ needs.determine-release-type.outputs.is_esm == 'true' }}
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   # 3️⃣ Publish to NPM and create GitHub release
   publish-release:
@@ -48,8 +46,6 @@ jobs:
       branch_name: ${{ needs.determine-release-type.outputs.branch_name }}
       release_type: ${{ needs.determine-release-type.outputs.release_type }}
       is_esm: ${{ needs.determine-release-type.outputs.is_esm == 'true' }}
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   # 5️⃣ Notify if any previous job fails
   workflow-failure:
