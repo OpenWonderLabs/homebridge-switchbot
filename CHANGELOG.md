@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [4.3.2](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v4.3.2) (2025-12-17)
+
+## What's Changed
+* Add Presence Sensor Support by @Donavan Becker in https://github.com/OpenWonderLabs/homebridge-switchbot/commit/169d0b2
+* Add proper SwitchBot Hub 3 support with latest node-switchbot dependency  by @Copilot in https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1264
+* Fix error logging  by @Dave Nicolson in https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1266
+* Add comprehensive GitHub Copilot instructions for homebridge-switchbot development  by @Copilot in https://github.com/OpenWonderLabs/homebridge-switchbot/pull/1262
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.3.1...v4.3.2
+
 ## [4.3.1](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v4.3.1) (2025-03-04)
 
 # *No New Releases During Lent*
