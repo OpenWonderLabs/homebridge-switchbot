@@ -40,8 +40,8 @@ import { Meter } from './device/meter.js'
 import { MeterPlus } from './device/meterplus.js'
 import { MeterPro } from './device/meterpro.js'
 import { Motion } from './device/motion.js'
-import { Occupancy } from './device/occupancy.js'
 import { Plug } from './device/plug.js'
+import { Presence } from './device/presence.js'
 import { RelaySwitch } from './device/relayswitch.js'
 import { RobotVacuumCleaner } from './device/robotvacuumcleaner.js'
 import { WaterDetector } from './device/waterdetector.js'
@@ -595,7 +595,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       'WoIOSensor': this.createIOSensor.bind(this),
       'Water Detector': this.createWaterDetector.bind(this),
       'Motion Sensor': this.createMotion.bind(this),
-      'Presence Sensor': this.createOccupancy.bind(this),
+      'Presence Sensor': this.createPresence.bind(this),
       'Contact Sensor': this.createContact.bind(this),
       'Curtain': this.createCurtain.bind(this),
       'Curtain3': this.createCurtain.bind(this),
@@ -1298,7 +1298,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  private async createOccupancy(device: device & devicesConfig) {
+  private async createPresence(device: device & devicesConfig) {
     const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
 
     // see if an accessory with the same uuid has already been registered and restored from
@@ -1322,7 +1322,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         this.api.updatePlatformAccessories([existingAccessory])
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
-        new Occupancy(this, existingAccessory, device)
+        new Presence(this, existingAccessory, device)
         this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
       } else {
         this.unregisterPlatformAccessories(existingAccessory)
@@ -1349,7 +1349,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
       // create the accessory handler for the newly create accessory
       // this is imported from `platformAccessory.ts`
-      new Occupancy(this, accessory, device)
+      new Presence(this, accessory, device)
       this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
 
       // publish device externally or link the accessory to your platform

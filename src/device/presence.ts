@@ -1,12 +1,12 @@
 /* Copyright(C) 2021-2024, donavanbecker (https://github.com/donavanbecker). All rights reserved.
  *
- * occupancy.ts: @switchbot/homebridge-switchbot.
+ * presence.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
-import type { device, occupancySensorStatus, occupancySensorWebhookContext, presenceSensorServiceData, SwitchBotBLE } from 'node-switchbot'
+import type { device, presenceSensorServiceData, presenceSensorStatus, presenceSensorWebhookContext, SwitchBotBLE } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig, occupancyConfig } from '../settings.js'
+import type { devicesConfig, presenceConfig } from '../settings.js'
 
 /*
 * For Testing Locally:
@@ -23,7 +23,7 @@ import { deviceBase } from './device.js'
  * An instance of this class is created for each accessory your platform registers
  * Each accessory may expose multiple services of different service types.
  */
-export class Occupancy extends deviceBase {
+export class Presence extends deviceBase {
   // Services
   private Battery: {
     Name: CharacteristicValue
@@ -45,10 +45,10 @@ export class Occupancy extends deviceBase {
   }
 
   // OpenAPI
-  deviceStatus!: occupancySensorStatus
+  deviceStatus!: presenceSensorStatus
 
   // Webhook
-  webhookContext!: occupancySensorWebhookContext
+  webhookContext!: presenceSensorWebhookContext
 
   // BLE
   serviceData!: presenceSensorServiceData
@@ -104,7 +104,7 @@ export class Occupancy extends deviceBase {
     })
 
     // Initialize Light Sensor Service
-    if ((device as unknown as occupancyConfig).hide_lightsensor) {
+    if ((device as unknown as presenceConfig).hide_lightsensor) {
       if (this.LightSensor) {
         this.debugLog('Removing Light Sensor Service')
         this.LightSensor.Service = this.accessory.getService(this.hap.Service.LightSensor) as Service
@@ -164,9 +164,9 @@ export class Occupancy extends deviceBase {
     this.debugLog(`OccupancyDetected: ${this.OccupancySensor.OccupancyDetected}`)
 
     // CurrentAmbientLightLevel
-    if (!(this.device as unknown as occupancyConfig).hide_lightsensor && this.LightSensor?.Service) {
-      const set_minLux = (this.device as unknown as occupancyConfig).set_minLux ?? 1
-      const set_maxLux = (this.device as unknown as occupancyConfig).set_maxLux ?? 6001
+    if (!(this.device as unknown as presenceConfig).hide_lightsensor && this.LightSensor?.Service) {
+      const set_minLux = (this.device as unknown as presenceConfig).set_minLux ?? 1
+      const set_maxLux = (this.device as unknown as presenceConfig).set_maxLux ?? 6001
       const lightLevel = this.serviceData.lightLevel ? set_maxLux : set_minLux
       this.LightSensor.CurrentAmbientLightLevel = this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
       this.debugLog(`LightLevel: ${this.serviceData.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
@@ -193,9 +193,9 @@ export class Occupancy extends deviceBase {
     this.debugLog(`OccupancyDetected: ${this.OccupancySensor.OccupancyDetected}`)
 
     // CurrentAmbientLightLevel
-    if (!(this.device as unknown as occupancyConfig).hide_lightsensor && this.LightSensor?.Service) {
-      const set_minLux = (this.device as unknown as occupancyConfig).set_minLux ?? 1
-      const set_maxLux = (this.device as unknown as occupancyConfig).set_maxLux ?? 6001
+    if (!(this.device as unknown as presenceConfig).hide_lightsensor && this.LightSensor?.Service) {
+      const set_minLux = (this.device as unknown as presenceConfig).set_minLux ?? 1
+      const set_maxLux = (this.device as unknown as presenceConfig).set_maxLux ?? 6001
       const lightLevel = this.deviceStatus.lightLevel ? set_maxLux : set_minLux
       this.LightSensor.CurrentAmbientLightLevel = this.getLightLevel(lightLevel, set_minLux, set_maxLux, 2)
       this.debugLog(`LightLevel: ${this.deviceStatus.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor.CurrentAmbientLightLevel}`)
@@ -333,7 +333,7 @@ export class Occupancy extends deviceBase {
   async registerWebhook() {
     if (this.device.webhook) {
       this.debugLog('is listening webhook.')
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context: occupancySensorWebhookContext) => {
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context: presenceSensorWebhookContext) => {
         try {
           this.webhookContext = context
           if (context !== undefined || context !== null) {
@@ -363,7 +363,7 @@ export class Occupancy extends deviceBase {
     // StatusLowBattery
     await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.StatusLowBattery, this.Battery.StatusLowBattery, 'StatusLowBattery')
     // CurrentAmbientLightLevel
-    if (!(this.device as unknown as occupancyConfig).hide_lightsensor && this.LightSensor?.Service) {
+    if (!(this.device as unknown as presenceConfig).hide_lightsensor && this.LightSensor?.Service) {
       await this.updateCharacteristic(this.LightSensor.Service, this.hap.Characteristic.CurrentAmbientLightLevel, this.LightSensor.CurrentAmbientLightLevel, 'CurrentAmbientLightLevel')
     }
   }
@@ -386,7 +386,7 @@ export class Occupancy extends deviceBase {
     this.OccupancySensor.Service.updateCharacteristic(this.hap.Characteristic.OccupancyDetected, e)
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e)
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, e)
-    if (!(this.device as unknown as occupancyConfig).hide_lightsensor && this.LightSensor?.Service) {
+    if (!(this.device as unknown as presenceConfig).hide_lightsensor && this.LightSensor?.Service) {
       this.LightSensor.Service.updateCharacteristic(this.hap.Characteristic.CurrentAmbientLightLevel, e)
     }
   }
