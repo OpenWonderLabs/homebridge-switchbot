@@ -363,7 +363,7 @@ export class Contact extends deviceBase {
       this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
       if (await this.successfulStatusCodes(deviceStatus)) {
         this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        this.deviceStatus = deviceStatus.body
+        this.deviceStatus = deviceStatus.body ?? deviceStatus;
         await this.openAPIparseStatus()
         await this.updateHomeKitCharacteristics()
       } else {

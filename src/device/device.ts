@@ -378,7 +378,7 @@ export abstract class deviceBase {
   }
 
   async successfulStatusCodes(deviceStatus: deviceStatusRequest) {
-    return (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100)
+    return (deviceStatus.statusCode === 200 || deviceStatus.statusCode === 100 || deviceStatus.statusCode === undefined)
   }
 
   /**

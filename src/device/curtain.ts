@@ -332,7 +332,7 @@ export class Curtain extends deviceBase {
         filename: `${hostname().split('.')[0]}_${this.device.bleMac}_persist.json`,
       })
       const motion: Service
-      = this.accessory.getService(this.hap.Service.MotionSensor)
+        = this.accessory.getService(this.hap.Service.MotionSensor)
         || this.accessory.addService(this.hap.Service.MotionSensor, 'Motion')
       motion.addOptionalCharacteristic(this.platform.eve.Characteristics.LastActivation)
       motion.getCharacteristic(this.platform.eve.Characteristics.LastActivation).onGet(() => {
@@ -517,7 +517,7 @@ export class Curtain extends deviceBase {
       this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
       if (await this.successfulStatusCodes(deviceStatus)) {
         this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        this.deviceStatus = deviceStatus.body
+        this.deviceStatus = deviceStatus.body ?? deviceStatus;
         await this.openAPIparseStatus()
         await this.updateHomeKitCharacteristics()
       } else {

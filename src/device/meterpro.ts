@@ -282,7 +282,7 @@ export class MeterPro extends deviceBase {
 
     // Battery Info
     if ('battery' in this.deviceStatus) {
-    // BatteryLevel
+      // BatteryLevel
       this.Battery.BatteryLevel = this.deviceStatus.battery
       this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
 
@@ -311,7 +311,7 @@ export class MeterPro extends deviceBase {
 
   async parseStatusWebhook(): Promise<void> {
     this.debugLog('parseStatusWebhook')
-    this.debugLog(`(scale, temperature, humidity${this.device.deviceType === 'MeterPro(CO2)' ? ', co2' : ''}) = Webhook:(${this.webhookContext.scale}, ${convertUnits(this.webhookContext.temperature, this.webhookContext.scale, (this.device as meterProConfig).convertUnitTo)}, ${this.webhookContext.humidity}${this.device.deviceType === 'MeterPro(CO2)' ? `, ${(this.webhookContext as meterProCO2WebhookContext).CO2}` : ''}) current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity}${this.device.deviceType === 'MeterPro(CO2)' ? `, ${this.CarbonDioxideSensor?.CarbonDioxideLevel}` : ''})`)
+    this.debugLog(`(scale, temperature, humidity${this.device.deviceType === 'MeterPro(CO2)' ? ', co2' : ''}) = Webhook:(${this.webhookContext.scale}, ${convertUnits(this.webhookContext.temperature, this.webhookContext.scale, (this.device as meterProConfig).convertUnitTo)}, ${this.webhookContext.humidity}${this.device.deviceType === 'MeterPro(CO2)' ? `, ${(this.webhookContext as meterProCO2WebhookContext).co2}` : ''}) current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity}${this.device.deviceType === 'MeterPro(CO2)' ? `, ${this.CarbonDioxideSensor?.CarbonDioxideLevel}` : ''})`)
     // Check if the scale is not CELSIUS
     if (this.webhookContext.scale !== 'CELSIUS' && (this.device as meterProConfig).convertUnitTo === undefined) {
       this.warnLog(`received a non-CELSIUS Webhook scale: ${this.webhookContext.scale}, Use the *convertUnitsTo* config under Hub settings, if displaying incorrectly in HomeKit.`)
@@ -330,9 +330,9 @@ export class MeterPro extends deviceBase {
     }
 
     // Carbon Dioxide Sensor
-    this.warnLog(`(before, after) CarbonDioxideLevel: (${this.CarbonDioxideSensor?.CarbonDioxideLevel},${(this.webhookContext as meterProCO2WebhookContext).CO2})`)
+    this.warnLog(`(before, after) CarbonDioxideLevel: (${this.CarbonDioxideSensor?.CarbonDioxideLevel},${(this.webhookContext as meterProCO2WebhookContext).co2})`)
     if (!(this.device as meterProConfig).hide_co2 && this.CarbonDioxideSensor?.Service && this.device.deviceType === 'MeterPro(CO2)') {
-      this.CarbonDioxideSensor.CarbonDioxideLevel = (this.webhookContext as meterProCO2WebhookContext).CO2
+      this.CarbonDioxideSensor.CarbonDioxideLevel = (this.webhookContext as meterProCO2WebhookContext).co2
       this.debugLog(`CarbonDioxideLevel: ${this.CarbonDioxideSensor.CarbonDioxideLevel}ppm`)
       this.CarbonDioxideSensor.CarbonDioxideDetected = this.CarbonDioxideSensor.CarbonDioxideLevel > 0
         ? this.hap.Characteristic.CarbonDioxideDetected.CO2_LEVELS_ABNORMAL
@@ -425,7 +425,7 @@ export class MeterPro extends deviceBase {
       this.debugLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
       if (await this.successfulStatusCodes(deviceStatus)) {
         this.debugSuccessLog(`statusCode: ${deviceStatus.statusCode}, deviceStatus: ${JSON.stringify(deviceStatus)}`)
-        this.deviceStatus = deviceStatus.body
+        this.deviceStatus = deviceStatus.body ?? deviceStatus;
         await this.openAPIparseStatus()
         await this.updateHomeKitCharacteristics()
       } else {
