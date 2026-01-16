@@ -269,7 +269,7 @@ export class MeterPro extends deviceBase {
     }
 
     // Carbon Dioxide Sensor
-    this.warnLog(`(before, after) CarbonDioxideLevel: (${this.CarbonDioxideSensor?.CarbonDioxideLevel},${(this.webhookContext as meterProCO2WebhookContext).CO2})`)
+    this.warnLog(`(before, after) CarbonDioxideLevel: (${this.CarbonDioxideSensor?.CarbonDioxideLevel},${(this.webhookContext as meterProCO2WebhookContext).co2})`)
     if (!(this.device as meterProConfig).hide_co2 && this.CarbonDioxideSensor?.Service && this.device.deviceType === 'MeterPro(CO2)') {
       this.CarbonDioxideSensor.CarbonDioxideLevel = (this.deviceStatus as meterProCO2Status).CO2
       this.debugLog(`CarbonDioxideLevel: ${this.CarbonDioxideSensor.CarbonDioxideLevel}ppm`)
@@ -465,12 +465,46 @@ export class MeterPro extends deviceBase {
   async updateHomeKitCharacteristics(): Promise<void> {
     // CurrentRelativeHumidity
     if (!(this.device as meterProConfig).hide_humidity && this.HumiditySensor?.Service) {
-      await this.updateCharacteristic(this.HumiditySensor.Service, this.hap.Characteristic.CurrentRelativeHumidity, this.HumiditySensor.CurrentRelativeHumidity, 'CurrentRelativeHumidity')
+      await this.updateCharacteristic(
+        this.HumiditySensor.Service, 
+        this.hap.Characteristic.CurrentRelativeHumidity, 
+        this.HumiditySensor.CurrentRelativeHumidity, 
+        'CurrentRelativeHumidity'
+      )
     }
     // CurrentTemperature
     if (!(this.device as meterProConfig).hide_temperature && this.TemperatureSensor?.Service) {
-      await this.updateCharacteristic(this.TemperatureSensor.Service, this.hap.Characteristic.CurrentTemperature, this.TemperatureSensor.CurrentTemperature, 'CurrentTemperature')
+      await this.updateCharacteristic(
+        this.TemperatureSensor.Service, 
+        this.hap.Characteristic.CurrentTemperature, 
+        this.TemperatureSensor.CurrentTemperature, 
+        'CurrentTemperature'
+      )
     }
+
+    // 1. CO2濃度の数値を更新 (ppm)
+    if (!(this.device as meterProConfig).hide_co2 && this.CarbonDioxideSensor?.Service) {
+      this.debugLog(`${this.CarbonDioxideSensor}: updateHomeKitCharacteristics: CarbonDioxideLevel: ${this.CarbonDioxideSensor.CarbonDioxideLevel}`);
+      await this.updateCharacteristic(
+        this.CarbonDioxideSensor.Service, 
+        this.hap.Characteristic.CarbonDioxideLevel, 
+        this.CarbonDioxideSensor.CarbonDioxideLevel, 
+        'CarbonDioxideLevel'
+      );
+    }
+
+    // 2. CO2の異常検知ステータスを更新 (しきい値を超えたかどうかの判定)
+    // 一般的には1000ppmや1500ppmを境界に設定しますが、デバイスからのフラグがあればそれを利用します
+    if (!(this.device as meterProConfig).hide_co2 && this.CarbonDioxideSensor?.Service) {
+      this.debugLog(`${this.CarbonDioxideSensor}: updateHomeKitCharacteristics: CarbonDioxideDetected: ${this.CarbonDioxideSensor.CarbonDioxideDetected}`);
+      await this.updateCharacteristic(
+        this.CarbonDioxideSensor.Service,
+        this.hap.Characteristic.CarbonDioxideDetected,
+        this.CarbonDioxideSensor.CarbonDioxideDetected,
+        'CarbonDioxideDetected'
+      );
+    }
+
     // BatteryLevel
     await this.updateCharacteristic(this.Battery.Service, this.hap.Characteristic.BatteryLevel, this.Battery.BatteryLevel, 'BatteryLevel')
     // StatusLowBattery
@@ -508,4 +542,13 @@ export class MeterPro extends deviceBase {
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.BatteryLevel, e)
     this.Battery.Service.updateCharacteristic(this.hap.Characteristic.StatusLowBattery, e)
   }
+
+  private calculateAirQuality(co2: number): number {
+    if (co2 < 600) return this.hap.Characteristic.AirQuality.EXCELLENT;
+    if (co2 < 900) return this.hap.Characteristic.AirQuality.GOOD;
+    if (co2 < 1200) return this.hap.Characteristic.AirQuality.FAIR;
+    if (co2 < 1500) return this.hap.Characteristic.AirQuality.INFERIOR;
+    return this.hap.Characteristic.AirQuality.POOR;
+  }
 }
+
