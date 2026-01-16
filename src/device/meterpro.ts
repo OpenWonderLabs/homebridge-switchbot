@@ -233,7 +233,7 @@ export class MeterPro extends deviceBase {
     if (!(this.device as meterProConfig).hide_co2 && this.CarbonDioxideSensor?.Service && this.device.deviceType === 'MeterPro(CO2)') {
       this.CarbonDioxideSensor.CarbonDioxideLevel = (this.serviceData as meterProCO2ServiceData).co2
       this.debugLog(`CarbonDioxideLevel: ${this.CarbonDioxideSensor.CarbonDioxideLevel}ppm`)
-      this.CarbonDioxideSensor.CarbonDioxideDetected = this.CarbonDioxideSensor.CarbonDioxideLevel > 0
+      this.CarbonDioxideSensor.CarbonDioxideDetected = this.CarbonDioxideSensor.CarbonDioxideLevel > 1000
         ? this.hap.Characteristic.CarbonDioxideDetected.CO2_LEVELS_ABNORMAL
         : this.hap.Characteristic.CarbonDioxideDetected.CO2_LEVELS_NORMAL
       this.debugLog(`CarbonDioxideDetected: ${this.CarbonDioxideSensor.CarbonDioxideDetected}`)
@@ -269,15 +269,14 @@ export class MeterPro extends deviceBase {
     }
 
     // Carbon Dioxide Sensor
-    this.warnLog(`(before, after) CarbonDioxideLevel: (${this.CarbonDioxideSensor?.CarbonDioxideLevel},${(this.webhookContext as meterProCO2WebhookContext).co2})`)
+    this.debugLog(`(before, after) CarbonDioxideLevel: (${this.CarbonDioxideSensor?.CarbonDioxideLevel}, ${(this.deviceStatus as meterProCO2Status).CO2})`)
     if (!(this.device as meterProConfig).hide_co2 && this.CarbonDioxideSensor?.Service && this.device.deviceType === 'MeterPro(CO2)') {
       this.CarbonDioxideSensor.CarbonDioxideLevel = (this.deviceStatus as meterProCO2Status).CO2
       this.debugLog(`CarbonDioxideLevel: ${this.CarbonDioxideSensor.CarbonDioxideLevel}ppm`)
-      this.CarbonDioxideSensor.CarbonDioxideDetected = this.CarbonDioxideSensor.CarbonDioxideLevel > 0
+      this.CarbonDioxideSensor.CarbonDioxideDetected = this.CarbonDioxideSensor.CarbonDioxideLevel >= 1000
         ? this.hap.Characteristic.CarbonDioxideDetected.CO2_LEVELS_ABNORMAL
         : this.hap.Characteristic.CarbonDioxideDetected.CO2_LEVELS_NORMAL
       this.debugLog(`CarbonDioxideDetected: ${this.CarbonDioxideSensor.CarbonDioxideDetected}`)
-      this.warnLog('Carbon Dioxide Sensor is not supported yet.')
     }
 
     // Battery Info
@@ -334,7 +333,7 @@ export class MeterPro extends deviceBase {
     if (!(this.device as meterProConfig).hide_co2 && this.CarbonDioxideSensor?.Service && this.device.deviceType === 'MeterPro(CO2)') {
       this.CarbonDioxideSensor.CarbonDioxideLevel = (this.webhookContext as meterProCO2WebhookContext).co2
       this.debugLog(`CarbonDioxideLevel: ${this.CarbonDioxideSensor.CarbonDioxideLevel}ppm`)
-      this.CarbonDioxideSensor.CarbonDioxideDetected = this.CarbonDioxideSensor.CarbonDioxideLevel > 0
+      this.CarbonDioxideSensor.CarbonDioxideDetected = this.CarbonDioxideSensor.CarbonDioxideLevel > 1000
         ? this.hap.Characteristic.CarbonDioxideDetected.CO2_LEVELS_ABNORMAL
         : this.hap.Characteristic.CarbonDioxideDetected.CO2_LEVELS_NORMAL
       this.debugLog(`CarbonDioxideDetected: ${this.CarbonDioxideSensor.CarbonDioxideDetected}`)
@@ -466,18 +465,18 @@ export class MeterPro extends deviceBase {
     // CurrentRelativeHumidity
     if (!(this.device as meterProConfig).hide_humidity && this.HumiditySensor?.Service) {
       await this.updateCharacteristic(
-        this.HumiditySensor.Service, 
-        this.hap.Characteristic.CurrentRelativeHumidity, 
-        this.HumiditySensor.CurrentRelativeHumidity, 
+        this.HumiditySensor.Service,
+        this.hap.Characteristic.CurrentRelativeHumidity,
+        this.HumiditySensor.CurrentRelativeHumidity,
         'CurrentRelativeHumidity'
       )
     }
     // CurrentTemperature
     if (!(this.device as meterProConfig).hide_temperature && this.TemperatureSensor?.Service) {
       await this.updateCharacteristic(
-        this.TemperatureSensor.Service, 
-        this.hap.Characteristic.CurrentTemperature, 
-        this.TemperatureSensor.CurrentTemperature, 
+        this.TemperatureSensor.Service,
+        this.hap.Characteristic.CurrentTemperature,
+        this.TemperatureSensor.CurrentTemperature,
         'CurrentTemperature'
       )
     }
@@ -486,9 +485,9 @@ export class MeterPro extends deviceBase {
     if (!(this.device as meterProConfig).hide_co2 && this.CarbonDioxideSensor?.Service) {
       this.debugLog(`${this.CarbonDioxideSensor}: updateHomeKitCharacteristics: CarbonDioxideLevel: ${this.CarbonDioxideSensor.CarbonDioxideLevel}`);
       await this.updateCharacteristic(
-        this.CarbonDioxideSensor.Service, 
-        this.hap.Characteristic.CarbonDioxideLevel, 
-        this.CarbonDioxideSensor.CarbonDioxideLevel, 
+        this.CarbonDioxideSensor.Service,
+        this.hap.Characteristic.CarbonDioxideLevel,
+        this.CarbonDioxideSensor.CarbonDioxideLevel,
         'CarbonDioxideLevel'
       );
     }
