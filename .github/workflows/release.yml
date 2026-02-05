@@ -57,10 +57,22 @@ jobs:
       job_name: ${{ github.job }}
       run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-  # 6️⃣ Post to Discord
+  # 6️⃣ Sync GitHub Release body from CHANGELOG.md
+  sync-github-release:
+    name: Sync GitHub Release (reusable)
+    needs: [determine-release-type, update-version, publish-release]
+    uses: homebridge/.github/.github/workflows/sync-github-release.yml@latest
+    with:
+      version: ${{ needs.update-version.outputs.version }}
+      changelog_path: CHANGELOG.md
+      tag_prefix: v
+    secrets:
+      repo_token: ${{ secrets.GITHUB_TOKEN }}
+
+  # 7️⃣ Post to Discord
   github-releases-to-discord:
     name: Discord Webhooks
-    needs: [determine-release-type, update-version, publish-release]
+    needs: [determine-release-type, update-version, publish-release, sync-github-release]
     uses: homebridge/.github/.github/workflows/discord-webhooks.yml@latest
     with:
       title: "SwitchBot Release"

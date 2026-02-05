@@ -1,10 +1,15 @@
+import { readFileSync } from 'node:fs'
 /* Copyright(C) 2017-2024, donavanbecker (https://github.com/donavanbecker). All rights reserved.
  *
  * platform.ts: @switchbot/homebridge-switchbot platform class.
  */
 import type { Server } from 'node:http'
+import { argv } from 'node:process'
 
+import asyncmqtt from 'async-mqtt'
+import fakegato from 'fakegato-history'
 import type { API, DynamicPlatformPlugin, Logging, PlatformAccessory } from 'homebridge'
+import { EveHomeKitTypes } from 'homebridge-lib/EveHomeKitTypes'
 import type { MqttClient } from 'mqtt'
 /*
 * For Testing Locally:
@@ -12,15 +17,6 @@ import type { MqttClient } from 'mqtt'
 * import { LogLevel, SwitchBotBLE, SwitchBotModel, SwitchBotOpenAPI } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
 */
 import type { blindTilt, bodyChange, curtain, curtain3, device, deviceStatusRequest, irdevice } from 'node-switchbot'
-
-import type { blindTiltConfig, curtainConfig, devicesConfig, irDevicesConfig, options, SwitchBotPlatformConfig } from './settings.js'
-
-import { readFileSync } from 'node:fs'
-import { argv } from 'node:process'
-
-import asyncmqtt from 'async-mqtt'
-import fakegato from 'fakegato-history'
-import { EveHomeKitTypes } from 'homebridge-lib/EveHomeKitTypes'
 import { LogLevel, SwitchBotBLE, SwitchBotModel, SwitchBotOpenAPI } from 'node-switchbot'
 import { queueScheduler } from 'rxjs'
 
@@ -54,6 +50,7 @@ import { Others } from './irdevice/other.js'
 import { TV } from './irdevice/tv.js'
 import { VacuumCleaner } from './irdevice/vacuumcleaner.js'
 import { WaterHeater } from './irdevice/waterheater.js'
+import type { blindTiltConfig, curtainConfig, devicesConfig, irDevicesConfig, options, SwitchBotPlatformConfig } from './settings.js'
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js'
 import { formatDeviceIdAsMac, isBlindTiltDevice, isCurtainDevice, safeStringify, sleep } from './utils.js'
 
@@ -359,7 +356,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
   /**
    * Verify the config passed to the plugin is valid
    */
-  async verifyConfig() {
+  verifyConfig() {
     this.debugLog('Verifying Config')
     this.config = this.config || {}
     this.config.options = this.config.options || {}
