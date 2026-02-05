@@ -4,10 +4,6 @@
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
 import type { bodyChange, device, floorCleaningRobotS10Status, floorCleaningRobotS10WebhookContext, robotVacuumCleanerS1PlusStatus, robotVacuumCleanerS1PlusWebhookContext, robotVacuumCleanerS1Status, robotVacuumCleanerS1WebhookContext, robotVacuumCleanerServiceData, SwitchBotBLE, SwitchbotDevice } from 'node-switchbot'
-
-import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig } from '../settings.js'
-
 /*
 * For Testing Locally:
 * import { SwitchBotBLEModel, SwitchBotBLEModelName } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
@@ -15,6 +11,8 @@ import type { devicesConfig } from '../settings.js'
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot'
 import { debounceTime, interval, skipWhile, Subject, take, tap } from 'rxjs'
 
+import type { SwitchBotPlatform } from '../platform.js'
+import type { devicesConfig } from '../settings.js'
 import { formatDeviceIdAsMac } from '../utils.js'
 import { deviceBase } from './device.js'
 

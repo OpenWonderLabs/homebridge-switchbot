@@ -4,10 +4,6 @@
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
 import type { bodyChange, device, lockProServiceData, lockProStatus, lockProWebhookContext, lockServiceData, lockStatus, lockWebhookContext, SwitchBotBLE, SwitchbotDevice, WoSmartLock } from 'node-switchbot'
-
-import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig, lockConfig } from '../settings.js'
-
 /*
 * For Testing Locally:
 * import { SwitchBotBLEModel, SwitchBotBLEModelName } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
@@ -15,6 +11,8 @@ import type { devicesConfig, lockConfig } from '../settings.js'
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot'
 import { debounceTime, interval, skipWhile, Subject, take, tap } from 'rxjs'
 
+import type { SwitchBotPlatform } from '../platform.js'
+import type { devicesConfig, lockConfig } from '../settings.js'
 import { formatDeviceIdAsMac } from '../utils.js'
 import { deviceBase } from './device.js'
 
@@ -47,13 +45,13 @@ export class Lock extends deviceBase {
   }
 
   // OpenAPI
-  deviceStatus!: lockStatus | lockProStatus
+  deviceStatus!: lockStatus | lockProStatus | any
 
   // Webhook
-  webhookContext!: lockWebhookContext | lockProWebhookContext
+  webhookContext!: lockWebhookContext | lockProWebhookContext | any
 
   // BLE
-  serviceData!: lockServiceData | lockProServiceData
+  serviceData!: lockServiceData | lockProServiceData | any
 
   // Updates
   lockUpdateInProgress!: boolean
@@ -230,7 +228,7 @@ export class Lock extends deviceBase {
       this.Battery.BatteryLevel = this.serviceData.battery
       this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
       // StatusLowBattery
-      this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
+      this.Battery.StatusLowBattery = Number(this.Battery.BatteryLevel) < 10
         ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
         : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
       this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
@@ -266,7 +264,7 @@ export class Lock extends deviceBase {
     this.debugLog(`BatteryLevel: ${this.Battery.BatteryLevel}`)
 
     // StatusLowBattery
-    this.Battery.StatusLowBattery = this.Battery.BatteryLevel < 10
+    this.Battery.StatusLowBattery = Number(this.Battery.BatteryLevel) < 10
       ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
       : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
     this.debugLog(`StatusLowBattery: ${this.Battery.StatusLowBattery}`)
@@ -329,10 +327,10 @@ export class Lock extends deviceBase {
       // Start to monitor advertisement packets
       (async () => {
         // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as lockServiceData | lockProServiceData
+        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as any
         // Update HomeKit
-        if ((serviceData.model === SwitchBotBLEModel.Lock || SwitchBotBLEModel.LockPro)
-          && (serviceData.modelName === SwitchBotBLEModelName.Lock || SwitchBotBLEModelName.LockPro)) {
+        if ((serviceData.model === SwitchBotBLEModel.Lock || serviceData.model === SwitchBotBLEModel.LockPro || serviceData.model === SwitchBotBLEModel.LockUltra)
+          && (serviceData.modelName === SwitchBotBLEModelName.Lock || serviceData.modelName === SwitchBotBLEModelName.LockPro || serviceData.modelName === SwitchBotBLEModelName.LockUltra)) {
           this.serviceData = serviceData
           if (serviceData !== undefined || serviceData !== null) {
             await this.BLEparseStatus()
@@ -357,7 +355,7 @@ export class Lock extends deviceBase {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
         this.debugLog(`bleMac: ${this.device.bleMac}`)
-        this.platform.bleEventHandler[this.device.bleMac] = async (context: lockServiceData | lockProServiceData) => {
+        this.platform.bleEventHandler[this.device.bleMac] = async (context: lockServiceData | lockProServiceData | any) => {
           try {
             this.serviceData = context
             if (context !== undefined || context !== null) {
@@ -403,7 +401,7 @@ export class Lock extends deviceBase {
   async registerWebhook() {
     if (this.device.webhook) {
       this.debugLog('is listening webhook.')
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context: lockWebhookContext | lockProWebhookContext) => {
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context: lockWebhookContext | lockProWebhookContext | any) => {
         try {
           this.webhookContext = context
           if (context !== undefined || context !== null) {

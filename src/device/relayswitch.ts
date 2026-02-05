@@ -4,10 +4,6 @@
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
 import type { bodyChange, device, relaySwitch1Context, relaySwitch1PMContext, relaySwitch1PMServiceData, relaySwitch1PMStatus, relaySwitch1ServiceData, relaySwitch1Status, SwitchBotBLE, SwitchbotDevice, WoRelaySwitch1, WoRelaySwitch1PM } from 'node-switchbot'
-
-import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig, relaySwitch1Config, relaySwitch1PMConfig } from '../settings.js'
-
 /*
 * For Testing Locally:
 * import { SwitchBotBLEModel, SwitchBotBLEModelName } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
@@ -15,6 +11,8 @@ import type { devicesConfig, relaySwitch1Config, relaySwitch1PMConfig } from '..
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot'
 import { debounceTime, interval, skipWhile, Subject, take, tap } from 'rxjs'
 
+import type { SwitchBotPlatform } from '../platform.js'
+import type { devicesConfig, relaySwitch1Config, relaySwitch1PMConfig } from '../settings.js'
 import { formatDeviceIdAsMac } from '../utils.js'
 import { deviceBase } from './device.js'
 

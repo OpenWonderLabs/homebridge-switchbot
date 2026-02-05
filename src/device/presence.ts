@@ -4,10 +4,6 @@
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
 import type { device, presenceSensorServiceData, presenceSensorStatus, presenceSensorWebhookContext, SwitchBotBLE } from 'node-switchbot'
-
-import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig, presenceConfig } from '../settings.js'
-
 /*
 * For Testing Locally:
 * import { SwitchBotBLEModel, SwitchBotBLEModelName } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
@@ -15,6 +11,8 @@ import type { devicesConfig, presenceConfig } from '../settings.js'
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot'
 import { interval, skipWhile, Subject } from 'rxjs'
 
+import type { SwitchBotPlatform } from '../platform.js'
+import type { devicesConfig, presenceConfig } from '../settings.js'
 import { formatDeviceIdAsMac } from '../utils.js'
 import { deviceBase } from './device.js'
 

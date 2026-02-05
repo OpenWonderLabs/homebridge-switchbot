@@ -3,17 +3,15 @@
  * device.ts: @switchbot/homebridge-switchbot.
  */
 
+import { hostname } from 'node:os'
+
 import type { API, CharacteristicValue, HAP, Logging, PlatformAccessory, Service } from 'homebridge'
 import type { MqttClient } from 'mqtt'
 import type { ad, bodyChange, device, deviceStatus, deviceStatusRequest, pushResponse, SwitchBotBLE } from 'node-switchbot'
+import { SwitchBotBLEModel, SwitchBotBLEModelFriendlyName, SwitchBotBLEModelName, SwitchBotModel } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { blindTiltConfig, botConfig, ceilingLightConfig, colorBulbConfig, contactConfig, curtainConfig, devicesConfig, hubConfig, humidifierConfig, indoorOutdoorSensorConfig, lockConfig, meterConfig, motionConfig, plugConfig, relaySwitch1Config, relaySwitch1PMConfig, stripLightConfig, SwitchBotPlatformConfig, waterDetectorConfig } from '../settings.js'
-
-import { hostname } from 'node:os'
-
-import { SwitchBotBLEModel, SwitchBotBLEModelFriendlyName, SwitchBotBLEModelName, SwitchBotModel } from 'node-switchbot'
-
 import { formatDeviceIdAsMac, safeStringify, sleep } from '../utils.js'
 
 export abstract class deviceBase {
@@ -289,10 +287,10 @@ export abstract class deviceBase {
       this.debugLog(`bleMac: ${this.device.bleMac}`)
       this.historyService = device.history
         ? new this.platform.fakegatoAPI('room', accessory, {
-          log: this.platform.log,
-          storage: 'fs',
-          filename: `${hostname().split('.')[0]}_${this.device.bleMac}_persist.json`,
-        })
+            log: this.platform.log,
+            storage: 'fs',
+            filename: `${hostname().split('.')[0]}_${this.device.bleMac}_persist.json`,
+          })
         : null
     } catch (error) {
       this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
@@ -583,6 +581,18 @@ export abstract class deviceBase {
         bleModel: SwitchBotBLEModel.LockPro,
         bleModelName: SwitchBotBLEModelName.LockPro,
         bleModelFriendlyName: SwitchBotBLEModelFriendlyName.LockPro,
+      },
+      'Smart Lock Ultra': {
+        model: SwitchBotModel.LockUltra,
+        bleModel: SwitchBotBLEModel.LockUltra,
+        bleModelName: SwitchBotBLEModelName.LockUltra,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.LockUltra,
+      },
+      'Lock Ultra': {
+        model: SwitchBotModel.LockUltra,
+        bleModel: SwitchBotBLEModel.LockUltra,
+        bleModelName: SwitchBotBLEModelName.LockUltra,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.LockUltra,
       },
       'Color Bulb': {
         model: SwitchBotModel.ColorBulb,

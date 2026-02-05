@@ -1,15 +1,11 @@
+import { hostname } from 'node:os'
+
 /* Copyright(C) 2021-2024, donavanbecker (https://github.com/donavanbecker). All rights reserved.
  *
  * curtain.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicChange, CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
 import type { bodyChange, curtain3ServiceData, curtain3WebhookContext, curtainServiceData, curtainStatus, curtainWebhookContext, device, SwitchBotBLE, SwitchbotDevice, WoCurtain } from 'node-switchbot'
-
-import type { SwitchBotPlatform } from '../platform.js'
-import type { curtainConfig, devicesConfig } from '../settings.js'
-
-import { hostname } from 'node:os'
-
 /*
 * For Testing Locally:
 * import { SwitchBotBLEModel, SwitchBotBLEModelName } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
@@ -17,6 +13,8 @@ import { hostname } from 'node:os'
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot'
 import { debounceTime, interval, skipWhile, Subject, take, tap } from 'rxjs'
 
+import type { SwitchBotPlatform } from '../platform.js'
+import type { curtainConfig, devicesConfig } from '../settings.js'
 import { formatDeviceIdAsMac, isCurtainDevice } from '../utils.js'
 import { deviceBase } from './device.js'
 
@@ -332,8 +330,8 @@ export class Curtain extends deviceBase {
         filename: `${hostname().split('.')[0]}_${this.device.bleMac}_persist.json`,
       })
       const motion: Service
-      = this.accessory.getService(this.hap.Service.MotionSensor)
-        || this.accessory.addService(this.hap.Service.MotionSensor, 'Motion')
+        = this.accessory.getService(this.hap.Service.MotionSensor)
+          || this.accessory.addService(this.hap.Service.MotionSensor, 'Motion')
       motion.addOptionalCharacteristic(this.platform.eve.Characteristics.LastActivation)
       motion.getCharacteristic(this.platform.eve.Characteristics.LastActivation).onGet(() => {
         const lastActivation = this.accessory.context.lastActivation

@@ -224,6 +224,16 @@
   - [OpenWonderLabs/SwitchBotAPI](https://github.com/OpenWonderLabs/SwitchBotAPI)
   - [OpenWonderLabs/SwitchBotAPI-BLE](https://github.com/OpenWonderLabs/SwitchBotAPI-BLE)
 
+## Development / Tests
+
+- Run unit tests:
+  ```bash
+  npm run test
+  ```
+
+- Notes:
+  - Added Lock Ultra (Cloud + BLE) support (requires `node-switchbot` v3.6.3).
+
 ## Community
 
 - [SwitchBot (Official website)](https://www.switch-bot.com/)

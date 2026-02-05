@@ -7,7 +7,6 @@ import type { bodyChange, irdevice } from 'node-switchbot'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { irDevicesConfig, irOtherConfig } from '../settings.js'
-
 import { irdeviceBase } from './irdevice.js'
 
 /**

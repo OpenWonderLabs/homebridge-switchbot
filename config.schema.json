@@ -313,6 +313,30 @@
                       ]
                     },
                     {
+                      "title": "Smart Lock Ultra",
+                      "enum": [
+                        "Smart Lock Ultra"
+                      ]
+                    },
+                    {
+                      "title": "Lock Ultra",
+                      "enum": [
+                        "Lock Ultra"
+                      ]
+                    },
+                    {
+                      "title": "Smart Lock Ultra",
+                      "enum": [
+                        "Smart Lock Ultra"
+                      ]
+                    },
+                    {
+                      "title": "Lock Ultra",
+                      "enum": [
+                        "Lock Ultra"
+                      ]
+                    },
+                    {
                       "title": "Strip Light",
                       "enum": [
                         "Strip Light"
@@ -626,7 +650,7 @@
                   "title": "Hide Lock's Contact Sensor",
                   "type": "boolean",
                   "condition": {
-                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Smart Lock' || model.options.devices[arrayIndices].configDeviceType === 'Smart Lock Pro') && model.options.devices[arrayIndices].deviceId);"
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && (model.options.devices[arrayIndices].configDeviceType === 'Smart Lock' || model.options.devices[arrayIndices].configDeviceType === 'Smart Lock Pro' || model.options.devices[arrayIndices].configDeviceType === 'Smart Lock Ultra' || model.options.devices[arrayIndices].configDeviceType === 'Lock Ultra') && model.options.devices[arrayIndices].deviceId);"
                   }
                 },
                 "hide_leak": {
@@ -6447,7 +6471,7 @@
                     "title": "Hide Lock's Contact Sensor",
                     "type": "boolean",
                     "condition": {
-                      "functionBody": "return (model.options && model.options.devices && !model.options.deviceConfig['Smart Lock'].hide_device && (model.options.deviceConfig['Smart Lock'].configDeviceType === 'Smart Lock' || model.options.deviceConfig['Smart Lock'].configDeviceType === 'Smart Lock Pro') && model.options.deviceConfig['Smart Lock'].deviceId);"
+                      "functionBody": "return (model.options && model.options.devices && !model.options.deviceConfig['Smart Lock'].hide_device && (model.options.deviceConfig['Smart Lock'].configDeviceType === 'Smart Lock' || model.options.deviceConfig['Smart Lock'].configDeviceType === 'Smart Lock Pro' ) && model.options.deviceConfig['Smart Lock'].deviceId);"
                     }
                   },
                   "activate_latchbutton": {
@@ -6831,6 +6855,406 @@
                     "placeholder": 360,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Smart Lock Pro'].hide_device);"
+                    }
+                  }
+                }
+              },
+              "Smart Lock Ultra": {
+                "type": "object",
+                "properties": {
+                  "hide_device": {
+                    "title": "Hide All Smart Lock Ultras",
+                    "type": "boolean",
+                    "description": "If true, device will be removed or hidden from HomeKit."
+                  },
+                  "hide_contactsensor": {
+                    "title": "Hide Lock's Contact Sensor",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.devices && !model.options.deviceConfig['Smart Lock Ultra'].hide_device && (model.options.deviceConfig['Smart Lock Ultra'].configDeviceType === 'Smart Lock' || model.options.deviceConfig['Smart Lock Ultra'].configDeviceType === 'Smart Lock Pro' || model.options.deviceConfig['Smart Lock Ultra'].configDeviceType === 'Smart Lock Ultra' || model.options.deviceConfig['Smart Lock Ultra'].configDeviceType === 'Lock Ultra') && model.options.deviceConfig['Smart Lock Ultra'].deviceId);"
+                    }
+                  },
+                  "activate_latchbutton": {
+                    "title": "Activate Latch Button",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.devices && !model.options.deviceConfig['Smart Lock Ultra'].hide_device && (model.options.deviceConfig['Smart Lock Ultra'].configDeviceType === 'Smart Lock' || model.options.deviceConfig['Smart Lock Ultra'].configDeviceType === 'Smart Lock Pro' || model.options.deviceConfig['Smart Lock Ultra'].configDeviceType === 'Smart Lock Ultra' || model.options.deviceConfig['Smart Lock Ultra'].configDeviceType === 'Lock Ultra') && model.options.deviceConfig['Smart Lock Ultra'].deviceId);"
+                    }
+                  },
+                  "connectionType": {
+                    "title": "Connection Type",
+                    "type": "string",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Smart Lock Ultra'] && !model.options.deviceConfig['Smart Lock Ultra'].hide_device);"
+                    },
+                    "oneOf": [
+                      {
+                        "title": "BLE",
+                        "enum": [
+                          "BLE"
+                        ]
+                      },
+                      {
+                        "title": "BLE/OpenAPI",
+                        "enum": [
+                          "BLE/OpenAPI"
+                        ]
+                      },
+                      {
+                        "title": "Disabled",
+                        "enum": [
+                          "Disabled"
+                        ]
+                      },
+                      {
+                        "title": "OpenAPI",
+                        "enum": [
+                          "OpenAPI"
+                        ]
+                      }
+                    ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Smart Lock Ultra'] && !model.options.deviceConfig['Smart Lock Ultra'].hide_device && model.options.deviceConfig['Smart Lock Ultra'].connectionType !== 'Disabled');"
+                    }
+                  },
+                  "scanDuration": {
+                    "title": "Scan Duration (Default is 1 Second) for BLE",
+                    "type": "number",
+                    "placeholder": 1,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Smart Lock Ultra'] && !model.options.deviceConfig['Smart Lock Ultra'].hide_device && (model.options.deviceConfig['Smart Lock Ultra'].connectionType === 'BLE' || model.options.deviceConfig['Smart Lock Ultra'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "webhook": {
+                    "title": "Enable Webhook for all Smart Lock Ultras",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Smart Lock Ultra'] && !model.options.deviceConfig['Smart Lock Ultra'].hide_device && (model.options.deviceConfig['Smart Lock Ultra'].connectionType === 'OpenAPI' || model.options.deviceConfig['Smart Lock Ultra'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "external": {
+                    "title": "External Accessory",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Smart Lock Ultra'] && !model.options.deviceConfig['Smart Lock Ultra'].hide_device);"
+                    }
+                  },
+                  "maxRetry": {
+                    "title": "Max Retries for BLE",
+                    "type": "number",
+                    "placeholder": "5",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Smart Lock Ultra'] && !model.options.deviceConfig['Smart Lock Ultra'].hide_device && (model.options.deviceConfig['Smart Lock Ultra'].connectionType === 'BLE' || model.options.deviceConfig['Smart Lock Ultra'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "maxRetries": {
+                    "title": "Device Max Retries for OpenAPI",
+                    "type": "number",
+                    "placeholder": 5,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Smart Lock Ultra'] && !model.options.deviceConfig['Smart Lock Ultra'].hide_device && (model.options.deviceConfig['Smart Lock Ultra'].connectionType === 'OpenAPI' || model.options.deviceConfig['Smart Lock Ultra'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "delayBetweenRetries": {
+                    "title": "Device Delay Between Retries for OpenAPI (In Seconds)",
+                    "type": "number",
+                    "placeholder": 3,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Smart Lock Ultra'] && !model.options.deviceConfig['Smart Lock Ultra'].hide_device && (model.options.deviceConfig['Smart Lock Ultra'].connectionType === 'OpenAPI' || model.options.deviceConfig['Smart Lock Ultra'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "disableCaching": {
+                    "title": "Disable Caching",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Smart Lock Ultra'] && !model.options.deviceConfig['Smart Lock Ultra'].hide_device);"
+                    }
+                  },
+                  "offline": {
+                    "title": "Offline as Off",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Smart Lock Ultra'].hide_device);"
+                    }
+                  },
+                  "history": {
+                    "title": "EVE History",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Smart Lock Ultra'].hide_device);"
+                    }
+                  },
+                  "firmware": {
+                    "title": "Firmware Override",
+                    "type": "string",
+                    "placeholder": "1.2.8",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Smart Lock Ultra'].hide_device);"
+                    }
+                  },
+                  "logging": {
+                    "title": "Logging by Device Type",
+                    "type": "string",
+                    "default": "",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Smart Lock Ultra'].hide_device);"
+                    },
+                    "oneOf": [
+                      {
+                        "title": "Debug Logging",
+                        "enum": [
+                          "debug"
+                        ]
+                      },
+                      {
+                        "title": "Default Logging",
+                        "enum": [
+                          ""
+                        ]
+                      },
+                      {
+                        "title": "No Logging",
+                        "enum": [
+                          "none"
+                        ]
+                      },
+                      {
+                        "title": "Standard Logging",
+                        "enum": [
+                          "standard"
+                        ]
+                      }
+                    ]
+                  },
+                  "refreshRate": {
+                    "title": "Device Refresh Rate",
+                    "type": "number",
+                    "placeholder": 5,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Smart Lock Ultra'].hide_device);"
+                    }
+                  },
+                  "updateRate": {
+                    "title": "Update Rate",
+                    "type": "number",
+                    "minimum": 1,
+                    "placeholder": 5,
+                    "description": "Indicates the number of seconds before refreshing status while updating progress.",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Smart Lock Ultra'].hide_device);"
+                    }
+                  },
+                  "pushRate": {
+                    "title": "Device Push Rate",
+                    "type": "number",
+                    "placeholder": 360,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Smart Lock Ultra'].hide_device);"
+                    }
+                  }
+                }
+              },
+              "Lock Ultra": {
+                "type": "object",
+                "properties": {
+                  "hide_device": {
+                    "title": "Hide All Lock Ultras",
+                    "type": "boolean",
+                    "description": "If true, device will be removed or hidden from HomeKit."
+                  },
+                  "hide_contactsensor": {
+                    "title": "Hide Lock's Contact Sensor",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.devices && !model.options.deviceConfig['Lock Ultra'].hide_device && (model.options.deviceConfig['Lock Ultra'].configDeviceType === 'Smart Lock' || model.options.deviceConfig['Lock Ultra'].configDeviceType === 'Smart Lock Pro' || model.options.deviceConfig['Lock Ultra'].configDeviceType === 'Smart Lock Ultra' || model.options.deviceConfig['Lock Ultra'].configDeviceType === 'Lock Ultra') && model.options.deviceConfig['Lock Ultra'].deviceId);"
+                    }
+                  },
+                  "activate_latchbutton": {
+                    "title": "Activate Latch Button",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.devices && !model.options.deviceConfig['Lock Ultra'].hide_device && (model.options.deviceConfig['Lock Ultra'].configDeviceType === 'Smart Lock' || model.options.deviceConfig['Lock Ultra'].configDeviceType === 'Smart Lock Pro' || model.options.deviceConfig['Lock Ultra'].configDeviceType === 'Smart Lock Ultra' || model.options.deviceConfig['Lock Ultra'].configDeviceType === 'Lock Ultra') && model.options.deviceConfig['Lock Ultra'].deviceId);"
+                    }
+                  },
+                  "connectionType": {
+                    "title": "Connection Type",
+                    "type": "string",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Lock Ultra'] && !model.options.deviceConfig['Lock Ultra'].hide_device);"
+                    },
+                    "oneOf": [
+                      {
+                        "title": "BLE",
+                        "enum": [
+                          "BLE"
+                        ]
+                      },
+                      {
+                        "title": "BLE/OpenAPI",
+                        "enum": [
+                          "BLE/OpenAPI"
+                        ]
+                      },
+                      {
+                        "title": "Disabled",
+                        "enum": [
+                          "Disabled"
+                        ]
+                      },
+                      {
+                        "title": "OpenAPI",
+                        "enum": [
+                          "OpenAPI"
+                        ]
+                      }
+                    ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Lock Ultra'] && !model.options.deviceConfig['Lock Ultra'].hide_device && model.options.deviceConfig['Lock Ultra'].connectionType !== 'Disabled');"
+                    }
+                  },
+                  "scanDuration": {
+                    "title": "Scan Duration (Default is 1 Second) for BLE",
+                    "type": "number",
+                    "placeholder": 1,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Lock Ultra'] && !model.options.deviceConfig['Lock Ultra'].hide_device && (model.options.deviceConfig['Lock Ultra'].connectionType === 'BLE' || model.options.deviceConfig['Lock Ultra'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "webhook": {
+                    "title": "Enable Webhook for all Lock Ultras",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Lock Ultra'] && !model.options.deviceConfig['Lock Ultra'].hide_device && (model.options.deviceConfig['Lock Ultra'].connectionType === 'OpenAPI' || model.options.deviceConfig['Lock Ultra'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "external": {
+                    "title": "External Accessory",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Lock Ultra'] && !model.options.deviceConfig['Lock Ultra'].hide_device);"
+                    }
+                  },
+                  "maxRetry": {
+                    "title": "Max Retries for BLE",
+                    "type": "number",
+                    "placeholder": "5",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Lock Ultra'] && !model.options.deviceConfig['Lock Ultra'].hide_device && (model.options.deviceConfig['Lock Ultra'].connectionType === 'BLE' || model.options.deviceConfig['Lock Ultra'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "maxRetries": {
+                    "title": "Device Max Retries for OpenAPI",
+                    "type": "number",
+                    "placeholder": 5,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Lock Ultra'] && !model.options.deviceConfig['Lock Ultra'].hide_device && (model.options.deviceConfig['Lock Ultra'].connectionType === 'OpenAPI' || model.options.deviceConfig['Lock Ultra'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "delayBetweenRetries": {
+                    "title": "Device Delay Between Retries for OpenAPI (In Seconds)",
+                    "type": "number",
+                    "placeholder": 3,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Lock Ultra'] && !model.options.deviceConfig['Lock Ultra'].hide_device && (model.options.deviceConfig['Lock Ultra'].connectionType === 'OpenAPI' || model.options.deviceConfig['Lock Ultra'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "disableCaching": {
+                    "title": "Disable Caching",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Lock Ultra'] && !model.options.deviceConfig['Lock Ultra'].hide_device);"
+                    }
+                  },
+                  "offline": {
+                    "title": "Offline as Off",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Lock Ultra'].hide_device);"
+                    }
+                  },
+                  "history": {
+                    "title": "EVE History",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Lock Ultra'].hide_device);"
+                    }
+                  },
+                  "firmware": {
+                    "title": "Firmware Override",
+                    "type": "string",
+                    "placeholder": "1.2.8",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Lock Ultra'].hide_device);"
+                    }
+                  },
+                  "logging": {
+                    "title": "Logging by Device Type",
+                    "type": "string",
+                    "default": "",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Lock Ultra'].hide_device);"
+                    },
+                    "oneOf": [
+                      {
+                        "title": "Debug Logging",
+                        "enum": [
+                          "debug"
+                        ]
+                      },
+                      {
+                        "title": "Default Logging",
+                        "enum": [
+                          ""
+                        ]
+                      },
+                      {
+                        "title": "No Logging",
+                        "enum": [
+                          "none"
+                        ]
+                      },
+                      {
+                        "title": "Standard Logging",
+                        "enum": [
+                          "standard"
+                        ]
+                      }
+                    ]
+                  },
+                  "refreshRate": {
+                    "title": "Device Refresh Rate",
+                    "type": "number",
+                    "placeholder": 5,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Lock Ultra'].hide_device);"
+                    }
+                  },
+                  "updateRate": {
+                    "title": "Update Rate",
+                    "type": "number",
+                    "minimum": 1,
+                    "placeholder": 5,
+                    "description": "Indicates the number of seconds before refreshing status while updating progress.",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Lock Ultra'].hide_device);"
+                    }
+                  },
+                  "pushRate": {
+                    "title": "Device Push Rate",
+                    "type": "number",
+                    "placeholder": 360,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Lock Ultra'].hide_device);"
                     }
                   }
                 }
@@ -14141,6 +14565,60 @@
             "options.deviceConfig['Smart Lock Pro'].refreshRate",
             "options.deviceConfig['Smart Lock Pro'].updateRate",
             "options.deviceConfig['Smart Lock Pro'].pushRate"
+          ]
+        },
+        {
+          "type": "fieldset",
+          "title": "Smart Lock Ultra Settings",
+          "expandable": true,
+          "expanded": false,
+          "items": [
+            "options.deviceConfig['Smart Lock Ultra'].hide_device",
+            "options.deviceConfig['Smart Lock Ultra'].hide_contactsensor",
+            "options.deviceConfig['Smart Lock Ultra'].activate_latchbutton",
+            "options.deviceConfig['Smart Lock Ultra'].connectionType",
+            "options.deviceConfig['Smart Lock Ultra'].disablePlatformBLE",
+            "options.deviceConfig['Smart Lock Ultra'].scanDuration",
+            "options.deviceConfig['Smart Lock Ultra'].webhook",
+            "options.deviceConfig['Smart Lock Ultra'].external",
+            "options.deviceConfig['Smart Lock Ultra'].maxRetry",
+            "options.deviceConfig['Smart Lock Ultra'].maxRetries",
+            "options.deviceConfig['Smart Lock Ultra'].delayBetweenRetries",
+            "options.deviceConfig['Smart Lock Ultra'].disableCaching",
+            "options.deviceConfig['Smart Lock Ultra'].offline",
+            "options.deviceConfig['Smart Lock Ultra'].history",
+            "options.deviceConfig['Smart Lock Ultra'].firmware",
+            "options.deviceConfig['Smart Lock Ultra'].logging",
+            "options.deviceConfig['Smart Lock Ultra'].refreshRate",
+            "options.deviceConfig['Smart Lock Ultra'].updateRate",
+            "options.deviceConfig['Smart Lock Ultra'].pushRate"
+          ]
+        },
+        {
+          "type": "fieldset",
+          "title": "Lock Ultra Settings",
+          "expandable": true,
+          "expanded": false,
+          "items": [
+            "options.deviceConfig['Lock Ultra'].hide_device",
+            "options.deviceConfig['Lock Ultra'].hide_contactsensor",
+            "options.deviceConfig['Lock Ultra'].activate_latchbutton",
+            "options.deviceConfig['Lock Ultra'].connectionType",
+            "options.deviceConfig['Lock Ultra'].disablePlatformBLE",
+            "options.deviceConfig['Lock Ultra'].scanDuration",
+            "options.deviceConfig['Lock Ultra'].webhook",
+            "options.deviceConfig['Lock Ultra'].external",
+            "options.deviceConfig['Lock Ultra'].maxRetry",
+            "options.deviceConfig['Lock Ultra'].maxRetries",
+            "options.deviceConfig['Lock Ultra'].delayBetweenRetries",
+            "options.deviceConfig['Lock Ultra'].disableCaching",
+            "options.deviceConfig['Lock Ultra'].offline",
+            "options.deviceConfig['Lock Ultra'].history",
+            "options.deviceConfig['Lock Ultra'].firmware",
+            "options.deviceConfig['Lock Ultra'].logging",
+            "options.deviceConfig['Lock Ultra'].refreshRate",
+            "options.deviceConfig['Lock Ultra'].updateRate",
+            "options.deviceConfig['Lock Ultra'].pushRate"
           ]
         },
         {

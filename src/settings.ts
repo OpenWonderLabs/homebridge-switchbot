@@ -218,7 +218,7 @@ export interface ceilingLightConfig extends BaseDeviceConfig {
 };
 
 export interface lockConfig extends BaseDeviceConfig {
-  configDeviceType: 'Smart Lock' | 'Smart Lock Pro'
+  configDeviceType: 'Smart Lock' | 'Smart Lock Pro' | 'Smart Lock Ultra' | 'Lock Ultra'
   hide_contactsensor?: boolean
   activate_latchbutton?: boolean
 };

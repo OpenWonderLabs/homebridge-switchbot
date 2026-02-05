@@ -4,10 +4,6 @@
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
 import type { bodyChange, device, humidifier2ServiceData, humidifier2Status, humidifier2WebhookContext, humidifierServiceData, humidifierStatus, humidifierWebhookContext, SwitchBotBLE, SwitchbotDevice, WoHumi } from 'node-switchbot'
-
-import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig, humidifierConfig } from '../settings.js'
-
 /*
 * For Testing Locally:
 * import { SwitchBotBLEModel, SwitchBotBLEModelName } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
@@ -15,6 +11,8 @@ import type { devicesConfig, humidifierConfig } from '../settings.js'
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot'
 import { debounceTime, interval, skipWhile, Subject, take, tap } from 'rxjs'
 
+import type { SwitchBotPlatform } from '../platform.js'
+import type { devicesConfig, humidifierConfig } from '../settings.js'
 import { convertUnits, formatDeviceIdAsMac, validHumidity } from '../utils.js'
 import { deviceBase } from './device.js'
 

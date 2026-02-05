@@ -3,12 +3,8 @@
  * hub.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
-import type { device, hub2ServiceData, hub2Status, hub2WebhookContext, hub3ServiceData, SwitchBotBLE } from 'node-switchbot'
-
-import type { SwitchBotPlatform } from '../platform.js'
-import type { devicesConfig, hubConfig } from '../settings.js'
-
 import { Units } from 'homebridge'
+import type { device, hub2ServiceData, hub2Status, hub2WebhookContext, hub3ServiceData, SwitchBotBLE } from 'node-switchbot'
 /*
 * For Testing Locally:
 * import { SwitchBotBLEModel, SwitchBotBLEModelName } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
@@ -16,6 +12,8 @@ import { Units } from 'homebridge'
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot'
 import { interval, skipWhile, Subject } from 'rxjs'
 
+import type { SwitchBotPlatform } from '../platform.js'
+import type { devicesConfig, hubConfig } from '../settings.js'
 import { convertUnits, formatDeviceIdAsMac, validHumidity } from '../utils.js'
 import { deviceBase } from './device.js'
 

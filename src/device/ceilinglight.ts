@@ -4,10 +4,6 @@
  */
 import type { CharacteristicValue, Controller, ControllerConstructor, ControllerServiceMap, PlatformAccessory, Service } from 'homebridge'
 import type { bodyChange, ceilingLightProServiceData, ceilingLightProStatus, ceilingLightProWebhookContext, ceilingLightServiceData, ceilingLightStatus, ceilingLightWebhookContext, device, SwitchBotBLE, SwitchbotDevice, WoCeilingLight } from 'node-switchbot'
-
-import type { SwitchBotPlatform } from '../platform.js'
-import type { ceilingLightConfig, devicesConfig } from '../settings.js'
-
 /*
 * For Testing Locally:
 * import { SwitchBotBLEModel, SwitchBotBLEModelName } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
@@ -15,6 +11,8 @@ import type { ceilingLightConfig, devicesConfig } from '../settings.js'
 import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot'
 import { debounceTime, interval, skipWhile, Subject, take, tap } from 'rxjs'
 
+import type { SwitchBotPlatform } from '../platform.js'
+import type { ceilingLightConfig, devicesConfig } from '../settings.js'
 import { formatDeviceIdAsMac, hs2rgb, m2hs } from '../utils.js'
 import { deviceBase } from './device.js'
 
