@@ -199,17 +199,24 @@ export class Hub extends deviceBase {
 
   async openAPIparseStatus(): Promise<void> {
     this.debugLog('openAPIparseStatus')
-    this.debugLog(`(temperature, humidity, lightLevel) = OpenAPI:(${this.deviceStatus.temperature}, ${this.deviceStatus.humidity}, ${this.deviceStatus.lightLevel}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity}, ${this.LightSensor?.CurrentAmbientLightLevel})`)
+    
+    // Hub 3 returns sensor data in a nested sensorData object, while Hub 2 returns it at the root level
+    const sensorData = (this.deviceStatus as any).sensorData ?? this.deviceStatus
+    const temperature = sensorData.temperature
+    const humidity = sensorData.humidity
+    const lightLevel = sensorData.lightLevel
+    
+    this.debugLog(`(temperature, humidity, lightLevel) = OpenAPI:(${temperature}, ${humidity}, ${lightLevel}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity}, ${this.LightSensor?.CurrentAmbientLightLevel})`)
 
     // CurrentRelativeHumidity
     if (!(this.device as hubConfig).hide_humidity && this.HumiditySensor?.Service) {
-      this.HumiditySensor.CurrentRelativeHumidity = this.deviceStatus.humidity
+      this.HumiditySensor.CurrentRelativeHumidity = humidity
       this.debugLog(`CurrentRelativeHumidity: ${this.HumiditySensor.CurrentRelativeHumidity}%`)
     }
 
     // CurrentTemperature
     if (!(this.device as hubConfig).hide_temperature && this.TemperatureSensor?.Service) {
-      this.TemperatureSensor.CurrentTemperature = this.deviceStatus.temperature
+      this.TemperatureSensor.CurrentTemperature = temperature
       this.debugLog(`CurrentTemperature: ${this.TemperatureSensor.CurrentTemperature}°c`)
     }
 
@@ -217,9 +224,8 @@ export class Hub extends deviceBase {
     if (!(this.device as hubConfig).hide_lightsensor && this.LightSensor?.Service) {
       const set_minLux = (this.device as hubConfig).set_minLux ?? 1
       const set_maxLux = (this.device as hubConfig).set_maxLux ?? 6001
-      const lightLevel = this.deviceStatus.lightLevel
       this.LightSensor.CurrentAmbientLightLevel = this.getLightLevel(lightLevel, set_minLux, set_maxLux, 19)
-      this.debugLog(`LightLevel: ${this.deviceStatus.lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`)
+      this.debugLog(`LightLevel: ${lightLevel}, CurrentAmbientLightLevel: ${this.LightSensor!.CurrentAmbientLightLevel}`)
     }
 
     // Firmware Version
