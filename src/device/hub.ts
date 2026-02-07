@@ -17,6 +17,25 @@ import type { devicesConfig, hubConfig } from '../settings.js'
 import { convertUnits, formatDeviceIdAsMac, validHumidity } from '../utils.js'
 import { deviceBase } from './device.js'
 
+/**
+ * Hub sensor data structure
+ * Represents the sensor readings that can be at root level (Hub 2) or nested (Hub 3)
+ */
+interface HubSensorData {
+  temperature: number
+  humidity: number
+  lightLevel: number
+}
+
+/**
+ * Extended Hub status type that supports both Hub 2 and Hub 3 API response structures
+ * Hub 2 returns sensor data at root level
+ * Hub 3 returns sensor data in a nested sensorData object
+ */
+type HubStatus = hub2Status & {
+  sensorData?: HubSensorData
+}
+
 export class Hub extends deviceBase {
   // Services
   private LightSensor?: {
@@ -38,7 +57,7 @@ export class Hub extends deviceBase {
   }
 
   // OpenAPI
-  deviceStatus!: hub2Status
+  deviceStatus!: HubStatus
 
   // Webhook
   webhookContext!: hub2WebhookContext
@@ -201,7 +220,7 @@ export class Hub extends deviceBase {
     this.debugLog('openAPIparseStatus')
     
     // Hub 3 returns sensor data in a nested sensorData object, while Hub 2 returns it at the root level
-    const sensorData = (this.deviceStatus as any).sensorData ?? this.deviceStatus
+    const sensorData: HubSensorData = this.deviceStatus.sensorData ?? this.deviceStatus
     const temperature = sensorData.temperature
     const humidity = sensorData.humidity
     const lightLevel = sensorData.lightLevel
