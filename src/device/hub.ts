@@ -218,13 +218,11 @@ export class Hub extends deviceBase {
 
   async openAPIparseStatus(): Promise<void> {
     this.debugLog('openAPIparseStatus')
-    
     // Hub 3 returns sensor data in a nested sensorData object, while Hub 2 returns it at the root level
     const sensorData: HubSensorData = this.deviceStatus.sensorData ?? this.deviceStatus
     const temperature = sensorData.temperature
     const humidity = sensorData.humidity
     const lightLevel = sensorData.lightLevel
-    
     this.debugLog(`(temperature, humidity, lightLevel) = OpenAPI:(${temperature}, ${humidity}, ${lightLevel}), current:(${this.TemperatureSensor?.CurrentTemperature}, ${this.HumiditySensor?.CurrentRelativeHumidity}, ${this.LightSensor?.CurrentAmbientLightLevel})`)
 
     // CurrentRelativeHumidity
