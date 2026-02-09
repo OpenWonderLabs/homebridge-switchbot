@@ -219,11 +219,11 @@ export class Hub extends deviceBase {
   async openAPIparseStatus(): Promise<void> {
     this.debugLog('openAPIparseStatus')
     this.debugLog(`Device Type: ${this.device.deviceType}, Raw deviceStatus: ${JSON.stringify(this.deviceStatus)}`)
-    
+
     // Hub 3 returns sensor data in a nested sensorData object, while Hub 2 returns it at the root level
     const sensorData: HubSensorData = this.deviceStatus.sensorData ?? this.deviceStatus
     this.debugLog(`Using sensorData from: ${this.deviceStatus.sensorData ? 'nested sensorData object (Hub 3)' : 'root level (Hub 2)'}`)
-    
+
     const temperature = sensorData.temperature
     const humidity = sensorData.humidity
     const lightLevel = sensorData.lightLevel
