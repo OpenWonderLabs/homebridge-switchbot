@@ -53,7 +53,7 @@ export interface options {
   logging?: string
 };
 
-export type devicesConfig = botConfig | relaySwitch1Config | relaySwitch1PMConfig | meterConfig | meterProConfig | indoorOutdoorSensorConfig | humidifierConfig | curtainConfig | blindTiltConfig | contactConfig | motionConfig | waterDetectorConfig | plugConfig | colorBulbConfig | stripLightConfig | ceilingLightConfig | lockConfig | hubConfig
+export type devicesConfig = botConfig | relaySwitch1Config | relaySwitch1PMConfig | meterConfig | meterProConfig | indoorOutdoorSensorConfig | humidifierConfig | curtainConfig | blindTiltConfig | contactConfig | motionConfig | waterDetectorConfig | plugConfig | colorBulbConfig | stripLightConfig | ceilingLightConfig | lockConfig | hubConfig | airPurifierConfig
 
 export interface BaseDeviceConfig extends device {
   bleMac?: string
@@ -231,6 +231,10 @@ export interface hubConfig extends BaseDeviceConfig {
   hide_lightsensor?: boolean
   set_minLux?: number
   set_maxLux?: number
+};
+
+export interface airPurifierConfig extends BaseDeviceConfig {
+  configDeviceType: 'Air Purifier' | 'Air Purifier Table' | 'Air Purifier VOC' | 'Air Purifier Table VOC' | 'Air Purifier PM2.5' | 'Air Purifier Table PM2.5'
 };
 
 export type irDevicesConfig = irFanConfig | irLightConfig | irAirConfig | irOtherConfig
