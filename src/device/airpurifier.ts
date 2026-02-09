@@ -3,7 +3,7 @@
  * airpurifier.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
-import type { airPurifierServiceData, airPurifierStatus, bodyChange, device, SwitchBotBLE, SwitchbotDevice } from 'node-switchbot'
+import type { airPurifierServiceData, airPurifierStatus, bodyChange, device, SwitchbotDevice } from 'node-switchbot'
 /*
 * For Testing Locally:
 * import { SwitchBotBLEModel, SwitchBotBLEModelName } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
