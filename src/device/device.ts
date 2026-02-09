@@ -684,6 +684,42 @@ export abstract class deviceBase {
         bleModelName: SwitchBotBLEModelName.Unknown,
         bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,
       },
+      'Air Purifier': {
+        model: SwitchBotModel.AirPurifier,
+        bleModel: SwitchBotBLEModel.AirPurifier,
+        bleModelName: SwitchBotBLEModelName.AirPurifier,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.AirPurifier,
+      },
+      'Air Purifier Table': {
+        model: SwitchBotModel.AirPurifierTable,
+        bleModel: SwitchBotBLEModel.AirPurifierTable,
+        bleModelName: SwitchBotBLEModelName.AirPurifierTable,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.AirPurifierTable,
+      },
+      'Air Purifier VOC': {
+        model: SwitchBotModel.AirPurifier,
+        bleModel: SwitchBotBLEModel.AirPurifier,
+        bleModelName: SwitchBotBLEModelName.AirPurifier,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.AirPurifier,
+      },
+      'Air Purifier Table VOC': {
+        model: SwitchBotModel.AirPurifierTable,
+        bleModel: SwitchBotBLEModel.AirPurifierTable,
+        bleModelName: SwitchBotBLEModelName.AirPurifierTable,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.AirPurifierTable,
+      },
+      'Air Purifier PM2.5': {
+        model: SwitchBotModel.AirPurifier,
+        bleModel: SwitchBotBLEModel.AirPurifier,
+        bleModelName: SwitchBotBLEModelName.AirPurifier,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.AirPurifierPM2_5,
+      },
+      'Air Purifier Table PM2.5': {
+        model: SwitchBotModel.AirPurifierTable,
+        bleModel: SwitchBotBLEModel.AirPurifierTable,
+        bleModelName: SwitchBotBLEModelName.AirPurifierTable,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.AirPurifierTablePM2_5,
+      },
     }
     const defaultDevice = {
       model: SwitchBotModel.Unknown,
