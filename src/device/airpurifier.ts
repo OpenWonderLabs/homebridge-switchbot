@@ -123,7 +123,7 @@ export class AirPurifier extends deviceBase {
       this.errorLog(`failed to retrieve initial values and update Homekit, Error: ${e.message ?? e}`)
     }
 
-    // regisiter webhook event handler if enabled
+    // register webhook event handler if enabled
     try {
       this.debugLog('Registering Webhook Event Handler')
       this.registerWebhook()
@@ -131,7 +131,7 @@ export class AirPurifier extends deviceBase {
       this.errorLog(`failed to registerWebhook, Error: ${e.message ?? e}`)
     }
 
-    // regisiter platform BLE event handler if enabled
+    // register platform BLE event handler if enabled
     try {
       this.debugLog('Registering Platform BLE Event Handler')
       this.registerPlatformBLE()
@@ -301,7 +301,7 @@ export class AirPurifier extends deviceBase {
         // Update HomeKit
         if (serviceData.model === SwitchBotBLEModel.AirPurifier && SwitchBotBLEModelName.AirPurifier) {
           this.serviceData = serviceData
-          if (serviceData !== undefined || serviceData !== null) {
+          if (serviceData !== undefined && serviceData !== null) {
             await this.BLEparseStatus()
             await this.updateHomeKitCharacteristics()
           } else {
@@ -327,7 +327,7 @@ export class AirPurifier extends deviceBase {
         this.platform.bleEventHandler[this.device.bleMac] = async (context: airPurifierServiceData) => {
           try {
             this.serviceData = context
-            if (context !== undefined || context !== null) {
+            if (context !== undefined && context !== null) {
               this.debugLog(`received BLE: ${JSON.stringify(context)}`)
               await this.BLEparseStatus()
               await this.updateHomeKitCharacteristics()
