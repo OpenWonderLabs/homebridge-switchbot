@@ -224,7 +224,7 @@ export interface lockConfig extends BaseDeviceConfig {
 };
 
 export interface hubConfig extends BaseDeviceConfig {
-  configDeviceType: 'Hub 2' | 'Hub 3'
+  configDeviceType: 'Hub 2' | 'Hub Mini 2' | 'Hub 3'
   hide_temperature?: boolean
   convertUnitTo?: string
   hide_humidity?: boolean

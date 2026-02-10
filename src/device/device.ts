@@ -213,6 +213,10 @@ export abstract class deviceBase {
         deviceSpecificConfig = device as lockConfig
         break
       case 'Hub 2':
+      case 'Hub Mini 2':
+        deviceSpecificConfig = device as hubConfig
+        break
+      case 'Hub 3':
         deviceSpecificConfig = device as hubConfig
         break
       default:
@@ -439,6 +443,13 @@ export abstract class deviceBase {
         bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Unknown,
       },
       'Hub 2': {
+        model: SwitchBotModel.Hub2,
+        bleModel: SwitchBotBLEModel.Hub2,
+        bleModelName: SwitchBotBLEModelName.Hub2,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Hub2,
+      },
+      'Hub Mini 2': {
+        // Hub Mini 2 uses Hub2 model mapping as it shares the same API interface and capabilities
         model: SwitchBotModel.Hub2,
         bleModel: SwitchBotBLEModel.Hub2,
         bleModelName: SwitchBotBLEModelName.Hub2,

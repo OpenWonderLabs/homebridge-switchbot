@@ -581,6 +581,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       'Humidifier': this.createHumidifier.bind(this),
       'Humidifier2': this.createHumidifier.bind(this),
       'Hub 2': this.createHub2.bind(this),
+      'Hub Mini 2': this.createHub2.bind(this),
       'Hub 3': this.createHub2.bind(this),
       'Bot': this.createBot.bind(this),
       'Relay Switch 1': this.createRelaySwitch.bind(this),
