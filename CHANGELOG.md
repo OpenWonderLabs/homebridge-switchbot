@@ -2,6 +2,456 @@
 
 All notable changes to this project will be documented in this file. This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.3.10](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.3.9...v4.3.10) (2026-02-10)
+
+
+
+## [4.3.9](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.3.8...v4.3.9) (2026-02-09)
+
+
+
+## [4.3.8](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.3.7...v4.3.8) (2026-02-09)
+
+
+
+## [4.3.7](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.3.6...v4.3.7) (2026-02-07)
+
+
+
+## [4.3.6](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.3.4...v4.3.6) (2026-02-05)
+
+
+
+## [4.3.4](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.3.3...v4.3.4) (2026-02-05)
+
+
+
+## [4.3.3](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.3.1...v4.3.3) (2025-12-18)
+
+
+
+## [4.3.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.3.0...v4.3.1) (2025-03-05)
+
+
+
+# [4.3.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.2.0...v4.3.0) (2025-01-24)
+
+
+
+# [4.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.1.7...v4.2.0) (2025-01-24)
+
+
+
+## [4.1.7](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.1.6...v4.1.7) (2024-12-22)
+
+
+
+## [4.1.6](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.1.5...v4.1.6) (2024-12-22)
+
+
+
+## [4.1.5](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.1.4...v4.1.5) (2024-11-27)
+
+
+
+## [4.1.4](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.1.3...v4.1.4) (2024-11-18)
+
+
+
+## [4.1.3](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.1.2...v4.1.3) (2024-11-05)
+
+
+
+## [4.1.2](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.1.1...v4.1.2) (2024-11-05)
+
+
+
+## [4.1.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.1.0...v4.1.1) (2024-11-02)
+
+
+
+# [4.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.0.0...v4.1.0) (2024-10-22)
+
+
+
+# [4.0.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.8.3...v4.0.0) (2024-10-12)
+
+
+
+## [3.8.3](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.8.2...v3.8.3) (2024-10-09)
+
+
+
+## [3.8.2](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.8.1...v3.8.2) (2024-09-19)
+
+
+
+## [3.8.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.8.0...v3.8.1) (2024-09-13)
+
+
+
+# [3.8.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.7.0...v3.8.0) (2024-09-11)
+
+
+
+# [3.7.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.6.0...v3.7.0) (2024-07-21)
+
+
+
+# [3.6.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.5.1...v3.6.0) (2024-07-06)
+
+
+
+## [3.5.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.5.0...v3.5.1) (2024-06-28)
+
+
+
+# [3.5.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.4.0...v3.5.0) (2024-05-26)
+
+
+
+# [3.4.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.3.0...v3.4.0) (2024-02-12)
+
+
+
+# [3.3.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.2.0...v3.3.0) (2024-02-10)
+
+
+
+# [3.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.1.3...v3.2.0) (2024-02-07)
+
+
+
+## [3.1.3](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.1.2...v3.1.3) (2024-02-07)
+
+
+
+## [3.1.2](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.1.1...v3.1.2) (2024-02-05)
+
+
+
+## [3.1.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.1.0...v3.1.1) (2024-02-05)
+
+
+
+# [3.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v3.0.0...v3.1.0) (2024-02-03)
+
+
+
+# [3.0.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.14.0...v3.0.0) (2024-01-31)
+
+
+
+# [2.14.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.13.1...v2.14.0) (2024-01-06)
+
+
+
+## [2.13.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.13.0...v2.13.1) (2023-12-15)
+
+
+
+# [2.13.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.12.1...v2.13.0) (2023-12-04)
+
+
+
+## [2.12.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.12.0...v2.12.1) (2023-11-26)
+
+
+
+# [2.12.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.11.0...v2.12.0) (2023-11-17)
+
+
+
+# [2.11.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.10.1...v2.11.0) (2023-11-08)
+
+
+
+## [2.10.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.10.0...v2.10.1) (2023-11-02)
+
+
+
+# [2.10.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.9.2...v2.10.0) (2023-11-01)
+
+
+
+## [2.9.2](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.9.1...v2.9.2) (2023-10-26)
+
+
+
+## [2.9.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.9.0...v2.9.1) (2023-10-15)
+
+
+
+# [2.9.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.8.2...v2.9.0) (2023-09-16)
+
+
+
+## [2.8.2](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.8.1...v2.8.2) (2023-08-28)
+
+
+
+## [2.8.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.8.0...v2.8.1) (2023-08-23)
+
+
+
+# [2.8.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.7.1...v2.8.0) (2023-08-19)
+
+
+
+## [2.7.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.7.0...v2.7.1) (2023-07-29)
+
+
+
+# [2.7.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.6.2...v2.7.0) (2023-07-26)
+
+
+
+## [2.6.2](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.6.1...v2.6.2) (2023-04-17)
+
+
+
+## [2.6.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.6.0...v2.6.1) (2023-04-16)
+
+
+
+# [2.6.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.5.3...v2.6.0) (2023-04-16)
+
+
+
+## [2.5.3](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.5.2...v2.5.3) (2023-04-08)
+
+
+
+## [2.5.2](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.5.1...v2.5.2) (2023-02-11)
+
+
+
+## [2.5.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.5.0...v2.5.1) (2023-01-29)
+
+
+
+# [2.5.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.4.1...v2.5.0) (2023-01-29)
+
+
+
+# [2.4.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.3.3...v2.4.0) (2022-12-27)
+
+
+
+## [2.3.3](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.3.2...v2.3.3) (2022-12-16)
+
+
+
+## [2.3.2](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.3.1...v2.3.2) (2022-12-16)
+
+
+
+## [2.3.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.3.0...v2.3.1) (2022-12-12)
+
+
+
+# [2.3.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.2.2...v2.3.0) (2022-12-08)
+
+
+
+## [2.2.2](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.2.1...v2.2.2) (2022-10-22)
+
+
+
+## [2.2.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.2.0...v2.2.1) (2022-10-19)
+
+
+
+# [2.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.1.2...v2.2.0) (2022-10-18)
+
+
+
+## [2.1.2](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.1.1...v2.1.2) (2022-10-15)
+
+
+
+## [2.1.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.1.0...v2.1.1) (2022-10-14)
+
+
+
+# [2.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v2.0.0...v2.1.0) (2022-10-13)
+
+
+
+# [2.0.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.15.0...v2.0.0) (2022-10-12)
+
+
+
+# [1.15.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.14.2...v1.15.0) (2022-08-27)
+
+
+
+## [1.14.2](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.14.1...v1.14.2) (2022-08-20)
+
+
+
+## [1.14.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.14.0...v1.14.1) (2022-06-28)
+
+
+
+# [1.14.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.13.0...v1.14.0) (2022-06-25)
+
+
+
+# [1.13.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.8...v1.13.0) (2022-05-04)
+
+
+
+## [1.12.8](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.7...v1.12.8) (2022-03-19)
+
+
+
+## [1.12.7](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.6...v1.12.7) (2022-03-08)
+
+
+
+## [1.12.6](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.5...v1.12.6) (2022-03-04)
+
+
+
+## [1.12.5](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.4...v1.12.5) (2022-02-15)
+
+
+
+## [1.12.4](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.3...v1.12.4) (2022-02-13)
+
+
+
+## [1.12.3](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.2...v1.12.3) (2022-02-05)
+
+
+
+## [1.12.2](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.1...v1.12.2) (2022-02-02)
+
+
+
+## [1.12.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.12.0...v1.12.1) (2022-02-02)
+
+
+
+# [1.12.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.11.2...v1.12.0) (2022-01-30)
+
+
+
+## [1.11.2](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.11.1...v1.11.2) (2022-01-29)
+
+
+
+## [1.11.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.11.0...v1.11.1) (2022-01-29)
+
+
+
+# [1.11.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.10.1...v1.11.0) (2022-01-29)
+
+
+
+## [1.10.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.10.0...v1.10.1) (2022-01-26)
+
+
+
+# [1.10.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.9.0...v1.10.0) (2022-01-21)
+
+
+
+# [1.9.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.8.2...v1.9.0) (2022-01-20)
+
+
+
+## [1.8.2](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.8.1...v1.8.2) (2022-01-16)
+
+
+
+## [1.8.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.8.0...v1.8.1) (2022-01-15)
+
+
+
+# [1.8.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.7.0...v1.8.0) (2022-01-15)
+
+
+
+# [1.7.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.6.3...v1.7.0) (2022-01-05)
+
+
+
+## [1.6.3](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.6.2...v1.6.3) (2022-01-03)
+
+
+
+## [1.6.2](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.6.1...v1.6.2) (2022-01-03)
+
+
+
+## [1.6.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.6.0...v1.6.1) (2022-01-02)
+
+
+
+# [1.6.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.5.0...v1.6.0) (2021-12-31)
+
+
+
+# [1.5.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.4.0...v1.5.0) (2021-12-27)
+
+
+
+# [1.4.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.3.0...v1.4.0) (2021-12-16)
+
+
+
+# [1.3.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.5...v1.3.0) (2021-12-02)
+
+
+
+## [1.2.5](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.4...v1.2.5) (2021-11-25)
+
+
+
+## [1.2.4](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.3...v1.2.4) (2021-11-25)
+
+
+
+## [1.2.3](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.2...v1.2.3) (2021-11-25)
+
+
+
+## [1.2.2](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.1...v1.2.2) (2021-11-25)
+
+
+
+## [1.2.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.2.0...v1.2.1) (2021-11-25)
+
+
+
+# [1.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.1.0...v1.2.0) (2021-11-20)
+
+
+
+# [1.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.0.2...v1.1.0) (2021-11-16)
+
+
+
+## [1.0.2](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.0.1...v1.0.2) (2021-11-16)
+
+
+
+## [1.0.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v1.0.0...v1.0.1) (2021-11-15)
+
+
+
+# [1.0.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v0.1.1...v1.0.0) (2021-11-13)
+
+
+
+## [0.1.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v0.1.0...v0.1.1) (2021-09-11)
+
+
+
+# 0.1.0 (2021-09-11)
+
 ## [4.3.9](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.3.8...v4.3.9) (2026-02-09)
 
 
