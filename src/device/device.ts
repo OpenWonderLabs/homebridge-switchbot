@@ -214,6 +214,8 @@ export abstract class deviceBase {
         break
       case 'Hub 2':
       case 'Hub Mini 2':
+        deviceSpecificConfig = device as hubConfig
+        break
       case 'Hub 3':
         deviceSpecificConfig = device as hubConfig
         break
@@ -447,7 +449,8 @@ export abstract class deviceBase {
         bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Hub2,
       },
       'Hub Mini 2': {
-        model: SwitchBotModel.Hub2, // Use Hub2 model until node-switchbot adds HubMini2
+        // Hub Mini 2 uses Hub2 model mapping as it shares the same API interface and capabilities
+        model: SwitchBotModel.Hub2,
         bleModel: SwitchBotBLEModel.Hub2,
         bleModelName: SwitchBotBLEModelName.Hub2,
         bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Hub2,
