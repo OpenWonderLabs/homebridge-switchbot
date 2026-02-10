@@ -213,6 +213,8 @@ export abstract class deviceBase {
         deviceSpecificConfig = device as lockConfig
         break
       case 'Hub 2':
+      case 'Hub Mini 2':
+      case 'Hub 3':
         deviceSpecificConfig = device as hubConfig
         break
       default:
@@ -440,6 +442,12 @@ export abstract class deviceBase {
       },
       'Hub 2': {
         model: SwitchBotModel.Hub2,
+        bleModel: SwitchBotBLEModel.Hub2,
+        bleModelName: SwitchBotBLEModelName.Hub2,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Hub2,
+      },
+      'Hub Mini 2': {
+        model: SwitchBotModel.Hub2, // Use Hub2 model until node-switchbot adds HubMini2
         bleModel: SwitchBotBLEModel.Hub2,
         bleModelName: SwitchBotBLEModelName.Hub2,
         bleModelFriendlyName: SwitchBotBLEModelFriendlyName.Hub2,
