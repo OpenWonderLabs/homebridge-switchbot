@@ -84,6 +84,8 @@
         </tr>
       </tbody>
     </table>
+    <h5 class="mt-4">Cached Accessories</h5>
+    <ul id="cachedAccessoriesList"></ul>
     <p class="text-center">External accessories will not be displayed here.</p>
   </div>
 </div>
@@ -266,7 +268,7 @@
               currentConfig[0].options.devices = [];
             }
             currentConfig[0].options.devices.push({
-              deviceId,
+              deviceId: deviceId.replace(/:/g, ''),
               hide_device: false,
               disablePlatformBLE: false,
               allowPush: false,
@@ -307,19 +309,23 @@
 
         const updateTableWithDetails = (deviceContext) => {
           const tableBody = document.querySelector('#deviceTable tbody');
-          tableBody.innerHTML = '';
 
           Object.entries(deviceContext).forEach(([key, value]) => {
-            if (value !== undefined && value !== null && String(value).trim() !== '') {
-              const row = document.createElement('tr');
-              const keyCell = document.createElement('th');
-              keyCell.scope = 'row';
-              keyCell.textContent = key;
-              const valueCell = document.createElement('td');
-              valueCell.textContent = value;
-              row.appendChild(keyCell);
-              row.appendChild(valueCell);
-              tableBody.appendChild(row);
+            if (/string|number|boolean/.test(typeof value) && (typeof value !== 'string' || value.trim())) {
+              let existingCell = document.getElementById(key);
+              if (existingCell) {
+                existingCell.textContent = value;
+              } else {
+                const row = document.createElement('tr');
+                const keyCell = document.createElement('th');
+                keyCell.scope = 'row';
+                keyCell.textContent = key;
+                const valueCell = document.createElement('td');
+                valueCell.textContent = value;
+                row.appendChild(keyCell);
+                row.appendChild(valueCell);
+                tableBody.appendChild(row);
+              }
             }
           });
         };
