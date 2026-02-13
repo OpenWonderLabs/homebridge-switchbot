@@ -71,6 +71,8 @@
         </tr>
       </tbody>
     </table>
+    <h5 class="mt-4">Cached Accessories</h5>
+    <ul id="cachedAccessoriesList"></ul>
     <p class="text-center">External accessories will not be displayed here.</p>
   </div>
 </div>
@@ -161,6 +163,110 @@
           option.value = a.UUID;
           deviceSelect.add(option);
         });
+        const cachedAccessoriesList = document.getElementById('cachedAccessoriesList');
+        cachedAccessoriesList.innerHTML = ''; // Clear previous entries
+        cachedAccessories.forEach((a) => {
+          const listItem = document.createElement('li');
+          listItem.textContent = `${a.displayName} (${a.UUID || a.uuid})`;
+          cachedAccessoriesList.appendChild(listItem);
+        });
+        const validateConfig = (config) => {
+          const deviceIds = new Set();
+          const isValid = config[0].options.devices.every((device) => {
+            if (!device.deviceId || typeof device.deviceId !== 'string') {
+              homebridge.toast.error(`Invalid device ID: ${device.deviceId}`, 'Error');
+              return false;
+            }
+            if (deviceIds.has(device.deviceId)) {
+              homebridge.toast.error(`Duplicate device ID found: ${device.deviceId}`, 'Error');
+              return false;
+            }
+            deviceIds.add(device.deviceId);
+            return true;
+          });
+          return isValid;
+        };
+
+        const addDeviceToConfig = async (deviceId) => {
+          try {
+            homebridge.showSpinner();
+            const currentConfig = await homebridge.getPluginConfig();
+            if (!currentConfig[0].options.devices) {
+              currentConfig[0].options.devices = [];
+            }
+            currentConfig[0].options.devices.push({
+              deviceId: deviceId.replace(/:/g, ''),
+              hide_device: false,
+              disablePlatformBLE: false,
+              allowPush: false,
+              disableCaching: false,
+            });
+            if (!validateConfig(currentConfig)) {
+              homebridge.hideSpinner();
+              return;
+            }
+            await homebridge.updatePluginConfig(currentConfig);
+            await homebridge.savePluginConfig();
+            homebridge.toast.success('Device added to config successfully!', 'Success');
+          } catch (error) {
+            homebridge.toast.error('Failed to add device to config!', 'Error');
+          } finally {
+            homebridge.hideSpinner();
+          }
+        };
+
+        const protocolInfo = document.createElement('p');
+        protocolInfo.id = 'protocolInfo';
+        protocolInfo.style.marginTop = '10px';
+        document.getElementById('deviceInfo').appendChild(protocolInfo);
+
+        const addDeviceButton = document.createElement('button');
+        addDeviceButton.textContent = 'Add Device to Config';
+        addDeviceButton.className = 'btn btn-success';
+        addDeviceButton.style.marginTop = '10px';
+        addDeviceButton.addEventListener('click', () => {
+          const deviceId = document.getElementById('deviceId').textContent;
+          if (deviceId) {
+            addDeviceToConfig(deviceId);
+          } else {
+            homebridge.toast.error('No device ID found!', 'Error');
+          }
+        });
+        document.getElementById('deviceInfo').appendChild(addDeviceButton);
+
+        const updateTableWithDetails = (deviceContext) => {
+          const tableBody = document.querySelector('#deviceTable tbody');
+
+          Object.entries(deviceContext).forEach(([key, value]) => {
+            if (/string|number|boolean/.test(typeof value) && (typeof value !== 'string' || value.trim())) {
+              let existingCell = document.getElementById(key);
+              if (existingCell) {
+                existingCell.textContent = value;
+              } else {
+                const row = document.createElement('tr');
+                const keyCell = document.createElement('th');
+                keyCell.scope = 'row';
+                keyCell.textContent = key;
+                const valueCell = document.createElement('td');
+                valueCell.textContent = value;
+                row.appendChild(keyCell);
+                row.appendChild(valueCell);
+                tableBody.appendChild(row);
+              }
+            }
+          });
+        };
+
+        // Ensure the element exists before attempting to set its innerHTML
+        const safeSetInnerHTML = (id, value) => {
+          const element = document.getElementById(id);
+          if (element) {
+            element.innerHTML = value;
+          } else {
+            console.warn(`Element with id '${id}' not found.`);
+          }
+        };
+
         showDeviceInfo = async (UUID) => {
           homebridge.showSpinner();
           const thisAcc = cachedAccessories.find((x) => x.UUID === UUID);
