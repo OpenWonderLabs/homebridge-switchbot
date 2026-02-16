@@ -166,6 +166,20 @@ export class AirPurifier extends deviceBase {
       })
   }
 
+  /**
+   * Validates that essential BLE service data properties are present
+   * @param data - The service data to validate
+   * @returns true if all essential properties are defined, false otherwise
+   */
+  private hasEssentialBLEData(data: airPurifierServiceData): boolean {
+    return data !== undefined 
+      && data !== null 
+      && data.isOn !== undefined 
+      && data.mode !== undefined 
+      && data.child_lock !== undefined 
+      && data.speed !== undefined
+  }
+
   async BLEparseStatus(): Promise<void> {
     this.debugLog('BLEparseStatus')
     this.debugLog(`(isOn, mode, child_lock, speed) = BLE:(${this.serviceData.isOn}, ${this.serviceData.mode}, ${this.serviceData.child_lock}, ${this.serviceData.speed}), current:(${this.AirPurifier.Active}, ${this.AirPurifier.TargetAirPurifierState}, ${this.AirPurifier.LockPhysicalControls}, ${this.AirPurifier.RotationSpeed})`)
@@ -302,11 +316,7 @@ export class AirPurifier extends deviceBase {
         if (serviceData.model === SwitchBotBLEModel.AirPurifier && SwitchBotBLEModelName.AirPurifier) {
           this.serviceData = serviceData
           // Validate that essential properties are present in serviceData
-          if (serviceData !== undefined && serviceData !== null 
-            && serviceData.isOn !== undefined 
-            && serviceData.mode !== undefined 
-            && serviceData.child_lock !== undefined 
-            && serviceData.speed !== undefined) {
+          if (this.hasEssentialBLEData(serviceData)) {
             await this.BLEparseStatus()
             await this.updateHomeKitCharacteristics()
           } else {
@@ -333,11 +343,7 @@ export class AirPurifier extends deviceBase {
           try {
             this.serviceData = context
             // Validate that essential properties are present in context
-            if (context !== undefined && context !== null 
-              && context.isOn !== undefined 
-              && context.mode !== undefined 
-              && context.child_lock !== undefined 
-              && context.speed !== undefined) {
+            if (this.hasEssentialBLEData(context)) {
               this.debugLog(`received BLE: ${JSON.stringify(context)}`)
               await this.BLEparseStatus()
               await this.updateHomeKitCharacteristics()
