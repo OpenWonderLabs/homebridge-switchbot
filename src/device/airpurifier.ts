@@ -301,11 +301,16 @@ export class AirPurifier extends deviceBase {
         // Update HomeKit
         if (serviceData.model === SwitchBotBLEModel.AirPurifier && SwitchBotBLEModelName.AirPurifier) {
           this.serviceData = serviceData
-          if (serviceData !== undefined && serviceData !== null) {
+          // Validate that essential properties are present in serviceData
+          if (serviceData !== undefined && serviceData !== null 
+            && serviceData.isOn !== undefined 
+            && serviceData.mode !== undefined 
+            && serviceData.child_lock !== undefined 
+            && serviceData.speed !== undefined) {
             await this.BLEparseStatus()
             await this.updateHomeKitCharacteristics()
           } else {
-            this.errorLog(`serviceData is either undefined or null, serviceData: ${JSON.stringify(serviceData)}`)
+            this.errorLog(`serviceData is missing essential properties, serviceData: ${JSON.stringify(serviceData)}`)
             await this.BLERefreshConnection(switchBotBLE)
           }
         } else {
@@ -327,12 +332,17 @@ export class AirPurifier extends deviceBase {
         this.platform.bleEventHandler[this.device.bleMac] = async (context: airPurifierServiceData) => {
           try {
             this.serviceData = context
-            if (context !== undefined && context !== null) {
+            // Validate that essential properties are present in context
+            if (context !== undefined && context !== null 
+              && context.isOn !== undefined 
+              && context.mode !== undefined 
+              && context.child_lock !== undefined 
+              && context.speed !== undefined) {
               this.debugLog(`received BLE: ${JSON.stringify(context)}`)
               await this.BLEparseStatus()
               await this.updateHomeKitCharacteristics()
             } else {
-              this.errorLog(`context is either undefined or null, context: ${JSON.stringify(context)}`)
+              this.errorLog(`context is missing essential properties, context: ${JSON.stringify(context)}`)
               await this.BLERefreshConnection(context)
             }
           } catch (e: any) {
