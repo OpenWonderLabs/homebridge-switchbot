@@ -168,6 +168,8 @@
   - If using Bluetooth Low Energy (BLE) only:
     - Must supply `deviceId` & `deviceName` to Device Config
     - Check `Enable Bluetooth Low Energy (BLE) Connection` on Device Config
+    - If your Bot has an app password enabled, set `password` in that device's config.
+      - Password must be exactly 4 letters/numbers and is case-sensitive.
 - [SwitchBot Hub 2](https://us.switch-bot.com/products/switchbot-hub-2)
   - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
     - Enables Humidity, Temperature, and Light Sensor

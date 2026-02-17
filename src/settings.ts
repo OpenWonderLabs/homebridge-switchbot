@@ -91,6 +91,7 @@ export interface botConfig extends BaseDeviceConfig {
   configDeviceType: 'Bot'
   mode?: string
   type: string
+  password?: string
   doublePress?: number
   pushRatePress?: number
   allowPush?: boolean

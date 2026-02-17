@@ -3,6 +3,7 @@
  * util.ts: @switchbot/homebridge-switchbot platform class.
  */
 import type { blindTilt, curtain, curtain3, device } from 'node-switchbot'
+import { Buffer } from 'node:buffer'
 
 import type { devicesConfig } from './settings.js'
 
@@ -111,6 +112,55 @@ export function formatDeviceIdAsMac(deviceId: string, cassSensative?: boolean): 
   }
 
   throw new Error(`Invalid device ID format. Must be a valid MAC address, a 12-character hexadecimal string, or a 12 to 18-character alphanumeric string. Device ID: ${deviceId}`)
+}
+
+const BOT_BLE_ACTION_VALUES = [0x00, 0x01, 0x02] as const
+type BotBleAction = (typeof BOT_BLE_ACTION_VALUES)[number]
+
+const CRC32_POLYNOMIAL = 0xEDB88320
+const CRC32_TABLE = new Uint32Array(256)
+
+for (let i = 0; i < 256; i++) {
+  let crc = i
+  for (let j = 0; j < 8; j++) {
+    crc = (crc & 1) !== 0 ? (crc >>> 1) ^ CRC32_POLYNOMIAL : (crc >>> 1)
+  }
+  CRC32_TABLE[i] = crc >>> 0
+}
+
+function crc32(input: string): number {
+  let crc = 0xFFFFFFFF
+  for (let i = 0; i < input.length; i++) {
+    const byte = input.charCodeAt(i)
+    crc = (crc >>> 8) ^ CRC32_TABLE[(crc ^ byte) & 0xFF]
+  }
+  return (crc ^ 0xFFFFFFFF) >>> 0
+}
+
+export function validateBotPassword(password: string): void {
+  if (!/^[A-Za-z0-9]{4}$/.test(password)) {
+    throw new Error('Invalid Bot password. Password must be exactly 4 alphanumeric characters (case-sensitive).')
+  }
+}
+
+export function buildBotBleCommand(action: BotBleAction, password?: string): Buffer {
+  if (!BOT_BLE_ACTION_VALUES.includes(action)) {
+    throw new Error(`Invalid Bot BLE action: ${action}. Expected one of 0x00, 0x01, or 0x02.`)
+  }
+  if (!password) {
+    return Buffer.from([0x57, 0x01, action])
+  }
+  validateBotPassword(password)
+  const crc = crc32(password)
+  return Buffer.from([
+    0x57,
+    0x11,
+    (crc >>> 24) & 0xFF,
+    (crc >>> 16) & 0xFF,
+    (crc >>> 8) & 0xFF,
+    crc & 0xFF,
+    action,
+  ])
 }
 
 export function rgb2hs(r: any, g: any, b: any) {

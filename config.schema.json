@@ -538,6 +538,15 @@
                     "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Bot' && model.options.devices[arrayIndices].deviceId);"
                   }
                 },
+                "password": {
+                  "title": "Bot BLE Password",
+                  "type": "string",
+                  "placeholder": "A1b2",
+                  "description": "Bot password set in SwitchBot app. Must be exactly 4 letters/numbers and is case-sensitive.",
+                  "condition": {
+                    "functionBody": "return (model.options && model.options.devices && !model.options.devices[arrayIndices].hide_device && model.options.devices[arrayIndices].configDeviceType === 'Bot' && model.options.devices[arrayIndices].deviceId && (model.options.devices[arrayIndices].connectionType === 'BLE' || model.options.devices[arrayIndices].connectionType === 'BLE/OpenAPI'));"
+                  }
+                },
                 "mapping": {
                   "title": "Mapping Mode",
                   "type": "string",
@@ -14241,6 +14250,7 @@
             "options.devices[].webhook",
             "options.devices[].type",
             "options.devices[].mode",
+            "options.devices[].password",
             "options.devices[].mapping",
             "options.devices[].allowPush",
             "options.devices[].doublePress",

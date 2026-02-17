@@ -13,8 +13,36 @@ import { debounceTime, interval, skipWhile, Subject, take, tap } from 'rxjs'
 
 import type { SwitchBotPlatform } from '../platform.js'
 import type { botConfig, devicesConfig } from '../settings.js'
-import { formatDeviceIdAsMac } from '../utils.js'
+import { buildBotBleCommand, formatDeviceIdAsMac, validateBotPassword } from '../utils.js'
 import { deviceBase } from './device.js'
+
+type BotBleAction = 0x00 | 0x01 | 0x02
+
+export async function executeBotBleAction(
+  device: WoHand,
+  action: BotBleAction,
+  password?: string,
+): Promise<void> {
+  if (!password) {
+    if (action === 0x00) {
+      await device.press()
+      return
+    }
+    if (action === 0x01) {
+      await device.turnOn()
+      return
+    }
+    await device.turnOff()
+    return
+  }
+  validateBotPassword(password)
+  const reqBuf = buildBotBleCommand(action, password)
+  const resBuf = await device.command(reqBuf)
+  const code = resBuf.readUInt8(0)
+  if (resBuf.length !== 3 || (code !== 0x01 && code !== 0x05)) {
+    throw new Error(`The device returned an error: 0x${resBuf.toString('hex')}`)
+  }
+}
 
 /**
  * Platform Accessory
@@ -501,6 +529,15 @@ export class Bot extends deviceBase {
     if ((this.On !== this.accessory.context.On) || this.allowPush) {
       this.debugLog(`BLEpushChanges On: ${this.On} OnCached: ${this.accessory.context.On}`)
       const switchBotBLE = this.platform.switchBotBLE
+      const botPassword = (this.device as botConfig).password
+      if (botPassword) {
+        try {
+          validateBotPassword(botPassword)
+        } catch (e: any) {
+          this.errorLog(`Invalid Bot password config for ${this.device.deviceId}: ${e.message ?? e}`)
+          return
+        }
+      }
       try {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
@@ -513,7 +550,10 @@ export class Bot extends deviceBase {
             .then(async (device_list: SwitchbotDevice[]) => {
               const deviceList = device_list as WoHand[]
               this.infoLog(`On: ${this.On}`)
-              return await deviceList[0].press()
+              if (deviceList.length === 0) {
+                throw new Error('No device found')
+              }
+              return await executeBotBleAction(deviceList[0], 0x00, botPassword)
             })
             .then(async () => {
               this.successLog(`On: ${this.On} sent over SwitchBot BLE, sent successfully`)
@@ -526,6 +566,9 @@ export class Bot extends deviceBase {
             })
             .catch(async (e: any) => {
               await this.apiError(e)
+              if (botPassword) {
+                this.errorLog(`Bot BLE password command failed for ${this.device.deviceId}. Verify password and BLE response.`)
+              }
               this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
               await this.BLEPushConnection()
             })
@@ -541,9 +584,9 @@ export class Bot extends deviceBase {
                 fn: async () => {
                   if (deviceList.length > 0) {
                     if (this.On) {
-                      return await deviceList[0].turnOn()
+                      return await executeBotBleAction(deviceList[0], 0x01, botPassword)
                     } else {
-                      return await deviceList[0].turnOff()
+                      return await executeBotBleAction(deviceList[0], 0x02, botPassword)
                     }
                   } else {
                     throw new Error('No device found')
@@ -557,6 +600,9 @@ export class Bot extends deviceBase {
             })
             .catch(async (e: any) => {
               await this.apiError(e)
+              if (botPassword) {
+                this.errorLog(`Bot BLE password command failed for ${this.device.deviceId}. Verify password and BLE response.`)
+              }
               this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
               await this.BLEPushConnection()
             })
