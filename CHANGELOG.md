@@ -4,9 +4,6 @@ All notable changes to this project will be documented in this file. This projec
 
 ## [4.3.11](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.3.10...v4.3.11) (2026-02-17)
 
-- Added BLE password support for SwitchBot Bot using encrypted BLE commands.
-- Added per-device Bot `password` config in `options.devices[]` (BLE/BLE+OpenAPI connections).
-- Added tests for Bot BLE password validation and encrypted command generation.
 
 
 ## [4.3.10](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.3.9...v4.3.10) (2026-02-10)
