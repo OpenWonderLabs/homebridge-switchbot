@@ -172,11 +172,11 @@ export class AirPurifier extends deviceBase {
    * @returns true if all essential properties are defined, false otherwise
    */
   private hasEssentialBLEData(data: airPurifierServiceData): boolean {
-    return data !== undefined 
-      && data !== null 
-      && data.isOn !== undefined 
-      && data.mode !== undefined 
-      && data.child_lock !== undefined 
+    return data !== undefined
+      && data !== null
+      && data.isOn !== undefined
+      && data.mode !== undefined
+      && data.child_lock !== undefined
       && data.speed !== undefined
   }
 
