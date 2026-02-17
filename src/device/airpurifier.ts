@@ -166,6 +166,20 @@ export class AirPurifier extends deviceBase {
       })
   }
 
+  /**
+   * Validates that essential BLE service data properties are present
+   * @param data - The service data to validate
+   * @returns true if all essential properties are defined, false otherwise
+   */
+  private hasEssentialBLEData(data: airPurifierServiceData): boolean {
+    return data !== undefined 
+      && data !== null 
+      && data.isOn !== undefined 
+      && data.mode !== undefined 
+      && data.child_lock !== undefined 
+      && data.speed !== undefined
+  }
+
   async BLEparseStatus(): Promise<void> {
     this.debugLog('BLEparseStatus')
     this.debugLog(`(isOn, mode, child_lock, speed) = BLE:(${this.serviceData.isOn}, ${this.serviceData.mode}, ${this.serviceData.child_lock}, ${this.serviceData.speed}), current:(${this.AirPurifier.Active}, ${this.AirPurifier.TargetAirPurifierState}, ${this.AirPurifier.LockPhysicalControls}, ${this.AirPurifier.RotationSpeed})`)
@@ -301,11 +315,12 @@ export class AirPurifier extends deviceBase {
         // Update HomeKit
         if (serviceData.model === SwitchBotBLEModel.AirPurifier && SwitchBotBLEModelName.AirPurifier) {
           this.serviceData = serviceData
-          if (serviceData !== undefined && serviceData !== null) {
+          // Validate that essential properties are present in serviceData
+          if (this.hasEssentialBLEData(serviceData)) {
             await this.BLEparseStatus()
             await this.updateHomeKitCharacteristics()
           } else {
-            this.errorLog(`serviceData is either undefined or null, serviceData: ${JSON.stringify(serviceData)}`)
+            this.errorLog(`serviceData is missing essential properties, serviceData: ${JSON.stringify(serviceData)}`)
             await this.BLERefreshConnection(switchBotBLE)
           }
         } else {
@@ -327,12 +342,13 @@ export class AirPurifier extends deviceBase {
         this.platform.bleEventHandler[this.device.bleMac] = async (context: airPurifierServiceData) => {
           try {
             this.serviceData = context
-            if (context !== undefined && context !== null) {
+            // Validate that essential properties are present in context
+            if (this.hasEssentialBLEData(context)) {
               this.debugLog(`received BLE: ${JSON.stringify(context)}`)
               await this.BLEparseStatus()
               await this.updateHomeKitCharacteristics()
             } else {
-              this.errorLog(`context is either undefined or null, context: ${JSON.stringify(context)}`)
+              this.errorLog(`context is missing essential properties, context: ${JSON.stringify(context)}`)
               await this.BLERefreshConnection(context)
             }
           } catch (e: any) {
