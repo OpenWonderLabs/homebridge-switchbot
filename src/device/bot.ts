@@ -3,12 +3,12 @@
  * bot.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
-import type { bodyChange, botServiceData, botStatus, botWebhookContext, device, SwitchBotBLE, SwitchbotDevice, WoHand } from 'node-switchbot'
+import type { bodyChange, botServiceData, botStatus, botWebhookContext, device, SwitchBotBLE } from 'node-switchbot'
 /*
 * For Testing Locally:
 * import { SwitchBotBLEModel, SwitchBotBLEModelName } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
 */
-import { SwitchBotBLEModel, SwitchBotBLEModelName } from 'node-switchbot'
+import { SwitchBotBLEModel, SwitchBotBLEModelName, WoHand } from 'node-switchbot'
 import { debounceTime, interval, skipWhile, Subject, take, tap } from 'rxjs'
 
 import type { SwitchBotPlatform } from '../platform.js'
@@ -17,6 +17,76 @@ import { buildBotBleCommand, formatDeviceIdAsMac, validateBotPassword } from '..
 import { deviceBase } from './device.js'
 
 type BotBleAction = 0x00 | 0x01 | 0x02
+
+function normalizeBleAddress(address: string): string {
+  return address.toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+function isDiscoveryTimeoutError(error: unknown): boolean {
+  const message = `${(error as any)?.message ?? error}`.toLowerCase()
+  return message.includes('discovery timeout') || message.includes('no switchbot devices found')
+}
+
+async function discoverBotByAddress(
+  switchBotBLE: SwitchBotBLE,
+  bleMac: string,
+  durationMs: number,
+): Promise<WoHand> {
+  const noble = (switchBotBLE as any)?.noble
+  if (!noble) {
+    throw new Error('Noble BLE object is unavailable for address-based fallback discovery')
+  }
+
+  const targetAddress = normalizeBleAddress(bleMac)
+  const wasScanning = Boolean((noble as any).scanning)
+
+  return await new Promise<WoHand>((resolve, reject) => {
+    let settled = false
+    let timer: NodeJS.Timeout
+    let onDiscover: (peripheral: any) => void
+
+    const finish = async (error?: Error, device?: WoHand) => {
+      if (settled) {
+        return
+      }
+      settled = true
+      clearTimeout(timer)
+      noble.off('discover', onDiscover)
+      if (!wasScanning) {
+        try {
+          await noble.stopScanningAsync()
+        } catch {
+          // ignore stop scan errors in fallback cleanup path
+        }
+      }
+      if (error) {
+        reject(error)
+      } else if (device) {
+        resolve(device)
+      } else {
+        reject(new Error('Address-based fallback discovery ended without a result'))
+      }
+    }
+
+    timer = setTimeout(() => {
+      void finish(new Error(`No SwitchBot device found by address ${bleMac} after ${durationMs}ms`))
+    }, durationMs)
+
+    onDiscover = (peripheral: any) => {
+      const candidateAddress = normalizeBleAddress(peripheral?.address ?? peripheral?.id ?? '')
+      if (candidateAddress === targetAddress) {
+        void finish(undefined, new WoHand(peripheral, noble))
+      }
+    }
+
+    noble.on('discover', onDiscover)
+    if (!wasScanning) {
+      noble.startScanningAsync([], false).catch((e: unknown) => {
+        void finish(new Error(`Failed to start address-based fallback scan: ${(e as any)?.message ?? e}`))
+      })
+    }
+  })
+}
 
 export async function executeBotBleAction(
   device: WoHand,
@@ -524,12 +594,43 @@ export class Bot extends deviceBase {
       })
   }
 
+  private async discoverBotDeviceWithFallback(
+    switchBotBLE: SwitchBotBLE,
+    botPassword?: string,
+  ): Promise<WoHand> {
+    const bleMac = this.device.bleMac ?? formatDeviceIdAsMac(this.device.deviceId)
+    const discoveryDurationMs = Math.max(this.scanDuration * 1000, 5000)
+
+    if (botPassword) {
+      try {
+        return await discoverBotByAddress(switchBotBLE, bleMac, discoveryDurationMs)
+      } catch (e: any) {
+        this.warnLog(`Address-based Bot discovery failed for ${this.device.deviceId}: ${e.message ?? e}. Falling back to model discovery.`)
+      }
+    }
+
+    try {
+      const deviceList = await switchBotBLE.discover({ duration: discoveryDurationMs, model: this.device.bleModel, quick: true, id: bleMac }) as WoHand[]
+      if (deviceList.length === 0) {
+        throw new Error('No device found')
+      }
+      return deviceList[0]
+    } catch (e: any) {
+      if (botPassword && isDiscoveryTimeoutError(e)) {
+        this.warnLog(`Bot discovery by model timed out for ${this.device.deviceId}. Trying address-based fallback discovery.`)
+        return await discoverBotByAddress(switchBotBLE, bleMac, discoveryDurationMs)
+      }
+      throw e
+    }
+  }
+
   async BLEpushChanges(): Promise<void> {
     this.debugLog('BLEpushChanges')
     if ((this.On !== this.accessory.context.On) || this.allowPush) {
       this.debugLog(`BLEpushChanges On: ${this.On} OnCached: ${this.accessory.context.On}`)
       const switchBotBLE = this.platform.switchBotBLE
       const botPassword = (this.device as botConfig).password
+      const shouldPausePlatformScan = Boolean(botPassword && this.config.options?.BLE && !this.device.disablePlatformBLE)
       if (botPassword) {
         try {
           validateBotPassword(botPassword)
@@ -539,78 +640,84 @@ export class Bot extends deviceBase {
         }
       }
       try {
+        if (shouldPausePlatformScan) {
+          try {
+            await switchBotBLE.stopScan()
+            this.debugLog('Paused platform BLE scanning for password Bot command execution.')
+          } catch {
+            this.debugLog('Platform BLE scanning was not active or could not be paused.')
+          }
+        }
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
         this.debugLog(`bleMac: ${this.device.bleMac}`)
         // if (switchBotBLE !== false) {
         this.debugLog(`Bot Mode: ${this.botMode}`)
         if (this.botMode === 'press') {
-          switchBotBLE
-            .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
-            .then(async (device_list: SwitchbotDevice[]) => {
-              const deviceList = device_list as WoHand[]
-              this.infoLog(`On: ${this.On}`)
-              if (deviceList.length === 0) {
-                throw new Error('No device found')
-              }
-              return await executeBotBleAction(deviceList[0], 0x00, botPassword)
-            })
-            .then(async () => {
-              this.successLog(`On: ${this.On} sent over SwitchBot BLE, sent successfully`)
+          try {
+            const botDevice = await this.discoverBotDeviceWithFallback(switchBotBLE, botPassword)
+            this.infoLog(`On: ${this.On}`)
+            await executeBotBleAction(botDevice, 0x00, botPassword)
+            this.successLog(`On: ${this.On} sent over SwitchBot BLE, sent successfully`)
+            await this.updateHomeKitCharacteristics()
+            setTimeout(async () => {
+              this.On = false
               await this.updateHomeKitCharacteristics()
-              setTimeout(async () => {
-                this.On = false
-                await this.updateHomeKitCharacteristics()
-                this.debugLog(`On: ${this.On}, Switch Timeout`)
-              }, 500)
-            })
-            .catch(async (e: any) => {
-              await this.apiError(e)
-              if (botPassword) {
-                this.errorLog(`Bot BLE password command failed for ${this.device.deviceId}. Verify password and BLE response.`)
-              }
-              this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
-              await this.BLEPushConnection()
-            })
+              this.debugLog(`On: ${this.On}, Switch Timeout`)
+            }, 500)
+          } catch (e: any) {
+            await this.apiError(e)
+            if (botPassword && !isDiscoveryTimeoutError(e)) {
+              this.errorLog(`Bot BLE password command failed for ${this.device.deviceId}. Verify password and BLE response.`)
+            }
+            if (isDiscoveryTimeoutError(e)) {
+              this.errorLog(`Bot BLE discovery failed for ${this.device.deviceId}. Device was not discovered before timeout.`)
+            }
+            this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+            await this.BLEPushConnection()
+          }
         } else if (this.botMode === 'switch') {
-          switchBotBLE
-            .discover({ model: this.device.bleModel, quick: true, id: this.device.bleMac })
-            .then(async (device_list: SwitchbotDevice[]) => {
-              const deviceList = device_list as WoHand[]
-              this.infoLog(`On: ${this.On}`)
-              this.warnLog(`device_list: ${JSON.stringify(device_list)}`)
-              return await this.retryBLE({
-                max: this.maxRetryBLE(),
-                fn: async () => {
-                  if (deviceList.length > 0) {
-                    if (this.On) {
-                      return await executeBotBleAction(deviceList[0], 0x01, botPassword)
-                    } else {
-                      return await executeBotBleAction(deviceList[0], 0x02, botPassword)
-                    }
-                  } else {
-                    throw new Error('No device found')
-                  }
-                },
-              })
+          try {
+            const botDevice = await this.discoverBotDeviceWithFallback(switchBotBLE, botPassword)
+            this.infoLog(`On: ${this.On}`)
+            this.warnLog(`device: ${JSON.stringify({ id: botDevice.id, address: botDevice.address, model: botDevice.model })}`)
+            await this.retryBLE({
+              max: this.maxRetryBLE(),
+              fn: async () => {
+                if (this.On) {
+                  return await executeBotBleAction(botDevice, 0x01, botPassword)
+                } else {
+                  return await executeBotBleAction(botDevice, 0x02, botPassword)
+                }
+              },
             })
-            .then(async () => {
-              this.successLog(`On: ${this.On} sent over SwitchBot BLE, sent successfully`)
-              await this.updateHomeKitCharacteristics()
-            })
-            .catch(async (e: any) => {
-              await this.apiError(e)
-              if (botPassword) {
-                this.errorLog(`Bot BLE password command failed for ${this.device.deviceId}. Verify password and BLE response.`)
-              }
-              this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
-              await this.BLEPushConnection()
-            })
+            this.successLog(`On: ${this.On} sent over SwitchBot BLE, sent successfully`)
+            await this.updateHomeKitCharacteristics()
+          } catch (e: any) {
+            await this.apiError(e)
+            if (botPassword && !isDiscoveryTimeoutError(e)) {
+              this.errorLog(`Bot BLE password command failed for ${this.device.deviceId}. Verify password and BLE response.`)
+            }
+            if (isDiscoveryTimeoutError(e)) {
+              this.errorLog(`Bot BLE discovery failed for ${this.device.deviceId}. Device was not discovered before timeout.`)
+            }
+            this.errorLog(`failed BLEpushChanges with ${this.device.connectionType} Connection, Error Message: ${JSON.stringify(e.message)}`)
+            await this.BLEPushConnection()
+          }
         } else {
           this.errorLog(`Device Parameters not set for this Bot, please check the device configuration. Bot Mode: ${this.botMode}`)
         }
       } catch (error) {
         this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
+      } finally {
+        if (shouldPausePlatformScan) {
+          try {
+            await switchBotBLE.startScan()
+            this.debugLog('Resumed platform BLE scanning after password Bot command execution.')
+          } catch (e: any) {
+            this.errorLog(`Failed to resume platform BLE scanning: ${e.message ?? e}`)
+          }
+        }
       }
     } else {
       this.debugLog(`No Changes (BLEpushChanges), On: ${this.On} OnCached: ${this.accessory.context.On}`)
