@@ -115,6 +115,42 @@
                       ]
                     },
                     {
+                      "title": "Air Purifier",
+                      "enum": [
+                        "Air Purifier"
+                      ]
+                    },
+                    {
+                      "title": "Air Purifier Table",
+                      "enum": [
+                        "Air Purifier Table"
+                      ]
+                    },
+                    {
+                      "title": "Air Purifier VOC",
+                      "enum": [
+                        "Air Purifier VOC"
+                      ]
+                    },
+                    {
+                      "title": "Air Purifier Table VOC",
+                      "enum": [
+                        "Air Purifier Table VOC"
+                      ]
+                    },
+                    {
+                      "title": "Air Purifier PM2.5",
+                      "enum": [
+                        "Air Purifier PM2.5"
+                      ]
+                    },
+                    {
+                      "title": "Air Purifier Table PM2.5",
+                      "enum": [
+                        "Air Purifier Table PM2.5"
+                      ]
+                    },
+                    {
                       "title": "Ceiling Light",
                       "enum": [
                         "Ceiling Light"

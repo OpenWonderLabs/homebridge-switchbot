@@ -313,7 +313,8 @@ export class AirPurifier extends deviceBase {
         // Start to monitor advertisement packets
         const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as airPurifierServiceData
         // Update HomeKit
-        if (serviceData.model === SwitchBotBLEModel.AirPurifier && SwitchBotBLEModelName.AirPurifier) {
+        if ((serviceData.model === SwitchBotBLEModel.AirPurifier || serviceData.model === SwitchBotBLEModel.AirPurifierTable) 
+            && (serviceData.modelName === SwitchBotBLEModelName.AirPurifier || serviceData.modelName === SwitchBotBLEModelName.AirPurifierTable)) {
           this.serviceData = serviceData
           // Validate that essential properties are present in serviceData
           if (this.hasEssentialBLEData(serviceData)) {
