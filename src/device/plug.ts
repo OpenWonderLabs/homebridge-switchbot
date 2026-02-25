@@ -3,7 +3,7 @@
  * plug.ts: @switchbot/homebridge-switchbot.
  */
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge'
-import type { bodyChange, device, plugMiniJPServiceData, plugMiniJPWebhookContext, plugMiniStatus, plugMiniUSServiceData, plugMiniUSWebhookContext, plugStatus, plugWebhookContext, SwitchBotBLE, SwitchbotDevice, WoPlugMiniUS } from 'node-switchbot'
+import type { bodyChange, device, plugMiniEUServiceData, plugMiniEUWebhookContext, plugMiniJPServiceData, plugMiniJPWebhookContext, plugMiniStatus, plugMiniUSServiceData, plugMiniUSWebhookContext, plugStatus, plugWebhookContext, SwitchBotBLE, SwitchbotDevice, WoPlugMiniUS } from 'node-switchbot'
 /*
 * For Testing Locally:
 * import { SwitchBotBLEModel, SwitchBotBLEModelName } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
@@ -28,10 +28,10 @@ export class Plug extends deviceBase {
   deviceStatus!: plugStatus | plugMiniStatus
 
   // Webhook
-  webhookContext!: plugWebhookContext | plugMiniUSWebhookContext | plugMiniJPWebhookContext
+  webhookContext!: plugWebhookContext | plugMiniUSWebhookContext | plugMiniJPWebhookContext | plugMiniEUWebhookContext
 
   // BLE
-  serviceData!: plugMiniUSServiceData | plugMiniJPServiceData
+  serviceData!: plugMiniUSServiceData | plugMiniJPServiceData | plugMiniEUServiceData
 
   // Updates
   plugUpdateInProgress!: boolean
@@ -182,9 +182,9 @@ export class Plug extends deviceBase {
       // Start to monitor advertisement packets
       (async () => {
         // Start to monitor advertisement packets
-        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as plugMiniUSServiceData | plugMiniJPServiceData
+        const serviceData = await this.monitorAdvertisementPackets(switchBotBLE) as plugMiniUSServiceData | plugMiniJPServiceData | plugMiniEUServiceData
         // Update HomeKit
-        if ((serviceData.model === SwitchBotBLEModel.PlugMiniUS || SwitchBotBLEModel.PlugMiniJP)
+        if ((serviceData.model === SwitchBotBLEModel.PlugMiniUS || SwitchBotBLEModel.PlugMiniJP || SwitchBotBLEModel.PlugMiniEU)
           && serviceData.modelName === (SwitchBotBLEModelName.PlugMini || SwitchBotBLEModelName.PlugMini)) {
           this.serviceData = serviceData
           if (serviceData !== undefined || serviceData !== null) {
@@ -210,7 +210,7 @@ export class Plug extends deviceBase {
         const formattedDeviceId = formatDeviceIdAsMac(this.device.deviceId)
         this.device.bleMac = formattedDeviceId
         this.debugLog(`bleMac: ${this.device.bleMac}`)
-        this.platform.bleEventHandler[this.device.bleMac] = async (context: plugMiniUSServiceData | plugMiniJPServiceData) => {
+        this.platform.bleEventHandler[this.device.bleMac] = async (context: plugMiniUSServiceData | plugMiniJPServiceData | plugMiniEUServiceData) => {
           try {
             this.serviceData = context
             if (context !== undefined || context !== null) {
@@ -256,7 +256,7 @@ export class Plug extends deviceBase {
   async registerWebhook() {
     if (this.device.webhook) {
       this.debugLog('is listening webhook.')
-      this.platform.webhookEventHandler[this.device.deviceId] = async (context: plugWebhookContext | plugMiniUSWebhookContext | plugMiniJPWebhookContext) => {
+      this.platform.webhookEventHandler[this.device.deviceId] = async (context: plugWebhookContext | plugMiniUSWebhookContext | plugMiniJPWebhookContext | plugMiniEUWebhookContext) => {
         try {
           this.webhookContext = context
           if (context !== undefined || context !== null) {

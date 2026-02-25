@@ -196,6 +196,7 @@ export abstract class deviceBase {
       case 'Plug':
       case 'Plug Mini (US)':
       case 'Plug Mini (JP)':
+      case 'Plug Mini (EU)':
         deviceSpecificConfig = device as plugConfig
         break
       case 'Color Bulb':
@@ -578,6 +579,12 @@ export abstract class deviceBase {
       'Plug Mini (JP)': {
         model: SwitchBotModel.PlugMiniJP,
         bleModel: SwitchBotBLEModel.PlugMiniJP,
+        bleModelName: SwitchBotBLEModelName.PlugMini,
+        bleModelFriendlyName: SwitchBotBLEModelFriendlyName.PlugMini,
+      },
+      'Plug Mini (EU)': {
+        model: SwitchBotModel.PlugMiniEU,
+        bleModel: SwitchBotBLEModel.PlugMiniEU,
         bleModelName: SwitchBotBLEModelName.PlugMini,
         bleModelFriendlyName: SwitchBotBLEModelFriendlyName.PlugMini,
       },
