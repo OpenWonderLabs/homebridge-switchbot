@@ -313,6 +313,12 @@
                       ]
                     },
                     {
+                      "title": "Plug Mini (EU)",
+                      "enum": [
+                        "Plug Mini (EU)"
+                      ]
+                    },
+                    {
                       "title": "Plug Mini (US)",
                       "enum": [
                         "Plug Mini (US)"
@@ -6945,6 +6951,192 @@
                     "placeholder": 360,
                     "condition": {
                       "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Plug Mini (JP)'].hide_device);"
+                    }
+                  }
+                }
+              },
+              "Plug Mini (EU)": {
+                "type": "object",
+                "properties": {
+                  "hide_device": {
+                    "title": "Hide All Plug Mini (EU)s",
+                    "type": "boolean",
+                    "description": "If true, device will be removed or hidden from HomeKit."
+                  },
+                  "connectionType": {
+                    "title": "Connection Type",
+                    "type": "string",
+                    "description": "Bluetooth (BLE) API is only available on certain Device Types, see the Wiki for more information.",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Plug Mini (EU)'] && !model.options.deviceConfig['Plug Mini (EU)'].hide_device);"
+                    },
+                    "oneOf": [
+                      {
+                        "title": "BLE",
+                        "enum": [
+                          "BLE"
+                        ]
+                      },
+                      {
+                        "title": "BLE/OpenAPI",
+                        "enum": [
+                          "BLE/OpenAPI"
+                        ]
+                      },
+                      {
+                        "title": "Disable",
+                        "enum": [
+                          "Disabled"
+                        ]
+                      },
+                      {
+                        "title": "OpenAPI",
+                        "enum": [
+                          "OpenAPI"
+                        ]
+                      }
+                    ]
+                  },
+                  "disablePlatformBLE": {
+                    "title": "Disable Platform BLE",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Plug Mini (EU)'] && !model.options.deviceConfig['Plug Mini (EU)'].hide_device && model.options.deviceConfig['Plug Mini (EU)'].connectionType !== 'Disabled');"
+                    }
+                  },
+                  "scanDuration": {
+                    "title": "Scan Duration (Default is 1 Second) for BLE",
+                    "type": "number",
+                    "placeholder": 1,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Plug Mini (EU)'] && !model.options.deviceConfig['Plug Mini (EU)'].hide_device && (model.options.deviceConfig['Plug Mini (EU)'].connectionType === 'BLE' || model.options.deviceConfig['Plug Mini (EU)'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "webhook": {
+                    "title": "Enable Webhook for all Plug Mini (EU)s",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Plug Mini (EU)'] && !model.options.deviceConfig['Plug Mini (EU)'].hide_device && (model.options.deviceConfig['Plug Mini (EU)'].connectionType === 'OpenAPI' || model.options.deviceConfig['Plug Mini (EU)'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "external": {
+                    "title": "External Accessory",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Plug Mini (EU)'] && !model.options.deviceConfig['Plug Mini (EU)'].hide_device);"
+                    }
+                  },
+                  "maxRetry": {
+                    "title": "Max Retries for BLE",
+                    "type": "number",
+                    "placeholder": "5",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Plug Mini (EU)'] && !model.options.deviceConfig['Plug Mini (EU)'].hide_device && (model.options.deviceConfig['Plug Mini (EU)'].connectionType === 'BLE' || model.options.deviceConfig['Plug Mini (EU)'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "maxRetries": {
+                    "title": "Device Max Retries for OpenAPI",
+                    "type": "number",
+                    "placeholder": 5,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Plug Mini (EU)'] && !model.options.deviceConfig['Plug Mini (EU)'].hide_device && (model.options.deviceConfig['Plug Mini (EU)'].connectionType === 'OpenAPI' || model.options.deviceConfig['Plug Mini (EU)'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "delayBetweenRetries": {
+                    "title": "Device Delay Between Retries for OpenAPI (In Seconds)",
+                    "type": "number",
+                    "placeholder": 3,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Plug Mini (EU)'] && !model.options.deviceConfig['Plug Mini (EU)'].hide_device && (model.options.deviceConfig['Plug Mini (EU)'].connectionType === 'OpenAPI' || model.options.deviceConfig['Plug Mini (EU)'].connectionType === 'BLE/OpenAPI'));"
+                    }
+                  },
+                  "disableCaching": {
+                    "title": "Disable Caching",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && model.options.deviceConfig['Plug Mini (EU)'] && !model.options.deviceConfig['Plug Mini (EU)'].hide_device);"
+                    }
+                  },
+                  "offline": {
+                    "title": "Offline as Off",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Plug Mini (EU)'].hide_device);"
+                    }
+                  },
+                  "history": {
+                    "title": "EVE History",
+                    "type": "boolean",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Plug Mini (EU)'].hide_device);"
+                    }
+                  },
+                  "firmware": {
+                    "title": "Firmware Override",
+                    "type": "string",
+                    "placeholder": "1.2.8",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Plug Mini (EU)'].hide_device);"
+                    }
+                  },
+                  "logging": {
+                    "title": "Logging by Device Type",
+                    "type": "string",
+                    "default": "",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Plug Mini (EU)'].hide_device);"
+                    },
+                    "oneOf": [
+                      {
+                        "title": "Debug Logging",
+                        "enum": [
+                          "debug"
+                        ]
+                      },
+                      {
+                        "title": "Default Logging",
+                        "enum": [
+                          ""
+                        ]
+                      },
+                      {
+                        "title": "No Logging",
+                        "enum": [
+                          "none"
+                        ]
+                      },
+                      {
+                        "title": "Standard Logging",
+                        "enum": [
+                          "standard"
+                        ]
+                      }
+                    ]
+                  },
+                  "refreshRate": {
+                    "title": "Device Refresh Rate",
+                    "type": "number",
+                    "placeholder": 5,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Plug Mini (EU)'].hide_device);"
+                    }
+                  },
+                  "updateRate": {
+                    "title": "Update Rate",
+                    "type": "number",
+                    "minimum": 1,
+                    "placeholder": 5,
+                    "description": "Indicates the number of seconds before refreshing status while updating progress.",
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Plug Mini (EU)'].hide_device);"
+                    }
+                  },
+                  "pushRate": {
+                    "title": "Device Push Rate",
+                    "type": "number",
+                    "placeholder": 360,
+                    "condition": {
+                      "functionBody": "return (model.options && model.options.deviceConfig && !model.options.deviceConfig['Plug Mini (EU)'].hide_device);"
                     }
                   }
                 }
