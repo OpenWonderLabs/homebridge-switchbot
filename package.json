@@ -2,7 +2,7 @@
   "name": "@switchbot/homebridge-switchbot",
   "displayName": "SwitchBot",
   "type": "module",
-  "version": "4.3.13",
+  "version": "4.3.14",
   "description": "The SwitchBot plugin allows you to access your SwitchBot device(s) from HomeKit.",
   "author": "SwitchBot <support@wondertechlabs.com> (https://github.com/SwitchBot)",
   "contributors": [
@@ -71,6 +71,9 @@
     "test": "vitest run",
     "test:watch": "vitest watch",
     "test-coverage": "npm run test -- --coverage",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "publish-packages": "changeset publish",
     "docs": "typedoc",
     "docs:lint": "typedoc --emit none --treatWarningsAsErrors"
   },
@@ -87,6 +90,7 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^7.2.0",
+    "@changesets/cli": "^2.29.8",
     "@types/node": "^25.2.1",
     "@vitest/coverage-v8": "^4.0.18",
     "@vue/compiler-sfc": "^3.5.27",

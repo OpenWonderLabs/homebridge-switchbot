@@ -1,6 +1,14 @@
 # Changelog
 
+## 4.3.14
+
+### Patch Changes
+
+- Initial changeset to enable automated versioning and changelog generation via Changesets.
+
 All notable changes to this project will be documented in this file. This project follows [Semantic Versioning](https://semver.org/).
+
+## [Unreleased]
 
 ## [4.3.4](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.3.3...v4.3.4) (2026-02-05)
 
@@ -521,7 +529,6 @@ All notable changes to this project will be documented in this file. This projec
 - Fix Contact Sensor adding as Motion Sensor instead of Contact Sensor.
 
 **Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v0.1.0...v0.1.1
-
 
 ## [0.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v0.1.0) (2021-09-10)
 
