@@ -196,7 +196,7 @@ export interface waterDetectorConfig extends BaseDeviceConfig {
 };
 
 export interface plugConfig extends BaseDeviceConfig {
-  configDeviceType: 'Plug' | 'Plug Mini (US)' | 'Plug Mini (JP)'
+  configDeviceType: 'Plug' | 'Plug Mini (US)' | 'Plug Mini (JP)' | 'Plug Mini (EU)'
 };
 
 export interface colorBulbConfig extends BaseDeviceConfig {

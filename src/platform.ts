@@ -604,6 +604,7 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
       'Plug': this.createPlug.bind(this),
       'Plug Mini (US)': this.createPlug.bind(this),
       'Plug Mini (JP)': this.createPlug.bind(this),
+      'Plug Mini (EU)': this.createPlug.bind(this),
       'Smart Lock': this.createLock.bind(this),
       'Smart Lock Pro': this.createLock.bind(this),
       'Smart Lock Ultra': this.createLock.bind(this),
@@ -1601,7 +1602,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
           ? SwitchBotModel.PlugMiniUS
           : device.deviceType === 'Plug Mini (JP)'
             ? SwitchBotModel.PlugMiniJP
-            : SwitchBotModel.Plug
+            : device.deviceType === 'Plug Mini (EU)'
+              ? SwitchBotModel.PlugMiniEU
+              : SwitchBotModel.Plug
         existingAccessory.displayName = device.configDeviceName
           ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
           : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
@@ -1631,7 +1634,9 @@ export class SwitchBotPlatform implements DynamicPlatformPlugin {
         ? SwitchBotModel.PlugMiniUS
         : device.deviceType === 'Plug Mini (JP)'
           ? SwitchBotModel.PlugMiniJP
-          : SwitchBotModel.Plug
+          : device.deviceType === 'Plug Mini (EU)'
+            ? SwitchBotModel.PlugMiniEU
+            : SwitchBotModel.Plug
       accessory.displayName = device.configDeviceName
         ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
         : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
