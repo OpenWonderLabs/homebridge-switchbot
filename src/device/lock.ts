@@ -203,16 +203,23 @@ export class Lock extends deviceBase {
     this.debugLog('BLEparseStatus')
     this.debugLog(`(lockState) = BLE:(${this.serviceData.status}), current:(${this.LockMechanism.LockCurrentState})`)
 
+    // Save previous LockCurrentState to detect in-flight commands:
+    // if LockTargetState equals previousLockCurrentState, the lock was at rest (no command pending)
+    const previousLockCurrentState = this.LockMechanism.LockCurrentState
+
     // LockCurrentState
     this.LockMechanism.LockCurrentState = this.serviceData.status === 'locked'
       ? this.hap.Characteristic.LockCurrentState.SECURED
       : this.hap.Characteristic.LockCurrentState.UNSECURED
     this.debugLog(`LockCurrentState: ${this.LockMechanism.LockCurrentState}`)
 
-    // LockTargetState
-    this.LockMechanism.LockTargetState = this.serviceData.status === 'locked'
-      ? this.hap.Characteristic.LockTargetState.SECURED
-      : this.hap.Characteristic.LockTargetState.UNSECURED
+    // LockTargetState - only update if lock was at rest (LockTargetState matched previous LockCurrentState)
+    // This prevents stale BLE data from overwriting an in-flight lock/unlock command
+    if (this.LockMechanism.LockTargetState === previousLockCurrentState) {
+      this.LockMechanism.LockTargetState = this.serviceData.status === 'locked'
+        ? this.hap.Characteristic.LockTargetState.SECURED
+        : this.hap.Characteristic.LockTargetState.UNSECURED
+    }
     this.debugLog(`LockTargetState: ${this.LockMechanism.LockTargetState}`)
 
     // Contact Sensor
@@ -239,16 +246,23 @@ export class Lock extends deviceBase {
     this.debugLog('openAPIparseStatus')
     this.debugLog(`(lockState) = OpenAPI:(${this.deviceStatus.lockState}), current:(${this.LockMechanism.LockCurrentState})`)
 
+    // Save previous LockCurrentState to detect in-flight commands:
+    // if LockTargetState equals previousLockCurrentState, the lock was at rest (no command pending)
+    const previousLockCurrentState = this.LockMechanism.LockCurrentState
+
     // LockCurrentState
     this.LockMechanism.LockCurrentState = this.deviceStatus.lockState === 'locked'
       ? this.hap.Characteristic.LockCurrentState.SECURED
       : this.hap.Characteristic.LockCurrentState.UNSECURED
     this.debugLog(`LockCurrentState: ${this.LockMechanism.LockCurrentState}`)
 
-    // LockTargetState
-    this.LockMechanism.LockTargetState = this.deviceStatus.lockState === 'locked'
-      ? this.hap.Characteristic.LockTargetState.SECURED
-      : this.hap.Characteristic.LockTargetState.UNSECURED
+    // LockTargetState - only update if lock was at rest (LockTargetState matched previous LockCurrentState)
+    // This prevents stale API data from overwriting an in-flight lock/unlock command
+    if (this.LockMechanism.LockTargetState === previousLockCurrentState) {
+      this.LockMechanism.LockTargetState = this.deviceStatus.lockState === 'locked'
+        ? this.hap.Characteristic.LockTargetState.SECURED
+        : this.hap.Characteristic.LockTargetState.UNSECURED
+    }
     this.debugLog(`LockTargetState: ${this.LockMechanism.LockTargetState}`)
 
     // ContactSensorState
@@ -289,16 +303,23 @@ export class Lock extends deviceBase {
     this.debugLog('parseStatusWebhook')
     this.debugLog(`(lockState) = Webhook:(${this.webhookContext.lockState}), current:(${this.LockMechanism.LockCurrentState})`)
 
+    // Save previous LockCurrentState to detect in-flight commands:
+    // if LockTargetState equals previousLockCurrentState, the lock was at rest (no command pending)
+    const previousLockCurrentState = this.LockMechanism.LockCurrentState
+
     // LockCurrentState
     this.LockMechanism.LockCurrentState = this.webhookContext.lockState === 'LOCKED'
       ? this.hap.Characteristic.LockCurrentState.SECURED
       : this.hap.Characteristic.LockCurrentState.UNSECURED
     this.debugLog(`LockCurrentState: ${this.LockMechanism.LockCurrentState}`)
 
-    // LockTargetState
-    this.LockMechanism.LockTargetState = this.webhookContext.lockState === 'LOCKED'
-      ? this.hap.Characteristic.LockTargetState.SECURED
-      : this.hap.Characteristic.LockTargetState.UNSECURED
+    // LockTargetState - only update if lock was at rest (LockTargetState matched previous LockCurrentState)
+    // This prevents out-of-order webhook events from overwriting an in-flight lock/unlock command
+    if (this.LockMechanism.LockTargetState === previousLockCurrentState) {
+      this.LockMechanism.LockTargetState = this.webhookContext.lockState === 'LOCKED'
+        ? this.hap.Characteristic.LockTargetState.SECURED
+        : this.hap.Characteristic.LockTargetState.UNSECURED
+    }
     this.debugLog(`LockTargetState: ${this.LockMechanism.LockTargetState}`)
   }
 
