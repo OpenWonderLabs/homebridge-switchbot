@@ -14,6 +14,7 @@ export async function addDeviceToConfig(device: any, options: { refresh?: boolea
       return { added: false }
     }
 
+
     showBusyUi()
     uiLog.info('Adding device to config:', device)
     const resp = await addDevice(device.id, importValues.configDeviceName, importValues.configDeviceType, {
@@ -25,16 +26,11 @@ export async function addDeviceToConfig(device: any, options: { refresh?: boolea
     })
     uiLog.info('Add device response:', resp)
 
-    if (!resp || resp.success === false) {
-      throw new Error(resp?.data?.message || 'Failed to add device')
-    }
-
     const alreadyExists = !!resp?.alreadyExists
-    const message
-      = resp?.message
-        || (alreadyExists
-          ? `Device "${importValues.configDeviceName}" already in config`
-          : `Device "${importValues.configDeviceName}" added successfully!`)
+    const message = resp?.message
+      || (alreadyExists
+        ? `Device "${importValues.configDeviceName}" already in config`
+        : `Device "${importValues.configDeviceName}" added successfully!`)
 
     if (alreadyExists) {
       toastInfo(message)

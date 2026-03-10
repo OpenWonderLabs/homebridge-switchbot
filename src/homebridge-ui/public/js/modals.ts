@@ -345,7 +345,63 @@ export async function importDiscoveredDevice(device: any): Promise<ImportDiscove
 }
 
 export async function editDevice(device: any): Promise<void> {
+  // --- OpenAPI Polling Interval (refreshRate) ---
+  const openApiRefreshLabel = document.createElement('label')
+  openApiRefreshLabel.textContent = 'OpenAPI Polling Interval (seconds)'
+  openApiRefreshLabel.style.display = 'block'
+  openApiRefreshLabel.style.marginBottom = '6px'
+  openApiRefreshLabel.style.fontWeight = '500'
+  openApiRefreshLabel.style.fontSize = '12px'
+  openApiRefreshLabel.style.color = '#6b7280'
+  openApiRefreshLabel.title = 'How often to poll this device via OpenAPI for status (in seconds). Overrides platform value if set. Default: 300 (5 minutes). Minimum: 30.'
+
+  const openApiRefreshInput = document.createElement('input')
+  openApiRefreshInput.type = 'number'
+  openApiRefreshInput.value = device.refreshRate || 300
+  openApiRefreshInput.min = '30'
+  openApiRefreshInput.step = '1'
+  openApiRefreshInput.style.width = '100%'
+  openApiRefreshInput.style.marginBottom = '12px'
+  openApiRefreshInput.style.padding = '8px 10px'
+  openApiRefreshInput.style.borderRadius = '6px'
+  openApiRefreshInput.style.fontSize = '14px'
+  openApiRefreshInput.style.boxSizing = 'border-box'
   // --- Device Type Select ---
+  // --- BLE Polling Enabled ---
+  const blePollingEnabledLabel = document.createElement('label')
+  blePollingEnabledLabel.textContent = 'Enable BLE Polling Fallback'
+  blePollingEnabledLabel.style.display = 'block'
+  blePollingEnabledLabel.style.marginBottom = '6px'
+  blePollingEnabledLabel.style.fontWeight = '500'
+  blePollingEnabledLabel.style.fontSize = '12px'
+  blePollingEnabledLabel.style.color = '#6b7280'
+
+  const blePollingEnabledInput = document.createElement('input')
+  blePollingEnabledInput.type = 'checkbox'
+  blePollingEnabledInput.checked = device.blePollingEnabled !== false // default true
+  blePollingEnabledInput.style.marginRight = '8px'
+  blePollingEnabledInput.style.marginBottom = '12px'
+
+  // --- BLE Poll Interval ---
+  const blePollIntervalLabel = document.createElement('label')
+  blePollIntervalLabel.textContent = 'BLE Polling Interval (ms)'
+  blePollIntervalLabel.style.display = 'block'
+  blePollIntervalLabel.style.marginBottom = '6px'
+  blePollIntervalLabel.style.fontWeight = '500'
+  blePollIntervalLabel.style.fontSize = '12px'
+  blePollIntervalLabel.style.color = '#6b7280'
+
+  const blePollIntervalInput = document.createElement('input')
+  blePollIntervalInput.type = 'number'
+  blePollIntervalInput.value = device.blePollIntervalMs || 600000
+  blePollIntervalInput.min = '60000'
+  blePollIntervalInput.step = '1000'
+  blePollIntervalInput.style.width = '100%'
+  blePollIntervalInput.style.marginBottom = '12px'
+  blePollIntervalInput.style.padding = '8px 10px'
+  blePollIntervalInput.style.borderRadius = '6px'
+  blePollIntervalInput.style.fontSize = '14px'
+  blePollIntervalInput.style.boxSizing = 'border-box'
   const typeLabel = document.createElement('label')
   typeLabel.textContent = 'Config Device Type'
   typeLabel.style.display = 'block'
@@ -609,6 +665,9 @@ export async function editDevice(device: any): Promise<void> {
         room: roomInput.value || undefined,
         encryptionKey: encryptionKeyInput.value || undefined,
         keyId: keyIdInput.value || undefined,
+        refreshRate: Number(openApiRefreshInput.value) || 300,
+        blePollingEnabled: blePollingEnabledInput.checked,
+        blePollIntervalMs: Number(blePollIntervalInput.value) || 600000,
       }
 
       // Only include defined properties in the options object
@@ -625,13 +684,25 @@ export async function editDevice(device: any): Promise<void> {
       if (params.keyId !== undefined) {
         options.keyId = params.keyId
       }
+      if (params.refreshRate !== undefined) {
+        options.refreshRate = params.refreshRate
+      }
+      if (params.blePollingEnabled !== undefined) {
+        options.blePollingEnabled = params.blePollingEnabled
+      }
+      if (params.blePollIntervalMs !== undefined) {
+        options.blePollIntervalMs = params.blePollIntervalMs
+      }
 
       await updateDevice(
         params.deviceId,
         params.configDeviceName,
         params.configDeviceType,
+        options,
       )
       await syncParentPluginConfigFromDisk()
+      contentDiv.appendChild(openApiRefreshLabel)
+      contentDiv.appendChild(openApiRefreshInput)
 
       // Refresh device list
       uiLog.info('[Edit Device] Refreshing device list after update')
@@ -662,6 +733,14 @@ export async function editDevice(device: any): Promise<void> {
   contentDiv.appendChild(encryptionKeyInput)
   contentDiv.appendChild(keyIdLabel)
   contentDiv.appendChild(keyIdInput)
+
+  // Insert BLE polling fields before error/buttons
+  contentDiv.appendChild(openApiRefreshLabel)
+  contentDiv.appendChild(openApiRefreshInput)
+  contentDiv.appendChild(blePollingEnabledLabel)
+  contentDiv.appendChild(blePollingEnabledInput)
+  contentDiv.appendChild(blePollIntervalLabel)
+  contentDiv.appendChild(blePollIntervalInput)
   contentDiv.appendChild(errorMessage)
   contentDiv.appendChild(buttons)
 

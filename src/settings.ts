@@ -6,6 +6,7 @@ export interface SwitchBotPluginConfig {
   openApiSecret?: string
   preferMatter?: boolean
   enableMatter?: boolean
+  enableBLE?: boolean // Enable or disable BLE support
   // other plugin-specific configuration
   [key: string]: any
 }
@@ -13,6 +14,7 @@ export interface SwitchBotPluginConfig {
 export const DEFAULT_CONFIG: Partial<SwitchBotPluginConfig> = {
   preferMatter: true,
   enableMatter: true,
+  enableBLE: true,
 }
 
 export type DeviceType = string

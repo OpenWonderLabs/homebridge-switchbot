@@ -27,6 +27,12 @@
         "description": "Optional OpenAPI secret for certain account setups.",
         "format": "password"
       },
+      "enableBLE": {
+        "type": "boolean",
+        "title": "Enable BLE (Bluetooth)",
+        "description": "Enable or disable BLE (Bluetooth Low Energy) support. If disabled, only OpenAPI (cloud) will be used.",
+        "default": true
+      },
       "devices": {
         "type": "array",
         "title": "Devices",

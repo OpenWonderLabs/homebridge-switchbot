@@ -45,7 +45,7 @@ export class SwitchBotClient implements ISwitchBotClient {
         enableRetry: true, // Retry with exponential backoff
         enableCircuitBreaker: true, // Circuit breaker per connection type
         enableMetrics: true, // Connection tracking and statistics
-        enableBLE: true, // Enable BLE scanning by default
+        enableBLE: this.cfg.enableBLE !== false, // Use config value, default true
         scanDuration: 5000, // BLE scan duration in milliseconds
         ...(typeof (this.cfg as any)?.nodeClientConfig === 'object' && (this.cfg as any).nodeClientConfig),
       })

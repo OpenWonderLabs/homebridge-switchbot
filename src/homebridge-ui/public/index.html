@@ -126,6 +126,35 @@
   <div class="card compact" id="advancedSettingsCard" style="margin-top: 24px;">
     <h2>Advanced Settings</h2>
     <form id="advancedSettingsForm">
+            <div class="form-group">
+              <label for="enableMatter">
+                <input type="checkbox" id="enableMatter" /> Enable Matter Support (Override)
+              </label>
+              <small>Manually enable Matter support. By default, Matter is auto-detected from the child bridge configuration. Only change this if you need to override the auto-detection.</small>
+            </div>
+            <div class="form-group">
+              <label for="preferMatter">
+                <input type="checkbox" id="preferMatter" /> Prefer Matter when available
+              </label>
+              <small>If enabled and Matter is available, devices will be presented as Matter accessories where supported (instead of HAP).</small>
+            </div>
+            <div class="form-group">
+              <label for="enableBLE">
+                <input type="checkbox" id="enableBLE" /> Enable BLE (Bluetooth)
+              </label>
+              <small>Enable or disable BLE (Bluetooth Low Energy) support. If disabled, only OpenAPI (cloud) will be used.</small>
+            </div>
+            <div class="form-group">
+              <label for="blePollingEnabled">
+                <input type="checkbox" id="blePollingEnabled" /> Enable BLE Polling Fallback
+              </label>
+              <small>If enabled, the plugin will periodically poll BLE devices for status as a safety net in addition to real-time notifications. This helps recover from missed notifications or connection loss. Recommended for reliability. Can be overridden per device.</small>
+            </div>
+            <div class="form-group">
+              <label for="blePollIntervalMs">BLE Polling Interval (ms)</label>
+              <input type="number" id="blePollIntervalMs" min="60000" max="3600000" step="1000" value="600000" />
+              <small>How often to poll BLE devices for status (in milliseconds). Default is 600000 (10 minutes). Set higher to reduce battery drain. Minimum 60000 (1 minute). Can be overridden per device.</small>
+            </div>
       <div class="form-group">
         <label for="openApiRefreshRate">OpenAPI Polling Interval (seconds)</label>
         <input type="number" id="openApiRefreshRate" min="30" max="86400" step="1" value="300" />

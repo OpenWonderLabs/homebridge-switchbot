@@ -82,13 +82,9 @@ export async function deleteDeviceFromConfig(deviceId: string, deviceName: strin
 
   try {
     showBusyUi()
-    uiLog.info('Sending delete request for deviceId:', deviceId)
+    uiLog.info('Deleting device from config:', deviceId)
     const resp = await apiDeleteDevice(deviceId)
     uiLog.info('Delete response:', resp)
-
-    if (!resp || resp.success === false) {
-      throw new Error(resp?.data?.message || 'Failed to delete device')
-    }
 
     uiLog.info('Syncing parent config from disk...')
     const synced = await syncParentPluginConfigFromDisk(true)
@@ -97,7 +93,6 @@ export async function deleteDeviceFromConfig(deviceId: string, deviceName: strin
     }
 
     uiLog.info('Refreshing device list...')
-    // Refresh device list
     const list = await fetchDevices()
     uiLog.info('Rendering devices:', list.length)
     renderDeviceList(list)
@@ -205,13 +200,9 @@ export async function deleteAllDevicesFromConfig(): Promise<void> {
     }
 
     showBusyUi()
-    uiLog.info('Sending delete all devices request')
+    uiLog.info('Deleting all devices from config')
     const resp = await apiDeleteAllDevices()
     uiLog.info('Delete all response:', resp)
-
-    if (!resp || resp.success === false) {
-      throw new Error(resp?.data?.message || 'Failed to delete all devices')
-    }
 
     uiLog.info('Syncing parent config from disk...')
     const synced = await syncParentPluginConfigFromDisk(true)
@@ -224,7 +215,7 @@ export async function deleteAllDevicesFromConfig(): Promise<void> {
     uiLog.info('Rendering devices:', updatedList.length)
     renderDeviceList(updatedList)
 
-    const deletedCount = resp?.deletedCount || list.length
+    const deletedCount = resp?.deletedCount || 0
     uiLog.info(`✓ Removed ${deletedCount} device(s) successfully`)
     toastSuccess(`Removed ${deletedCount} device(s) successfully`)
   } catch (e) {
