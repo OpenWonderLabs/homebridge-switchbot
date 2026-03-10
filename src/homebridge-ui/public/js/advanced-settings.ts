@@ -21,7 +21,11 @@ async function loadAdvancedSettings(): Promise<void> {
     (document.getElementById('dailyApiResetLocalMidnight') as HTMLInputElement).checked = !!config.dailyApiResetLocalMidnight;
     (document.getElementById('webhookOnlyOnReserve') as HTMLInputElement).checked = !!config.webhookOnlyOnReserve;
     (document.getElementById('matterBatchConcurrency') as HTMLInputElement).value = String(config.matterBatchConcurrency ?? 5);
-    (document.getElementById('matterBatchJitter') as HTMLInputElement).value = String(config.matterBatchJitter ?? 0)
+    (document.getElementById('matterBatchJitter') as HTMLInputElement).value = String(config.matterBatchJitter ?? 0);
+    (document.getElementById('enableMatter') as HTMLInputElement).checked = !!config.enableMatter;
+    (document.getElementById('preferMatter') as HTMLInputElement).checked = !!config.preferMatter;
+    (document.getElementById('blePollingEnabled') as HTMLInputElement).checked = config.blePollingEnabled !== false;
+    (document.getElementById('blePollIntervalMs') as HTMLInputElement).value = String(config.blePollIntervalMs ?? 600000)
   } catch (e) {
     (document.getElementById('advancedSettingsStatus') as HTMLElement).textContent = 'Failed to load settings.'
   }
@@ -50,6 +54,10 @@ async function saveAdvancedSettings(): Promise<void> {
     config.webhookOnlyOnReserve = (document.getElementById('webhookOnlyOnReserve') as HTMLInputElement).checked
     config.matterBatchConcurrency = Number((document.getElementById('matterBatchConcurrency') as HTMLInputElement).value) || 5
     config.matterBatchJitter = Number((document.getElementById('matterBatchJitter') as HTMLInputElement).value) || 0
+    config.enableMatter = (document.getElementById('enableMatter') as HTMLInputElement).checked
+    config.preferMatter = (document.getElementById('preferMatter') as HTMLInputElement).checked
+    config.blePollingEnabled = (document.getElementById('blePollingEnabled') as HTMLInputElement).checked
+    config.blePollIntervalMs = Number((document.getElementById('blePollIntervalMs') as HTMLInputElement).value) || 600000
     if (typeof homebridge.updatePluginConfig === 'function') {
       await homebridge.updatePluginConfig(configArr)
     } else {

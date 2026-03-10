@@ -234,6 +234,14 @@ export async function updateDevice(
   deviceId: string,
   configDeviceName?: string,
   configDeviceType?: string,
+  options?: {
+    refreshRate?: number
+    connectionPreference?: string
+    encryptionKey?: string
+    keyId?: string
+    room?: string
+    [key: string]: any
+  }
 ): Promise<any> {
   const params: any = { deviceId }
   if (configDeviceName) {
@@ -241,6 +249,9 @@ export async function updateDevice(
   }
   if (configDeviceType) {
     params.configDeviceType = configDeviceType
+  }
+  if (options) {
+    Object.assign(params, options)
   }
   uiLog.info('[Update Device] Sending update request with params:', params)
   const resp = await homebridge.request('/update-device', params)
