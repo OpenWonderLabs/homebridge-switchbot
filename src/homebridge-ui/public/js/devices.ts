@@ -4,22 +4,13 @@ import { hideBusyUi, showBusyUi } from './modal.js'
 import { renderDeviceList } from './render.js'
 import { toastError, toastInfo, toastSuccess, toastWarning } from './toast.js'
 
-type ImportDiscoveredDeviceResult = {
-  configDeviceName: string
-  configDeviceType: string
-  address?: string
-  encryptionKey?: string
-  keyId?: string
-} | null
-
 export async function addDeviceToConfig(device: any, options: { refresh?: boolean, showStatus?: boolean } = {}): Promise<{ added: boolean }> {
   const { refresh = true, showStatus = true } = options
-
   try {
     const { importDiscoveredDevice } = await import('./modals.js')
 
-    const importValues: ImportDiscoveredDeviceResult = await importDiscoveredDevice(device)
-    if (!importValues) {
+    const importValues: any = await importDiscoveredDevice(device)
+    if (!importValues || typeof importValues !== 'object' || !importValues.configDeviceName || !importValues.configDeviceType) {
       return { added: false }
     }
 

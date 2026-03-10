@@ -1062,6 +1062,11 @@ export class SwitchBotHAPPlatform {
   private lastConfigHash: string = ''
   private configReloadInterval: NodeJS.Timeout | null = null
 
+  private openApiPollTimers: Map<string, NodeJS.Timeout> = new Map()
+  private openApiBatchTimer: NodeJS.Timeout | null = null
+  private openApiRequestsToday = 0
+  private openApiLastReset = 0
+
   constructor(log: Logger, config: PlatformConfig, api?: API) {
     this.log = log
     this.config = { ...(config as any), logger: log }
@@ -1082,6 +1087,7 @@ export class SwitchBotHAPPlatform {
     if (this.api && typeof (this.api as any).on === 'function') {
       (this.api as any).on('didFinishLaunching', async () => {
         await this.loadDevicesWithMatterInit()
+        this._setupOpenApiPolling()
         // Start periodic config reload to pick up UI changes
         this.configReloadInterval = setInterval(() => {
           void this.loadDevicesWithMatterInit()
@@ -1089,10 +1095,144 @@ export class SwitchBotHAPPlatform {
       })
     } else {
       void this.loadDevicesWithMatterInit()
+      this._setupOpenApiPolling()
       // Start periodic config reload to pick up UI changes
       this.configReloadInterval = setInterval(() => {
         void this.loadDevicesWithMatterInit()
       }, 10000) // Check every 10 seconds
+    }
+  }
+
+  /**
+   * Setup OpenAPI polling for all devices according to config (global, per-device, batch, rate limit)
+   */
+  private _setupOpenApiPolling() {
+    // Clear any existing timers
+    for (const t of this.openApiPollTimers.values()) clearInterval(t)
+    this.openApiPollTimers.clear()
+    if (this.openApiBatchTimer) {
+      clearInterval(this.openApiBatchTimer)
+    }
+    this.openApiBatchTimer = null
+
+    const cfg = this.config as any
+    const devices = cfg.devices ?? []
+    const globalRate = Math.max(Number(cfg.openApiRefreshRate) || 300, 30)
+    const batchEnabled = cfg.matterBatchEnabled !== false
+    const batchRate = Math.max(Number(cfg.matterBatchRefreshRate) || globalRate, 30)
+    const batchConcurrency = Math.max(Number(cfg.matterBatchConcurrency) || 5, 1)
+    const batchJitter = Math.max(Number(cfg.matterBatchJitter) || 0, 0)
+    const dailyLimit = Math.max(Number(cfg.dailyApiLimit) || 10000, 1000)
+    const dailyReserve = Math.max(Number(cfg.dailyApiReserveForCommands) || 1000, 0)
+    const resetAtLocalMidnight = !!cfg.dailyApiResetLocalMidnight
+    const webhookOnlyOnReserve = !!cfg.webhookOnlyOnReserve
+
+    // Helper to reset daily counter
+    const resetCounter = () => {
+      this.openApiRequestsToday = 0
+      this.openApiLastReset = Date.now()
+      this.log.info('[OpenAPI] Daily request counter reset')
+    }
+    // Schedule reset at midnight
+    const scheduleMidnightReset = () => {
+      const now = new Date()
+      let nextReset
+      if (resetAtLocalMidnight) {
+        nextReset = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1)
+      } else {
+        nextReset = new Date(now)
+        nextReset.setUTCHours(24, 0, 1, 0)
+      }
+      const ms = nextReset.getTime() - now.getTime()
+      setTimeout(() => {
+        resetCounter()
+        scheduleMidnightReset()
+      }, ms)
+    }
+    scheduleMidnightReset()
+
+    // Helper to check if polling is allowed
+    const canPoll = () => {
+      if (this.openApiRequestsToday + dailyReserve >= dailyLimit) {
+        if (!webhookOnlyOnReserve) {
+          this.log.warn('[OpenAPI] Daily request limit reached, pausing background polling')
+        }
+        return false
+      }
+      return true
+    }
+
+    // Per-device polling (devices with per-device refreshRate)
+    for (const dev of devices) {
+      const id = dev.deviceId ?? dev.id
+      const enabled = dev.enabled !== false
+      if (!id || !enabled) {
+        continue
+      }
+      const perDeviceRate = dev.refreshRate ? Math.max(Number(dev.refreshRate), 30) : null
+      if (perDeviceRate) {
+        // Individual polling interval for this device
+        const timer = setInterval(async () => {
+          if (!canPoll()) {
+            return
+          }
+          try {
+            const client = (this.config as any)._client
+            if (client && typeof client.getDevice === 'function') {
+              await client.getDevice(id)
+              this.openApiRequestsToday++
+              this.log.debug(`[OpenAPI] Polled device ${id} (per-device interval ${perDeviceRate}s) [${this.openApiRequestsToday}/${dailyLimit}]`)
+            }
+          } catch (e) {
+            this.log.debug(`[OpenAPI] Polling failed for device ${id}:`, (e as Error)?.message)
+          }
+        }, perDeviceRate * 1000)
+        this.openApiPollTimers.set(id, timer)
+      }
+    }
+
+    // Batched polling for all other devices
+    if (batchEnabled) {
+      // Devices not already polled individually
+      const batchDevices = devices.filter((dev: any) => {
+        const id = dev.deviceId ?? dev.id
+        const enabled = dev.enabled !== false
+        const perDeviceRate = dev.refreshRate ? Math.max(Number(dev.refreshRate), 30) : null
+        return id && enabled && !perDeviceRate
+      })
+      // Optional jitter before first batch
+      const startBatch = () => {
+        this.openApiBatchTimer = setInterval(async () => {
+          if (!canPoll()) {
+            return
+          }
+          const client = (this.config as any)._client
+          if (!client || typeof client.getDevice !== 'function') {
+            return
+          }
+          // Limit concurrency
+          const chunks: any[][] = []
+          for (let i = 0; i < batchDevices.length; i += batchConcurrency) {
+            chunks.push(batchDevices.slice(i, i + batchConcurrency))
+          }
+          for (const chunk of chunks) {
+            await Promise.all(chunk.map(async (dev: any) => {
+              try {
+                await client.getDevice(dev.deviceId ?? dev.id)
+                this.openApiRequestsToday++
+                this.log.debug(`[OpenAPI] Batched poll device ${dev.deviceId ?? dev.id} [${this.openApiRequestsToday}/${dailyLimit}]`)
+              } catch (e) {
+                this.log.debug(`[OpenAPI] Batched polling failed for device ${dev.deviceId ?? dev.id}:`, (e as Error)?.message)
+              }
+            }))
+          }
+        }, batchRate * 1000)
+      }
+      if (batchJitter > 0) {
+        setTimeout(startBatch, Math.floor(Math.random() * batchJitter * 1000))
+      } else {
+        startBatch()
+      }
     }
   }
 

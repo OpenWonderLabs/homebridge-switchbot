@@ -21,7 +21,30 @@
    - See noble [prerequisites](https://github.com/abandonware/noble#prerequisites) for your OS. (This is used for BLE connection.)
 3. Click **Install**
 
+
 ## Configuration
+
+### OpenAPI Polling/Rate Advanced Settings (UI)
+
+You can now configure global OpenAPI polling and rate-limiting options directly from the Homebridge UI:
+
+- Go to the SwitchBot plugin settings in Homebridge Config UI X.
+- Scroll to the **Advanced Settings** section at the bottom of the page.
+- Adjust the following options as needed:
+  - **OpenAPI Polling Interval (seconds):** How often to poll devices via OpenAPI for status. Default: 300 (5 min). Min: 30. Can be overridden per device.
+  - **Enable Batched OpenAPI Polling:** Poll all OpenAPI devices in a single batch at the configured interval. Devices with per-device refreshRate are excluded from the batch.
+  - **OpenAPI Batch Polling Interval (seconds):** Interval for batched OpenAPI polling. Falls back to OpenAPI Polling Interval if not set. Default: 300.
+  - **OpenAPI Daily Request Limit:** Maximum OpenAPI requests per day allowed by the plugin. Default: 10000.
+  - **OpenAPI Reserve for Commands:** Requests reserved for user actions. When remaining budget reaches this value, background polling pauses. Default: 1000.
+  - **Reset OpenAPI Counter at Local Midnight:** If true, resets the daily OpenAPI request counter at local midnight. If false, resets at UTC midnight.
+  - **Only Allow Webhooks on Reserve:** When remaining OpenAPI budget reaches the reserve, only webhooks and user commands are allowed. Background polling/discovery pauses.
+  - **OpenAPI Batch Concurrency:** Maximum number of parallel OpenAPI status calls during a batch. Default: 5.
+  - **OpenAPI Batch Jitter (seconds):** Random startup delay before the first batch to reduce synchronized spikes. Default: 0.
+
+Click **Save Advanced Settings** to apply changes. These settings match the options available in `config.schema.json` and can be overridden per device.
+
+<!-- Optionally add a screenshot here -->
+
 
 - ### If using OpenAPI Connection
   1. Download SwitchBot App on App Store or Google Play Store

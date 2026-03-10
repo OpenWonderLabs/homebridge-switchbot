@@ -1,5 +1,5 @@
-import type { PlatformConfig } from 'homebridge'
 import type { SwitchBotPluginConfig } from './settings.js'
+import type { PlatformConfig } from 'homebridge'
 
 // Canonical Matter cluster ID mapping (from matter.js clusters)
 export const MATTER_CLUSTER_IDS = {
@@ -24,7 +24,9 @@ export const MATTER_ATTRIBUTE_IDS = {
 } as const
 
 export function normalizeConfig(raw?: PlatformConfig): SwitchBotPluginConfig {
-  if (!raw) return {}
+  if (!raw) {
+    return {}
+  }
   return { ...(raw as any) } as SwitchBotPluginConfig
 }
 

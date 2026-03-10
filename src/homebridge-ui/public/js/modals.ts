@@ -1,7 +1,7 @@
 import { DEVICE_TYPES } from './constants.js'
 import { uiLog } from './logger.js'
 
-export async function importDiscoveredDevice(device: any): Promise<{
+export type ImportDiscoveredDeviceResult = {
   configDeviceName: string
   configDeviceType: string
   address?: string
@@ -9,7 +9,33 @@ export async function importDiscoveredDevice(device: any): Promise<{
   room?: string
   encryptionKey?: string
   keyId?: string
-} | null> {
+  refreshRate?: number
+  blePollingEnabled?: boolean
+  blePollIntervalMs?: number
+} | null
+
+export async function importDiscoveredDevice(device: any): Promise<ImportDiscoveredDeviceResult> {
+  // --- OpenAPI Polling Interval (refreshRate) ---
+  const openApiRefreshLabel = document.createElement('label')
+  openApiRefreshLabel.textContent = 'OpenAPI Polling Interval (seconds)'
+  openApiRefreshLabel.style.display = 'block'
+  openApiRefreshLabel.style.marginBottom = '6px'
+  openApiRefreshLabel.style.fontWeight = '500'
+  openApiRefreshLabel.style.fontSize = '12px'
+  openApiRefreshLabel.style.color = '#6b7280'
+  openApiRefreshLabel.title = 'How often to poll this device via OpenAPI for status (in seconds). Overrides platform value if set. Default: 300 (5 minutes). Minimum: 30.'
+
+  const openApiRefreshInput = document.createElement('input')
+  openApiRefreshInput.type = 'number'
+  openApiRefreshInput.value = device.refreshRate || 300
+  openApiRefreshInput.min = '30'
+  openApiRefreshInput.step = '1'
+  openApiRefreshInput.style.width = '100%'
+  openApiRefreshInput.style.marginBottom = '12px'
+  openApiRefreshInput.style.padding = '8px 10px'
+  openApiRefreshInput.style.borderRadius = '6px'
+  openApiRefreshInput.style.fontSize = '14px'
+  openApiRefreshInput.style.boxSizing = 'border-box'
   return new Promise((resolve) => {
     const div = document.createElement('div')
     div.style.position = 'fixed'
@@ -203,6 +229,42 @@ export async function importDiscoveredDevice(device: any): Promise<{
     keyIdInput.style.fontSize = '14px'
     keyIdInput.style.boxSizing = 'border-box'
 
+    // --- BLE Polling Enabled ---
+    const blePollingEnabledLabel = document.createElement('label')
+    blePollingEnabledLabel.textContent = 'Enable BLE Polling Fallback'
+    blePollingEnabledLabel.style.display = 'block'
+    blePollingEnabledLabel.style.marginBottom = '6px'
+    blePollingEnabledLabel.style.fontWeight = '500'
+    blePollingEnabledLabel.style.fontSize = '12px'
+    blePollingEnabledLabel.style.color = '#6b7280'
+
+    const blePollingEnabledInput = document.createElement('input')
+    blePollingEnabledInput.type = 'checkbox'
+    blePollingEnabledInput.checked = device.blePollingEnabled !== false // default true
+    blePollingEnabledInput.style.marginRight = '8px'
+    blePollingEnabledInput.style.marginBottom = '12px'
+
+    // --- BLE Poll Interval ---
+    const blePollIntervalLabel = document.createElement('label')
+    blePollIntervalLabel.textContent = 'BLE Polling Interval (ms)'
+    blePollIntervalLabel.style.display = 'block'
+    blePollIntervalLabel.style.marginBottom = '6px'
+    blePollIntervalLabel.style.fontWeight = '500'
+    blePollIntervalLabel.style.fontSize = '12px'
+    blePollIntervalLabel.style.color = '#6b7280'
+
+    const blePollIntervalInput = document.createElement('input')
+    blePollIntervalInput.type = 'number'
+    blePollIntervalInput.value = device.blePollIntervalMs || 600000
+    blePollIntervalInput.min = '60000'
+    blePollIntervalInput.step = '1000'
+    blePollIntervalInput.style.width = '100%'
+    blePollIntervalInput.style.marginBottom = '12px'
+    blePollIntervalInput.style.padding = '8px 10px'
+    blePollIntervalInput.style.borderRadius = '6px'
+    blePollIntervalInput.style.fontSize = '14px'
+    blePollIntervalInput.style.boxSizing = 'border-box'
+
     const buttons = document.createElement('div')
     buttons.style.display = 'flex'
     buttons.style.gap = '10px'
@@ -224,15 +286,7 @@ export async function importDiscoveredDevice(device: any): Promise<{
     importBtn.style.padding = '8px 20px'
     importBtn.style.fontSize = '13px'
 
-    const cleanup = (result: {
-      configDeviceName: string
-      configDeviceType: string
-      address?: string
-      connectionPreference?: string
-      room?: string
-      encryptionKey?: string
-      keyId?: string
-    } | null) => {
+    const cleanup = (result: ImportDiscoveredDeviceResult) => {
       div.remove()
       resolve(result)
     }
@@ -246,6 +300,9 @@ export async function importDiscoveredDevice(device: any): Promise<{
       room: roomInput.value || undefined,
       encryptionKey: encryptionKeyInput.value || undefined,
       keyId: keyIdInput.value || undefined,
+      refreshRate: Number(openApiRefreshInput.value) || 300,
+      blePollingEnabled: blePollingEnabledInput.checked,
+      blePollIntervalMs: Number(blePollIntervalInput.value) || 600000,
     })
 
     div.addEventListener('click', (event) => {
@@ -270,6 +327,13 @@ export async function importDiscoveredDevice(device: any): Promise<{
     contentDiv.appendChild(encryptionKeyInput)
     contentDiv.appendChild(keyIdLabel)
     contentDiv.appendChild(keyIdInput)
+
+    contentDiv.appendChild(openApiRefreshLabel)
+    contentDiv.appendChild(openApiRefreshInput)
+    contentDiv.appendChild(blePollingEnabledLabel)
+    contentDiv.appendChild(blePollingEnabledInput)
+    contentDiv.appendChild(blePollIntervalLabel)
+    contentDiv.appendChild(blePollIntervalInput)
     contentDiv.appendChild(buttons)
 
     modal.appendChild(title)

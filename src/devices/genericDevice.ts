@@ -1,5 +1,38 @@
 // Utility: Validate BLE response length before parsing
 /* eslint-disable style/max-statements-per-line, unused-imports/no-unused-vars */
+
+/**
+ * Status Update Strategy for BLE and OpenAPI
+ *
+ * BLE (Bluetooth Low Energy):
+ * - Primary: Subscribes to device notifications for real-time state updates using _subscribeBLENotifications().
+ * - Fallback: (Recommended) Optionally, a low-frequency polling timer (e.g., every 5–10 minutes) can call getState() to recover from missed notifications or connection loss.
+ *   - This ensures state stays in sync even if notifications are unreliable or the device reconnects.
+ *   - Polling should be infrequent to avoid battery drain and BLE congestion.
+ *
+ * BLE Polling Options (config & per-device):
+ * - blePollingEnabled (boolean): Enable/disable BLE polling fallback (default: true).
+ * - blePollIntervalMs (integer): Polling interval in ms (default: 600000, min: 60000).
+ *   - These can be set globally in config or overridden per device.
+ *   - Setting a lower interval increases update frequency but may drain battery faster.
+ *   - Setting a higher interval reduces battery impact but may delay state recovery.
+ *
+ * OpenAPI (Cloud):
+ * - Uses periodic polling to fetch device status at a configurable interval (default: 300 seconds, can be set per device or platform).
+ * - Platform supports batched refresh (matterBatchEnabled, matterBatchRefreshRate, etc.) and per-device refreshRate overrides.
+ * - Rate limiting:
+ *   - Default daily limit: 10,000 OpenAPI requests (configurable via options.dailyApiLimit).
+ *   - Reserve: 1,000 requests for user commands (options.dailyApiReserveForCommands).
+ *   - When the remaining budget reaches the reserve, background polling/discovery pauses, but user commands and webhooks continue.
+ *   - Counter resets at local or UTC midnight (options.dailyApiResetLocalMidnight).
+ *
+ * Best Practices:
+ * - BLE: Use notifications for instant updates, add periodic polling as a safety net.
+ * - OpenAPI: Tune polling intervals to balance freshness and rate limit budget.
+ * - Both: Document and expose polling intervals and rate limit settings in config.
+ *
+ * See README.md and docs for more details.
+ */
 import type { SwitchBotPluginConfig } from '../settings.js'
 
 import { Buffer } from 'node:buffer'
@@ -23,6 +56,9 @@ const HEX_COLOR_REGEX = /^#?[0-9A-F]{6}$/i
 
 export class GenericDevice extends DeviceBase {
   protected log: import('homebridge').Logger
+  private _blePollTimer: NodeJS.Timeout | null = null
+  private _blePollIntervalMs: number
+  private _blePollingEnabled: boolean
 
   constructor(opts: any, cfg: SwitchBotPluginConfig) {
     super(opts, cfg)
@@ -45,9 +81,52 @@ export class GenericDevice extends DeviceBase {
         // ignore if device not found or setKey not available
       }
     }
-    // ...existing code...
+    // BLE polling config: allow override via opts.blePollingEnabled/blePollIntervalMs or cfg.blePollingEnabled/blePollIntervalMs
+    this._blePollingEnabled = opts?.blePollingEnabled ?? cfg?.blePollingEnabled ?? true
+    let pollMs = opts?.blePollIntervalMs ?? cfg?.blePollIntervalMs ?? 10 * 60 * 1000 // default: 10 min
+    if (typeof pollMs !== 'number' || Number.isNaN(pollMs) || pollMs < 60000) {
+      this.log.warn(`[BLE] Invalid blePollIntervalMs (${pollMs}), using minimum 60000ms`)
+      pollMs = 60000
+    }
+    this._blePollIntervalMs = pollMs
     // Subscribe to BLE notifications if supported (node-switchbot v4+)
     this._subscribeBLENotifications()
+    // Start BLE polling fallback if enabled
+    if (this._blePollingEnabled) {
+      this._startBlePolling()
+    }
+  }
+
+  /**
+   * Start periodic BLE polling as a fallback to notifications.
+   */
+  private _startBlePolling() {
+    if (this._blePollTimer) {
+      clearInterval(this._blePollTimer)
+    }
+    this._blePollTimer = setInterval(async () => {
+      try {
+        this.log.debug(`[BLE] Polling getState() for device ${this.opts.id}`)
+        await this.getState()
+      } catch (e) {
+        this.log.debug(`[BLE] Polling getState() failed for device ${this.opts.id}:`, (e as Error)?.message)
+      }
+    }, this._blePollIntervalMs)
+  }
+
+  /**
+   * Clean up BLE polling timer on destroy.
+   */
+  async destroy(): Promise<void> {
+    if (this._blePollTimer) {
+      clearInterval(this._blePollTimer)
+      this._blePollTimer = null
+    }
+    // Only call super.destroy if DeviceBase.prototype.destroy is a function and not this method itself
+    const baseProto = Object.getPrototypeOf(GenericDevice.prototype)
+    if (typeof baseProto.destroy === 'function' && baseProto.destroy !== GenericDevice.prototype.destroy) {
+      await super.destroy()
+    }
   }
 
   /**

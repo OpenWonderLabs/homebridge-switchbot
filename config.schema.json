@@ -181,10 +181,77 @@
               "type": "string",
               "title": "BLE Key ID",
               "description": "(Advanced) Optional BLE key ID for this device (usually 2 hex characters, e.g. 'ff'). Only required for some locks."
+            },
+            "refreshRate": {
+              "type": "integer",
+              "title": "OpenAPI Polling Interval (seconds)",
+              "description": "How often to poll this device via OpenAPI for status (in seconds). Overrides platform value if set. Default: 300 (5 minutes). Minimum: 30.",
+              "default": 300,
+              "minimum": 30
             }
           }
         }
       }
+    },
+    "openApiRefreshRate": {
+      "type": "integer",
+      "title": "OpenAPI Polling Interval (seconds)",
+      "description": "How often to poll devices via OpenAPI for status (in seconds). Default: 300 (5 minutes). Minimum: 30. Can be overridden per device.",
+      "default": 300,
+      "minimum": 30
+    },
+    "matterBatchEnabled": {
+      "type": "boolean",
+      "title": "Enable Batched OpenAPI Polling",
+      "description": "If enabled, the platform will poll all OpenAPI devices in a single batch at the configured interval. Devices with per-device refreshRate are excluded from the batch.",
+      "default": true
+    },
+    "matterBatchRefreshRate": {
+      "type": "integer",
+      "title": "OpenAPI Batch Polling Interval (seconds)",
+      "description": "Interval for batched OpenAPI polling (in seconds). Falls back to openApiRefreshRate if not set. Default: 300.",
+      "default": 300,
+      "minimum": 30
+    },
+    "dailyApiLimit": {
+      "type": "integer",
+      "title": "OpenAPI Daily Request Limit",
+      "description": "Maximum OpenAPI requests per day allowed by the plugin. Default: 10000.",
+      "default": 10000,
+      "minimum": 1000
+    },
+    "dailyApiReserveForCommands": {
+      "type": "integer",
+      "title": "OpenAPI Reserve for Commands",
+      "description": "Requests reserved for user actions (commands/webhooks). When remaining budget reaches this value, background polling pauses. Default: 1000.",
+      "default": 1000,
+      "minimum": 0
+    },
+    "dailyApiResetLocalMidnight": {
+      "type": "boolean",
+      "title": "Reset OpenAPI Counter at Local Midnight",
+      "description": "If true, resets the daily OpenAPI request counter at local midnight. If false, resets at UTC midnight.",
+      "default": false
+    },
+    "webhookOnlyOnReserve": {
+      "type": "boolean",
+      "title": "Only Allow Webhooks on Reserve",
+      "description": "When remaining OpenAPI budget reaches the reserve, only webhooks and user commands are allowed. Background polling/discovery pauses.",
+      "default": false
+    },
+    "matterBatchConcurrency": {
+      "type": "integer",
+      "title": "OpenAPI Batch Concurrency",
+      "description": "Maximum number of parallel OpenAPI status calls during a batch. Default: 5.",
+      "default": 5,
+      "minimum": 1
+    },
+    "matterBatchJitter": {
+      "type": "integer",
+      "title": "OpenAPI Batch Jitter (seconds)",
+      "description": "Random startup delay before the first batch to reduce synchronized spikes. Default: 0.",
+      "default": 0,
+      "minimum": 0
     },
     "enableMatter": {
       "type": "boolean",
@@ -195,6 +262,19 @@
       "type": "boolean",
       "title": "Prefer Matter when available",
       "description": "If enabled and Matter is available, devices will be presented as Matter accessories where supported (instead of HAP)."
+    },
+    "blePollingEnabled": {
+      "type": "boolean",
+      "title": "Enable BLE Polling Fallback",
+      "description": "If enabled, the plugin will periodically poll BLE devices for status as a safety net in addition to real-time notifications. This helps recover from missed notifications or connection loss. Recommended for reliability. Can be overridden per device.",
+      "default": true
+    },
+    "blePollIntervalMs": {
+      "type": "integer",
+      "title": "BLE Polling Interval (ms)",
+      "description": "How often to poll BLE devices for status (in milliseconds). Default is 600000 (10 minutes). Set higher to reduce battery drain. Minimum 60000 (1 minute). Can be overridden per device.",
+      "default": 600000,
+      "minimum": 60000
     }
   },
   "layout": [
@@ -223,7 +303,18 @@
       "expanded": false,
       "items": [
         "enableMatter",
-        "preferMatter"
+        "preferMatter",
+        "blePollingEnabled",
+        "blePollIntervalMs",
+        "openApiRefreshRate",
+        "matterBatchEnabled",
+        "matterBatchRefreshRate",
+        "dailyApiLimit",
+        "dailyApiReserveForCommands",
+        "dailyApiResetLocalMidnight",
+        "webhookOnlyOnReserve",
+        "matterBatchConcurrency",
+        "matterBatchJitter"
       ]
     }
   ]
