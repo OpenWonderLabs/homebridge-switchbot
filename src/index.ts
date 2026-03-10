@@ -4,10 +4,12 @@
  */
 import type { API } from 'homebridge'
 
-import { SwitchBotPlatform } from './platform.js'
+import { SwitchBotHAPPlatform, SwitchBotMatterPlatform } from './platform.js'
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js'
+import { createPlatformProxy } from './utils.js'
 
 // Register our platform with homebridge.
 export default (api: API): void => {
-  api.registerPlatform(PLUGIN_NAME, PLATFORM_NAME, SwitchBotPlatform)
+  const ProxyCtor = createPlatformProxy(SwitchBotHAPPlatform, SwitchBotMatterPlatform)
+  api.registerPlatform(PLUGIN_NAME, PLATFORM_NAME, ProxyCtor as any)
 }

@@ -1,4 +1,5 @@
 import antfu from '@antfu/eslint-config'
+import html from 'eslint-plugin-html'
 
 export default antfu(
   {
@@ -7,6 +8,10 @@ export default antfu(
     typescript: true,
     formatters: {
       markdown: true,
+      html: true,
+    },
+    plugins: {
+      html,
     },
     rules: {
       'curly': ['error', 'multi-line'],
@@ -16,10 +21,9 @@ export default antfu(
       'perfectionist/sort-imports': [
         'error',
         {
-          // Use groups supported by the installed perfectionist version.
           groups: [
-            'builtin',
-            'external',
+            'type',
+            ['builtin', 'external'],
             'internal',
             ['parent', 'sibling', 'index'],
             'unknown',

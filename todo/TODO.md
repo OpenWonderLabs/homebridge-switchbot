@@ -1,0 +1,80 @@
+# SwitchBot Plugin TODO List
+
+- [ ] Implement battery level trending (if historical data available)
+- [ ] Add "Export Results" button (JSON format)
+- [ ] Add "Import Results" for comparison or troubleshooting
+- [ ] Share with support for debugging
+- [ ] Compare current vs previous discovery (show differences)
+- [ ] Generate discovery report (formatted summary)
+- [ ] **Test discovery with real hardware**
+- [ ] Test BLE discovery with nearby devices
+- [ ] Test OpenAPI discovery with cloud-registered devices
+- [ ] Test with mixed BLE+API devices
+- [ ] Test connection type badge display
+- [ ] Verify deduplication works correctly
+- [ ] **Add error handling improvements**
+- [ ] Better error messages for users
+- [ ] Retry logic with exponential backoff
+- [ ] Graceful degradation when BLE unavailable
+- [ ] Network timeout handling
+- [ ] **Update README with discovery features**
+- [ ] Document BLE vs OpenAPI discovery
+- [ ] Add screenshots of new UI features
+- [ ] Explain connection type badges
+- [ ] Add troubleshooting guide for discovery issues
+- [ ] **Create developer documentation**
+- [ ] Document new modular structure
+- [ ] API documentation for endpoints
+- [ ] Contributing guidelines for UI changes
+- [ ] Better Loading States
+- [ ] Connection Recommendations
+- [ ] Device Grouping
+- [ ] Test discovery with real hardware
+- [ ] Update README with new features
+- [ ] Configurable BLE Scan
+- [ ] Discovery History/Cache
+- [ ] Connection Testing
+- [ ] Batch Import
+- [ ] Device Health Dashboard
+- [ ] Add checkboxes to select multiple devices
+- [ ] Add "Add Selected to Config" button
+- [ ] Implement bulk configuration with smart defaults
+- [ ] Add "Needs Attention" section at top
+- [ ] Implement battery level trending (if historical data available)
+- [ ] Add "Export Results" button (JSON format)
+- [ ] Add "Import Results" for comparison or troubleshooting
+- [ ] Share with support for debugging
+- [ ] Compare current vs previous discovery (show differences)
+- [ ] Generate discovery report (formatted summary)
+- [ ] Add tests for battery level trending logic
+- [ ] **Test discovery with real hardware**
+- [ ] Add tests for battery level trending logic
+- [ ] Test BLE discovery with nearby devices
+- [ ] Test OpenAPI discovery with cloud-registered devices
+- [ ] Test with mixed BLE+API devices
+- [ ] Test connection type badge display
+- [ ] Verify deduplication works correctly
+- [ ] **Add error handling improvements**
+- [ ] Better error messages for users
+- [ ] Retry logic with exponential backoff
+- [ ] Graceful degradation when BLE unavailable
+- [ ] Network timeout handling
+- [ ] **Update README with discovery features**
+- [ ] Document BLE vs OpenAPI discovery
+- [ ] Add screenshots of new UI features
+- [ ] Explain connection type badges
+- [ ] Add troubleshooting guide for discovery issues
+- [ ] **Create developer documentation**
+- [ ] Document new modular structure
+- [ ] API documentation for endpoints
+- [ ] Contributing guidelines for UI changes
+- [ ] Better Loading States
+- [ ] Connection Recommendations
+- [ ] Device Grouping
+- [ ] Test discovery with real hardware
+- [ ] Update README with new features
+- [ ] Configurable BLE Scan
+- [ ] Discovery History/Cache
+- [ ] Connection Testing
+- [ ] Batch Import
+- [ ] Device Health Dashboard

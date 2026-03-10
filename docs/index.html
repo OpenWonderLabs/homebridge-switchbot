@@ -281,15 +281,6 @@ Without this step, then you will receive the following error when the swichbot p
 </li>
 </ul>
 </li>
-<li><a href="https://us.switch-bot.com/products/switchbot-hub-mini-2">SwitchBot Hub Mini 2</a>
-<ul>
-<li>Supports OpenAPI &amp; Bluetooth Low Energy (BLE) Connections
-<ul>
-<li>Enables Humidity, Temperature, and Light Sensor</li>
-</ul>
-</li>
-</ul>
-</li>
 <li><a href="https://us.switch-bot.com/products/switchbot-hub-3">SwitchBot Hub 3</a>
 <ul>
 <li>Supports OpenAPI &amp; Bluetooth Low Energy (BLE) Connections
@@ -310,8 +301,34 @@ Without this step, then you will receive the following error when the swichbot p
 </ul>
 </li>
 </ul>
+<h2 id="ble-encryption-support" class="tsd-anchor-link">BLE Encryption Support<a href="#ble-encryption-support" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<h3 id="ble-encryption-key-and-key-id" class="tsd-anchor-link">BLE Encryption Key and Key ID<a href="#ble-encryption-key-and-key-id" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Some SwitchBot devices (notably newer locks, curtains, and select sensors) require a BLE encryption key and keyId for secure Bluetooth communication. This plugin supports configuring these fields for each device.</p>
+<h4 id="how-to-obtain-ble-encryption-key-and-key-id" class="tsd-anchor-link">How to Obtain BLE Encryption Key and Key ID<a href="#how-to-obtain-ble-encryption-key-and-key-id" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h4>
+<ol>
+<li><strong>Open the SwitchBot App</strong> and select your device.</li>
+<li>Go to <strong>Device Settings</strong> (gear icon).</li>
+<li>Tap <strong>Device Info</strong>.</li>
+<li>If your device supports BLE encryption, you will see fields for <strong>Encryption Key</strong> and <strong>Key ID</strong>. (If not visible, your device may not require encryption or may need a firmware update.)</li>
+<li>Copy the <strong>Encryption Key</strong> and <strong>Key ID</strong> values.</li>
+</ol>
+<h4 id="how-to-configure-in-homebridge" class="tsd-anchor-link">How to Configure in Homebridge<a href="#how-to-configure-in-homebridge" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h4>
+<p>In the Homebridge UI, when adding or editing a SwitchBot device, enter the <strong>Encryption Key</strong> and <strong>Key ID</strong> in the provided fields. These values will be securely used for BLE communication with your device.</p>
+<p><strong>Example device config excerpt:</strong></p>
+<pre><code class="json"><span class="hl-1">{</span><br/><span class="hl-1">  </span><span class="hl-6">&quot;deviceId&quot;</span><span class="hl-1">: </span><span class="hl-7">&quot;E7F8A1B2C3D4&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-6">&quot;deviceName&quot;</span><span class="hl-1">: </span><span class="hl-7">&quot;SwitchBot Lock&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-6">&quot;enableBLE&quot;</span><span class="hl-1">: </span><span class="hl-8">true</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-6">&quot;encryptionKey&quot;</span><span class="hl-1">: </span><span class="hl-7">&quot;0123456789abcdef0123456789abcdef&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-6">&quot;keyId&quot;</span><span class="hl-1">: </span><span class="hl-7">&quot;01&quot;</span><br/><span class="hl-1">}</span>
+</code><button type="button">Copy</button></pre>
+
+<h4 id="which-devices-require-ble-encryption" class="tsd-anchor-link">Which Devices Require BLE Encryption?<a href="#which-devices-require-ble-encryption" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h4>
+<ul>
+<li>SwitchBot Lock (and Lock Pro)</li>
+<li>SwitchBot Curtain 3 (and some Curtain 2 with updated firmware)</li>
+<li>Some sensors and new device models (see device info in app)</li>
+</ul>
+<p>If you are unsure, check your device's info in the SwitchBot app. If the fields are present, copy them into the plugin config.</p>
+<p><strong>Note:</strong> If you enter an incorrect key or keyId, BLE communication will fail for that device. Double-check values if you encounter connection issues.</p>
+<hr>
 <h2 id="supported-ir-devices" class="tsd-anchor-link">Supported IR Devices<a href="#supported-ir-devices" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<h3 id="all-ir-devices-require-switchbot-hub-2-switchbot-hub-mini-2-switchbot-hub-3-or-hub-mini" class="tsd-anchor-link"><em>(All IR Devices require <a href="https://us.switch-bot.com/products/switchbot-hub-2">SwitchBot Hub 2</a>, <a href="https://us.switch-bot.com/products/switchbot-hub-mini-2">SwitchBot Hub Mini 2</a>, <a href="https://us.switch-bot.com/products/switchbot-hub-3">SwitchBot Hub 3</a>, or <a href="https://www.switch-bot.com/products/switchbot-hub-mini">Hub Mini</a>)</em><a href="#all-ir-devices-require-switchbot-hub-2-switchbot-hub-mini-2-switchbot-hub-3-or-hub-mini" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<h3 id="all-ir-devices-require-switchbot-hub-2-switchbot-hub-3-or-hub-mini" class="tsd-anchor-link"><em>(All IR Devices require <a href="https://us.switch-bot.com/products/switchbot-hub-2">SwitchBot Hub 2</a>, <a href="https://us.switch-bot.com/products/switchbot-hub-3">SwitchBot Hub 3</a>, or <a href="https://www.switch-bot.com/products/switchbot-hub-mini">Hub Mini</a>)</em><a href="#all-ir-devices-require-switchbot-hub-2-switchbot-hub-3-or-hub-mini" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul>
 <li>TV
 <ul>
@@ -393,6 +410,57 @@ Without this step, then you will receive the following error when the swichbot p
 </ul>
 </li>
 </ul>
+<h2 id="matter-platform" class="tsd-anchor-link">Matter Platform<a href="#matter-platform" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<h3 id="batched-refresh-and-api-load-control" class="tsd-anchor-link">Batched refresh and API load control<a href="#batched-refresh-and-api-load-control" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>By default, the Matter platform uses a single batched refresh to update device status. You can tune or override this behavior with the following options under <code>options</code>:</p>
+<ul>
+<li><code>matterBatchEnabled</code> (boolean, default true): enable/disable platform-level batched refresh. Devices with a per-device <code>refreshRate</code> still run their own timers.</li>
+<li><code>matterBatchRefreshRate</code> (number, seconds): batch interval (falls back to <code>options.refreshRate</code>, then 300 if not set).</li>
+<li><code>matterBatchConcurrency</code> (number): limit of parallel OpenAPI status calls during a batch (default 5).</li>
+<li><code>matterBatchJitter</code> (number, seconds): random startup delay before the first batch to reduce synchronized spikes.</li>
+</ul>
+<p>Device-level override:</p>
+<ul>
+<li>If a device sets <code>refreshRate</code> in its config, it uses a per-device timer and is excluded from the platform batch.</li>
+</ul>
+<p>Reliability and rate-limiting:</p>
+<ul>
+<li>Each device status call retries with exponential backoff on non-success responses.</li>
+<li>After exhausting retries, the device enters a short cooldown before being retried; cooldowns are persisted across restarts.</li>
+<li>The batch worklist is randomized every cycle to further distribute API load.</li>
+</ul>
+<p>These controls keep API usage smooth and predictable while preserving per-device control when needed.</p>
+<h2 id="whats-new-in-the-v4-beta-summary" class="tsd-anchor-link">What's new in the v4 beta (summary)<a href="#whats-new-in-the-v4-beta-summary" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<ul>
+<li>
+<p>Matter-first: when Homebridge Matter is available the plugin now prefers registering Matter accessories (with HAP fallback).</p>
+</li>
+<li>
+<p>Hybrid client: the plugin dynamically imports <code>node-switchbot@4</code> if available and falls back to OpenAPI when <code>openApiToken</code> is configured.</p>
+</li>
+<li>
+<p>UI always served: the plugin UI is packaged into <code>dist/homebridge-ui</code> and is always served when Homebridge UI support is present; there is no platform-level opt-out.</p>
+</li>
+<li>
+<p>OpenAPI hardening: OpenAPI calls have AbortController timeouts, jittered exponential backoff, per-device retry limits and cooldowns, and safe response parsing for resilient behavior.</p>
+</li>
+<li>
+<p>Write coalescing (debounce): command writes to the same device are coalesced by default to avoid command floods. Configure with <code>writeDebounceMs</code> (milliseconds, default 100). Set to <code>0</code> to disable coalescing.</p>
+</li>
+</ul>
+<p>See <code>MIGRATION.md</code> for migration notes and recommended upgrade steps.</p>
+<h2 id="openapi-rate-limiting-and-daily-budget" class="tsd-anchor-link">OpenAPI rate limiting and daily budget<a href="#openapi-rate-limiting-and-daily-budget" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>To prevent hitting SwitchBot’s daily OpenAPI limit, the plugin provides several platform-level options under <code>options</code>:</p>
+<ul>
+<li><code>dailyApiLimit</code> (number, default 10000): maximum OpenAPI requests per day that the plugin will allow.</li>
+<li><code>dailyApiReserveForCommands</code> (number, default 1000): requests reserved for user actions so background polling pauses before the hard limit.</li>
+<li><code>webhookOnlyOnReserve</code> (boolean, default false): when remaining budget reaches the reserve, pause background polling/discovery; webhooks and commands continue until the hard limit.</li>
+<li><code>dailyApiResetLocalMidnight</code> (boolean, default false): if true, resets the daily counter at local midnight; when false, resets at UTC midnight.</li>
+</ul>
+<p>Example (excerpt):</p>
+<pre><code class="json"><span class="hl-1">{</span><br/><span class="hl-1">  </span><span class="hl-6">&quot;options&quot;</span><span class="hl-1">: {</span><br/><span class="hl-1">    </span><span class="hl-6">&quot;dailyApiLimit&quot;</span><span class="hl-1">: </span><span class="hl-5">10000</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-6">&quot;dailyApiReserveForCommands&quot;</span><span class="hl-1">: </span><span class="hl-5">1000</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-6">&quot;webhookOnlyOnReserve&quot;</span><span class="hl-1">: </span><span class="hl-8">false</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-6">&quot;dailyApiResetLocalMidnight&quot;</span><span class="hl-1">: </span><span class="hl-8">true</span><br/><span class="hl-1">  }</span><br/><span class="hl-1">}</span>
+</code><button type="button">Copy</button></pre>
+
 <h2 id="switchbot-apis" class="tsd-anchor-link">SwitchBot APIs<a href="#switchbot-apis" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <ul>
 <li><a href="https://github.com/OpenWonderLabs/node-switchbot">OpenWonderLabs/node-switchbot</a>
@@ -402,25 +470,10 @@ Without this step, then you will receive the following error when the swichbot p
 </ul>
 </li>
 </ul>
-<h2 id="development-tests" class="tsd-anchor-link">Development / Tests<a href="#development-tests" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<ul>
-<li>
-<p>Run unit tests:</p>
-<pre><code class="bash"><span class="hl-6">npm</span><span class="hl-1"> </span><span class="hl-7">run</span><span class="hl-1"> </span><span class="hl-7">test</span>
-</code><button type="button">Copy</button></pre>
-
-</li>
-<li>
-<p>Notes:</p>
-<ul>
-<li>Added Lock Ultra (Cloud + BLE) support (requires <code>node-switchbot</code> v3.6.3).</li>
-</ul>
-</li>
-</ul>
 <h2 id="community" class="tsd-anchor-link">Community<a href="#community" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <ul>
 <li><a href="https://www.switch-bot.com/">SwitchBot (Official website)</a></li>
 <li><a href="https://www.facebook.com/SwitchBotRobot/">Facebook @SwitchBotRobot</a></li>
 <li><a href="https://twitter.com/switchbot">Twitter @SwitchBot</a></li>
 </ul>
-</div></div><div class="col-sidebar"><div class="page-menu"><div class="tsd-navigation settings"><details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-chevronDown"></use></svg><h3>Settings</h3></summary><div class="tsd-accordion-details"><div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span><ul id="tsd-filter-options"><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li></ul></div><div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div><details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-chevronDown"></use></svg><h3>On This Page</h3></summary><div class="tsd-accordion-details"><a href="#switchbothomebridge-switchbot"><span>@switchbot/homebridge-<wbr/>switchbot</span></a><ul><li><a href="#installation"><span>Installation</span></a></li><li><a href="#configuration"><span>Configuration</span></a></li><li><ul><li><a href="#if-using-openapi-connection"><span>If using <wbr/>Open<wbr/>API <wbr/>Connection</span></a></li><li><a href="#if-using-ble-connection"><span>If using <wbr/>BLE <wbr/>Connection</span></a></li></ul></li><li><a href="#troubleshooting"><span>Troubleshooting</span></a></li><li><ul><li><a href="#if-using-linux-raspberry-pi-os"><span>If using <wbr/>Linux / <wbr/>Raspberry <wbr/>Pi <wbr/>OS</span></a></li><li><a href="#if-using-macos"><span>If using <wbr/>Mac<wbr/>OS</span></a></li></ul></li><li><a href="#supported-switchbot-devices"><span>Supported <wbr/>Switch<wbr/>Bot <wbr/>Devices</span></a></li><li><a href="#supported-ir-devices"><span>Supported <wbr/>IR <wbr/>Devices</span></a></li><li><ul><li><a href="#all-ir-devices-require-switchbot-hub-2-switchbot-hub-mini-2-switchbot-hub-3-or-hub-mini"><span>(<wbr/>All <wbr/>IR <wbr/>Devices require <wbr/>Switch<wbr/>Bot <wbr/>Hub 2, <wbr/>Switch<wbr/>Bot <wbr/>Hub <wbr/>Mini 2, <wbr/>Switch<wbr/>Bot <wbr/>Hub 3, or <wbr/>Hub <wbr/>Mini)</span></a></li></ul></li><li><a href="#switchbot-apis"><span>Switch<wbr/>Bot <wbr/>AP<wbr/>Is</span></a></li><li><a href="#development-tests"><span>Development / <wbr/>Tests</span></a></li><li><a href="#community"><span>Community</span></a></li></ul></div></details></div><div class="site-menu"><nav class="tsd-navigation"><a href="modules.html">@switchbot/homebridge-switchbot</a><ul class="tsd-small-nested-navigation" id="tsd-nav-container"><li>Loading...</li></ul></nav></div></div></div><footer></footer><div class="overlay"></div></body></html>
+</div></div><div class="col-sidebar"><div class="page-menu"><div class="tsd-navigation settings"><details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-chevronDown"></use></svg><h3>Settings</h3></summary><div class="tsd-accordion-details"><div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span><ul id="tsd-filter-options"><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li></ul></div><div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div><details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-chevronDown"></use></svg><h3>On This Page</h3></summary><div class="tsd-accordion-details"><a href="#switchbothomebridge-switchbot"><span>@switchbot/homebridge-<wbr/>switchbot</span></a><ul><li><a href="#installation"><span>Installation</span></a></li><li><a href="#configuration"><span>Configuration</span></a></li><li><ul><li><a href="#if-using-openapi-connection"><span>If using <wbr/>Open<wbr/>API <wbr/>Connection</span></a></li><li><a href="#if-using-ble-connection"><span>If using <wbr/>BLE <wbr/>Connection</span></a></li></ul></li><li><a href="#troubleshooting"><span>Troubleshooting</span></a></li><li><ul><li><a href="#if-using-linux-raspberry-pi-os"><span>If using <wbr/>Linux / <wbr/>Raspberry <wbr/>Pi <wbr/>OS</span></a></li><li><a href="#if-using-macos"><span>If using <wbr/>Mac<wbr/>OS</span></a></li></ul></li><li><a href="#supported-switchbot-devices"><span>Supported <wbr/>Switch<wbr/>Bot <wbr/>Devices</span></a></li><li><a href="#ble-encryption-support"><span>BLE <wbr/>Encryption <wbr/>Support</span></a></li><li><ul><li><a href="#ble-encryption-key-and-key-id"><span>BLE <wbr/>Encryption <wbr/>Key and <wbr/>Key <wbr/>ID</span></a></li><li><ul><li><a href="#how-to-obtain-ble-encryption-key-and-key-id"><span>How to <wbr/>Obtain <wbr/>BLE <wbr/>Encryption <wbr/>Key and <wbr/>Key <wbr/>ID</span></a></li><li><a href="#how-to-configure-in-homebridge"><span>How to <wbr/>Configure in <wbr/>Homebridge</span></a></li><li><a href="#which-devices-require-ble-encryption"><span>Which <wbr/>Devices <wbr/>Require <wbr/>BLE <wbr/>Encryption?</span></a></li></ul></li></ul></li><li><a href="#supported-ir-devices"><span>Supported <wbr/>IR <wbr/>Devices</span></a></li><li><ul><li><a href="#all-ir-devices-require-switchbot-hub-2-switchbot-hub-3-or-hub-mini"><span>(<wbr/>All <wbr/>IR <wbr/>Devices require <wbr/>Switch<wbr/>Bot <wbr/>Hub 2, <wbr/>Switch<wbr/>Bot <wbr/>Hub 3, or <wbr/>Hub <wbr/>Mini)</span></a></li></ul></li><li><a href="#matter-platform"><span>Matter <wbr/>Platform</span></a></li><li><ul><li><a href="#batched-refresh-and-api-load-control"><span>Batched refresh and <wbr/>API load control</span></a></li></ul></li><li><a href="#whats-new-in-the-v4-beta-summary"><span>What&#39;s new in the v4 beta (summary)</span></a></li><li><a href="#openapi-rate-limiting-and-daily-budget"><span>Open<wbr/>API rate limiting and daily budget</span></a></li><li><a href="#switchbot-apis"><span>Switch<wbr/>Bot <wbr/>AP<wbr/>Is</span></a></li><li><a href="#community"><span>Community</span></a></li></ul></div></details></div><div class="site-menu"><nav class="tsd-navigation"><a href="modules.html">@switchbot/homebridge-switchbot</a><ul class="tsd-small-nested-navigation" id="tsd-nav-container"><li>Loading...</li></ul></nav></div></div></div><footer></footer><div class="overlay"></div></body></html>

@@ -2,7 +2,7 @@
   "name": "@switchbot/homebridge-switchbot",
   "displayName": "SwitchBot",
   "type": "module",
-  "version": "4.3.14",
+  "version": "5.0.0",
   "description": "The SwitchBot plugin allows you to access your SwitchBot device(s) from HomeKit.",
   "author": "SwitchBot <support@wondertechlabs.com> (https://github.com/SwitchBot)",
   "contributors": [
@@ -52,29 +52,37 @@
     "ir"
   ],
   "main": "dist/index.js",
+  "bin": {},
   "icon": "https://raw.githubusercontent.com/OpenWonderLabs/homebridge-switchbot/latest/branding/icon.png",
   "engineStrict": true,
   "engines": {
-    "homebridge": "^1.9.0 || ^2.0.0 || ^2.0.0-beta.23 || ^2.0.0-alpha.37",
+    "homebridge": "^2.0.0-beta.50",
     "node": "^20 || ^22 || ^24"
   },
+  "directories": {
+    "doc": "docs"
+  },
   "scripts": {
-    "prepare": "husky install",
+    "sync:device-types": "node scripts/sync-device-types.mjs",
     "check": "npm install && npm outdated",
-    "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix",
-    "watch": "npm run build && npm run plugin-ui && npm link && nodemon",
-    "plugin-ui": "rsync ./src/homebridge-ui/public/index.html ./dist/homebridge-ui/public/",
-    "build": "npm run clean && tsc && npm run plugin-ui",
+    "ports:free": "node scripts/free-dev-ports.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/**/*.ts test/**/*.ts src/homebridge-ui/**/*.html && npm run typecheck",
+    "lint:src": "eslint src/**/*.ts",
+    "lint:test": "eslint test/**/*.ts",
+    "lint:ui": "eslint src/homebridge-ui/**/*.html",
+    "lint:fix": "eslint src/**/*.ts test/**/*.ts src/homebridge-ui/**/*.html --fix && npm run typecheck",
+    "watch": "npm run ports:free && npm run build && npm run plugin-ui && npm link && nodemon",
+    "watch:ui": "npm run ports:free && bash -c 'npx homebridge -I -U ~/.homebridge-dev & HB_PID=$!; sleep 6; UIX_STORAGE_PATH=~/.homebridge-dev node ./node_modules/homebridge-config-ui-x/dist/bin/standalone.js & npm run watch:files'",
+    "watch:files": "nodemon",
+    "plugin-ui": "mkdir -p ./dist/homebridge-ui/public && if [ -d ./src/homebridge-ui/public ]; then rsync -a ./src/homebridge-ui/public/ ./dist/homebridge-ui/public/; fi && node scripts/build-ui.js",
+    "build": "npm run sync:device-types && npm run clean && tsc && npm run plugin-ui",
     "prepublishOnly": "npm run lint && npm run build && npm run plugin-ui && npm run docs && npm run docs:lint",
     "postpublish": "npm run clean && npm ci",
     "clean": "shx rm -rf ./dist",
     "test": "vitest run",
     "test:watch": "vitest watch",
     "test-coverage": "npm run test -- --coverage",
-    "changeset": "changeset",
-    "version-packages": "changeset version",
-    "publish-packages": "changeset publish",
     "docs": "typedoc",
     "docs:lint": "typedoc --emit none --treatWarningsAsErrors"
   },
@@ -82,32 +90,28 @@
     "access": "public"
   },
   "dependencies": {
-    "@homebridge/plugin-ui-utils": "^2.1.2",
-    "async-mqtt": "^2.6.3",
-    "fakegato-history": "^0.6.7",
-    "homebridge-lib": "^7.3.0",
-    "node-switchbot": "^3.6.6",
-    "rxjs": "^7.8.2"
+    "@homebridge/plugin-ui-utils": "^2.2.1",
+    "class-validator": "^0.15.1",
+    "node-switchbot": "^4.0.0-beta.16"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^7.2.0",
-    "@changesets/cli": "^2.29.8",
-    "@types/node": "^25.2.1",
+    "@antfu/eslint-config": "^7.7.0",
+    "@types/debug": "^4.1.12",
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^25.4.0",
+    "@types/semver": "^7.7.1",
+    "@types/source-map-support": "^0.5.10",
     "@vitest/coverage-v8": "^4.0.18",
-    "@vue/compiler-sfc": "^3.5.27",
-    "eslint": "^9.39.2",
-    "eslint-plugin-format": "^1.3.1",
-    "homebridge": "^1.11.1",
-    "homebridge-config-ui-x": "5.15.2",
-    "husky": "^9.1.7",
-    "nodemon": "^3.1.11",
+    "esbuild": "^0.27.3",
+    "eslint": "^10.0.3",
+    "eslint-plugin-format": "^2.0.1",
+    "eslint-plugin-html": "^8.1.4",
+    "homebridge": "^2.0.0-beta.77",
+    "homebridge-config-ui-x": "^5.19.0",
+    "nodemon": "^3.1.14",
     "shx": "^0.4.0",
-    "ts-node": "^10.9.2",
-    "typedoc": "^0.28.16",
+    "typedoc": "^0.28.17",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
-  },
-  "directories": {
-    "doc": "docs"
   }
 }

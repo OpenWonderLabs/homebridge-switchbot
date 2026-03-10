@@ -1,3035 +1,1610 @@
-import { readFileSync } from 'node:fs'
-/* Copyright(C) 2017-2024, donavanbecker (https://github.com/donavanbecker). All rights reserved.
- *
- * platform.ts: @switchbot/homebridge-switchbot platform class.
- */
-import type { Server } from 'node:http'
-import { argv } from 'node:process'
+import type { SwitchBotPluginConfig } from './settings.js'
+import type { API, Logger, PlatformConfig } from 'homebridge'
 
-import asyncmqtt from 'async-mqtt'
-import fakegato from 'fakegato-history'
-import type { API, DynamicPlatformPlugin, Logging, PlatformAccessory } from 'homebridge'
-import { EveHomeKitTypes } from 'homebridge-lib/EveHomeKitTypes'
-import type { MqttClient } from 'mqtt'
-/*
-* For Testing Locally:
-* import type { blindTilt, curtain, curtain3, device, irdevice } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
-* import { LogLevel, SwitchBotBLE, SwitchBotModel, SwitchBotOpenAPI } from '/Users/Shared/GitHub/OpenWonderLabs/node-switchbot/dist/index.js';
-*/
-import type { blindTilt, bodyChange, curtain, curtain3, device, deviceStatusRequest, irdevice } from 'node-switchbot'
-import { LogLevel, SwitchBotBLE, SwitchBotModel, SwitchBotOpenAPI } from 'node-switchbot'
-import { queueScheduler } from 'rxjs'
-
-import { BlindTilt } from './device/blindtilt.js'
-import { Bot } from './device/bot.js'
-import { CeilingLight } from './device/ceilinglight.js'
-import { ColorBulb } from './device/colorbulb.js'
-import { Contact } from './device/contact.js'
-import { Curtain } from './device/curtain.js'
-import { AirPurifier as AirPurifierDevice } from './device/airpurifier.js'
-import { Fan } from './device/fan.js'
-import { Hub } from './device/hub.js'
-import { Humidifier } from './device/humidifier.js'
-import { IOSensor } from './device/iosensor.js'
-import { StripLight } from './device/lightstrip.js'
-import { Lock } from './device/lock.js'
-import { Meter } from './device/meter.js'
-import { MeterPlus } from './device/meterplus.js'
-import { MeterPro } from './device/meterpro.js'
-import { Motion } from './device/motion.js'
-import { Plug } from './device/plug.js'
-import { Presence } from './device/presence.js'
-import { RelaySwitch } from './device/relayswitch.js'
-import { RobotVacuumCleaner } from './device/robotvacuumcleaner.js'
-import { WaterDetector } from './device/waterdetector.js'
-import { AirConditioner } from './irdevice/airconditioner.js'
-import { AirPurifier } from './irdevice/airpurifier.js'
-import { Camera } from './irdevice/camera.js'
-import { IRFan } from './irdevice/fan.js'
-import { Light } from './irdevice/light.js'
-import { Others } from './irdevice/other.js'
-import { TV } from './irdevice/tv.js'
-import { VacuumCleaner } from './irdevice/vacuumcleaner.js'
-import { WaterHeater } from './irdevice/waterheater.js'
-import type { blindTiltConfig, curtainConfig, devicesConfig, irDevicesConfig, options, SwitchBotPlatformConfig } from './settings.js'
+import { createDevice } from './deviceFactory.js'
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js'
-import { formatDeviceIdAsMac, isBlindTiltDevice, isCurtainDevice, safeStringify, sleep } from './utils.js'
+import { SwitchBotClient } from './switchbotClient.js'
 
-/**
- * HomebridgePlatform
- * This class is the main constructor for your plugin, this is where you should
- * parse the user config and discover/register accessories with Homebridge.
- */
-export class SwitchBotPlatform implements DynamicPlatformPlugin {
-  // Platform properties
-  public accessories: PlatformAccessory[] = []
-  public readonly api: API
-  public readonly log: Logging
+// Which device types should prefer Matter if available
+// Based on HAP service mappings: device implementations use specific HomeKit services
+// that map to corresponding Matter clusters when Matter is enabled
+const DEVICE_MATTER_SUPPORTED: Record<string, boolean> = {
+  // Core devices
+  'bot': true, // Switch → OnOff
+  'curtain': true, // WindowCovering → WindowCovering
+  'fan': true, // Fan → FanControl
+  'light': true, // Lightbulb → OnOff + LevelControl
+  'lightstrip': true, // Lightbulb (color) → OnOff + LevelControl + ColorControl
+  'motion': true, // MotionSensor → OccupancySensing
+  'contact': true, // ContactSensor → BooleanState
+  'vacuum': true, // Switch → RobotVacuumCleaner
+  'lock': true, // LockMechanism → DoorLock
+  'humidifier': true, // Fan + Humidity → OnOff + FanControl + RelativeHumidityMeasurement
+  'temperature': true, // TemperatureSensor → TemperatureMeasurement
 
-  // Configuration properties
-  platformConfig!: SwitchBotPlatformConfig
-  platformLogging!: options['logging']
-  platformRefreshRate!: options['refreshRate']
-  platformPushRate!: options['pushRate']
-  platformUpdateRate!: options['updateRate']
-  platformMaxRetries!: options['maxRetries']
-  platformDelayBetweenRetries!: options['delayBetweenRetries']
-  config!: SwitchBotPlatformConfig
-  debugMode!: boolean
-  version!: string
+  // Switch devices
+  'relay': true, // Switch → OnOff
+  'relay switch 1': true, // Switch → OnOff
+  'relay switch 1pm': true, // Switch → OnOff
+  'plug': true, // Outlet → OnOff
+  'plug mini (jp)': true, // Outlet → OnOff
+  'plug mini (us)': true, // Outlet → OnOff
 
-  // MQTT and Webhook properties
-  mqttClient: MqttClient | null = null
-  webhookEventListener: Server | null = null
+  // Window covering variants
+  'blindtilt': true, // WindowCovering → WindowCovering
+  'blind tilt': true, // WindowCovering → WindowCovering
+  'curtain3': true, // WindowCovering → WindowCovering
+  'rollershade': true, // WindowCovering → WindowCovering
+  'roller shade': true, // WindowCovering → WindowCovering
+  'worollershade': true, // WindowCovering → WindowCovering
+  'wo rollershade': true, // WindowCovering → WindowCovering
 
-  // SwitchBot APIs
-  switchBotAPI!: SwitchBotOpenAPI
-  switchBotBLE!: SwitchBotBLE
+  // Vacuum variants (normalized to 'vacuum' before lookup)
+  'wosweeper': true, // VacuumDevice → RobotVacuumCleaner
+  'wosweepermini': true, // VacuumDevice → RobotVacuumCleaner
+  'wosweeperminipro': true, // VacuumDevice → RobotVacuumCleaner
+  'k10+': true, // VacuumDevice → RobotVacuumCleaner
+  'k10+ pro': true, // VacuumDevice → RobotVacuumCleaner
 
-  // External APIs
-  public readonly eve: any
-  public readonly fakegatoAPI: any
+  // Sensors
+  'meter': true, // TemperatureSensor + HumiditySensor → TemperatureMeasurement + RelativeHumidityMeasurement
+  'meterplus': true, // TemperatureSensor + HumiditySensor → TemperatureMeasurement + RelativeHumidityMeasurement
+  'meter plus (jp)': true, // TemperatureSensor + HumiditySensor → TemperatureMeasurement + RelativeHumidityMeasurement
+  'meterpro': true, // TemperatureSensor + HumiditySensor → TemperatureMeasurement + RelativeHumidityMeasurement
+  'meterpro(co2)': true, // TemperatureSensor + HumiditySensor → TemperatureMeasurement + RelativeHumidityMeasurement
+  'waterdetector': true, // LeakSensor → BooleanState
+  'water detector': true, // LeakSensor → BooleanState
 
-  // Event Handlers
-  public readonly webhookEventHandler: { [x: string]: (context: any) => void } = {}
-  public readonly bleEventHandler: { [x: string]: (context: any) => void } = {}
+  // Other devices
+  'smart fan': true, // Fan → FanControl
+  'strip light': true, // Lightbulb (color) → OnOff + LevelControl + ColorControl
+  'hub 2': false, // Hub device - not exposed as accessory
+  'walletfinder': false, // Button device - Matter support TBD
+}
 
-  constructor(
-    log: Logging,
-    config: SwitchBotPlatformConfig,
-    api: API,
-  ) {
-    this.api = api
-    this.log = log
+// Default Matter cluster configurations by device type
+// Maps device types to their Matter cluster states (used when device doesn't provide clusters)
+// Note: wosweeper/curtain/plug variants are normalized before cluster lookup (see loadDevices)
+export const DEVICE_MATTER_CLUSTERS: Record<string, any> = {
+  // Core devices - aligned with HAP service implementations
+  bot: { onOff: { onOff: false } }, // Switch → OnOff
+  vacuum: {
+    rvcRunMode: {
+      supportedModes: [
+        { label: 'Idle', mode: 0, modeTags: [{ value: 16384 }] },
+        { label: 'Cleaning', mode: 1, modeTags: [{ value: 16385 }] },
+      ],
+      currentMode: 0,
+    },
+    rvcCleanMode: {
+      supportedModes: [
+        { label: 'Vacuum', mode: 0, modeTags: [{ value: 16385 }] },
+      ],
+      currentMode: 0,
+    },
+    rvcOperationalState: {
+      operationalStateList: [
+        { operationalStateId: 0 }, // Stopped
+        { operationalStateId: 1 }, // Running
+        { operationalStateId: 2 }, // Paused
+        { operationalStateId: 3 }, // Error (required)
+        { operationalStateId: 64 }, // Seeking charger
+        { operationalStateId: 65 }, // Charging
+        { operationalStateId: 66 }, // Docked
+      ],
+      operationalState: 66,
+    },
+  }, // Switch in HAP, RobotVacuumCleaner in Matter
+  curtain: {
+    windowCovering: {
+      currentPositionLiftPercent100ths: 0,
+      targetPositionLiftPercent100ths: 0,
+      operationalStatus: {
+        global: 0,
+        lift: 0,
+        tilt: 0,
+      },
+      endProductType: 0,
+      configStatus: {
+        operational: true,
+        onlineReserved: true,
+        liftMovementReversed: false,
+        liftPositionAware: true,
+        tiltPositionAware: false,
+        liftEncoderControlled: true,
+        tiltEncoderControlled: false,
+      },
+    },
+  }, // WindowCovering → WindowCovering (includes curtain3, rollershade variants via normalization)
+  blindtilt: {
+    windowCovering: {
+      currentPositionLiftPercent100ths: 0,
+      targetPositionLiftPercent100ths: 0,
+      currentPositionTiltPercent100ths: 0,
+      targetPositionTiltPercent100ths: 0,
+      operationalStatus: {
+        global: 0,
+        lift: 0,
+        tilt: 0,
+      },
+      endProductType: 8,
+      configStatus: {
+        operational: true,
+        onlineReserved: true,
+        liftMovementReversed: false,
+        liftPositionAware: true,
+        tiltPositionAware: true,
+        liftEncoderControlled: true,
+        tiltEncoderControlled: true,
+      },
+    },
+  }, // WindowCovering with tilt → WindowCovering
+  fan: {
+    onOff: { onOff: false },
+    fanControl: {
+      fanMode: 0,
+      percentCurrent: 0,
+      percentSetting: 0,
+      speedCurrent: 0,
+      speedMax: 100,
+    },
+  }, // Fan → OnOff + FanControl
+  light: {
+    onOff: { onOff: false },
+    levelControl: {
+      currentLevel: 0,
+      minLevel: 0,
+      maxLevel: 254,
+    },
+  }, // Lightbulb → OnOff + LevelControl
+  lightstrip: {
+    onOff: { onOff: false },
+    levelControl: {
+      currentLevel: 0,
+      minLevel: 0,
+      maxLevel: 254,
+    },
+    colorControl: {
+      colorMode: 0,
+    },
+  }, // Lightbulb with color → OnOff + LevelControl + ColorControl
+  lock: {
+    doorLock: {
+      lockState: 0,
+      lockType: 0,
+      actuatorEnabled: true,
+      operatingMode: 0,
+    },
+  }, // LockMechanism → DoorLock
+  motion: {
+    occupancySensing: {
+      occupancy: 0,
+      occupancySensorType: 0,
+    },
+  }, // MotionSensor → OccupancySensing
+  contact: {
+    booleanState: {
+      stateValue: false,
+    },
+  }, // ContactSensor → BooleanState
+  humidifier: {
+    onOff: { onOff: false },
+    fanControl: {
+      fanMode: 0,
+      percentCurrent: 0,
+    },
+    relativeHumidityMeasurement: {
+      measuredValue: 0,
+      minMeasuredValue: 0,
+      maxMeasuredValue: 100,
+    },
+  }, // HumidifierDehumidifier → OnOff + FanControl + RelativeHumidityMeasurement
+  temperature: {
+    temperatureMeasurement: {
+      measuredValue: 0,
+      minMeasuredValue: -27315,
+      maxMeasuredValue: 32767,
+    },
+  }, // TemperatureSensor → TemperatureMeasurement
 
-    // only load if configured
-    if (!config) {
-      this.log.error('No configuration found for the plugin, please check your config.')
-      return
-    }
+  // Switch/Outlet devices
+  relay: { onOff: { onOff: false } }, // Switch → OnOff
+  plug: {
+    onOff: { onOff: false },
+    electricalMeasurement: {
+      activePower: 0,
+      rmsCurrent: 0,
+      rmsVoltage: 0,
+    },
+  }, // Outlet → OnOff + ElectricalMeasurement (for PM models)
 
-    // Plugin options into our config variables.
-    this.config = {
-      platform: 'SwitchBotPlatform',
-      name: config.name,
-      credentials: config.credentials as object,
-      options: config.options as object,
-      devices: config.devices as { deviceId: string }[],
-    }
+  // Sensors
+  meter: {
+    temperatureMeasurement: {
+      measuredValue: 0,
+      minMeasuredValue: -27315,
+      maxMeasuredValue: 32767,
+    },
+    relativeHumidityMeasurement: {
+      measuredValue: 0,
+      minMeasuredValue: 0,
+      maxMeasuredValue: 100,
+    },
+  }, // TemperatureSensor + HumiditySensor → TemperatureMeasurement + RelativeHumidityMeasurement
+  waterdetector: {
+    booleanState: {
+      stateValue: false,
+    },
+  }, // LeakSensor → BooleanState
+}
 
-    // Plugin Configuration
-    this.getPlatformLogSettings()
-    this.getPlatformRateSettings()
-    this.getPlatformConfigSettings()
-    this.getVersion()
+const DEVICE_MATTER_DEVICE_TYPE_KEYS: Record<string, string> = {
+  bot: 'OnOffSwitch',
+  vacuum: 'RoboticVacuumCleaner',
+  curtain: 'WindowCovering',
+  blindtilt: 'WindowCovering',
+  fan: 'Fan',
+  light: 'DimmableLight',
+  lightstrip: 'ExtendedColorLight',
+  lock: 'DoorLock',
+  motion: 'MotionSensor',
+  contact: 'ContactSensor',
+  humidifier: 'Fan',
+  temperature: 'TemperatureSensor',
+  relay: 'OnOffSwitch',
+  plug: 'OnOffOutlet',
+  meter: 'TemperatureSensor',
+  waterdetector: 'LeakSensor',
+}
 
-    // Finish initializing the platform
-    this.debugLog(`Finished initializing platform: ${config.name}`)
-
-    // verify the config
-    try {
-      this.verifyConfig()
-      this.debugLog('Config OK')
-    } catch (e: any) {
-      this.errorLog(`Verify Config, Error Message: ${e.message ?? e}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
-      this.debugErrorLog(`Verify Config, Error: ${e.message ?? e}`)
-      return
-    }
-
-    // SwitchBot OpenAPI
-    if (this.config.credentials?.token && this.config.credentials?.secret) {
-      this.switchBotAPI = new SwitchBotOpenAPI(this.config.credentials.token, this.config.credentials.secret, this.config.options?.hostname)
-    } else {
-      this.debugErrorLog('Missing SwitchBot API credentials (token or secret).')
-    }
-    // Listen for log events
-    if (!this.config.options?.disableLogsforOpenAPI && this.switchBotAPI) {
-      this.switchBotAPI.on('log', (log) => {
-        switch (log.level) {
-          case LogLevel.SUCCESS:
-            this.successLog(log.message)
-            break
-          case LogLevel.DEBUGSUCCESS:
-            this.debugSuccessLog(log.message)
-            break
-          case LogLevel.WARN:
-            this.warnLog(log.message)
-            break
-          case LogLevel.DEBUGWARN:
-            this.debugWarnLog(log.message)
-            break
-          case LogLevel.ERROR:
-            this.errorLog(log.message)
-            break
-          case LogLevel.DEBUGERROR:
-            this.debugErrorLog(log.message)
-            break
-          case LogLevel.DEBUG:
-            this.debugLog(log.message)
-            break
-          case LogLevel.INFO:
-          default:
-            this.infoLog(log.message)
-        }
-      })
-    } else {
-      this.debugErrorLog(`SwitchBot OpenAPI logs are disabled, enable it by setting disableLogsforOpenAPI to false.`)
-      this.debugLog(`SwitchBot OpenAPI: ${JSON.stringify(this.switchBotAPI)}, disableLogsforOpenAPI: ${this.config.options?.disableLogsforOpenAPI}`)
-    }
-    // import fakegato-history module and EVE characteristics
-    this.fakegatoAPI = fakegato(api)
-    this.eve = new EveHomeKitTypes(api)
-
-    // When this event is fired it means Homebridge has restored all cached accessories from disk.
-    // Dynamic Platform plugins should only register new accessories after this event was fired,
-    // in order to ensure they weren't added to homebridge already. This event can also be used
-    // to start discovery of new accessories.
-    this.api.on('didFinishLaunching', async () => {
-      this.debugLog('Executed didFinishLaunching callback')
-      // run the method to discover / register your devices as accessories
-      try {
-        await this.discoverDevices()
-      } catch (e: any) {
-        this.errorLog(`Failed to Discover, Error Message: ${e.message ?? e}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
-        this.debugErrorLog(`Failed to Discover, Error: ${e.message ?? e}`)
-      }
-    })
-
-    try {
-      this.setupMqtt()
-    } catch (e: any) {
-      this.errorLog(`Setup MQTT, Error Message: ${e.message ?? e}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
-    }
-    try {
-      this.setupwebhook()
-    } catch (e: any) {
-      this.errorLog(`Setup Webhook, Error Message: ${e.message ?? e}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
-    }
-    try {
-      this.setupBlE()
-    } catch (e: any) {
-      this.errorLog(`Setup Platform BLE, Error Message: ${e.message ?? e}, Submit Bugs Here: ` + 'https://tinyurl.com/SwitchBotBug')
-    }
+function normalizeTypeForMatter(typeValue: string | undefined | null): string {
+  const raw = String(typeValue || '').trim().toLowerCase()
+  if (!raw) {
+    return 'unknown'
   }
 
-  async setupMqtt(): Promise<void> {
-    if (this.config.options?.mqttURL) {
-      try {
-        const { connectAsync } = asyncmqtt
-        this.mqttClient = await connectAsync(this.config.options?.mqttURL, this.config.options.mqttOptions || {})
-        this.debugLog('MQTT connection has been established successfully.')
-        this.mqttClient.on('error', async (e: Error) => {
-          this.errorLog(`Failed to publish MQTT messages. ${e.message ?? e}`)
-        })
-        if (!this.config.options?.webhookURL) {
-          // receive webhook events via MQTT
-          this.infoLog(`Webhook is configured to be received through ${this.config.options.mqttURL}/homebridge-switchbot/webhook.`)
-          this.mqttClient.subscribe('homebridge-switchbot/webhook/+')
-          this.mqttClient.on('message', async (topic: string, message) => {
+  // Vacuum variants
+  if (['wosweeper', 'wosweepermini', 'wosweeperminipro', 'k10+', 'k10+ pro'].includes(raw)) {
+    return 'vacuum'
+  }
+
+  // Window covering variants
+  if (['curtain', 'curtain3', 'rollershade', 'roller shade', 'worollershade', 'wo rollershade'].includes(raw)) {
+    return 'curtain'
+  }
+
+  // Blind tilt variants (normalized to 'blindtilt' for Matter since it uses tilt-capable cluster)
+  if (['blindtilt', 'blind tilt'].includes(raw)) {
+    return 'blindtilt'
+  }
+
+  // Plug variants
+  if (['plug mini (jp)', 'plug mini (us)', 'plug mini (eu)'].includes(raw)) {
+    return 'plug'
+  }
+
+  // Meter variants
+  if (['meterplus', 'meter plus', 'meter plus (jp)', 'meterpro', 'meter pro', 'meterpro(co2)', 'meter pro (co2)'].includes(raw)) {
+    return 'meter'
+  }
+
+  // Relay switch variants
+  if (['relay switch 1', 'relay switch 1pm'].includes(raw)) {
+    return 'relay'
+  }
+
+  // Water detector variants
+  if (['water detector', 'waterdetector'].includes(raw)) {
+    return 'waterdetector'
+  }
+
+  // Fan variants
+  if (['smart fan', 'circulator fan', 'battery circulator fan', 'standing circulator fan'].includes(raw)) {
+    return 'fan'
+  }
+
+  // Light variants
+  if (['strip light', 'strip light 3', 'rgbic neon rope light', 'rgbic neon wire rope light', 'rgbicww floor lamp', 'rgbicww strip light'].includes(raw)) {
+    return 'lightstrip'
+  }
+  if (['color bulb', 'ceiling light', 'ceiling light pro', 'candle warmer lamp', 'floor lamp'].includes(raw)) {
+    return 'light'
+  }
+
+  // Sensor variants
+  if (raw === 'motion sensor') {
+    return 'motion'
+  }
+  if (['contact sensor', 'presence sensor'].includes(raw)) {
+    return 'contact'
+  }
+
+  // Lock variants
+  if (['smart lock', 'smart lock pro', 'smart lock ultra', 'lock lite', 'keypad', 'keypad touch', 'keypad vision', 'keypad vision pro', 'lock vision pro'].includes(raw)) {
+    return 'lock'
+  }
+
+  // Climate variant
+  if (raw === 'humidifier2') {
+    return 'humidifier'
+  }
+
+  return raw
+}
+
+// Factory function to create Matter handlers with Homebridge logger integration
+function createMatterHandlers(log: Logger, deviceId: string, type: string, client: any): any {
+  const lowerType = type.toLowerCase()
+
+  switch (lowerType) {
+    case 'vacuum':
+      return {
+        rvcRunMode: {
+          changeToMode: async (request: any) => {
+            const modeNames = ['Idle', 'Cleaning', 'Mapping']
+            const modeName = modeNames[request?.newMode] || `Unknown (${request?.newMode})`
+            log.info(`[${deviceId}] RVC run mode change requested: ${modeName}`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
             try {
-              this.debugLog(`Received Webhook via MQTT: ${topic}=${message}`)
-              const context = JSON.parse(message.toString())
-              this.webhookEventHandler[context.deviceMac]?.(context)
-            } catch (e: any) {
-              this.errorLog(`Failed to handle webhook event. Error: ${e.message ?? e}`)
+              // For K10+ family: use 'start' to begin cleaning (mode 1 = Cleaning)
+              // For older K10+: only supports start/stop/dock
+              // For newer K20+/S10/S20: supports startClean with more parameters
+              // Map Matter mode to SwitchBot command
+              const switchBotCommand = request?.newMode === 1 ? 'start' : 'stop'
+              const body = {
+                command: switchBotCommand,
+                parameter: 'default',
+                commandType: 'command',
+              }
+              log.debug(`[${deviceId}] Sending RVC mode change request:`, JSON.stringify(body))
+              const result = await client.setDeviceState(deviceId, body)
+              log.debug(`[${deviceId}] RVC mode change API response:`, JSON.stringify(result))
+              log.info(`[${deviceId}] RVC mode changed successfully to ${switchBotCommand}`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to change RVC mode:`, e)
+              return { success: false, error: e }
             }
-          })
-        }
-      } catch (e: any) {
-        this.mqttClient = null
-        this.errorLog(`Failed to establish MQTT connection. ${e.message ?? e}`)
-      }
-    }
-  }
-
-  async setupwebhook() {
-    // webhook configuration
-    if (this.config.options?.webhookURL) {
-      const url = this.config.options?.webhookURL
-      try {
-        this.switchBotAPI.setupWebhook(url)
-        // Listen for webhook events
-        this.switchBotAPI.on('webhookEvent', (body) => {
-          if (this.config.options?.mqttURL) {
-            const mac = body.context.deviceMac?.toLowerCase().match(/[\s\S]{1,2}/g)?.join(':')
-            const options = this.config.options?.mqttPubOptions || {}
-            this.mqttClient?.publish(`homebridge-switchbot/webhook/${mac}`, `${JSON.stringify(body.context)}`, options)
-          }
-          this.webhookEventHandler[body.context.deviceMac]?.(body.context)
-        })
-      } catch (e: any) {
-        this.errorLog(`Failed to setup webhook. Error: ${e.message ?? e}`)
-      }
-
-      this.api.on('shutdown', async () => {
-        try {
-          this.switchBotAPI.deleteWebhook(url)
-        } catch (e: any) {
-          this.errorLog(`Failed to delete webhook. Error: ${e.message ?? e}`)
-        }
-      })
-    }
-  }
-
-  async setupBlE() {
-    this.switchBotBLE = new SwitchBotBLE()
-    // Listen for log events
-    if (!this.config.options?.disableLogsforBLE) {
-      this.switchBotBLE.on('log', (log) => {
-        switch (log.level) {
-          case LogLevel.SUCCESS:
-            this.successLog(log.message)
-            break
-          case LogLevel.DEBUGSUCCESS:
-            this.debugSuccessLog(log.message)
-            break
-          case LogLevel.WARN:
-            this.warnLog(log.message)
-            break
-          case LogLevel.DEBUGWARN:
-            this.debugWarnLog(log.message)
-            break
-          case LogLevel.ERROR:
-            this.errorLog(log.message)
-            break
-          case LogLevel.DEBUGERROR:
-            this.debugErrorLog(log.message)
-            break
-          case LogLevel.DEBUG:
-            this.debugLog(log.message)
-            break
-          case LogLevel.INFO:
-          default:
-            this.infoLog(log.message)
-        }
-      })
-    }
-    if (this.config.options?.BLE) {
-      this.debugLog('setupBLE')
-      if (this.switchBotBLE === undefined) {
-        this.errorLog(`wasn't able to establish BLE Connection, node-switchbot: ${JSON.stringify(this.switchBotBLE)}`)
-      } else {
-        // Start to monitor advertisement packets
-        (async () => {
-          // Start to monitor advertisement packets
-          this.debugLog('Scanning for BLE SwitchBot devices...')
-          try {
-            await this.switchBotBLE.startScan()
-          } catch (e: any) {
-            this.errorLog(`Failed to start BLE scanning. Error: ${e.message ?? e}`)
-          }
-          // Set an event handler to monitor advertisement packets
-          this.switchBotBLE.onadvertisement = async (ad: any) => {
+          },
+        },
+        rvcCleanMode: {
+          changeToMode: async (request: any) => {
+            const modeName = request?.newMode !== undefined ? `Mode ${request.newMode}` : 'Unknown'
+            log.info(`[${deviceId}] RVC clean mode change requested: ${modeName}`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
             try {
-              this.bleEventHandler[ad.address]?.(ad.serviceData)
-            } catch (e: any) {
-              this.errorLog(`Failed to handle BLE event. Error: ${e.message ?? e}`)
+              // Clean mode (vacuum/mop/etc) not directly supported via Matter for K10+
+              // K20+ Pro and newer models support via startClean action parameter
+              log.info(`[${deviceId}] Clean mode change requires startClean command (not yet implemented for Matter)`)
+              return { success: true }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to change RVC clean mode:`, e)
+              return { success: false, error: e }
             }
-          }
-        })()
-
-        this.api.on('shutdown', async () => {
-          try {
-            // this.switchBotBLE.stopScan()
-            this.infoLog('Stopped BLE scanning to close listening.')
-          } catch (e: any) {
-            this.errorLog(`Failed to stop Platform BLE scanning. Error: ${e.message ?? e}`)
-          }
-        })
-      }
-    } else {
-      this.debugLog('Platform BLE is not enabled')
-    }
-  }
-
-  /**
-   * This function is invoked when homebridge restores cached accessories from disk at startup.
-   * It should be used to setup event handlers for characteristics and update respective values.
-   */
-  async configureAccessory(accessory: PlatformAccessory) {
-    const { displayName } = accessory
-    this.debugLog(`Loading accessory from cache: ${displayName}`)
-
-    // add the restored accessory to the accessories cache so we can track if it has already been registered
-    this.accessories.push(accessory)
-  }
-
-  /**
-   * Verify the config passed to the plugin is valid
-   */
-  verifyConfig() {
-    this.debugLog('Verifying Config')
-    this.config = this.config || {}
-    this.config.options = this.config.options || {}
-
-    if (this.config.options) {
-      // Device Config
-      if (this.config.options.devices) {
-        for (const deviceConfig of this.config.options.devices) {
-          if (!deviceConfig.hide_device) {
-            if (!deviceConfig.deviceId) {
-              throw new Error('The devices config section is missing the *Device ID* in the config. Please check your config.')
+          },
+        },
+        rvcOperationalState: {
+          pause: async () => {
+            log.info(`[${deviceId}] RVC pause command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
             }
-            if (!deviceConfig.configDeviceType && (deviceConfig as devicesConfig).connectionType) {
-              throw new Error('The devices config section is missing the *Device Type* in the config. Please check your config.')
+            try {
+              const body = {
+                command: 'stop',
+                parameter: 'default',
+                commandType: 'command',
+              }
+              log.debug(`[${deviceId}] Sending RVC pause request:`, JSON.stringify(body))
+              const result = await client.setDeviceState(deviceId, body)
+              log.debug(`[${deviceId}] RVC pause API response:`, JSON.stringify(result))
+              log.info(`[${deviceId}] RVC paused successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to pause RVC:`, e)
+              return { success: false, error: e }
             }
-          }
-        }
-      }
-
-      // IR Device Config
-      if (this.config.options.irdevices) {
-        for (const irDeviceConfig of this.config.options.irdevices) {
-          if (!irDeviceConfig.hide_device) {
-            if (!irDeviceConfig.deviceId) {
-              this.errorLog('The devices config section is missing the *Device ID* in the config. Please check your config.')
+          },
+          resume: async () => {
+            log.info(`[${deviceId}] RVC resume command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
             }
-            if (!irDeviceConfig.deviceId && !irDeviceConfig.configRemoteType) {
-              this.errorLog('The devices config section is missing the *Device Type* in the config. Please check your config.')
+            try {
+              const body = {
+                command: 'start',
+                parameter: 'default',
+                commandType: 'command',
+              }
+              log.debug(`[${deviceId}] Sending RVC resume request:`, JSON.stringify(body))
+              const result = await client.setDeviceState(deviceId, body)
+              log.debug(`[${deviceId}] RVC resume API response:`, JSON.stringify(result))
+              log.info(`[${deviceId}] RVC resumed successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to resume RVC:`, e)
+              return { success: false, error: e }
             }
-          }
-        }
-      }
-    }
-
-    if (!this.config.credentials && !this.config.options) {
-      this.debugWarnLog('Missing Credentials')
-    } else if (this.config.credentials && !this.config.credentials.notice) {
-      if (!this.config.credentials?.token) {
-        this.debugErrorLog('Missing token')
-        this.debugWarnLog('Cloud Enabled SwitchBot Devices & IR Devices will not work')
-      }
-      if (this.config.credentials?.token) {
-        if (!this.config.credentials?.secret) {
-          this.debugErrorLog('Missing secret')
-          this.debugWarnLog('Cloud Enabled SwitchBot Devices & IR Devices will not work')
-        }
-      }
-    }
-  }
-
-  async discoverDevices() {
-    if (!this.config.credentials?.token) {
-      return this.handleManualConfig()
-    }
-
-    let retryCount = 0
-    const maxRetries = this.platformMaxRetries ?? 5
-    const delayBetweenRetries = this.platformDelayBetweenRetries || 5000
-
-    this.debugWarnLog(`Retry Count: ${retryCount}`)
-    this.debugWarnLog(`Max Retries: ${this.platformMaxRetries}`)
-    this.debugWarnLog(`Delay Between Retries: ${this.platformDelayBetweenRetries}`)
-
-    while (retryCount < maxRetries) {
-      try {
-        const { response, statusCode } = await this.switchBotAPI.getDevices()
-        this.debugLog(`response: ${JSON.stringify(response)}`)
-        if (this.isSuccessfulResponse(statusCode)) {
-          await this.handleDevices(Array.isArray(response.body.deviceList) ? response.body.deviceList : [])
-          await this.handleIRDevices(Array.isArray(response.body.infraredRemoteList) ? response.body.infraredRemoteList : [])
-          break
-        } else {
-          await this.handleErrorResponse(statusCode, retryCount, maxRetries, delayBetweenRetries)
-          retryCount++
-        }
-      } catch (e: any) {
-        retryCount++
-        this.debugErrorLog(`Failed to Discover Devices, Error Message: ${JSON.stringify(e.message)}, Submit Bugs Here: https://tinyurl.com/SwitchBotBug`)
-        this.debugErrorLog(`Failed to Discover Devices, Error: ${e.message ?? e}`)
-      }
-    }
-  }
-
-  private async handleManualConfig() {
-    if (this.config.options?.devices) {
-      this.debugLog(`SwitchBot Device Manual Config Set: ${JSON.stringify(this.config.options?.devices)}`)
-      const devices = this.config.options.devices.map((v: any) => v)
-      for (const device of devices) {
-        device.deviceType = device.configDeviceType !== undefined ? device.configDeviceType : 'Unknown'
-        device.deviceName = device.configDeviceName !== undefined ? device.configDeviceName : 'Unknown'
-        try {
-          device.deviceId = formatDeviceIdAsMac(device.deviceId, true)
-          this.debugLog(`deviceId: ${device.deviceId}`)
-          if (device.deviceType) {
-            await this.createDevice(device)
-          }
-        } catch (error) {
-          this.errorLog(`failed to format device ID as MAC, Error: ${error}`)
-        }
-      }
-    } else {
-      this.errorLog('Neither SwitchBot Token or Device Config are set.')
-    }
-  }
-
-  private isSuccessfulResponse(apiStatusCode: number): boolean {
-    return (apiStatusCode === 200 || apiStatusCode === 100)
-  }
-
-  private async handleDevices(deviceLists: any[]) {
-    if (!this.config.options?.devices && !this.config.options?.deviceConfig) {
-      this.debugLog(`SwitchBot Device Config Not Set: ${JSON.stringify(this.config.options?.devices)}`)
-      if (deviceLists.length === 0) {
-        this.debugLog('SwitchBot API Has No Devices With Cloud Services Enabled')
-      } else {
-        for (const device of deviceLists) {
-          if (device.deviceType) {
-            if (device.configDeviceName) {
-              device.deviceName = device.configDeviceName
+          },
+          goHome: async () => {
+            log.info(`[${deviceId}] RVC goHome command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
             }
-            await this.createDevice(device)
-          }
-        }
-      }
-    } else if (this.config.options?.devices || this.config.options?.deviceConfig) {
-      this.debugLog(`SwitchBot Device Config Set: ${JSON.stringify(this.config.options?.devices)}`)
-
-      // Step 1: Check and assign configDeviceType to deviceType if deviceType is not present
-      const devicesWithTypeConfigPromises = deviceLists.map(async (device) => {
-        if (!device.deviceType) {
-          device.deviceType = device.configDeviceType !== undefined ? device.configDeviceType : 'Unknown'
-          this.warnLog(`API is displaying no deviceType: ${device.deviceType}, So using configDeviceType: ${device.configDeviceType}`)
-        }
-
-        // Retrieve deviceTypeConfig for each device and merge it
-        const deviceTypeConfig = this.config.options?.deviceConfig?.[device.deviceType] || {}
-        return Object.assign({}, device, deviceTypeConfig)
-      })
-
-      // Wait for all promises to resolve
-      const devicesWithTypeConfig = (await Promise.all(devicesWithTypeConfigPromises)).filter(device => device !== null) // Filter out skipped devices
-
-      const devices = this.mergeByDeviceId(this.config.options.devices ?? [], devicesWithTypeConfig ?? [])
-
-      this.debugLog(`SwitchBot Devices: ${JSON.stringify(devices)}`)
-
-      for (const device of devices) {
-        const deviceIdConfig = this.config.options?.devices?.[device.deviceId] || {}
-        const deviceWithConfig = Object.assign({}, device, deviceIdConfig)
-
-        if (device.configDeviceName) {
-          device.deviceName = device.configDeviceName
-        }
-        // Pass the merged device object to createDevice
-        await this.createDevice(deviceWithConfig)
-      }
-    }
-  }
-
-  private async handleIRDevices(irDeviceLists: any[]) {
-    if (!this.config.options?.irdevices && !this.config.options?.irdeviceConfig) {
-      this.debugLog(`IR Device Config Not Set: ${JSON.stringify(this.config.options?.irdevices)}`)
-      for (const device of irDeviceLists) {
-        if (device.remoteType) {
-          await this.createIRDevice(device)
-        }
-      }
-    } else if (this.config.options?.irdevices || this.config.options?.irdeviceConfig) {
-      this.debugLog(`IR Device Config Set: ${JSON.stringify(this.config.options?.irdevices)}`)
-
-      // Step 1: Check and assign configRemoteType to remoteType if remoteType is not present
-      const devicesWithTypeConfigPromises = irDeviceLists.map(async (device) => {
-        if (!device.remoteType && device.configRemoteType) {
-          device.remoteType = device.configRemoteType
-          this.warnLog(`API is displaying no remoteType: ${device.remoteType}, So using configRemoteType: ${device.configRemoteType}`)
-        } else if (!device.remoteType && !device.configDeviceName) {
-          this.errorLog('No remoteType or configRemoteType for device. No device will be created.')
-          return null // Skip this device
-        }
-
-        // Retrieve remoteTypeConfig for each device and merge it
-        const remoteTypeConfig = this.config.options?.irdeviceConfig?.[device.remoteType] || {}
-        return Object.assign({}, device, remoteTypeConfig)
-      })
-      // Wait for all promises to resolve
-      const devicesWithRemoteTypeConfig = (await Promise.all(devicesWithTypeConfigPromises)).filter(device => device !== null) // Filter out skipped devices
-
-      const devices = this.mergeByDeviceId(this.config.options.irdevices ?? [], devicesWithRemoteTypeConfig ?? [])
-
-      this.debugLog(`IR Devices: ${JSON.stringify(devices)}`)
-      for (const device of devices) {
-        const irdeviceIdConfig = this.config.options?.irdevices?.[device.deviceId] || {}
-        const irdeviceWithConfig = Object.assign({}, device, irdeviceIdConfig)
-
-        if (device.configDeviceName) {
-          device.deviceName = device.configDeviceName
-        }
-        await this.createIRDevice(irdeviceWithConfig)
-      }
-    }
-  }
-
-  private mergeByDeviceId(a1: { deviceId: string }[], a2: any[]) {
-    const normalizeDeviceId = (deviceId: string) => deviceId.toUpperCase().replace(/[^A-Z0-9]+/g, '')
-    return a1.map((itm) => {
-      const matchingItem = a2.find(item => normalizeDeviceId(item.deviceId) === normalizeDeviceId(itm.deviceId))
-      return { ...matchingItem, ...itm }
-    })
-  }
-
-  private async handleErrorResponse(apiStatusCode: number, retryCount: number, maxRetries: number, delayBetweenRetries: number) {
-    await this.statusCode(apiStatusCode)
-    if (apiStatusCode === 500) {
-      this.infoLog(`statusCode: ${apiStatusCode} Attempt ${retryCount + 1} of ${maxRetries}`)
-      await sleep(delayBetweenRetries)
-    }
-  }
-
-  private async createDevice(device: device & devicesConfig) {
-    const deviceTypeHandlers: { [key: string]: (device: device & devicesConfig) => Promise<void> } = {
-      'Humidifier': this.createHumidifier.bind(this),
-      'Humidifier2': this.createHumidifier.bind(this),
-      'Hub 2': this.createHub2.bind(this),
-      'Hub Mini 2': this.createHub2.bind(this),
-      'Hub 3': this.createHub2.bind(this),
-      'Bot': this.createBot.bind(this),
-      'Relay Switch 1': this.createRelaySwitch.bind(this),
-      'Relay Switch 1PM': this.createRelaySwitch.bind(this),
-      'Meter': this.createMeter.bind(this),
-      'MeterPlus': this.createMeterPlus.bind(this),
-      'Meter Plus (JP)': this.createMeterPlus.bind(this),
-      'Meter Pro': this.createMeterPro.bind(this),
-      'MeterPro(CO2)': this.createMeterPro.bind(this),
-      'WoIOSensor': this.createIOSensor.bind(this),
-      'Water Detector': this.createWaterDetector.bind(this),
-      'Motion Sensor': this.createMotion.bind(this),
-      'Presence Sensor': this.createPresence.bind(this),
-      'Contact Sensor': this.createContact.bind(this),
-      'Curtain': this.createCurtain.bind(this),
-      'Curtain3': this.createCurtain.bind(this),
-      'WoRollerShade': this.createCurtain.bind(this),
-      'Roller Shade': this.createCurtain.bind(this),
-      'Blind Tilt': this.createBlindTilt.bind(this),
-      'Plug': this.createPlug.bind(this),
-      'Plug Mini (US)': this.createPlug.bind(this),
-      'Plug Mini (JP)': this.createPlug.bind(this),
-      'Plug Mini (EU)': this.createPlug.bind(this),
-      'Smart Lock': this.createLock.bind(this),
-      'Smart Lock Pro': this.createLock.bind(this),
-      'Smart Lock Ultra': this.createLock.bind(this),
-      'Lock Ultra': this.createLock.bind(this),
-      'Color Bulb': this.createColorBulb.bind(this),
-      'K10+': this.createRobotVacuumCleaner.bind(this),
-      'K10+ Pro': this.createRobotVacuumCleaner.bind(this),
-      'WoSweeper': this.createRobotVacuumCleaner.bind(this),
-      'WoSweeperMini': this.createRobotVacuumCleaner.bind(this),
-      'Robot Vacuum Cleaner S1': this.createRobotVacuumCleaner.bind(this),
-      'Robot Vacuum Cleaner S1 Plus': this.createRobotVacuumCleaner.bind(this),
-      'Robot Vacuum Cleaner S10': this.createRobotVacuumCleaner.bind(this),
-      'Ceiling Light': this.createCeilingLight.bind(this),
-      'Ceiling Light Pro': this.createCeilingLight.bind(this),
-      'Strip Light': this.createStripLight.bind(this),
-      'Battery Circulator Fan': this.createFan.bind(this),
-      'Air Purifier': this.createAirPurifierDevice.bind(this),
-      'Air Purifier Table': this.createAirPurifierDevice.bind(this),
-      'Air Purifier VOC': this.createAirPurifierDevice.bind(this),
-      'Air Purifier Table VOC': this.createAirPurifierDevice.bind(this),
-      'Air Purifier PM2.5': this.createAirPurifierDevice.bind(this),
-      'Air Purifier Table PM2.5': this.createAirPurifierDevice.bind(this),
-    }
-
-    if (deviceTypeHandlers[device.deviceType!]) {
-      this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}`)
-      await deviceTypeHandlers[device.deviceType!](device)
-    } else if (['Hub Mini', 'Hub Plus', 'Remote', 'Indoor Cam', 'remote with screen'].includes(device.deviceType!)) {
-      this.debugLog(`Discovered ${device.deviceType}: ${device.deviceId}, is currently not supported, device: ${JSON.stringify(device)}`)
-    } else {
-      this.warnLog(`Device: ${device.deviceName} with Device Type: ${device.deviceType}, is currently not supported. Submit Feature Requests Here: https://tinyurl.com/SwitchBotFeatureRequest, device: ${JSON.stringify(device)}`)
-    }
-  }
-
-  private async createIRDevice(device: irdevice & irDevicesConfig) {
-    device.connectionType = device.connectionType ?? 'OpenAPI'
-    const deviceTypeHandlers: { [key: string]: (device: irdevice & irDevicesConfig) => Promise<void> } = {
-      'TV': this.createTV.bind(this),
-      'DIY TV': this.createTV.bind(this),
-      'Projector': this.createTV.bind(this),
-      'DIY Projector': this.createTV.bind(this),
-      'Set Top Box': this.createTV.bind(this),
-      'DIY Set Top Box': this.createTV.bind(this),
-      'IPTV': this.createTV.bind(this),
-      'DIY IPTV': this.createTV.bind(this),
-      'DVD': this.createTV.bind(this),
-      'DIY DVD': this.createTV.bind(this),
-      'Speaker': this.createTV.bind(this),
-      'DIY Speaker': this.createTV.bind(this),
-      'Fan': this.createIRFan.bind(this),
-      'DIY Fan': this.createIRFan.bind(this),
-      'Air Conditioner': this.createAirConditioner.bind(this),
-      'DIY Air Conditioner': this.createAirConditioner.bind(this),
-      'Light': this.createLight.bind(this),
-      'DIY Light': this.createLight.bind(this),
-      'Air Purifier': this.createAirPurifier.bind(this),
-      'DIY Air Purifier': this.createAirPurifier.bind(this),
-      'Water Heater': this.createWaterHeater.bind(this),
-      'DIY Water Heater': this.createWaterHeater.bind(this),
-      'Vacuum Cleaner': this.createVacuumCleaner.bind(this),
-      'DIY Vacuum Cleaner': this.createVacuumCleaner.bind(this),
-      'Camera': this.createCamera.bind(this),
-      'DIY Camera': this.createCamera.bind(this),
-      'Others': this.createOthers.bind(this),
-    }
-
-    if (deviceTypeHandlers[device.remoteType!]) {
-      this.debugLog(`Discovered ${device.remoteType}: ${device.deviceId}`)
-      if (device.remoteType.startsWith('DIY') && device.external === undefined) {
-        device.external = true
-      }
-      await deviceTypeHandlers[device.remoteType!](device)
-    } else {
-      this.warnLog(`Device: ${device.deviceName} with Device Type: ${device.remoteType}, is currently not supported. Submit Feature Requests Here: https://tinyurl.com/SwitchBotFeatureRequest, device: ${JSON.stringify(device)}`)
-    }
-  }
-
-  private async createHumidifier(device: device & devicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (await this.registerDevice(device)) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = device.deviceType
-        existingAccessory.context.model = device.deviceType === 'Humidifier2' ? SwitchBotModel.Humidifier2 : SwitchBotModel.Humidifier
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        existingAccessory.context.connectionType = await this.connectionType(device)
-        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new Humidifier(this, existingAccessory, device)
-        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (await this.registerDevice(device)) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = device.deviceType
-      accessory.context.model = device.deviceType === 'Humidifier2' ? SwitchBotModel.Humidifier2 : SwitchBotModel.Humidifier
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new Humidifier(this, accessory, device)
-      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createBot(device: device & devicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (await this.registerDevice(device)) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = device.deviceType
-        existingAccessory.context.model = SwitchBotModel.Bot
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        existingAccessory.context.connectionType = await this.connectionType(device)
-        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new Bot(this, existingAccessory, device)
-        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (await this.registerDevice(device)) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = device.deviceType
-      accessory.context.model = SwitchBotModel.Bot
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // accessory.context.version = findaccessories.accessoryAttribute.softwareRevision;
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new Bot(this, accessory, device)
-      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createRelaySwitch(device: device & devicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (await this.registerDevice(device)) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = device.deviceType
-        existingAccessory.context.model = device.deviceType === 'Relay Switch 1' ? SwitchBotModel.RelaySwitch1 : SwitchBotModel.RelaySwitch1PM
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        existingAccessory.context.connectionType = await this.connectionType(device)
-        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new RelaySwitch(this, existingAccessory, device)
-        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (await this.registerDevice(device)) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = device.deviceType
-      accessory.context.model = device.deviceType === 'Relay Switch 1' ? SwitchBotModel.RelaySwitch1 : SwitchBotModel.RelaySwitch1PM
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // accessory.context.version = findaccessories.accessoryAttribute.softwareRevision;
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new RelaySwitch(this, accessory, device)
-      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createMeter(device: device & devicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (await this.registerDevice(device)) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.model = SwitchBotModel.Meter
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = device.deviceType
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        existingAccessory.context.connectionType = await this.connectionType(device)
-        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new Meter(this, existingAccessory, device)
-        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (await this.registerDevice(device)) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.model = SwitchBotModel.Meter
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = device.deviceType
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new Meter(this, accessory, device)
-      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createMeterPlus(device: device & devicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (await this.registerDevice(device)) {
-        // console.log("existingAccessory", existingAccessory);
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.model = SwitchBotModel.MeterPlusUS ?? SwitchBotModel.MeterPlusJP
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = device.deviceType
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        existingAccessory.context.connectionType = await this.connectionType(device)
-        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new MeterPlus(this, existingAccessory, device)
-        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (await this.registerDevice(device)) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.model = SwitchBotModel.MeterPlusUS ?? SwitchBotModel.MeterPlusJP
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = device.deviceType
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new MeterPlus(this, accessory, device)
-      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createMeterPro(device: device & devicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (await this.registerDevice(device)) {
-        // console.log("existingAccessory", existingAccessory);
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.model = SwitchBotModel.MeterPro ?? SwitchBotModel.MeterProCO2
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = device.deviceType
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        existingAccessory.context.connectionType = await this.connectionType(device)
-        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new MeterPro(this, existingAccessory, device)
-        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (await this.registerDevice(device)) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.model = SwitchBotModel.MeterPro ?? SwitchBotModel.MeterProCO2
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = device.deviceType
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new MeterPro(this, accessory, device)
-      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createHub2(device: device & devicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (await this.registerDevice(device)) {
-        // console.log("existingAccessory", existingAccessory);
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.model = SwitchBotModel.Hub2
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = device.deviceType
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        existingAccessory.context.connectionType = await this.connectionType(device)
-        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new Hub(this, existingAccessory, device)
-        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (await this.registerDevice(device)) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.model = SwitchBotModel.Hub2
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = device.deviceType
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new Hub(this, accessory, device)
-      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createIOSensor(device: device & devicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (await this.registerDevice(device)) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.model = SwitchBotModel.OutdoorMeter
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = device.deviceType
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        existingAccessory.context.connectionType = await this.connectionType(device)
-        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new IOSensor(this, existingAccessory, device)
-        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (await this.registerDevice(device)) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.model = SwitchBotModel.OutdoorMeter
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = device.deviceType
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new IOSensor(this, accessory, device)
-      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createWaterDetector(device: device & devicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (await this.registerDevice(device)) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = device.deviceType
-        existingAccessory.context.model = SwitchBotModel.WaterDetector
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        existingAccessory.context.connectionType = await this.connectionType(device)
-        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new WaterDetector(this, existingAccessory, device)
-        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (await this.registerDevice(device)) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = device.deviceType
-      accessory.context.model = SwitchBotModel.WaterDetector
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-      accessory.context.connectionType = await this.connectionType(device)
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new WaterDetector(this, accessory, device)
-      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createMotion(device: device & devicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (await this.registerDevice(device)) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = device.deviceType
-        existingAccessory.context.model = SwitchBotModel.MotionSensor
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        existingAccessory.context.connectionType = await this.connectionType(device)
-        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new Motion(this, existingAccessory, device)
-        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (await this.registerDevice(device)) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = device.deviceType
-      accessory.context.model = SwitchBotModel.MotionSensor
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new Motion(this, accessory, device)
-      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createPresence(device: device & devicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (await this.registerDevice(device)) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = device.deviceType
-        existingAccessory.context.model = SwitchBotModel.PresenceSensor
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        existingAccessory.context.connectionType = await this.connectionType(device)
-        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new Presence(this, existingAccessory, device)
-        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (await this.registerDevice(device)) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = device.deviceType
-      accessory.context.model = SwitchBotModel.PresenceSensor
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new Presence(this, accessory, device)
-      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createContact(device: device & devicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (await this.registerDevice(device)) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = device.deviceType
-        existingAccessory.context.model = SwitchBotModel.ContactSensor
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        existingAccessory.context.connectionType = await this.connectionType(device)
-        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new Contact(this, existingAccessory, device)
-        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (await this.registerDevice(device)) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = device.deviceType
-      accessory.context.model = SwitchBotModel.ContactSensor
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new Contact(this, accessory, device)
-      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createBlindTilt(device: device & devicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (await this.registerDevice(device)) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = device.deviceType
-        existingAccessory.context.model = SwitchBotModel.BlindTilt
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        existingAccessory.context.connectionType = await this.connectionType(device)
-        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new BlindTilt(this, existingAccessory, device as blindTiltConfig)
-        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (await this.registerDevice(device)) {
-      if (isBlindTiltDevice(device)) {
-        if (device.group && !(device as blindTiltConfig | curtainConfig).disable_group) {
-          this.debugLog(
-            'Your Curtains are grouped, '
-            + `, Secondary curtain automatically hidden. Main Curtain: ${device.deviceName}, deviceId: ${device.deviceId}`,
-          )
-        } else {
-          if (device.master) {
-            this.warnLog(`Main Curtain: ${device.deviceName}, deviceId: ${device.deviceId}`)
-          } else {
-            this.errorLog(`Secondary Curtain: ${device.deviceName}, deviceId: ${device.deviceId}`)
-          }
-        }
+            try {
+              const body = {
+                command: 'dock',
+                parameter: 'default',
+                commandType: 'command',
+              }
+              log.debug(`[${deviceId}] Sending RVC goHome request:`, JSON.stringify(body))
+              const result = await client.setDeviceState(deviceId, body)
+              log.debug(`[${deviceId}] RVC goHome API response:`, JSON.stringify(result))
+              log.info(`[${deviceId}] RVC sent to dock successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to send goHome command:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
       }
 
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = device.deviceType
-      accessory.context.model = SwitchBotModel.BlindTilt
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new BlindTilt(this, accessory, device as blindTiltConfig)
-      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createCurtain(device: device & devicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (await this.registerDevice(device)) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = device.deviceType
-        existingAccessory.context.model = device.deviceType === 'Curtain3' ? SwitchBotModel.Curtain3 : SwitchBotModel.Curtain
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        existingAccessory.context.connectionType = await this.connectionType(device)
-        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new Curtain(this, existingAccessory, device as curtainConfig)
-        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (await this.registerDevice(device)) {
-      if (isCurtainDevice(device)) {
-        if (device.group && !(device as blindTiltConfig | curtainConfig).disable_group) {
-          this.debugLog(
-            'Your Curtains are grouped, '
-            + `, Secondary curtain automatically hidden. Main Curtain: ${device.deviceName}, deviceId: ${device.deviceId}`,
-          )
-        } else {
-          if (device.master) {
-            this.warnLog(`Main Curtain: ${device.deviceName}, deviceId: ${device.deviceId}`)
-          } else {
-            this.errorLog(`Secondary Curtain: ${device.deviceName}, deviceId: ${device.deviceId}`)
-          }
-        }
+    case 'bot':
+      return {
+        onOff: {
+          on: async () => {
+            log.info(`[${deviceId}] Bot ON command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOn',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Bot turned on successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn on Bot:`, e)
+              return { success: false, error: e }
+            }
+          },
+          off: async () => {
+            log.info(`[${deviceId}] Bot OFF command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOff',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Bot turned off successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn off Bot:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
       }
 
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = device.deviceType
-      accessory.context.model = device.deviceType === 'Curtain3' ? SwitchBotModel.Curtain3 : SwitchBotModel.Curtain
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new Curtain(this, accessory, device as curtainConfig)
-      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createPlug(device: device & devicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (await this.registerDevice(device)) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = device.deviceType
-        existingAccessory.context.model = device.deviceType === 'Plug Mini (US)'
-          ? SwitchBotModel.PlugMiniUS
-          : device.deviceType === 'Plug Mini (JP)'
-            ? SwitchBotModel.PlugMiniJP
-            : device.deviceType === 'Plug Mini (EU)'
-              ? SwitchBotModel.PlugMiniEU
-              : SwitchBotModel.Plug
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        existingAccessory.context.connectionType = await this.connectionType(device)
-        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new Plug(this, existingAccessory, device)
-        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (await this.registerDevice(device)) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = device.deviceType
-      accessory.context.model = device.deviceType === 'Plug Mini (US)'
-        ? SwitchBotModel.PlugMiniUS
-        : device.deviceType === 'Plug Mini (JP)'
-          ? SwitchBotModel.PlugMiniJP
-          : device.deviceType === 'Plug Mini (EU)'
-            ? SwitchBotModel.PlugMiniEU
-            : SwitchBotModel.Plug
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new Plug(this, accessory, device)
-      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createLock(device: device & devicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (await this.registerDevice(device)) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = device.deviceType
-        existingAccessory.context.model = device.deviceType === 'Smart Lock Pro' ? SwitchBotModel.LockPro : (device.deviceType === 'Smart Lock Ultra' || device.deviceType === 'Lock Ultra') ? SwitchBotModel.LockUltra : SwitchBotModel.Lock
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        existingAccessory.context.connectionType = await this.connectionType(device)
-        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new Lock(this, existingAccessory, device)
-        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (await this.registerDevice(device)) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = device.deviceType
-      accessory.context.model = device.deviceType === 'Smart Lock Pro' ? SwitchBotModel.LockPro : (device.deviceType === 'Smart Lock Ultra' || device.deviceType === 'Lock Ultra') ? SwitchBotModel.LockUltra : SwitchBotModel.Lock
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new Lock(this, accessory, device)
-      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createColorBulb(device: device & devicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (await this.registerDevice(device)) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = device.deviceType
-        existingAccessory.context.model = SwitchBotModel.ColorBulb
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        existingAccessory.context.connectionType = await this.connectionType(device)
-        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new ColorBulb(this, existingAccessory, device)
-        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (await this.registerDevice(device)) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = device.deviceType
-      accessory.context.model = SwitchBotModel.ColorBulb
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new ColorBulb(this, accessory, device)
-      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createCeilingLight(device: device & devicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (await this.registerDevice(device)) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = device.deviceType
-        existingAccessory.context.model = device.deviceType === 'Ceiling Light Pro' ? SwitchBotModel.CeilingLightPro : SwitchBotModel.CeilingLight
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        existingAccessory.context.connectionType = await this.connectionType(device)
-        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new CeilingLight(this, existingAccessory, device)
-        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (await this.registerDevice(device)) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = device.deviceType
-      accessory.context.model = device.deviceType === 'Ceiling Light Pro' ? SwitchBotModel.CeilingLightPro : SwitchBotModel.CeilingLight
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new CeilingLight(this, accessory, device)
-      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createStripLight(device: device & devicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (await this.registerDevice(device)) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = device.deviceType
-        existingAccessory.context.model = SwitchBotModel.StripLight
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        existingAccessory.context.connectionType = await this.connectionType(device)
-        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new StripLight(this, existingAccessory, device)
-        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (await this.registerDevice(device)) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = device.deviceType
-      accessory.context.model = SwitchBotModel.StripLight
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new StripLight(this, accessory, device)
-      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createFan(device: device & devicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (await this.registerDevice(device)) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = device.deviceType
-        existingAccessory.context.model = SwitchBotModel.BatteryCirculatorFan
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        existingAccessory.context.connectionType = await this.connectionType(device)
-        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new Fan(this, existingAccessory, device)
-        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (await this.registerDevice(device)) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = device.deviceType
-      accessory.context.model = SwitchBotModel.BatteryCirculatorFan
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new Fan(this, accessory, device)
-      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createAirPurifierDevice(device: device & devicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (await this.registerDevice(device)) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = device.deviceType
-        existingAccessory.context.model = device.deviceType?.includes('Table') ? SwitchBotModel.AirPurifierTable : SwitchBotModel.AirPurifier
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        existingAccessory.context.connectionType = await this.connectionType(device)
-        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new AirPurifierDevice(this, existingAccessory, device)
-        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (await this.registerDevice(device)) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = device.deviceType
-      accessory.context.model = device.deviceType?.includes('Table') ? SwitchBotModel.AirPurifierTable : SwitchBotModel.AirPurifier
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new AirPurifierDevice(this, accessory, device)
-      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createRobotVacuumCleaner(device: device & devicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.deviceType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (await this.registerDevice(device)) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = device.deviceType
-        existingAccessory.context.model = device.deviceType === 'Robot Vacuum Cleaner S1'
-          ? SwitchBotModel.RobotVacuumCleanerS1
-          : device.deviceType === 'Robot Vacuum Cleaner S1 Plus'
-            ? SwitchBotModel.RobotVacuumCleanerS1Plus
-            : device.deviceType === 'Robot Vacuum Cleaner S10'
-              ? SwitchBotModel.RobotVacuumCleanerS10
-              : device.deviceType === 'WoSweeper'
-                ? SwitchBotModel.WoSweeper
-                : device.deviceType === 'WoSweeperMini'
-                  ? SwitchBotModel.WoSweeperMini
-                  : SwitchBotModel.Unknown
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        existingAccessory.context.connectionType = await this.connectionType(device)
-        existingAccessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new RobotVacuumCleaner(this, existingAccessory, device)
-        this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (await this.registerDevice(device)) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = device.deviceType
-      accessory.context.model = device.deviceType === 'Robot Vacuum Cleaner S1'
-        ? SwitchBotModel.RobotVacuumCleanerS1
-        : device.deviceType === 'Robot Vacuum Cleaner S1 Plus'
-          ? SwitchBotModel.RobotVacuumCleanerS1Plus
-          : device.deviceType === 'Robot Vacuum Cleaner S10'
-            ? SwitchBotModel.RobotVacuumCleanerS10
-            : device.deviceType === 'WoSweeper'
-              ? SwitchBotModel.WoSweeper
-              : device.deviceType === 'WoSweeperMini'
-                ? SwitchBotModel.WoSweeperMini
-                : SwitchBotModel.Unknown
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? device.version ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new RobotVacuumCleaner(this, accessory, device)
-      this.debugLog(`${device.deviceType} uuid: ${device.deviceId}-${device.deviceType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.deviceType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createTV(device: irdevice & irDevicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.remoteType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (!device.hide_device && existingAccessory) {
-      // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-      existingAccessory.context.device = device
-      existingAccessory.context.deviceId = device.deviceId
-      existingAccessory.context.deviceType = `IR: ${device.remoteType}`
-      existingAccessory.context.model = device.remoteType
-      existingAccessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-      existingAccessory.context.connectionType = device.connectionType
-      this.api.updatePlatformAccessories([existingAccessory])
-      // create the accessory handler for the restored accessory
-      // this is imported from `platformAccessory.ts`
-      new TV(this, existingAccessory, device)
-      this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${existingAccessory.UUID})`)
-    } else if (!device.hide_device && device.hubDeviceId) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = `IR: ${device.remoteType}`
-      accessory.context.model = device.remoteType
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new TV(this, accessory, device)
-      this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`)
-
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createIRFan(device: irdevice & irDevicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.remoteType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (!device.hide_device && device.hubDeviceId) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = `IR: ${device.remoteType}`
-        existingAccessory.context.model = device.remoteType
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        existingAccessory.context.connectionType = device.connectionType
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new IRFan(this, existingAccessory, device)
-        this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (!device.hide_device && device.hubDeviceId) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = `IR: ${device.remoteType}`
-      accessory.context.model = device.remoteType
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new IRFan(this, accessory, device)
-      this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createLight(device: irdevice & irDevicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.remoteType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (!device.hide_device && device.hubDeviceId) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = `IR: ${device.remoteType}`
-        existingAccessory.context.model = device.remoteType
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        existingAccessory.context.connectionType = device.connectionType
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new Light(this, existingAccessory, device)
-        this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (!device.hide_device && device.hubDeviceId) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = `IR: ${device.remoteType}`
-      accessory.context.model = device.remoteType
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new Light(this, accessory, device)
-      this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createAirConditioner(device: irdevice & irDevicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.remoteType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (!device.hide_device && device.hubDeviceId) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = `IR: ${device.remoteType}`
-        existingAccessory.context.model = device.remoteType
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        existingAccessory.context.connectionType = device.connectionType
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new AirConditioner(this, existingAccessory, device)
-        this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (!device.hide_device && device.hubDeviceId) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = `IR: ${device.remoteType}`
-      accessory.context.model = device.remoteType
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new AirConditioner(this, accessory, device)
-      this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createAirPurifier(device: irdevice & irDevicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.remoteType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (!device.hide_device && device.hubDeviceId) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = `IR: ${device.remoteType}`
-        existingAccessory.context.model = device.remoteType
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        existingAccessory.context.connectionType = device.connectionType
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new AirPurifier(this, existingAccessory, device)
-        this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (!device.hide_device && device.hubDeviceId) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = `IR: ${device.remoteType}`
-      accessory.context.model = device.remoteType
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new AirPurifier(this, accessory, device)
-      this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createWaterHeater(device: irdevice & irDevicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.remoteType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (!device.hide_device && device.hubDeviceId) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = `IR: ${device.remoteType}`
-        existingAccessory.context.model = device.remoteType
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        existingAccessory.context.connectionType = device.connectionType
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new WaterHeater(this, existingAccessory, device)
-        this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (!device.hide_device && device.hubDeviceId) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = `IR: ${device.remoteType}`
-      accessory.context.model = device.remoteType
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new WaterHeater(this, accessory, device)
-      this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createVacuumCleaner(device: irdevice & irDevicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.remoteType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (!device.hide_device && device.hubDeviceId) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = `IR: ${device.remoteType}`
-        existingAccessory.context.model = device.remoteType
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        existingAccessory.context.connectionType = device.connectionType
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new VacuumCleaner(this, existingAccessory, device)
-        this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (!device.hide_device && device.hubDeviceId) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = `IR: ${device.remoteType}`
-      accessory.context.model = device.remoteType
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new VacuumCleaner(this, accessory, device)
-      this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createCamera(device: irdevice & irDevicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.remoteType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (!device.hide_device && device.hubDeviceId) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = `IR: ${device.remoteType}`
-        existingAccessory.context.model = device.remoteType
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        existingAccessory.context.connectionType = device.connectionType
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new Camera(this, existingAccessory, device)
-        this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (!device.hide_device && device.hubDeviceId) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = `IR: ${device.remoteType}`
-      accessory.context.model = device.remoteType
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new Camera(this, accessory, device)
-      this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  private async createOthers(device: irdevice & irDevicesConfig) {
-    const uuid = this.api.hap.uuid.generate(`${device.deviceId}-${device.remoteType}`)
-
-    // see if an accessory with the same uuid has already been registered and restored from
-    // the cached devices we stored in the `configureAccessory` method above
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid)
-
-    if (existingAccessory) {
-      // the accessory already exists
-      if (!device.hide_device && device.hubDeviceId) {
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        existingAccessory.context.device = device
-        existingAccessory.context.deviceId = device.deviceId
-        existingAccessory.context.deviceType = `IR: ${device.remoteType}`
-        existingAccessory.context.model = device.remoteType
-        existingAccessory.displayName = device.configDeviceName
-          ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-          : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-        this.infoLog(`Restoring existing accessory from cache: ${existingAccessory.displayName} deviceId: ${device.deviceId}`)
-        existingAccessory.context.connectionType = device.connectionType
-        this.api.updatePlatformAccessories([existingAccessory])
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new Others(this, existingAccessory, device)
-        this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${existingAccessory.UUID})`)
-      } else {
-        this.unregisterPlatformAccessories(existingAccessory)
-      }
-    } else if (!device.hide_device && device.hubDeviceId) {
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName), uuid)
-
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.device = device
-      accessory.context.deviceId = device.deviceId
-      accessory.context.deviceType = `IR: ${device.remoteType}`
-      accessory.context.model = device.remoteType
-      accessory.displayName = device.configDeviceName
-        ? await this.validateAndCleanDisplayName(device.configDeviceName, 'configDeviceName', device.configDeviceName)
-        : await this.validateAndCleanDisplayName(device.deviceName, 'deviceName', device.deviceName)
-      accessory.context.connectionType = await this.connectionType(device)
-      accessory.context.version = device.firmware ?? this.version ?? '0.0.0'
-      const newOrExternal = !device.external ? 'Adding new' : 'Loading external'
-      this.infoLog(`${newOrExternal} accessory: ${accessory.displayName} deviceId: ${device.deviceId}`)
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new Others(this, accessory, device)
-      this.debugLog(`${device.remoteType} uuid: ${device.deviceId}-${device.remoteType}, (${accessory.UUID})`)
-
-      // publish device externally or link the accessory to your platform
-      this.externalOrPlatform(device, accessory)
-      this.accessories.push(accessory)
-    } else {
-      this.debugLog(`Device not registered: ${device.deviceName} ${device.remoteType} deviceId: ${device.deviceId}`)
-    }
-  }
-
-  async registerCurtains(device: device & devicesConfig): Promise<boolean> {
-    let registerWindowCovering: boolean
-    if (isCurtainDevice(device)) {
-      this.debugWarnLog(`deviceName: ${device.deviceName} deviceId: ${device.deviceId}, curtainDevicesIds: ${device.curtainDevicesIds},x master: ${device.master}, group: ${device.group}, disable_group: ${(device as blindTiltConfig | curtainConfig).disable_group}, connectionType: ${device.connectionType}`)
-      registerWindowCovering = await this.registerWindowCovering(device)
-    } else if (isBlindTiltDevice(device)) {
-      this.debugWarnLog(`deviceName: ${device.deviceName} deviceId: ${device.deviceId}, blindTiltDevicesIds: ${device.blindTiltDevicesIds}, master: ${device.master}, group: ${device.group}, disable_group: ${(device as blindTiltConfig | curtainConfig).disable_group}, connectionType: ${device.connectionType}`)
-      registerWindowCovering = await this.registerWindowCovering(device)
-    } else {
-      registerWindowCovering = false
-    }
-    return registerWindowCovering
-  }
-
-  async registerWindowCovering(device: (curtain | curtain3 | blindTilt) & devicesConfig) {
-    this.debugLog(`master: ${device.master}`)
-    let registerCurtain: boolean
-    if (device.master && device.group) {
-      // OpenAPI: Master Curtains/Blind Tilt in Group
-      registerCurtain = true
-      this.debugLog(`deviceName: ${device.deviceName} [${device.deviceType} Config] device.master: ${device.master}, device.group: ${device.group} connectionType; ${device.connectionType}`)
-      this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`)
-    } else if (!device.master && (device as blindTiltConfig | curtainConfig).disable_group) {
-      registerCurtain = true
-      this.debugLog(`deviceName: ${device.deviceName} [${device.deviceType} Config] device.master: ${device.master}, disable_group: ${(device as blindTiltConfig | curtainConfig).disable_group}, connectionType; ${device.connectionType}`)
-      this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`)
-    } else if (device.master && !device.group) {
-      // OpenAPI: Master Curtains/Blind Tilts not in Group
-      registerCurtain = true
-      this.debugLog(`deviceName: ${device.deviceName} [${device.deviceType} Config] device.master: ${device.master}, device.group: ${device.group} connectionType; ${device.connectionType}`)
-      this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`)
-    } else if (device.connectionType === 'BLE') {
-      // BLE: Curtains/Blind Tilt
-      registerCurtain = true
-      this.debugLog(`deviceName: ${device.deviceName} [${device.deviceType} Config] connectionType: ${device.connectionType}, group: ${device.group}`)
-      this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}`)
-    } else {
-      registerCurtain = false
-      this.debugErrorLog(`deviceName: ${device.deviceName} [${device.deviceType} Config] disable_group: ${(device as blindTiltConfig | curtainConfig).disable_group}, device.master: ${device.master}, device.group: ${device.group}`)
-      this.debugWarnLog(`Device: ${device.deviceName} registerCurtains: ${registerCurtain}, device.connectionType: ${device.connectionType}`)
-    }
-    return registerCurtain
-  }
-
-  async connectionType(device: (device & devicesConfig) | (irdevice & irDevicesConfig)): Promise<any> {
-    let connectionType: string
-    if (!device.connectionType && this.config.credentials?.token && this.config.credentials.secret) {
-      connectionType = 'OpenAPI'
-    } else {
-      connectionType = device.connectionType!
-    }
-    return connectionType
-  }
-
-  async registerDevice(device: device & devicesConfig) {
-    device.connectionType = await this.connectionType(device)
-    let registerDevice: boolean
-
-    const shouldRegister = !device.hide_device && (device.connectionType === 'BLE/OpenAPI' || (device.deviceId && device.configDeviceType && device.configDeviceName && device.connectionType === 'BLE') || device.connectionType === 'OpenAPI' || device.connectionType === 'Disabled')
-
-    if (shouldRegister) {
-      registerDevice = await this.handleDeviceRegistration(device)
-    } else {
-      registerDevice = false
-      this.debugErrorLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, hide_device: ${device.hide_device}, will not display in HomeKit`)
-    }
-
-    return registerDevice
-  }
-
-  async handleDeviceRegistration(device: device & devicesConfig): Promise<boolean> {
-    let registerDevice: boolean
-
-    switch (device.deviceType) {
-      case 'Curtain':
-      case 'Curtain3':
-      case 'Blind Tilt':
-        registerDevice = await this.registerCurtains(device)
-        this.debugWarnLog(`Device: ${device.deviceName} ${device.deviceType} registerDevice: ${registerDevice}`)
-        break
-      default:
-        registerDevice = true
-        this.debugWarnLog(`Device: ${device.deviceName} registerDevice: ${registerDevice}`)
-    }
-
-    if (registerDevice) {
-      this.debugWarnLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will display in HomeKit`)
-    } else {
-      this.debugErrorLog(`Device: ${device.deviceName} connectionType: ${device.connectionType}, will not display in HomeKit`)
-    }
-
-    return registerDevice
-  }
-
-  public async externalOrPlatform(device: (device & devicesConfig) | (irdevice & irDevicesConfig), accessory: PlatformAccessory) {
-    const { displayName } = accessory
-    const isExternal = device.external ?? false
-
-    if (isExternal) {
-      this.debugWarnLog(`${displayName} External Accessory Mode`)
-      this.api.publishExternalAccessories(PLUGIN_NAME, [accessory])
-    } else {
-      this.debugLog(`${displayName} External Accessory Mode: ${isExternal}`)
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory])
-    }
-  }
-
-  public unregisterPlatformAccessories(existingAccessory: PlatformAccessory) {
-    const { displayName } = existingAccessory
-    // remove platform accessories when no longer present
-    this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory])
-    this.warnLog(`Removing existing accessory from cache: ${displayName}`)
-  }
-
-  /**
-   * Handles the status codes returned by the device and logs appropriate messages.
-   *
-   * @param statusCode - The status code returned by the device.
-   * @returns A promise that resolves when the logging is complete.
-   */
-  async statusCode(statusCode: number): Promise<void> {
-    const messages: { [key: number]: string } = {
-      151: `Command not supported by this device type, statusCode: ${statusCode}, Submit Feature Request Here: 
-            https://tinyurl.com/SwitchBotFeatureRequest`,
-      152: `Device not found, statusCode: ${statusCode}`,
-      160: `Command is not supported, statusCode: ${statusCode}, Submit Bugs Here: https://tinyurl.com/SwitchBotBug`,
-      161: `Device is offline, statusCode: ${statusCode}`,
-      171: `is offline, statusCode: ${statusCode}`,
-      190: `Requests reached the daily limit, statusCode: ${statusCode}`,
-      100: `Command successfully sent, statusCode: ${statusCode}`,
-      200: `Request successful, statusCode: ${statusCode}`,
-      400: `Bad Request, The client has issued an invalid request. This is commonly used to specify validation errors in a request payload, 
-            statusCode: ${statusCode}`,
-      401: `Unauthorized, Authorization for the API is required, but the request has not been authenticated, statusCode: ${statusCode}`,
-      403: `Forbidden, The request has been authenticated but does not have appropriate permissions, or a requested resource is not found, 
-            statusCode: ${statusCode}`,
-      404: `Not Found, Specifies the requested path does not exist, statusCode: ${statusCode}`,
-      406: `Not Acceptable, The client has requested a MIME type via the Accept header for a value not supported by the server, 
-            statusCode: ${statusCode}`,
-      415: `Unsupported Media Type, The client has defined a contentType header that is not supported by the server, statusCode: ${statusCode}`,
-      422: `Unprocessable Entity, The client has made a valid request, but the server cannot process it. This is often used for APIs for which 
-            certain limits have been exceeded, statusCode: ${statusCode}`,
-      429: `Too Many Requests, The client has exceeded the number of requests allowed for a given time window, statusCode: ${statusCode}`,
-      500: `Internal Server Error, An unexpected error on the SmartThings servers has occurred. These errors should be rare, 
-            statusCode: ${statusCode}`,
-    }
-
-    const message = messages[statusCode] ?? `Unknown statusCode, statusCode: ${statusCode}, Submit Bugs Here: https://tinyurl.com/SwitchBotBug`
-
-    if ([100, 200].includes(statusCode)) {
-      this.debugLog(message)
-    } else {
-      this.errorLog(message)
-    }
-  }
-
-  async retryRequest(device: (device & devicesConfig) | (irdevice & irDevicesConfig), deviceMaxRetries: number, deviceDelayBetweenRetries: number): Promise<{ response: any, statusCode: deviceStatusRequest['statusCode'] }> {
-    let retryCount = 0
-    const maxRetries = deviceMaxRetries
-    const delayBetweenRetries = deviceDelayBetweenRetries
-    while (retryCount < maxRetries) {
-      try {
-        const { response, statusCode } = await this.switchBotAPI.getDeviceStatus(device.deviceId, this.config.credentials?.token, this.config.credentials?.secret)
-        this.debugLog(`response: ${JSON.stringify(response)}`)
-        return { response, statusCode }
-      } catch (error: any) {
-        this.errorLog(`Error making request: ${error.message}`)
-      }
-      retryCount++
-      this.debugLog(`Retry attempt ${retryCount} of ${maxRetries}`)
-      await sleep(delayBetweenRetries)
-    }
-    return { response: {
-      deviceId: '',
-      deviceType: '',
-      hubDeviceId: '',
-      version: 0,
-      deviceName: '',
-      enableCloudService: false,
-    }, statusCode: 500 }
-  }
-
-  async retryCommand(device: (device & devicesConfig) | (irdevice & irDevicesConfig), bodyChange: bodyChange, deviceMaxRetries?: number, deviceDelayBetweenRetries?: number): Promise<{ response: any, statusCode: number }> {
-    let retryCount = 0
-    const maxRetries = deviceMaxRetries ?? 1
-    const delayBetweenRetries = deviceDelayBetweenRetries ?? 1000
-    while (retryCount < maxRetries) {
-      try {
-        const { response, statusCode } = await this.switchBotAPI.controlDevice(device.deviceId, bodyChange.command, bodyChange.parameter, bodyChange.commandType as any, this.config.credentials?.token, this.config.credentials?.secret)
-        this.debugLog(`response: ${JSON.stringify(response)}`)
-        return { response, statusCode }
-      } catch (error: any) {
-        this.errorLog(`Error making request: ${error.message}`)
-      }
-      retryCount++
-      this.debugLog(`Retry attempt ${retryCount} of ${maxRetries}`)
-      await sleep(delayBetweenRetries)
-    }
-    return { response: {}, statusCode: 500 }
-  }
-
-  // BLE Connection
-  async connectBLE(accessory: PlatformAccessory, device: device & devicesConfig): Promise<any> {
-    try {
-      queueScheduler.schedule(async () => this.switchBotBLE)
-      this.debugLog(`${device.deviceType}: ${accessory.displayName} 'node-switchbot' found: ${safeStringify(this.switchBotBLE)}`)
-      return this.switchBotBLE
-    } catch (e: any) {
-      this.errorLog(`${device.deviceType}: ${accessory.displayName} 'node-switchbot' not found, Error: ${e.message ?? e}`)
-      return false
-    }
-  }
-
-  async getPlatformConfigSettings() {
-    if (this.config.options) {
-      const platformConfig: SwitchBotPlatformConfig = {
-        platform: 'Resideo',
-      }
-      platformConfig.logging = this.config.options.logging ? this.config.options.logging : undefined
-      platformConfig.refreshRate = this.config.options.refreshRate ? this.config.options.refreshRate : undefined
-      platformConfig.updateRate = this.config.options.updateRate ? this.config.options.updateRate : undefined
-      platformConfig.pushRate = this.config.options.pushRate ? this.config.options.pushRate : undefined
-      platformConfig.maxRetries = this.config.options.maxRetries ? this.config.options.maxRetries : undefined
-      platformConfig.delayBetweenRetries = this.config.options.delayBetweenRetries ? this.config.options.delayBetweenRetries : undefined
-      if (Object.entries(platformConfig).length !== 0) {
-        await this.debugLog(`Platform Config: ${JSON.stringify(platformConfig)}`)
-      }
-      this.platformConfig = platformConfig
-    }
-  }
-
-  async getPlatformRateSettings() {
-    // RefreshRate
-    this.platformRefreshRate = this.config.options?.refreshRate ? this.config.options.refreshRate : undefined
-    const refreshRate = this.config.options?.refreshRate ? 'Using Platform Config refreshRate' : 'Platform Config refreshRate Not Set'
-    await this.debugLog(`${refreshRate}: ${this.platformRefreshRate}`)
-    // UpdateRate
-    this.platformUpdateRate = this.config.options?.updateRate ? this.config.options.updateRate : undefined
-    const updateRate = this.config.options?.updateRate ? 'Using Platform Config updateRate' : 'Platform Config updateRate Not Set'
-    await this.debugLog(`${updateRate}: ${this.platformUpdateRate}`)
-    // PushRate
-    this.platformPushRate = this.config.options?.pushRate ? this.config.options.pushRate : undefined
-    const pushRate = this.config.options?.pushRate ? 'Using Platform Config pushRate' : 'Platform Config pushRate Not Set'
-    await this.debugLog(`${pushRate}: ${this.platformPushRate}`)
-    // MaxRetries
-    this.platformMaxRetries = this.config.options?.maxRetries ? this.config.options.maxRetries : undefined
-    const maxRetries = this.config.options?.maxRetries ? 'Using Platform Config maxRetries' : 'Platform Config maxRetries Not Set'
-    await this.debugLog(`${maxRetries}: ${this.platformMaxRetries}`)
-    // DelayBetweenRetries
-    this.platformDelayBetweenRetries = this.config.options?.delayBetweenRetries ? this.config.options.delayBetweenRetries : undefined
-    const delayBetweenRetries = this.config.options?.delayBetweenRetries ? 'Using Platform Config delayBetweenRetries' : 'Platform Config delayBetweenRetries Not Set'
-    await this.debugLog(`${delayBetweenRetries}: ${this.platformDelayBetweenRetries}`)
-  }
-
-  async getPlatformLogSettings() {
-    this.debugMode = argv.includes('-D') ?? argv.includes('--debug')
-    this.platformLogging = (this.config.options?.logging === 'debug' || this.config.options?.logging === 'standard'
-      || this.config.options?.logging === 'none')
-      ? this.config.options.logging
-      : this.debugMode ? 'debugMode' : 'standard'
-    const logging = this.config.options?.logging ? 'Platform Config' : this.debugMode ? 'debugMode' : 'Default'
-    await this.debugLog(`Using ${logging} Logging: ${this.platformLogging}`)
-  }
-
-  /**
-   * Asynchronously retrieves the version of the plugin from the package.json file.
-   *
-   * This method reads the package.json file located in the parent directory,
-   * parses its content to extract the version, and logs the version using the debug logger.
-   * The extracted version is then assigned to the `version` property of the class.
-   *
-   * @returns {Promise<void>} A promise that resolves when the version has been retrieved and logged.
-   */
-  async getVersion(): Promise<void> {
-    const { version } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf-8'))
-    this.debugLog(`Plugin Version: ${version}`)
-    this.version = version
-  }
-
-  /**
-   * Validate and clean a string value for a Name Characteristic.
-   * @param displayName - The display name of the accessory.
-   * @param name - The name of the characteristic.
-   * @param value - The value to be validated and cleaned.
-   * @returns The cleaned string value.
-   */
-  async validateAndCleanDisplayName(displayName: string, name: string, value: string): Promise<string> {
-    if (this.config.options?.allowInvalidCharacters) {
-      return value
-    } else {
-      const validPattern = /^[\p{L}\p{N}][\p{L}\p{N} ']*[\p{L}\p{N}]$/u
-      const invalidCharsPattern = /[^\p{L}\p{N} ']/gu
-      const invalidStartEndPattern = /^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu
-
-      if (typeof value === 'string' && !validPattern.test(value)) {
-        this.warnLog(`WARNING: The accessory '${displayName}' has an invalid '${name}' characteristic ('${value}'). Please use only alphanumeric, space, and apostrophe characters. Ensure it starts and ends with an alphabetic or numeric character, and avoid emojis. This may prevent the accessory from being added in the Home App or cause unresponsiveness.`)
-
-        // Remove invalid characters
-        if (invalidCharsPattern.test(value)) {
-          const before = value
-          this.warnLog(`Removing invalid characters from '${name}' characteristic, if you feel this is incorrect, please enable \'allowInvalidCharacter\' in the config to allow all characters`)
-          value = value.replace(invalidCharsPattern, '')
-          this.warnLog(`${name} Before: '${before}' After: '${value}'`)
-        }
-
-        // Ensure it starts and ends with an alphanumeric character
-        if (invalidStartEndPattern.test(value)) {
-          const before = value
-          this.warnLog(`Removing invalid starting or ending characters from '${name}' characteristic, if you feel this is incorrect, please enable \'allowInvalidCharacter\' in the config to allow all characters`)
-          value = value.replace(invalidStartEndPattern, '')
-          this.warnLog(`${name} Before: '${before}' After: '${value}'`)
-        }
+    case 'curtain':
+    case 'blindtilt':
+      return {
+        windowCovering: {
+          goToLiftPercentage: async (request: any) => {
+            const percentage = request?.liftPercent100thsValue
+            log.info(`[${deviceId}] Curtain position change requested: ${percentage}`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              // Convert Matter percentage (0-10000) to SwitchBot (0-100)
+              const position = Math.max(0, Math.min(100, Math.round((percentage || 0) / 100)))
+              const result = await client.setDeviceState(deviceId, {
+                command: 'setPosition',
+                parameter: String(position),
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Curtain position set to ${position}% successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to set curtain position:`, e)
+              return { success: false, error: e }
+            }
+          },
+          upOrOpen: async () => {
+            log.info(`[${deviceId}] Curtain open command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'open',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Curtain opened successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to open curtain:`, e)
+              return { success: false, error: e }
+            }
+          },
+          downOrClose: async () => {
+            log.info(`[${deviceId}] Curtain close command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'close',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Curtain closed successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to close curtain:`, e)
+              return { success: false, error: e }
+            }
+          },
+          stopMotion: async () => {
+            log.info(`[${deviceId}] Curtain stop command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'pause',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Curtain motion stopped successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to stop curtain:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
       }
 
-      return value
-    }
-  }
-
-  /**
-   * If device level logging is turned on, log to log.warn
-   * Otherwise send debug logs to log.debug
-   */
-  async infoLog(...log: any[]): Promise<void> {
-    if (await this.enablingPlatformLogging()) {
-      this.log.info(String(...log))
-    }
-  }
-
-  async successLog(...log: any[]): Promise<void> {
-    if (await this.enablingPlatformLogging()) {
-      this.log.success(String(...log))
-    }
-  }
-
-  async debugSuccessLog(...log: any[]): Promise<void> {
-    if (await this.enablingPlatformLogging()) {
-      if (await this.loggingIsDebug()) {
-        this.log.success('[DEBUG]', String(...log))
+    case 'plug':
+      return {
+        onOff: {
+          on: async () => {
+            log.info(`[${deviceId}] Plug ON command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOn',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Plug turned on successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn on plug:`, e)
+              return { success: false, error: e }
+            }
+          },
+          off: async () => {
+            log.info(`[${deviceId}] Plug OFF command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOff',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Plug turned off successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn off plug:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
       }
-    }
-  }
 
-  async warnLog(...log: any[]): Promise<void> {
-    if (await this.enablingPlatformLogging()) {
-      this.log.warn(String(...log))
-    }
-  }
-
-  async debugWarnLog(...log: any[]): Promise<void> {
-    if (await this.enablingPlatformLogging()) {
-      if (await this.loggingIsDebug()) {
-        this.log.warn('[DEBUG]', String(...log))
+    case 'lock':
+      return {
+        doorLock: {
+          setLockState: async (request: any) => {
+            const state = request?.lockState === 1 ? 'LOCKED' : 'UNLOCKED'
+            log.info(`[${deviceId}] Lock state change requested: ${state}`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const command = request?.lockState === 1 ? 'lock' : 'unlock'
+              const result = await client.setDeviceState(deviceId, {
+                command,
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Lock ${state} successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to change lock state:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
       }
-    }
-  }
 
-  async errorLog(...log: any[]): Promise<void> {
-    if (await this.enablingPlatformLogging()) {
-      this.log.error(String(...log))
-    }
-  }
-
-  async debugErrorLog(...log: any[]): Promise<void> {
-    if (await this.enablingPlatformLogging()) {
-      if (await this.loggingIsDebug()) {
-        this.log.error('[DEBUG]', String(...log))
+    case 'fan':
+      return {
+        onOff: {
+          on: async () => {
+            log.info(`[${deviceId}] Fan ON command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOn',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Fan turned on successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn on fan:`, e)
+              return { success: false, error: e }
+            }
+          },
+          off: async () => {
+            log.info(`[${deviceId}] Fan OFF command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOff',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Fan turned off successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn off fan:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+        fanControl: {
+          setFanSpeed: async (request: any) => {
+            const speed = request?.percentSetting || 0
+            log.info(`[${deviceId}] Fan speed change requested: ${speed}%`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              // Convert percentage to SwitchBot fan speed parameter
+              const speedParam = Math.max(1, Math.min(100, speed))
+              const result = await client.setDeviceState(deviceId, {
+                command: 'setFanSpeed',
+                parameter: String(speedParam),
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Fan speed set to ${speedParam}% successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to set fan speed:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
       }
-    }
-  }
 
-  async debugLog(...log: any[]): Promise<void> {
-    if (await this.enablingPlatformLogging()) {
-      if (this.platformLogging === 'debug') {
-        this.log.info('[DEBUG]', String(...log))
-      } else if (this.platformLogging === 'debugMode') {
-        this.log.debug(String(...log))
+    case 'light':
+      return {
+        onOff: {
+          on: async () => {
+            log.info(`[${deviceId}] Light ON command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOn',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Light turned on successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn on light:`, e)
+              return { success: false, error: e }
+            }
+          },
+          off: async () => {
+            log.info(`[${deviceId}] Light OFF command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOff',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Light turned off successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn off light:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+        levelControl: {
+          moveToLevel: async (request: any) => {
+            const level = request?.level || 0
+            // Convert from 0-254 to 0-100
+            const brightness = Math.round((level / 254) * 100)
+            log.info(`[${deviceId}] Light brightness change requested: ${brightness}%`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const param = Math.max(0, Math.min(100, brightness))
+              const result = await client.setDeviceState(deviceId, {
+                command: 'setBrightness',
+                parameter: String(param),
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Light brightness set to ${param}% successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to set light brightness:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
       }
-    }
-  }
 
-  async loggingIsDebug(): Promise<boolean> {
-    return this.platformLogging === 'debugMode' || this.platformLogging === 'debug'
-  }
+    case 'lightstrip':
+      return {
+        onOff: {
+          on: async () => {
+            log.info(`[${deviceId}] Lightstrip ON command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOn',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Lightstrip turned on successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn on lightstrip:`, e)
+              return { success: false, error: e }
+            }
+          },
+          off: async () => {
+            log.info(`[${deviceId}] Lightstrip OFF command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOff',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Lightstrip turned off successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn off lightstrip:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+        levelControl: {
+          moveToLevel: async (request: any) => {
+            const level = request?.level || 0
+            // Convert from 0-254 to 0-100
+            const brightness = Math.round((level / 254) * 100)
+            log.info(`[${deviceId}] Lightstrip brightness change requested: ${brightness}%`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const param = Math.max(0, Math.min(100, brightness))
+              const result = await client.setDeviceState(deviceId, {
+                command: 'setBrightness',
+                parameter: String(param),
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Lightstrip brightness set to ${param}% successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to set lightstrip brightness:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+        colorControl: {
+          moveToHueAndSaturation: async (request: any) => {
+            const hue = request?.hue || 0
+            const saturation = request?.saturation || 0
+            log.info(`[${deviceId}] Lightstrip color change requested: hue=${hue}, sat=${saturation}`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              // Convert hue (0-254) and saturation (0-254) to combined color parameter
+              // SwitchBot typically expects RGB or HSV format as parameter
+              const colorParam = `${Math.round(hue)},${Math.round(saturation)}`
+              const result = await client.setDeviceState(deviceId, {
+                command: 'setColor',
+                parameter: colorParam,
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Lightstrip color set successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to set lightstrip color:`, e)
+              return { success: false, error: e }
+            }
+          },
+          moveToColorTemperature: async (request: any) => {
+            const mireds = request?.colorTemperatureMireds || 400
+            // Convert mireds (158-500 typical range) to Kelvin: K = 1000000 / mireds
+            const kelvin = Math.round(1000000 / mireds)
+            log.info(`[${deviceId}] Lightstrip color temperature change requested: ${mireds} mireds (${kelvin}K)`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              // Map Kelvin to SwitchBot color temperature parameter (typically 0-100 or specific values)
+              // Normalize to 0-100 scale where 0=warm (2700K) and 100=cool (6500K)
+              const colorTempParam = Math.max(0, Math.min(100, Math.round(((kelvin - 2700) / 3800) * 100)))
+              const result = await client.setDeviceState(deviceId, {
+                command: 'setColorTemperature',
+                parameter: String(colorTempParam),
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Lightstrip color temperature set to ${kelvin}K successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to set lightstrip color temperature:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+      }
 
-  async enablingPlatformLogging(): Promise<boolean> {
-    return this.platformLogging === 'debugMode' || this.platformLogging === 'debug' || this.platformLogging === 'standard'
+    case 'humidifier':
+      return {
+        onOff: {
+          on: async () => {
+            log.info(`[${deviceId}] Humidifier ON command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOn',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Humidifier turned on successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn on humidifier:`, e)
+              return { success: false, error: e }
+            }
+          },
+          off: async () => {
+            log.info(`[${deviceId}] Humidifier OFF command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOff',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Humidifier turned off successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn off humidifier:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+        fanControl: {
+          setFanSpeed: async (request: any) => {
+            const speed = request?.percentSetting || 0
+            log.info(`[${deviceId}] Humidifier speed change requested: ${speed}%`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              // Convert percentage to SwitchBot humidifier speed parameter
+              const speedParam = Math.max(1, Math.min(100, speed))
+              const result = await client.setDeviceState(deviceId, {
+                command: 'setFanSpeed',
+                parameter: String(speedParam),
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Humidifier speed set to ${speedParam}% successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to set humidifier speed:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+      }
+
+    case 'relay':
+      return {
+        onOff: {
+          on: async () => {
+            log.info(`[${deviceId}] Relay ON command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOn',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Relay turned on successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn on relay:`, e)
+              return { success: false, error: e }
+            }
+          },
+          off: async () => {
+            log.info(`[${deviceId}] Relay OFF command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOff',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Relay turned off successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn off relay:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+      }
+
+    default:
+      return undefined
   }
 }
+
+function resolveMatterDeviceType(matterApi: any, type: string, createdDeviceType?: any, clusters?: any): any {
+  if (createdDeviceType && typeof createdDeviceType === 'object' && typeof createdDeviceType.with === 'function') {
+    return createdDeviceType
+  }
+
+  const lowerType = (typeof createdDeviceType === 'string' && createdDeviceType) ? createdDeviceType.toLowerCase() : (type || '').toLowerCase()
+
+  // Cluster-based upgrade for color lights if descriptor omitted device type.
+  const hasColorControl = !!clusters?.colorControl
+  const inferredType = hasColorControl && lowerType === 'light'
+    ? 'lightstrip'
+    : lowerType
+
+  const mappedKey = DEVICE_MATTER_DEVICE_TYPE_KEYS[inferredType] || 'OnOffSwitch'
+  return matterApi?.deviceTypes?.[mappedKey] || matterApi?.deviceTypes?.OnOffSwitch
+}
+
+export class SwitchBotHAPPlatform {
+  api: API | undefined
+  log: Logger
+  config: SwitchBotPluginConfig
+  devices: any[] = []
+  // cached accessories restored by Homebridge
+  accessories: Map<string, any>
+  // Track last loaded config to detect changes
+  private lastConfigHash: string = ''
+  private configReloadInterval: NodeJS.Timeout | null = null
+
+  constructor(log: Logger, config: PlatformConfig, api?: API) {
+    this.log = log
+    this.config = { ...(config as any), logger: log }
+    this.api = api
+    this.accessories = new Map()
+    this.log.info('SwitchBot HAP platform initialized')
+
+    // Create/shared SwitchBot client and attach to config so child devices reuse it.
+    try {
+      const client = new SwitchBotClient(this.config)
+      void client.init()
+      ;(this.config as any)._client = client
+    } catch (e) {
+      this.log.debug('Failed to create shared SwitchBot client', e)
+    }
+
+    // Wait for Homebridge to finish launching to create/register accessories
+    if (this.api && typeof (this.api as any).on === 'function') {
+      (this.api as any).on('didFinishLaunching', async () => {
+        await this.loadDevicesWithMatterInit()
+        // Start periodic config reload to pick up UI changes
+        this.configReloadInterval = setInterval(() => {
+          void this.loadDevicesWithMatterInit()
+        }, 10000) // Check every 10 seconds
+      })
+    } else {
+      void this.loadDevicesWithMatterInit()
+      // Start periodic config reload to pick up UI changes
+      this.configReloadInterval = setInterval(() => {
+        void this.loadDevicesWithMatterInit()
+      }, 10000) // Check every 10 seconds
+    }
+  }
+
+  /**
+   * Ensures Matter API is loaded before loading devices.
+   */
+  private async loadDevicesWithMatterInit() {
+    // Wait for Matter API to be loaded and available before loading devices
+    const maxAttempts = 20 // Wait up to 10 seconds (20 x 500ms)
+    let attempt = 0
+    let matterLoaded = false
+    if (
+      this.api
+      && typeof (this.api as any).isMatterAvailable === 'function'
+      && typeof (this.api as any).isMatterEnabled === 'function'
+      && typeof (this.api as any).loadMatterAPI === 'function'
+    ) {
+      if ((this.api as any).isMatterAvailable() && (this.api as any).isMatterEnabled()) {
+        try {
+          await (this.api as any).loadMatterAPI()
+          this.log.info('Homebridge Matter API loaded successfully')
+        } catch (e) {
+          this.log.warn('Failed to load Homebridge Matter API', e)
+        }
+        // Wait for api.matter to be available
+        while (attempt < maxAttempts) {
+          if ((this.api as any).matter) {
+            matterLoaded = true
+            break
+          }
+          await new Promise(res => setTimeout(res, 500))
+          attempt++
+        }
+        if (!matterLoaded) {
+          this.log.warn('Matter API did not become available after loadMatterAPI()')
+        }
+      }
+    }
+    await this.loadDevices()
+  }
+
+  private getConfigHash(): string {
+    // Create a simple hash of current device config to detect changes
+    const devices = (this.config as any)?.devices ?? []
+    return JSON.stringify(devices.map((d: any) => ({
+      id: d.deviceId ?? d.id,
+      type: d.configDeviceType ?? d.type,
+      name: d.configDeviceName ?? d.name,
+    })))
+  }
+
+  async loadDevices() {
+    const devices = (this.config as any)?.devices ?? []
+    for (const raw of devices) {
+      // Normalize config keys from UI schema to internal shape
+      const d: any = {
+        id: raw.deviceId ?? raw.id,
+        name: raw.configDeviceName ?? raw.name,
+        type: raw.configDeviceType ?? raw.type ?? raw.deviceType ?? 'unknown',
+        encryptionKey: raw.encryptionKey,
+        keyId: raw.keyId,
+        _raw: raw,
+      }
+
+      const type: string = normalizeTypeForMatter(d.type)
+      const deviceOpts: any = { id: d.id, type, name: d.name, encryptionKey: d.encryptionKey, keyId: d.keyId }
+      this.log.debug(`[Matter/Debug] Device options for ${d.name ?? d.id}:`, JSON.stringify(deviceOpts, null, 2))
+
+      const matterSupported = !!DEVICE_MATTER_SUPPORTED[(type || '').toLowerCase()]
+      // Auto-detect Matter from Homebridge API, allow manual override via config
+      const matterAvailable = !!(this.api?.isMatterAvailable?.() && this.api?.isMatterEnabled?.())
+      const matterEnabled = matterAvailable || !!this.config.enableMatter
+      const useMatter = !!(matterEnabled && matterSupported && (!!this.config.preferMatter || matterAvailable))
+
+      try {
+        const created = await createDevice(deviceOpts, this.config, useMatter)
+        this.devices.push(created)
+        // Prefer Matter: try registering to the Matter child bridge first.
+        let matterRegistered = false
+        if (useMatter) {
+          const matterApi = (this.api as any)?.matter
+          if (this.api?.isMatterAvailable?.() && this.api?.isMatterEnabled?.() && matterApi && typeof matterApi.registerPlatformAccessories === 'function') {
+            try {
+              const createdDesc = await created.createAccessory(this.api)
+              const uuid = matterApi.uuid.generate(`${d.id}`)
+              const defaultClusters = DEVICE_MATTER_CLUSTERS[type.toLowerCase()] || { onOff: { onOff: false } }
+              const clusters = createdDesc.clusters || defaultClusters
+              const deviceType = resolveMatterDeviceType(matterApi, type, createdDesc.deviceType, clusters)
+              const accessory: any = {
+                UUID: uuid,
+                displayName: createdDesc.name || d.name || type,
+                deviceType,
+                manufacturer: createdDesc.manufacturer || 'SwitchBot',
+                model: createdDesc.model || type,
+                serialNumber: createdDesc.serialNumber || d.id,
+                reachable: createdDesc.reachable !== false,
+                firmwareRevision: createdDesc.firmwareRevision || '1.0.0',
+                hardwareRevision: createdDesc.hardwareRevision || '',
+                clusters,
+                handlers: createdDesc.handlers || createMatterHandlers(this.log, d.id, type, (this.config as any)?._client) || undefined,
+                context: { deviceId: d.id, type, _created: true },
+              }
+              this.log.info(`[MatterDebug] Accessory descriptor for ${d.id}:`, JSON.stringify({
+                UUID: accessory.UUID,
+                displayName: accessory.displayName,
+                deviceType: typeof accessory.deviceType === 'object' && accessory.deviceType?.name ? accessory.deviceType.name : accessory.deviceType,
+                clusters: accessory.clusters,
+                context: accessory.context,
+              }, null, 2))
+              await matterApi.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory])
+              this.accessories.set(uuid, accessory)
+              matterRegistered = true
+              this.log.info(`[MatterDebug] Registered Matter accessory ${d.id} (${type}) with uuid=${uuid}`)
+            } catch (e: any) {
+              this.log.error(`[MatterDebug] Failed to register Matter accessory for ${d.id} (${type}):`, e && (e.stack || e.message || e))
+              if (e && (e.message?.includes('Conformance') || e.message?.includes('enum value Rollershade') || e.message?.includes('Behaviors have errors'))) {
+                try {
+                  const uuid = matterApi.uuid.generate(`${d.id}`)
+                  const cached = this.accessories.get(uuid)
+                  if (cached && typeof this.api?.unregisterPlatformAccessories === 'function') {
+                    this.log.warn(`[MatterDebug] Removing cached accessory for ${d.id} due to registration error`)
+                    this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [cached])
+                    this.accessories.delete(uuid)
+                  }
+                } catch (cleanupErr) {
+                  this.log.warn(`[MatterDebug] Failed to cleanup cached accessory for ${d.id}:`, cleanupErr)
+                }
+              }
+            }
+          } else {
+            this.log.info(`Matter API not available for ${d.id} (${type}); skipping Matter registration and falling back to HAP`)
+          }
+        }
+
+        // If Matter wasn't registered (either not supported, API missing, or registration failed), fall back to HAP registration.
+        if (!matterRegistered && this.api && (this.api as any).hap) {
+          // Basic HAP accessory creation using homebridge API when available
+          try {
+            const hap = (this.api as any).hap
+            const uuid = hap.uuid.generate(`${d.id}`)
+            // Reuse cached accessory if available by uuid
+            let accessory: any = this.accessories.get(uuid)
+            // If not found by uuid, attempt to find by stored deviceId in accessory.context
+            if (!accessory) {
+              for (const [, a] of this.accessories.entries()) {
+                try {
+                  if (a && a.context && a.context.deviceId === d.id) {
+                    accessory = a
+                    break
+                  }
+                } catch (e) {
+                  // ignore
+                }
+              }
+            }
+
+            if (!accessory) {
+              accessory = new (this.api as any).platformAccessory(d.name || type, uuid)
+              // Store device metadata on accessory.context for persistence across restarts
+              try {
+                accessory.context = accessory.context || {}
+                accessory.context.deviceId = d.id
+                accessory.context.type = type
+              } catch (e) {
+                // ignore context failures
+              }
+              // Register new accessory with Homebridge so it's cached
+              try {
+                ;(this.api as any).registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory])
+              } catch (e) {
+                // older API variations may require different registration; ignore if unavailable
+              }
+              this.accessories.set(uuid, accessory)
+            } else {
+              // ensure context includes deviceId (in case restored accessory lacked it)
+              try {
+                accessory.context = accessory.context || {}
+                accessory.context.deviceId = accessory.context.deviceId || d.id
+                accessory.context.type = accessory.context.type || type
+              } catch (e) {
+                // ignore
+              }
+            }
+            // Add basic service descriptor from device
+            const accDesc = await created.createAccessory?.(this.api)
+            if (accDesc && accDesc.services) {
+              for (const s of accDesc.services) {
+                const Service = hap.Service[s.type] || hap.Service[s.type]
+                if (!Service) {
+                  continue
+                }
+                const service = accessory.getService(Service) || accessory.addService(Service)
+                for (const [charName, getterSetterRaw] of Object.entries(s.characteristics || {})) {
+                  const getterSetter: any = getterSetterRaw
+                  const Characteristic = (hap.Characteristic as any)[charName]
+                  if (!Characteristic) {
+                    continue
+                  }
+                  // Apply characteristic props if provided (min/max/step)
+                  if (getterSetter && getterSetter.props) {
+                    try {
+                      service.getCharacteristic(Characteristic).setProps(getterSetter.props)
+                    } catch (e) {
+                      // ignore setProps failures on older HAP implementations
+                    }
+                  }
+
+                  // Wire simple get/set handlers if provided
+                  if (getterSetter && typeof getterSetter.get === 'function') {
+                    service.getCharacteristic(Characteristic).onGet(getterSetter.get)
+                  }
+                  if (getterSetter && typeof getterSetter.set === 'function') {
+                    service.getCharacteristic(Characteristic).onSet(getterSetter.set)
+                  }
+                }
+              }
+            }
+            this.log.info(`Created/updated HAP accessory ${d.id} (${type})`)
+          } catch (e) {
+            this.log.warn('HAP accessory creation failed', e)
+          }
+        } else if (!matterRegistered) {
+          this.log.info(`Created HAP descriptor for ${d.id} (${type}) (API not available to register)`)
+        }
+      } catch (e) {
+        this.log.error(`Failed to create device ${d.id}:`, e as any)
+      }
+    }
+    // Update hash after successfully loading devices
+    this.lastConfigHash = this.getConfigHash()
+  }
+
+  // Example lifecycle method called by Homebridge
+  async configureAccessory(accessory: any) {
+    // Homebridge calls this for restored cached accessories — keep a reference.
+    try {
+      const uuid = accessory.UUID || accessory.UUID
+      this.accessories.set(uuid, accessory)
+      this.log.info(`Restored cached accessory ${accessory.displayName || uuid}`)
+    } catch (e) {
+      this.log.warn('configureAccessory failed to restore accessory', e)
+    }
+  }
+
+  // Called by Homebridge when a cached Matter accessory is restored
+  configureMatterAccessory?(accessory: any) {
+    try {
+      const uuid = accessory.uuid || accessory.UUID || accessory.uuid
+      this.accessories.set(uuid, accessory)
+      this.log.info(`Restored cached Matter accessory ${accessory.displayName || uuid}`)
+    } catch (e) {
+      this.log.warn('configureMatterAccessory failed to restore accessory', e)
+    }
+  }
+}
+
+// Matter platform implementation (placeholder)
+export class SwitchBotMatterPlatform {
+  api: API | undefined
+  log: Logger
+  config: SwitchBotPluginConfig
+  devices: any[] = []
+  accessories: Map<string, any>
+  // Track last loaded config to detect changes
+  private lastConfigHash: string = ''
+  private configReloadInterval: NodeJS.Timeout | null = null
+
+  constructor(log: Logger, config: PlatformConfig, api?: API) {
+    this.log = log
+    this.config = { ...(config as any), logger: log }
+    this.api = api
+    this.accessories = new Map()
+    this.log.info('SwitchBot Matter platform initialized')
+
+    if (this.api && typeof (this.api as any).on === 'function') {
+      ;(this.api as any).on('didFinishLaunching', () => {
+        ;(async () => {
+          // After launch, perform discovery (if any) and register Matter accessories
+          try {
+            await this.loadDevices()
+            if ((this.api as any).isMatterAvailable?.() && (this.api as any).isMatterEnabled?.() && (this.api as any).matter && typeof (this.api as any).matter.registerPlatformAccessories === 'function') {
+              try {
+                await (this as any).registerMatterAccessories?.()
+              } catch (e) {
+                this.log.warn('registerMatterAccessories failed', e)
+              }
+            }
+          } catch (e) {
+            this.log.warn('Error during Matter platform startup', e)
+          }
+        })()
+        // Start periodic config reload to pick up UI changes
+        this.configReloadInterval = setInterval(() => {
+          void this.checkAndReloadDevices()
+        }, 10000) // Check every 10 seconds
+      })
+    } else {
+      void this.loadDevices()
+      // Start periodic config reload to pick up UI changes
+      this.configReloadInterval = setInterval(() => {
+        void this.checkAndReloadDevices()
+      }, 10000) // Check every 10 seconds
+    }
+    // Create/shared SwitchBot client and attach to config so child devices reuse it.
+    try {
+      const client = new SwitchBotClient(this.config)
+      void client.init()
+      ;(this.config as any)._client = client
+    } catch (e) {
+      this.log.debug('Failed to create shared SwitchBot client', e)
+    }
+  }
+
+  async loadDevices() {
+    const devices = (this.config as any)?.devices ?? []
+    for (const raw of devices) {
+      // Normalize config keys produced by the UI schema
+      const d: any = {
+        id: raw.deviceId ?? raw.id,
+        name: raw.configDeviceName ?? raw.name,
+        type: raw.configDeviceType ?? raw.type ?? raw.deviceType ?? 'unknown',
+        _raw: raw,
+      }
+
+      const type: string = normalizeTypeForMatter(d.type)
+
+      const matterSupported = !!DEVICE_MATTER_SUPPORTED[(type || '').toLowerCase()]
+      // Auto-detect Matter from Homebridge API, allow manual override via config
+      const matterAvailable = this.api?.isMatterAvailable?.() && this.api?.isMatterEnabled?.()
+      const matterEnabled = matterAvailable || !!this.config.enableMatter
+      const useMatter = matterEnabled && matterSupported
+      try {
+        const created = await createDevice({ id: d.id, type, name: d.name, log: this.log }, this.config, useMatter)
+        this.devices.push(created)
+        if (useMatter) {
+          this.log.info(`Prepared Matter accessory for ${d.id} (${type})${matterAvailable ? ' (auto-detected)' : ' (manually enabled)'}`)
+        } else {
+          if (!matterEnabled) {
+            this.log.info(`Skipping Matter for ${d.id} (${type}) - Matter not available on this bridge`)
+          } else if (!matterSupported) {
+            this.log.info(`Skipping Matter for ${d.id} (${type}) - device type not supported`)
+          } else {
+            this.log.info(`Skipping Matter for ${d.id} (${type}) - not supported`)
+          }
+        }
+      } catch (e) {
+        this.log.error(`Failed to create Matter device ${d.id}:`, e as any)
+      }
+    }
+    // Update hash after successfully loading devices
+    this.lastConfigHash = this.getConfigHash()
+  }
+
+  private getConfigHash(): string {
+    // Create a simple hash of current device config to detect changes
+    const devices = (this.config as any)?.devices ?? []
+    return JSON.stringify(devices.map((d: any) => ({
+      id: d.deviceId ?? d.id,
+      type: d.configDeviceType ?? d.type,
+      name: d.configDeviceName ?? d.name,
+    })))
+  }
+
+  private async checkAndReloadDevices() {
+    const currentHash = this.getConfigHash()
+    if (currentHash !== this.lastConfigHash) {
+      this.log.info('[SwitchBot] Detected config changes, reloading devices...')
+      // Clear existing devices
+      this.devices = []
+      await this.loadDevices()
+    }
+  }
+
+  async configureAccessory(accessory: any) {
+    try {
+      const uuid = accessory.UUID || accessory.UUID
+      this.accessories.set(uuid, accessory)
+      this.log.info(`Restored cached Matter accessory ${accessory.displayName || uuid}`)
+    } catch (e) {
+      this.log.warn('configureAccessory failed to restore Matter accessory', e)
+    }
+  }
+
+  // Homebridge calls this when restoring cached Matter accessories
+  configureMatterAccessory(accessory: any) {
+    try {
+      const uuid = accessory.uuid || accessory.UUID || accessory.uuid
+      this.accessories.set(uuid, accessory)
+      this.log.info(`Restored cached Matter accessory ${accessory.displayName || uuid}`)
+    } catch (e) {
+      this.log.warn('configureMatterAccessory failed to restore Matter accessory', e)
+    }
+  }
+
+  // Register serialized Matter accessories via Homebridge Matter API
+  async registerMatterAccessories() {
+    if (!this.api) {
+      return
+    }
+    const matterApi = (this.api as any).matter
+    if (!matterApi || typeof matterApi.registerPlatformAccessories !== 'function') {
+      this.log.info('Homebridge Matter API not available; skipping Matter accessory registration')
+      return
+    }
+
+    const devices = (this.config as any)?.devices ?? []
+    const accessoriesToRegister: any[] = []
+
+    // Auto-detect Matter from Homebridge API
+    const matterAvailable = this.api?.isMatterAvailable?.() && this.api?.isMatterEnabled?.()
+    const matterEnabled = matterAvailable || !!this.config.enableMatter
+
+    for (const raw of devices) {
+      const d: any = {
+        id: raw.deviceId ?? raw.id,
+        name: raw.configDeviceName ?? raw.name,
+        type: raw.configDeviceType ?? raw.type ?? raw.deviceType ?? 'unknown',
+      }
+
+      if (!d.id) {
+        continue
+      }
+
+      const type: string = normalizeTypeForMatter(d.type)
+
+      const matterSupported = !!DEVICE_MATTER_SUPPORTED[(type || '').toLowerCase()]
+      const useMatter = matterEnabled && matterSupported
+      if (!useMatter) {
+        continue
+      }
+
+      try {
+        const created = await createDevice({ id: d.id, type, name: d.name, log: this.log }, this.config, true)
+        const createdDesc = await created.createAccessory(this.api)
+        const uuid = matterApi.uuid.generate(`${d.id}`)
+        // Try to find existing restored accessory by deviceId
+        let existing: any | undefined
+        for (const [, a] of this.accessories.entries()) {
+          try {
+            if (a && a.context && a.context.deviceId === d.id) {
+              existing = a
+              break
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
+
+        if (existing) {
+          // Ensure context and displayName are up to date
+          // Prioritize device-specific Matter clusters (e.g., RVC for vacuum) over generic HAP-derived clusters
+          let clusters = DEVICE_MATTER_CLUSTERS[type.toLowerCase()]
+          if (!clusters) {
+            clusters = existing.clusters || createdDesc.clusters || { onOff: { onOff: false } }
+          }
+          const deviceType = resolveMatterDeviceType(matterApi, type, existing.deviceType || createdDesc.deviceType, clusters)
+          existing.context = existing.context || {}
+          existing.context.deviceId = existing.context.deviceId || d.id
+          existing.context.type = existing.context.type || type
+          existing.deviceType = deviceType
+          existing.manufacturer = existing.manufacturer || createdDesc.manufacturer || 'SwitchBot'
+          existing.model = existing.model || createdDesc.model || type
+          existing.serialNumber = existing.serialNumber || createdDesc.serialNumber || d.id
+          existing.reachable = existing.reachable !== false
+          existing.firmwareRevision = existing.firmwareRevision || createdDesc.firmwareRevision || '1.0.0'
+          existing.hardwareRevision = existing.hardwareRevision || createdDesc.hardwareRevision || ''
+          existing.clusters = clusters
+          existing.handlers = createdDesc.handlers || createMatterHandlers(this.log, d.id, type, (this.config as any)?._client) || undefined
+          existing.displayName = createdDesc.name || d.name || type
+          existing.UUID = existing.UUID || existing.uuid || uuid
+          accessoriesToRegister.push(existing)
+          this.accessories.set(existing.UUID || uuid, existing)
+        } else {
+          // Prioritize device-specific Matter clusters (e.g., RVC for vacuum) over generic HAP-derived clusters
+          let clusters = DEVICE_MATTER_CLUSTERS[type.toLowerCase()]
+          if (!clusters) {
+            clusters = createdDesc.clusters || { onOff: { onOff: false } }
+          }
+          const deviceType = resolveMatterDeviceType(matterApi, type, createdDesc.deviceType, clusters)
+          const serialized: any = {
+            UUID: uuid,
+            displayName: createdDesc.name || d.name || type,
+            deviceType,
+            manufacturer: createdDesc.manufacturer || 'SwitchBot',
+            model: createdDesc.model || type,
+            serialNumber: createdDesc.serialNumber || d.id,
+            reachable: createdDesc.reachable !== false,
+            firmwareRevision: createdDesc.firmwareRevision || '1.0.0',
+            hardwareRevision: createdDesc.hardwareRevision || '',
+            clusters,
+            handlers: createdDesc.handlers || createMatterHandlers(this.log, d.id, type, (this.config as any)?._client) || undefined,
+            context: { deviceId: d.id, type, created: true },
+          }
+          accessoriesToRegister.push(serialized)
+          this.accessories.set(uuid, serialized)
+        }
+      } catch (e) {
+        this.log.warn(`Failed to prepare Matter accessory for ${d.id} (${type})`, e)
+      }
+    }
+
+    if (accessoriesToRegister.length > 0) {
+      try {
+        await matterApi.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, accessoriesToRegister)
+        this.log.info(`Registered ${accessoriesToRegister.length} Matter accessory(ies) with Homebridge`)
+      } catch (e) {
+        this.log.warn('Failed to register Matter accessories', e)
+      }
+    } else {
+      this.log.info('No Matter accessories to register')
+    }
+  }
+}
+
+export default SwitchBotHAPPlatform || SwitchBotMatterPlatform
