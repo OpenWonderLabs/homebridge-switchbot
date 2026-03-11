@@ -1069,7 +1069,8 @@ export class SwitchBotHAPPlatform {
 
   constructor(log: Logger, config: PlatformConfig, api?: API) {
     this.log = log
-    this.config = { ...(config as any), logger: log }
+    // Ensure both log and logger are set for downstream device constructors
+    this.config = { ...(config as any), log, logger: log }
     this.api = api
     this.accessories = new Map()
     this.log.info('SwitchBot HAP platform initialized')
@@ -1298,7 +1299,7 @@ export class SwitchBotHAPPlatform {
       }
 
       const type: string = normalizeTypeForMatter(d.type)
-      const deviceOpts: any = { id: d.id, type, name: d.name, encryptionKey: d.encryptionKey, keyId: d.keyId }
+      const deviceOpts: any = { id: d.id, type, name: d.name, encryptionKey: d.encryptionKey, keyId: d.keyId, log: this.log }
       this.log.debug(`[Matter/Debug] Device options for ${d.name ?? d.id}:`, JSON.stringify(deviceOpts, null, 2))
 
       const matterSupported = !!DEVICE_MATTER_SUPPORTED[(type || '').toLowerCase()]

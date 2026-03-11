@@ -1,6 +1,25 @@
+// Fetch the list of configured devices from the Homebridge UI API
 import { isValidDeviceType, normalizeDeviceType } from '../../../device-types.js'
 import './types.js'
 import { uiLog } from './logger.js'
+
+export async function fetchDevices(): Promise<any[]> {
+  try {
+    if (typeof homebridge.getPluginConfig !== 'function') {
+      throw new TypeError('Homebridge UI API not available')
+    }
+    const configArr = await homebridge.getPluginConfig()
+    const config = Array.isArray(configArr) && configArr.length > 0 ? configArr.find(isSwitchBotPlatformConfig) : null
+    if (!config || !Array.isArray(config.devices)) {
+      return []
+    }
+    return config.devices
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    uiLog.error('Error fetching devices:', msg)
+    return []
+  }
+}
 
 /**
  * Validate and auto-correct device types in the config array before saving.
@@ -114,24 +133,6 @@ export async function saveCredentials(token: string, secret: string): Promise<an
   return resp.data || resp
 }
 
-export async function fetchDevices(): Promise<any[]> {
-  try {
-    const resp = await homebridge.request('/devices', {})
-    if (!resp || resp.success === false) {
-      // Prefer backend error message if available
-      const backendMsg = resp?.data?.message || resp?.message
-      throw new Error(backendMsg || 'request failed')
-    }
-    return resp.data || []
-  } catch (e) {
-    // Show the real error to the user
-    const msg = e instanceof Error ? e.message : String(e)
-    uiLog.error('Error fetching devices:', msg)
-    // Optionally, show a toast or UI error here if needed
-    return []
-  }
-}
-
 export interface DiscoverRequestOptions {
   bleEnabled?: boolean
   bleScanDurationSeconds?: number
@@ -194,29 +195,45 @@ export async function addDevice(
   type: string,
   options?: { address?: string, model?: string, rssi?: number, encryptionKey?: string, keyId?: string },
 ): Promise<any> {
-  const payload: any = { deviceId, name, type }
+  if (typeof homebridge.getPluginConfig !== 'function' || typeof homebridge.updatePluginConfig !== 'function') {
+    throw new TypeError('Homebridge UI API not available')
+  }
+  const configArr = await homebridge.getPluginConfig()
+  const idx = Array.isArray(configArr) ? configArr.findIndex(isSwitchBotPlatformConfig) : -1
+  if (idx === -1) {
+    throw new Error('SwitchBot config not found')
+  }
+  const config = configArr[idx]
+  if (!Array.isArray(config.devices)) {
+    config.devices = []
+  }
+  const normalizedDeviceId = String(deviceId).trim().toLowerCase()
+  const exists = config.devices.some((d: any) => String(d.deviceId ?? d.id ?? '').trim().toLowerCase() === normalizedDeviceId)
+  if (exists) {
+    return { alreadyExists: true, message: 'Device already in config' }
+  }
+  const newDevice: any = { deviceId, configDeviceName: name, configDeviceType: type }
   if (options?.address) {
-    payload.address = options.address
+    newDevice.address = options.address
   }
   if (options?.model) {
-    payload.model = options.model
+    newDevice.model = options.model
   }
   if (options?.rssi !== undefined && options?.rssi !== null && options?.rssi !== 0) {
-    payload.rssi = options.rssi
+    newDevice.rssi = options.rssi
   }
   if (options?.encryptionKey) {
-    payload.encryptionKey = options.encryptionKey
+    newDevice.encryptionKey = options.encryptionKey
   }
   if (options?.keyId) {
-    payload.keyId = options.keyId
+    newDevice.keyId = options.keyId
   }
-  uiLog.info('Adding device to config:', payload)
-  const resp = await homebridge.request('/add-device', payload)
-  uiLog.info('Add device response:', resp)
-  if (!resp || resp.success === false) {
-    throw new Error(resp?.data?.message || 'Failed to add device')
+  config.devices.push(newDevice)
+  await homebridge.updatePluginConfig(configArr)
+  if (typeof homebridge.savePluginConfig === 'function') {
+    await homebridge.savePluginConfig()
   }
-  return resp.data || resp
+  return { added: true, message: `Device "${name}" added successfully` }
 }
 
 export async function addDevicesInBulk(
@@ -241,43 +258,85 @@ export async function updateDevice(
     keyId?: string
     room?: string
     [key: string]: any
-  }
+  },
 ): Promise<any> {
-  const params: any = { deviceId }
+  if (typeof homebridge.getPluginConfig !== 'function' || typeof homebridge.updatePluginConfig !== 'function') {
+    throw new TypeError('Homebridge UI API not available')
+  }
+  const configArr = await homebridge.getPluginConfig()
+  const idx = Array.isArray(configArr) ? configArr.findIndex(isSwitchBotPlatformConfig) : -1
+  if (idx === -1) {
+    throw new Error('SwitchBot config not found')
+  }
+  const config = configArr[idx]
+  if (!Array.isArray(config.devices)) {
+    throw new TypeError('No devices array in config')
+  }
+  const normalizedDeviceId = String(deviceId).trim().toLowerCase()
+  const device = config.devices.find((d: any) => String(d.deviceId ?? d.id ?? '').trim().toLowerCase() === normalizedDeviceId)
+  if (!device) {
+    throw new Error('Device not found in config')
+  }
   if (configDeviceName) {
-    params.configDeviceName = configDeviceName
+    device.configDeviceName = configDeviceName
   }
   if (configDeviceType) {
-    params.configDeviceType = configDeviceType
+    device.configDeviceType = configDeviceType
   }
   if (options) {
-    Object.assign(params, options)
+    Object.assign(device, options)
   }
-  uiLog.info('[Update Device] Sending update request with params:', params)
-  const resp = await homebridge.request('/update-device', params)
-  uiLog.info('[Update Device] Update response:', resp)
-  if (!resp || resp.success === false) {
-    throw new Error(resp?.data?.message || 'Failed to update device')
+  await homebridge.updatePluginConfig(configArr)
+  if (typeof homebridge.savePluginConfig === 'function') {
+    await homebridge.savePluginConfig()
   }
-  return resp.data || resp
+  return { updated: true, message: `Device updated successfully` }
 }
 
 export async function deleteDevice(deviceId: string): Promise<any> {
-  uiLog.info('Sending delete request for deviceId:', deviceId)
-  const resp = await homebridge.request('/delete-device', { deviceId })
-  uiLog.info('Delete response:', resp)
-  if (!resp || resp.success === false) {
-    throw new Error(resp?.data?.message || 'Failed to delete device')
+  if (typeof homebridge.getPluginConfig !== 'function' || typeof homebridge.updatePluginConfig !== 'function') {
+    throw new TypeError('Homebridge UI API not available')
   }
-  return resp.data || resp
+  const configArr = await homebridge.getPluginConfig()
+  const idx = Array.isArray(configArr) ? configArr.findIndex(isSwitchBotPlatformConfig) : -1
+  if (idx === -1) {
+    throw new Error('SwitchBot config not found')
+  }
+  const config = configArr[idx]
+  if (!Array.isArray(config.devices)) {
+    throw new TypeError('No devices array in config')
+  }
+  const normalizedDeviceId = String(deviceId).trim().toLowerCase()
+  const before = config.devices.length
+  config.devices = config.devices.filter((d: any) => String(d.deviceId ?? d.id ?? '').trim().toLowerCase() !== normalizedDeviceId)
+  if (config.devices.length === before) {
+    throw new Error('Device not found in config')
+  }
+  await homebridge.updatePluginConfig(configArr)
+  if (typeof homebridge.savePluginConfig === 'function') {
+    await homebridge.savePluginConfig()
+  }
+  return { deleted: true, message: `Device removed from config` }
 }
 
 export async function deleteAllDevices(): Promise<any> {
-  uiLog.info('Sending delete all devices request')
-  const resp = await homebridge.request('/delete-all-devices', {})
-  uiLog.info('Delete all response:', resp)
-  if (!resp || resp.success === false) {
-    throw new Error(resp?.data?.message || 'Failed to delete all devices')
+  if (typeof homebridge.getPluginConfig !== 'function' || typeof homebridge.updatePluginConfig !== 'function') {
+    throw new TypeError('Homebridge UI API not available')
   }
-  return resp.data || resp
+  const configArr = await homebridge.getPluginConfig()
+  const idx = Array.isArray(configArr) ? configArr.findIndex(isSwitchBotPlatformConfig) : -1
+  if (idx === -1) {
+    throw new Error('SwitchBot config not found')
+  }
+  const config = configArr[idx]
+  if (!Array.isArray(config.devices)) {
+    throw new TypeError('No devices array in config')
+  }
+  const deletedCount = config.devices.length
+  config.devices = []
+  await homebridge.updatePluginConfig(configArr)
+  if (typeof homebridge.savePluginConfig === 'function') {
+    await homebridge.savePluginConfig()
+  }
+  return { deleted: true, deletedCount, message: `Removed ${deletedCount} device(s) from config` }
 }

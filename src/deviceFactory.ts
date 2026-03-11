@@ -1,4 +1,5 @@
 import type { DeviceType, SwitchBotPluginConfig } from './settings.js'
+import type { Logger } from 'homebridge'
 
 import { DEVICE_TYPE_NORMALIZATION_MAP } from './device-types.js'
 import {
@@ -139,10 +140,11 @@ function classForType(type: string) {
   return DEVICE_CLASS_MAP[key] ?? GenericDevice
 }
 
-export async function createDevice(opts: DeviceOptions, cfg: SwitchBotPluginConfig, useMatter: boolean, log?: { info: (...args: any[]) => void }) {
-  // Debug: Log the options passed to the device constructor
-  if (opts && opts.name && log && typeof log.info === 'function') {
-    log.info(`[Matter/Debug] createDevice: Passing opts for ${opts.name}:`, JSON.stringify(opts, null, 2))
+export async function createDevice(opts: DeviceOptions, cfg: SwitchBotPluginConfig, useMatter: boolean, log?: Logger) {
+  // Always pass the logger to both device opts and config
+  const logger = log || (cfg as any)?.logger || (cfg as any)?.log
+  if (opts && opts.name && logger && typeof logger.info === 'function') {
+    logger.info(`[Matter/Debug] createDevice: Passing opts for ${opts.name}:`, JSON.stringify(opts, null, 2))
   }
   // Reuse existing client when provided via config to avoid creating
   // a new SwitchBotClient per device (which can be expensive).
@@ -151,9 +153,12 @@ export async function createDevice(opts: DeviceOptions, cfg: SwitchBotPluginConf
     client = new SwitchBotClient(cfg)
     await client.init()
   }
-
   // Pass client via config so devices can access it
   const mergedCfg = { ...(cfg as any), _client: client }
+  // Always pass logger to mergedCfg
+  if (logger) {
+    mergedCfg.log = logger
+  }
   // Pass encryptionKey and keyId to device opts if present
   const deviceOpts = { ...opts }
   if (opts.encryptionKey) {
@@ -162,7 +167,10 @@ export async function createDevice(opts: DeviceOptions, cfg: SwitchBotPluginConf
   if (opts.keyId) {
     deviceOpts.keyId = opts.keyId
   }
-
+  // Always pass logger to deviceOpts
+  if (logger) {
+    deviceOpts.log = logger
+  }
   const DeviceCtor = classForType(opts.type)
   const device = new DeviceCtor(deviceOpts, mergedCfg)
   await device.init()

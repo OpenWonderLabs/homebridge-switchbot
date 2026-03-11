@@ -1,34 +1,32 @@
-import { fetchCredentialStatus as apiFetchCredentialStatus, saveCredentials as apiSaveCredentials, syncParentPluginConfigFromDisk } from './api.js'
 import { uiLog } from './logger.js'
 import { hideBusyUi, showBusyUi } from './modal.js'
 import { toastError, toastSuccess, toastWarning } from './toast.js'
 
 export async function loadCredentialStatus(): Promise<void> {
   try {
-    const creds = await apiFetchCredentialStatus()
-
-    if (!creds) {
-      uiLog.error('Failed to load credentials')
+    if (typeof homebridge.getPluginConfig !== 'function') {
+      uiLog.error('Homebridge UI API not available')
       return
     }
+    const configArr = await homebridge.getPluginConfig()
+    const config = Array.isArray(configArr) && configArr.length > 0 ? configArr[0] : {}
+    const token = config.openApiToken || ''
+    const secret = config.openApiSecret || ''
 
     const tokenStatus = document.getElementById('tokenStatus')
     const secretStatus = document.getElementById('secretStatus')
-
     if (!tokenStatus || !secretStatus) {
       return
     }
-
-    if (creds.hasToken) {
-      tokenStatus.textContent = `✓ Configured (${creds.tokenLength} characters)`
+    if (token) {
+      tokenStatus.textContent = `✓ Configured (${token.length} characters)`
       tokenStatus.classList.add('ok')
     } else {
       tokenStatus.textContent = 'Not configured'
       tokenStatus.classList.remove('ok')
     }
-
-    if (creds.hasSecret) {
-      secretStatus.textContent = `✓ Configured (${creds.secretLength} characters)`
+    if (secret) {
+      secretStatus.textContent = `✓ Configured (${secret.length} characters)`
       secretStatus.classList.add('ok')
     } else {
       secretStatus.textContent = 'Not configured'
@@ -62,22 +60,25 @@ export async function saveCredentials(): Promise<void> {
     saveBtn.textContent = 'Saving...'
     uiLog.info('Saving credentials...')
 
-    const result = await apiSaveCredentials(token, secret)
-    uiLog.info('Save response:', result)
+    if (typeof homebridge.getPluginConfig !== 'function' || typeof homebridge.updatePluginConfig !== 'function') {
+      throw new TypeError('Homebridge UI API not available')
+    }
+    const configArr = await homebridge.getPluginConfig()
+    if (!Array.isArray(configArr) || configArr.length === 0) {
+      throw new Error('No plugin config found')
+    }
+    const config = configArr[0]
+    config.openApiToken = token
+    config.openApiSecret = secret
+    await homebridge.updatePluginConfig([config])
+    if (typeof homebridge.savePluginConfig === 'function') {
+      await homebridge.savePluginConfig()
+    }
 
-    const message = result?.message || 'Credentials saved successfully'
-    saveStatus.textContent = `✓ ${message}`
+    saveStatus.textContent = `✓ Credentials saved successfully`
     saveStatus.classList.remove('error')
     saveStatus.classList.add('success-msg')
-    toastSuccess(message)
-
-    const synced = await syncParentPluginConfigFromDisk(true)
-    if (synced) {
-      saveStatus.textContent += ' - Config saved automatically.'
-      toastSuccess('Configuration synced and saved automatically')
-    } else {
-      toastWarning('Credentials saved, but configuration sync failed')
-    }
+    toastSuccess('Credentials saved successfully')
 
     // Clear inputs after successful save
     ;(document.getElementById('token') as HTMLInputElement).value = ''

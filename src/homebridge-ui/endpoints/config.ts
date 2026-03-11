@@ -4,7 +4,7 @@ import { RequestError } from '@homebridge/plugin-ui-utils'
 import fs from 'node:fs/promises'
 
 import { isValidDeviceType } from '../../device-types.js'
-import { getAllDevices, getSwitchBotPlatformConfig, SWITCHBOT_PLATFORM_REGEX } from '../utils/config-parser.js'
+import { getAllDevices, SWITCHBOT_PLATFORM_REGEX } from '../utils/config-parser.js'
 import { validateAndMigrateDeviceType } from '../utils/device-migration.js'
 import { uiLog } from '../utils/logger.js'
 
@@ -12,6 +12,7 @@ export function registerConfigEndpoints(server: HomebridgePluginUiServer) {
   /**
    * GET /devices - List all configured devices from Homebridge config
    */
+
   server.onRequest('/devices', async () => {
     try {
       const cfgPath = server.homebridgeConfigPath
@@ -104,23 +105,6 @@ export function registerConfigEndpoints(server: HomebridgePluginUiServer) {
       uiLog.error(`Error in /devices: ${msg}`)
       // Pass the real error message to the frontend for better diagnostics
       throw new RequestError(msg || 'Failed to read Homebridge config', e)
-    }
-  })
-
-  /**
-   * GET /platform-config - Get SwitchBot platform configuration
-   */
-  server.onRequest('/platform-config', async () => {
-    try {
-      const { platform } = await getSwitchBotPlatformConfig(server)
-      return {
-        success: true,
-        data: JSON.parse(JSON.stringify(platform)),
-      }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e)
-      uiLog.error(`Error in /platform-config: ${msg}`)
-      throw new RequestError(msg || 'Failed to read platform config', e)
     }
   })
 }
