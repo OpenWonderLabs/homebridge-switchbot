@@ -1,5 +1,7 @@
 import type { SwitchBotPluginConfig } from './settings.js'
+import type { SwitchBot } from 'node-switchbot'
 
+import { getDeviceCommandHandler } from './deviceCommandMapper.js'
 import { CharacteristicMissingError, SwitchbotAuthenticationError, SwitchbotOperationError } from './errors.js'
 
 export interface ISwitchBotClient {
@@ -17,7 +19,7 @@ export interface ISwitchBotClient {
  */
 export class SwitchBotClient implements ISwitchBotClient {
   private cfg: SwitchBotPluginConfig
-  private client: any | null = null
+  private client: SwitchBot | null = null
   private writeDebounceMs = 100
   private logger: import('homebridge').Logger
   private pendingWrites: Map<string, { timer: any, body: any, resolvers: Array<{ resolve: (v: any) => void, reject: (e: any) => void }> }> = new Map()
@@ -56,12 +58,11 @@ export class SwitchBotClient implements ISwitchBotClient {
     }
   }
 
-  // Removed fetchWithTimeoutAndRetry (HTTP fallback)
-
   async getDevice(id: string): Promise<any> {
-    if (this.client?.getDevice) {
+    if (this.client) {
       try {
-        return await this.client.getDevice(id)
+        const devices = await this.client.discover()
+        return devices.find((d: any) => d.id === id)
       } catch (e: any) {
         if (e instanceof SwitchbotAuthenticationError) {
           this.logger?.error?.(`Authentication error for getDevice(${id}):`, e.message)
@@ -82,9 +83,9 @@ export class SwitchBotClient implements ISwitchBotClient {
   }
 
   async getDevices(): Promise<any[]> {
-    if (this.client?.getDevices) {
+    if (this.client) {
       try {
-        return await this.client.getDevices()
+        return await this.client.discover()
       } catch (e) {
         this.logger?.warn?.('Client getDevices failed:', e)
         throw e
@@ -134,58 +135,46 @@ export class SwitchBotClient implements ISwitchBotClient {
   }
 
   private async _doSetDeviceState(id: string, body: any): Promise<any> {
-    if (this.client?.setDeviceState) {
-      try {
-        this.logger?.debug?.(`[${id}] Using client.setDeviceState()`)
-        const result = await this.client.setDeviceState(id, body)
-        this.logger?.debug?.(`[${id}] client.setDeviceState() response:`, result)
-        return result
-      } catch (e: any) {
-        if (e instanceof SwitchbotAuthenticationError) {
-          this.logger?.error?.(`Authentication error for setDeviceState(${id}):`, e.message)
-          throw e
-        } else if (e instanceof SwitchbotOperationError) {
-          this.logger?.warn?.(`Operation error for setDeviceState(${id}):`, e.message, e.code)
-          throw e
-        } else if (e instanceof CharacteristicMissingError) {
-          this.logger?.warn?.(`Characteristic missing for setDeviceState(${id}):`, e.characteristic)
-          throw e
-        } else {
-          this.logger?.warn?.(`Client setDeviceState failed for ${id}:`, e)
-          throw e
-        }
+    if (!this.client) {
+      throw new SwitchbotOperationError('No SwitchBot client available for setDeviceState', 'no_client')
+    }
+    try {
+      const devices = await this.client.discover()
+      const device = devices.find((d: any) => d.id === id)
+      if (!device) {
+        throw new SwitchbotOperationError(`Device ${id} not found`, 'device_not_found')
+      }
+      const deviceType = (device.deviceType ?? '').toLowerCase()
+      const command = body?.command
+      if (!command) {
+        throw new SwitchbotOperationError('No command specified in body', 'no_command')
+      }
+      const handler = getDeviceCommandHandler(deviceType, command)
+      if (!handler) {
+        throw new SwitchbotOperationError(`Unsupported command '${command}' for device type '${deviceType}'`, 'unsupported_command')
+      }
+      this.logger?.debug?.(`[${id}] Calling mapped command '${command}' for device type '${deviceType}'`)
+      return await handler(device, body)
+    } catch (e: any) {
+      if (e instanceof SwitchbotAuthenticationError) {
+        this.logger?.error?.(`Authentication error for setDeviceState(${id}):`, e.message)
+        throw e
+      } else if (e instanceof SwitchbotOperationError) {
+        this.logger?.warn?.(`Operation error for setDeviceState(${id}):`, e.message, e.code)
+        throw e
+      } else if (e instanceof CharacteristicMissingError) {
+        this.logger?.warn?.(`Characteristic missing for setDeviceState(${id}):`, e.characteristic)
+        throw e
+      } else {
+        this.logger?.warn?.(`Device command failed for ${id}:`, e)
+        throw e
       }
     }
-
-    if (this.client?.sendCommand) {
-      try {
-        this.logger?.debug?.(`[${id}] Using client.sendCommand()`)
-        const result = await this.client.sendCommand(id, body)
-        this.logger?.debug?.(`[${id}] client.sendCommand() response:`, result)
-        return result
-      } catch (e: any) {
-        if (e instanceof SwitchbotAuthenticationError) {
-          this.logger?.error?.(`Authentication error for sendCommand(${id}):`, e.message)
-          throw e
-        } else if (e instanceof SwitchbotOperationError) {
-          this.logger?.warn?.(`Operation error for sendCommand(${id}):`, e.message, e.code)
-          throw e
-        } else if (e instanceof CharacteristicMissingError) {
-          this.logger?.warn?.(`Characteristic missing for sendCommand(${id}):`, e.characteristic)
-          throw e
-        } else {
-          this.logger?.warn?.(`Client sendCommand failed for ${id}:`, e)
-          throw e
-        }
-      }
-    }
-
-    throw new SwitchbotOperationError('No SwitchBot client available for setDeviceState', 'no_client')
   }
 
   async destroy(): Promise<void> {
-    if (this.client?.destroy) {
-      await this.client.destroy()
+    if (this.client?.cleanup) {
+      await this.client.cleanup()
     }
     this.client = null
   }
