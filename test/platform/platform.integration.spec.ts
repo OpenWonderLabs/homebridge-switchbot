@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { SwitchBotHAPPlatform } from '../../src/platform'
+import { SwitchBotHAPPlatform } from '../../src/SwitchBotHAPPlatform.js'
 
 describe('hAP platform integration', () => {
   class TestHAPPlatform extends SwitchBotHAPPlatform {

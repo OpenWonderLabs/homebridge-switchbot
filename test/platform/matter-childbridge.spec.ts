@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { SwitchBotMatterPlatform } from '../../src/platform'
+import { SwitchBotMatterPlatform } from '../../src/SwitchBotMatterPlatform.js'
 
 describe('matter child bridge accessory restoration', () => {
   class TestMatterPlatform extends SwitchBotMatterPlatform {
