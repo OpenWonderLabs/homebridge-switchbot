@@ -69,9 +69,15 @@ function mergeDiscoveredDevices(existingDevices: any[], incomingDevices: any[]):
   for (const d of dedupeById(incomingDevices)) {
     const current = deviceMap.get(d.id)
     if (current) {
-      const nextConnectionType = current.connectionType === d.connectionType
-        ? current.connectionType
-        : 'Both'
+      // Only set 'Both' if both sources are present in this session
+      let nextConnectionType = current.connectionType
+      if (current.connectionType && d.connectionType && current.connectionType !== d.connectionType) {
+        // Only set 'Both' if both are 'BLE' and 'OpenAPI' (not if one is undefined)
+        const types = [current.connectionType, d.connectionType].sort().join(',')
+        if (types === 'BLE,OpenAPI' || types === 'OpenAPI,BLE') {
+          nextConnectionType = 'Both'
+        }
+      }
       deviceMap.set(d.id, {
         ...current,
         ...d,
@@ -82,7 +88,14 @@ function mergeDiscoveredDevices(existingDevices: any[], incomingDevices: any[]):
     }
   }
 
-  return [...deviceMap.values()]
+  const merged = [...deviceMap.values()]
+  // Log merged device structure for debugging
+  if (merged.length > 0) {
+    console.warn('[SwitchBot][Discovery][mergeDiscoveredDevices] Merged device sample:', merged[0])
+
+    console.warn('[SwitchBot][Discovery][mergeDiscoveredDevices] Total merged devices:', merged.length)
+  }
+  return merged
 }
 
 type DiscoveryGroupBy = 'connection' | 'hub' | 'type'
@@ -424,7 +437,17 @@ export async function discoverDevices(): Promise<void> {
   const timeoutInput = document.getElementById('bleTimeoutInput') as HTMLInputElement | null
   const disableBleCheckbox = document.getElementById('disableBleScanCheckbox') as HTMLInputElement | null
 
-  if (!btn || !status || !list) {
+  if (!btn) {
+    console.error('[SwitchBot][Discovery] discoverDevices: discoverBtn not found in DOM')
+    return
+  }
+  if (!status) {
+    console.error('[SwitchBot][Discovery] discoverDevices: discoverStatus not found in DOM')
+    return
+  }
+  if (!list) {
+    console.error('[SwitchBot][Discovery] discoverDevices: discoveredList container not found in DOM')
+    toastError('Discovery UI error: device list container missing. Please reload the page.')
     return
   }
 
@@ -436,10 +459,7 @@ export async function discoverDevices(): Promise<void> {
   let cancelled = false
 
   // --- Real-time RSSI polling additions ---
-  // Get BLE scan duration from settings or UI
-  const bleScanDurationSeconds = scanSelect ? Number(scanSelect.value) : 5
-  const pollIntervalMs = 1000 // 1s polling
-  const scanEndTime = Date.now() + bleScanDurationSeconds * 1000
+  // (bleScanDurationSeconds is now only used in bleSettings below)
 
   const setPhase = (nextPhase: string): void => {
     phase = nextPhase
@@ -490,37 +510,7 @@ export async function discoverDevices(): Promise<void> {
   const selectedIds: Set<string> = (window as any)._discoverySelectedIds
 
   // --- Real-time RSSI polling loop ---
-  setPhase('Scanning BLE (real-time RSSI)')
-  let pollTimer: ReturnType<typeof setInterval> | null = null
-  const pollDiscovery = async () => {
-    if (cancelled || Date.now() > scanEndTime) {
-      if (pollTimer) {
-        clearInterval(pollTimer)
-      }
-      setPhase('Scan Complete')
-      // Final update
-      try {
-        const devices = await apiDiscoverDevices('ble')
-        discoveredDevices = mergeDiscoveredDevices(discoveredDevices, devices)
-        setDiscoveryCache(discoveredDevices)
-        await updateDiscoveryView(discoveredDevices, preferences, groupBy, hideAdded, selectedIds)
-      } catch (e) {
-        uiLog.error('Final BLE poll failed:', e)
-      }
-      return
-    }
-    try {
-      const devices = await apiDiscoverDevices('ble')
-      discoveredDevices = mergeDiscoveredDevices(discoveredDevices, devices)
-      setDiscoveryCache(discoveredDevices)
-      await updateDiscoveryView(discoveredDevices, preferences, groupBy, hideAdded, selectedIds)
-    } catch (e) {
-      uiLog.error('BLE poll failed:', e)
-    }
-  }
-  pollTimer = setInterval(pollDiscovery, pollIntervalMs)
-  // Initial poll
-  pollDiscovery()
+  // (Moved inside main try block after bleSettings is defined)
 
   // Batch enable/disable helper (moved to module scope for UI access)
   async function batchSetDeviceEnabled(selectedIds: Set<string>, enabled: boolean): Promise<void> {
@@ -865,6 +855,7 @@ export async function discoverDevices(): Promise<void> {
 
     // Top row action buttons container
     const topActionRow = document.createElement('div')
+
     topActionRow.style.display = 'flex'
     topActionRow.style.gap = '20px'
     topActionRow.style.margin = '18px 0 10px 0'
@@ -872,9 +863,10 @@ export async function discoverDevices(): Promise<void> {
     topActionRow.appendChild(addSelectedBtn)
     topActionRow.appendChild(enableSelectedBtn)
     topActionRow.appendChild(disableSelectedBtn)
-    list.insertBefore(topActionRow, controlsDiv)
 
+    // Clear list and append controls in correct order
     list.innerHTML = ''
+    list.appendChild(topActionRow)
     list.appendChild(controlsDiv)
 
     let deviceListContainer = document.getElementById('discoveredDevices')
@@ -1270,6 +1262,7 @@ async function updateDiscoveryView(
 
   // Replace or append the rendered list
   const existingList = document.getElementById('discoveredDevices')
+  container.id = 'discoveredDevices'
   if (existingList && existingList.parentNode) {
     existingList.replaceWith(container)
   } else {
@@ -1277,6 +1270,9 @@ async function updateDiscoveryView(
     const listContainer = document.getElementById('discoveredList')
     if (listContainer) {
       listContainer.appendChild(container)
+    } else {
+      console.error('[SwitchBot][Discovery] render: discoveredList container not found in DOM (fallback)')
+      toastError('Discovery UI error: device list container missing. Please reload the page.')
     }
   }
 

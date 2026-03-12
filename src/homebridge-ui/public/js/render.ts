@@ -257,14 +257,12 @@ function formatLastSeen(value: any): string {
 
 export function renderDeviceDetailsPanel(device: any): HTMLElement {
   const details = document.createElement('div')
-  details.style.cssText = `
-    border-top: 1px solid #ddd;
-    padding: 8px;
-    background: #f9fafb;
-    border-radius: 4px;
-    font-size: 12px;
-    margin-top: 4px;
-  `
+  details.className = 'device-details-panel'
+  details.style.borderTop = '1px solid #ddd'
+  details.style.padding = '8px'
+  details.style.borderRadius = '4px'
+  details.style.fontSize = '12px'
+  details.style.marginTop = '4px'
 
   // --- Battery history trending ---
   // Persist battery readings in localStorage per device
@@ -517,6 +515,10 @@ export async function renderDiscoveredDevices(
   const onToggleSelect = options.onToggleSelect
 
   for (const d of devices) {
+    // Defensive check: warn if device is missing id, name, or type
+    if (!d || (!d.id && !d.deviceId) || (!d.name && !d.type)) {
+      console.warn('[SwitchBot][Discovery][renderDiscoveredDevices] Device missing required fields:', d)
+    }
     const deviceId = normalizeId(d.id)
     const alreadyAdded = configuredIds.has(deviceId)
 
@@ -657,6 +659,10 @@ export async function renderDiscoveredDevices(
       nameContainer.appendChild(batteryWarn)
     }
 
+    // Defensive check: warn if device is missing id, name, or type (for details panel)
+    if (!d || (!d.id && !d.deviceId) || (!d.name && !d.type)) {
+      console.warn('[SwitchBot][Discovery][renderDeviceDetailsPanel] Device missing required fields:', d)
+    }
     const details = document.createElement('div')
     details.style.fontSize = '10px'
     details.style.opacity = '0.7'

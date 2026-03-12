@@ -85,7 +85,9 @@ export async function importDiscoveredDevice(device: any): Promise<ImportDiscove
     nameInput.type = 'text'
     // Never allow 'undefined' as a name
     let safeName = device.name
-    if (!safeName || safeName === 'undefined') safeName = device.id || ''
+    if (!safeName || safeName === 'undefined') {
+      safeName = device.id || ''
+    }
     nameInput.value = safeName
     nameInput.style.width = '100%'
     nameInput.style.marginBottom = '12px'
@@ -298,7 +300,9 @@ export async function importDiscoveredDevice(device: any): Promise<ImportDiscove
     importBtn.onclick = () => {
       // Never allow 'undefined' as a name
       let finalName = nameInput.value
-      if (!finalName || finalName === 'undefined') finalName = device.id || ''
+      if (!finalName || finalName === 'undefined') {
+        finalName = device.id || ''
+      }
       cleanup({
         configDeviceName: finalName,
         configDeviceType: typeSelect.value || device.type,

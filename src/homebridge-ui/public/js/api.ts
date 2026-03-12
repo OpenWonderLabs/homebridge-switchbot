@@ -2,6 +2,7 @@
 import { isValidDeviceType, normalizeDeviceType } from '../../../device-types.js'
 import './types.js'
 import { uiLog } from './logger.js'
+import { toastError } from './toast.js'
 
 export async function fetchDevices(): Promise<any[]> {
   try {
@@ -86,7 +87,7 @@ export async function syncParentPluginConfigFromDisk(autoSave = false): Promise<
     // Validate and fix device types before saving
     const errors = validateAndFixDeviceTypes(diskResp.data.devices || [])
     if (errors.length > 0) {
-      homebridge.toast?.error?.(`Invalid device types found: ${errors.map(e => `${e.name} (${e.type})`).join(', ')}`)
+      toastError(`Invalid device types found: ${errors.map(e => `${e.name} (${e.type})`).join(', ')}`)
       return false
     }
     pluginConfigBlocks[index] = diskResp.data

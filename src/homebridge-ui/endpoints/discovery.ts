@@ -34,10 +34,13 @@ export function registerDiscoveryEndpoint(server: HomebridgePluginUiServer) {
   })
 
   server.onRequest('/discover', async (payload?: any) => {
+      uiLog.debug(`[SwitchBot UI/Server] /discover incoming payload: ${JSON.stringify(payload)}`)
     try {
       const { platform } = await getSwitchBotPlatformConfig(server)
       const mode = String(payload?.mode || 'all').toLowerCase()
-      const runBle = mode === 'all' || mode === 'ble'
+      // Only run BLE if mode is all/ble AND bleEnabled is not false (default true if missing)
+      const bleEnabled = payload?.bleEnabled !== false;
+      const runBle = (mode === 'all' || mode === 'ble') && bleEnabled;
       const runOpenApi = mode === 'all' || mode === 'openapi'
       const bleScanDurationSeconds = Math.max(3, Math.min(15, Number(payload?.bleScanDurationSeconds || 5)))
       const bleTimeoutSeconds = Math.max(3, Math.min(30, Number(payload?.bleTimeoutSeconds || 8)))

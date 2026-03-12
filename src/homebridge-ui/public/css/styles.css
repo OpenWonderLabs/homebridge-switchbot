@@ -1,3 +1,14 @@
+/* Device details panel contrast fix (class-based) */
+.device-details-panel {
+  background: #f9fafb;
+  color: #222;
+}
+@media (prefers-color-scheme: dark) {
+  .device-details-panel {
+    background: #232323;
+    color: #fff;
+  }
+}
 /* Device item background and text color for both dark and light themes */
 .device-item {
   background: #232323;

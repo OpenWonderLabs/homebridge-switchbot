@@ -1,12 +1,19 @@
 import './types.js'
 import { uiLog } from './logger.js'
 
-function callUiMethod(name: keyof HomebridgePluginUiAPI): void {
+function callUiMethod(name: keyof HomebridgePluginUiAPI, ...args: any[]): void {
   try {
-    const value = homebridge?.[name]
-    if (typeof value === 'function') {
-      const fn = value as () => void
-      fn()
+    if (typeof homebridge?.[name] === 'function') {
+      uiLog.info(`[callUiMethod] Invoking homebridge.${String(name)}()`)
+      const fn = homebridge?.[name]
+      if (typeof fn === 'function') {
+        uiLog.info(`[callUiMethod] Invoking homebridge.${String(name)}()`);
+        (fn as (...args: any[]) => void).apply(homebridge, args)
+      } else {
+        uiLog.warn(`[callUiMethod] homebridge[${String(name)}] is not a function.`)
+      }
+    } else {
+      uiLog.warn(`[callUiMethod] homebridge[${String(name)}] is not a function.`)
     }
   } catch (e) {
     uiLog.warn(`Homebridge UI method ${String(name)} failed:`, e)
