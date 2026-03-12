@@ -14,10 +14,15 @@ export async function addDeviceToConfig(device: any, options: { refresh?: boolea
       return { added: false }
     }
 
-
     showBusyUi()
     uiLog.info('Adding device to config:', device)
-    const resp = await addDevice(device.id, importValues.configDeviceName, importValues.configDeviceType, {
+    // Never allow 'undefined' as a device name
+    let safeName = importValues.configDeviceName
+    if (!safeName || safeName === 'undefined') {
+      safeName = device.name || device.id
+      uiLog.warn(`Device name was invalid ("${importValues.configDeviceName}"), using fallback: "${safeName}"`)
+    }
+    const resp = await addDevice(device.id, safeName, importValues.configDeviceType, {
       address: importValues.address,
       model: device.model,
       rssi: device.rssi,

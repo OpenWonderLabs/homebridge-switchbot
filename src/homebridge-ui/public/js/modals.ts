@@ -83,7 +83,10 @@ export async function importDiscoveredDevice(device: any): Promise<ImportDiscove
 
     const nameInput = document.createElement('input')
     nameInput.type = 'text'
-    nameInput.value = device.name || device.id || ''
+    // Never allow 'undefined' as a name
+    let safeName = device.name
+    if (!safeName || safeName === 'undefined') safeName = device.id || ''
+    nameInput.value = safeName
     nameInput.style.width = '100%'
     nameInput.style.marginBottom = '12px'
     nameInput.style.padding = '8px 10px'
@@ -292,18 +295,23 @@ export async function importDiscoveredDevice(device: any): Promise<ImportDiscove
     }
 
     cancelBtn.onclick = () => cleanup(null)
-    importBtn.onclick = () => cleanup({
-      configDeviceName: nameInput.value || device.name || device.id,
-      configDeviceType: typeSelect.value || device.type,
-      address: macInput.value || undefined,
-      connectionPreference: connectionPrefSelect.value || undefined,
-      room: roomInput.value || undefined,
-      encryptionKey: encryptionKeyInput.value || undefined,
-      keyId: keyIdInput.value || undefined,
-      refreshRate: Number(openApiRefreshInput.value) || 300,
-      blePollingEnabled: blePollingEnabledInput.checked,
-      blePollIntervalMs: Number(blePollIntervalInput.value) || 600000,
-    })
+    importBtn.onclick = () => {
+      // Never allow 'undefined' as a name
+      let finalName = nameInput.value
+      if (!finalName || finalName === 'undefined') finalName = device.id || ''
+      cleanup({
+        configDeviceName: finalName,
+        configDeviceType: typeSelect.value || device.type,
+        address: macInput.value || undefined,
+        connectionPreference: connectionPrefSelect.value || undefined,
+        room: roomInput.value || undefined,
+        encryptionKey: encryptionKeyInput.value || undefined,
+        keyId: keyIdInput.value || undefined,
+        refreshRate: Number(openApiRefreshInput.value) || 300,
+        blePollingEnabled: blePollingEnabledInput.checked,
+        blePollIntervalMs: Number(blePollIntervalInput.value) || 600000,
+      })
+    }
 
     div.addEventListener('click', (event) => {
       if (event.target === div) {

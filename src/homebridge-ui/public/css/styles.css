@@ -1,3 +1,28 @@
+/* Device item background and text color for both dark and light themes */
+.device-item {
+  background: #232323;
+  color: #fff;
+  border: 1px solid #333;
+}
+@media (prefers-color-scheme: light) {
+  .device-item {
+    background: #f5f5f5;
+    color: #222;
+    border: 1px solid #ccc;
+  }
+}
+
+/* Device details panel contrast fix */
+.device-item div[style*="background: #f9fafb"] {
+  background: #f9fafb !important;
+  color: #222 !important;
+}
+@media (prefers-color-scheme: dark) {
+  .device-item div[style*="background: #f9fafb"] {
+    background: #232323 !important;
+    color: #fff !important;
+  }
+}
 :root {
   color-scheme: light dark;
   --switchbot-red: #ef4444;

@@ -1130,6 +1130,7 @@ async function updateDiscoveryView(
   selectedIds: Set<string>,
 ) {
   // Compute visibleDevices based on filters and preferences
+  console.warn('[SwitchBot][Discovery] updateDiscoveryView: allDevices', allDevices)
   const visibleDevices = allDevices
     .filter((d) => {
       // Hide already added devices if hideAdded is true
@@ -1139,8 +1140,9 @@ async function updateDiscoveryView(
       // Additional filtering logic can be added here based on preferences
       return true
     })
-    // Optionally sort devices if needed (sortDevices is imported but not used)
-    // .sort((a, b) => a.name.localeCompare(b.name))
+  console.warn('[SwitchBot][Discovery] visibleDevices after filter:', visibleDevices)
+  // Optionally sort devices if needed (sortDevices is imported but not used)
+  // .sort((a, b) => a.name.localeCompare(b.name))
 
   // Set of already added device IDs
   const configuredIds = new Set(
@@ -1187,6 +1189,7 @@ async function updateDiscoveryView(
     groupDevices.push(d)
     groupedDevices.set(group, groupDevices)
   }
+  console.warn('[SwitchBot][Discovery] groupedDevices:', groupedDevices)
 
   let orderedGroups: string[] = []
   if (groupBy === 'hub') {
@@ -1203,6 +1206,7 @@ async function updateDiscoveryView(
   const container = document.createElement('div')
   container.id = 'discoveredDevices'
   container.className = 'discovery-groups'
+  console.warn('[SwitchBot][Discovery] Rendering device groups:', orderedGroups)
 
   if (!visibleDevices.length) {
     const empty = document.createElement('div')
@@ -1211,30 +1215,28 @@ async function updateDiscoveryView(
       ? 'No devices match current filters (or all are already added).'
       : 'No devices match current filters.'
     container.appendChild(empty)
+    console.warn('[SwitchBot][Discovery] No visible devices after filtering.')
   } else {
     for (const groupName of orderedGroups) {
       const groupItems = groupedDevices.get(groupName)
       if (!groupItems?.length) {
         continue
       }
-
+      console.warn(`[SwitchBot][Discovery] Rendering group: ${groupName}`, groupItems)
+      // ...existing code...
       const groupSection = document.createElement('section')
       groupSection.className = 'discovery-group'
-
       const groupStorageKey = `${groupBy}:${groupName}`
       let expanded = isDiscoveryGroupExpanded(groupStorageKey)
-
       const groupHeader = document.createElement('button')
       groupHeader.className = 'discovery-group-header-btn'
       groupHeader.type = 'button'
-
       const setGroupHeaderText = () => {
         const marker = expanded ? '▾' : '▸'
         groupHeader.textContent = `${marker} ${groupName} (${groupItems.length})`
       }
       setGroupHeaderText()
       groupSection.appendChild(groupHeader)
-
       const groupList = await renderDiscoveredDevices(groupItems, {
         configuredIds,
         selectedIds,
@@ -1255,14 +1257,12 @@ async function updateDiscoveryView(
       if (!expanded) {
         groupList.style.display = 'none'
       }
-
       groupHeader.onclick = () => {
         expanded = !expanded
         setDiscoveryGroupExpanded(groupStorageKey, expanded)
         setGroupHeaderText()
         groupList.style.display = expanded ? 'grid' : 'none'
       }
-
       groupSection.appendChild(groupList)
       container.appendChild(groupSection)
     }
