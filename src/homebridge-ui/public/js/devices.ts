@@ -14,6 +14,7 @@ export async function addDeviceToConfig(device: any, options: { refresh?: boolea
       return { added: false }
     }
 
+
     showBusyUi()
     uiLog.info('Adding device to config:', device)
     // Never allow 'undefined' as a device name
