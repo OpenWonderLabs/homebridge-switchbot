@@ -295,6 +295,7 @@ export function renderDeviceDetailsPanel(device: any): HTMLElement {
   }
 
   const rows: Array<{ label: string, value: string, copyable?: boolean }> = [
+    { label: 'Name', value: String(device?.name || device?.configDeviceName || 'N/A') },
     { label: 'Device ID', value: String(device?.id || device?.deviceId || 'N/A'), copyable: !!(device?.id || device?.deviceId) },
     { label: 'MAC Address', value: String(device?.address || 'N/A'), copyable: !!device?.address },
     { label: 'Device Type', value: String(device?.type || device?.configDeviceType || 'N/A') },
@@ -1066,7 +1067,7 @@ export function renderDeviceList(list: any[]): void {
     deleteBtn.style.background = '#ef4444'
     deleteBtn.onclick = async () => {
       const { deleteDeviceFromConfig } = await import('./devices-delete.js')
-      await deleteDeviceFromConfig(d.id, d.name || d.id)
+      await deleteDeviceFromConfig(d.id || d.deviceId, d.name || d.id || d.deviceId)
     }
 
     buttons.appendChild(editBtn)

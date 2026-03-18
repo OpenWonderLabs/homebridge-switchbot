@@ -1,3 +1,12 @@
+/**
+ * Ensure required fields are present on the SwitchBot platform config
+ */
+export function enforcePlatformConfigFields(platform: any): void {
+  if (!platform) return
+  if (!platform.platform) platform.platform = 'SwitchBot'
+  if (!platform.name) platform.name = 'SwitchBot'
+  if (!Array.isArray(platform.devices)) platform.devices = []
+}
 import type { HomebridgePluginUiServer } from '@homebridge/plugin-ui-utils'
 
 import fs from 'node:fs/promises'
@@ -104,5 +113,13 @@ export async function getSwitchBotPlatformConfig(server: HomebridgePluginUiServe
  * Save the Homebridge config file
  */
 export async function saveConfig(cfgPath: string, cfg: any): Promise<void> {
+  // Defensive: enforce required fields on all SwitchBot platform blocks before saving
+  if (cfg && Array.isArray(cfg.platforms)) {
+    for (const p of cfg.platforms) {
+      if (p && (String(p.platform || '').toLowerCase() === 'switchbot' || String(p.name || '').toLowerCase() === 'switchbot')) {
+        enforcePlatformConfigFields(p)
+      }
+    }
+  }
   await fs.writeFile(cfgPath, JSON.stringify(cfg, null, 2), 'utf-8')
 }

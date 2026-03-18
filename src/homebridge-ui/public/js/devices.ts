@@ -67,6 +67,8 @@ export async function addDeviceToConfig(device: any, options: { refresh?: boolea
     }
 
     if (refresh) {
+      // Force reload of config from disk after add
+      await syncParentPluginConfigFromDisk(true)
       await loadConfiguredDevices()
     }
 

@@ -66,12 +66,7 @@ export async function syncParentPluginConfigFromDisk(autoSave = false): Promise<
       return false
     }
 
-    const diskResp = await homebridge.request('/platform-config', {})
-    if (!diskResp || diskResp.success === false || !diskResp.data) {
-      uiLog.warn('Failed to fetch fresh platform config from disk')
-      return false
-    }
-
+    // Use Homebridge UI API to fetch and update config
     const pluginConfigBlocks = await homebridge.getPluginConfig()
     if (!Array.isArray(pluginConfigBlocks) || !pluginConfigBlocks.length) {
       uiLog.warn('No plugin config blocks returned from Homebridge')
@@ -85,12 +80,12 @@ export async function syncParentPluginConfigFromDisk(autoSave = false): Promise<
     }
 
     // Validate and fix device types before saving
-    const errors = validateAndFixDeviceTypes(diskResp.data.devices || [])
+    const errors = validateAndFixDeviceTypes(pluginConfigBlocks[index].devices || [])
     if (errors.length > 0) {
       toastError(`Invalid device types found: ${errors.map(e => `${e.name} (${e.type})`).join(', ')}`)
       return false
     }
-    pluginConfigBlocks[index] = diskResp.data
+    // pluginConfigBlocks[index] is already up to date
     await homebridge.updatePluginConfig(pluginConfigBlocks)
 
     // Auto-save to disk if requested - prevents parent UI from overwriting with stale cache
@@ -309,7 +304,10 @@ export async function deleteDevice(deviceId: string): Promise<any> {
   }
   const normalizedDeviceId = String(deviceId).trim().toLowerCase()
   const before = config.devices.length
-  config.devices = config.devices.filter((d: any) => String(d.deviceId ?? d.id ?? '').trim().toLowerCase() !== normalizedDeviceId)
+  // Remove the target device
+  config.devices = config.devices.filter(d => String(d.deviceId ?? d.id ?? '').trim().toLowerCase() !== normalizedDeviceId)
+  // Defensive: filter out any invalid device entries (missing required fields)
+  config.devices = config.devices.filter(d => d && typeof d === 'object' && d.deviceId && d.configDeviceType)
   if (config.devices.length === before) {
     throw new Error('Device not found in config')
   }
@@ -325,16 +323,30 @@ export async function deleteAllDevices(): Promise<any> {
     throw new TypeError('Homebridge UI API not available')
   }
   const configArr = await homebridge.getPluginConfig()
-  const idx = Array.isArray(configArr) ? configArr.findIndex(isSwitchBotPlatformConfig) : -1
+  // Find or create the SwitchBot config block
+  let idx = Array.isArray(configArr) ? configArr.findIndex(isSwitchBotPlatformConfig) : -1
   if (idx === -1) {
-    throw new Error('SwitchBot config not found')
+    // If not found, create a new config block for SwitchBot
+    const newBlock = { platform: 'SwitchBot', devices: [] }
+    configArr.push(newBlock)
+    idx = configArr.length - 1
   }
   const config = configArr[idx]
+  // Always ensure devices is an array
   if (!Array.isArray(config.devices)) {
-    throw new TypeError('No devices array in config')
+    config.devices = []
   }
   const deletedCount = config.devices.length
   config.devices = []
+  // Defensive: ensure required fields for schema compliance
+  if (!config.platform) {
+    config.platform = 'SwitchBot'
+  }
+  // Ensure 'name' property is present (required by schema for Homebridge platform blocks)
+  if (!config.name) {
+    config.name = 'SwitchBot'
+  }
+  // Save updated config
   await homebridge.updatePluginConfig(configArr)
   if (typeof homebridge.savePluginConfig === 'function') {
     await homebridge.savePluginConfig()

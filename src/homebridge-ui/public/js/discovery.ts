@@ -1,3 +1,4 @@
+// Extend the Window interface to include _discoverySelectedIds for type safety
 // Batch enable/disable helper (true module scope for UI access)
 import {
   addDevicesInBulk,
@@ -12,42 +13,9 @@ import { hideBusyUi, showBusyUi } from './modal.js'
 import { getDiscoveryPreferences, renderDiscoveredDevices, setDiscoveryPreferences } from './render.js'
 import { toastError, toastInfo, toastSuccess, toastWarning } from './toast.js'
 
-async function batchSetDeviceEnabled(selectedIds: Set<string>, enabled: boolean): Promise<void> {
-  // Fetch current config
-  const resp = await homebridge.request('/platform-config', {})
-  if (!resp || resp.success === false || !resp.data) {
-    throw new Error('Failed to load config')
-  }
-  const config = resp.data
-  // Homebridge config may be an array of platforms, find SwitchBot
-  const configArr = Array.isArray(config) ? config : [config]
-  const platformIdx = configArr.findIndex((c: any) => (c.platform || c.name || '').toLowerCase().includes('switchbot'))
-  if (platformIdx === -1) {
-    throw new Error('SwitchBot platform config not found')
-  }
-  const platformConfig = configArr[platformIdx]
-  if (!Array.isArray(platformConfig.devices)) {
-    throw new TypeError('No devices array in config')
-  }
-  let changed = false
-  for (const dev of platformConfig.devices) {
-    const id = String(dev.deviceId || dev.id || '').trim().toLowerCase()
-    if (selectedIds.has(id)) {
-      if (dev.enabled !== enabled) {
-        dev.enabled = enabled
-        changed = true
-      }
-    }
-  }
-  if (changed) {
-    if (typeof homebridge.updatePluginConfig === 'function') {
-      await homebridge.updatePluginConfig(configArr)
-    } else {
-      throw new TypeError('homebridge.updatePluginConfig is not available')
-    }
-    if (typeof homebridge.savePluginConfig === 'function') {
-      await homebridge.savePluginConfig()
-    }
+declare global {
+  interface Window {
+    _discoverySelectedIds: Set<string>
   }
 }
 
@@ -378,9 +346,9 @@ function getDiscoveryGroupByPreference(): DiscoveryGroupBy {
     if (stored === 'hub' || stored === 'type') {
       return stored
     }
-    return 'connection'
+    return 'type' // Default to Device Type grouping
   } catch (_e) {
-    return 'connection'
+    return 'type'
   }
 }
 
@@ -502,12 +470,12 @@ export async function discoverDevices(): Promise<void> {
   const preferences = getDiscoveryPreferences()
   let groupBy: DiscoveryGroupBy = getDiscoveryGroupByPreference()
   let hideAdded = getDiscoveryHideAddedPreference()
-  let controlsInitialized = false
   // Use persistent selection state across renders
-  if (!(window as any)._discoverySelectedIds) {
-    (window as any)._discoverySelectedIds = new Set<string>()
+  if (!window._discoverySelectedIds) {
+    window._discoverySelectedIds = new Set<string>()
   }
-  const selectedIds: Set<string> = (window as any)._discoverySelectedIds
+  const selectedIds: Set<string> = window._discoverySelectedIds
+  let controlsInitialized = false
 
   // --- Real-time RSSI polling loop ---
   // (Moved inside main try block after bleSettings is defined)
@@ -515,14 +483,12 @@ export async function discoverDevices(): Promise<void> {
   // Batch enable/disable helper (moved to module scope for UI access)
   async function batchSetDeviceEnabled(selectedIds: Set<string>, enabled: boolean): Promise<void> {
   // Fetch current config
-    const resp = await homebridge.request('/platform-config', {})
-    if (!resp || resp.success === false || !resp.data) {
-      throw new Error('Failed to load config')
+    // Fetch current config using Homebridge UI API
+    if (typeof homebridge.getPluginConfig !== 'function') {
+      throw new TypeError('homebridge.getPluginConfig is not available')
     }
-    const config = resp.data
-    // Homebridge config may be an array of platforms, find SwitchBot
-    const configArr = Array.isArray(config) ? config : [config]
-    const platformIdx = configArr.findIndex((c: any) => (c.platform || c.name || '').toLowerCase().includes('switchbot'))
+    const configArr = await homebridge.getPluginConfig()
+    const platformIdx = Array.isArray(configArr) ? configArr.findIndex(c => (c.platform || c.name || '').toLowerCase().includes('switchbot')) : -1
     if (platformIdx === -1) {
       throw new Error('SwitchBot platform config not found')
     }
@@ -553,14 +519,55 @@ export async function discoverDevices(): Promise<void> {
   }
 
   const ensureDiscoveryControls = async (): Promise<void> => {
+    // --- Select All / Deselect All controls ---
+    const selectAllBtn = document.createElement('button')
+    selectAllBtn.textContent = 'Select All'
+    selectAllBtn.style.fontSize = '13px'
+    selectAllBtn.style.padding = '6px 18px'
+    selectAllBtn.style.borderRadius = '6px'
+    selectAllBtn.style.background = '#f3f4f6'
+    selectAllBtn.style.color = '#1d4ed8'
+    selectAllBtn.style.border = '1px solid #d1d5db'
+    selectAllBtn.style.cursor = 'pointer'
+    selectAllBtn.style.marginRight = '8px'
+    selectAllBtn.onclick = () => {
+      // Add all visible device IDs to selectedIds
+      for (const d of discoveredDevices) {
+        selectedIds.add(normalizeId(d.id))
+      }
+      window.dispatchEvent(new Event('discovery-selection-changed'))
+      void updateDiscoveryView(discoveredDevices, preferences, groupBy, hideAdded, selectedIds)
+    }
+
+    const deselectAllBtn = document.createElement('button')
+    deselectAllBtn.textContent = 'Deselect All'
+    deselectAllBtn.style.fontSize = '13px'
+    deselectAllBtn.style.padding = '6px 18px'
+    deselectAllBtn.style.borderRadius = '6px'
+    deselectAllBtn.style.background = '#f3f4f6'
+    deselectAllBtn.style.color = '#ef4444'
+    deselectAllBtn.style.border = '1px solid #d1d5db'
+    deselectAllBtn.style.cursor = 'pointer'
+    deselectAllBtn.onclick = () => {
+      // Remove all visible device IDs from selectedIds
+      for (const d of discoveredDevices) {
+        selectedIds.delete(normalizeId(d.id))
+      }
+      window.dispatchEvent(new Event('discovery-selection-changed'))
+      void updateDiscoveryView(discoveredDevices, preferences, groupBy, hideAdded, selectedIds)
+    }
+
+    // Insert select/deselect all controls above the action buttons
+    const selectControlsRow = document.createElement('div')
+    selectControlsRow.style.display = 'flex'
+    selectControlsRow.style.gap = '10px'
+    selectControlsRow.style.margin = '0 0 10px 0'
+    selectControlsRow.appendChild(selectAllBtn)
+    selectControlsRow.appendChild(deselectAllBtn)
     if (controlsInitialized) {
       return
     }
-    // Always use persistent selectedIds
-    if (!(window as any)._discoverySelectedIds) {
-      (window as any)._discoverySelectedIds = new Set<string>()
-    }
-    const selectedIds: Set<string> = (window as any)._discoverySelectedIds
+    // Always use persistent selectedIds (already defined in outer scope)
 
     const controlsDiv = document.createElement('div')
     controlsDiv.style.cssText = 'margin-bottom: 12px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;'
@@ -643,17 +650,28 @@ export async function discoverDevices(): Promise<void> {
       void updateDiscoveryView(discoveredDevices, preferences, groupBy, hideAdded, selectedIds)
     }
 
-    const groupLabel = document.createElement('label')
-    groupLabel.style.fontSize = '12px'
-    groupLabel.style.fontWeight = '500'
-    groupLabel.style.marginLeft = '8px'
-    groupLabel.textContent = 'Group:'
-
     const groupSelect = document.createElement('select')
     groupSelect.style.fontSize = '11px'
     groupSelect.style.padding = '4px 8px'
     groupSelect.style.borderRadius = '3px'
-    groupSelect.value = groupBy
+    // Set default value to 'type' if no stored preference
+    if (!localStorage.getItem(DISCOVERY_GROUP_BY_KEY)) {
+      groupSelect.value = 'type'
+    } else {
+      groupSelect.value = groupBy
+    }
+
+    const groupLabel = document.createElement('label')
+    groupLabel.style.fontSize = '12px'
+    groupLabel.style.fontWeight = '500'
+    groupLabel.style.marginLeft = '8px'
+    // Set label text to match selected group
+    const groupLabelTextMap = {
+      connection: 'Connection',
+      hub: 'Hub',
+      type: 'Device Type',
+    }
+    groupLabel.textContent = `Group: ${groupLabelTextMap[groupSelect.value] || 'Connection'}`
 
     const groupOptions: Array<{ label: string, value: DiscoveryGroupBy }> = [
       { label: 'Connection', value: 'connection' },
@@ -671,6 +689,7 @@ export async function discoverDevices(): Promise<void> {
     groupSelect.onchange = () => {
       groupBy = groupSelect.value as DiscoveryGroupBy
       setDiscoveryGroupByPreference(groupBy)
+      groupLabel.textContent = `Group: ${groupLabelTextMap[groupSelect.value] || 'Connection'}`
       void updateDiscoveryView(discoveredDevices, preferences, groupBy, hideAdded, selectedIds)
     }
 
@@ -866,6 +885,7 @@ export async function discoverDevices(): Promise<void> {
 
     // Clear list and append controls in correct order
     list.innerHTML = ''
+    list.appendChild(selectControlsRow)
     list.appendChild(topActionRow)
     list.appendChild(controlsDiv)
 
@@ -1276,26 +1296,12 @@ async function updateDiscoveryView(
     }
   }
 
-  // --- Batch Import Controls ---
-  // Remove any duplicate 'Add Selected' buttons from legacy UI
-  // Robust NodeList iteration: classic for loop to avoid formatter and transpiler issues
-  const legacyAddSelectedBtns: HTMLButtonElement[] = []
-  const allBtns = document.querySelectorAll('button')
-  for (let i = 0; i < allBtns.length; i++) {
-    const btn = allBtns[i]
-    if (btn.textContent && btn.textContent.trim() === 'Add Selected') {
-      legacyAddSelectedBtns.push(btn)
-    }
-  }
-  for (let i = 0; i < legacyAddSelectedBtns.length; i++) {
-    legacyAddSelectedBtns[i].remove()
-  }
-
-  // Listen for selection changes to update batch button states
+  // Only update the enabled/disabled state of batch action buttons (created in ensureDiscoveryControls)
   function updateBatchButtonStates() {
+    // These buttons are created in ensureDiscoveryControls and should have unique IDs
     const addSelectedBtn = document.getElementById('addSelectedBtn') as HTMLButtonElement | null
-    const enableSelectedBtn = document.querySelector('button')?.parentElement?.querySelector('button[aria-label="Enable Selected"]') as HTMLButtonElement | null
-    const disableSelectedBtn = document.querySelector('button')?.parentElement?.querySelector('button[aria-label="Disable Selected"]') as HTMLButtonElement | null
+    const enableSelectedBtn = document.getElementById('enableSelectedBtn') as HTMLButtonElement | null
+    const disableSelectedBtn = document.getElementById('disableSelectedBtn') as HTMLButtonElement | null
     const hasSelection = selectedIds.size > 0
     if (addSelectedBtn) {
       addSelectedBtn.disabled = !hasSelection
@@ -1309,173 +1315,8 @@ async function updateDiscoveryView(
   }
   window.removeEventListener('discovery-selection-changed', updateBatchButtonStates)
   window.addEventListener('discovery-selection-changed', updateBatchButtonStates)
-  // Add 'Add Selected to Config' button if not present, and align all red action buttons in a row
-  let batchControls = document.getElementById('batchImportControls')
-  if (!batchControls) {
-    batchControls = document.createElement('div')
-    batchControls.id = 'batchImportControls'
-    batchControls.style.display = 'flex'
-    batchControls.style.flexWrap = 'wrap'
-    batchControls.style.alignItems = 'center'
-    batchControls.style.gap = '18px'
-    batchControls.style.margin = '8px 0 18px 0'
-    batchControls.style.width = '100%'
-
-    // Button container for horizontal alignment
-    const buttonRow = document.createElement('div')
-    buttonRow.style.display = 'flex'
-    buttonRow.style.flexWrap = 'nowrap'
-    buttonRow.style.alignItems = 'center'
-    buttonRow.style.justifyContent = 'center'
-    buttonRow.style.gap = '16px'
-    buttonRow.style.width = '100%'
-
-    // Add Selected to Config button
-    const addSelectedBtn = document.createElement('button')
-    addSelectedBtn.id = 'addSelectedBtn'
-    addSelectedBtn.textContent = 'Add Selected to Config'
-    addSelectedBtn.disabled = selectedIds.size === 0
-    addSelectedBtn.style.fontWeight = '600'
-    // Shared style for all red action buttons
-    const redButtonStyle = {
-      width: '220px',
-      padding: '12px 0',
-      fontSize: '17px',
-      marginBottom: '0',
-      boxShadow: '0 2px 8px 0 rgba(220,38,38,0.10)',
-      borderRadius: '8px',
-    }
-    Object.assign(addSelectedBtn.style, redButtonStyle)
-    addSelectedBtn.style.background = '#ef4444'
-    addSelectedBtn.style.color = 'white'
-    addSelectedBtn.style.transition = 'background 0.2s, box-shadow 0.2s'
-    addSelectedBtn.onmouseenter = function () {
-      addSelectedBtn.style.background = '#dc2626'
-    }
-    addSelectedBtn.onmouseleave = function () {
-      addSelectedBtn.style.background = '#ef4444'
-    }
-    addSelectedBtn.onclick = async () => {
-      if (!selectedIds.size) {
-        return
-      }
-      addSelectedBtn.disabled = true
-      addSelectedBtn.textContent = 'Adding...'
-      try {
-        const selectedDevices = visibleDevices.filter(d => selectedIds.has(normalizeId(d.id)))
-        const bulkResult = await addDevicesInBulk(selectedDevices.map(d => ({
-          deviceId: d.id,
-          name: d.name,
-          type: d.type,
-          rssi: d.rssi,
-          address: d.address,
-          model: d.model,
-        })))
-        uiLog.info('Batch add response:', bulkResult)
-        if (!bulkResult || bulkResult.success === false) {
-          throw new Error(bulkResult?.data?.message || 'Batch add failed')
-        }
-        const addedCount = bulkResult?.addedCount ?? bulkResult?.data?.addedCount ?? 0
-        const skippedCount = bulkResult?.skippedCount ?? bulkResult?.data?.skippedCount ?? 0
-        toastSuccess(`Added ${addedCount} device(s)${skippedCount > 0 ? ` (${skippedCount} skipped)` : ''}`)
-        await loadConfiguredDevices()
-        selectedIds.clear()
-        addSelectedBtn.disabled = true
-        addSelectedBtn.textContent = 'Add Selected to Config'
-        await updateDiscoveryView(allDevices, preferences, groupBy, hideAdded, selectedIds)
-      } catch (e) {
-        uiLog.error('Batch add error:', e)
-        toastError(e instanceof Error ? e.message : 'Failed to add devices')
-        addSelectedBtn.disabled = false
-        addSelectedBtn.textContent = 'Add Selected to Config'
-      }
-    }
-
-    // Enable Selected button
-    const enableSelectedBtn = document.createElement('button')
-    enableSelectedBtn.textContent = 'Enable Selected'
-    enableSelectedBtn.style.fontWeight = '600'
-    Object.assign(enableSelectedBtn.style, redButtonStyle)
-    enableSelectedBtn.style.background = '#ef4444'
-    enableSelectedBtn.style.color = 'white'
-    enableSelectedBtn.style.transition = 'background 0.2s, box-shadow 0.2s'
-    enableSelectedBtn.onmouseenter = function () {
-      enableSelectedBtn.style.background = '#dc2626'
-    }
-    enableSelectedBtn.onmouseleave = function () {
-      enableSelectedBtn.style.background = '#ef4444'
-    }
-    enableSelectedBtn.disabled = selectedIds.size === 0
-    enableSelectedBtn.onclick = async () => {
-      if (!selectedIds.size) {
-        return
-      }
-      enableSelectedBtn.disabled = true
-      try {
-        showBusyUi()
-        await batchSetDeviceEnabled(selectedIds, true)
-        toastSuccess('Selected devices enabled')
-        await loadConfiguredDevices()
-        await updateDiscoveryView(allDevices, preferences, groupBy, hideAdded, selectedIds)
-      } catch (e) {
-        uiLog.error('Batch enable error:', e)
-        toastError(e instanceof Error ? e.message : 'Failed to enable devices')
-      } finally {
-        hideBusyUi()
-        enableSelectedBtn.disabled = false
-      }
-    }
-
-    // Disable Selected button
-    const disableSelectedBtn = document.createElement('button')
-    disableSelectedBtn.textContent = 'Disable Selected'
-    disableSelectedBtn.style.fontWeight = '600'
-    Object.assign(disableSelectedBtn.style, redButtonStyle)
-    disableSelectedBtn.style.background = '#ef4444'
-    disableSelectedBtn.style.color = 'white'
-    disableSelectedBtn.style.transition = 'background 0.2s, box-shadow 0.2s'
-    disableSelectedBtn.onmouseenter = function () {
-      disableSelectedBtn.style.background = '#dc2626'
-    }
-    disableSelectedBtn.onmouseleave = function () {
-      disableSelectedBtn.style.background = '#ef4444'
-    }
-    disableSelectedBtn.disabled = selectedIds.size === 0
-    disableSelectedBtn.onclick = async () => {
-      if (!selectedIds.size) {
-        return
-      }
-      disableSelectedBtn.disabled = true
-      try {
-        showBusyUi()
-        await batchSetDeviceEnabled(selectedIds, false)
-        toastSuccess('Selected devices disabled')
-        await loadConfiguredDevices()
-        await updateDiscoveryView(allDevices, preferences, groupBy, hideAdded, selectedIds)
-      } catch (e) {
-        uiLog.error('Batch disable error:', e)
-        toastError(e instanceof Error ? e.message : 'Failed to disable devices')
-      } finally {
-        hideBusyUi()
-        disableSelectedBtn.disabled = false
-      }
-    }
-
-    buttonRow.appendChild(addSelectedBtn)
-    buttonRow.appendChild(enableSelectedBtn)
-    buttonRow.appendChild(disableSelectedBtn)
-    batchControls.appendChild(buttonRow)
-    const listContainer = document.getElementById('discoveredList')
-    if (listContainer) {
-      listContainer.insertBefore(batchControls, listContainer.firstChild)
-    }
-  } else {
-    // Update button state if already present
-    const addSelectedBtn = document.getElementById('addSelectedBtn') as HTMLButtonElement | null
-    if (addSelectedBtn) {
-      addSelectedBtn.disabled = selectedIds.size === 0
-    }
-  }
+  // Initial state update
+  updateBatchButtonStates()
 
   // Update status with count
   const status = document.getElementById('discoverStatus')
