@@ -1,30 +1,93 @@
-name: Unified Release
+name: Release
 
 on:
   push:
     branches:
-      #- "alpha-*"
-      #- "beta-*"
-      - latest
+      - 'beta-*'
+      - 'beta'
+      - 'latest'
   workflow_dispatch:
 
 jobs:
+  # ─── BETA RELEASE (branches starting with "beta") ────────────────────────────
+
+  # 1️⃣ Build and test
+  build_and_test:
+    if: startsWith(github.ref_name, 'beta')
+    uses: homebridge/.github/.github/workflows/nodejs-build-and-test.yml@latest
+    with:
+      enable_coverage: false
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
+
+  # 2️⃣ Lint
+  lint:
+    if: startsWith(github.ref_name, 'beta')
+    needs: build_and_test
+    uses: homebridge/.github/.github/workflows/eslint.yml@latest
+
+  # 3️⃣ Publish beta to NPM (OIDC — id-token required here and in the reusable workflow)
+  beta-publish:
+    if: startsWith(github.ref_name, 'beta')
+    needs: lint
+    permissions:
+      id-token: write
+    uses: homebridge/.github/.github/workflows/npm-publish-esm.yml@latest
+    with:
+      tag: 'beta'
+      dynamically_adjust_version: true
+      npm_version_command: 'pre'
+      pre_id: 'beta'
+    secrets:
+      npm_auth_token: ${{ secrets.npm_token }}
+
+  # 4️⃣ Create GitHub pre-release
+  beta-pre-release:
+    if: startsWith(github.ref_name, 'beta')
+    needs: beta-publish
+    uses: homebridge/.github/.github/workflows/pre-release.yml@latest
+    with:
+      npm_version: ${{ needs.beta-publish.outputs.NPM_VERSION }}
+      body: |
+        **Beta Release**
+        **Version**: v${{ needs.beta-publish.outputs.NPM_VERSION }}
+        [How To Test Beta Releases](https://github.com/OpenWonderLabs/homebridge-switchbot/wiki/Beta-Version)
+
+  # 5️⃣ Post to Discord
+  beta-discord:
+    name: Discord Webhooks (Beta)
+    if: startsWith(github.ref_name, 'beta')
+    needs: [build_and_test, beta-publish]
+    uses: homebridge/.github/.github/workflows/discord-webhooks.yml@latest
+    with:
+      title: "SwitchBot Beta Release"
+      description: |
+        Version `v${{ needs.beta-publish.outputs.NPM_VERSION }}`
+      url: "https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v${{ needs.beta-publish.outputs.NPM_VERSION }}"
+    secrets:
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL_LATEST }}
+
+  # ─── STABLE RELEASE (branch: "latest") ───────────────────────────────────────
+
   # 1️⃣ Determine release type, ESM status, and branch name
   determine-release-type:
+    if: github.ref_name == 'latest'
     uses: homebridge/.github/.github/workflows/determine-release-type.yml@latest
     with:
       ref_name: ${{ github.ref_name }}
 
   # 2️⃣ Update version and changelog using the scripts
   update-version:
+    if: github.ref_name == 'latest'
     needs: determine-release-type
     uses: homebridge/.github/.github/workflows/update-version.yml@latest
     with:
       release_type: ${{ needs.determine-release-type.outputs.release_type }}
       is_esm: ${{ needs.determine-release-type.outputs.is_esm == 'true' }}
 
-  # 3️⃣ Publish to NPM and create GitHub release
+  # 3️⃣ Publish to NPM and create GitHub release (OIDC — id-token required here and in the reusable workflow)
   publish-release:
+    if: github.ref_name == 'latest'
     needs: [determine-release-type, update-version]
     permissions:
       id-token: write
@@ -39,17 +102,17 @@ jobs:
 
   # 4️⃣ Promote branch if this is a prerelease (alpha/beta)
   promote-branch:
+    if: ${{ github.ref_name == 'latest' && needs.determine-release-type.outputs.release_type != 'latest' && needs.determine-release-type.outputs.release_type != 'skip' }}
     needs: [determine-release-type, publish-release]
-    if: ${{ needs.determine-release-type.outputs.release_type != 'latest' && needs.determine-release-type.outputs.release_type != 'skip' }}
     uses: homebridge/.github/.github/workflows/promote-branch.yml@latest
     with:
       branch_name: ${{ needs.determine-release-type.outputs.branch_name }}
       release_type: ${{ needs.determine-release-type.outputs.release_type }}
       is_esm: ${{ needs.determine-release-type.outputs.is_esm == 'true' }}
 
-  # 5️⃣ Notify if any previous job fails
+  # 5️⃣ Notify if any stable-release job fails
   workflow-failure:
-    if: ${{ failure() }}
+    if: failure()
     needs: [determine-release-type, update-version, publish-release, promote-branch]
     uses: homebridge/.github/.github/workflows/report-failure.yml@latest
     with:
@@ -58,8 +121,9 @@ jobs:
       run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
   # 6️⃣ Post to Discord
-  github-releases-to-discord:
-    name: Discord Webhooks
+  stable-discord:
+    name: Discord Webhooks (Stable)
+    if: github.ref_name == 'latest'
     needs: [determine-release-type, update-version, publish-release]
     uses: homebridge/.github/.github/workflows/discord-webhooks.yml@latest
     with:
