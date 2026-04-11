@@ -1,5 +1,8 @@
 name: Manual E2E (build + optional E2E)
 
+permissions:
+  contents: read
+
 on:
   workflow_dispatch:
     inputs:
